@@ -1,7 +1,7 @@
 import { BaseInstructionCard } from '@components/common/BaseInstructionCard';
 import { useCluster } from '@providers/cluster';
 import { ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
-import { ComputeBudgetProgram, MessageCompiledInstruction, VersionedMessage } from '@solana/web3.js';
+import { ComputeBudgetProgram, MessageCompiledInstruction, VersionedMessage, AddressLookupTableAccount } from '@solana/web3.js';
 import { getProgramName } from '@utils/tx';
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -35,8 +35,51 @@ function InspectorInstructionCard({
     index: number;
 }) {
     const { cluster, url } = useCluster();
+    const [lookupTableAccounts, setLookupTableAccounts] = React.useState<AddressLookupTableAccount[]>([]);
 
-    const transactionInstruction = intoTransactionInstructionFromVersionedMessage(ix, message);
+    // Fetch lookup table accounts if needed
+    React.useEffect(() => {
+        if (message.addressTableLookups.length === 0) return;
+
+        const fetchLookupTableAccounts = async () => {
+            try {
+                // Import dynamically to avoid circular dependencies
+                const { Connection } = await import('@solana/web3.js');
+                const connection = new Connection(url);
+
+                // Get lookup table addresses
+                const lookupTableAddresses = message.addressTableLookups.map(
+                    lookup => lookup.accountKey
+                );
+
+                // Fetch each lookup table account manually
+                const accounts: AddressLookupTableAccount[] = [];
+
+                for (const address of lookupTableAddresses) {
+                    try {
+                        const accountInfo = await connection.getAccountInfo(address);
+                        if (accountInfo) {
+                            const lookupTableAccount = new AddressLookupTableAccount({
+                                key: address,
+                                state: AddressLookupTableAccount.deserialize(accountInfo.data),
+                            });
+                            accounts.push(lookupTableAccount);
+                        }
+                    } catch (error) {
+                        console.error(`Failed to fetch lookup table account ${address.toString()}:`, error);
+                    }
+                }
+
+                setLookupTableAccounts(accounts);
+            } catch (error) {
+                console.error('Failed to fetch lookup table accounts:', error);
+            }
+        };
+
+        fetchLookupTableAccounts();
+    }, [message.addressTableLookups, url]);
+
+    const transactionInstruction = intoTransactionInstructionFromVersionedMessage(ix, message, lookupTableAccounts);
 
     const programId = transactionInstruction.programId;
     const programName = getProgramName(programId.toBase58(), cluster);
