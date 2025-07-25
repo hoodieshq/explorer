@@ -20,6 +20,10 @@ const config: Config = {
                 // border for active states from Dashkit
                 active: '0 0 0 0.15rem #33a382',
             },
+            colors: {
+                accent: '#13d89b',
+                muted: '#8a8d8c',
+            },
             gridTemplateColumns: {
                 // Grid template for TokenExtensions
                 '12-ext': 'repeat(12, minmax(0, 1fr))',

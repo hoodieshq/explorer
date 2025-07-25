@@ -3,19 +3,21 @@ import NodeWallet from '@coral-xyz/anchor/dist/cjs/nodewallet';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { useMemo } from 'react';
 
-import { Cluster } from '../utils/cluster';
-import { formatSerdeIdl, getFormattedIdl } from '../utils/convertLegacyIdl';
+import { Cluster } from '@/app/utils/cluster';
+
+import { formatSerdeIdl } from '../converters/convert-legacy-idl';
+import { getFormattedIdl } from '../format';
 
 const cachedAnchorProgramPromises: Record<
     string,
     void | { __type: 'promise'; promise: Promise<void> } | { __type: 'result'; result: Idl | null }
 > = {};
 
-function getProvider(url: string) {
+export function getProvider(url: string) {
     return new AnchorProvider(new Connection(url), new NodeWallet(Keypair.generate()), {});
 }
 
-function useIdlFromAnchorProgramSeed(programAddress: string, url: string, cluster?: Cluster): Idl | null {
+export function useIdlFromAnchorProgramSeed(programAddress: string, url: string, cluster?: Cluster): Idl | null {
     const key = `${programAddress}-${url}`;
     const cacheEntry = cachedAnchorProgramPromises[key];
 
@@ -50,7 +52,6 @@ function useIdlFromAnchorProgramSeed(programAddress: string, url: string, cluste
                     if (!idl) {
                         throw new Error(`IDL not found for program: ${programAddress.toString()}`);
                     }
-
                     cachedAnchorProgramPromises[key] = {
                         __type: 'result',
                         result: idl,

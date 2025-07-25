@@ -1,7 +1,6 @@
+import { getIdlSpecType } from '@entities/idl/converters/convert-legacy-idl';
 import { RootNode } from 'codama';
 import React from 'react';
-
-import { getIdlSpecType } from '@/app/utils/convertLegacyIdl';
 
 interface IDLBadgeProps {
     idl: any;

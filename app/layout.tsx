@@ -10,6 +10,9 @@ import type { Viewport } from 'next';
 import dynamic from 'next/dynamic';
 import { Rubik } from 'next/font/google';
 import { Metadata } from 'next/types';
+
+import { Toaster } from '@/app/components/shared/ui/sonner/toaster';
+
 const SearchBar = dynamic(() => import('@components/SearchBar'), {
     ssr: false,
 });
@@ -64,6 +67,7 @@ export default function RootLayout({
                             </div>
                             {children}
                         </div>
+                        <Toaster position="bottom-center" toastOptions={{ duration: 5_000 }} />
                     </ClusterProvider>
                 </ScrollAnchorProvider>
                 {analytics}

@@ -38,8 +38,10 @@ export default defineConfig({
 
             // @ aliases
             '@app': path.resolve(__dirname, './app'),
-            '@img': path.resolve(__dirname, './app/img'),
             '@components': path.resolve(__dirname, './app/components'),
+            '@entities': path.resolve(__dirname, './app/entities'),
+            '@features': path.resolve(__dirname, './app/features'),
+            '@img': path.resolve(__dirname, './app/img'),
             '@providers': path.resolve(__dirname, './app/providers'),
             '@utils': path.resolve(__dirname, './app/utils'),
             '@validators': path.resolve(__dirname, './app/validators'),

@@ -1,0 +1,871 @@
+{
+    "version": "0.1.0",
+    "name": "stake_program",
+    "instructions": [
+        {
+            "name": "initialize",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "nominatedAuth",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "admin",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "guardian",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "pauser",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "payer",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "noticePeriods",
+                    "type": {
+                        "array": ["u64", 3]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "nominatePauser",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "nominatedAuth",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "pauser",
+                    "type": "publicKey"
+                }
+            ]
+        },
+        {
+            "name": "acceptPauserNomination",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "nominatedAuth",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "nominateGuardian",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "nominatedAuth",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "guardian",
+                    "type": "publicKey"
+                }
+            ]
+        },
+        {
+            "name": "acceptGuardianNomination",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "nominatedAuth",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "nominateAdmin",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "nominatedAuth",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "admin",
+                    "type": "publicKey"
+                }
+            ]
+        },
+        {
+            "name": "acceptAdminNomination",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "nominatedAuth",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "pause",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "unpause",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "updateNotices",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": false,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "noticePeriods",
+                    "type": {
+                        "array": ["u64", 3]
+                    }
+                }
+            ]
+        },
+        {
+            "name": "createPool",
+            "accounts": [
+                {
+                    "name": "config",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "pool",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "poolVault",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "mint",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "cMint1",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "cMint2",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "cMint3",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "associatedTokenProgram",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "tokenProgram",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "authority",
+                    "isMut": true,
+                    "isSigner": true
+                }
+            ],
+            "args": [
+                {
+                    "name": "limit",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "deposit",
+            "accounts": [
+                {
+                    "name": "mint",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "mintAccount",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "poolVault",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "cMint",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "cMintAccount",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "pool",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "config",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "payer",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "associatedTokenProgram",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "tokenProgram",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "amount",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "withdraw",
+            "accounts": [
+                {
+                    "name": "mint",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "cMint",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "cMintAccount",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "pool",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "config",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "withdrawal",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "payer",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "associatedTokenProgram",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "tokenProgram",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "amount",
+                    "type": "u64"
+                },
+                {
+                    "name": "id",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "claim",
+            "accounts": [
+                {
+                    "name": "mint",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "mintAccount",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "cMint",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "pool",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "poolVault",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "config",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "withdrawal",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "payer",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "associatedTokenProgram",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "tokenProgram",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "withdrawalId",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "createDelegation",
+            "accounts": [
+                {
+                    "name": "delegation",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "config",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "payer",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "address",
+                    "type": "publicKey"
+                }
+            ]
+        },
+        {
+            "name": "resetDelegation",
+            "accounts": [
+                {
+                    "name": "delegation",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "config",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "payer",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "updateDelegation",
+            "accounts": [
+                {
+                    "name": "delegation",
+                    "isMut": true,
+                    "isSigner": false
+                },
+                {
+                    "name": "config",
+                    "isMut": false,
+                    "isSigner": false
+                },
+                {
+                    "name": "payer",
+                    "isMut": true,
+                    "isSigner": true
+                },
+                {
+                    "name": "systemProgram",
+                    "isMut": false,
+                    "isSigner": false
+                }
+            ],
+            "args": [
+                {
+                    "name": "address",
+                    "type": "publicKey"
+                }
+            ]
+        }
+    ],
+    "accounts": [
+        {
+            "name": "Config",
+            "docs": ["* Initialize"],
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "isInitialized",
+                        "type": "bool"
+                    },
+                    {
+                        "name": "isActive",
+                        "type": "bool"
+                    },
+                    {
+                        "name": "admin",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "guardian",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "pauser",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "noticePeriods",
+                        "type": {
+                            "array": ["u64", 3]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "NominatedAuthorities",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "admin",
+                        "type": {
+                            "option": "publicKey"
+                        }
+                    },
+                    {
+                        "name": "guardian",
+                        "type": {
+                            "option": "publicKey"
+                        }
+                    },
+                    {
+                        "name": "pauser",
+                        "type": {
+                            "option": "publicKey"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Pool",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "isInitialized",
+                        "type": "bool"
+                    },
+                    {
+                        "name": "mint",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "cMints",
+                        "type": {
+                            "array": ["publicKey", 3]
+                        }
+                    },
+                    {
+                        "name": "limit",
+                        "type": "u64"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Withdrawal",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "withdrawer",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "mint",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "cMint",
+                        "type": "publicKey"
+                    },
+                    {
+                        "name": "id",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "withdrawDate",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "amount",
+                        "type": "u64"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Delgation",
+            "docs": ["* Create Delegation"],
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "delegation",
+                        "type": {
+                            "option": "publicKey"
+                        }
+                    },
+                    {
+                        "name": "authority",
+                        "type": "publicKey"
+                    }
+                ]
+            }
+        }
+    ],
+    "errors": [
+        {
+            "code": 6000,
+            "name": "MathOverflow",
+            "msg": "Math error"
+        },
+        {
+            "code": 6001,
+            "name": "NotAllowed",
+            "msg": "Operation is not allowed"
+        },
+        {
+            "code": 6002,
+            "name": "ProgramIsAlreadyInitialized",
+            "msg": "Program is already initialized"
+        },
+        {
+            "code": 6003,
+            "name": "ProgramIsNotInitialized",
+            "msg": "Program is not initialized"
+        },
+        {
+            "code": 6004,
+            "name": "PoolAlreadyInitialized",
+            "msg": "Pool is not initialized"
+        },
+        {
+            "code": 6005,
+            "name": "PoolIsNotReady",
+            "msg": "Pool is not ready"
+        },
+        {
+            "code": 6006,
+            "name": "PoolIsFull",
+            "msg": "Pool is full"
+        },
+        {
+            "code": 6007,
+            "name": "DepositExceedsMaximum",
+            "msg": "Deposit exceeds possible amount"
+        },
+        {
+            "code": 6008,
+            "name": "NoticePeriodNotSupported",
+            "msg": "Notice period is not supported"
+        },
+        {
+            "code": 6009,
+            "name": "NoticePeriodNotEnded",
+            "msg": "Notice period is not ended"
+        },
+        {
+            "code": 6010,
+            "name": "NotEnoughTokens",
+            "msg": "Not enough tokens"
+        },
+        {
+            "code": 6011,
+            "name": "ForbiddenAccess",
+            "msg": "Access is forbidden"
+        },
+        {
+            "code": 6012,
+            "name": "InvalidAuthority",
+            "msg": "Authority not nominated"
+        },
+        {
+            "code": 6013,
+            "name": "NotNominatedAuthority",
+            "msg": "Invalid authority"
+        },
+        {
+            "code": 6014,
+            "name": "AlreadyNominatedAuthority",
+            "msg": "Authority is already nominated"
+        },
+        {
+            "code": 6015,
+            "name": "ProgramIsDisabled",
+            "msg": "Program is disabled"
+        }
+    ],
+    "metadata": {
+        "address": "GB1MrbwXyGR3gqTYpfEpa2Mx9avAxv3dQpzVQ5nWJctu"
+    }
+}

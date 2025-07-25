@@ -1,0 +1,4392 @@
+{
+    "address": "gozqhNH1QuHW4TtEfaAde73FyvW452eXi3JEMLqvS5Q",
+    "metadata": {
+        "name": "cross_chain_gauge_spl",
+        "version": "0.1.0",
+        "spec": "0.1.0",
+        "description": "Cross-chain Solana SPL gauge"
+    },
+    "instructions": [
+        {
+            "name": "get_nft_reward",
+            "discriminator": [214, 28, 206, 145, 195, 110, 91, 99],
+            "accounts": [
+                {
+                    "name": "user_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [117, 115, 101, 114, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [110, 102, 116, 95, 103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    },
+                    "relations": ["user_rewards", "gauge_rewards"]
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    },
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "pool",
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "user_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "user_vevnx",
+                    "optional": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [118, 101, 95, 118, 110, 120]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            }
+                        ],
+                        "program": {
+                            "kind": "account",
+                            "path": "config.vevnx_program",
+                            "account": "Config"
+                        }
+                    }
+                },
+                {
+                    "name": "staker",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "associated_token_program",
+                    "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "get_reward",
+            "discriminator": [221, 63, 124, 201, 96, 218, 238, 29],
+            "accounts": [
+                {
+                    "name": "user_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [117, 115, 101, 114, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    },
+                    "relations": ["user_rewards", "gauge_rewards"]
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    },
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "user_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "user_vevnx",
+                    "optional": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [118, 101, 95, 118, 110, 120]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            }
+                        ],
+                        "program": {
+                            "kind": "account",
+                            "path": "config.vevnx_program",
+                            "account": "Config"
+                        }
+                    }
+                },
+                {
+                    "name": "instructions_sysvar",
+                    "address": "Sysvar1nstructions1111111111111111111111111"
+                },
+                {
+                    "name": "staker",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "associated_token_program",
+                    "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "increase_stake_amount",
+            "discriminator": [60, 186, 158, 174, 159, 60, 72, 89],
+            "accounts": [
+                {
+                    "name": "stake",
+                    "writable": true
+                },
+                {
+                    "name": "user_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [117, 115, 101, 114, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    },
+                    "relations": ["stake", "user_rewards", "gauge_rewards"]
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    },
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "staker_lp_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "gauge_lp_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "staker_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "user_vevnx",
+                    "optional": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [118, 101, 95, 118, 110, 120]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            }
+                        ],
+                        "program": {
+                            "kind": "account",
+                            "path": "config.vevnx_program",
+                            "account": "Config"
+                        }
+                    }
+                },
+                {
+                    "name": "instructions_sysvar",
+                    "address": "Sysvar1nstructions1111111111111111111111111"
+                },
+                {
+                    "name": "staker",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "associated_token_program",
+                    "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "amount",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "increase_stake_duration",
+            "discriminator": [174, 151, 100, 236, 97, 234, 51, 10],
+            "accounts": [
+                {
+                    "name": "stake",
+                    "writable": true
+                },
+                {
+                    "name": "user_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [117, 115, 101, 114, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    },
+                    "relations": ["stake", "user_rewards", "gauge_rewards"]
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    },
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "staker_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "user_vevnx",
+                    "optional": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [118, 101, 95, 118, 110, 120]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            }
+                        ],
+                        "program": {
+                            "kind": "account",
+                            "path": "config.vevnx_program",
+                            "account": "Config"
+                        }
+                    }
+                },
+                {
+                    "name": "instructions_sysvar",
+                    "address": "Sysvar1nstructions1111111111111111111111111"
+                },
+                {
+                    "name": "staker",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "associated_token_program",
+                    "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "new_lock_end_timestamp",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "initialize",
+            "discriminator": [175, 175, 109, 31, 13, 152, 155, 237],
+            "accounts": [
+                {
+                    "name": "config",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "admin"
+                },
+                {
+                    "name": "vnx_mint"
+                },
+                {
+                    "name": "vevnx",
+                    "optional": true
+                },
+                {
+                    "name": "payer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "initialize_gauge",
+            "discriminator": [174, 27, 240, 248, 120, 45, 23, 220],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "vnx_mint"
+                },
+                {
+                    "name": "vnx_mint_in_pool"
+                },
+                {
+                    "name": "pool"
+                },
+                {
+                    "name": "admin",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "gauge_type",
+                    "type": {
+                        "defined": {
+                            "name": "GaugeType"
+                        }
+                    }
+                },
+                {
+                    "name": "lock_max_multiplier",
+                    "type": "u64"
+                },
+                {
+                    "name": "lock_time_for_max_multiplier",
+                    "type": "u64"
+                },
+                {
+                    "name": "lock_time_min",
+                    "type": "u64"
+                },
+                {
+                    "name": "vevnx_per_vnx_for_max_boost",
+                    "type": "u128"
+                },
+                {
+                    "name": "vevnx_max_multiplier",
+                    "type": "u128"
+                }
+            ]
+        },
+        {
+            "name": "initialize_nft_gauge",
+            "discriminator": [238, 115, 72, 225, 194, 19, 16, 156],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [110, 102, 116, 95, 103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "vnx_mint"
+                },
+                {
+                    "name": "pool"
+                },
+                {
+                    "name": "admin",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "gauge_type",
+                    "type": {
+                        "defined": {
+                            "name": "NftGaugeType"
+                        }
+                    }
+                },
+                {
+                    "name": "lock_max_multiplier",
+                    "type": "u64"
+                },
+                {
+                    "name": "lock_time_for_max_multiplier",
+                    "type": "u64"
+                },
+                {
+                    "name": "lock_time_min",
+                    "type": "u64"
+                },
+                {
+                    "name": "vevnx_per_vnx_for_max_boost",
+                    "type": "u128"
+                },
+                {
+                    "name": "vevnx_max_multiplier",
+                    "type": "u128"
+                },
+                {
+                    "name": "position_tick_lower_index",
+                    "type": "i32"
+                },
+                {
+                    "name": "position_tick_upper_index",
+                    "type": "i32"
+                },
+                {
+                    "name": "is_vnx_in_pair0",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "initialize_nft_user_rewards",
+            "discriminator": [171, 185, 132, 200, 135, 38, 86, 111],
+            "accounts": [
+                {
+                    "name": "user_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [117, 115, 101, 114, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [110, 102, 116, 95, 103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "pool"
+                },
+                {
+                    "name": "staker",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "initialize_user_rewards",
+            "discriminator": [123, 225, 181, 249, 61, 120, 245, 31],
+            "accounts": [
+                {
+                    "name": "user_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [117, 115, 101, 114, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "staker",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "reset_vevnx_program",
+            "discriminator": [108, 197, 127, 152, 75, 69, 144, 216],
+            "accounts": [
+                {
+                    "name": "config",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "admin",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "set_projected_reward_rate",
+            "discriminator": [70, 78, 114, 171, 201, 158, 172, 81],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "relations": ["gauge_rewards"]
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "admin",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                }
+            ],
+            "args": [
+                {
+                    "name": "projected_reward_rate",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "set_vevnx_program",
+            "discriminator": [7, 143, 66, 131, 148, 5, 119, 221],
+            "accounts": [
+                {
+                    "name": "config",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "vevnx"
+                },
+                {
+                    "name": "admin",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "stake",
+            "discriminator": [206, 176, 202, 18, 200, 209, 179, 108],
+            "accounts": [
+                {
+                    "name": "stake",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "user_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [117, 115, 101, 114, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    },
+                    "relations": ["user_rewards", "gauge_rewards"]
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    },
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "staker_lp_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "gauge_lp_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "user_vevnx",
+                    "optional": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [118, 101, 95, 118, 110, 120]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            }
+                        ],
+                        "program": {
+                            "kind": "account",
+                            "path": "config.vevnx_program",
+                            "account": "Config"
+                        }
+                    }
+                },
+                {
+                    "name": "instructions_sysvar",
+                    "address": "Sysvar1nstructions1111111111111111111111111"
+                },
+                {
+                    "name": "staker",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "associated_token_program",
+                    "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "amount",
+                    "type": "u64"
+                },
+                {
+                    "name": "secs",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "stake_nft",
+            "discriminator": [38, 27, 66, 46, 69, 65, 151, 219],
+            "accounts": [
+                {
+                    "name": "stake",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "user_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [117, 115, 101, 114, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [110, 102, 116, 95, 103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    },
+                    "relations": ["user_rewards", "gauge_rewards"]
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    },
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_nft_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "nft_token_program"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "position_nft_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "position_nft"
+                },
+                {
+                    "name": "position_nft_mint"
+                },
+                {
+                    "name": "position_nft_ata",
+                    "writable": true
+                },
+                {
+                    "name": "pool",
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "user_vevnx",
+                    "optional": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [118, 101, 95, 118, 110, 120]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "staker"
+                            }
+                        ],
+                        "program": {
+                            "kind": "account",
+                            "path": "config.vevnx_program",
+                            "account": "Config"
+                        }
+                    }
+                },
+                {
+                    "name": "staker",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "associated_token_program",
+                    "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "nft_token_program"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "secs",
+                    "type": "u64"
+                }
+            ]
+        },
+        {
+            "name": "sync_gauge_rewards",
+            "discriminator": [140, 114, 109, 138, 217, 126, 36, 61],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ]
+                    },
+                    "relations": ["gauge_rewards"]
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    },
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "signer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "sync_kamino_gauge",
+            "discriminator": [87, 110, 200, 41, 198, 133, 47, 109],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "whirpool_strategy"
+                },
+                {
+                    "name": "signer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "sync_nft_gauge_rewards",
+            "discriminator": [95, 240, 70, 40, 75, 45, 35, 56],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [110, 102, 116, 95, 103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ]
+                    },
+                    "relations": ["gauge_rewards"]
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    },
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "pool"
+                },
+                {
+                    "name": "signer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "sync_test_gauge",
+            "discriminator": [253, 5, 116, 143, 174, 149, 177, 176],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "signer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "update_gauge_multipliers",
+            "discriminator": [41, 138, 240, 186, 152, 38, 5, 108],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "admin",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "lock_max_multiplier",
+                    "type": "u64"
+                },
+                {
+                    "name": "lock_time_for_max_multiplier",
+                    "type": "u64"
+                },
+                {
+                    "name": "lock_time_min",
+                    "type": "u64"
+                },
+                {
+                    "name": "vevnx_per_vnx_for_max_boost",
+                    "type": "u128"
+                },
+                {
+                    "name": "vevnx_max_multiplier",
+                    "type": "u128"
+                }
+            ]
+        },
+        {
+            "name": "update_gauge_state",
+            "discriminator": [56, 47, 49, 212, 3, 236, 2, 23],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "admin",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "stakes_unlocked",
+                    "type": "bool"
+                },
+                {
+                    "name": "withdrawals_paused",
+                    "type": "bool"
+                },
+                {
+                    "name": "rewards_collection_paused",
+                    "type": "bool"
+                },
+                {
+                    "name": "staking_paused",
+                    "type": "bool"
+                },
+                {
+                    "name": "withdrawal_only_shutdown",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "update_nft_gauge_multipliers",
+            "discriminator": [189, 198, 79, 114, 25, 10, 33, 195],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [110, 102, 116, 95, 103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "pool"
+                },
+                {
+                    "name": "admin",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "lock_max_multiplier",
+                    "type": "u64"
+                },
+                {
+                    "name": "lock_time_for_max_multiplier",
+                    "type": "u64"
+                },
+                {
+                    "name": "lock_time_min",
+                    "type": "u64"
+                },
+                {
+                    "name": "vevnx_per_vnx_for_max_boost",
+                    "type": "u128"
+                },
+                {
+                    "name": "vevnx_max_multiplier",
+                    "type": "u128"
+                }
+            ]
+        },
+        {
+            "name": "update_nft_gauge_state",
+            "discriminator": [185, 197, 248, 183, 212, 199, 125, 216],
+            "accounts": [
+                {
+                    "name": "gauge",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [110, 102, 116, 95, 103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "pool"
+                },
+                {
+                    "name": "admin",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "system_program",
+                    "address": "11111111111111111111111111111111"
+                }
+            ],
+            "args": [
+                {
+                    "name": "stakes_unlocked",
+                    "type": "bool"
+                },
+                {
+                    "name": "withdrawals_paused",
+                    "type": "bool"
+                },
+                {
+                    "name": "rewards_collection_paused",
+                    "type": "bool"
+                },
+                {
+                    "name": "staking_paused",
+                    "type": "bool"
+                },
+                {
+                    "name": "withdrawal_only_shutdown",
+                    "type": "bool"
+                }
+            ]
+        },
+        {
+            "name": "withdraw",
+            "discriminator": [183, 18, 70, 156, 148, 109, 161, 34],
+            "accounts": [
+                {
+                    "name": "stake",
+                    "writable": true
+                },
+                {
+                    "name": "user_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [117, 115, 101, 114, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "withdrawer"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    },
+                    "relations": ["stake", "user_rewards", "gauge_rewards"]
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    },
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "withdrawer_lp_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "withdrawer"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "lp_mint"
+                },
+                {
+                    "name": "gauge_lp_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "lp_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "withdrawer_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "withdrawer"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "user_vevnx",
+                    "optional": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [118, 101, 95, 118, 110, 120]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "withdrawer"
+                            }
+                        ],
+                        "program": {
+                            "kind": "account",
+                            "path": "config.vevnx_program",
+                            "account": "Config"
+                        }
+                    }
+                },
+                {
+                    "name": "instructions_sysvar",
+                    "address": "Sysvar1nstructions1111111111111111111111111"
+                },
+                {
+                    "name": "withdrawer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                }
+            ],
+            "args": []
+        },
+        {
+            "name": "withdraw_nft",
+            "discriminator": [142, 181, 191, 149, 82, 175, 216, 100],
+            "accounts": [
+                {
+                    "name": "stake",
+                    "writable": true
+                },
+                {
+                    "name": "user_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [117, 115, 101, 114, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "withdrawer"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    }
+                },
+                {
+                    "name": "gauge",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [110, 102, 116, 95, 103, 97, 117, 103, 101]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "pool"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    },
+                    "relations": ["stake", "user_rewards", "gauge_rewards"]
+                },
+                {
+                    "name": "gauge_rewards",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [103, 97, 117, 103, 101, 95, 114, 101, 119, 97, 114, 100, 115]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            }
+                        ]
+                    },
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "config",
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [99, 111, 110, 102, 105, 103]
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                10, 50, 202, 159, 124, 236, 94, 148, 236, 108, 131, 86, 183, 126, 49, 144, 71, 154, 172,
+                                188, 108, 21, 116, 147, 162, 222, 205, 114, 154, 140, 48, 43
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "withdrawer_nft_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "withdrawer"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "nft_token_program"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "position_nft_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "position_nft_mint",
+                    "writable": true
+                },
+                {
+                    "name": "gauge_nft_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "nft_token_program"
+                            },
+                            {
+                                "kind": "account",
+                                "path": "position_nft_mint"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "gauge_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "gauge"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "withdrawer_vnx_ata",
+                    "writable": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "account",
+                                "path": "withdrawer"
+                            },
+                            {
+                                "kind": "const",
+                                "value": [
+                                    6, 221, 246, 225, 215, 101, 161, 147, 217, 203, 225, 70, 206, 235, 121, 172, 28,
+                                    180, 133, 237, 95, 91, 55, 145, 58, 140, 245, 133, 126, 255, 0, 169
+                                ]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "config.vnx_mint",
+                                "account": "Config"
+                            }
+                        ],
+                        "program": {
+                            "kind": "const",
+                            "value": [
+                                140, 151, 37, 143, 78, 36, 137, 241, 187, 61, 16, 41, 20, 142, 13, 131, 11, 90, 19, 153,
+                                218, 255, 16, 132, 4, 142, 123, 216, 219, 233, 248, 89
+                            ]
+                        }
+                    }
+                },
+                {
+                    "name": "user_vevnx",
+                    "optional": true,
+                    "pda": {
+                        "seeds": [
+                            {
+                                "kind": "const",
+                                "value": [118, 101, 95, 118, 110, 120]
+                            },
+                            {
+                                "kind": "account",
+                                "path": "withdrawer"
+                            }
+                        ],
+                        "program": {
+                            "kind": "account",
+                            "path": "config.vevnx_program",
+                            "account": "Config"
+                        }
+                    }
+                },
+                {
+                    "name": "pool",
+                    "relations": ["gauge"]
+                },
+                {
+                    "name": "withdrawer",
+                    "writable": true,
+                    "signer": true
+                },
+                {
+                    "name": "token_program",
+                    "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+                },
+                {
+                    "name": "nft_token_program"
+                }
+            ],
+            "args": []
+        }
+    ],
+    "accounts": [
+        {
+            "name": "Config",
+            "discriminator": [155, 12, 170, 224, 30, 250, 204, 130]
+        },
+        {
+            "name": "Gauge",
+            "discriminator": [9, 19, 249, 189, 158, 171, 226, 205]
+        },
+        {
+            "name": "GaugeRewards",
+            "discriminator": [205, 22, 92, 57, 135, 184, 25, 220]
+        },
+        {
+            "name": "NftGauge",
+            "discriminator": [16, 30, 187, 238, 233, 65, 211, 137]
+        },
+        {
+            "name": "Stake",
+            "discriminator": [150, 197, 176, 29, 55, 132, 112, 149]
+        },
+        {
+            "name": "UserRewards",
+            "discriminator": [188, 41, 210, 136, 171, 63, 155, 110]
+        },
+        {
+            "name": "UserVeVnx",
+            "discriminator": [231, 153, 209, 75, 253, 176, 20, 160]
+        },
+        {
+            "name": "WhirlpoolStrategy",
+            "discriminator": [190, 178, 231, 184, 49, 186, 103, 13]
+        }
+    ],
+    "errors": [
+        {
+            "code": 6000,
+            "name": "ProgramPaused",
+            "msg": "Program is paused"
+        },
+        {
+            "code": 6001,
+            "name": "ProgramIsAlreadyInitialized",
+            "msg": "Program is already initialized"
+        },
+        {
+            "code": 6002,
+            "name": "AccessDenied",
+            "msg": "Access denied"
+        },
+        {
+            "code": 6003,
+            "name": "InvalidAdmin",
+            "msg": "Invalid admin"
+        },
+        {
+            "code": 6004,
+            "name": "StakePeriodNotEnded",
+            "msg": "Stake period not ended"
+        },
+        {
+            "code": 6005,
+            "name": "InvalidGauge",
+            "msg": "Invalid Gauge"
+        },
+        {
+            "code": 6006,
+            "name": "InvalidGaugeRewards",
+            "msg": "Invalid GaugeRewards"
+        },
+        {
+            "code": 6007,
+            "name": "InvalidUserRewards",
+            "msg": "Invalid UserRewards"
+        },
+        {
+            "code": 6008,
+            "name": "MathOverflow",
+            "msg": "Math overflow"
+        },
+        {
+            "code": 6009,
+            "name": "StakesDeserializationFailed",
+            "msg": "Stakes deserialization failed"
+        },
+        {
+            "code": 6010,
+            "name": "MaxStakesLimit",
+            "msg": "Max stakes limit (10)"
+        },
+        {
+            "code": 6011,
+            "name": "InvalidStakeOwner",
+            "msg": "Wrong stake owner"
+        },
+        {
+            "code": 6012,
+            "name": "InvalidStakeAcc",
+            "msg": "Invalid stake account"
+        },
+        {
+            "code": 6013,
+            "name": "InvalidStakeLockEndTs",
+            "msg": "Invalid stake lock end timestamp"
+        },
+        {
+            "code": 6014,
+            "name": "LockTimeShorten",
+            "msg": "Cannot shorten lock time"
+        },
+        {
+            "code": 6015,
+            "name": "InvalidStakeGauge",
+            "msg": "Stake doesnt belong to gauge"
+        },
+        {
+            "code": 6016,
+            "name": "MissingStakeAccount",
+            "msg": "Missing stake account"
+        },
+        {
+            "code": 6017,
+            "name": "DuplicateStakeAccount",
+            "msg": "Duplicate stake found"
+        },
+        {
+            "code": 6018,
+            "name": "InvalidPosition",
+            "msg": "Invalid NFT position"
+        },
+        {
+            "code": 6019,
+            "name": "PositionNotSupported",
+            "msg": "Position not supported"
+        },
+        {
+            "code": 6020,
+            "name": "StakeNftMismatch",
+            "msg": "Stake doesnt match nft position"
+        },
+        {
+            "code": 6021,
+            "name": "InvalidNftOwner",
+            "msg": "Wrong nft owner"
+        },
+        {
+            "code": 6022,
+            "name": "StakingPaused",
+            "msg": "Staking paused"
+        },
+        {
+            "code": 6023,
+            "name": "WithdrawalsOnly",
+            "msg": "Withdrawals only allowed"
+        },
+        {
+            "code": 6024,
+            "name": "WithdrawalsPaused",
+            "msg": "Withdrawals paused"
+        },
+        {
+            "code": 6025,
+            "name": "RewardsCollectionPaused",
+            "msg": "Rewards collection paused"
+        },
+        {
+            "code": 6026,
+            "name": "ZeroStake",
+            "msg": "Must stake more than zero"
+        },
+        {
+            "code": 6027,
+            "name": "MinStakeTime",
+            "msg": "Minimum stake time not met"
+        },
+        {
+            "code": 6028,
+            "name": "MaxStakeTime",
+            "msg": "Maximum stake time exceeded"
+        },
+        {
+            "code": 6029,
+            "name": "InvalidGaugeType",
+            "msg": "Invalid gauge type"
+        },
+        {
+            "code": 6030,
+            "name": "InvalidPool",
+            "msg": "Invalid pool"
+        },
+        {
+            "code": 6031,
+            "name": "InvalidPoolTokens",
+            "msg": "Pool doesnt contain VNX mint"
+        },
+        {
+            "code": 6032,
+            "name": "MissingRaydiumAccounts",
+            "msg": "Missing Raydium accounts"
+        },
+        {
+            "code": 6033,
+            "name": "MissingOrcaAccounts",
+            "msg": "Missing Orca accounts"
+        },
+        {
+            "code": 6034,
+            "name": "MissingSyncIx",
+            "msg": "Missing sync instruction"
+        },
+        {
+            "code": 6035,
+            "name": "InvalidSyncIx",
+            "msg": "Invalid sync instruction"
+        },
+        {
+            "code": 6036,
+            "name": "InvalidProgramId",
+            "msg": "Invalid program ID"
+        },
+        {
+            "code": 6037,
+            "name": "InvalidMint",
+            "msg": "Invalid mint"
+        },
+        {
+            "code": 6038,
+            "name": "InvalidVevnx",
+            "msg": "Invalid vevnx"
+        }
+    ],
+    "types": [
+        {
+            "name": "Config",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "is_initialized",
+                        "type": "bool"
+                    },
+                    {
+                        "name": "admin",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "vnx_mint",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "bump",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "vevnx_program",
+                        "type": {
+                            "option": "pubkey"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Gauge",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "gauge_type",
+                        "type": {
+                            "defined": {
+                                "name": "GaugeType"
+                            }
+                        }
+                    },
+                    {
+                        "name": "lp_mint",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "lp_mint_decimals",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "gauge_rewards",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "pool",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "vnx_mint_in_pool",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "gauge_state",
+                        "type": {
+                            "defined": {
+                                "name": "GaugeState"
+                            }
+                        }
+                    },
+                    {
+                        "name": "boost_multipliers",
+                        "type": {
+                            "defined": {
+                                "name": "GaugeBoostMultipliers"
+                            }
+                        }
+                    },
+                    {
+                        "name": "created_at",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "bump",
+                        "type": "u8"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "GaugeBoostMultipliers",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "lock_max_multiplier",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "lock_time_for_max_multiplier",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "lock_time_min",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "vevnx_per_vnx_for_max_boost",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "vevnx_max_multiplier",
+                        "type": "u128"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "GaugeRewards",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "gauge",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "period_finish",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "last_update_time",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "rewards_duration",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward_rate",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "projected_reward_rate",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "ttl_rews_owed",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "ttl_rews_paid",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "rewards_per_token_stored",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "total_liquidity_locked",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "total_combined_weight",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "vnx_per_lp",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "bump",
+                        "type": "u8"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "GaugeState",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "stakes_unlocked",
+                        "type": "bool"
+                    },
+                    {
+                        "name": "withdrawals_paused",
+                        "type": "bool"
+                    },
+                    {
+                        "name": "rewards_collection_paused",
+                        "type": "bool"
+                    },
+                    {
+                        "name": "staking_paused",
+                        "type": "bool"
+                    },
+                    {
+                        "name": "withdrawal_only_shutdown",
+                        "type": "bool"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "GaugeType",
+            "type": {
+                "kind": "enum",
+                "variants": [
+                    {
+                        "name": "Test"
+                    },
+                    {
+                        "name": "Kamino"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "KaminoRewardInfo",
+            "serialization": "bytemuck",
+            "repr": {
+                "kind": "c"
+            },
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "decimals",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward_vault",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "reward_mint",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "reward_collateral_id",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "last_issuance_ts",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward_per_second",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "amount_uncollected",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "amount_issued_cumulative",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "amount_available",
+                        "type": "u64"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "NftGauge",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "gauge_type",
+                        "type": {
+                            "defined": {
+                                "name": "NftGaugeType"
+                            }
+                        }
+                    },
+                    {
+                        "name": "pool",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "gauge_rewards",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "gauge_state",
+                        "type": {
+                            "defined": {
+                                "name": "GaugeState"
+                            }
+                        }
+                    },
+                    {
+                        "name": "boost_multipliers",
+                        "type": {
+                            "defined": {
+                                "name": "GaugeBoostMultipliers"
+                            }
+                        }
+                    },
+                    {
+                        "name": "position_tick_lower_index",
+                        "type": "i32"
+                    },
+                    {
+                        "name": "position_tick_upper_index",
+                        "type": "i32"
+                    },
+                    {
+                        "name": "is_vnx_in_pair0",
+                        "type": "bool"
+                    },
+                    {
+                        "name": "created_at",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "bump",
+                        "type": "u8"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "NftGaugeType",
+            "type": {
+                "kind": "enum",
+                "variants": [
+                    {
+                        "name": "Orca"
+                    },
+                    {
+                        "name": "Raydium"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Price",
+            "serialization": "bytemuck",
+            "repr": {
+                "kind": "c"
+            },
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "value",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "exp",
+                        "type": "u64"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "RebalanceRaw",
+            "serialization": "bytemuck",
+            "repr": {
+                "kind": "c"
+            },
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "params",
+                        "type": {
+                            "array": ["u8", 128]
+                        }
+                    },
+                    {
+                        "name": "state",
+                        "type": {
+                            "array": ["u8", 256]
+                        }
+                    },
+                    {
+                        "name": "reference_price_type",
+                        "type": "u8"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "Stake",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "owner",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "gauge",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "mint",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "start_timestamp",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "liquidity",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "ending_timestamp",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "lock_multiplier",
+                        "type": "u64"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "UserRewards",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "owner",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "gauge",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "rewards_per_token_paid",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "vevnx_multiplier_stored",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "rewards",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "last_reward_claim_time",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "combined_weight",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "locked_liquidity",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "stakes_locked",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "bump",
+                        "type": "u8"
+                    }
+                ]
+            }
+        },
+        {
+            "name": "UserVeVnx",
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "owner",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "bias",
+                        "type": "i128"
+                    },
+                    {
+                        "name": "slope",
+                        "type": "i128"
+                    },
+                    {
+                        "name": "ts",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "vnx_amount",
+                        "type": "u128"
+                    },
+                    {
+                        "name": "bump",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "batch_id",
+                        "type": "u32"
+                    },
+                    {
+                        "name": "evm_owner",
+                        "type": {
+                            "array": ["u8", 32]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "WhirlpoolStrategy",
+            "serialization": "bytemuck",
+            "repr": {
+                "kind": "c"
+            },
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "admin_authority",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "global_config",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "base_vault_authority",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "base_vault_authority_bump",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "pool",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "pool_token_vault_a",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "pool_token_vault_b",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "tick_array_lower",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "tick_array_upper",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "position",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "position_mint",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "position_metadata",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "position_token_account",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "token_a_vault",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "token_b_vault",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "deprecated0",
+                        "type": {
+                            "array": ["pubkey", 2]
+                        }
+                    },
+                    {
+                        "name": "deprecated1",
+                        "type": {
+                            "array": ["u64", 2]
+                        }
+                    },
+                    {
+                        "name": "token_a_mint",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "token_b_mint",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "token_a_mint_decimals",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "token_b_mint_decimals",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "token_a_amounts",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "token_b_amounts",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "token_a_collateral_id",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "token_b_collateral_id",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "scope_prices",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "deprecated2",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "shares_mint",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "shares_mint_decimals",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "shares_mint_authority",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "shares_mint_authority_bump",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "shares_issued",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "status",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward0_amount",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward0_vault",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "reward0_collateral_id",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward0_decimals",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward1_amount",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward1_vault",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "reward1_collateral_id",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward1_decimals",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward2_amount",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward2_vault",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "reward2_collateral_id",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward2_decimals",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "deposit_cap_usd",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "fees_a_cumulative",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "fees_b_cumulative",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward0_amount_cumulative",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward1_amount_cumulative",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward2_amount_cumulative",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "deposit_cap_usd_per_ixn",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "withdrawal_cap_a",
+                        "type": {
+                            "defined": {
+                                "name": "WithdrawalCaps"
+                            }
+                        }
+                    },
+                    {
+                        "name": "withdrawal_cap_b",
+                        "type": {
+                            "defined": {
+                                "name": "WithdrawalCaps"
+                            }
+                        }
+                    },
+                    {
+                        "name": "max_price_deviation_bps",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "swap_vault_max_slippage_bps",
+                        "type": "u32"
+                    },
+                    {
+                        "name": "swap_vault_max_slippage_from_reference_bps",
+                        "type": "u32"
+                    },
+                    {
+                        "name": "strategy_type",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "padding0",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "withdraw_fee",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "fees_fee",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward0_fee",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward1_fee",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "reward2_fee",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "position_timestamp",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "kamino_rewards",
+                        "type": {
+                            "array": [
+                                {
+                                    "defined": {
+                                        "name": "KaminoRewardInfo"
+                                    }
+                                },
+                                3
+                            ]
+                        }
+                    },
+                    {
+                        "name": "strategy_dex",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "raydium_protocol_position_or_base_vault_authority",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "allow_deposit_without_invest",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "raydium_pool_config_or_base_vault_authority",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "deposit_blocked",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "creation_status",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "invest_blocked",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "share_calculation_method",
+                        "docs": ["share_calculation_method can be either DOLAR_BASED=0 or PROPORTION_BASED=1"],
+                        "type": "u8"
+                    },
+                    {
+                        "name": "withdraw_blocked",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "reserved_flag2",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "local_admin_blocked",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "flash_vault_swap_allowed",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "reference_swap_price_a",
+                        "type": {
+                            "defined": {
+                                "name": "Price"
+                            }
+                        }
+                    },
+                    {
+                        "name": "reference_swap_price_b",
+                        "type": {
+                            "defined": {
+                                "name": "Price"
+                            }
+                        }
+                    },
+                    {
+                        "name": "is_community",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "rebalance_type",
+                        "type": "u8"
+                    },
+                    {
+                        "name": "padding1",
+                        "type": {
+                            "array": ["u8", 6]
+                        }
+                    },
+                    {
+                        "name": "rebalance_raw",
+                        "type": {
+                            "defined": {
+                                "name": "RebalanceRaw"
+                            }
+                        }
+                    },
+                    {
+                        "name": "padding2",
+                        "type": {
+                            "array": ["u8", 7]
+                        }
+                    },
+                    {
+                        "name": "token_a_fees_from_rewards_cumulative",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "token_b_fees_from_rewards_cumulative",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "strategy_lookup_table",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "last_swap_uneven_step_timestamp",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "farm",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "rebalances_cap",
+                        "type": {
+                            "defined": {
+                                "name": "WithdrawalCaps"
+                            }
+                        }
+                    },
+                    {
+                        "name": "swap_uneven_authority",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "token_a_token_program",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "token_b_token_program",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "pending_admin",
+                        "type": "pubkey"
+                    },
+                    {
+                        "name": "padding4",
+                        "type": {
+                            "array": ["u128", 13]
+                        }
+                    },
+                    {
+                        "name": "padding5",
+                        "type": {
+                            "array": ["u128", 32]
+                        }
+                    },
+                    {
+                        "name": "padding6",
+                        "type": {
+                            "array": ["u128", 32]
+                        }
+                    },
+                    {
+                        "name": "padding7",
+                        "type": {
+                            "array": ["u128", 32]
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "WithdrawalCaps",
+            "serialization": "bytemuck",
+            "repr": {
+                "kind": "c"
+            },
+            "type": {
+                "kind": "struct",
+                "fields": [
+                    {
+                        "name": "config_capacity",
+                        "type": "i64"
+                    },
+                    {
+                        "name": "current_total",
+                        "type": "i64"
+                    },
+                    {
+                        "name": "last_interval_start_timestamp",
+                        "type": "u64"
+                    },
+                    {
+                        "name": "config_interval_length_seconds",
+                        "type": "u64"
+                    }
+                ]
+            }
+        }
+    ],
+    "constants": [
+        {
+            "name": "CONFIG_SEED",
+            "type": "string",
+            "value": "\"config\""
+        },
+        {
+            "name": "GAUGE_REWARDS_SEED",
+            "type": "string",
+            "value": "\"gauge_rewards\""
+        },
+        {
+            "name": "GAUGE_SEED",
+            "type": "string",
+            "value": "\"gauge\""
+        },
+        {
+            "name": "NFT_GAUGE_SEED",
+            "type": "string",
+            "value": "\"nft_gauge\""
+        },
+        {
+            "name": "REWARDS_DURATION",
+            "type": "u64",
+            "value": "604800"
+        },
+        {
+            "name": "USER_REWARDS_SEED",
+            "type": "string",
+            "value": "\"user_rewards\""
+        }
+    ]
+}

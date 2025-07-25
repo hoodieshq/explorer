@@ -3,12 +3,13 @@ import { SolarizedJsonViewer as ReactJson } from '@components/common/JsonViewer'
 import { BorshInstructionCoder, Idl, Program } from '@coral-xyz/anchor';
 import { IdlDefinedFields } from '@coral-xyz/anchor/dist/cjs/idl';
 import { IdlField, IdlInstruction, IdlType, IdlTypeDef } from '@coral-xyz/anchor/dist/cjs/idl';
-import { useAnchorProgram } from '@providers/anchor';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { Cluster } from '@utils/cluster';
 import { camelToTitleCase, numberWithSeparator, snakeToTitleCase } from '@utils/index';
 import React, { Fragment, ReactNode, useState } from 'react';
 import { ChevronDown, ChevronUp, CornerDownRight } from 'react-feather';
+
+import { useAnchorProgram } from '@/app/entities/idl/model/use-anchor-program';
 
 const ANCHOR_SELF_CPI_TAG = Buffer.from('1d9acb512ea545e4', 'hex').reverse();
 const ANCHOR_SELF_CPI_NAME = 'Anchor Self Invocation';

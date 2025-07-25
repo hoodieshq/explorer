@@ -1,11 +1,10 @@
 'use client';
 
 import { Idl } from '@coral-xyz/anchor';
+import { formatDisplayIdl, getFormattedIdl } from '@entities/idl/format';
 import classNames from 'classnames';
 import { RootNode } from 'codama';
 import { useEffect, useMemo, useState } from 'react';
-
-import { formatDisplayIdl, getFormattedIdl } from '@/app/utils/convertLegacyIdl';
 
 import { useFormatAnchorIdl } from './formatters/anchor';
 import { useFormatCodamaIdl } from './formatters/codama';

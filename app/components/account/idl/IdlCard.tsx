@@ -1,6 +1,7 @@
 'use client';
 
-import { useAnchorProgram } from '@providers/anchor';
+import { useAnchorProgram } from '@entities/idl';
+import { getIdlSpecKeyType } from '@entities/idl/convert';
 import { useCluster } from '@providers/cluster';
 import { useDebounceCallback } from '@react-hook/debounce';
 import classNames from 'classnames';
@@ -10,7 +11,6 @@ import { Eye } from 'react-feather';
 
 import { SolarizedJsonViewer as ReactJson } from '@/app/components/common/JsonViewer';
 import { useProgramMetadataIdl } from '@/app/entities/program-metadata';
-import { getIdlSpecKeyType } from '@/app/utils/convertLegacyIdl';
 
 import { DownloadableButton } from '../../common/Downloadable';
 import { IDLBadge } from '../../common/IDLBadge';

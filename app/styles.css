@@ -1,3 +1,15 @@
+/** Declare variables for the newish Explorer  */
+/* These variables are also defined at ../tailwind.config.ts */
+:root {
+    --accent: #13d89b;
+    --muted: #8a8d8c;
+    --card-foreground: #282d2b;
+    --card-border: #111;
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --border: oklch(0.922 0 0);
+}
+
 @tailwind components;
 @tailwind utilities;
 
