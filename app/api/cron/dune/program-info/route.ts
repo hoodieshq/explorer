@@ -39,6 +39,7 @@ export async function GET() {
                     calling_programs_count: Number(row.calling_programs_count),
                     program_address: String(row.program_address),
                     transaction_references_count: Number(row.transaction_references_count),
+                    created_at: row.created_at,
                 }))
             );
 

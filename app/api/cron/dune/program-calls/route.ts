@@ -1,10 +1,10 @@
 import { DuneClient, ResultsResponse, RunQueryArgs } from '@duneanalytics/client-sdk';
-import { Cluster } from '@utils/cluster';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
 import { respondWithError } from '@/app/api/shared/errors';
-import { fetchProgramMetadataIdl, programNameFromIdl } from '@/app/components/instruction/codama/getProgramMetadataIdl';
+import { getProgramMetadataIdl, programNameFromIdl } from '@/app/components/instruction/codama/getProgramMetadataIdl';
+import { Cluster, serverClusterUrl } from '@/app/utils/cluster';
 import Logger from '@/app/utils/logger';
 import { PROGRAM_INFO_BY_ID } from '@/app/utils/programs';
 import { db } from '@/src/db/drizzle';
@@ -42,8 +42,11 @@ export async function GET() {
                     address: String(row.address),
                     calls_number: Number(row.calls_number),
                     description: String(row.program_description),
-                    name: await buildProgramName(row),
+                    // Possible issue with rate limits here
+                    // Let's leave it like this for now and revisit later if we encounter issues
+                    name: await buildProgramName(String(row.address), String(row.name)),
                     program_address: String(row.program_address),
+                    created_at: row.created_at,
                 }))
             );
 
@@ -57,19 +60,21 @@ export async function GET() {
     return NextResponse.json({ ok: true });
 }
 
-async function buildProgramName(row: Record<string, any>): Promise<string> {
-    if (PROGRAM_INFO_BY_ID[row.address]) {
-        return String(PROGRAM_INFO_BY_ID[row.address].name);
+async function buildProgramName(address: string, program_name: string): Promise<string> {
+    if (PROGRAM_INFO_BY_ID[address]) {
+        return String(PROGRAM_INFO_BY_ID[address].name);
     }
-    const pmName = await getPmName(String(row.address));
+    const pmName = await getPmName(address);
     if (pmName !== null && pmName !== undefined && pmName !== '') {
         return String(pmName);
     }
-    return String(row.program_name);
+    return String(program_name);
 }
 
 async function getPmName(address: string): Promise<string> {
-    const idl = await fetchProgramMetadataIdl(address, 'https://api.mainnet-beta.solana.com', Cluster.MainnetBeta);
+    const cluster = Cluster.MainnetBeta;
+    const url = serverClusterUrl(cluster, '');
+    const idl = await getProgramMetadataIdl(address, url);
 
     // if there’s no IDL, just return “None”
     if (!idl) {

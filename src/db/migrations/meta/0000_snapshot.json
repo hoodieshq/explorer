@@ -1,5 +1,5 @@
 {
-  "id": "a3850902-689e-4bf8-a862-980b907e9d3c",
+  "id": "edb5058b-8306-4430-b948-56dc8acf175e",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -8,26 +8,6 @@
       "name": "program_call_stats",
       "schema": "",
       "columns": {
-        "program_address": {
-          "name": "program_address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "''"
-        },
         "address": {
           "name": "address",
           "type": "text",
@@ -40,6 +20,33 @@
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "program_address": {
+          "name": "program_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -48,14 +55,6 @@
       "uniqueConstraints": {
         "program_call_stats_program_address_address_unique": {
           "name": "program_call_stats_program_address_address_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "program_address",
-            "address"
-          ]
-        },
-        "unique_callers_per_program": {
-          "name": "unique_callers_per_program",
           "nullsNotDistinct": false,
           "columns": [
             "program_address",
@@ -71,12 +70,6 @@
       "name": "program_stats",
       "schema": "",
       "columns": {
-        "program_address": {
-          "name": "program_address",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
         "calling_programs_count": {
           "name": "calling_programs_count",
           "type": "integer",
@@ -84,12 +77,25 @@
           "notNull": true,
           "default": 0
         },
+        "program_address": {
+          "name": "program_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "transaction_references_count": {
           "name": "transaction_references_count",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},

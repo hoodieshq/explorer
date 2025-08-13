@@ -6,6 +6,11 @@ import Logger from '@/app/utils/logger';
 import { db } from '@/src/db/drizzle';
 import { program_call_stats } from '@/src/db/schema';
 
+const CACHE_DURATION = 10 * 60; // 10 minutes
+const CACHE_HEADERS = {
+    'Cache-Control': `public, s-maxage=${CACHE_DURATION}, stale-while-revalidate=60`,
+};
+
 type Params = {
     params: {
         address: string;
@@ -22,7 +27,7 @@ export async function GET(request: Request, { params: { address } }: Params) {
         offset = parseInt(searchParams.get('offset') || '0');
 
         // Check for invalid values (NaN or negative numbers)
-        if (isNaN(limit) || isNaN(offset) || limit < 0 || offset < 0) {
+        if (isNaN(limit) || isNaN(offset) || limit < 0 || offset < 0 || limit > 100) {
             return respondWithError(400);
         }
     } catch (error) {
@@ -45,8 +50,6 @@ export async function GET(request: Request, { params: { address } }: Params) {
     }
 
     return NextResponse.json(data, {
-        headers: {
-            'Cache-Control': 'no-store, max-age=0',
-        },
+        headers: CACHE_HEADERS,
     });
 }
