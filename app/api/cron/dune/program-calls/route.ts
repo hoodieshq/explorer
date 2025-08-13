@@ -2,38 +2,56 @@ import { headers } from 'next/headers';
 import { db } from '@/src/db/drizzle';
 import { program_call_stats } from '@/src/db/schema';
 import { NextResponse } from 'next/server';
-import { DuneClient, RunQueryArgs } from '@duneanalytics/client-sdk';
+import { DuneClient, ResultsResponse, RunQueryArgs } from '@duneanalytics/client-sdk';
 import { Cluster } from '@utils/cluster';
 import { fetchProgramMetadataIdl, programNameFromIdl } from '@/app/components/instruction/codama/getProgramMetadataIdl';
 import { PROGRAM_INFO_BY_ID } from '@/app/utils/programs';
+import { respondWithError } from '@/app/api/shared/errors';
+import Logger from '@/app/utils/logger';
 
-const { DUNE_API_KEY, DUNE_PROGRAM_CALLS_MV_ID } = process.env;
+const { DUNE_API_KEY, DUNE_PROGRAM_CALLS_MV_ID, CRON_SECRET } = process.env;
+
+if(!DUNE_API_KEY || !DUNE_PROGRAM_CALLS_MV_ID || !CRON_SECRET) {
+    throw new Error('DUNE_API_KEY, DUNE_PROGRAM_CALLS_MV_ID, CRON_SECRET must be set in environment variables');
+}
 
 export async function GET() {
-    const headersList = await headers();
-    if (headersList.get('Authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const headersList = headers();
+    if (headersList.get('Authorization') !== `Bearer ${CRON_SECRET}`) {
+        Logger.error(new Error('Unauthorized access attempt'));
+        return respondWithError(401);
     }
 
-    const client = new DuneClient(DUNE_API_KEY ?? '');
-    const opts: RunQueryArgs = { queryId: Number(DUNE_PROGRAM_CALLS_MV_ID) };
-    const executionResult = await client.getLatestResult(opts);
+    let executionResult: ResultsResponse;
+    try {
+        const client = new DuneClient(DUNE_API_KEY ?? '');
+        const opts: RunQueryArgs = { queryId: Number(DUNE_PROGRAM_CALLS_MV_ID) };
+        executionResult = await client.getLatestResult(opts);
+    } catch (error) {
+        Logger.error(error);
+        return respondWithError(500);
+    }
 
-    await db.transaction(async tx => {
-        await tx.delete(program_call_stats).execute();
+    try {
+        await db.transaction(async tx => {
+            await tx.delete(program_call_stats).execute();
 
-        const values = await Promise.all(
-            (executionResult.result?.rows ?? []).map(async row => ({
-                program_address: String(row.program_address),
-                name: await buildProgramName(row),
-                description: String(row.program_description),
-                address: String(row.address),
-                calls_number: Number(row.calls_number),
-            }))
-        );
+            const values = await Promise.all(
+                (executionResult.result?.rows ?? []).map(async row => ({
+                    program_address: String(row.program_address),
+                    name: await buildProgramName(row),
+                    description: String(row.program_description),
+                    address: String(row.address),
+                    calls_number: Number(row.calls_number),
+                }))
+            );
 
-        await tx.insert(program_call_stats).values(values).execute();
-    });
+            await tx.insert(program_call_stats).values(values).execute();
+        });
+    } catch (error) {
+        Logger.error(error);
+        return respondWithError(500);
+    }
 
     return NextResponse.json({ ok: true });
 }
@@ -60,8 +78,8 @@ async function getPmName(address: string): Promise<string> {
     // otherwise run your existing parser, and still fall back to “None”
     try {
         return programNameFromIdl(idl) ?? '';
-    } catch (err) {
-        console.error('[getPmName] failed to parse IDL for', address, err);
+    } catch (error) {
+        Logger.error(error, address);
         return '';
     }
 }
