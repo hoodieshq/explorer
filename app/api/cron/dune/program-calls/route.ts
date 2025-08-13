@@ -44,7 +44,7 @@ export async function GET() {
                     description: String(row.program_description),
                     // Possible issue with rate limits here
                     // Let's leave it like this for now and revisit later if we encounter issues
-                    name: await buildProgramName(String(row.address), String(row.name)),
+                    name: await buildProgramName(String(row.address), String(row.program_name)),
                     program_address: String(row.program_address),
                     created_at: row.created_at,
                 }))
@@ -68,21 +68,22 @@ async function buildProgramName(address: string, program_name: string): Promise<
     if (pmName !== null && pmName !== undefined && pmName !== '') {
         return String(pmName);
     }
-    return String(program_name);
+    return program_name;
 }
 
 async function getPmName(address: string): Promise<string> {
     const cluster = Cluster.MainnetBeta;
     const url = serverClusterUrl(cluster, '');
-    const idl = await getProgramMetadataIdl(address, url);
-
-    // if there’s no IDL, just return “None”
-    if (!idl) {
-        return '';
-    }
 
     // otherwise run your existing parser, and still fall back to “None”
     try {
+        const idl = await getProgramMetadataIdl(address, url);
+
+        // if there’s no IDL, just return “None”
+        if (!idl) {
+            return '';
+        }
+
         return programNameFromIdl(idl) ?? '';
     } catch (error) {
         Logger.error(error, address);
