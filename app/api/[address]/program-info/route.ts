@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm';
-import { db } from '@/src/db/drizzle';
-import { program_stats } from '@/src/db/schema';
 import { NextResponse } from 'next/server';
+
 import { respondWithError } from '@/app/api/shared/errors';
 import Logger from '@/app/utils/logger';
+import { db } from '@/src/db/drizzle';
+import { program_stats } from '@/src/db/schema';
 
 type Params = {
     params: {

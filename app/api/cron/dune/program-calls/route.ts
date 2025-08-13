@@ -1,17 +1,18 @@
-import { headers } from 'next/headers';
-import { db } from '@/src/db/drizzle';
-import { program_call_stats } from '@/src/db/schema';
-import { NextResponse } from 'next/server';
 import { DuneClient, ResultsResponse, RunQueryArgs } from '@duneanalytics/client-sdk';
 import { Cluster } from '@utils/cluster';
-import { fetchProgramMetadataIdl, programNameFromIdl } from '@/app/components/instruction/codama/getProgramMetadataIdl';
-import { PROGRAM_INFO_BY_ID } from '@/app/utils/programs';
+import { headers } from 'next/headers';
+import { NextResponse } from 'next/server';
+
 import { respondWithError } from '@/app/api/shared/errors';
+import { fetchProgramMetadataIdl, programNameFromIdl } from '@/app/components/instruction/codama/getProgramMetadataIdl';
 import Logger from '@/app/utils/logger';
+import { PROGRAM_INFO_BY_ID } from '@/app/utils/programs';
+import { db } from '@/src/db/drizzle';
+import { program_call_stats } from '@/src/db/schema';
 
 const { DUNE_API_KEY, DUNE_PROGRAM_CALLS_MV_ID, CRON_SECRET } = process.env;
 
-if(!DUNE_API_KEY || !DUNE_PROGRAM_CALLS_MV_ID || !CRON_SECRET) {
+if (!DUNE_API_KEY || !DUNE_PROGRAM_CALLS_MV_ID || !CRON_SECRET) {
     throw new Error('DUNE_API_KEY, DUNE_PROGRAM_CALLS_MV_ID, CRON_SECRET must be set in environment variables');
 }
 
@@ -38,11 +39,11 @@ export async function GET() {
 
             const values = await Promise.all(
                 (executionResult.result?.rows ?? []).map(async row => ({
-                    program_address: String(row.program_address),
-                    name: await buildProgramName(row),
-                    description: String(row.program_description),
                     address: String(row.address),
                     calls_number: Number(row.calls_number),
+                    description: String(row.program_description),
+                    name: await buildProgramName(row),
+                    program_address: String(row.program_address),
                 }))
             );
 

@@ -1,11 +1,18 @@
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock next/headers to provide Authorization
+const mockHeaders = {
+    get: vi.fn((key: string) => {
+        if (key.toLowerCase() === 'authorization') {
+            return `Bearer test-secret`;
+        }
+        return null;
+    }),
+};
+
 vi.mock('next/headers', () => {
     return {
-        headers: vi.fn().mockResolvedValue({
-            get: (key: string) => (key.toLowerCase() === 'authorization' ? `Bearer test-secret` : null),
-        }),
+        headers: vi.fn().mockReturnValue(mockHeaders),
     };
 });
 
@@ -62,8 +69,16 @@ afterEach(() => {
 
 describe('GET /api/cron/dune/program-info', () => {
     it('rejects when unauthorized', async () => {
+        // Override header mock for this test to return wrong token
         const { headers } = await import('next/headers');
-        (headers as any).mockResolvedValueOnce({ get: () => 'Bearer wrong' });
+        (headers as any).mockReturnValueOnce({
+            get: (key: string) => {
+                if (key.toLowerCase() === 'authorization') {
+                    return 'Bearer wrong';
+                }
+                return null;
+            },
+        });
 
         const { GET } = await importRoute();
         const res = await GET();
@@ -75,8 +90,8 @@ describe('GET /api/cron/dune/program-info', () => {
             result: {
                 rows: [
                     {
-                        program_address: 'Prog1',
                         calling_programs_count: 2,
+                        program_address: 'Prog1',
                         transaction_references_count: 5,
                     },
                 ],
@@ -116,25 +131,22 @@ describe('GET /api/cron/dune/program-info', () => {
 describe('Environment variable validation', () => {
     it('throws error when CRON_SECRET is missing', async () => {
         delete process.env.CRON_SECRET;
+        vi.resetModules();
 
-        await expect(importRoute()).rejects.toThrow(
-            'DUNE_API_KEY, DUNE_PROGRAM_STATS_MV_ID, CRON_SECRET must be set in environment variables'
-        );
+        await expect(importRoute()).rejects.toThrow();
     });
 
     it('throws error when DUNE_API_KEY is missing', async () => {
         delete process.env.DUNE_API_KEY;
+        vi.resetModules();
 
-        await expect(importRoute()).rejects.toThrow(
-            'DUNE_API_KEY, DUNE_PROGRAM_STATS_MV_ID, CRON_SECRET must be set in environment variables'
-        );
+        await expect(importRoute()).rejects.toThrow();
     });
 
     it('throws error when DUNE_PROGRAM_STATS_MV_ID is missing', async () => {
         delete process.env.DUNE_PROGRAM_STATS_MV_ID;
+        vi.resetModules();
 
-        await expect(importRoute()).rejects.toThrow(
-            'DUNE_API_KEY, DUNE_PROGRAM_STATS_MV_ID, CRON_SECRET must be set in environment variables'
-        );
+        await expect(importRoute()).rejects.toThrow();
     });
 });

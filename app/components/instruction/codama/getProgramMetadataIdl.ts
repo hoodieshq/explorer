@@ -1,8 +1,9 @@
-import { fetch } from 'cross-fetch';
 import { fetchMetadataFromSeeds, unpackAndFetchData } from '@solana-program/program-metadata';
-import { address, createSolanaRpc, mainnet } from 'web3js-experimental';
-import { Cluster } from '@/app/utils/cluster';
 import { RootNode } from 'codama';
+import { fetch } from 'cross-fetch';
+import { address, createSolanaRpc, mainnet } from 'web3js-experimental';
+
+import { Cluster } from '@/app/utils/cluster';
 
 const PMP_IDL_ENABLED = process.env.NEXT_PUBLIC_PMP_IDL_ENABLED === 'true';
 
@@ -34,19 +35,13 @@ export async function getProgramMetadataIdl(programAddress: string, url: string)
 /**
  * Core fetcher: returns the Codama IDL (or null)
  */
-export async function fetchProgramMetadataIdl(
-  programAddress: string,
-  url: string,
-  cluster: Cluster
-): Promise<any> {
+export async function fetchProgramMetadataIdl(programAddress: string, url: string, cluster: Cluster): Promise<any> {
     if (!PMP_IDL_ENABLED) {
         return null;
     }
 
     try {
-        const response = await fetch(
-            `/api/programMetadataIdl?programAddress=${programAddress}&cluster=${cluster}`
-        );
+        const response = await fetch(`/api/programMetadataIdl?programAddress=${programAddress}&cluster=${cluster}`);
         if (response.ok) {
             const data = await response.json();
             return data.codamaIdl || null;

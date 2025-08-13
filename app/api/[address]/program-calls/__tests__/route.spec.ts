@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 // Mocks scoped variables
 let mockResultRows: any[] = [];
@@ -7,13 +7,10 @@ let capturedOffset: number | undefined;
 
 vi.mock('@/src/db/drizzle', () => {
     const chain: any = {
-        _rows: () => mockResultRows,
         _limit: undefined as number | undefined,
         _offset: undefined as number | undefined,
-        select: vi.fn().mockReturnThis(),
+        _rows: () => mockResultRows,
         from: vi.fn().mockReturnThis(),
-        where: vi.fn().mockReturnThis(),
-        orderBy: vi.fn().mockReturnThis(),
         limit: vi.fn().mockImplementation((n: number) => {
             capturedLimit = n;
             chain._limit = n;
@@ -24,6 +21,9 @@ vi.mock('@/src/db/drizzle', () => {
             chain._offset = n;
             return Promise.resolve(chain._rows());
         }),
+        orderBy: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
     };
     return { db: chain };
 });
@@ -55,8 +55,8 @@ afterEach(() => {
 describe('GET /api/[address]/program-calls', () => {
     it('returns data with provided limit/offset and proper headers', async () => {
         mockResultRows = [
-            { program_address: 'Prog1', address: 'Caller1', name: 'Name1', description: 'Desc1', calls_number: 10 },
-            { program_address: 'Prog1', address: 'Caller2', name: 'Name2', description: 'Desc2', calls_number: 5 },
+            { address: 'Caller1', calls_number: 10, description: 'Desc1', name: 'Name1', program_address: 'Prog1' },
+            { address: 'Caller2', calls_number: 5, description: 'Desc2', name: 'Name2', program_address: 'Prog1' },
         ];
 
         const { GET } = await importRoute();

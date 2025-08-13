@@ -1,12 +1,12 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 let mockResultRows: any[] = [];
 
 vi.mock('@/src/db/drizzle', () => {
     const chain: any = {
         _rows: () => mockResultRows,
-        select: vi.fn().mockReturnThis(),
         from: vi.fn().mockReturnThis(),
+        select: vi.fn().mockReturnThis(),
         where: vi.fn().mockImplementation(() => Promise.resolve(chain._rows())),
     };
     return { db: chain };
@@ -14,14 +14,14 @@ vi.mock('@/src/db/drizzle', () => {
 
 // Mock error response helper
 vi.mock('@/app/api/shared/errors', () => ({
-  respondWithError: vi.fn((status: number) => new Response(JSON.stringify({ error: 'Test error' }), { status })),
+    respondWithError: vi.fn((status: number) => new Response(JSON.stringify({ error: 'Test error' }), { status })),
 }));
 
 // Mock logger
 vi.mock('@/app/utils/logger', () => ({
-  default: {
-    error: vi.fn(),
-  },
+    default: {
+        error: vi.fn(),
+    },
 }));
 
 async function importRoute() {
@@ -35,9 +35,7 @@ afterEach(() => {
 
 describe('GET /api/[address]/program-info', () => {
     it('returns program info and sets cache-control header', async () => {
-        mockResultRows = [
-            { program_address: 'Prog1', calling_programs_count: 3, transaction_references_count: 12 },
-        ];
+        mockResultRows = [{ calling_programs_count: 3, program_address: 'Prog1', transaction_references_count: 12 }];
 
         const { GET } = await importRoute();
         const request = new Request('http://localhost:3000/api/Prog1/program-info');

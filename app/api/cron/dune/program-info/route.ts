@@ -1,10 +1,11 @@
-import { headers } from 'next/headers';
-import { db } from '@/src/db/drizzle';
-import { program_stats } from '@/src/db/schema';
-import { NextResponse } from 'next/server';
 import { DuneClient, ResultsResponse, RunQueryArgs } from '@duneanalytics/client-sdk';
+import { headers } from 'next/headers';
+import { NextResponse } from 'next/server';
+
 import { respondWithError } from '@/app/api/shared/errors';
 import Logger from '@/app/utils/logger';
+import { db } from '@/src/db/drizzle';
+import { program_stats } from '@/src/db/schema';
 
 const { DUNE_API_KEY, DUNE_PROGRAM_STATS_MV_ID, CRON_SECRET } = process.env;
 
@@ -35,8 +36,8 @@ export async function GET() {
 
             const values = await Promise.all(
                 (executionResult.result?.rows ?? []).map(async row => ({
-                    program_address: String(row.program_address),
                     calling_programs_count: Number(row.calling_programs_count),
+                    program_address: String(row.program_address),
                     transaction_references_count: Number(row.transaction_references_count),
                 }))
             );
