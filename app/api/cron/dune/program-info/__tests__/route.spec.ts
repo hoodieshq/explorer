@@ -33,6 +33,18 @@ vi.mock('@/src/db/drizzle', () => {
     };
 });
 
+// Mock error response helper
+vi.mock('@/app/api/shared/errors', () => ({
+    respondWithError: vi.fn((status: number) => new Response(JSON.stringify({ error: 'Test error' }), { status })),
+}));
+
+// Mock logger
+vi.mock('@/app/utils/logger', () => ({
+    default: {
+        error: vi.fn(),
+    },
+}));
+
 async function importRoute() {
     return await import('../route');
 }
@@ -76,5 +88,53 @@ describe('GET /api/cron/dune/program-info', () => {
         expect(res.status).toBe(200);
         expect(await res.json()).toEqual({ ok: true });
         expect(mockGetLatestResult).toHaveBeenCalledWith({ queryId: 67890 });
+    });
+
+    it('handles Dune API errors gracefully', async () => {
+        mockGetLatestResult.mockRejectedValueOnce(new Error('Dune API error'));
+
+        const { GET } = await importRoute();
+        const res = await GET();
+        expect(res.status).toBe(500);
+    });
+
+    it('handles database transaction errors gracefully', async () => {
+        mockGetLatestResult.mockResolvedValueOnce({
+            result: { rows: [] },
+        });
+
+        // Mock db transaction to throw error
+        const { db } = await import('@/src/db/drizzle');
+        (db.transaction as any).mockRejectedValueOnce(new Error('DB error'));
+
+        const { GET } = await importRoute();
+        const res = await GET();
+        expect(res.status).toBe(500);
+    });
+});
+
+describe('Environment variable validation', () => {
+    it('throws error when CRON_SECRET is missing', async () => {
+        delete process.env.CRON_SECRET;
+
+        await expect(importRoute()).rejects.toThrow(
+            'DUNE_API_KEY, DUNE_PROGRAM_STATS_MV_ID, CRON_SECRET must be set in environment variables'
+        );
+    });
+
+    it('throws error when DUNE_API_KEY is missing', async () => {
+        delete process.env.DUNE_API_KEY;
+
+        await expect(importRoute()).rejects.toThrow(
+            'DUNE_API_KEY, DUNE_PROGRAM_STATS_MV_ID, CRON_SECRET must be set in environment variables'
+        );
+    });
+
+    it('throws error when DUNE_PROGRAM_STATS_MV_ID is missing', async () => {
+        delete process.env.DUNE_PROGRAM_STATS_MV_ID;
+
+        await expect(importRoute()).rejects.toThrow(
+            'DUNE_API_KEY, DUNE_PROGRAM_STATS_MV_ID, CRON_SECRET must be set in environment variables'
+        );
     });
 });

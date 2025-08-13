@@ -28,6 +28,18 @@ vi.mock('@/src/db/drizzle', () => {
     return { db: chain };
 });
 
+// Mock error response helper
+vi.mock('@/app/api/shared/errors', () => ({
+    respondWithError: vi.fn((status: number) => new Response(JSON.stringify({ error: 'Test error' }), { status })),
+}));
+
+// Mock logger
+vi.mock('@/app/utils/logger', () => ({
+    default: {
+        error: vi.fn(),
+    },
+}));
+
 // Import dynamically inside tests so mocks are applied before module load
 async function importRoute() {
     return await import('../route');
@@ -73,5 +85,54 @@ describe('GET /api/[address]/program-calls', () => {
         expect(res.status).toBe(200);
         expect(capturedLimit).toBe(50);
         expect(capturedOffset).toBe(0);
+    });
+
+    it('handles invalid limit parameter gracefully', async () => {
+        const { GET } = await importRoute();
+
+        const request = new Request('http://localhost:3000/api/Prog1/program-calls?limit=invalid&offset=0');
+        const res = await GET(request, { params: { address: 'Prog1' } });
+
+        expect(res.status).toBe(400);
+    });
+
+    it('handles invalid offset parameter gracefully', async () => {
+        const { GET } = await importRoute();
+
+        const request = new Request('http://localhost:3000/api/Prog1/program-calls?limit=10&offset=invalid');
+        const res = await GET(request, { params: { address: 'Prog1' } });
+
+        expect(res.status).toBe(400);
+    });
+
+    it('handles database errors gracefully', async () => {
+        const { GET } = await importRoute();
+
+        // Mock db chain to throw error
+        const { db } = await import('@/src/db/drizzle');
+        (db.select as any).mockImplementationOnce(() => {
+            throw new Error('Database connection failed');
+        });
+
+        const request = new Request('http://localhost:3000/api/Prog1/program-calls');
+        const res = await GET(request, { params: { address: 'Prog1' } });
+
+        expect(res.status).toBe(500);
+    });
+
+    it('logs errors when they occur', async () => {
+        const { GET } = await importRoute();
+        const Logger = (await import('@/app/utils/logger')).default;
+
+        // Mock db chain to throw error
+        const { db } = await import('@/src/db/drizzle');
+        (db.select as any).mockImplementationOnce(() => {
+            throw new Error('Database connection failed');
+        });
+
+        const request = new Request('http://localhost:3000/api/Prog1/program-calls');
+        await GET(request, { params: { address: 'Prog1' } });
+
+        expect(Logger.error).toHaveBeenCalledWith(expect.any(Error));
     });
 });
