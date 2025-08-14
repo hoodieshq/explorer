@@ -37,9 +37,9 @@ export async function GET() {
             const values = await Promise.all(
                 (executionResult.result?.rows ?? []).map(async row => ({
                     calling_programs_count: Number(row.calling_programs_count),
+                    created_at: row.created_at,
                     program_address: String(row.program_address),
                     transaction_references_count: Number(row.transaction_references_count),
-                    created_at: row.created_at,
                 }))
             );
 

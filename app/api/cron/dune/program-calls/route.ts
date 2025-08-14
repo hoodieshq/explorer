@@ -41,12 +41,12 @@ export async function GET() {
                 (executionResult.result?.rows ?? []).map(async row => ({
                     address: String(row.address),
                     calls_number: Number(row.calls_number),
+                    created_at: row.created_at,
                     description: String(row.program_description),
                     // Possible issue with rate limits here
                     // Let's leave it like this for now and revisit later if we encounter issues
                     name: await buildProgramName(String(row.address), String(row.program_name)),
                     program_address: String(row.program_address),
-                    created_at: row.created_at,
                 }))
             );
 
