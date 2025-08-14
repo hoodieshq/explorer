@@ -15367,7 +15367,7 @@ snapshots:
   dot-case@3.0.4:
     dependencies:
       no-case: 3.0.4
-      tslib: 2.5.0
+      tslib: 2.7.0
 
   dotenv@10.0.0: {}
 
@@ -17120,7 +17120,7 @@ snapshots:
 
   lower-case@2.0.2:
     dependencies:
-      tslib: 2.5.0
+      tslib: 2.7.0
 
   lru-cache@10.4.3: {}
 
@@ -17648,7 +17648,7 @@ snapshots:
   no-case@3.0.4:
     dependencies:
       lower-case: 2.0.2
-      tslib: 2.5.0
+      tslib: 2.7.0
 
   node-addon-api@2.0.2: {}
 
@@ -18724,7 +18724,7 @@ snapshots:
   snake-case@3.0.4:
     dependencies:
       dot-case: 3.0.4
-      tslib: 2.5.0
+      tslib: 2.7.0
 
   source-map-js@1.0.2: {}
 
