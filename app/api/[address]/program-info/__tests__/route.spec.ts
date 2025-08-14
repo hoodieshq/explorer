@@ -42,7 +42,7 @@ describe('GET /api/[address]/program-info', () => {
 
         const res = await GET(request, { params: { address: 'Prog1' } });
         expect(res.status).toBe(200);
-        expect(res.headers.get('cache-control')).toBe('no-store, max-age=0');
+        expect(res.headers.get('cache-control')).toBe('public, s-maxage=600, stale-while-revalidate=60');
 
         const data = await res.json();
         expect(data).toEqual(mockResultRows);
