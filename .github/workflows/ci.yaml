@@ -60,6 +60,9 @@ jobs:
       - name: Code-style
         run: pnpm format:ci
 
+      - name: Database migration
+        run: NODE_ENV=test pnpm drizzle-kit migrate
+
       - name: Test
         env:
           TEST_SERIAL_TIMEOUT: ${{ vars.TEST_SERIAL_TIMEOUT }}
