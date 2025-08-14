@@ -61,6 +61,8 @@ jobs:
         run: pnpm format:ci
 
       - name: Database migration
+        env:
+          DATABASE_URL: ${{ vars.DATABASE_URL }}
         run: NODE_ENV=test pnpm drizzle-kit migrate
 
       - name: Test
