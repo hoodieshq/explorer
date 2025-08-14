@@ -17,6 +17,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    env:
+      DATABASE_URL: ${{ vars.DATABASE_URL }}
+
     strategy:
       matrix:
         node-version: ['20.x']
@@ -61,8 +64,6 @@ jobs:
         run: pnpm format:ci
 
       - name: Database migration
-        env:
-          DATABASE_URL: ${{ vars.DATABASE_URL }}
         run: NODE_ENV=test pnpm drizzle-kit migrate
 
       - name: Test
