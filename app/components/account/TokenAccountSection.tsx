@@ -2,7 +2,7 @@ import ScaledUiAmountMultiplierTooltip from '@components/account/token-extension
 import { Address } from '@components/common/Address';
 import { Copyable } from '@components/common/Copyable';
 import { TableCardBody } from '@components/common/TableCardBody';
-import { Account, NFTData, TokenProgramData, useFetchAccountInfo } from '@providers/accounts';
+import { Account, isTokenProgramData, NFTData, TokenProgramData, useFetchAccountInfo } from '@providers/accounts';
 import { TOKEN_2022_PROGRAM_ID, useScaledUiAmountForMint } from '@providers/accounts/tokens';
 import isMetaplexNFT from '@providers/accounts/utils/isMetaplexNFT';
 import { useCluster } from '@providers/cluster';
@@ -91,6 +91,18 @@ export function TokenAccountSection({
                             account={account}
                             nftData={(account.data.parsed as TokenProgramData).nftData!}
                             mintInfo={mintInfo}
+                        />
+                    );
+                }
+
+                // Check if this token has Metaplex metadata (for T22 and other tokens with metadata)
+                if (account.data.parsed && isTokenProgramData(account.data.parsed) && account.data.parsed.nftData) {
+                    return (
+                        <TokenWithMetadataCard 
+                            account={account} 
+                            mintInfo={mintInfo} 
+                            tokenInfo={tokenInfo}
+                            nftData={account.data.parsed.nftData}
                         />
                     );
                 }
@@ -1195,4 +1207,95 @@ export function TokenExtensionRow(
                 </tr>
             );
     }
+}
+
+function TokenWithMetadataCard({
+    account,
+    mintInfo,
+    tokenInfo: _tokenInfo,
+    nftData,
+}: {
+    account: Account;
+    mintInfo: MintAccountInfo;
+    tokenInfo?: FullLegacyTokenInfo;
+    nftData: NFTData;
+}) {
+    const fetchInfo = useFetchAccountInfo();
+    const refresh = () => fetchInfo(account.pubkey, 'parsed');
+
+    return (
+        <div className="card">
+            <div className="card-header">
+                <h3 className="card-header-title mb-0 d-flex align-items-center">Token with Metadata</h3>
+                <button className="btn btn-white btn-sm" onClick={refresh}>
+                    <RefreshCw className="align-text-top me-2" size={13} />
+                    Refresh
+                </button>
+            </div>
+            <TableCardBody>
+                <tr>
+                    <td>Address</td>
+                    <td className="text-lg-end">
+                        <Address pubkey={account.pubkey} alignRight raw />
+                    </td>
+                </tr>
+                <tr>
+                    <td>Decimals</td>
+                    <td className="text-lg-end">{mintInfo.decimals}</td>
+                </tr>
+                <tr>
+                    <td>Supply</td>
+                    <td className="text-lg-end">
+                        {normalizeTokenAmount(mintInfo.supply, mintInfo.decimals).toLocaleString()}
+                    </td>
+                </tr>
+                {nftData.metadata.data && (
+                    <>
+                        <tr>
+                            <td>Token Name</td>
+                            <td className="text-lg-end">{nftData.metadata.data.name || 'Unknown'}</td>
+                        </tr>
+                        <tr>
+                            <td>Token Symbol</td>
+                            <td className="text-lg-end">{nftData.metadata.data.symbol || 'Unknown'}</td>
+                        </tr>
+                        {nftData.metadata.data.uri && (
+                            <tr>
+                                <td>Metadata URI</td>
+                                <td className="text-lg-end">
+                                    <a href={nftData.metadata.data.uri} target="_blank" rel="noopener noreferrer">
+                                        View Metadata
+                                    </a>
+                                </td>
+                            </tr>
+                        )}
+                    </>
+                )}
+                {mintInfo.mintAuthority && (
+                    <tr>
+                        <td>Mint Authority</td>
+                        <td className="text-lg-end">
+                            <Address pubkey={mintInfo.mintAuthority} alignRight link />
+                        </td>
+                    </tr>
+                )}
+                {mintInfo.freezeAuthority && (
+                    <tr>
+                        <td>Freeze Authority</td>
+                        <td className="text-lg-end">
+                            <Address pubkey={mintInfo.freezeAuthority} alignRight link />
+                        </td>
+                    </tr>
+                )}
+                {nftData.metadata.updateAuthority && (
+                    <tr>
+                        <td>Metadata Update Authority</td>
+                        <td className="text-lg-end">
+                            <Address pubkey={new PublicKey(nftData.metadata.updateAuthority)} alignRight link />
+                        </td>
+                    </tr>
+                )}
+            </TableCardBody>
+        </div>
+    );
 }

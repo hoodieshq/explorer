@@ -437,7 +437,7 @@ function getTabs(pubkey: PublicKey, account: Account): TabComponent[] {
         tabs.push(...TABS_LOOKUP['address-lookup-table']);
     }
 
-    // Add the key for Metaplex NFTs
+    // Add the key for Metaplex metadata (for both NFTs and regular tokens with metadata)
     if (
         parsedData &&
         (programTypeKey === 'spl-token:mint' || programTypeKey == 'spl-token-2022:mint') &&
