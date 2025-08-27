@@ -17,6 +17,7 @@ export function ProgramMetadataProgramName({
     cluster: Cluster;
 }) {
     const { programMetadataIdl } = useProgramMetadataIdl(programId.toString(), url, cluster, true);
+    if (!programMetadataIdl) return null;
 
     try {
         return <>{programNameFromIdl(programMetadataIdl)}</>;
