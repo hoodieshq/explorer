@@ -2,7 +2,7 @@ import { UnknownAccountCard } from '@components/account/UnknownAccountCard';
 import { Address } from '@components/common/Address';
 import { DownloadableIcon } from '@components/common/Downloadable';
 import { InfoTooltip } from '@components/common/InfoTooltip';
-import { SecurityTXTBadge } from '@components/common/SecurityTXTBadge';
+import { ProgramSecurityTXTBadge } from '@components/common/SecurityTXTBadge';
 import { Slot } from '@components/common/Slot';
 import { SolBalance } from '@components/common/SolBalance';
 import { TableCardBody } from '@components/common/TableCardBody';
@@ -132,7 +132,7 @@ export function UpgradeableProgramSection({
                                 <SecurityLabel />
                             </td>
                             <td className="text-lg-end">
-                                <SecurityTXTBadge programData={programData} pubkey={account.pubkey} />
+                                <ProgramSecurityTXTBadge programData={programData} pubkey={account.pubkey} />
                             </td>
                         </tr>
                         <tr>
