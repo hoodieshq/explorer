@@ -6,7 +6,6 @@ import { useProgramCanonicalMetadata } from './useProgramCanonicalMetadata';
 
 const PMP_IDL_ENABLED = isEnvEnabled(process.env.NEXT_PUBLIC_PMP_IDL_ENABLED);
 
-// TODO: write tests
 export function useProgramMetadataIdl(programAddress: string, url: string, cluster: Cluster, useSuspense = false) {
     const { programMetadata } = useProgramCanonicalMetadata(
         programAddress,
