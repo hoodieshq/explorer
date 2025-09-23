@@ -9,7 +9,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { Eye } from 'react-feather';
 import ReactJson from 'react-json-view';
 
-import { useProgramMetadataIdl } from '@/app/providers/useProgramMetadataIdl';
+import { useProgramMetadataIdl } from '@/app/providers/program-metadata/useProgramMetadataIdl';
 import { getIdlSpecKeyType } from '@/app/utils/convertLegacyIdl';
 
 import { DownloadableButton } from '../../common/Downloadable';

@@ -4,7 +4,7 @@ import { vi } from 'vitest';
 
 import * as anchorModule from '@/app/providers/anchor';
 import { ClusterProvider } from '@/app/providers/cluster';
-import * as programMetadataIdlModule from '@/app/providers/useProgramMetadataIdl';
+import * as programMetadataIdlModule from '@/app/providers/program-metadata/useProgramMetadataIdl';
 
 import { IdlCard } from '../IdlCard';
 
