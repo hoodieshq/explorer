@@ -1,0 +1,126 @@
+import classNames from 'classnames';
+import { ExternalLink } from "react-feather";
+
+export function isString(value: any) {
+    return typeof value === "string";
+}
+
+export function isValidLink(value: any) {
+    try {
+        const url = new URL(value);
+        return ['http:', 'https:'].includes(url.protocol);
+    } catch (err) {
+        return false;
+    }
+}
+
+export function tryParseContactString(str: string) {
+    const idx = str.indexOf(':');
+    if (idx < 0) {
+        return str;
+    }
+    try {
+        return [str.slice(0, idx), str.slice(idx + 1)];
+    } catch (error) {
+        return str;
+    }
+}
+
+export function ContactInfo({ type, information }: { type: string; information: string }) {
+    switch (type.toLowerCase()) {
+        case 'discord':
+            return <>Discord: {information}</>;
+        case 'email':
+            return (
+                <a rel="noopener noreferrer" target="_blank" href={`mailto:${information}`}>
+                    {information}
+                    <ExternalLink className="align-text-top ms-2" size={13} />
+                </a>
+            );
+        case 'telegram':
+            return (
+                <a rel="noopener noreferrer" target="_blank" href={`https://t.me/${information}`}>
+                    Telegram: {information}
+                    <ExternalLink className="align-text-top ms-2" size={13} />
+                </a>
+            );
+        case 'twitter':
+            return (
+                <a rel="noopener noreferrer" target="_blank" href={`https://twitter.com/${information}`}>
+                    Twitter {information}
+                    <ExternalLink className="align-text-top ms-2" size={13} />
+                </a>
+            );
+        case 'link':
+            if (isValidLink(information)) {
+                return (
+                    <a rel="noopener noreferrer" target="_blank" href={`${information}`}>
+                        {information}
+                        <ExternalLink className="align-text-top ms-2" size={13} />
+                    </a>
+                );
+            }
+            return <>{information}</>;
+        case 'other':
+        default:
+            return (
+                <>
+                    {type}: {information}
+                </>
+            );
+    }
+}
+
+export function RenderExternalLink({ url }: { url: string }) {
+    return (
+        <span className="font-monospace">
+            <a rel="noopener noreferrer" target="_blank" href={url}>
+                {url}
+                <ExternalLink className="align-text-top ms-2" size={13} />
+            </a>
+        </span>
+    );
+}
+
+export function ExternalLinkCell({ url }: { url: string }) {
+    return (
+        <td className="text-lg-end">
+            <RenderExternalLink url={url} />
+        </td>
+    );
+}
+
+export function StringCell({ value }: { value: string }) {
+    return (
+        <td className="text-lg-end font-monospace">{value}</td>
+    );
+}
+
+export function RenderCode({ value }: { value: any }) {
+    return (
+        <div className='d-flex e-items-end'>
+            <pre className='e-max-w-[500px] lg:e-ml-auto e-overflow-x-auto after::'>
+                {parseCodeValue(value)}
+            </pre>
+        </div>
+    );
+}
+
+function parseCodeValue(value: any) {
+    if (isString(value)) {
+        return value.trim();
+    }
+    try {
+        return JSON.stringify(value, undefined, 2);
+    } catch (error) {
+        return String(value);
+    }
+}
+
+export function CodeCell({ value, alignRight = true }: { value: string; alignRight: boolean }) {
+    return (
+        <td className={classNames({ 'text-lg-end': alignRight })}>
+            <RenderCode value={value} />
+        </td>
+    );
+}
