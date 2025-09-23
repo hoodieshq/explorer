@@ -3,7 +3,7 @@ import { PublicKey } from '@solana/web3.js';
 import { Cluster } from '@utils/cluster';
 import { RootNode } from 'codama';
 
-import { useProgramMetadataIdl } from '../providers/useProgramMetadataIdl';
+import { useProgramMetadataIdl } from '../providers/program-metadata/useProgramMetadataIdl';
 
 export function ProgramMetadataProgramName({
     programId,
