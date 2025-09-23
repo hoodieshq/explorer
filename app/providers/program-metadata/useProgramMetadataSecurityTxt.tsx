@@ -16,5 +16,5 @@ export function useProgramMetadataSecurityTxt(programAddress: string, url: strin
         PMP_SECURITY_TXT_ENABLED,
         useSuspense,
     );
-    return { programMetadataIdl: programMetadata };
+    return { programMetadataSecurityTxt: programMetadata };
 }

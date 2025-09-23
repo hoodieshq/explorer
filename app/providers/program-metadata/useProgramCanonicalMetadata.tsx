@@ -23,7 +23,7 @@ export function useProgramCanonicalMetadata(
 
             try {
                 const response = await fetch(
-                    `/api/program-canonical-metadata?programAddress=${programAddress}&cluster=${cluster}&seed${seed}`
+                    `/api/program-canonical-metadata?programAddress=${programAddress}&cluster=${cluster}&seed=${seed}`
                 );
                 if (response.ok) {
                     const data = await response.json();
