@@ -33,6 +33,8 @@ const VALID_KEYS: (keyof SecurityTXT)[] = [
 const HEADER = '=======BEGIN SECURITY.TXT V1=======\0';
 const FOOTER = '=======END SECURITY.TXT V1=======\0';
 
+export const NO_SECURITY_TXT_ERROR = "Program has no security.txt";
+
 export const fromProgramData = (programData: ProgramDataAccountInfo): { securityTXT?: SecurityTXT; error?: string } => {
     const [data, encoding] = programData.data;
     if (!(data && encoding === 'base64')) return { error: 'Failed to decode program data', securityTXT: undefined };
@@ -43,7 +45,7 @@ export const fromProgramData = (programData: ProgramDataAccountInfo): { security
     const footerIdx = decoded.indexOf(FOOTER);
 
     if (headerIdx < 0 || footerIdx < 0) {
-        return { error: 'Program has no security.txt', securityTXT: undefined };
+        return { error: NO_SECURITY_TXT_ERROR, securityTXT: undefined };
     }
 
     /*
