@@ -105,8 +105,8 @@ function RenderEntry({ value, type }: { value: SecurityTXT[keyof SecurityTXT]; t
             return <StringCell value={value} />;
         case DisplayType.Contacts:
             return (
-                <td className="text-lg-end font-monospace">
-                    <ul>
+                <td className="font-monospace">
+                    <ul className='text-lg-end security-contacts [&.security-contacts]:e-text-left'>
                         {value?.split(',').map((c, i) => {
                             const idx = c.indexOf(':');
                             if (idx < 0) {
@@ -140,8 +140,8 @@ function RenderEntry({ value, type }: { value: SecurityTXT[keyof SecurityTXT]; t
                 return <ExternalLinkCell url={value} />;
             }
             return (
-                <td className="text-lg-end">
-                    <ul>
+                <td>
+                    <ul className='security-txt-auditors [&.security-txt-auditors]:e-text-left text-lg-end'>
                         {value?.split(',').map((c, idx) => {
                             return <li key={idx}>{c}</li>;
                         })}
