@@ -1,8 +1,8 @@
+import { ProgramSecurityTXTBadge } from '@components/account/security/SecurityTXTBadge';
 import { UnknownAccountCard } from '@components/account/UnknownAccountCard';
 import { Address } from '@components/common/Address';
 import { DownloadableIcon } from '@components/common/Downloadable';
 import { InfoTooltip } from '@components/common/InfoTooltip';
-import { ProgramSecurityTXTBadge } from '@components/common/SecurityTXTBadge';
 import { Slot } from '@components/common/Slot';
 import { SolBalance } from '@components/common/SolBalance';
 import { TableCardBody } from '@components/common/TableCardBody';
@@ -25,6 +25,7 @@ import { Cluster } from '@/app/utils/cluster';
 import { useClusterPath } from '@/app/utils/url';
 
 import { VerifiedProgramBadge } from '../common/VerifiedProgramBadge';
+import { ProgramSecurityTXTLabel } from './security/SecurityTXTLabel';
 
 export function UpgradeableLoaderAccountSection({
     account,
@@ -129,10 +130,10 @@ export function UpgradeableProgramSection({
                         </tr>
                         <tr>
                             <td>
-                                <SecurityLabel />
+                                <ProgramSecurityTXTLabel programPubkey={account.pubkey} />
                             </td>
                             <td className="text-lg-end">
-                                <ProgramSecurityTXTBadge programData={programData} pubkey={account.pubkey} />
+                                <ProgramSecurityTXTBadge programData={programData} programPubkey={account.pubkey} />
                             </td>
                         </tr>
                         <tr>
@@ -169,17 +170,6 @@ function MultisigBadge({ pubkey }: { pubkey: PublicKey }) {
                 Program Multisig
             </Link>
         </h3>
-    );
-}
-
-function SecurityLabel() {
-    return (
-        <InfoTooltip text="Security.txt helps security researchers to contact developers if they find security bugs.">
-            <Link rel="noopener noreferrer" target="_blank" href="https://github.com/neodyme-labs/solana-security-txt">
-                <span className="security-txt-link-color-hack-reee">Security.txt</span>
-                <ExternalLink className="align-text-top ms-2" size={13} />
-            </Link>
-        </InfoTooltip>
     );
 }
 
