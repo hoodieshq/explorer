@@ -36,7 +36,7 @@ function RenderEntry({ entryKey, value }: { entryKey: string; value: any }) {
         return <StringCell value={value} />;
     } else if (Array.isArray(value)) {
         return (
-            <td className="text-lg-end font-monospace">
+            <td className="font-monospace">
                 <RenderList entryKey={entryKey} items={value} />
             </td>
         );
@@ -49,7 +49,7 @@ function RenderEntry({ entryKey, value }: { entryKey: string; value: any }) {
 
 function RenderList({ entryKey, items }: { entryKey: string; items: any[] }) {
     return (
-        <ul className='e-list-none e-pl-0'>
+        <ul className='e-list-none e-pl-0 text-lg-end security-txt-list [&.security-txt-list]:e-text-left'>
             {items.map((value, index) => {
                 const elementKey = `${entryKey}-${index}`;
                 if (!value) {
