@@ -1,5 +1,8 @@
 import { ProgramDataAccountInfo } from '@validators/accounts/upgradeable-program';
 
+export const PMP_SECURITY_TXT_DOC_LINK = "https://github.com/solana-program/program-metadata/tree/main?tab=readme-ov-file#securitytxt-file-format";
+export const NEODYME_SECURITY_TXT_DOC_LINK = "https://github.com/neodyme-labs/solana-security-txt";
+
 export type SecurityTXT = {
     name: string;
     project_url: string;

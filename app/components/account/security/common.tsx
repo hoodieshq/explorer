@@ -1,6 +1,8 @@
 import classNames from 'classnames';
 import { ExternalLink } from "react-feather";
 
+export type SecurityTxtVersion = 'neodyme' | 'pmp';
+
 export function isString(value: any) {
     return typeof value === "string";
 }
@@ -123,4 +125,23 @@ export function CodeCell({ value, alignRight = true }: { value: string; alignRig
             <RenderCode value={value} />
         </td>
     );
+}
+
+export function SecurityTxtVersionBadge({ version, className }: React.HTMLAttributes<unknown> & { version: SecurityTxtVersion }) {
+    return (
+        <span className={classNames(["badge bg-warning-soft", className])}>
+            <SecurityTxtVersionBadgeTitle version={version} />
+        </span>
+    );
+}
+
+export function SecurityTxtVersionBadgeTitle({ version }: { version: SecurityTxtVersion }) {
+    if (version === "neodyme") {
+        return "Neodyme";
+    }
+    if (version === "pmp") {
+        return "Program Metadata";
+    }
+
+    return null;
 }

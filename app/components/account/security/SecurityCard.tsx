@@ -7,6 +7,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { useCluster } from '@/app/providers/cluster';
 import { useProgramMetadataSecurityTxt } from '@/app/providers/program-metadata/useProgramMetadataSecurityTxt';
 
+import { SecurityTxtVersionBadge } from './common';
 import { DefaultSecurityTxtTable } from './DefaultSecurityTxtTable';
 import { PmpSecurityTxtTable } from './PmpSecurityTxtTable';
 
@@ -41,7 +42,13 @@ export function ProgramSecurityTxtCard({ programDataSecurityTxt, pmpSecurityTxt 
     return (
         <div className="card security-txt">
             <div className="card-header">
-                <h3 className="card-header-title mb-0 d-flex align-items-center">Security.txt</h3>
+                <h3 className="card-header-title mb-0 d-flex align-items-center lg:e-mr-0 e-mr-4">
+                    Security.txt
+                    <SecurityTxtVersionBadge
+                        className="e-ml-3"
+                        version={pmpSecurityTxt ? "pmp" : "neodyme"}
+                    />
+                </h3>
                 <small>Note that this is self-reported by the author of the program and might not be accurate.</small>
             </div>
             <ErrorBoundary fallback={<div className='card-body text-center'>Invalid security.txt</div>}>
