@@ -26,25 +26,49 @@ export function PmpSecurityTxtTable({ data }: { data: Record<string, any> }) {
 
 function RenderEntry({ entryKey, value }: { entryKey: string; value: any }) {
     if (!value) {
-        return <StringCell value="-" />;
+        return displayEmptyValue(value);
     } else if (isValidLink(value)) {
-        return <ExternalLinkCell url={value} />;
+        return displayLinkValue(value);
     } else if (isString(value)) {
-        if (value.includes("PGP") || value.includes("PUBLIC KEY")) {
-            return <CodeCell value={value} alignRight={false} />;
-        }
-        return <StringCell value={value} />;
+        return displayStringValue(value);
     } else if (Array.isArray(value)) {
-        return (
-            <td className="font-monospace">
-                <RenderList entryKey={entryKey} items={value} />
-            </td>
-        );
+        return displayArrayValue(entryKey, value);
     } else if (!isNaN(value)) {
-        return <StringCell value={value.toString()} />;
+        return displayNumericValue(value);
     } else {
-        return <CodeCell value={value} alignRight />;
+        return displayFallbackValue(value);
     }
+}
+
+function displayEmptyValue(value: null | undefined | "") {
+    return <StringCell value={String(value)} />;
+}
+
+function displayLinkValue(value: string) {
+    return <ExternalLinkCell url={value} />;
+}
+
+function displayStringValue(value: string) {
+    if (value.includes("PGP") || value.includes("PUBLIC KEY")) {
+        return <CodeCell value={value} alignRight={false} />;
+    }
+    return <StringCell value={value} />;
+}
+
+function displayArrayValue(entryKey: string, value: any[]) {
+    return (
+        <td className="font-monospace">
+            <RenderList entryKey={entryKey} items={value} />
+        </td>
+    );
+}
+
+function displayNumericValue(value: number) {
+    return <StringCell value={value.toString()} />;
+}
+
+function displayFallbackValue(value: any) {
+    return <CodeCell value={value} alignRight />;
 }
 
 function RenderList({ entryKey, items }: { entryKey: string; items: any[] }) {
