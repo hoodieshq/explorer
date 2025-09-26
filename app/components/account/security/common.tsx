@@ -137,10 +137,10 @@ export function SecurityTxtVersionBadge({ version, className }: React.HTMLAttrib
 
 export function SecurityTxtVersionBadgeTitle({ version }: { version: SecurityTxtVersion }) {
     if (version === "neodyme") {
-        return "Neodyme";
+        return <>Neodyme</>;
     }
     if (version === "pmp") {
-        return "Program Metadata";
+        return <>Program Metadata</>;
     }
 
     return null;
