@@ -58,12 +58,12 @@ export const Nested: Story = {
     },
 };
 
-export const Invalid: Story = {
+export const Arbitrary: Story = {
     args: {
         data: {
-            'array_with_arbitrary_data': ['htt:/invalid.', 12e19, 'https://github.com', 'Discord: Handle123#'],
+            'arbitrary_contacts': ['mail:test:::@mail.mail', 'twitter:@twit123', 'some:text:data', 'contact', null],
+            'array_with_arbitrary_data': ['htt:/invalid.', 12e19, 'https://github.com', 'Discord: Handle123#', 1, 2, 3, 4, 5],
             "empty": "",
-            'invalid_contacts': ['mail:test:::@mail.mail', 'twitter:@twit123', 'some:text:data', 'contact', null],
             'invalid_link': "google.",
             'name': 'Example with invalid fields',
             'script': '<script>alert(12)</script>',

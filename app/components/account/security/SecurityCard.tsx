@@ -8,7 +8,7 @@ import { useCluster } from '@/app/providers/cluster';
 import { useProgramMetadataSecurityTxt } from '@/app/providers/program-metadata/useProgramMetadataSecurityTxt';
 
 import { SecurityTxtVersionBadge } from './common';
-import { DefaultSecurityTxtTable } from './DefaultSecurityTxtTable';
+import { NeodymeSecurityTxtTable } from './NeodymeSecurityTxtTable';
 import { PmpSecurityTxtTable } from './PmpSecurityTxtTable';
 
 export function SecurityCard({ data, pubkey }: { data: UpgradeableLoaderAccountData; pubkey: PublicKey }) {
@@ -55,7 +55,7 @@ export function ProgramSecurityTxtCard({ programDataSecurityTxt, pmpSecurityTxt 
                 {pmpSecurityTxt ? (
                     <PmpSecurityTxtTable data={pmpSecurityTxt!} />
                 ) : (
-                    Boolean(programDataSecurityTxt) && <DefaultSecurityTxtTable data={programDataSecurityTxt!} />
+                    Boolean(programDataSecurityTxt) && <NeodymeSecurityTxtTable data={programDataSecurityTxt!} />
                 )}
             </ErrorBoundary>
         </div>
