@@ -4,7 +4,7 @@ import { SecurityTXT } from "@/app/utils/security-txt";
 
 import { CodeCell, ContactInfo, ExternalLinkCell, isValidLink, StringCell } from './common';
 
-export function DefaultSecurityTxtTable({ data }: { data: SecurityTXT }) {
+export function NeodymeSecurityTxtTable({ data }: { data: SecurityTXT }) {
     return (
         <TableCardBody>
             {ROWS.filter(x => x.key in data).map((x, idx) => {

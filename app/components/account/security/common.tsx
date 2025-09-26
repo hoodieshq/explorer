@@ -129,7 +129,7 @@ export function CodeCell({ value, alignRight = true }: { value: string; alignRig
 
 export function SecurityTxtVersionBadge({ version, className }: React.HTMLAttributes<unknown> & { version: SecurityTxtVersion }) {
     return (
-        <span className={classNames(["badge bg-warning-soft", className])}>
+        <span className={classNames(["badge bg-warning-soft", className])} data-testid="security-txt-version-badge">
             <SecurityTxtVersionBadgeTitle version={version} />
         </span>
     );
