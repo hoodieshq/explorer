@@ -1,10 +1,10 @@
 import { TableCardBody } from '@components/common/TableCardBody';
 
-import { SecurityTXT } from "@/app/utils/security-txt";
+import { NeodymeSecurityTXT } from "@/app/utils/security-txt";
 
 import { CodeCell, ContactInfo, ExternalLinkCell, isValidLink, StringCell } from './common';
 
-export function NeodymeSecurityTxtTable({ data }: { data: SecurityTXT }) {
+export function NeodymeSecurityTxtTable({ data }: { data: NeodymeSecurityTXT }) {
     return (
         <TableCardBody>
             {ROWS.filter(x => x.key in data).map((x, idx) => {
@@ -29,7 +29,7 @@ enum DisplayType {
 }
 type TableRow = {
     display: string;
-    key: keyof SecurityTXT;
+    key: keyof NeodymeSecurityTXT;
     type: DisplayType;
 };
 
@@ -96,7 +96,7 @@ const ROWS: TableRow[] = [
     },
 ];
 
-function RenderEntry({ value, type }: { value: SecurityTXT[keyof SecurityTXT]; type: DisplayType }) {
+function RenderEntry({ value, type }: { value: NeodymeSecurityTXT[keyof NeodymeSecurityTXT]; type: DisplayType }) {
     if (!value) {
         return <></>;
     }

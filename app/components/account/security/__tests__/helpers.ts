@@ -1,6 +1,6 @@
 import { PublicKey } from "@solana/web3.js";
 
-import { SecurityTXT } from "@/app/utils/security-txt";
+import { NeodymeSecurityTXT } from "@/app/utils/security-txt";
 
 export const programDataWithoutSecurityTxt = {
     authority: new PublicKey('11111111111111111111111111111111'),
@@ -14,7 +14,7 @@ export const programDataWithSecurityTxt = {
     slot: 123,
 };
 
-export function encodeSecurityTxt(data: Pick<SecurityTXT, "name" | "project_url" | "contacts" | "policy">): string {
+export function encodeSecurityTxt(data: Pick<NeodymeSecurityTXT, "name" | "project_url" | "contacts" | "policy">): string {
     const HEADER = "=======BEGIN SECURITY.TXT V1=======\0";
     const FOOTER = "=======END SECURITY.TXT V1=======\0";
 
