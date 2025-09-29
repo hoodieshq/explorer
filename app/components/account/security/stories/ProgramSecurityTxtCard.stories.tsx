@@ -36,6 +36,7 @@ type Story = StoryObj<typeof meta>;
 export const NoSecurityTxt: Story = {
     args: {
         pmpSecurityTxt: undefined,
+        programAddress: "11111111111111111111111111111111",
         programDataSecurityTxt: undefined,
     },
     parameters: {
@@ -50,6 +51,7 @@ export const NoSecurityTxt: Story = {
 export const ValidPmpSecurityTxt: Story = {
     args: {
         pmpSecurityTxt: defaultSecurityTxtlMock,
+        programAddress: "11111111111111111111111111111111",
         programDataSecurityTxt: undefined,
     },
     parameters: {
@@ -64,6 +66,7 @@ export const ValidPmpSecurityTxt: Story = {
 export const InvalidPmpSecurityTxt: Story = {
     args: {
         pmpSecurityTxt: "123",
+        programAddress: "11111111111111111111111111111111",
         programDataSecurityTxt: undefined,
     },
     parameters: {
@@ -78,6 +81,7 @@ export const InvalidPmpSecurityTxt: Story = {
 export const ValidProgramSecurityTxt: Story = {
     args: {
         pmpSecurityTxt: undefined,
+        programAddress: "11111111111111111111111111111111",
         programDataSecurityTxt: {
             acknowledgements: 'acknowledgements',
             auditors: 'Auditor 1, https://auditor2.com',
