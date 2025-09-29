@@ -1,18 +1,42 @@
 import { useMemo } from "react";
 
+import { PMP_SECURITY_TXT_KEYS } from "@/app/utils/security-txt";
+
 import { TableCardBody } from "../../common/TableCardBody";
 import { CodeCell, ContactInfo, ExternalLinkCell, isString, isValidLink, RenderCode, RenderExternalLink, StringCell, tryParseContactString } from "./common";
 
 export function PmpSecurityTxtTable({ data }: { data: Record<string, any> }) {
-    const securityTxtEntries = useMemo(() => {
+    const entries = useMemo(() => {
         if (!(data instanceof Object)) {
             throw new Error("Invalid data");
         }
-        return Object.entries(data);
+        // group main entries by PMP_SECURITY_TXT_KEYS
+        return Object.entries(data).reduce(
+        (acc, [key, value]) => {
+            if ((PMP_SECURITY_TXT_KEYS as string[]).includes(key)) {
+                acc.main.push([key, value]);
+            } else {
+                acc.additional.push([key, value]);
+            }
+            return acc;
+        }, { additional: [] as [string, any][], main: [] as [string, any][] });
     }, [data]);
+
+    return (
+        <>
+            <RenderTable entries={entries.main} />
+            <div className="card-header e-border-solid e-border-t-[#282d2b] e-border-0 e-border-t">
+                <h3 className="card-header-title">Additional:</h3>
+            </div>
+            <RenderTable entries={entries.additional} />
+        </>
+    );
+}
+
+function RenderTable({ entries }: { entries: [string, any][] }) {
     return (
         <TableCardBody>
-            {securityTxtEntries.map(([entryKey, value], index) => {
+            {entries.map(([entryKey, value], index) => {
                 return (
                     <tr key={index}>
                         <td className="w-100">{entryKey}</td>
