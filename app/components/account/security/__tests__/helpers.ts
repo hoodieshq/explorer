@@ -8,9 +8,10 @@ export const programDataWithoutSecurityTxt = {
     slot: 123,
 };
 
+export const securityTxtDataExample = { contacts: 'email:mail@mail.mail', name: 'NeodymeSecurityTXT', policy: 'policy', project_url: 'https://github.com' };
 export const programDataWithSecurityTxt = {
     authority: new PublicKey('11111111111111111111111111111111'),
-    data: [encodeSecurityTxt({ contacts: 'email:mail@mail.mail', name: 'NeodymeSecurityTXT', policy: 'policy', project_url: 'https://github.com' }), 'base64'] as [string, 'base64'],
+    data: [encodeSecurityTxt(securityTxtDataExample), 'base64'] as [string, 'base64'],
     slot: 123,
 };
 
