@@ -3,6 +3,10 @@ import { ExternalLink } from "react-feather";
 
 export type SecurityTxtVersion = 'neodyme' | 'pmp';
 
+export function securityTxtDataToBase64(data: Record<string, any>) {
+    return Buffer.from(JSON.stringify(data, null, 2)).toString('base64');
+}
+
 export function isString(value: any) {
     return typeof value === "string";
 }

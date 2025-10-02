@@ -9,7 +9,7 @@ import { useCluster } from '@/app/providers/cluster';
 import { useProgramMetadataSecurityTxt } from '@/app/providers/program-metadata/useProgramMetadataSecurityTxt';
 
 import { DownloadableButton } from '../../common/Downloadable';
-import { SecurityTxtVersionBadge } from './common';
+import { securityTxtDataToBase64, SecurityTxtVersionBadge } from './common';
 import { NeodymeSecurityTxtTable } from './NeodymeSecurityTxtTable';
 import { PmpSecurityTxtTable } from './PmpSecurityTxtTable';
 
@@ -40,7 +40,7 @@ export function SecurityCard({ data, pubkey }: { data: UpgradeableLoaderAccountD
 export function ProgramSecurityTxtCard({ programAddress, programDataSecurityTxt, pmpSecurityTxt }: { programAddress: string; programDataSecurityTxt: NeodymeSecurityTXT | undefined; pmpSecurityTxt: any }) {
     const downloadData = useMemo(() => {
         if (!pmpSecurityTxt && !programDataSecurityTxt) return "";
-        return Buffer.from(JSON.stringify(pmpSecurityTxt || programDataSecurityTxt, null, 2)).toString('base64');
+        return securityTxtDataToBase64(pmpSecurityTxt || programDataSecurityTxt);
     }, [programDataSecurityTxt, pmpSecurityTxt]);
 
     if (!programDataSecurityTxt && !pmpSecurityTxt) {
