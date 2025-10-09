@@ -1,7 +1,8 @@
 import { ProgramDataAccountInfo } from '@validators/accounts/upgradeable-program';
 
-export const PMP_SECURITY_TXT_DOC_LINK = "https://github.com/solana-program/program-metadata/tree/main?tab=readme-ov-file#securitytxt-file-format";
-export const NEODYME_SECURITY_TXT_DOC_LINK = "https://github.com/neodyme-labs/solana-security-txt";
+export const PMP_SECURITY_TXT_DOC_LINK =
+    'https://github.com/solana-program/program-metadata/tree/main?tab=readme-ov-file#securitytxt-file-format';
+export const NEODYME_SECURITY_TXT_DOC_LINK = 'https://github.com/neodyme-labs/solana-security-txt';
 
 // Main fields of Program Metadata security.txt json. May contain additional fields.
 // Format: https://github.com/solana-program/program-metadata?tab=readme-ov-file#securitytxt-file-format
@@ -23,26 +24,26 @@ export type PmpSecurityTXT = {
     acknowledgements: string;
     expiry: string;
     version: string;
-}
+};
 export type PmpSecurityTXTKey = keyof PmpSecurityTXT;
 export const PMP_SECURITY_TXT_KEYS: PmpSecurityTXTKey[] = [
-  'name',
-  'logo',
-  'description',
-  'notification',
-  'sdk',
-  'project_url',
-  'contacts',
-  'policy',
-  'preferred_languages',
-  'encryption',
-  'source_code',
-  'source_release',
-  'source_revision',
-  'auditors',
-  'acknowledgements',
-  'expiry',
-  'version',
+    'name',
+    'logo',
+    'description',
+    'notification',
+    'sdk',
+    'project_url',
+    'contacts',
+    'policy',
+    'preferred_languages',
+    'encryption',
+    'source_code',
+    'source_release',
+    'source_revision',
+    'auditors',
+    'acknowledgements',
+    'expiry',
+    'version',
 ];
 
 export type NeodymeSecurityTXT = {
@@ -78,9 +79,11 @@ const VALID_KEYS: (keyof NeodymeSecurityTXT)[] = [
 const HEADER = '=======BEGIN SECURITY.TXT V1=======\0';
 const FOOTER = '=======END SECURITY.TXT V1=======\0';
 
-export const NO_SECURITY_TXT_ERROR = "Program has no security.txt";
+export const NO_SECURITY_TXT_ERROR = 'Program has no security.txt';
 
-export const fromProgramData = (programData: ProgramDataAccountInfo): { securityTXT?: NeodymeSecurityTXT; error?: string } => {
+export const fromProgramData = (
+    programData: ProgramDataAccountInfo
+): { securityTXT?: NeodymeSecurityTXT; error?: string } => {
     const [data, encoding] = programData.data;
     if (!(data && encoding === 'base64')) return { error: 'Failed to decode program data', securityTXT: undefined };
 
@@ -141,3 +144,7 @@ export const fromProgramData = (programData: ProgramDataAccountInfo): { security
     }
     return { error: undefined, securityTXT: map as NeodymeSecurityTXT };
 };
+
+export function isPmpSecurityTXT(securityTxt: NeodymeSecurityTXT | PmpSecurityTXT): securityTxt is PmpSecurityTXT {
+    return 'logo' in securityTxt || 'version' in securityTxt;
+}
