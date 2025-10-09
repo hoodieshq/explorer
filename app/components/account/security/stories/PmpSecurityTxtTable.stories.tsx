@@ -14,7 +14,7 @@ const meta = {
     ],
     parameters: {
         backgrounds: {
-            default: 'Card'
+            default: 'Card',
         },
         docs: {
             description: {
@@ -42,18 +42,18 @@ export const Primary: Story = {
 export const Nested: Story = {
     args: {
         data: {
-            'name': 'Example with arbitrary nested fields',
-            'nested_record': {
-                'num': 42,
-                'record': {
-                    'empty': '',
-                    'spaces': '   ',
-                    'struct': { mint: 'pubkey', name: 'String' },
-                    'vec': ['Option 1', 'Option 2'],
+            name: 'Example with arbitrary nested fields',
+            nested_record: {
+                num: 42,
+                record: {
+                    empty: '',
+                    spaces: '   ',
+                    struct: { mint: 'pubkey', name: 'String' },
+                    vec: ['Option 1', 'Option 2'],
                 },
-                'string_num': "13e6",
-                'test_nullalble': null
-            }
+                string_num: '13e6',
+                test_nullalble: null,
+            },
         },
     },
 };
@@ -61,13 +61,23 @@ export const Nested: Story = {
 export const Arbitrary: Story = {
     args: {
         data: {
-            'arbitrary_contacts': ['mail:test:::@mail.mail', 'twitter:@twit123', 'some:text:data', 'contact', null],
-            'array_with_arbitrary_data': ['htt:/invalid.', 12e19, 'https://github.com', 'Discord: Handle123#', 1, 2, 3, 4, 5],
-            "empty": "",
-            'invalid_link': "google.",
-            'name': 'Example with invalid fields',
-            'script': '<script>alert(12)</script>',
-            "spaces": "     ",
+            arbitrary_contacts: ['mail:test:::@mail.mail', 'twitter:@twit123', 'some:text:data', 'contact', null],
+            array_with_arbitrary_data: [
+                'htt:/invalid.',
+                12e19,
+                'https://github.com',
+                'Discord: Handle123#',
+                1,
+                2,
+                3,
+                4,
+                5,
+            ],
+            empty: '',
+            invalid_link: 'google.',
+            name: 'Example with invalid fields',
+            script: '<script>alert(12)</script>',
+            spaces: '     ',
         },
     },
 };

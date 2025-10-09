@@ -1,5 +1,5 @@
 import classNames from 'classnames';
-import { ExternalLink } from "react-feather";
+import { ExternalLink } from 'react-feather';
 
 export type SecurityTxtVersion = 'neodyme' | 'pmp';
 
@@ -8,7 +8,7 @@ export function securityTxtDataToBase64(data: Record<string, any>) {
 }
 
 export function isString(value: any) {
-    return typeof value === "string";
+    return typeof value === 'string';
 }
 
 export function isValidLink(value: any) {
@@ -97,17 +97,13 @@ export function ExternalLinkCell({ url }: { url: string }) {
 }
 
 export function StringCell({ value }: { value: string }) {
-    return (
-        <td className="text-lg-end font-monospace">{value}</td>
-    );
+    return <td className="text-lg-end font-monospace">{value}</td>;
 }
 
 export function RenderCode({ value }: { value: any }) {
     return (
-        <div className='d-flex e-items-end'>
-            <pre className='e-max-w-[500px] lg:e-ml-auto e-overflow-x-auto after::'>
-                {parseCodeValue(value)}
-            </pre>
+        <div className="d-flex e-items-end">
+            <pre className="after:: e-max-w-[500px] e-overflow-x-auto lg:e-ml-auto">{parseCodeValue(value)}</pre>
         </div>
     );
 }
@@ -131,19 +127,22 @@ export function CodeCell({ value, alignRight = true }: { value: string; alignRig
     );
 }
 
-export function SecurityTxtVersionBadge({ version, className }: React.HTMLAttributes<unknown> & { version: SecurityTxtVersion }) {
+export function SecurityTxtVersionBadge({
+    version,
+    className,
+}: React.HTMLAttributes<unknown> & { version: SecurityTxtVersion }) {
     return (
-        <span className={classNames(["badge bg-warning-soft", className])} data-testid="security-txt-version-badge">
+        <span className={classNames(['badge bg-warning-soft', className])} data-testid="security-txt-version-badge">
             <SecurityTxtVersionBadgeTitle version={version} />
         </span>
     );
 }
 
 export function SecurityTxtVersionBadgeTitle({ version }: { version: SecurityTxtVersion }) {
-    if (version === "neodyme") {
+    if (version === 'neodyme') {
         return <>Neodyme</>;
     }
-    if (version === "pmp") {
+    if (version === 'pmp') {
         return <>Program Metadata</>;
     }
 

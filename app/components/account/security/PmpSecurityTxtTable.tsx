@@ -1,31 +1,43 @@
-import { useMemo } from "react";
+import { useMemo } from 'react';
 
-import { PMP_SECURITY_TXT_KEYS } from "@/app/utils/security-txt";
+import { PMP_SECURITY_TXT_KEYS } from '@/app/utils/security-txt';
 
-import { TableCardBody } from "../../common/TableCardBody";
-import { CodeCell, ContactInfo, ExternalLinkCell, isString, isValidLink, RenderCode, RenderExternalLink, StringCell, tryParseContactString } from "./common";
+import { TableCardBody } from '../../common/TableCardBody';
+import {
+    CodeCell,
+    ContactInfo,
+    ExternalLinkCell,
+    isString,
+    isValidLink,
+    RenderCode,
+    RenderExternalLink,
+    StringCell,
+    tryParseContactString,
+} from './common';
 
 export function PmpSecurityTxtTable({ data }: { data: Record<string, any> }) {
     const entries = useMemo(() => {
         if (!(data instanceof Object)) {
-            throw new Error("Invalid data");
+            throw new Error('Invalid data');
         }
         // group main entries by PMP_SECURITY_TXT_KEYS
         return Object.entries(data).reduce(
-        (acc, [key, value]) => {
-            if ((PMP_SECURITY_TXT_KEYS as string[]).includes(key)) {
-                acc.main.push([key, value]);
-            } else {
-                acc.additional.push([key, value]);
-            }
-            return acc;
-        }, { additional: [] as [string, any][], main: [] as [string, any][] });
+            (acc, [key, value]) => {
+                if ((PMP_SECURITY_TXT_KEYS as string[]).includes(key)) {
+                    acc.main.push([key, value]);
+                } else {
+                    acc.additional.push([key, value]);
+                }
+                return acc;
+            },
+            { additional: [] as [string, any][], main: [] as [string, any][] }
+        );
     }, [data]);
 
     return (
         <>
             <RenderTable entries={entries.main} />
-            <div className="card-header e-border-solid e-border-t-[#282d2b] e-border-0 e-border-t">
+            <div className="card-header e-border-0 e-border-t e-border-solid e-border-t-[#282d2b]">
                 <h3 className="card-header-title">Additional:</h3>
             </div>
             <RenderTable entries={entries.additional} />
@@ -64,7 +76,7 @@ function RenderEntry({ entryKey, value }: { entryKey: string; value: any }) {
     }
 }
 
-function displayEmptyValue(value: null | undefined | "") {
+function displayEmptyValue(value: null | undefined | '') {
     return <StringCell value={String(value)} />;
 }
 
@@ -73,7 +85,7 @@ function displayLinkValue(value: string) {
 }
 
 function displayStringValue(value: string) {
-    if (value.includes("PGP") || value.includes("PUBLIC KEY")) {
+    if (value.includes('PGP') || value.includes('PUBLIC KEY')) {
         return <CodeCell value={value} alignRight={false} />;
     }
     return <StringCell value={value} />;
@@ -97,7 +109,7 @@ function displayFallbackValue(value: any) {
 
 function RenderList({ entryKey, items }: { entryKey: string; items: any[] }) {
     return (
-        <ul className='e-list-none e-pl-0 text-lg-end security-txt-list [&.security-txt-list]:e-text-left'>
+        <ul className="text-lg-end security-txt-list e-list-none e-pl-0 [&.security-txt-list]:e-text-left">
             {items.map((value, index) => {
                 const elementKey = `${entryKey}-${index}`;
                 if (!value) {

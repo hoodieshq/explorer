@@ -21,7 +21,7 @@ vi.mock('@/app/providers/program-metadata/useProgramMetadataSecurityTxt', () => 
 
 const mockPubkey = new PublicKey('ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S');
 
-function mockAccountData(programData: UpgradeableLoaderAccountData["programData"]) {
+function mockAccountData(programData: UpgradeableLoaderAccountData['programData']) {
     return {
         programData,
     } as UpgradeableLoaderAccountData;
@@ -33,7 +33,7 @@ describe('SecurityCard (mocked useProgramMetadataSecurityTxt)', () => {
     });
     afterEach(() => vi.clearAllMocks());
 
-    it('should show error when account doesn\'t have programData', () => {
+    it("should show error when account doesn't have programData", () => {
         (useProgramMetadataSecurityTxt as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
             programMetadataSecurityTxt: null,
         });
@@ -41,7 +41,7 @@ describe('SecurityCard (mocked useProgramMetadataSecurityTxt)', () => {
         expect(screen.getByText(/Account has no data/i)).toBeInTheDocument();
     });
 
-    it('should show error when account doesn\'t have any security.txt', () => {
+    it("should show error when account doesn't have any security.txt", () => {
         (useProgramMetadataSecurityTxt as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
             programMetadataSecurityTxt: null,
         });
@@ -54,10 +54,10 @@ describe('SecurityCard (mocked useProgramMetadataSecurityTxt)', () => {
             programMetadataSecurityTxt: null,
         });
         render(<SecurityCard data={mockAccountData(programDataWithSecurityTxt)} pubkey={mockPubkey} />);
-        expect(screen.getByTestId("security-txt-version-badge")).toHaveTextContent(/Neodyme/i);
-        expect(screen.getByText("NeodymeSecurityTXT")).toBeInTheDocument();
+        expect(screen.getByTestId('security-txt-version-badge')).toHaveTextContent(/Neodyme/i);
+        expect(screen.getByText('NeodymeSecurityTXT')).toBeInTheDocument();
         expect(screen.getByText(/Download/i)).toBeInTheDocument();
-        expect(screen.queryByText("ProgramMetadataSecurityTXT")).not.toBeInTheDocument();
+        expect(screen.queryByText('ProgramMetadataSecurityTXT')).not.toBeInTheDocument();
     });
 
     it('should show Program Metadata security.txt', () => {
@@ -66,10 +66,9 @@ describe('SecurityCard (mocked useProgramMetadataSecurityTxt)', () => {
             programMetadataSecurityTxt: data,
         });
         render(<SecurityCard data={mockAccountData(programDataWithSecurityTxt)} pubkey={mockPubkey} />);
-        expect(screen.getByTestId("security-txt-version-badge")).toHaveTextContent(/Program Metadata/i);
-        expect(screen.getByText("ProgramMetadataSecurityTXT")).toBeInTheDocument();
+        expect(screen.getByTestId('security-txt-version-badge')).toHaveTextContent(/Program Metadata/i);
+        expect(screen.getByText('ProgramMetadataSecurityTXT')).toBeInTheDocument();
         expect(screen.getByText(/Download/i)).toBeInTheDocument();
-        expect(screen.queryByText("NeodymeSecurityTXT")).not.toBeInTheDocument();
+        expect(screen.queryByText('NeodymeSecurityTXT')).not.toBeInTheDocument();
     });
-
 });

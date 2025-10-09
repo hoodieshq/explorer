@@ -27,7 +27,6 @@ function createRequest(address?: string, cluster?: Cluster, seed?: string) {
     return new Request(`http://localhost:3000/api/program-canonical-metadata?${params.toString()}`);
 }
 
-
 describe('GET api/program-canonical-metadata', () => {
     afterEach(() => {
         vi.clearAllMocks();
@@ -40,7 +39,7 @@ describe('GET api/program-canonical-metadata', () => {
         const request3 = createRequest(undefined, Cluster.Devnet, 'idl'); // missing programAddress
 
         const res = await Promise.all([GET(request1), GET(request2), GET(request3)]);
-        res.forEach(async (r) => {
+        res.forEach(async r => {
             expect(r.status).toBe(400);
             const data = await r.json();
             expect(data.error).toBe('Invalid query params');
@@ -58,7 +57,9 @@ describe('GET api/program-canonical-metadata', () => {
 
     it('should handle errors from getProgramCanonicalMetadata call', async () => {
         const { GET } = await importRoute();
-        const { getProgramCanonicalMetadata } = await import('@/app/components/instruction/codama/getProgramCanonicalMetadata');
+        const { getProgramCanonicalMetadata } = await import(
+            '@/app/components/instruction/codama/getProgramCanonicalMetadata'
+        );
         const expectedError = new Error('Request failed!');
         (getProgramCanonicalMetadata as any).mockImplementationOnce(() => {
             throw expectedError;

@@ -7,15 +7,21 @@ import Link from 'next/link';
 import { useCluster } from '@/app/providers/cluster';
 import { useProgramMetadataSecurityTxt } from '@/app/providers/program-metadata/useProgramMetadataSecurityTxt';
 
-export function ProgramSecurityTXTBadge({ programData, programPubkey }: { programData: ProgramDataAccountInfo; programPubkey: PublicKey }) {
+export function ProgramSecurityTXTBadge({
+    programData,
+    programPubkey,
+}: {
+    programData: ProgramDataAccountInfo;
+    programPubkey: PublicKey;
+}) {
     const { securityTXT, error } = fromProgramData(programData);
     const securityTabPath = useClusterPath({ pathname: `/address/${programPubkey.toBase58()}/security` });
 
     const { url, cluster } = useCluster();
     const { programMetadataSecurityTxt } = useProgramMetadataSecurityTxt(programPubkey.toBase58(), url, cluster);
 
-    const maybeError = (securityTXT || programMetadataSecurityTxt) ? undefined : error;
-    
+    const maybeError = securityTXT || programMetadataSecurityTxt ? undefined : error;
+
     return <SecurityTXTBadge error={maybeError} tabPath={securityTabPath} />;
 }
 

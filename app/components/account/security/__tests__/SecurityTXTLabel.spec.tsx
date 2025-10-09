@@ -31,7 +31,7 @@ describe('ProgramSecurityTXTLabel (mocked useProgramMetadataSecurityTxt)', () =>
             programMetadataSecurityTxt: null,
         });
         render(<ProgramSecurityTXTLabel programPubkey={mockPubkey} />);
-        expect(screen.getByRole("link")).toHaveAttribute("href", NEODYME_SECURITY_TXT_DOC_LINK);
+        expect(screen.getByRole('link')).toHaveAttribute('href', NEODYME_SECURITY_TXT_DOC_LINK);
     });
 
     it('should show Program Metadata link to security.txt', () => {
@@ -39,6 +39,6 @@ describe('ProgramSecurityTXTLabel (mocked useProgramMetadataSecurityTxt)', () =>
             programMetadataSecurityTxt: { name: 'Program security.txt' },
         });
         render(<ProgramSecurityTXTLabel programPubkey={mockPubkey} />);
-        expect(screen.getByRole("link")).toHaveAttribute("href", PMP_SECURITY_TXT_DOC_LINK);
+        expect(screen.getByRole('link')).toHaveAttribute('href', PMP_SECURITY_TXT_DOC_LINK);
     });
 });
