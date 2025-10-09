@@ -14,7 +14,7 @@ const meta = {
     ],
     parameters: {
         backgrounds: {
-            default: 'Card'
+            default: 'Card',
         },
         docs: {
             description: {
@@ -36,7 +36,7 @@ type Story = StoryObj<typeof meta>;
 export const NoSecurityTxt: Story = {
     args: {
         pmpSecurityTxt: undefined,
-        programAddress: "11111111111111111111111111111111",
+        programAddress: '11111111111111111111111111111111',
         programDataSecurityTxt: undefined,
     },
     parameters: {
@@ -45,13 +45,13 @@ export const NoSecurityTxt: Story = {
                 story: 'Render security.txt empty message',
             },
         },
-    }
+    },
 };
 
 export const ValidPmpSecurityTxt: Story = {
     args: {
         pmpSecurityTxt: defaultSecurityTxtlMock,
-        programAddress: "11111111111111111111111111111111",
+        programAddress: '11111111111111111111111111111111',
         programDataSecurityTxt: undefined,
     },
     parameters: {
@@ -60,13 +60,13 @@ export const ValidPmpSecurityTxt: Story = {
                 story: 'Render security.txt from PMP',
             },
         },
-    }
+    },
 };
 
 export const InvalidPmpSecurityTxt: Story = {
     args: {
-        pmpSecurityTxt: "123",
-        programAddress: "11111111111111111111111111111111",
+        pmpSecurityTxt: '123',
+        programAddress: '11111111111111111111111111111111',
         programDataSecurityTxt: undefined,
     },
     parameters: {
@@ -75,13 +75,13 @@ export const InvalidPmpSecurityTxt: Story = {
                 story: 'Render security.txt error message',
             },
         },
-    }
+    },
 };
 
 export const ValidProgramSecurityTxt: Story = {
     args: {
         pmpSecurityTxt: undefined,
-        programAddress: "11111111111111111111111111111111",
+        programAddress: '11111111111111111111111111111111',
         programDataSecurityTxt: {
             acknowledgements: 'acknowledgements',
             auditors: 'Auditor 1, https://auditor2.com',
@@ -117,5 +117,5 @@ DAAKCRDyMVUMT0fjjlnQAQDFHUs6TIcxrNTtEZFjUFm1M0PJ1Dng/cDW4xN80fsn
                 story: 'Render valid Program security.txt',
             },
         },
-    }
+    },
 };
