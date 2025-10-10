@@ -59,7 +59,7 @@ describe('AccountHeader', () => {
             vi.clearAllMocks();
         });
 
-        it('renders ProgramHeader with default values when no security.txt is available', () => {
+        it('should render with default values when no security.txt is available', () => {
             const { account, mockAddress } = setup();
             render(
                 <AccountHeader
@@ -75,7 +75,7 @@ describe('AccountHeader', () => {
             expect(screen.getByAltText('Program logo placeholder')).toBeInTheDocument();
         });
 
-        it('renders ProgramHeader with PMP security.txt data including logo and version', () => {
+        it('should render with PMP security.txt data including logo and version', () => {
             const pmpSecurityTxt = createPmpSecurityTxt();
             vi.mocked(useSecurityTxt).mockReturnValue(pmpSecurityTxt);
 
@@ -98,7 +98,7 @@ describe('AccountHeader', () => {
             expect(logoImg).toHaveAttribute('src', 'https://example.com/logo.png');
         });
 
-        it('renders ProgramHeader with Neodyme security.txt data (no logo or version)', () => {
+        it('should render with Neodyme security.txt data (no logo or version)', () => {
             const neodymeSecurityTxt = createNeodymeSecurityTxt();
             vi.mocked(useSecurityTxt).mockReturnValue(neodymeSecurityTxt);
 
