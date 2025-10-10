@@ -2,6 +2,8 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import { defineConfig } from 'vitest/config';
 
+import tsconfig from './tsconfig.json';
+
 const specWorkspace = (name = 'specs') => ({
     environment: 'jsdom',
     globals: true,
@@ -27,23 +29,16 @@ const specWorkspace = (name = 'specs') => ({
 export default defineConfig({
     plugins: [react()],
     resolve: {
-        alias: {
-            '@/': path.resolve(__dirname, './'),
-
-            '@/app': path.resolve(__dirname, './app'),
-            '@/components': path.resolve(__dirname, './app/components'),
-            '@/providers': path.resolve(__dirname, './app/providers'),
-            '@/utils': path.resolve(__dirname, './app/utils'),
-            '@/validators': path.resolve(__dirname, './app/validators'),
-
-            // @ aliases
-            '@app': path.resolve(__dirname, './app'),
-            '@img': path.resolve(__dirname, './app/img'),
-            '@components': path.resolve(__dirname, './app/components'),
-            '@providers': path.resolve(__dirname, './app/providers'),
-            '@utils': path.resolve(__dirname, './app/utils'),
-            '@validators': path.resolve(__dirname, './app/validators'),
-        },
+        alias: Object.entries(tsconfig.compilerOptions.paths).reduce(
+            (acc, [pathKey, [pathValue]]) => ({
+                ...acc,
+                [pathKey.replace('/*', '')]: path.resolve(
+                    tsconfig.compilerOptions.baseUrl,
+                    pathValue.replace('/*', '')
+                ),
+            }),
+            {}
+        ),
         conditions: ['browser', 'default'],
     },
     test: {
