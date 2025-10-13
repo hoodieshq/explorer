@@ -4,9 +4,9 @@ import React from 'react';
 import { vi } from 'vitest';
 
 import { AccountHeader } from '@/app/components/account/AccountHeader';
-import { createNeodymeSecurityTxt, createPmpSecurityTxt } from '@/app/components/account/security/__tests__/helpers';
+import { useSecurityTxt } from '@/app/features/security-txt';
+import { createNeodymeSecurityTxt, createPmpSecurityTxt } from '@/app/features/security-txt/ui/__tests__/helpers';
 import type { Account, UpgradeableLoaderAccountData } from '@/app/providers/accounts';
-import { useSecurityTxt } from '@/app/providers/program-metadata/useSecurityTxt';
 
 vi.mock('@/app/providers/cluster', () => ({
     useCluster: vi.fn(() => ({
@@ -15,7 +15,8 @@ vi.mock('@/app/providers/cluster', () => ({
     })),
 }));
 
-vi.mock('@/app/providers/program-metadata/useSecurityTxt', () => ({
+vi.mock('@/app/features/security-txt', async () => ({
+    ...(await vi.importActual('@/app/features/security-txt')),
     useSecurityTxt: vi.fn(),
 }));
 
@@ -57,6 +58,7 @@ describe('AccountHeader', () => {
     describe('ProgramHeader', () => {
         afterEach(() => {
             vi.clearAllMocks();
+            vi.unstubAllEnvs();
         });
 
         it('should render with default values when no security.txt is available', () => {
@@ -98,6 +100,25 @@ describe('AccountHeader', () => {
             expect(logoImg).toHaveAttribute('src', 'https://example.com/logo.png');
         });
 
+        it('should use proxy for logo if enabled', () => {
+            vi.stubEnv('NEXT_PUBLIC_METADATA_ENABLED', 'true');
+            const pmpSecurityTxt = createPmpSecurityTxt();
+            vi.mocked(useSecurityTxt).mockReturnValue(pmpSecurityTxt);
+
+            const { account, mockAddress } = setup();
+            render(
+                <AccountHeader
+                    address={mockAddress}
+                    account={account}
+                    tokenInfo={undefined}
+                    isTokenInfoLoading={false}
+                />
+            );
+
+            const logoImg = screen.getByAltText('Program logo');
+            expect(logoImg).toHaveAttribute('src', '/api/metadata/proxy?uri=https%3A%2F%2Fexample.com%2Flogo.png');
+        });
+
         it('should render with Neodyme security.txt data (no logo or version)', () => {
             const neodymeSecurityTxt = createNeodymeSecurityTxt();
             vi.mocked(useSecurityTxt).mockReturnValue(neodymeSecurityTxt);
@@ -127,7 +148,7 @@ function setup(): { account: Account; mockAddress: string } {
     const parsedData: UpgradeableLoaderAccountData = {
         parsed: {
             info: {
-                programData: new PublicKey('11111111111111111111111111111111'),
+                programData: PublicKey.default,
             },
             type: 'program',
         },
@@ -141,7 +162,7 @@ function setup(): { account: Account; mockAddress: string } {
             },
             executable: true,
             lamports: 0,
-            owner: new PublicKey('11111111111111111111111111111111'),
+            owner: PublicKey.default,
             pubkey: new PublicKey(mockAddress),
             space: 0,
         },

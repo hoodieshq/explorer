@@ -2,9 +2,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useSearchParams } from 'next/navigation';
 import { vi } from 'vitest';
 
+import * as programMetadataIdlModule from '@/app/entities/program-metadata';
 import * as anchorModule from '@/app/providers/anchor';
 import { ClusterProvider } from '@/app/providers/cluster';
-import * as programMetadataIdlModule from '@/app/providers/program-metadata/useProgramMetadataIdl';
 
 import { IdlCard } from '../IdlCard';
 

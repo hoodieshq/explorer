@@ -22,8 +22,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { create } from 'superstruct';
 
 import { getProxiedUri } from '@/app/features/metadata/utils';
-import { useSecurityTxt } from '@/app/providers/program-metadata/useSecurityTxt';
-import { isPmpSecurityTXT } from '@/app/utils/security-txt';
+import { isPmpSecurityTXT, useSecurityTxt } from '@/app/features/security-txt';
 import { type FullTokenInfo, isRedactedTokenAddress } from '@/app/utils/token-info';
 
 const IDENTICON_WIDTH = 64;
@@ -255,7 +254,7 @@ function ProgramHeader({ address, parsedData }: { address: string; parsedData: U
         }
         if (isPmpSecurityTXT(securityTxt)) {
             return {
-                logo: securityTxt.logo,
+                logo: getProxiedUri(securityTxt.logo),
                 programName: securityTxt.name,
                 version: securityTxt.version,
             };

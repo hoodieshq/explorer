@@ -1,9 +1,9 @@
 import { PublicKey } from '@solana/web3.js';
 
-import { type NeodymeSecurityTXT, type PmpSecurityTXT } from '@/app/utils/security-txt';
+import type { NeodymeSecurityTXT, PmpSecurityTXT } from '../../lib/types';
 
 export const programDataWithoutSecurityTxt = {
-    authority: new PublicKey('11111111111111111111111111111111'),
+    authority: PublicKey.default,
     data: ['deadbeef', 'base64'] as [string, 'base64'],
     slot: 123,
 };
@@ -14,8 +14,9 @@ export const securityTxtDataExample = {
     policy: 'policy',
     project_url: 'https://github.com',
 };
+
 export const programDataWithSecurityTxt = {
-    authority: new PublicKey('11111111111111111111111111111111'),
+    authority: PublicKey.default,
     data: [encodeSecurityTxt(securityTxtDataExample), 'base64'] as [string, 'base64'],
     slot: 123,
 };

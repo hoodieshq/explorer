@@ -1,4 +1,3 @@
-import { ProgramSecurityTXTBadge } from '@components/account/security/SecurityTXTBadge';
 import { UnknownAccountCard } from '@components/account/UnknownAccountCard';
 import { Address } from '@components/common/Address';
 import { DownloadableIcon } from '@components/common/Downloadable';
@@ -20,12 +19,13 @@ import Link from 'next/link';
 import React from 'react';
 import { ExternalLink, RefreshCw } from 'react-feather';
 
+import { ProgramSecurityTXTBadge } from '@/app/features/security-txt/ui/SecurityTXTBadge';
+import { ProgramSecurityTXTLabel } from '@/app/features/security-txt/ui/SecurityTXTLabel';
 import { useSquadsMultisigLookup } from '@/app/providers/squadsMultisig';
 import { Cluster } from '@/app/utils/cluster';
 import { useClusterPath } from '@/app/utils/url';
 
 import { VerifiedProgramBadge } from '../common/VerifiedProgramBadge';
-import { ProgramSecurityTXTLabel } from './security/SecurityTXTLabel';
 
 export function UpgradeableLoaderAccountSection({
     account,

@@ -1,9 +1,9 @@
 import {
     createNeodymeSecurityTxtWithOptionalFields,
     createPmpSecurityTxt,
-} from '@/app/components/account/security/__tests__/helpers';
+} from '@/app/features/security-txt/ui/__tests__/helpers';
 
-import { isPmpSecurityTXT } from '../security-txt';
+import { isPmpSecurityTXT } from '../isPmpSecurityTXT';
 
 describe('security-txt', () => {
     describe('isPmpSecurityTXT', () => {

@@ -1,8 +1,9 @@
+import { useProgramMetadataSecurityTxt } from '@/app/entities/program-metadata';
 import { useCluster } from '@/app/providers/cluster';
-import { fromProgramData, type NeodymeSecurityTXT, type PmpSecurityTXT } from '@/app/utils/security-txt';
 import type { ProgramDataAccountInfo } from '@/app/validators/accounts/upgradeable-program';
 
-import { useProgramMetadataSecurityTxt } from './useProgramMetadataSecurityTxt';
+import { fromProgramData } from '../lib/fromProgramData';
+import type { NeodymeSecurityTXT, PmpSecurityTXT } from '../lib/types';
 
 export function useSecurityTxt(
     address: string,

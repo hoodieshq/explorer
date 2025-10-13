@@ -1,19 +1,10 @@
 import { useMemo } from 'react';
 
-import { PMP_SECURITY_TXT_KEYS } from '@/app/utils/security-txt';
+import { TableCardBody } from '@/app/components/common/TableCardBody';
 
-import { TableCardBody } from '../../common/TableCardBody';
-import {
-    CodeCell,
-    ContactInfo,
-    ExternalLinkCell,
-    isString,
-    isValidLink,
-    RenderCode,
-    RenderExternalLink,
-    StringCell,
-    tryParseContactString,
-} from './common';
+import { PMP_SECURITY_TXT_KEYS } from '../lib/constants';
+import { CodeCell, ContactInfo, ExternalLinkCell, RenderCode, RenderExternalLink, StringCell } from './common';
+import { isString, isValidLink, tryParseContactString } from './utils';
 
 export function PmpSecurityTxtTable({ data }: { data: Record<string, any> }) {
     const entries = useMemo(() => {

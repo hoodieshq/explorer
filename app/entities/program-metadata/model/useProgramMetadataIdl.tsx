@@ -1,7 +1,7 @@
+import { IDL_SEED } from '@/app/components/instruction/codama/getProgramCanonicalMetadata';
+import { Cluster } from '@/app/utils/cluster';
 import { isEnvEnabled } from '@/app/utils/env';
 
-import { IDL_SEED } from '../../components/instruction/codama/getProgramCanonicalMetadata';
-import { Cluster } from '../../utils/cluster';
 import { useProgramCanonicalMetadata } from './useProgramCanonicalMetadata';
 
 const PMP_IDL_ENABLED = isEnvEnabled(process.env.NEXT_PUBLIC_PMP_IDL_ENABLED);

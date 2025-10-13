@@ -1,13 +1,13 @@
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
+import { useProgramMetadataSecurityTxt } from '@/app/entities/program-metadata';
 import {
     createNeodymeSecurityTxtWithOptionalFields,
     createPmpSecurityTxt,
-} from '@/app/components/account/security/__tests__/helpers';
-import { fromProgramData } from '@/app/utils/security-txt';
+} from '@/app/features/security-txt/ui/__tests__/helpers';
 
-import { useProgramMetadataSecurityTxt } from '../useProgramMetadataSecurityTxt';
+import { fromProgramData } from '../../lib/fromProgramData';
 import { useSecurityTxt } from '../useSecurityTxt';
 
 vi.mock('@/app/providers/cluster', () => ({
@@ -17,13 +17,13 @@ vi.mock('@/app/providers/cluster', () => ({
     })),
 }));
 
-vi.mock('../useProgramMetadataSecurityTxt', () => ({
+vi.mock('@/app/entities/program-metadata', () => ({
     useProgramMetadataSecurityTxt: vi.fn(() => ({
         programMetadataSecurityTxt: null,
     })),
 }));
 
-vi.mock('@/app/utils/security-txt', () => ({
+vi.mock('../../lib/fromProgramData', () => ({
     fromProgramData: vi.fn(() => ({
         securityTXT: undefined,
     })),

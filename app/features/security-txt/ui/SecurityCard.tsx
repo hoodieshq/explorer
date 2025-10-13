@@ -1,17 +1,20 @@
 import { ErrorCard } from '@components/common/ErrorCard';
-import { UpgradeableLoaderAccountData } from '@providers/accounts';
+import type { UpgradeableLoaderAccountData } from '@providers/accounts';
 import { PublicKey } from '@solana/web3.js';
-import { fromProgramData, NeodymeSecurityTXT, NO_SECURITY_TXT_ERROR } from '@utils/security-txt';
 import { useMemo } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
+import { DownloadableButton } from '@/app/components/common/Downloadable';
+import { useProgramMetadataSecurityTxt } from '@/app/entities/program-metadata';
 import { useCluster } from '@/app/providers/cluster';
-import { useProgramMetadataSecurityTxt } from '@/app/providers/program-metadata/useProgramMetadataSecurityTxt';
 
-import { DownloadableButton } from '../../common/Downloadable';
-import { securityTxtDataToBase64, SecurityTxtVersionBadge } from './common';
+import { NO_SECURITY_TXT_ERROR } from '../lib/constants';
+import { fromProgramData } from '../lib/fromProgramData';
+import type { NeodymeSecurityTXT } from '../lib/types';
+import { SecurityTxtVersionBadge } from './common';
 import { NeodymeSecurityTxtTable } from './NeodymeSecurityTxtTable';
 import { PmpSecurityTxtTable } from './PmpSecurityTxtTable';
+import { securityTxtDataToBase64 } from './utils';
 
 export function SecurityCard({ data, pubkey }: { data: UpgradeableLoaderAccountData; pubkey: PublicKey }) {
     const { url, cluster } = useCluster();

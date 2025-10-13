@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { vi } from 'vitest';
 
+import { useProgramMetadataSecurityTxt } from '@/app/entities/program-metadata';
 import { useCluster } from '@/app/providers/cluster';
-import { useProgramMetadataSecurityTxt } from '@/app/providers/program-metadata/useProgramMetadataSecurityTxt';
 import { Cluster } from '@/app/utils/cluster';
 
 import { ProgramSecurityTXTBadge } from '../SecurityTXTBadge';
@@ -14,12 +14,12 @@ vi.mock('@/app/providers/cluster', () => ({
     useCluster: vi.fn(),
 }));
 
-vi.mock('@/app/providers/program-metadata/useProgramMetadataSecurityTxt', () => ({
+vi.mock('@/app/entities/program-metadata', () => ({
     useProgramMetadataSecurityTxt: vi.fn(),
 }));
 
 const invalidProgramData = {
-    authority: new PublicKey('11111111111111111111111111111111'),
+    authority: PublicKey.default,
     data: [''] as unknown as [string, 'base64'],
     slot: 123,
 };

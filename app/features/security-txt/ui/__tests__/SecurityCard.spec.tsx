@@ -3,9 +3,9 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { vi } from 'vitest';
 
-import { UpgradeableLoaderAccountData } from '@/app/providers/accounts';
+import { useProgramMetadataSecurityTxt } from '@/app/entities/program-metadata';
+import type { UpgradeableLoaderAccountData } from '@/app/providers/accounts';
 import { useCluster } from '@/app/providers/cluster';
-import { useProgramMetadataSecurityTxt } from '@/app/providers/program-metadata/useProgramMetadataSecurityTxt';
 import { Cluster } from '@/app/utils/cluster';
 
 import { SecurityCard } from '../SecurityCard';
@@ -15,7 +15,7 @@ vi.mock('@/app/providers/cluster', () => ({
     useCluster: vi.fn(),
 }));
 
-vi.mock('@/app/providers/program-metadata/useProgramMetadataSecurityTxt', () => ({
+vi.mock('@/app/entities/program-metadata', () => ({
     useProgramMetadataSecurityTxt: vi.fn(),
 }));
 

@@ -1,35 +1,37 @@
 import classNames from 'classnames';
 import { ExternalLink } from 'react-feather';
 
-export type SecurityTxtVersion = 'neodyme' | 'pmp';
+import type { SecurityTxtVersion } from './types';
+import { isValidLink, parseCodeValue } from './utils';
 
-export function securityTxtDataToBase64(data: Record<string, any>) {
-    return Buffer.from(JSON.stringify(data, null, 2)).toString('base64');
+export function CodeCell({ value, alignRight = true }: { value: string; alignRight: boolean }) {
+    return (
+        <td className={classNames({ 'text-lg-end': alignRight })}>
+            <RenderCode value={value} />
+        </td>
+    );
 }
 
-export function isString(value: any) {
-    return typeof value === 'string';
+export function SecurityTxtVersionBadge({
+    version,
+    className,
+}: React.HTMLAttributes<unknown> & { version: SecurityTxtVersion }) {
+    return (
+        <span className={classNames(['badge bg-warning-soft', className])} data-testid="security-txt-version-badge">
+            <SecurityTxtVersionBadgeTitle version={version} />
+        </span>
+    );
 }
 
-export function isValidLink(value: any) {
-    try {
-        const url = new URL(value);
-        return ['http:', 'https:'].includes(url.protocol);
-    } catch (err) {
-        return false;
+export function SecurityTxtVersionBadgeTitle({ version }: { version: SecurityTxtVersion }) {
+    if (version === 'neodyme') {
+        return <>Neodyme</>;
     }
-}
+    if (version === 'pmp') {
+        return <>Program Metadata</>;
+    }
 
-export function tryParseContactString(str: string) {
-    const idx = str.indexOf(':');
-    if (idx < 0) {
-        return str;
-    }
-    try {
-        return [str.slice(0, idx), str.slice(idx + 1)];
-    } catch (error) {
-        return str;
-    }
+    return null;
 }
 
 export function ContactInfo({ type, information }: { type: string; information: string }) {
@@ -106,45 +108,4 @@ export function RenderCode({ value }: { value: any }) {
             <pre className="after:: e-max-w-[500px] e-overflow-x-auto lg:e-ml-auto">{parseCodeValue(value)}</pre>
         </div>
     );
-}
-
-function parseCodeValue(value: any) {
-    if (isString(value)) {
-        return value.trim();
-    }
-    try {
-        return JSON.stringify(value, undefined, 2);
-    } catch (error) {
-        return String(value);
-    }
-}
-
-export function CodeCell({ value, alignRight = true }: { value: string; alignRight: boolean }) {
-    return (
-        <td className={classNames({ 'text-lg-end': alignRight })}>
-            <RenderCode value={value} />
-        </td>
-    );
-}
-
-export function SecurityTxtVersionBadge({
-    version,
-    className,
-}: React.HTMLAttributes<unknown> & { version: SecurityTxtVersion }) {
-    return (
-        <span className={classNames(['badge bg-warning-soft', className])} data-testid="security-txt-version-badge">
-            <SecurityTxtVersionBadgeTitle version={version} />
-        </span>
-    );
-}
-
-export function SecurityTxtVersionBadgeTitle({ version }: { version: SecurityTxtVersion }) {
-    if (version === 'neodyme') {
-        return <>Neodyme</>;
-    }
-    if (version === 'pmp') {
-        return <>Program Metadata</>;
-    }
-
-    return null;
 }

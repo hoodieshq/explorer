@@ -3,18 +3,18 @@ import { render, screen } from '@testing-library/react';
 import React from 'react';
 import { vi } from 'vitest';
 
+import { useProgramMetadataSecurityTxt } from '@/app/entities/program-metadata';
 import { useCluster } from '@/app/providers/cluster';
-import { useProgramMetadataSecurityTxt } from '@/app/providers/program-metadata/useProgramMetadataSecurityTxt';
 import { Cluster } from '@/app/utils/cluster';
-import { NEODYME_SECURITY_TXT_DOC_LINK, PMP_SECURITY_TXT_DOC_LINK } from '@/app/utils/security-txt';
 
+import { NEODYME_SECURITY_TXT_DOC_LINK, PMP_SECURITY_TXT_DOC_LINK } from '../../lib/constants';
 import { ProgramSecurityTXTLabel } from '../SecurityTXTLabel';
 
 vi.mock('@/app/providers/cluster', () => ({
     useCluster: vi.fn(),
 }));
 
-vi.mock('@/app/providers/program-metadata/useProgramMetadataSecurityTxt', () => ({
+vi.mock('@/app/entities/program-metadata', () => ({
     useProgramMetadataSecurityTxt: vi.fn(),
 }));
 
