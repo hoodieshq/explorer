@@ -1,11 +1,12 @@
-import { ErrorCard } from '@components/common/ErrorCard';
-import type { UpgradeableLoaderAccountData } from '@providers/accounts';
 import { PublicKey } from '@solana/web3.js';
 import { useMemo } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
+import { AlertCircle } from 'react-feather';
 
 import { DownloadableButton } from '@/app/components/common/Downloadable';
+import { ErrorCard } from '@/app/components/common/ErrorCard';
 import { useProgramMetadataSecurityTxt } from '@/app/entities/program-metadata';
+import type { UpgradeableLoaderAccountData } from '@/app/providers/accounts';
 import { useCluster } from '@/app/providers/cluster';
 
 import { NO_SECURITY_TXT_ERROR } from '../lib/constants';
@@ -60,21 +61,26 @@ export function ProgramSecurityTxtCard({
 
     return (
         <div className="card security-txt">
-            <div className="card-header e-h-auto e-min-h-[60px] e-flex-col e-items-start md:e-flex-row md:e-items-center">
+            <div className="card-header e-flex e-h-auto e-min-h-[60px] e-items-center">
                 <h3 className="card-header-title mb-0 d-flex align-items-center gap-3 e-mr-4">
                     Security.txt
                     <SecurityTxtVersionBadge version={pmpSecurityTxt ? 'pmp' : 'neodyme'} />
-                    <div className="d-flex btn btn-sm btn-primary">
-                        <DownloadableButton
-                            data={downloadData}
-                            filename={`${programAddress}-security-txt.json`}
-                            type="application/json"
-                        >
-                            Download
-                        </DownloadableButton>
-                    </div>
                 </h3>
-                <small>Note that this is self-reported by the author of the program and might not be accurate.</small>
+                <div className="btn btn-sm btn-white e-flex">
+                    <DownloadableButton
+                        data={downloadData}
+                        filename={`${programAddress}-security-txt.json`}
+                        type="application/json"
+                    >
+                        Download
+                    </DownloadableButton>
+                </div>
+            </div>
+            <div className="e-px-6 e-py-4">
+                <small className="text-warning e-flex e-gap-1">
+                    <AlertCircle size={16} className="e-mt-0.5" />
+                    Note that this is self-reported by the author of the program and might not be accurate
+                </small>
             </div>
             <ErrorBoundary fallback={<div className="card-body text-center">Invalid security.txt</div>}>
                 {pmpSecurityTxt ? (

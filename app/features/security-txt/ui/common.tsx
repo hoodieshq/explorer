@@ -17,7 +17,7 @@ export function SecurityTxtVersionBadge({
     className,
 }: React.HTMLAttributes<unknown> & { version: SecurityTxtVersion }) {
     return (
-        <span className={classNames(['badge bg-warning-soft', className])} data-testid="security-txt-version-badge">
+        <span className={classNames(['badge bg-info-soft', className])} data-testid="security-txt-version-badge">
             <SecurityTxtVersionBadgeTitle version={version} />
         </span>
     );
