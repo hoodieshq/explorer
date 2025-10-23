@@ -1,4 +1,5 @@
 import { ParsedInstruction, ParsedTransaction, SignatureResult } from '@solana/web3.js';
+import * as SolanaSystemProgram from '@solana-program/system';
 import { ParsedInfo } from '@validators/index';
 import React from 'react';
 import { create } from 'superstruct';
@@ -45,6 +46,7 @@ type DetailsProps = {
 export function SystemDetailsCard(props: DetailsProps) {
     try {
         const parsed = create(props.ix.parsed, ParsedInfo);
+
         switch (parsed.type) {
             case 'createAccount': {
                 const info = create(parsed.info, CreateAccountInfo);
