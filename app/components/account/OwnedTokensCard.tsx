@@ -18,7 +18,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import React, { useCallback, useMemo } from 'react';
 import { ChevronDown } from 'react-feather';
 
-import TokenLogoPlaceholder from '@/app/img/program-logo-placeholder.svg';
+import TokenLogoPlaceholder from '@/app/img/logos-solana/low-contrast-solana-logo.svg';
 import { normalizeTokenAmount } from '@/app/utils';
 
 type Display = 'summary' | 'detail' | null;

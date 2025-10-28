@@ -20,7 +20,7 @@ import { create } from 'superstruct';
 
 import { ProgramHeader } from '@/app/components/shared/account/ProgramHeader';
 import { getProxiedUri } from '@/app/features/metadata/utils';
-import TokenLogoPlaceholder from '@/app/img/program-logo-placeholder.svg';
+import TokenLogoPlaceholder from '@/app/img/logos-solana/low-contrast-solana-logo.svg';
 import { type FullTokenInfo, isRedactedTokenAddress } from '@/app/utils/token-info';
 
 export function AccountHeader({
