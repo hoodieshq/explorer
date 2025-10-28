@@ -1,9 +1,7 @@
 'use client';
-
 import ScaledUiAmountMultiplierTooltip from '@components/account/token-extensions/ScaledUiAmountMultiplierTooltip';
 import { Address } from '@components/common/Address';
 import { ErrorCard } from '@components/common/ErrorCard';
-import { Identicon } from '@components/common/Identicon';
 import { LoadingCard } from '@components/common/LoadingCard';
 import {
     TokenInfoWithPubkey,
@@ -14,16 +12,16 @@ import {
 import { FetchStatus } from '@providers/cache';
 import { PublicKey } from '@solana/web3.js';
 import { BigNumber } from 'bignumber.js';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import React, { useCallback, useMemo } from 'react';
 import { ChevronDown } from 'react-feather';
 
+import TokenLogoPlaceholder from '@/app/img/program-logo-placeholder.svg';
 import { normalizeTokenAmount } from '@/app/utils';
 
 type Display = 'summary' | 'detail' | null;
-
-const SMALL_IDENTICON_WIDTH = 16;
 
 const useQueryDisplay = (): Display => {
     const searchParams = useSearchParams();
@@ -217,10 +215,12 @@ function TokenRow({ mintAddress, token, showLogo, showAccountAddress }: TokenRow
                             width={16}
                         />
                     ) : (
-                        <Identicon
-                            address={mintAddress}
-                            className="avatar-img identicon-wrapper identicon-wrapper-small"
-                            style={{ width: SMALL_IDENTICON_WIDTH }}
+                        <Image
+                            src={TokenLogoPlaceholder}
+                            alt="Token icon placeholder"
+                            height={16}
+                            width={16}
+                            className="e-h-4 e-w-4 e-rounded-full e-object-cover"
                         />
                     )}
                 </td>
