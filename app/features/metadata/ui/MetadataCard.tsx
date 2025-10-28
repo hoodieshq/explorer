@@ -60,7 +60,7 @@ function OnChainMetadataCard({ account }: { account: Account }) {
 function OffChainMetadataCard({ account }: { account: Account }) {
     const { metadata } = useOffChainMetadata(account.pubkey);
 
-    const tabs = useMemo<MetadataTab[]>(() => {
+    const tabs = (() => {
         const availableTabs: MetadataTab[] = [];
 
         if (!metadata) return availableTabs;
@@ -72,7 +72,7 @@ function OffChainMetadataCard({ account }: { account: Account }) {
         });
 
         return availableTabs;
-    }, [metadata]);
+    })();
 
     return <BaseCard tabs={tabs} />;
 }
