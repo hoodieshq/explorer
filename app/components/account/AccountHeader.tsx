@@ -177,6 +177,7 @@ function TokenMintHeaderCard({
     token: { name?: string | undefined; logoURI?: string | undefined; symbol?: string | undefined };
     unverified: boolean;
 }) {
+    const logoURI = token.logoURI ? getProxiedUri(token.logoURI) : undefined;
     return (
         <div className="row align-items-center">
             {unverified && (
@@ -206,10 +207,10 @@ function TokenMintHeaderCard({
             )}
             <div className="col-auto">
                 <div className="avatar avatar-lg header-avatar-top">
-                    {token?.logoURI ? (
+                    {logoURI ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                            src={token.logoURI}
+                            src={logoURI}
                             alt="Token logo"
                             height={64}
                             width={64}

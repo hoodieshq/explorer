@@ -18,6 +18,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import React, { useCallback, useMemo } from 'react';
 import { ChevronDown } from 'react-feather';
 
+import { getProxiedUri } from '@/app/features/metadata/utils';
 import TokenLogoPlaceholder from '@/app/img/logos-solana/low-contrast-solana-logo.svg';
 import { normalizeTokenAmount } from '@/app/utils';
 
@@ -201,18 +202,20 @@ type TokenRowProps = {
 function TokenRow({ mintAddress, token, showLogo, showAccountAddress }: TokenRowProps) {
     const [_, scaledUiAmountMultiplier] = useScaledUiAmountForMint(mintAddress, token.rawAmount);
 
+    const logoURI = token.logoURI ? getProxiedUri(token.logoURI) : undefined;
+
     return (
         <tr>
             {showLogo && (
                 <td className="w-1 p-0 text-center">
-                    {token.logoURI ? (
+                    {logoURI ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                            alt="token icon"
-                            className="token-icon rounded-circle border border-4 border-gray-dark"
+                            src={logoURI}
+                            alt="Token icon"
                             height={16}
-                            src={token.logoURI}
                             width={16}
+                            className="token-icon rounded-circle border border-4 border-gray-dark"
                         />
                     ) : (
                         <Image
