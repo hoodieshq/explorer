@@ -422,7 +422,7 @@ function getTabs(pubkey: PublicKey, account: Account): TabComponent[] {
 
     let programTypeKey = '';
     if (parsedData) {
-        programTypeKey = `${parsedData.program}:${parsedData.parsed?.type}`;
+        programTypeKey = `${parsedData.program}:${parsedData.parsed.type}`;
     }
 
     if (parsedData && parsedData.program in TABS_LOOKUP) {
