@@ -91,7 +91,9 @@ export function CompressedNftAccountHeader({ account }: { account: Account }) {
 }
 
 export function CompressedNFTHeader({ compressedNft }: { compressedNft: CompressedNft }) {
-    const metadataJson = useMetadataJsonLink(getProxiedUri(compressedNft.content.json_uri));
+    // Empty strings are possible, so the check is necessary.
+    const proxiedURI = compressedNft.content.json_uri ? getProxiedUri(compressedNft.content.json_uri) : null;
+    const metadataJson = useMetadataJsonLink(proxiedURI);
     const dropdownRef = createRef<HTMLButtonElement>();
 
     useAsyncEffect(
