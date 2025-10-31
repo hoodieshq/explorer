@@ -98,7 +98,7 @@ export function useTabs(
                 title: 'Events',
             },
         ];
-        console.log({ a: isCodamaIdl(originalIdl), originalIdl, withInteractive });
+
         if (withInteractive && originalIdl && !isCodamaIdl(originalIdl)) {
             const _idl = originalIdl as unknown as Idl;
             tabItems.push({
