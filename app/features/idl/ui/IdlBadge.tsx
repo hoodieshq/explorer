@@ -1,13 +1,14 @@
-import { getIdlSpecType } from '@entities/idl/converters/convert-legacy-idl';
 import { RootNode } from 'codama';
 import React from 'react';
 
-interface IDLBadgeProps {
+import { getSerdeIdlSpecType } from '@/app/entities/idl/convert';
+
+interface IdlBadgeProps {
     idl: any;
     title: string;
 }
 
-export function IDLBadge({ idl, title }: IDLBadgeProps) {
+export function IdlBadge({ idl, title }: IdlBadgeProps) {
     const version = getIdlVersion(idl);
     const badgeClass = version === 'Legacy' ? 'bg-warning' : 'bg-success';
 
@@ -19,7 +20,7 @@ export function IDLBadge({ idl, title }: IDLBadgeProps) {
 }
 
 export function getIdlVersion(idl: any): string {
-    const spec = getIdlSpecType(idl);
+    const spec = getSerdeIdlSpecType(idl);
     switch (spec) {
         case 'legacy':
             return 'Legacy';

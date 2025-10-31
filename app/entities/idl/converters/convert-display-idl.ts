@@ -1,13 +1,17 @@
 import { IdlType, IdlTypeDefined } from '@coral-xyz/anchor/dist/cjs/idl';
 
-import type { IdlSpec, LegacyIdlType, TupleType } from '../converters/convert-legacy-idl';
 import {
-    convertLegacyIdl as convertDisplayIdl,
-    convertType as convertLegacyType,
+    getIdlSpecType as getSerdeIdlSpecType,
+    IdlSpec as LegacyIdlSpec,
+    LegacyIdlType,
+    TupleType,
+} from '../converters/convert-legacy-idl';
+import {
+    convertLegacyIdl,
     internalConvertDefinedTypeArg as convertDefinedTypeArg,
 } from '../converters/convert-legacy-idl';
 
-export type DisplayIdlSpecKey = IdlSpec | 'legacy-shank';
+export type DisplayIdlSpecKey = LegacyIdlSpec | 'legacy-shank';
 
 export type DisplayIdlType = LegacyIdlType | { tuple: TupleType } | { option: { tuple: TupleType } };
 
@@ -47,4 +51,21 @@ function convertType(type: LegacyOrShankIdlType): IdlType {
     throw new Error(`Unsupported type: ${JSON.stringify(type)}`);
 }
 
-export { convertDisplayIdl, convertType };
+export type IdlSpec = LegacyIdlSpec | 'legacy-shank';
+
+export function getIdlSpecType(idl: any): IdlSpec {
+    const parentIdlSpecType = getSerdeIdlSpecType(idl);
+
+    const isIdlFromShank = (idl: any) => idl?.metadata?.origin === 'shank';
+
+    // we allow to return specific version for legacy IDLs
+    const allowInferLegacyIdlVariations = parentIdlSpecType === 'legacy';
+
+    if (allowInferLegacyIdlVariations && isIdlFromShank(idl)) return 'legacy-shank';
+
+    // preserve original IDL type if not legacy
+    return parentIdlSpecType;
+}
+
+export const convertDisplayIdl = convertLegacyIdl;
+export const privateConvertType = convertType;

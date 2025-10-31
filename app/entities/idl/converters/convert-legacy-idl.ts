@@ -145,17 +145,6 @@ type LegacyIdlType =
     | { generic: string }
     | { definedWithTypeArgs: { name: string; args: LegacyIdlDefinedTypeArg[] } };
 
-// TODO: check IdlType in terms of recursiveness
-type TupleType = 'string'[] | 'u64'[];
-
-type ShankIdlType = { tuple: TupleType };
-
-type IdlTupleType = { tuple: TupleType };
-
-type ExtendedLegacyType = LegacyIdlType | IdlTupleType | { option: IdlTupleType };
-
-export type LegacyOrShankIdlType = LegacyIdlType | ShankIdlType;
-
 type LegacyIdlDefinedTypeArg = { generic: string } | { value: string } | { type: LegacyIdlType };
 
 function convertLegacyIdl(legacyIdl: LegacyIdl, programAddress?: string): Idl {
@@ -432,6 +421,13 @@ function convertEventToTypeDef(event: LegacyIdlEvent): IdlTypeDef {
     };
 }
 
+// TODO: check IdlType in terms of recursiveness
+type TupleType = 'string'[] | 'u64'[];
+
+type IdlTupleType = { tuple: TupleType };
+
+type ExtendedLegacyType = LegacyIdlType | IdlTupleType | { option: IdlTupleType };
+
 // TODO: generalize approach for parsing tuples. Currently ad-hoc version for 32-bytes tuple is used
 function convertType(type: ExtendedLegacyType): IdlType {
     if (typeof type === 'string') {
@@ -449,6 +445,7 @@ function convertType(type: ExtendedLegacyType): IdlType {
     } else if ('option' in type) {
         return { option: convertType(type.option) };
     } else if ('defined' in type) {
+        // TODO: cover complex type
         if (type.defined === '(u8,[u8;32])') {
             // console.log(555, type, isLeafTupleU8String(type.defined));
         }
@@ -479,7 +476,6 @@ function convertType(type: ExtendedLegacyType): IdlType {
             },
         } as IdlTypeDefined;
     } else if ('tuple' in type) {
-        // console.log(4, { type });
         // Use generic type to display tuple as it is not covered by IdlType
         // return {
         //     defined: {
@@ -521,21 +517,6 @@ export function getIdlSpecType(idl: any): IdlSpec {
     return idl?.metadata?.spec ?? 'legacy';
 }
 
-export type IdlSpecKey = IdlSpec | 'legacy-shank';
-
-export function getIdlSpecKeyType(idl: any): IdlSpecKey {
-    const baseKey = getIdlSpecType(idl);
-
-    let actualKey: IdlSpecKey;
-    if (idl?.metadata?.origin === 'shank') {
-        actualKey = 'legacy-shank';
-    } else {
-        actualKey = baseKey;
-    }
-
-    return actualKey && baseKey === 'legacy' ? actualKey : baseKey;
-}
-
 export function formatIdl(idl: any, programAddress?: string): Idl {
     const spec = getIdlSpecType(idl);
 
@@ -549,12 +530,9 @@ export function formatIdl(idl: any, programAddress?: string): Idl {
     }
 }
 
-export { convertLegacyIdl, convertType };
+export { convertLegacyIdl };
+export type { LegacyIdlType, TupleType };
 
 /// export part of the internal implementation to preserve existing functonality to display the IDL as it was
 export const internalConvertDefinedTypeArg = convertDefinedTypeArg;
-
-export type { LegacyIdlType, TupleType };
-
-// export convertType to allow testing the conversion logic
 export const privateConvertType = convertType;

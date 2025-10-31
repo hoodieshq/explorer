@@ -1,4 +1,4 @@
-import { getIdlSpecKeyType } from '@entities/idl/converters/convert-legacy-idl';
+import { getDisplayIdlSpecType } from '@entities/idl/convert';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useSetAtom } from 'jotai';
 import { useEffect } from 'react';
@@ -65,7 +65,7 @@ export function IdlRenderer({
         );
     }
 
-    const spec = getIdlSpecKeyType(idl);
+    const spec = getDisplayIdlSpecType(idl);
     switch (spec) {
         case 'codama':
             return (

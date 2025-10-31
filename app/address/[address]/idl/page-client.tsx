@@ -1,10 +1,10 @@
 'use client';
 
 import { LoadingCard } from '@components/common/LoadingCard';
+import { IdlCard as InteractiveIdlCard } from '@features/idl';
 import { Suspense } from 'react';
 
 import { IdlCard } from '@/app/components/account/idl/IdlCard';
-import { IdlCard as InteractiveIdlCard } from '@/app/features/idl';
 
 import { PageRenderer } from './page-renderer';
 

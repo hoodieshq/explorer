@@ -1,10 +1,9 @@
 import { useAnchorProgram } from '@entities/idl/model/use-anchor-program';
 import { useProgramMetadataIdl } from '@entities/program-metadata';
+import { IdlBadge } from '@features/idl/ui/IdlBadge';
 import { useCluster } from '@providers/cluster';
 import classNames from 'classnames';
 import { useEffect, useMemo, useState } from 'react';
-
-import { IDLBadge } from '@/app/components/common/IDLBadge';
 
 import { IdlSection } from './ui/IdlSection';
 
@@ -72,7 +71,7 @@ export function IdlCard({ programId }: { programId: string }) {
             </div>
             <div className="card-body">
                 <IdlSection
-                    badge={<IDLBadge title={activeTab.badge} idl={activeTab.idl} />}
+                    badge={<IdlBadge title={activeTab.badge} idl={activeTab.idl} />}
                     idl={activeTab.idl}
                     programId={programId}
                 />

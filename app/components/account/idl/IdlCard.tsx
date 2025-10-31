@@ -1,7 +1,8 @@
 'use client';
 
 import { useAnchorProgram } from '@entities/idl';
-import { getIdlSpecKeyType } from '@entities/idl/convert';
+import { getDisplayIdlSpecType } from '@entities/idl/convert';
+import { IdlBadge } from '@features/idl/ui/IdlBadge';
 import { useCluster } from '@providers/cluster';
 import { useDebounceCallback } from '@react-hook/debounce';
 import classNames from 'classnames';
@@ -13,7 +14,6 @@ import { SolarizedJsonViewer as ReactJson } from '@/app/components/common/JsonVi
 import { useProgramMetadataIdl } from '@/app/entities/program-metadata';
 
 import { DownloadableButton } from '../../common/Downloadable';
-import { IDLBadge } from '../../common/IDLBadge';
 import { AnchorFormattedIdl, CodamaFormattedIdl } from './formatted-idl/IdlView';
 
 type IdlVariant = 'program-metadata' | 'anchor';
@@ -80,7 +80,7 @@ export function IdlCard({ programId }: { programId: string }) {
             </div>
             <div className="card-body">
                 <IdlSection
-                    badge={<IDLBadge title={activeTab.badge} idl={activeTab.idl} />}
+                    badge={<IdlBadge title={activeTab.badge} idl={activeTab.idl} />}
                     idl={activeTab.idl}
                     programId={programId}
                 />
@@ -185,7 +185,7 @@ function IdlRenderer({
         );
     }
 
-    const spec = getIdlSpecKeyType(idl);
+    const spec = getDisplayIdlSpecType(idl);
     switch (spec) {
         case 'codama':
             return (

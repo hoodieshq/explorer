@@ -1,6 +1,7 @@
 'use client';
 
 import { Idl } from '@coral-xyz/anchor';
+import { InteractWithIdl } from '@features/idl/interactive-idl/ui/InteractWithIdl';
 import { RootNode } from 'codama';
 import { useMemo } from 'react';
 
@@ -12,7 +13,6 @@ import { IdlEventsView } from '@/app/components/account/idl/formatted-idl/IdlEve
 import { IdlInstructionsView } from '@/app/components/account/idl/formatted-idl/IdlInstructions';
 import { IdlPdasView } from '@/app/components/account/idl/formatted-idl/IdlPdas';
 import { IdlTypesView } from '@/app/components/account/idl/formatted-idl/IdlTypes';
-import { InteractWithIdl } from '@/app/features/idl/interactive-idl/ui/InteractWithIdl';
 
 type TabId = 'instructions' | 'accounts' | 'types' | 'errors' | 'constants' | 'events' | 'pdas' | 'interact';
 
@@ -37,6 +37,7 @@ export function useTabs(
     withInteractive: boolean
 ) {
     const tabs: Tab[] = useMemo(() => {
+        console.log(idl);
         if (!idl) return [];
 
         const tabItems: Tab[] = [
@@ -97,7 +98,7 @@ export function useTabs(
                 title: 'Events',
             },
         ];
-
+        console.log({ a: isCodamaIdl(originalIdl), originalIdl, withInteractive });
         if (withInteractive && originalIdl && !isCodamaIdl(originalIdl)) {
             const _idl = originalIdl as unknown as Idl;
             tabItems.push({
