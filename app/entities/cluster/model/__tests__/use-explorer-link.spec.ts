@@ -21,20 +21,20 @@ describe('useExplorerLink', () => {
             {
                 cluster: Cluster.MainnetBeta,
                 clusterName: 'Mainnet',
-                path: '/address/123',
                 expectedUrl: 'https://explorer.solana.com/address/123',
+                path: '/address/123',
             },
             {
                 cluster: Cluster.Testnet,
                 clusterName: 'Testnet',
-                path: '/address/123',
                 expectedUrl: 'https://explorer.solana.com/address/123?cluster=testnet',
+                path: '/address/123',
             },
             {
                 cluster: Cluster.Devnet,
                 clusterName: 'Devnet',
-                path: '/address/123',
                 expectedUrl: 'https://explorer.solana.com/address/123?cluster=devnet',
+                path: '/address/123',
             },
         ])('should generate correct URL for $clusterName with path $path', ({ cluster, path, expectedUrl }) => {
             vi.mocked(useCluster).mockReturnValue({
