@@ -1,16 +1,22 @@
+import { EXPLORER_BASE_URL as baseUrl } from '@utils/env';
+
 import { useCluster } from '@/app/providers/cluster';
 import { Cluster, clusterSlug } from '@/app/utils/cluster';
-
-const BASE_URL = 'https://explorer.solana.com';
 
 export function useExplorerLink(path: string) {
     const { cluster, customUrl } = useCluster();
 
-    // Base explorer URL
-    const baseUrl = BASE_URL;
-
     // Build the full URL with path
-    let url = `${baseUrl}${path}`;
+    let url: string;
+    if (!baseUrl.endsWith('/') && !path.startsWith('/')) {
+        if (path === '') {
+            url = baseUrl;
+        } else {
+            url = `${baseUrl}/${path}`;
+        }
+    } else {
+        url = `${baseUrl}${path}`;
+    }
 
     // Add cluster query parameter for non-mainnet clusters
     const params = new URLSearchParams();
