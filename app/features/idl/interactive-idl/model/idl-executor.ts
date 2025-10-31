@@ -1,6 +1,7 @@
 import { Connection, PublicKey, TransactionInstruction, VersionedMessage } from '@solana/web3.js';
 
 import { AnchorInterpreter } from './anchor/anchor-interpreter';
+import { CodamaInterpreter } from './codama/codama-interpreter';
 import { IdlExecutorConfig, IdlExecutorSpec } from './idl-executor.d';
 import { IdlInterpreter } from './idl-interpreter.d';
 import { BaseIdl, UnifiedAccounts, UnifiedArguments, UnifiedProgram, UnifiedWallet } from './unified-program.d';
@@ -14,7 +15,9 @@ export class IdlExecutor implements IdlExecutorSpec {
         this.interpreters = new Map();
 
         // Register default interpreters
+        // Order matters: Codama is checked first since it has a specific standard field
         const defaultInterpreters = config.interpreters || [
+            new CodamaInterpreter(),
             new AnchorInterpreter(),
             // add future default interpreters here
         ];

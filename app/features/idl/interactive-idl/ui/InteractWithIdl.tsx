@@ -46,28 +46,38 @@ export function InteractWithIdl({
     const { connecting, connected, disconnecting } = useWallet();
 
     const {
-        initializeWallet,
         isInitialized,
         initializeProgram,
         program,
         isProgramLoading,
         instructionState,
         invokeInstruction,
+        initializationError,
     } = useInstruction({
-        enabled: idl && progId,
+        enabled: !!(idl && progId),
         idl,
-        programId: progId.toString(),
+        programId: progId?.toString(),
     });
 
     useLayoutEffect(() => {
-        console.log(777, { connected, connecting, disconnecting });
+        console.log(777, { connected, connecting, disconnecting, initializationError });
         const isProgramSelected = idl && progId;
 
-        if (!isProgramLoading && connected && isProgramSelected) {
-            // initializeProgram();
-            // console.log(777, 'Init POrogram');
+        // Only initialize if connected, program is selected, not loading, and no initialization error
+        if (!isProgramLoading && connected && isProgramSelected && !program && !initializationError) {
+            initializeProgram();
         }
-    }, [isProgramLoading, connecting, connected, disconnecting, idl, progId, initializeProgram]);
+    }, [
+        isProgramLoading,
+        connecting,
+        connected,
+        disconnecting,
+        idl,
+        progId,
+        initializeProgram,
+        program,
+        initializationError,
+    ]);
 
     // useEffect(() => {
     //     // TODO: move formatting to the interpreter layer
@@ -101,5 +111,14 @@ export function InteractWithIdl({
 
     console.log({ isReady });
 
-    return <>{isReady ? <InteractWithIdlView instructions={instructions} idl={idl} /> : <LoadingCard />}</>;
+    if (initializationError) {
+        return (
+            <div className="alert alert-warning">
+                <p>Unable to initialize program for interaction: {initializationError}</p>
+                <p className="text-sm mt-2">You can still view the IDL structure above.</p>
+            </div>
+        );
+    }
+
+    return <>{isReady ? <InteractWithIdlView instructions={instructions || []} idl={idl} /> : <LoadingCard />}</>;
 }

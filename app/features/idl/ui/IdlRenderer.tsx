@@ -1,5 +1,6 @@
 import { getDisplayIdlSpecType } from '@entities/idl/convert';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
 import { useSetAtom } from 'jotai';
 import { useEffect } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -31,8 +32,7 @@ export function IdlRenderer({
     const { url } = useCluster();
     const setOriginalIdl = useSetAtom(originalIdlAtom);
     const setProgramId = useSetAtom(programIdAtom);
-    const wallet = useWallet();
-    const { isProgramLoading, program, initializeProgram } = useInstruction({
+    const { isProgramLoading, program, initializeProgram, initializationError } = useInstruction({
         cluster: url,
         idl,
         programId,
@@ -41,14 +41,19 @@ export function IdlRenderer({
     useEffect(() => {
         console.log(123, { idl }, programId);
         setOriginalIdl(idl);
-        setProgramId(programId);
+        setProgramId(new PublicKey(programId));
     }, [idl, programId, setOriginalIdl, setProgramId]);
     useEffect(() => {
-        console.log(567567, { isProgramLoading, program });
-        if (!program && !isProgramLoading) {
+        console.log(567567, { isProgramLoading, program, initializationError });
+
+        // Only try to initialize if:
+        // - No program exists
+        // - Not currently loading
+        // - No initialization error (to prevent infinite retries)
+        if (!program && !isProgramLoading && !initializationError) {
             initializeProgram();
         }
-    }, [isProgramLoading, program, initializeProgram]);
+    }, [isProgramLoading, program, initializeProgram, initializationError]);
     if (raw) {
         return (
             <ReactJson
@@ -66,6 +71,17 @@ export function IdlRenderer({
     }
 
     const spec = getDisplayIdlSpecType(idl);
+
+    // TODO: move error card into Interact tab
+    // Show error if initialization failed due to unsupported IDL type
+    if (initializationError) {
+        return (
+            <ErrorCard
+                message={`This IDL type (${spec}) is not yet supported for interactive features. You can still view it in raw format.`}
+            />
+        );
+    }
+
     switch (spec) {
         case 'codama':
             return (

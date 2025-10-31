@@ -50,7 +50,7 @@ export function InteractInstructions({
         <>
             <div className="e-mb-4">
                 <h2 className="e-text-2xl e-font-bold e-text-white">Program Instructions</h2>
-                <p className="e-mt-1 e-text-sm e-text-[#8E9090]">Program ID: {programId}</p>
+                <p className="e-mt-1 e-text-sm e-text-[#8E9090]">Program ID: {programId?.toString()}</p>
             </div>
 
             <Accordion type="single" value={selectedInstruction} collapsible className="e-space-y-4">
