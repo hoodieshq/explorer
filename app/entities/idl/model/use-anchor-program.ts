@@ -1,3 +1,5 @@
+'use client';
+
 import { Idl, Program } from '@coral-xyz/anchor';
 import { IdlMetadata } from '@coral-xyz/anchor/dist/cjs/idl';
 import { formatSerdeIdl, getFormattedIdl } from '@entities/idl/format';
