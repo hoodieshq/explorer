@@ -15,13 +15,13 @@ export class AnchorInterpreter implements IdlInterpreter<AnchorIdl> {
 
     canHandle(idl: any): boolean {
         // Check for Anchor-specific fields
+        if (!idl || typeof idl !== 'object') {
+            return false;
+        }
+
         return (
-            idl &&
-            typeof idl === 'object' &&
-            'version' in idl &&
-            'name' in idl &&
-            'instructions' in idl &&
-            Array.isArray(idl.instructions)
+            (Boolean(idl.name) && Boolean(idl.version) && Boolean(idl.instructions)) ||
+            (Boolean(idl.version) && Boolean(idl?.metadata))
         );
     }
 
