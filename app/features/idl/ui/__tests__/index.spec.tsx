@@ -6,7 +6,7 @@ import { vi } from 'vitest';
 
 import { ClusterProvider } from '@/app/providers/cluster';
 
-import { IdlCard } from '../index';
+import { IdlCard } from '../IdlCard';
 
 vi.mock('next/navigation');
 // @ts-expect-error does not contain `mockReturnValue`
