@@ -4,20 +4,13 @@ import { FormattedIdlView } from '../FormattedIdlView';
 
 const meta = {
     component: FormattedIdlView,
-    decorators: [
-        Story => (
-            <div>
-                <Story />
-            </div>
-        ),
-    ],
     parameters: {
         nextjs: {
             appDirectory: true,
         },
     },
     tags: ['autodocs'],
-    title: 'Features/Idl/FormattedIdl/ui/FormattedIdlView',
+    title: 'Features/IDL/Formatted IDL/ui/FormattedIdlView',
 } satisfies Meta<typeof FormattedIdlView>;
 
 export default meta;

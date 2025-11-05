@@ -1,17 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import idlMock from '../../../mocks/codama/whirlpool@0.30.1.json';
+import idlMock from '@entities/idl/mocks/codama/codama-1.2.11-from-anchor-0.3.4-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
 import { CodamaFormattedIdl } from '../CodamaFormattedIdl';
 
 const meta = {
     component: CodamaFormattedIdl,
-    decorators: [
-        Story => (
-            <div>
-                <Story />
-            </div>
-        ),
-    ],
     parameters: {
         docs: {
             description: {
@@ -23,7 +16,7 @@ const meta = {
         },
     },
     tags: ['autodocs'],
-    title: 'Features/Idl/FormattedIdl/ui/CodamaFormattedIdl',
+    title: 'Features/IDL/Formatted IDL/ui/CodamaFormattedIdl',
 } satisfies Meta<typeof CodamaFormattedIdl>;
 
 export default meta;

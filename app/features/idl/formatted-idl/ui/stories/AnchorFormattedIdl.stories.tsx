@@ -1,17 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import idlMock from '../../../mocks/whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc-idl.json';
+import idlMock from '@entities/idl/mocks/anchor/anchor-legacy-0.3.6-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
 import { AnchorFormattedIdl } from '../AnchorFormattedIdl';
 
 const meta = {
     component: AnchorFormattedIdl,
-    decorators: [
-        Story => (
-            <div>
-                <Story />
-            </div>
-        ),
-    ],
     parameters: {
         docs: {
             description: {
@@ -23,7 +16,7 @@ const meta = {
         },
     },
     tags: ['autodocs'],
-    title: 'Features/Idl/FormattedIdl/ui/AnchorFormattedIdl',
+    title: 'Features/IDL/Formatted IDL/ui/AnchorFormattedIdl',
 } satisfies Meta<typeof AnchorFormattedIdl>;
 
 export default meta;
