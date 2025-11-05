@@ -149,6 +149,9 @@ importers:
       '@solana/wallet-adapter-base':
         specifier: 0.9.27
         version: 0.9.27(@solana/web3.js@1.98.4(bufferutil@4.0.7)(typescript@5.0.4)(utf-8-validate@5.0.10))
+      '@solana/wallet-adapter-base-ui':
+        specifier: ^0.1.6
+        version: 0.1.6(@solana/web3.js@1.98.4(bufferutil@4.0.7)(typescript@5.0.4)(utf-8-validate@5.0.10))(bs58@4.0.1)(react-native@0.82.0(@babel/core@7.26.10)(@types/react@18.3.3)(bufferutil@4.0.7)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)
       '@solana/wallet-adapter-react':
         specifier: 0.15.39
         version: 0.15.39(@solana/web3.js@1.98.4(bufferutil@4.0.7)(typescript@5.0.4)(utf-8-validate@5.0.10))(bs58@4.0.1)(react-native@0.82.0(@babel/core@7.26.10)(@types/react@18.3.3)(bufferutil@4.0.7)(react@18.3.1)(utf-8-validate@5.0.10))(react@18.3.1)
@@ -16439,7 +16442,7 @@ snapshots:
 
   axios@0.30.0:
     dependencies:
-      follow-redirects: 1.15.6
+      follow-redirects: 1.15.6(debug@4.4.1)
       form-data: 4.0.4
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -18002,8 +18005,6 @@ snapshots:
       react: 18.3.1
     transitivePeerDependencies:
       - encoding
-
-  follow-redirects@1.15.6: {}
 
   follow-redirects@1.15.6(debug@4.3.4):
     optionalDependencies:

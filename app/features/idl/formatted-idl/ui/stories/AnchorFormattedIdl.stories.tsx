@@ -1,6 +1,6 @@
+import idlMock from '@entities/idl/mocks/anchor/anchor-legacy-0.3.6-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
 import type { Meta, StoryObj } from '@storybook/react';
 
-import idlMock from '@entities/idl/mocks/anchor/anchor-legacy-0.3.6-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
 import { AnchorFormattedIdl } from '../AnchorFormattedIdl';
 
 const meta = {

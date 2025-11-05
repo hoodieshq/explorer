@@ -8,9 +8,9 @@ import { Button } from '@/app/components/shared/ui/button';
 import { Card } from '@/app/components/shared/ui/card';
 import { useClusterModal } from '@/app/providers/cluster';
 
-import { InteractInstructions } from './InteractInstructions';
 // import { WalletProvider } from '@/app/providers/wallet-provider';
-import { WalletConnection } from './WalletConnection';
+import { ConnectWallet } from './ConnectWallet';
+import { InteractInstructions } from './InteractInstructions';
 
 // !!!
 // FIXME(rogaldh): fix type
@@ -73,14 +73,14 @@ export function InteractWithIdlView({
     return (
         <div className="e-container e-mx-auto e-px-4">
             {/* Main Grid Layout - responsive */}
-            <div className="e-grid e-gap-6 lg:e-grid-cols-12">
+            <div className="e-grid e-gap-6 md:e-grid-cols-12">
                 {/* Left Column - Instructions */}
-                <div className="lg:e-col-span-8 xl:e-col-span-9">
+                <div className="e-order-2 md:e-order-1 md:e-col-span-6 lg:e-col-span-8">
                     <InteractInstructions instructions={instructions} />
                 </div>
 
                 {/* Right Column - Controls & Logs */}
-                <div className="lg:e-col-span-4 xl:e-col-span-3">
+                <div className="e-order-1 md:e-order-2 md:e-col-span-6 lg:e-col-span-4">
                     <div className="e-sticky e-top-4 e-space-y-4">
                         {/* Cluster Selector */}
                         <Card className="e-border-[#1e2423] e-bg-[#0a0b0d] e-p-4">
@@ -102,7 +102,7 @@ export function InteractWithIdlView({
                         </Card>
 
                         {/* Wallet Connection */}
-                        <WalletConnection walletConnected={walletConnected} />
+                        <ConnectWallet />
 
                         {/* Transaction Logs */}
                         <Card className="e-border-[#1e2423] e-bg-[#0a0b0d] e-p-4">

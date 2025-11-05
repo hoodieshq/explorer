@@ -1,6 +1,6 @@
+import idlMock from '@entities/idl/mocks/codama/codama-1.2.11-from-anchor-0.3.4-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
 import type { Meta, StoryObj } from '@storybook/react';
 
-import idlMock from '@entities/idl/mocks/codama/codama-1.2.11-from-anchor-0.3.4-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
 import { CodamaFormattedIdl } from '../CodamaFormattedIdl';
 
 const meta = {

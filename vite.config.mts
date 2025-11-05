@@ -43,6 +43,7 @@ export default defineConfig({
             '@features': path.resolve(__dirname, './app/features'),
             '@img': path.resolve(__dirname, './app/img'),
             '@providers': path.resolve(__dirname, './app/providers'),
+            '@shared': path.resolve(__dirname, './app/components/shared'),
             '@utils': path.resolve(__dirname, './app/utils'),
             '@validators': path.resolve(__dirname, './app/validators'),
         },

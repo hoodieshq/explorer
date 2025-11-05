@@ -1,18 +1,31 @@
+import { cva, VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 
-import { cn } from '@/app/components/shared/utils';
+import { cn } from '../utils';
 
-const Card = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
-    <div
-        ref={ref}
-        className={cn(
-            'e-rounded-xl e-border e-border-solid e-border-[var(--card-border)] e-bg-[var(--card-foreground)] e-px-[25px] e-py-[10px] e-text-white',
-            'e-shadow-[3px_12px_24px_0px_rgba(20,_24,_22,_0.50)]',
-            'e-text-neutral-950 dark:e-border-neutral-800 dark:e-bg-neutral-950 dark:e-text-neutral-50',
-            className
-        )}
-        {...props}
-    />
+const cardVariants = cva(
+    [
+        'e-rounded-xl e-border e-border-solid e-border-[var(--card-border)] e-bg-[var(--card-foreground)] e-text-white',
+        'e-shadow-[3px_12px_24px_0px_rgba(20,_24,_22,_0.50)]',
+        'e-text-neutral-950 dark:e-border-neutral-800 dark:e-bg-neutral-950 dark:e-text-neutral-50',
+    ],
+    {
+        defaultVariants: {
+            variant: 'default',
+        },
+        variants: {
+            variant: {
+                default: 'e-px-[25px] e-py-[10px]',
+                narrow: 'e-px-3 e-py-2',
+            },
+        },
+    }
+);
+
+interface CardProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof cardVariants> {}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, variant, ...props }, ref) => (
+    <div ref={ref} className={cn(cardVariants({ variant }), className)} {...props} />
 ));
 Card.displayName = 'Card';
 
