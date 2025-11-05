@@ -160,31 +160,31 @@ function getPdaSeeds(seeds: IdlSeed[], idl: Idl): PdaData['seeds'] {
     });
 }
 
-const _StructField = object({
+const StructFieldSchema = object({
     docs: optional(array(string())),
     name: optional(string()),
     type: string(),
 });
 
-const StructField = object({
+const StructFieldTypeSchema = object({
     docs: optional(array(string())),
-    fields: optional(array(_StructField)),
+    fields: optional(array(StructFieldSchema)),
     kind: literal('struct'),
 });
 
-const EnumFeild = object({
+const EnumFieldSchema = object({
     docs: optional(array(string())),
     fields: array(string()),
     kind: literal('enum'),
 });
 
-const TypeFeild = object({
+const TypeFieldSchema = object({
     docs: optional(array(string())),
     kind: literal('type'),
     name: optional(string()),
     type: string(),
 });
-const UnknownField = object({
+const UnknownFieldSchema = object({
     docs: optional(array(string())),
 
     kind: literal('unknown'),
@@ -194,11 +194,11 @@ const UnknownField = object({
 
 const Account = object({
     docs: array(),
-    fieldType: union([StructField, EnumFeild, TypeFeild, UnknownField, nullable(string())]),
+    fieldType: union([StructFieldTypeSchema, EnumFieldSchema, TypeFieldSchema, UnknownFieldSchema, nullable(string())]),
     name: string(),
 });
 
-const produceUnknownType = (): Infer<typeof UnknownField> => {
+const produceUnknownType = (): Infer<typeof UnknownFieldSchema> => {
     return {
         kind: 'unknown',
         type: 'unknown',
