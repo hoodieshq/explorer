@@ -135,7 +135,7 @@ export function useInstruction({
         }
     }, [enabled, idl, programId, executor, unifiedWallet, interpreterName, setProgram]);
 
-    // TODO(hoodieshq): move to separate effect
+    // TODO: move to separate effect
     // Track initialization key to prevent re-runs
     const initKeyRef = useRef<string>('');
     // Single effect to handle initialization
@@ -232,7 +232,7 @@ export function useInstruction({
                     throw new Error('Unsuported instruction format');
                 }
 
-                // TODO(hoodieshq): move tx out of use instruction and impement a transaction provider
+                // TODO: move tx out of use instruction and impement a transaction provider
                 // Get recent blockhash
                 const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
                 transaction.recentBlockhash = blockhash;
@@ -240,12 +240,6 @@ export function useInstruction({
 
                 // Sign the transaction
                 const signedTransaction = await wallet.signTransaction(transaction);
-
-                // // Send the transaction
-                // const signature = await connection.sendRawTransaction(signedTransaction.serialize());
-
-                // // Wait for confirmation
-                // const confirmation = await connection.confirmTransaction(signature, 'confirmed');
 
                 const signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
                     preflightCommitment: 'confirmed',

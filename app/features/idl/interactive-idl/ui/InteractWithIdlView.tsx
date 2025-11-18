@@ -1,10 +1,13 @@
+import { Idl as AnchorIdl } from '@coral-xyz/anchor';
 import type { InstructionData } from '@entities/idl/formatters/formatted-idl';
+import { getIdlVersion } from '@entities/idl/lib/idl-version';
 import { useLayoutEffect, useState } from 'react';
 
 import { Label } from '@/app/components/shared/ui/label';
 import { Switch } from '@/app/components/shared/ui/switch';
 import type { InstructionLogs } from '@/app/utils/program-logs';
 
+import { BaseIdl } from '../model/unified-program';
 import type { InstructionCallParams } from '../model/use-instruction-form';
 import { ClusterSelector } from './ClusterSelector';
 import { ConnectWallet } from './ConnectWallet';
@@ -24,7 +27,7 @@ export function InteractWithIdlView({
     lastSuccess,
 }: {
     instructions: InstructionData[];
-    idl: { version?: string } | undefined;
+    idl: BaseIdl | AnchorIdl | undefined;
     onExecuteInstruction: (data: InstructionData, params: InstructionCallParams) => Promise<void>;
     onTransactionSuccess?: (txSignature: string) => void;
     onTransactionError?: (error: string) => void;
@@ -67,7 +70,9 @@ export function InteractWithIdlView({
             <div className="e-grid e-gap-6 md:e-grid-cols-12">
                 {/* Interact Header */}
                 <div className="e-flex e-items-center e-justify-between md:e-col-span-12">
-                    <p className="e-mb-0 e-text-sm e-text-neutral-400">Anchor: {idl?.version || 'N/A'}</p>
+                    <p className="e-mb-0 e-text-sm e-text-neutral-400">
+                        Anchor{idl ? `: ${getIdlVersion(idl as any)}` : ''}
+                    </p>
                     <div className="e-flex e-items-center e-gap-3">
                         <Switch id="expand-all" checked={areAllExpanded} onCheckedChange={handleExpandAllToggle} />
                         <Label htmlFor="expand-all" className="e-cursor-pointer e-text-xs e-text-white">
