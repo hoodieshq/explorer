@@ -392,8 +392,8 @@ function mapField(key: string, value: any, type: IdlType, idl: Idl, keySuffix?: 
         type === 'u256' ||
         type === 'i256'
     ) {
-        // Handle BN (BigNumber) objects from Anchor
-        // Use toString() directly to avoid 53-bit overflow issues with toNumber()
+        // Convert to string to handle both regular numbers and BN (BigNumber) objects
+        // Using toString() avoids 53-bit precision loss that occurs with toNumber() on large values
         const displayValue = value.toString();
 
         return (

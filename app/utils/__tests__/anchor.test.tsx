@@ -234,6 +234,66 @@ describe('anchor utilities - number overflow handling', () => {
             // Third column: should contain JSON viewer
             expect(screen.getByTestId('json-viewer')).toBeInTheDocument();
         });
+
+        it('should render JSON viewer when account type is not a struct (enum)', () => {
+            const accountType: IdlTypeDef = {
+                name: 'TestEnum',
+                type: {
+                    kind: 'enum',
+                    variants: [{ name: 'VariantA' }, { name: 'VariantB' }],
+                },
+            };
+
+            const accountData = {
+                someField: 'value',
+            };
+
+            const rows = mapAccountToRows(accountData, accountType, mockIdl);
+
+            render(
+                <table>
+                    <tbody>{rows}</tbody>
+                </table>
+            );
+
+            // Should render JSON viewer for non-struct types
+            expect(screen.getByTestId('json-viewer')).toBeInTheDocument();
+
+            // Should show error message in console (tested via the error being caught)
+            const cells = screen.getAllByRole('cell');
+            expect(cells.length).toBe(3);
+            expect(cells[0]).toHaveTextContent('someField');
+        });
+
+        it('should render JSON viewer when account type is type alias', () => {
+            const accountType: IdlTypeDef = {
+                name: 'TestTypeAlias',
+                type: {
+                    alias: { defined: { name: 'SomeOtherType' } },
+                    kind: 'type',
+                },
+            };
+
+            const accountData = {
+                someField: 'value',
+            };
+
+            const rows = mapAccountToRows(accountData, accountType, mockIdl);
+
+            render(
+                <table>
+                    <tbody>{rows}</tbody>
+                </table>
+            );
+
+            // Should render JSON viewer for type alias
+            expect(screen.getByTestId('json-viewer')).toBeInTheDocument();
+
+            // Verify table structure
+            const cells = screen.getAllByRole('cell');
+            expect(cells.length).toBe(3);
+            expect(cells[1]).toHaveTextContent('TestTypeAlias');
+        });
     });
 });
 
