@@ -307,10 +307,9 @@ export function mapIxArgsToRows(ixArgs: any, ixType: IdlInstruction, idl: Idl) {
             return (
                 <tr key={key}>
                     <td>{key}</td>
-                    <td className="text-lg-end">
-                        <td className="metadata-json-viewer m-4">
-                            <ReactJson src={ixArgs} />
-                        </td>
+                    <td>{ixType.name}</td>
+                    <td className="metadata-json-viewer m-4">
+                        <ReactJson src={ixArgs} />
                     </td>
                 </tr>
             );
@@ -346,10 +345,9 @@ export function mapAccountToRows(accountData: any, accountType: IdlTypeDef, idl:
             return (
                 <tr key={key}>
                     <td>{key}</td>
-                    <td className="text-lg-end">
-                        <td className="metadata-json-viewer m-4">
-                            <ReactJson src={accountData} />
-                        </td>
+                    <td>{accountType.name}</td>
+                    <td className="metadata-json-viewer m-4">
+                        <ReactJson src={accountData} />
                     </td>
                 </tr>
             );
@@ -395,10 +393,8 @@ function mapField(key: string, value: any, type: IdlType, idl: Idl, keySuffix?: 
         type === 'i256'
     ) {
         // Handle BN (BigNumber) objects from Anchor
-        const displayValue =
-            typeof value === 'object' && value !== null && 'toNumber' in value
-                ? value.toNumber().toString()
-                : value.toString();
+        // Use toString() directly to avoid 53-bit overflow issues with toNumber()
+        const displayValue = value.toString();
 
         return (
             <SimpleRow
