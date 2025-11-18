@@ -2,7 +2,8 @@ import { sha256 } from '@noble/hashes/sha256';
 import { Connection, PublicKey } from '@solana/web3.js';
 import useSWRImmutable from 'swr/immutable';
 
-import { useAnchorProgram } from '../providers/anchor';
+import { useAnchorProgram } from '@/app/entities/idl/model/use-anchor-program';
+
 import { useCluster } from '../providers/cluster';
 import { ProgramDataAccountInfo } from '../validators/accounts/upgradeable-program';
 import { Cluster } from './cluster';

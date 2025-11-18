@@ -1,3 +1,23 @@
+/** Declare variables for the newish Explorer  */
+/* These variables are also defined at ../tailwind.config.ts */
+:root {
+    --accent: #13d89b;
+    --card-border: #111;
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.145 0 0);
+    --border: oklch(0.922 0 0);
+    
+    /* Tailwind transform variables - required because @tailwind base is skipped
+     * to avoid conflicts with Bootstrap/Dashkit reset styles */
+    --tw-translate-x: 0;
+    --tw-translate-y: 0;
+    --tw-rotate: 0;
+    --tw-skew-x: 0;
+    --tw-skew-y: 0;
+    --tw-scale-x: 1;
+    --tw-scale-y: 1;
+}
+
 @tailwind components;
 @tailwind utilities;
 

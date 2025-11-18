@@ -1,0 +1,45 @@
+@tailwind components;
+@tailwind utilities;
+
+/* Wallet adapter button styling to match custom Button component */
+.wallet-adapter-button-trigger.wallet-adapter-button-trigger {
+    @apply e-inline-flex e-select-none e-flex-nowrap e-items-center e-border;
+    @apply enabled:e-cursor-pointer disabled:e-pointer-events-none;
+    @apply e-border-0;
+    @apply dark:hover:e-border-emerald-500 dark:hover:e-bg-emerald-500;
+    @apply dark:active:e-border-emerald-600 dark:active:e-bg-emerald-600;
+    @apply e-gap-2 e-rounded-sm e-px-4 e-py-2 e-text-sm e-font-medium;
+}
+
+.wallet-adapter-button-trigger.wallet-adapter-button-trigger:not([disabled]):hover {
+    @apply e-bg-emerald-500;
+}
+
+/*.wallet-adapter-button-trigger.wallet-adapter-button-trigger:before {
+     here we may add icon as encoded one via content
+}*/
+
+.wallet-adapter-modal-wrapper.wallet-adapter-modal-wrapper .wallet-adapter-button:not([disabled]):hover {
+    background-color: #1a1f2e;
+}
+
+/*.wallet-adapter-dropdown-list.wallet-adapter-dropdown-list {}*/
+
+.wallet-adapter-button.wallet-adapter-button img,
+.wallet-adapter-button-trigger.wallet-adapter-button-trigger img {
+    @apply e-size-5;
+}
+
+.wallet-adapter-button-start-icon.wallet-adapter-button-start-icon {
+    @apply e-mr-1;
+}
+
+/* Dropdown styling to match design system */
+.wallet-adapter-dropdown-list.wallet-adapter-dropdown-list {
+    @apply e-rounded-sm e-shadow-lg;
+    @apply e-mt-1 e-min-w-full e-py-1;
+}
+
+.wallet-adapter-dropdown-list-item.wallet-adapter-dropdown-list-item:not([disabled]):hover {
+    background-color: var(--accent);
+}

@@ -78,7 +78,8 @@ export async function searchTokens(search: string, cluster: Cluster): Promise<Se
             pathname: '/address/' + token.address,
             value: [token.name, token.symbol, token.address],
         }));
-    } catch (error) {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_error) {
         console.error(new Error('Error parsing token search API response'), { chainId: chainId.toString(), search });
         return [];
     }
