@@ -1,22 +1,12 @@
-import { Connection, PublicKey, SystemProgram } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import BN from 'bn.js';
 import { describe, expect, it, vi } from 'vitest';
 
-import { UnifiedWallet } from '../unified-program.d';
 import { AnchorInterpreter } from './anchor-interpreter';
 import { AnchorUnifiedProgram } from './anchor-program';
 
 describe('AnchorInterpreter', () => {
     const interpreter = new AnchorInterpreter();
-
-    const mockWallet: UnifiedWallet = {
-        publicKey: PublicKey.default,
-        signAllTransactions: vi.fn(),
-        signTransaction: vi.fn(),
-    };
-
-    const mockConnection = new Connection('http://mainnet.rpc.address');
-    const mockProgramId = SystemProgram.programId;
 
     describe('interpreter name', () => {
         it('should have the correct name', () => {
@@ -49,7 +39,7 @@ describe('AnchorInterpreter', () => {
             ],
             [null, false, 'null'],
             [undefined, false, 'undefined'],
-        ])('should identify whether can handle $2 IDL with Anchor', (anchorIdl: any, result, name: string) => {
+        ])('should identify whether can handle $2 IDL with Anchor', (anchorIdl: any, result, _name: string) => {
             expect(interpreter.canHandle(anchorIdl)).toBe(result);
         });
     });

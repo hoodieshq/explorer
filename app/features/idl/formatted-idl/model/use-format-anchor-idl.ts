@@ -19,20 +19,7 @@ import { safeJsonParse } from '@entities/idl/utils';
 import { bytesToHex } from '@noble/hashes/utils';
 import { camelCase } from 'change-case';
 import { useMemo } from 'react';
-import {
-    array,
-    Infer,
-    is,
-    literal,
-    nullable,
-    number,
-    object,
-    optional,
-    string,
-    type,
-    union,
-    validate,
-} from 'superstruct';
+import { array, Infer, literal, nullable, object, optional, string, union, validate } from 'superstruct';
 
 function parseStructFields(fields: IdlDefinedFields): StructField[] | null {
     // Handle struct with named fields or tuple fields

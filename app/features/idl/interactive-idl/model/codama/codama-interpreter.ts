@@ -17,19 +17,19 @@ export class CodamaInterpreter implements IdlInterpreter<any, UnifiedProgram> {
     }
 
     async createProgram(
-        connection: Connection,
-        wallet: UnifiedWallet,
-        programId: PublicKey | string,
-        idl: any
+        _connection: Connection,
+        _wallet: UnifiedWallet,
+        _programId: PublicKey | string,
+        _idl: any
     ): Promise<UnifiedProgram> {
         throw new Error('Codama IDL format is not yet supported for interactive features.');
     }
 
     async createInstruction(
-        program: UnifiedProgram,
-        instructionName: string,
-        accounts: UnifiedAccounts,
-        args: UnifiedArguments
+        _program: UnifiedProgram,
+        _instructionName: string,
+        _accounts: UnifiedAccounts,
+        _args: UnifiedArguments
     ): Promise<TransactionInstruction | VersionedMessage> {
         throw new Error('Codama IDL format is not yet supported for interactive features.');
     }

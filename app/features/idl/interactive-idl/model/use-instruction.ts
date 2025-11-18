@@ -5,7 +5,6 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import {
     Connection,
     PublicKey,
-    sendAndConfirmRawTransaction,
     SendTransactionError,
     Transaction,
     TransactionError,
@@ -100,12 +99,12 @@ export function useInstruction({
             publicKey,
             signAllTransactions:
                 wallet.signAllTransactions ||
-                (async txs => {
+                (async () => {
                     throw new Error('Wallet not connected');
                 }),
             signTransaction:
                 wallet.signTransaction ||
-                (async tx => {
+                (async () => {
                     throw new Error('Wallet not connected');
                 }),
         };
@@ -178,7 +177,7 @@ export function useInstruction({
     }, [idl, programId?.toString()]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // Validation helper to check if an instruction is ready to execute
-    const validateInstruction = useCallback((instructionName: string, instruction: InstructionData) => {
+    const validateInstruction = useCallback((_instructionName: string, _instruction: InstructionData) => {
         const errors: string[] = [];
 
         return {

@@ -5,7 +5,6 @@ import anchorLegacy094ShankWave from '@entities/idl/mocks/anchor/anchor-legacy-0
 import anchorLegacySplAccountCompr from '@entities/idl/mocks/anchor/anchor-legacy-spl_account_compression-cmtDvXumGCrqC1Age74AVPhSRVXJMd8PJS91L8KbNCK.json';
 import { normalizeIdl } from '@entities/idl/model/use-anchor-program';
 import { useFormatAnchorIdl } from '@features/idl/formatted-idl/model/use-format-anchor-idl'; // it is not a good practice to rely onto feature at entities, but currently formatting is inside the feature
-import { clusterApiUrl } from '@solana/web3.js';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, vi } from 'vitest';
 
@@ -17,8 +16,6 @@ function toLengths(result: any) {
 }
 
 describe('formatDisplayIdl', () => {
-    const url = clusterApiUrl('devnet');
-
     beforeEach(() => {
         vi.clearAllMocks();
     });

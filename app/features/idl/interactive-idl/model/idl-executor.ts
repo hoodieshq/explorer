@@ -1,4 +1,4 @@
-import { Connection, PublicKey, VersionedMessage } from '@solana/web3.js';
+import { Connection, PublicKey } from '@solana/web3.js';
 
 import { AnchorInterpreter } from './anchor/anchor-interpreter';
 import { CodamaInterpreter } from './codama/codama-interpreter';

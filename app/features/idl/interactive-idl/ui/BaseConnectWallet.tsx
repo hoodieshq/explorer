@@ -41,7 +41,6 @@ const cardVariants = cva(
 
 type BaseConnectWalletProps = {
     connected: boolean;
-    connecting: boolean;
     onConnect?: () => void;
     onDisconnect?: () => void;
     address?: string;
@@ -55,7 +54,6 @@ type BaseConnectWalletProps = {
 
 export function BaseConnectWallet({
     connected,
-    connecting,
     onConnect,
     onDisconnect,
     address,
@@ -72,18 +70,6 @@ export function BaseConnectWallet({
         if (isClickable && onConnect) {
             onConnect();
         }
-    };
-
-    const cardProps = {
-        className: cn(
-            cardVariants({
-                clickable: isClickable,
-                disabled: isDisabled,
-            }),
-            className
-        ),
-        disabled: isDisabled,
-        onClick: handleClick,
     };
 
     const displayLabel = useMemo(() => {

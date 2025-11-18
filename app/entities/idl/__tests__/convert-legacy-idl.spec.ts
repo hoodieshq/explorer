@@ -1,4 +1,4 @@
-import { getIdlSpecType, type IdlSpec, privateConvertType as convertType } from '../converters/convert-legacy-idl';
+import { getIdlSpecType, privateConvertType as convertType } from '../converters/convert-legacy-idl';
 
 /**
  * Spec test for the improved implementation for the Explorer

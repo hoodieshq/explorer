@@ -1,4 +1,4 @@
-import { Connection, Keypair, PublicKey, TransactionInstruction } from '@solana/web3.js';
+import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { IdlExecutor, populateAccounts, populateArguments } from './idl-executor';

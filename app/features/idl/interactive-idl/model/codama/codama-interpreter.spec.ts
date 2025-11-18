@@ -74,7 +74,7 @@ describe('CodamaInterpreter', () => {
             ],
             [null, false, 'null'],
             [undefined, false, 'undefined'],
-        ])('should identify whether can handle $2 IDL with Codama', (codamaIdl: any, result, name: string) => {
+        ])('should identify whether can handle $2 IDL with Codama', (codamaIdl: any, result, _name: string) => {
             expect(interpreter.canHandle(codamaIdl)).toBe(result);
         });
     });
