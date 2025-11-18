@@ -1,4 +1,4 @@
-import idlMock from '@entities/idl/mocks/codama/codama-1.3.0-from-anchor-0.3.6-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
+import convertedFromAnchorIdlMock from '@/app/components/account/idl/mocks/codama/whirlpool@0.30.1.json';
 import type { Meta, StoryObj } from '@storybook/react';
 import type { RootNode } from 'codama';
 
@@ -42,7 +42,7 @@ export const InstructionsOnly: Story = {
                 },
             ],
         },
-        originalIdl: idlMock as unknown as RootNode,
+        originalIdl: convertedFromAnchorIdlMock as unknown as RootNode,
     },
 };
 
@@ -89,7 +89,7 @@ export const WithAccountsAndTypes: Story = {
                 },
             ],
         },
-        originalIdl: idlMock as unknown as RootNode,
+        originalIdl: convertedFromAnchorIdlMock as unknown as RootNode,
     },
 };
 
@@ -193,7 +193,7 @@ export const WithAllSections: Story = {
                 },
             ],
         },
-        originalIdl: idlMock as unknown as RootNode,
+        originalIdl: convertedFromAnchorIdlMock as unknown as RootNode,
     },
 };
 
@@ -232,13 +232,13 @@ export const WithSomeSectionsEmpty: Story = {
                 },
             ],
         },
-        originalIdl: idlMock as unknown as RootNode,
+        originalIdl: convertedFromAnchorIdlMock as unknown as RootNode,
     },
 };
 
 export const EmptyIdl: Story = {
     args: {
         idl: null,
-        originalIdl: idlMock as unknown as RootNode,
+        originalIdl: convertedFromAnchorIdlMock as unknown as RootNode,
     },
 };
