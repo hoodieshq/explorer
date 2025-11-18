@@ -41,6 +41,7 @@ const cardVariants = cva(
 
 type BaseConnectWalletProps = {
     connected: boolean;
+    connecting?: boolean;
     onConnect?: () => void;
     onDisconnect?: () => void;
     address?: string;
