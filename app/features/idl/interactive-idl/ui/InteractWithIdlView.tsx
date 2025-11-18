@@ -94,7 +94,7 @@ export function InteractWithIdlView({
 
                 {/* Right Column - Controls & Logs */}
                 <div className="e-order-1 md:e-order-2 md:e-col-span-6">
-                    <div className="py-2 e-sticky e-top-0 e-flex e-max-h-svh e-flex-col e-gap-y-4">
+                    <div className="e-sticky e-top-0 e-flex e-max-h-svh e-flex-col e-gap-y-4">
                         <ClusterSelector />
 
                         <ConnectWallet />
