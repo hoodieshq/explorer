@@ -7,6 +7,7 @@ import programMock1 from '@/app/components/account/idl/formatted-idl/formatters/
 import programMock2 from '@/app/components/account/idl/formatted-idl/formatters/__tests__/codama-mocks/programMock2';
 import programMock3 from '@/app/components/account/idl/formatted-idl/formatters/__tests__/codama-mocks/programMock3';
 import programMock4 from '@/app/components/account/idl/formatted-idl/formatters/__tests__/codama-mocks/programMock4';
+
 import { useFormatCodamaIdl } from '../use-format-codama-idl';
 
 describe('useFormatCodamaIdl', () => {

@@ -1,4 +1,4 @@
-import idlMock from '@entities/idl/mocks/codama/codama-1.2.11-from-anchor-0.3.4-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
+import idlMock from '@entities/idl/mocks/codama/codama-1.3.0-from-anchor-0.3.6-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
 import type { Meta, StoryObj } from '@storybook/react';
 import type { RootNode } from 'codama';
 
@@ -224,7 +224,7 @@ export const WithSomeSectionsEmpty: Story = {
                 {
                     docs: ['A simple type'],
                     fieldType: {
-                        kind: 'type',
+                        kind: 'unknown',
                         name: 'SimpleType',
                         type: 'string',
                     },

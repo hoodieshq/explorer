@@ -1,4 +1,5 @@
-import idlMock from '@entities/idl/mocks/codama/codama-1.2.11-from-anchor-0.3.4-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
+import codamaIdlMock from '@entities/idl/mocks/codama/codama-1.0.0-ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S.json';
+import convertedFromAnchorIdlMock from '@entities/idl/mocks/codama/codama-1.3.0-from-anchor-0.3.6-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
 import type { Meta, StoryObj } from '@storybook/react';
 import type { RootNode } from 'codama';
 
@@ -23,10 +24,16 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// More on writing stories with args: https://storybook.js.org/docs/writing-stories/args
-export const Primary: Story = {
+export const DisplayCodamaIdl: Story = {
     args: {
-        idl: idlMock as unknown as RootNode,
-        programId: '6LtLpnUFNByNXLyCoK9wA2MykKAmQNZKBdY8s47dehDc',
+        idl: codamaIdlMock as unknown as RootNode,
+        programId: 'ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S',
+    },
+};
+
+export const DisplayConvertedAnchorIdl: Story = {
+    args: {
+        idl: convertedFromAnchorIdlMock as unknown as RootNode,
+        programId: 'whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc',
     },
 };

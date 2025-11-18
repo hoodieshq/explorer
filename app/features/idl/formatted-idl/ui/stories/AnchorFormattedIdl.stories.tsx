@@ -1,5 +1,5 @@
 import type { Idl } from '@coral-xyz/anchor';
-import idlMock from '@entities/idl/mocks/anchor/anchor-legacy-0.3.6-whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc.json';
+import idlMock from '@entities/idl/mocks/anchor/anchor-legacy-0.9.4-shank-waveQX2yP3H1pVU8djGvEHmYg8uamQ84AuyGtpsrXTF.json';
 import type { Meta, StoryObj } from '@storybook/react';
 
 import { AnchorFormattedIdl } from '../AnchorFormattedIdl';
@@ -23,8 +23,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// More on writing stories with args: https://storybook.js.org/docs/writing-stories/args
-export const Primary: Story = {
+export const DisplayLegacyShankIdl: Story = {
     args: {
         idl: idlMock as unknown as Idl,
         programId: '6LtLpnUFNByNXLyCoK9wA2MykKAmQNZKBdY8s47dehDc',
