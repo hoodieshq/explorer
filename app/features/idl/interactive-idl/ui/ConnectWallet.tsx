@@ -29,18 +29,13 @@ export function ConnectWallet() {
     const walletAddress = publicKey?.toBase58();
 
     return (
-        <>
-            <BaseConnectWallet
-                connected={connected}
-                connecting={connecting}
-                onConnect={handleConnect}
-                onDisconnect={handleConnect}
-                address={walletAddress}
-                disabled={connecting}
-                buttonState={buttonState}
-            />
-            {/*TODO: remove upon finishing the feature*/}
-            {/*<WalletMultiButton />*/}
-        </>
+        <BaseConnectWallet
+            connected={connected}
+            onConnect={handleConnect}
+            onDisconnect={handleConnect}
+            address={walletAddress}
+            disabled={connecting}
+            buttonState={buttonState}
+        />
     );
 }
