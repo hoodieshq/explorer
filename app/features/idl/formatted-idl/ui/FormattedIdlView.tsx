@@ -66,7 +66,7 @@ export function FormattedIdlView({
                     </button>
                 ))}
             </div>
-            <div className="e-overflow-x-auto md:e-overflow-x-scroll">
+            <div className={activeTab.id !== 'interact' ? 'e-overflow-x-auto md:e-overflow-x-scroll' : ''}>
                 <ActiveTab activeTab={activeTab} />
             </div>
         </div>

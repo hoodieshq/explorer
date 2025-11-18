@@ -93,13 +93,15 @@ export function InteractWithIdlView({
                 </div>
 
                 {/* Right Column - Controls & Logs */}
-                <div className="e-order-1 md:e-order-2 md:e-col-span-6">
-                    <div className="e-sticky e-top-0 e-flex e-max-h-svh e-flex-col e-gap-y-4">
-                        <ClusterSelector />
+                <div className="e-order-1 e-h-full md:e-order-2 md:e-col-span-6">
+                    <div className="e-top-4 md:e-sticky">
+                        <div className="e-flex e-flex-col e-gap-y-4">
+                            <ClusterSelector />
 
-                        <ConnectWallet />
+                            <ConnectWallet />
 
-                        <InstructionActivity logs={logs} parseLogs={parseLogs} />
+                            <InstructionActivity logs={logs} parseLogs={parseLogs} />
+                        </div>
                     </div>
                 </div>
             </div>
