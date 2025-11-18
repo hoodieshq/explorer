@@ -1,9 +1,9 @@
 import { Program } from '@coral-xyz/anchor';
+import { useAnchorProgram } from '@entities/idl';
 import { PublicKey } from '@solana/web3.js';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { useAnchorProgram } from '@/app/entities/idl';
 import { AnchorProgramName } from '@/app/utils/anchor';
 import { Cluster } from '@/app/utils/cluster';
 

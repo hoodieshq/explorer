@@ -1,6 +1,7 @@
-import convertedFromAnchorIdlMock from '@/app/components/account/idl/mocks/codama/whirlpool@0.30.1.json';
 import type { Meta, StoryObj } from '@storybook/react';
 import type { RootNode } from 'codama';
+
+import convertedFromAnchorIdlMock from '@/app/components/account/idl/mocks/codama/whirlpool@0.30.1.json';
 
 import { FormattedIdlView } from '../FormattedIdlView';
 

@@ -1,5 +1,4 @@
-import { getIdlVersion } from '@entities/idl';
-import { useAnchorProgram } from '@entities/idl/model/use-anchor-program';
+import { getIdlVersion, useAnchorProgram } from '@entities/idl';
 import { useProgramMetadataIdl } from '@entities/program-metadata';
 import { useCluster } from '@providers/cluster';
 import { Badge } from '@shared/ui/badge';

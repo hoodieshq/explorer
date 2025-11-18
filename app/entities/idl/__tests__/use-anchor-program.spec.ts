@@ -3,11 +3,12 @@ import { formatSerdeIdl, getFormattedIdl } from '@entities/idl/format';
 import anchor029Devi from '@entities/idl/mocks/anchor/anchor-0.29.0-devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH.json';
 import anchor030devi from '@entities/idl/mocks/anchor/anchor-0.30.1-devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH.json';
 import anchorLegacy094ShankWave from '@entities/idl/mocks/anchor/anchor-legacy-0.9.4-shank-waveQX2yP3H1pVU8djGvEHmYg8uamQ84AuyGtpsrXTF.json';
-import { normalizeIdl, useAnchorProgram } from '@entities/idl/model/use-anchor-program';
 import { getProvider, useIdlFromAnchorProgramSeed } from '@entities/idl/model/use-idl-from-anchor-program-seed';
 import { clusterApiUrl, PublicKey } from '@solana/web3.js';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, vi } from 'vitest';
+
+import { normalizeIdl, useAnchorProgram } from '../model/use-anchor-program';
 
 // Create a mock provider that matches Anchor's expected structure
 const createMockProvider = (mockUrl: string, mockProgramAddress: string) => ({
