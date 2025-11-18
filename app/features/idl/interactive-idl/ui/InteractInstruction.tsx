@@ -45,7 +45,7 @@ export function InteractInstruction({
             <AccordionItem value={instruction.name} className="">
                 <AccordionTrigger>
                     <div className="w-full e-flex e-items-center e-justify-between">
-                        <span className="e-min-w-0 e-flex-1 e-truncate e-pr-4 e-text-sm e-font-medium e-text-white">
+                        <span className="e-min-w-0 e-flex-1 e-truncate e-pr-4 e-text-left e-text-sm e-font-medium e-text-white md:e-w-[170px] [@media(min-width:992px)]:e-w-[300px]">
                             {instruction.name}
                         </span>
                     </div>
