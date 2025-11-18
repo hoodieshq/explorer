@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Address } from '@/app/components/common/Address';
 import { isFeatureActivated } from '@/app/features/feature-gate';
 import { useCluster } from '@/app/providers/cluster';
+import { useClusterPath } from '@utils/url';
 
 import { Cluster, clusterName } from '../cluster';
 import FEATURES from './featureGates.json';
@@ -11,6 +12,7 @@ import { FeatureInfoType } from './types';
 
 export function UpcomingFeatures() {
     const { cluster } = useCluster();
+    const featureGatesPath = useClusterPath({ pathname: '/feature-gates' });
 
     // Don't show anything for localnet
     if (cluster === Cluster.Custom) {
@@ -50,10 +52,16 @@ export function UpcomingFeatures() {
     return (
         <FeaturesTable
             header={
-                <>
-                    <span className="me-2">🚀</span>
-                    Upcoming {clusterName(cluster)} Features
-                </>
+                <div className="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span className="me-2">🚀</span>
+                        Upcoming {clusterName(cluster)} Features
+                    </div>
+
+                    <Link href={featureGatesPath} className="epoch-link mb-1">
+                        View all feature gates
+                    </Link>
+                </div>
             }
             features={filteredFeatures.filter(feature => !feature.mainnet_activation_epoch)}
             cluster={cluster}
