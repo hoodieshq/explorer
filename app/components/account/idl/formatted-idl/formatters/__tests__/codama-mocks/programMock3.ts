@@ -1,117 +1,117 @@
-// eslint-disable-next-line import/no-anonymous-default-export
+/* eslint-disable */
 export default {
-    additionalPrograms: [],
     kind: 'rootNode',
+    standard: 'codama',
+    version: '1.3.0',
     program: {
+        kind: 'programNode',
+        name: 'programMock3',
+        publicKey: 'GB1MrbwXyGR3gqTYpfEpa2Mx9avAxv3dQpzVQ5nWJctu',
+        version: '0.1.0',
+        origin: 'anchor',
+        docs: [],
         accounts: [
             {
+                kind: 'accountNode',
+                name: 'config',
+                size: 130,
+                docs: ['* Initialize'],
                 data: {
+                    kind: 'structTypeNode',
                     fields: [
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'admin',
+                            docs: [],
                             type: {
                                 kind: 'publicKeyTypeNode',
                             },
                         },
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'paused',
+                            docs: [],
                             type: {
                                 kind: 'booleanTypeNode',
                             },
                         },
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'noticePeriods',
+                            docs: [],
                             type: {
+                                kind: 'arrayTypeNode',
+                                item: {
+                                    kind: 'numberTypeNode',
+                                    format: 'u64',
+                                },
                                 count: {
                                     kind: 'fixedCountNode',
                                     value: 5,
                                 },
-                                item: {
-                                    format: 'u64',
-                                    kind: 'numberTypeNode',
-                                },
-                                kind: 'arrayTypeNode',
                             },
                         },
                     ],
-                    kind: 'structTypeNode',
                 },
                 discriminators: [],
-                docs: ['* Initialize'],
-                kind: 'accountNode',
-                name: 'config',
-                size: 130,
-            },
-        ],
-        definedTypes: [],
-        docs: [],
-        errors: [
-            {
-                code: 6000,
-                docs: ['MathOverflow: Math error'],
-                kind: 'errorNode',
-                message: 'Math error',
-                name: 'mathOverflow',
             },
         ],
         instructions: [
             {
+                kind: 'instructionNode',
+                name: 'initialize',
+                docs: [],
+                optionalAccountStrategy: 'programId',
                 accounts: [
                     {
-                        docs: [],
-                        isOptional: false,
-                        isSigner: false,
-                        isWritable: true,
                         kind: 'instructionAccountNode',
                         name: 'config',
+                        isWritable: true,
+                        isSigner: false,
+                        isOptional: false,
+                        docs: [],
                     },
                     {
-                        docs: [],
-                        isOptional: false,
-                        isSigner: true,
-                        isWritable: false,
                         kind: 'instructionAccountNode',
                         name: 'admin',
+                        isWritable: false,
+                        isSigner: true,
+                        isOptional: false,
+                        docs: [],
                     },
                 ],
                 arguments: [
                     {
-                        docs: [],
                         kind: 'instructionArgumentNode',
                         name: 'noticePeriods',
+                        docs: [],
                         type: {
+                            kind: 'arrayTypeNode',
+                            item: {
+                                kind: 'numberTypeNode',
+                                format: 'u64',
+                            },
                             count: {
                                 kind: 'fixedCountNode',
                                 value: 5,
                             },
-                            item: {
-                                format: 'u64',
-                                kind: 'numberTypeNode',
-                            },
-                            kind: 'arrayTypeNode',
                         },
                     },
                 ],
                 discriminators: [],
-                docs: [],
-                kind: 'instructionNode',
-                name: 'initialize',
-                optionalAccountStrategy: 'programId',
             },
         ],
-        kind: 'programNode',
-        name: 'programMock3',
-        origin: 'anchor',
+        definedTypes: [],
         pdas: [],
-        publicKey: 'GB1MrbwXyGR3gqTYpfEpa2Mx9avAxv3dQpzVQ5nWJctu',
-        version: '0.1.0',
+        errors: [
+            {
+                kind: 'errorNode',
+                name: 'mathOverflow',
+                code: 6000,
+                message: 'Math error',
+                docs: ['MathOverflow: Math error'],
+            },
+        ],
     },
-    standard: 'codama',
-    version: '1.3.0',
+    additionalPrograms: [],
 };

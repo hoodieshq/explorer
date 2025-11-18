@@ -1,163 +1,220 @@
-// eslint-disable-next-line import/no-anonymous-default-export
+/* eslint-disable */
 export default {
-    additionalPrograms: [],
     kind: 'rootNode',
+    standard: 'codama',
+    version: '1.2.11',
     program: {
+        kind: 'programNode',
+        name: 'programMock4',
+        publicKey: 'whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc',
+        version: '0.3.4',
+        origin: 'anchor',
+        docs: [],
         accounts: [
             {
+                kind: 'accountNode',
+                name: 'whirlpool',
+                size: 653,
+                docs: [],
                 data: {
+                    kind: 'structTypeNode',
                     fields: [
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'rewardInfos',
+                            docs: [],
                             type: {
-                                count: {
-                                    kind: 'fixedCountNode',
-                                    value: 3,
-                                },
+                                kind: 'arrayTypeNode',
                                 item: {
                                     kind: 'definedTypeLinkNode',
                                     name: 'whirlpoolRewardInfo',
                                 },
-                                kind: 'arrayTypeNode',
+                                count: {
+                                    kind: 'fixedCountNode',
+                                    value: 3,
+                                },
                             },
                         },
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'tickSpacing',
+                            docs: [],
                             type: {
-                                format: 'u16',
                                 kind: 'numberTypeNode',
+                                format: 'u16',
                             },
                         },
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'tokenMintA',
+                            docs: [],
                             type: {
                                 kind: 'publicKeyTypeNode',
                             },
                         },
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'tokenVaultA',
+                            docs: [],
                             type: {
                                 kind: 'publicKeyTypeNode',
                             },
                         },
                     ],
-                    kind: 'structTypeNode',
                 },
                 discriminators: [],
+            },
+        ],
+        instructions: [
+            {
+                kind: 'instructionNode',
+                name: 'initializePool',
                 docs: [],
-                kind: 'accountNode',
-                name: 'whirlpool',
-                size: 653,
+                optionalAccountStrategy: 'programId',
+                accounts: [
+                    {
+                        kind: 'instructionAccountNode',
+                        name: 'whirlpoolsConfig',
+                        isWritable: false,
+                        isSigner: false,
+                        isOptional: false,
+                        docs: [],
+                    },
+                    {
+                        kind: 'instructionAccountNode',
+                        name: 'tokenMintA',
+                        isWritable: false,
+                        isSigner: false,
+                        isOptional: false,
+                        docs: [],
+                    },
+                ],
+                arguments: [
+                    {
+                        kind: 'instructionArgumentNode',
+                        name: 'tickSpacing',
+                        docs: [],
+                        type: {
+                            kind: 'numberTypeNode',
+                            format: 'u16',
+                        },
+                    },
+                    {
+                        kind: 'instructionArgumentNode',
+                        name: 'initialSqrtPrice',
+                        docs: [],
+                        type: {
+                            kind: 'arrayTypeNode',
+                            item: {
+                                kind: 'numberTypeNode',
+                                format: 'u64',
+                            },
+                            count: {
+                                kind: 'fixedCountNode',
+                                value: 2,
+                            },
+                        },
+                    },
+                ],
+                discriminators: [],
             },
         ],
         definedTypes: [
             {
-                docs: [],
                 kind: 'definedTypeNode',
                 name: 'whirlpoolRewardInfo',
+                docs: [],
                 type: {
+                    kind: 'structTypeNode',
                     fields: [
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'mint',
+                            docs: [],
                             type: {
                                 kind: 'publicKeyTypeNode',
                             },
                         },
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'vault',
+                            docs: [],
                             type: {
                                 kind: 'publicKeyTypeNode',
                             },
                         },
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'authority',
+                            docs: [],
                             type: {
                                 kind: 'publicKeyTypeNode',
                             },
                         },
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'emissionsPerSecondX64',
+                            docs: [],
                             type: {
-                                format: 'u128',
                                 kind: 'numberTypeNode',
+                                format: 'u128',
                             },
                         },
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'growthGlobalX64',
+                            docs: [],
                             type: {
-                                format: 'u128',
                                 kind: 'numberTypeNode',
+                                format: 'u128',
                             },
                         },
                     ],
-                    kind: 'structTypeNode',
                 },
             },
             {
-                docs: [],
                 kind: 'definedTypeNode',
                 name: 'remainingAccountsInfo',
+                docs: [],
                 type: {
+                    kind: 'structTypeNode',
                     fields: [
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'accountsType',
+                            docs: [],
                             type: {
                                 kind: 'definedTypeLinkNode',
                                 name: 'accountsType',
                             },
                         },
                         {
-                            docs: [],
                             kind: 'structFieldTypeNode',
                             name: 'optionalAccounts',
+                            docs: [],
                             type: {
+                                kind: 'optionTypeNode',
                                 item: {
+                                    kind: 'arrayTypeNode',
+                                    item: {
+                                        kind: 'booleanTypeNode',
+                                    },
                                     count: {
                                         kind: 'fixedCountNode',
                                         value: 3,
                                     },
-                                    item: {
-                                        kind: 'booleanTypeNode',
-                                    },
-                                    kind: 'arrayTypeNode',
                                 },
-                                kind: 'optionTypeNode',
                             },
                         },
                     ],
-                    kind: 'structTypeNode',
                 },
             },
             {
-                docs: [],
                 kind: 'definedTypeNode',
                 name: 'accountsType',
+                docs: [],
                 type: {
                     kind: 'enumTypeNode',
-                    size: {
-                        kind: 'enumSizeExactNode',
-                        size: 1,
-                    },
                     variants: [
                         {
                             kind: 'enumUnitVariantTypeNode',
@@ -168,72 +225,15 @@ export default {
                             name: 'TokenExtraAccountMetas',
                         },
                     ],
+                    size: {
+                        kind: 'enumSizeExactNode',
+                        size: 1,
+                    },
                 },
             },
         ],
-        docs: [],
-        errors: [],
-        instructions: [
-            {
-                accounts: [
-                    {
-                        docs: [],
-                        isOptional: false,
-                        isSigner: false,
-                        isWritable: false,
-                        kind: 'instructionAccountNode',
-                        name: 'whirlpoolsConfig',
-                    },
-                    {
-                        docs: [],
-                        isOptional: false,
-                        isSigner: false,
-                        isWritable: false,
-                        kind: 'instructionAccountNode',
-                        name: 'tokenMintA',
-                    },
-                ],
-                arguments: [
-                    {
-                        docs: [],
-                        kind: 'instructionArgumentNode',
-                        name: 'tickSpacing',
-                        type: {
-                            format: 'u16',
-                            kind: 'numberTypeNode',
-                        },
-                    },
-                    {
-                        docs: [],
-                        kind: 'instructionArgumentNode',
-                        name: 'initialSqrtPrice',
-                        type: {
-                            count: {
-                                kind: 'fixedCountNode',
-                                value: 2,
-                            },
-                            item: {
-                                format: 'u64',
-                                kind: 'numberTypeNode',
-                            },
-                            kind: 'arrayTypeNode',
-                        },
-                    },
-                ],
-                discriminators: [],
-                docs: [],
-                kind: 'instructionNode',
-                name: 'initializePool',
-                optionalAccountStrategy: 'programId',
-            },
-        ],
-        kind: 'programNode',
-        name: 'programMock4',
-        origin: 'anchor',
         pdas: [],
-        publicKey: 'whirLbMiicVdio4qvUfM5KAg6Ct8VwpYzGff3uctyCc',
-        version: '0.3.4',
+        errors: [],
     },
-    standard: 'codama',
-    version: '1.2.11',
+    additionalPrograms: [],
 };

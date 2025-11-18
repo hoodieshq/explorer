@@ -1,4 +1,4 @@
-// eslint-disable-next-line import/no-anonymous-default-export
+/* eslint-disable */
 export default {
     additionalPrograms: [],
     kind: 'rootNode',
@@ -22,10 +22,10 @@ export default {
                         defaultValue: {
                             kind: 'signerValueNode',
                         },
-                        docs: [],
                         isOptional: false,
-                        isSigner: true,
+                        docs: [],
                         isWritable: true,
+                        isSigner: true,
                         kind: 'instructionAccountNode',
                         name: 'payer',
                     },
