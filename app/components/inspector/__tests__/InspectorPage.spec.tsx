@@ -8,6 +8,7 @@ import { describe, expect, test, vi } from 'vitest';
 import { sleep } from '@/app/__tests__/mocks';
 import { GET } from '@/app/api/anchor/route';
 import { AccountsProvider } from '@/app/providers/accounts';
+import { clearAnchorProgramCache } from '@/app/providers/anchor';
 import { ClusterProvider } from '@/app/providers/cluster';
 import { ScrollAnchorProvider } from '@/app/providers/scroll-anchor';
 
@@ -80,6 +81,9 @@ describe('TransactionInspectorPage with Squads Transaction', () => {
     });
 
     beforeEach(async () => {
+        // Clear the anchor program cache to ensure clean state
+        clearAnchorProgramCache();
+
         // sleep to allow not facing 429s
         await sleep();
 
@@ -94,6 +98,8 @@ describe('TransactionInspectorPage with Squads Transaction', () => {
 
     afterEach(() => {
         vi.clearAllMocks();
+        // Clear the cache after each test as well
+        clearAnchorProgramCache();
     });
 
     test('renders without crashing and loads Squads account data', async () => {

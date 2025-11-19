@@ -11,6 +11,13 @@ const cachedAnchorProgramPromises: Record<
     void | { __type: 'promise'; promise: Promise<void> } | { __type: 'result'; result: Idl | null }
 > = {};
 
+// Export a function to clear the cache for testing purposes
+export function clearAnchorProgramCache() {
+    Object.keys(cachedAnchorProgramPromises).forEach(key => {
+        delete cachedAnchorProgramPromises[key];
+    });
+}
+
 function getProvider(url: string) {
     return new AnchorProvider(new Connection(url), new NodeWallet(Keypair.generate()), {});
 }
@@ -43,6 +50,10 @@ function useIdlFromAnchorProgramSeed(programAddress: string, url: string, cluste
                 .catch(_ => {
                     cachedAnchorProgramPromises[key] = { __type: 'result', result: null };
                 });
+            cachedAnchorProgramPromises[key] = {
+                __type: 'promise',
+                promise,
+            };
         } else {
             const programId = new PublicKey(programAddress);
             promise = Program.fetchIdl<Idl>(programId, getProvider(url))
