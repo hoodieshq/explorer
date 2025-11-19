@@ -21,16 +21,22 @@ export function TokenExtensionBadge({
     label,
     onClick,
     size,
+    withTooltip = true,
 }: {
     extension: ParsedTokenExtension;
     label?: string;
     onClick?: ({ extensionName }: { extensionName: ParsedTokenExtension['extension'] }) => void;
+    withTooltip?: boolean;
 } & VariantProps<typeof badgeVariants>) {
     const { extension: extensionName, status, tooltip } = extension;
 
     const handleClick = useCallback(() => {
         onClick?.({ extensionName });
     }, [extensionName, onClick]);
+
+    if (!withTooltip) {
+        return <StatusBadge status={status} label={label} className={badgeVariants({ size })} />;
+    }
 
     return (
         <Tooltip>

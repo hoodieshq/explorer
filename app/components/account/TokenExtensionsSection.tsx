@@ -1,5 +1,5 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@components/shared/ui/accordion';
-import { SyntheticEvent, useCallback, useMemo, useRef, useState } from 'react';
+import { SyntheticEvent, useCallback, useMemo, useState } from 'react';
 import { Code, ExternalLink } from 'react-feather';
 
 import { SolarizedJsonViewer as ReactJson } from '@/app/components/common/JsonViewer';
@@ -93,7 +93,6 @@ function TokenExtensionAccordionItem({
     symbol?: string;
 }) {
     const [showRaw, setShowRaw] = useState(false);
-    const accordionTriggerRef = useRef<HTMLButtonElement>(null);
 
     const handleToggleRaw = useCallback(() => {
         onSelect(parsedExtension.extension);
@@ -106,7 +105,7 @@ function TokenExtensionAccordionItem({
 
     return (
         <>
-            <AccordionTrigger className="e-items-center" ref={accordionTriggerRef}>
+            <AccordionTrigger className="e-items-center" style={{ textDecoration: 'none' }}>
                 <ExtensionListItem ext={parsedExtension} onToggleRaw={handleToggleRaw} raw={showRaw} />
             </AccordionTrigger>
             <AccordionContent>
@@ -157,7 +156,7 @@ function ExtensionListItem({
             {/* Name */}
             <div className="e-flex e-min-w-80 e-items-center e-gap-2 e-whitespace-nowrap e-font-normal max-sm:e-col-span-6 sm:e-col-span-6 md:e-col-span-6 lg:e-col-span-4 xl:e-col-span-3">
                 <div>{ext.name}</div>
-                <TokenExtensionBadge extension={ext} />
+                <TokenExtensionBadge extension={ext} withTooltip={false} />
             </div>
 
             {/* Description */}
@@ -167,7 +166,7 @@ function ExtensionListItem({
 
             {/* External links badges */}
             <div className="text-white e-flex e-justify-end e-gap-1 max-sm:e-col-span-6 sm:e-col-span-6 md:e-col-span-6 lg:e-col-span-2 xl:e-col-span-2">
-                <a key="raw" href="javascript:void(0)" onClick={handleToggleRaw}>
+                <a key="raw" onClick={handleToggleRaw}>
                     <Badge
                         className="text-white e-font-normal"
                         as="link"
