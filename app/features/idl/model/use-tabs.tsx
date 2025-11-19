@@ -4,7 +4,11 @@ import { Idl } from '@coral-xyz/anchor';
 import type { FormattedIdl } from '@entities/idl/formatters/formatted-idl';
 import { RootNode } from 'codama';
 import React, { useMemo } from 'react';
-import { PlayCircle } from 'react-feather';
+import { PlayCircle, XCircle } from 'react-feather';
+
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
+import { cn } from '@/app/components/shared/utils';
+import { getIdlVersion } from '@/app/entities/idl';
 
 import { IdlAccountsView } from '../formatted-idl/ui/IdlAccountsView';
 import { IdlConstantsView } from '../formatted-idl/ui/IdlConstantsView';
@@ -15,6 +19,7 @@ import { IdlPdasView } from '../formatted-idl/ui/IdlPdasView';
 import { IdlTypesView } from '../formatted-idl/ui/IdlTypesView';
 import { NoSearchResultsPlaceholder } from '../formatted-idl/ui/NoSearchResultsPlaceholder';
 import type { FormattedIdlDataView, IdlDataKeys } from '../formatted-idl/ui/types';
+import { BaseWarningCard } from '../interactive-idl/ui/BaseWarningCard';
 import { InteractWithIdl } from '../interactive-idl/ui/InteractWithIdl';
 
 type TabId = 'instructions' | 'accounts' | 'types' | 'errors' | 'constants' | 'events' | 'pdas' | 'interact';
@@ -108,15 +113,21 @@ export function useTabs(idl: FormattedIdl | null, originalIdl: Idl | RootNode, h
         ];
 
         if (originalIdl && !isCodamaIdl(originalIdl)) {
+            const version = getIdlVersion(originalIdl);
+
+            /// Allow to work with modern Anchor@>=0.30
+            const isInteractDisabled = version !== '0.30.1';
+
             tabItems.push({
                 disabled: !idl.instructions?.length,
                 id: 'interact',
-                render: () => <InteractWithIdl data={idl.instructions} />,
-                title: (
-                    <div className="e-flex e-items-center e-gap-1">
-                        <PlayCircle size={14} /> Interact
-                    </div>
-                ),
+                render: () =>
+                    isInteractDisabled ? (
+                        <BaseWarningCard message="Current version of IDL is not suported" />
+                    ) : (
+                        <InteractWithIdl data={idl.instructions} />
+                    ),
+                title: <InteractWithIdlTabName isInteractDisabled={isInteractDisabled} />,
             } as InteractTab);
         }
 
@@ -131,4 +142,34 @@ function isCodamaIdl(idl: any | RootNode) {
         return true;
     }
     return false;
+}
+
+function InteractWithIdlTabName({ isInteractDisabled }: { isInteractDisabled: boolean }) {
+    const tab = (
+        <div className="e-flex e-items-center e-gap-1">
+            {isInteractDisabled ? <XCircle size={14} /> : <PlayCircle size={14} />}
+            Interact
+        </div>
+    );
+
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <div
+                    className={cn('e-w-fit', {
+                        'e-cursor-not-allowed e-opacity-50': isInteractDisabled,
+                    })}
+                >
+                    {tab}
+                </div>
+            </TooltipTrigger>
+            <TooltipContent>
+                <div className="e-min-w-36 e-max-w-16">
+                    {isInteractDisabled
+                        ? 'Currently we support only modern Anchor IDL'
+                        : "Launch Anchor's instructions"}
+                </div>
+            </TooltipContent>
+        </Tooltip>
+    );
 }
