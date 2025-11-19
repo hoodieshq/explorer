@@ -212,14 +212,11 @@ export function useInstruction({
                 if (!program) throw new Error('Program is not initialized');
                 if (!wallet) throw new Error('Wallet is not initialized');
 
-                const ixAccounts = populateAccounts(params.accounts, instructionName);
-                const ixArguments = populateArguments(params.arguments, instructionName);
-
                 const ix = await executor.getInstruction(
                     program,
                     instructionName,
-                    ixAccounts,
-                    ixArguments,
+                    populateAccounts(params.accounts, instructionName),
+                    populateArguments(params.arguments, instructionName),
                     idl,
                     interpreterName
                 );

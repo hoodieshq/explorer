@@ -23,7 +23,7 @@ interface IdlExecutorSpec {
     getInstruction<T extends BaseIdl>(
         program: UnifiedProgram,
         instructionName: string,
-        accs: UnifiedAccounts,
+        accs: Record<string, string> | UnifiedAccounts,
         args: UnifiedArguments,
         idl: T,
         interpreterName: string

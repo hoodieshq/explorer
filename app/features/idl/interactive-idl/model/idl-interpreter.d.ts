@@ -29,7 +29,7 @@ export interface IdlInterpreter<TIdl extends BaseIdl = BaseIdl, TProgram extends
     createInstruction(
         program: TProgram,
         instructionName: string,
-        accounts: UnifiedAccounts,
+        accounts: Record<string, string> | UnifiedAccounts,
         arguments: UnifiedArguments
     ): Promise<TransactionInstruction | VersionedMessage>;
 }

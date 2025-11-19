@@ -1,4 +1,5 @@
 import { AnchorProvider, Idl as AnchorIdl, Program as AnchorProgram, Wallet } from '@coral-xyz/anchor';
+import type { IdlInstruction } from '@coral-xyz/anchor/dist/esm/idl';
 import { formatSerdeIdl, getFormattedIdl } from '@entities/idl/format';
 import { normalizeIdl } from '@entities/idl/model/use-anchor-program';
 import { Connection, PublicKey } from '@solana/web3.js';
@@ -58,27 +59,17 @@ export class AnchorInterpreter implements IdlInterpreter<AnchorIdl, AnchorUnifie
     async createInstruction<T extends AnchorUnifiedProgram>(
         program: T,
         instructionName: Parameters<typeof program.buildInstruction>[0],
-        accounts: Parameters<typeof program.buildInstruction>[1] | Record<string, string>,
+        accounts: Record<string, string>,
         args: Parameters<typeof program.buildInstruction>[2]
     ) {
         // Find instruction definition in IDL
         const ixDef = this.findInstructionTypeDefs(program, instructionName);
 
         // Convert arguments based on IDL type definitions
-        const convertedArguments = args.map((arg, index) => {
-            const argDef = ixDef.args[index];
-            if (!argDef) {
-                throw new Error(`Argument at index ${index} not found in instruction definition`);
-            }
-            try {
-                return this.convertArgument(arg, argDef.type);
-            } catch {
-                throw new Error(`Could not convert "${argDef.name}" argument for "${instructionName}"`);
-            }
-        });
+        const convertedArguments = this.convertArguments(instructionName, ixDef.args, args);
 
         // Convert accounts from strings to PublicKey objects
-        const convertedAccounts = this.convertAccounts(accounts);
+        const convertedAccounts = this.convertAccounts(instructionName, ixDef.accounts, accounts);
 
         return program.buildInstruction(instructionName, convertedAccounts, convertedArguments);
     }
@@ -152,25 +143,73 @@ export class AnchorInterpreter implements IdlInterpreter<AnchorIdl, AnchorUnifie
     }
 
     /**
-     * Convert account strings to PublicKey objects
-     *
-     * NOTE: we does not return null as Anchor expects all the accounts present
-     *  but we still try to convert strings into PublicKeys
+     * Convert arguments to proper type
      */
-    private convertAccounts(accounts: Record<string, string | PublicKey>): Record<string, PublicKey> {
-        const converted: Record<string, PublicKey> = {};
+    private convertArguments(
+        instructionName: string,
+        argumentsMeta: Readonly<Required<IdlInstruction['args']>>,
+        args: any[]
+    ) {
+        const convertedArguments = args.map((arg, index) => {
+            const argDef = argumentsMeta[index];
+            if (!argDef) {
+                throw new Error(`Argument at index ${index} not found in instruction definition`);
+            }
+            try {
+                return this.convertArgument(arg, argDef.type);
+            } catch {
+                throw new Error(`Could not convert "${argDef.name}" argument for "${instructionName}"`);
+            }
+        });
+
+        return convertedArguments;
+    }
+
+    /**
+     * Convert account strings to PublicKey objects
+     */
+    private convertAccounts(
+        instructionName: string,
+        accountsMeta: Readonly<Required<IdlInstruction['accounts']>>,
+        accounts: Record<string, string>
+    ): Record<string, PublicKey | null> {
+        const converted: ReturnType<typeof this.convertAccounts> = {};
+
+        function findAccountMeta(name: string, metas = accountsMeta) {
+            const accountIndex = metas.findIndex(meta => meta.name === name);
+            if (accountIndex !== -1) {
+                const accountMeta = metas[accountIndex];
+
+                if ('accounts' in accountMeta) {
+                    // current limitation: we do not parse nested accounts
+                    return undefined;
+                } else {
+                    return accountMeta;
+                }
+            }
+
+            return undefined;
+        }
 
         for (const [key, value] of Object.entries(accounts)) {
-            if (!value || value === '') {
-                //converted[key] = null;
-            } else if (typeof value === 'string') {
-                if (value.trim() !== '') {
-                    converted[key] = new PublicKey(value);
-                } // else converted[key] = null;
-            } else if (value instanceof PublicKey) {
-                converted[key] = value;
-            } else {
-                //converted[key] = null;
+            const accountMeta = findAccountMeta(key);
+
+            if (!accountMeta) {
+                throw new Error(`Account with key ${key} not found in instruction definition`);
+            }
+
+            try {
+                if (!value || value === '') {
+                    if (accountMeta?.optional) converted[key] = null;
+                } else if (typeof value === 'string') {
+                    if (value.trim() !== '') {
+                        converted[key] = new PublicKey(value);
+                    } else {
+                        if (accountMeta?.optional) converted[key] = null;
+                    }
+                }
+            } catch {
+                throw new Error(`Could not convert "${accountMeta.name}" argument for "${instructionName}"`);
             }
         }
 

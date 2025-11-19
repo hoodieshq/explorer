@@ -19,7 +19,7 @@ export class AnchorUnifiedProgram implements UnifiedProgram {
             const instruction = this.program.methods[instructionName];
 
             return instruction(...args)
-                .accounts(accounts)
+                .accounts(accounts as Record<string, PublicKey>) // keep null for optional accounts as opposit breaks account resolution
                 .instruction();
         } catch (error) {
             throw new Error(

@@ -95,7 +95,7 @@ export class IdlExecutor implements IdlExecutorSpec {
     async getInstruction<T extends BaseIdl = BaseIdl>(
         program: UnifiedProgram,
         instructionName: string,
-        accs: UnifiedAccounts,
+        accs: Record<string, string> | UnifiedAccounts,
         args: UnifiedArguments,
         idl: T,
         interpreterName: string
@@ -136,17 +136,15 @@ export function normalizeArguments(args: UnifiedArguments, interpreterName: stri
 /**
  * Populates accounts into format that satisfies the UnifiedAccounts
  */
-export function populateAccounts(accounts: Record<string, string>, instructionName: string) {
+export function populateAccounts(
+    accounts: Record<string, string>,
+    instructionName: string
+): Record<string, string> | UnifiedAccounts {
     return Object.keys(accounts).reduce((acc, k) => {
         const { field, value } = populateValue(accounts, k, instructionName);
-
-        if (value instanceof PublicKey) {
-            acc[field] = value;
-        } else if (typeof value === 'string') {
-            acc[field] = new PublicKey(value);
-        }
+        acc[field] = String(value);
         return acc;
-    }, {} as UnifiedAccounts);
+    }, {} as Record<string, string>);
 }
 
 /**

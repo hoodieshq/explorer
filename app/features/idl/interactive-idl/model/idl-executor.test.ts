@@ -273,7 +273,7 @@ describe('IdlExecutor', () => {
                 mockProgram,
                 instructionName,
                 {
-                    multisig: multisigKeypair.publicKey,
+                    multisig: multisigKeypair.publicKey.toBase58(),
                 },
                 [oldMemberKeypair.publicKey.toBase58(), '1']
             );

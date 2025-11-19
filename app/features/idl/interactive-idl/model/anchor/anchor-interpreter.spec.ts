@@ -52,6 +52,7 @@ describe('AnchorInterpreter', () => {
                 getIdl: () => ({
                     instructions: [
                         {
+                            accounts: [{ name: 'payer' }, { name: 'tokenAccount' }],
                             args: [
                                 { name: 'amount', type: 'u64' },
                                 { name: 'flag', type: 'bool' },
@@ -90,6 +91,11 @@ describe('AnchorInterpreter', () => {
                 getIdl: () => ({
                     instructions: [
                         {
+                            accounts: [
+                                { name: 'payer' },
+                                { name: 'optionalAccount', optional: true },
+                                { name: 'anotherOptional', optional: true },
+                            ],
                             args: [],
                             name: 'testInstruction',
                         },
@@ -110,6 +116,8 @@ describe('AnchorInterpreter', () => {
             expect(mockBuildInstruction).toHaveBeenCalledWith(
                 'testInstruction',
                 {
+                    anotherOptional: null,
+                    optionalAccount: null,
                     payer: new PublicKey('11111111111111111111111111111111'),
                 },
                 []

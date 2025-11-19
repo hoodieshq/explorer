@@ -35,7 +35,7 @@ export interface UnifiedProgram {
 /**
  * Unified Accounts
  */
-export type UnifiedAccounts = Record<string, PublicKey>;
+export type UnifiedAccounts = Record<string, PublicKey | null>;
 
 /**
  * Unified Arguments
