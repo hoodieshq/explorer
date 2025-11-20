@@ -41,6 +41,24 @@ export const SimpleInstructions: Story = {
     },
 };
 
+export const ComplexInstructions: Story = {
+    args: {
+        data: [
+            {
+                accounts: [
+                    { docs: [], name: 'positionAuthority', signer: true, writable: false },
+                    { docs: [], name: 'receiver', signer: false, writable: true },
+                ],
+                args: [],
+                docs: [
+                    'Closes an existing position in the ai dex pool.  This function closes an existing position using the provided context. It ensures that the position is properly closed and any associated resources are released.  # Arguments  * `ctx` - The context for the `ClosePosition` instruction.  # Returns  This function returns a `Result` which is `Ok` if the position is successfully closed, or an error if it fails.',
+                ],
+                name: 'closePosition',
+            },
+        ],
+    },
+};
+
 export const NestedAccounts: Story = {
     args: {
         data: [

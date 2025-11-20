@@ -3,7 +3,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared
 export function IdlDocView({ docs }: { docs: string[] }) {
     if (!docs?.length) return null;
 
-    return <p className="e-mb-0 e-font-mono e-text-xs e-text-neutral-500">{docs.join(' ')}</p>;
+    return (
+        <div className="e-mb-0 e-whitespace-break-spaces e-font-mono e-text-xs e-text-neutral-500">
+            {docs.join(' ')}
+        </div>
+    );
 }
 
 export function IdlDocTooltip({ docs, children }: { docs?: string[]; children: React.ReactNode }) {
