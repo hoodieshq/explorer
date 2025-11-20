@@ -30,7 +30,7 @@ const CU_PROFILE_CHART_OPTIONS = (totalCU: number): ChartOptions<'bar'> => {
             if (canvas) {
                 canvas.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
             }
-            // Capture actual mouse position
+            // Capture actual mouse position for the tooltip
             if (event.native) {
                 currentMouseX = (event.native as MouseEvent).clientX;
                 currentMouseY = (event.native as MouseEvent).clientY;
@@ -144,11 +144,12 @@ function getInstructionColor(index: number): string {
     const colors = [
         '#20D79B',
         '#19A97A',
-        '#137C5A', 
-        '#0C503A', 
-        '#093A2A', 
+        '#137C5A',
+        '#0C503A',
+        '#093A2A',
     ];
 
+    // Use % to cycle through colors if there are more instructions than colors
     return colors[index % colors.length];
 }
 
@@ -182,6 +183,8 @@ export function CUProfilingSection({ signature }: SignatureProps) {
             datasets: instructionsWithCU.map((ix, idx) => ({
                 backgroundColor: getInstructionColor(idx),
                 barThickness: 24,
+                // Apply border radius only to the outer edges of the stacked bar
+                // round left corners, round right corners
                 borderRadius: {
                     bottomLeft: idx === 0 ? 4 : 0,
                     bottomRight: idx === instructionsWithCU.length - 1 ? 4 : 0,
