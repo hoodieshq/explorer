@@ -90,7 +90,7 @@ function useClusterAccountSearch(address: string, currentCluster: Cluster, _enab
                     const accountInfo = await rpc.getAccountInfo(createAddress(address), { encoding: 'base64' }).send();
 
                     await new Promise(resolve => {
-                        setTimeout(resolve, 10000);
+                        setTimeout(resolve, 4000);
                     });
 
                     if (accountInfo.value !== null) {
@@ -126,7 +126,7 @@ function AccountNofFound({ account, labels = LABELS }: { account: Account; label
         return (
             <span>
                 <SearchingAddressIndicator searchingCluster={searchingCluster} />
-                <span style={{ verticalAlign: 'middle' }}>{labels['not-found']}</span>
+                <span className="align-middle">{labels['not-found']}</span>
             </span>
         );
     }
@@ -136,7 +136,7 @@ function AccountNofFound({ account, labels = LABELS }: { account: Account; label
     return isAddressFoundOnAnotherClsuter ? (
         <span>
             <AdjacentAddressLink address={address} foundCluster={foundCluster} />
-            <span style={{ verticalAlign: 'middle' }}>{labels['not-found']}</span>
+            <span className="align-middle">{labels['not-found']}</span>
         </span>
     ) : (
         <span>{labels['not-found']}</span>
@@ -151,7 +151,7 @@ function AdjacentAddressLink({ address, foundCluster }: { address: string; found
     });
 
     return (
-        <a href={foundClusterPath} className="text-info" style={{ marginRight: '5px', verticalAlign: 'middle' }}>
+        <a href={foundClusterPath} className="text-info align-middle" style={{ marginRight: '5px' }}>
             Found on {clusterName(foundCluster)}
         </a>
     );
@@ -164,15 +164,13 @@ function SearchingAddressIndicator({ searchingCluster }: { searchingCluster: Clu
         <>
             <span
                 style={{
-                    display: 'inline-block',
                     height: '10px',
                     marginRight: '5px',
-                    verticalAlign: 'middle',
                     width: '10px',
                 }}
-                className={spinnerCls}
+                className={`${spinnerCls} align-middle d-inline-block`}
             />
-            <span className="text-muted" style={{ marginRight: '10px', verticalAlign: 'middle' }}>
+            <span className="text-muted align-middle" style={{ marginRight: '10px', verticalAlign: 'middle' }}>
                 checking {clusterName(searchingCluster).toLowerCase()}
             </span>
         </>
