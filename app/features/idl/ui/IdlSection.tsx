@@ -70,7 +70,7 @@ export function IdlSection({ idl, badge, programId }: { idl: any; badge: React.R
             </div>
 
             <div className="e-mt-4 e-min-h-48">
-                <WalletProvider skipToast>
+                <WalletProvider skipToast autoConnect>
                     <IdlRenderer
                         idl={idl}
                         collapsed={!isExpanded}
