@@ -6,13 +6,14 @@ import { ReactNode } from 'react';
 import type { InstructionLogs } from '@/app/utils/program-logs';
 
 type InstructionActivityProps = {
+    lastSuccess?: string | null;
     logs: string[];
     parseLogs: (logs: string[]) => InstructionLogs[];
 };
-export function InstructionActivity({ logs, parseLogs }: InstructionActivityProps) {
+export function InstructionActivity({ lastSuccess, logs, parseLogs }: InstructionActivityProps) {
     const tabs = [
         {
-            component: <ProgramLogs logs={logs} parseLogs={parseLogs} />,
+            component: <ProgramLogs lastSuccess={lastSuccess} logs={logs} parseLogs={parseLogs} />,
             id: 'program-logs',
             title: 'Program logs',
         },

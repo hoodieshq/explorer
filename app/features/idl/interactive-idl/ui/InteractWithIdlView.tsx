@@ -100,7 +100,7 @@ export function InteractWithIdlView({
 
                             <ConnectWallet />
 
-                            <InstructionActivity logs={logs} parseLogs={parseLogs} />
+                            <InstructionActivity lastSuccess={lastSuccess} logs={logs} parseLogs={parseLogs} />
                         </div>
                     </div>
                 </div>

@@ -42,6 +42,8 @@ export function InteractWithIdl({
 
     const handleTransactionSuccess = useCallback(
         (txSignature: string) => {
+            // do not show tx banner
+            return;
             toast.brand({
                 description: (
                     <ExplorerLink
