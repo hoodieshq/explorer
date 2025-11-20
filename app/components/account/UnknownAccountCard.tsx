@@ -9,7 +9,8 @@ import { address as createAddress, createSolanaRpc } from '@solana/kit';
 import { Cluster, clusterName, clusterSlug, clusterUrl } from '@utils/cluster';
 import { addressLabel } from '@utils/tx';
 import { useClusterPath } from '@utils/url';
-import React from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 
 export function UnknownAccountCard({ account }: { account: Account }) {
     const { cluster } = useCluster();
@@ -71,16 +72,25 @@ export function UnknownAccountCard({ account }: { account: Account }) {
 type SearchStatus = 'idle' | 'searching' | 'found' | 'not-found';
 
 function useClusterAccountSearch(address: string, currentCluster: Cluster, _enableCustomClsuter?: boolean) {
-    const [status, setStatus] = React.useState<SearchStatus>('idle');
-    const [searchingCluster, setSearchingCluster] = React.useState<Cluster | null>(null);
-    const [foundCluster, setFoundCluster] = React.useState<Cluster | null>(null);
+    const searchParams = useSearchParams();
+    const [status, setStatus] = useState<SearchStatus>('idle');
+    const [searchingCluster, setSearchingCluster] = useState<Cluster | null>(null);
+    const [foundCluster, setFoundCluster] = useState<Cluster | null>(null);
 
-    React.useEffect(() => {
+    const sleep = () => new Promise(res => setTimeout(res, 700));
+
+    useEffect(() => {
         const clusters = [Cluster.MainnetBeta, Cluster.Devnet, Cluster.Testnet].filter(c => c !== currentCluster);
+
+        // add custom url if parameter is present
+        if (searchParams?.has('customUrl')) {
+            clusters.push(Cluster.Custom);
+        }
 
         const searchClusters = async () => {
             setStatus('searching');
 
+            // search cluster one by one to not make extra requests
             for (const cluster of clusters) {
                 setSearchingCluster(cluster);
 
@@ -89,14 +99,13 @@ function useClusterAccountSearch(address: string, currentCluster: Cluster, _enab
                     const rpc = createSolanaRpc(url);
                     const accountInfo = await rpc.getAccountInfo(createAddress(address), { encoding: 'base64' }).send();
 
-                    await new Promise(resolve => {
-                        setTimeout(resolve, 4000);
-                    });
-
                     if (accountInfo.value !== null) {
                         setFoundCluster(cluster);
                         setStatus('found');
                         return;
+                    } else {
+                        // not only prevent span but allow component to react properly without making the structure complex
+                        await sleep();
                     }
                 } catch (error) {
                     // Continue to next cluster
@@ -122,6 +131,8 @@ function AccountNofFound({ account, labels = LABELS }: { account: Account; label
     const address = account.pubkey.toBase58();
     const { status, searchingCluster, foundCluster } = useClusterAccountSearch(address, cluster);
 
+    const targetCluster = useMemo(() => foundCluster, [foundCluster, account, cluster]);
+
     if (status === 'searching' && searchingCluster !== null) {
         return (
             <span>
@@ -131,11 +142,11 @@ function AccountNofFound({ account, labels = LABELS }: { account: Account; label
         );
     }
 
-    const isAddressFoundOnAnotherClsuter = status === 'found' && foundCluster !== null;
+    const isAddressFoundOnAnotherClsuter = status === 'found' && targetCluster !== null;
 
     return isAddressFoundOnAnotherClsuter ? (
         <span>
-            <AdjacentAddressLink address={address} foundCluster={foundCluster} />
+            <AdjacentAddressLink address={address} foundCluster={targetCluster} />
             <span className="align-middle">{labels['not-found']}</span>
         </span>
     ) : (
