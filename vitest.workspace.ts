@@ -23,6 +23,7 @@ export default defineWorkspace([
         ],
         test: {
             name: 'storybook',
+            mode: 'debug',
             browser: {
                 enabled: true,
                 headless: true,

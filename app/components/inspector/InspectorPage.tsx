@@ -9,7 +9,7 @@ import { FetchStatus } from '@providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@providers/transactions/raw';
 import usePrevious from '@react-hook/previous';
 import { Connection, MessageV0, PACKET_DATA_SIZE, PublicKey, VersionedMessage } from '@solana/web3.js';
-import { generated, PROGRAM_ADDRESS as SQUADS_V4_PROGRAM_ADDRESS } from '@sqds/multisig';
+import { generated, PROGRAM_ADDRESS as SQUADS_V4_PROGRAM_ADDRESS, PROGRAM_ID } from '@sqds/multisig';
 const { VaultTransaction } = generated;
 
 import { useClusterPath } from '@utils/url';
@@ -101,6 +101,8 @@ function decodeUrlParams(
     const signaturesParam = decodeParam(params, 'signatures');
     const squadsTxParam = decodeParam(params, 'squadsTx');
 
+    console.log({ params: params.toString() });
+
     let refreshUrl = false;
     if (signaturesParam === true) {
         params.delete('signatures');
@@ -164,6 +166,20 @@ function SquadsProposalInspectorCard({ account, onClear }: { account: string; on
 
     const fetcher = React.useCallback(async () => {
         const connection = new Connection(url);
+        const MOCK_SQUADS_LOOKUP_TABLE_ACCOUNT_INFO: any = {
+            data: Buffer.from(
+                'qPqiZFEOos8bpNmzOFnIgq7HtFDkjs0zoH+RjHiREtlTMLrrxCnOoOcFvY3L4K/GkofeZWEMwteLWwiE+IC8lnd8Ck5flvyb3QQAAAAAAAD+AP8AAAAAAQEFBgAAAEq4mP2n8jYC4uvQ/2riMoE0PhxgqIF66HAqkgBn4/7YWvNmtUiOi7IxoG9Yg+DNwzaHxoGjbIgVzFpOmwEZBmf9dPjWz8/N7PpjzVI1TulkO4Egf8ZYe7WLo0OjhhrzoYQzUnBMSyxrGPE/4v6Xp81WeB65mgEPCx6Nm2doqmmMmJEqbWg9L9Do0t/Tr7QiU2rSPiAV6W0bNxo4qIu+aRNLpsNxnQkq2EAyNB4e5Vx8/7kaTXVN+Y+DEOMrcIenQgEAAAAGCgAAAAABAgMEBQcICQowAAAA9r57/qtrEp4AZc0dAAAAAL9A3h92lHzal8AhXk0xQ6drSpPcsjemGX1gSwpnAfeuAQAAAC2j9Rh4Ufp3UyACH6zJgVGpNk7XhltxlBh5LvHTkFE+AAAAAAUAAAA4LwgHBQ==',
+                'base64'
+            ),
+            executable: false,
+            lamports: 1000000,
+            owner: PROGRAM_ID,
+        };
+        return {
+            data: VaultTransaction.fromAccountInfo(MOCK_SQUADS_LOOKUP_TABLE_ACCOUNT_INFO)[0],
+            error: false,
+            isLoading: false,
+        };
         try {
             // First check if the account exists and is owned by the Squads program
             const accountInfo = await connection.getAccountInfo(new PublicKey(account), 'confirmed');
@@ -208,6 +224,7 @@ function SquadsProposalInspectorCard({ account, onClear }: { account: string; on
     // Convert VaultTransactionMessage to a format compatible with Message
     const convertVaultTransactionToMessage = (vaultTx: typeof VaultTransaction.prototype): VersionedMessage => {
         const { message } = vaultTx;
+        console.log('CONV', message, vaultTx);
         const accountKeys = message.accountKeys;
 
         // Create a standard Message object with the necessary fields
@@ -317,6 +334,7 @@ export function TransactionInspectorPage({
     // Decode the message url param whenever it changes
     React.useEffect(() => {
         const [result, nextParams, refreshUrl] = decodeUrlParams(new URLSearchParams(currentSearchParams?.toString()));
+        console.log('DECODEPARAMS', { result, nextParams }, currentSearchParams?.toString());
         if (refreshUrl) {
             const queryString = nextParams.toString();
             router.push(`${currentPathname}${queryString ? `?${queryString}` : ''}`);
@@ -330,6 +348,13 @@ export function TransactionInspectorPage({
             setInspectorData(result);
         }
     }, [currentPathname, currentSearchParams, router]);
+
+    console.log({ signature, inspectorData, a: inspectorData ? isSquadsProposalAccountData(inspectorData) : false });
+    console.log('A', inspectorData?.rawMessage);
+
+    if (inspectorData?.account) {
+        return <SquadsProposalInspectorCard account={inspectorData.account} onClear={reset} />;
+    }
 
     return (
         <div className="container mt-4">

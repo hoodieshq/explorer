@@ -176,11 +176,13 @@ describe('TransactionInspectorPage with Squads Transaction', () => {
             const mockSWR = await import('swr');
             (mockSWR.default as any).mockImplementation((key: any) => {
                 if (Array.isArray(key) && key[0] === specificAccountKey[0] && key[1] === specificAccountKey[1]) {
-                    return {
+                    const a = {
                         data: VaultTransaction.fromAccountInfo(MOCK_SQUADS_LOOKUP_TABLE_ACCOUNT_INFO)[0],
                         error: null,
                         isLoading: false,
                     };
+                    console.log({ a });
+                    return a;
                 }
                 return { data: null, error: null, isLoading: true };
             });
@@ -204,9 +206,9 @@ describe('TransactionInspectorPage with Squads Transaction', () => {
 
             await waitFor(
                 () => {
-                    expect(screen.queryByText(/Loading/i)).toBeNull();
+                    expect(screen.queryAllByText(/Loading/i)).toEqual([]);
                 },
-                { interval: 50, timeout: 10000 }
+                { interval: 100, timeout: 10000 }
             );
 
             // Check that the td with text Fee Payer has the text F3S4PD17Eo3FyCMropzDLCpBFuQuBmufUVBBdKEHbQFT

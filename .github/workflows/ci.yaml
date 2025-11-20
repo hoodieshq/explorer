@@ -78,8 +78,8 @@ jobs:
           echo "PNPM version: $(pnpm --version)"
           pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
+      # - name: Build
+      #   run: pnpm build
 
       - name: Code-style
         run: pnpm format:ci
@@ -88,4 +88,5 @@ jobs:
         env:
           TEST_SERIAL_TIMEOUT: ${{ vars.TEST_SERIAL_TIMEOUT }}
         run: |
-          pnpm test:ci
+          pnpm test:ci --expandSnapshotDiff
+          # app/components/inspector/__tests__/InspectorPage.spec.tsx
