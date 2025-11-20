@@ -47,6 +47,7 @@ function useIdlFromAnchorProgramSeed(programAddress: string, url: string, cluste
             const programId = new PublicKey(programAddress);
             promise = Program.fetchIdl<Idl>(programId, getProvider(url))
                 .then(idl => {
+                    console.log({ idl });
                     if (!idl) {
                         throw new Error(`IDL not found for program: ${programAddress.toString()}`);
                     }
