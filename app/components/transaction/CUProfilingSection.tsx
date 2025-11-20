@@ -1,7 +1,8 @@
 import { useCluster } from '@providers/cluster';
 import { useTransactionDetails } from '@providers/transactions';
+import { getReservedComputeUnits } from '@utils/compute-units-schedule';
 import { SignatureProps } from '@utils/index';
-import { InstructionLogs,parseProgramLogs } from '@utils/program-logs';
+import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import { BarElement, CategoryScale, Chart, ChartData, ChartOptions, LinearScale, Tooltip } from 'chart.js';
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
@@ -153,6 +154,11 @@ function getInstructionColor(index: number): string {
     return colors[index % colors.length];
 }
 
+type InstructionWithCU = {
+    computeUnits: number;
+    programId: string;
+};
+
 export function CUProfilingSection({ signature }: SignatureProps) {
     const { cluster } = useCluster();
     const details = useTransactionDetails(signature);
@@ -160,21 +166,55 @@ export function CUProfilingSection({ signature }: SignatureProps) {
     const transactionWithMeta = details?.data?.transactionWithMeta;
     const logMessages = transactionWithMeta?.meta?.logMessages || null;
     const err = transactionWithMeta?.meta?.err || null;
+    const epoch = transactionWithMeta?.slot ? BigInt(transactionWithMeta.slot) : undefined;
 
     const instructionLogs: InstructionLogs[] = React.useMemo(
         () => (logMessages ? parseProgramLogs(logMessages, err, cluster) : []),
         [logMessages, err, cluster]
     );
 
-    const instructionsWithCU = React.useMemo(
-        () => instructionLogs.filter(ix => ix.computeUnits > 0),
-        [instructionLogs]
-    );
+    const instructionsWithCU = React.useMemo<InstructionWithCU[]>(() => {
+        if (!transactionWithMeta) return [];
+
+        const instructions = transactionWithMeta.transaction.message.instructions;
+        const result: InstructionWithCU[] = [];
+
+        instructions.forEach((instruction, index) => {
+            const programId = instruction.programId.toBase58();
+
+            const logEntry = instructionLogs[index];
+            let computeUnits = logEntry?.computeUnits || 0;
+
+            if (computeUnits === 0) {
+                computeUnits = getReservedComputeUnits({
+                    cluster,
+                    epoch,
+                    programId,
+                });
+            }
+
+            result.push({
+                computeUnits,
+                programId,
+            });
+        });
+
+        return result.filter(ix => ix.computeUnits > 0);
+    }, [transactionWithMeta, instructionLogs, cluster, epoch]);
 
     const totalCU = React.useMemo(
         () => instructionsWithCU.reduce((sum, ix) => sum + ix.computeUnits, 0),
         [instructionsWithCU]
     );
+
+    React.useEffect(() => {
+        return () => {
+            const tooltipEl = document.getElementById('cu-chartjs-tooltip');
+            if (tooltipEl) {
+                tooltipEl.remove();
+            }
+        };
+    }, []);
 
     const chartOptions = React.useMemo<ChartOptions<'bar'>>(() => CU_PROFILE_CHART_OPTIONS(totalCU), [totalCU]);
 
@@ -212,6 +252,10 @@ export function CUProfilingSection({ signature }: SignatureProps) {
                 <h3 className="card-header-title">CU profiling</h3>
             </div>
             <div className="card-body">
+                <div className="mb-3">
+                    Total: {instructionsWithCU.reduce((sum, ix) => sum + ix.computeUnits, 0).toLocaleString()}
+                </div>
+
                 <div style={{ height: '32px', marginLeft: '-8px' }}>
                     <Bar data={chartData} options={chartOptions} />
                 </div>
