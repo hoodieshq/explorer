@@ -75,10 +75,10 @@ export const WarningDialog: Story = {
                             Spend real funds?
                         </DialogTitle>
                         <DialogDescription>
-                            <p className="e-pl-6">
+                            <span className="e-pl-6">
                                 You&apos;re connected to Mainnet. Any SOL you send now is permanent and costs real
                                 money. Make sure the details are correct before continuing.
-                            </p>
+                            </span>
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
