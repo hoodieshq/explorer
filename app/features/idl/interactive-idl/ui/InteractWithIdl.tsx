@@ -10,8 +10,10 @@ import { useCallback } from 'react';
 import { originalIdlAtom, programIdAtom } from '../model/state-atoms';
 import { isEnabled, useInstruction } from '../model/use-instruction';
 import type { InstructionCallParams } from '../model/use-instruction-form';
+import { useMainnetConfirmation } from '../model/use-mainnet-confirmation';
 import { BaseWarningCard } from './BaseWarningCard';
 import { InteractWithIdlView } from './InteractWithIdlView';
+import { MainnetWarningDialog } from './MainnetWarningDialog';
 
 export function InteractWithIdl({
     data: instructions,
@@ -33,11 +35,21 @@ export function InteractWithIdl({
         });
     const { parseLogs } = useParsedLogs(transactionError);
 
+    const { requireConfirmation, confirm, cancel, isOpen, hasPendingAction } = useMainnetConfirmation<{
+        data: InstructionData;
+        params: InstructionCallParams;
+    }>();
+
     const handleExecuteInstruction = useCallback(
         async (data: InstructionData, params: InstructionCallParams) => {
-            await invokeInstruction(data.name, data, params);
+            await requireConfirmation(
+                async () => {
+                    await invokeInstruction(data.name, data, params);
+                },
+                { data, params }
+            );
         },
-        [invokeInstruction]
+        [invokeInstruction, requireConfirmation]
     );
 
     const handleTransactionSuccess = useCallback(
@@ -78,17 +90,31 @@ export function InteractWithIdl({
     return !(idl && progId) ? (
         <LoadingCard />
     ) : (
-        <InteractWithIdlView
-            instructions={instructions || []}
-            idl={idl}
-            onExecuteInstruction={handleExecuteInstruction}
-            onTransactionSuccess={handleTransactionSuccess}
-            onTransactionError={handleTransactionError}
-            isExecuting={isExecuting}
-            lastError={lastError}
-            lastSuccess={lastSuccess}
-            logs={logs}
-            parseLogs={parseLogs}
-        />
+        <>
+            <InteractWithIdlView
+                instructions={instructions || []}
+                idl={idl}
+                onExecuteInstruction={handleExecuteInstruction}
+                onTransactionSuccess={handleTransactionSuccess}
+                onTransactionError={handleTransactionError}
+                isExecuting={isExecuting}
+                lastError={lastError}
+                lastSuccess={lastSuccess}
+                logs={logs}
+                parseLogs={parseLogs}
+            />
+            {hasPendingAction && (
+                <MainnetWarningDialog
+                    open={isOpen}
+                    onOpenChange={open => {
+                        if (!open) {
+                            cancel();
+                        }
+                    }}
+                    onConfirm={confirm}
+                    onCancel={cancel}
+                />
+            )}
+        </>
     );
 }
