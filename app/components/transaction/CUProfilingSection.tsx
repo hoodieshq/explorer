@@ -1,163 +1,10 @@
+import { CUProfilingCard } from '@components/transaction/CUProfilingCard';
 import { useCluster } from '@providers/cluster';
 import { useTransactionDetails } from '@providers/transactions';
-import { getReservedComputeUnits } from '@utils/compute-units-schedule';
+import { extractCUDataFromTransaction } from '@utils/cu-profiling';
 import { SignatureProps } from '@utils/index';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
-import { BarElement, CategoryScale, Chart, ChartData, ChartOptions, LinearScale, Tooltip } from 'chart.js';
 import React from 'react';
-import { Bar } from 'react-chartjs-2';
-
-Chart.register(BarElement, CategoryScale, LinearScale, Tooltip);
-
-const MAX_BARS = 5;
-
-const CU_PROFILE_CHART_OPTIONS = (totalCU: number): ChartOptions<'bar'> => {
-    let currentMouseX = 0;
-    let currentMouseY = 0;
-
-    return {
-        animation: false,
-        indexAxis: 'y',
-        interaction: {
-            intersect: false,
-            mode: 'point',
-        },
-        layout: {
-            padding: 0,
-        },
-        maintainAspectRatio: false,
-        onHover: (event, activeElements) => {
-            const canvas = event.native?.target as HTMLElement;
-            if (canvas) {
-                canvas.style.cursor = activeElements.length > 0 ? 'pointer' : 'default';
-            }
-            // Capture actual mouse position for the tooltip
-            if (event.native) {
-                currentMouseX = (event.native as MouseEvent).clientX;
-                currentMouseY = (event.native as MouseEvent).clientY;
-            }
-        },
-        plugins: {
-            legend: {
-                display: false,
-            },
-            tooltip: {
-                enabled: false,
-                external(context) {
-                    let tooltipEl = document.getElementById('cu-chartjs-tooltip');
-
-                    if (!tooltipEl) {
-                        tooltipEl = document.createElement('div');
-                        tooltipEl.id = 'cu-chartjs-tooltip';
-                        tooltipEl.innerHTML = '<div class="content"></div>';
-                        document.body.appendChild(tooltipEl);
-                    }
-
-                    const tooltipModel = context.tooltip;
-                    if (tooltipModel.opacity === 0) {
-                        tooltipEl.style.opacity = '0';
-                        return;
-                    }
-
-                    if (tooltipModel.body) {
-                        const dataPoint = tooltipModel.dataPoints[0];
-                        const instructionLabel = dataPoint.dataset.label;
-                        const cuValue = dataPoint.parsed.x.toLocaleString();
-                        const color = dataPoint.dataset.backgroundColor as string;
-
-                        const tooltipContent = tooltipEl.querySelector('div');
-                        if (tooltipContent) {
-                            tooltipContent.innerHTML = `
-                                <div style="
-                                    background: rgba(30, 30, 30, 0.95);
-                                    backdrop-filter: blur(10px);
-                                    border-radius: 8px;
-                                    padding: 12px 16px;
-                                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-                                    min-width: 180px;
-                                ">
-                                    <div style="
-                                        display: flex;
-                                        align-items: center;
-                                        gap: 8px;
-                                        margin-bottom: 6px;
-                                    ">
-                                        <div style="
-                                            width: 12px;
-                                            height: 12px;
-                                            border-radius: 2px;
-                                            background-color: ${color};
-                                        "></div>
-                                        <div style="
-                                            color: white;
-                                            font-size: 14px;
-                                            font-weight: 600;
-                                        ">${instructionLabel}</div>
-                                    </div>
-                                    <div style="
-                                        color: rgba(255, 255, 255, 0.9);
-                                        font-size: 13px;
-                                        padding-left: 20px;
-                                    ">${cuValue} CU consumed</div>
-                                </div>
-                            `;
-                        }
-                    }
-
-                    // Use captured mouse position
-                    tooltipEl.style.opacity = '1';
-                    tooltipEl.style.position = 'fixed';
-                    tooltipEl.style.left = currentMouseX + 'px';
-                    tooltipEl.style.top = currentMouseY + 'px';
-                    tooltipEl.style.pointerEvents = 'none';
-                    tooltipEl.style.transform = 'translate(-50%, calc(-100% - 10px))';
-                    tooltipEl.style.transition = 'all 0.1s ease';
-                    tooltipEl.style.zIndex = '9999';
-                },
-            },
-        },
-        resizeDelay: 0,
-        scales: {
-            x: {
-                grid: {
-                    display: false,
-                },
-                max: totalCU,
-                stacked: true,
-                ticks: {
-                    display: false,
-                },
-            },
-            y: {
-                grid: {
-                    display: false,
-                },
-                stacked: true,
-                ticks: {
-                    display: false,
-                },
-            },
-        },
-    };
-};
-
-function getInstructionColor(index: number): string {
-    const colors = [
-        '#20D79B',
-        '#19A97A',
-        '#137C5A',
-        '#0C503A',
-        '#093A2A',
-    ];
-
-    // Use % to cycle through colors if there are more instructions than colors
-    return colors[index % colors.length];
-}
-
-type InstructionWithCU = {
-    computeUnits: number;
-    programId: string;
-};
 
 export function CUProfilingSection({ signature }: SignatureProps) {
     const { cluster } = useCluster();
@@ -173,124 +20,20 @@ export function CUProfilingSection({ signature }: SignatureProps) {
         [logMessages, err, cluster]
     );
 
-    const instructionsWithCU = React.useMemo<InstructionWithCU[]>(() => {
+    const instructionsForCU = React.useMemo(() => {
         if (!transactionWithMeta) return [];
 
-        const instructions = transactionWithMeta.transaction.message.instructions;
-        const result: InstructionWithCU[] = [];
-
-        instructions.forEach((instruction, index) => {
-            const programId = instruction.programId.toBase58();
-
-            const logEntry = instructionLogs[index];
-            let computeUnits = logEntry?.computeUnits || 0;
-
-            if (computeUnits === 0) {
-                computeUnits = getReservedComputeUnits({
-                    cluster,
-                    epoch,
-                    programId,
-                });
-            }
-
-            result.push({
-                computeUnits,
-                programId,
-            });
+        return extractCUDataFromTransaction({
+            cluster,
+            epoch,
+            instructionLogs,
+            instructions: transactionWithMeta.transaction.message.instructions,
         });
-
-        return result.filter(ix => ix.computeUnits > 0);
     }, [transactionWithMeta, instructionLogs, cluster, epoch]);
-
-    const totalCU = React.useMemo(
-        () => instructionsWithCU.reduce((sum, ix) => sum + ix.computeUnits, 0),
-        [instructionsWithCU]
-    );
-
-    React.useEffect(() => {
-        return () => {
-            const tooltipEl = document.getElementById('cu-chartjs-tooltip');
-            if (tooltipEl) {
-                tooltipEl.remove();
-            }
-        };
-    }, []);
-
-    const chartOptions = React.useMemo<ChartOptions<'bar'>>(() => CU_PROFILE_CHART_OPTIONS(totalCU), [totalCU]);
-
-    const chartData: ChartData<'bar'> = React.useMemo(
-        () => ({
-            datasets: instructionsWithCU.map((ix, idx) => ({
-                backgroundColor: getInstructionColor(idx),
-                barThickness: 24,
-                // Apply border radius only to the outer edges of the stacked bar
-                // round left corners, round right corners
-                borderRadius: {
-                    bottomLeft: idx === 0 ? 4 : 0,
-                    bottomRight: idx === instructionsWithCU.length - 1 ? 4 : 0,
-                    topLeft: idx === 0 ? 4 : 0,
-                    topRight: idx === instructionsWithCU.length - 1 ? 4 : 0,
-                },
-                borderSkipped: false,
-                borderWidth: 0,
-                data: [ix.computeUnits],
-                hoverBackgroundColor: getInstructionColor(idx),
-                label: `Instruction #${idx + 1}`,
-            })),
-            labels: [''],
-        }),
-        [instructionsWithCU]
-    );
 
     if (!transactionWithMeta) return null;
     if (!logMessages || logMessages.length === 0) return null;
-    if (instructionsWithCU.length === 0) return null;
+    if (instructionsForCU.length === 0) return null;
 
-    return (
-        <div className="card">
-            <div className="card-header">
-                <h3 className="card-header-title">CU profiling</h3>
-            </div>
-            <div className="card-body">
-                <div className="mb-3">
-                    Total: {instructionsWithCU.reduce((sum, ix) => sum + ix.computeUnits, 0).toLocaleString()}
-                </div>
-
-                <div style={{ height: '32px', marginLeft: '-8px' }}>
-                    <Bar data={chartData} options={chartOptions} />
-                </div>
-
-                {/* Legend */}
-                <div className="d-flex flex-wrap gap-3 mt-3" style={{ fontSize: '14px' }}>
-                    {instructionsWithCU.map((ix, idx) => (
-                        <div key={idx} className="d-flex align-items-center">
-                            <div
-                                style={{
-                                    backgroundColor: getInstructionColor(idx),
-                                    borderRadius: '4px',
-                                    height: '16px',
-                                    marginRight: '8px',
-                                    width: '16px',
-                                }}
-                            />
-                            <span>
-                                Instruction #{idx + 1}: {ix.computeUnits.toLocaleString()}
-                            </span>
-                        </div>
-                    ))}
-                    {instructionsWithCU.length > MAX_BARS && (
-                        <div className="d-flex align-items-center">
-                            <span>
-                                Other:{' '}
-                                {instructionsWithCU
-                                    .slice(MAX_BARS)
-                                    .reduce((sum, ix) => sum + ix.computeUnits, 0)
-                                    .toLocaleString()}
-                            </span>
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
+    return <CUProfilingCard instructions={instructionsForCU} />;
 }
