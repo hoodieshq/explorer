@@ -1,4 +1,5 @@
 import { ProgramLogsCardBody } from '@components/ProgramLogsCardBody';
+import { CUProfilingCard } from '@components/transaction/CUProfilingCard';
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@providers/accounts/tokens';
 import { useCluster } from '@providers/cluster';
 import { AccountLayout, MintLayout } from '@solana/spl-token';
@@ -9,12 +10,14 @@ import {
     MessageAddressTableLookup,
     ParsedAccountData,
     ParsedMessageAccount,
+    PublicKey,
     SimulatedTransactionAccountInfo,
     TokenBalance,
     VersionedMessage,
     VersionedTransaction,
 } from '@solana/web3.js';
-import { PublicKey } from '@solana/web3.js';
+import { Cluster } from '@utils/cluster';
+import { extractCUDataFromTransaction } from '@utils/cu-profiling';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import React from 'react';
 
@@ -23,6 +26,34 @@ import {
     TokenBalancesCardInner,
     TokenBalancesCardInnerProps,
 } from '../transaction/TokenBalancesCard';
+
+
+function SimulatorCUProfilingCard({
+    message,
+    logs,
+    cluster,
+}: {
+    message: VersionedMessage;
+    logs: Array<InstructionLogs>;
+    cluster: Cluster;
+}) {
+    const instructionsForCU = React.useMemo(() => {
+        const instructions = message.compiledInstructions.map(ix => ({
+            programId: message.staticAccountKeys[ix.programIdIndex],
+        }));
+
+        return extractCUDataFromTransaction({
+            cluster,
+            epoch: undefined,
+            instructionLogs: logs,
+            instructions,
+        });
+    }, [message, logs, cluster]);
+
+    if (instructionsForCU.length === 0) return null;
+
+    return <CUProfilingCard instructions={instructionsForCU} />;
+}
 
 export function SimulatorCard({
     message,
@@ -91,6 +122,7 @@ export function SimulatorCard({
                 </div>
                 <ProgramLogsCardBody message={message} logs={logs} cluster={cluster} url={url} />
             </div>
+            <SimulatorCUProfilingCard message={message} logs={logs} cluster={cluster} />
             {showTokenBalanceChanges &&
             simulationTokenBalanceRows &&
             !simulationError &&
