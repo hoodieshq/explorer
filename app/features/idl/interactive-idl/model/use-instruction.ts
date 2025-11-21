@@ -9,6 +9,7 @@ import {
     Transaction,
     TransactionError,
     TransactionInstruction,
+    VersionedTransaction,
 } from '@solana/web3.js';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -234,6 +235,23 @@ export function useInstruction({
                 const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
                 transaction.recentBlockhash = blockhash;
                 transaction.feePayer = publicKey;
+
+                // Simulate the transaction
+                // TODO: make it optional
+                const simulatedTx = await connection.simulateTransaction(
+                    new VersionedTransaction(transaction.compileMessage()),
+                    {
+                        commitment: 'processed',
+                    }
+                );
+                if (simulatedTx.value.err !== null) {
+                    if (simulatedTx.value.logs) setLogs(simulatedTx.value.logs);
+                    let errorMessage;
+                    if (typeof simulatedTx.value.err === 'string') {
+                        errorMessage = simulatedTx.value.err;
+                    }
+                    throw new Error(errorMessage ?? 'Could not simulate transaction');
+                }
 
                 // Sign the transaction
                 const signedTransaction = await wallet.signTransaction(transaction);
