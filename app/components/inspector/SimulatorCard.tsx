@@ -9,12 +9,12 @@ import {
     MessageAddressTableLookup,
     ParsedAccountData,
     ParsedMessageAccount,
-    PublicKey,
     SimulatedTransactionAccountInfo,
     TokenBalance,
     VersionedMessage,
     VersionedTransaction,
 } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import React from 'react';
 
@@ -23,7 +23,6 @@ import {
     TokenBalancesCardInner,
     TokenBalancesCardInnerProps,
 } from '../transaction/TokenBalancesCard';
-
 
 export function SimulatorCard({
     message,
