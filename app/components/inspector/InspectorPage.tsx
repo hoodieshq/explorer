@@ -352,7 +352,7 @@ export function TransactionInspectorPage({
     console.log({ signature, inspectorData, a: inspectorData ? isSquadsProposalAccountData(inspectorData) : false });
     console.log('A', inspectorData?.rawMessage);
 
-    if (inspectorData?.account) {
+    if (inspectorData && isSquadsProposalAccountData(inspectorData)) {
         return <SquadsProposalInspectorCard account={inspectorData.account} onClear={reset} />;
     }
 
