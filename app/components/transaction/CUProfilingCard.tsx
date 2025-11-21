@@ -138,13 +138,7 @@ const CU_PROFILE_CHART_OPTIONS = (totalCU: number): ChartOptions<'bar'> => {
 };
 
 function getInstructionColor(index: number): string {
-    const colors = [
-        '#20D79B',
-        '#19A97A',
-        '#137C5A',
-        '#0C503A',
-        '#093A2A',
-    ];
+    const colors = ['#20D79B', '#19A97A', '#137C5A', '#0C503A', '#093A2A'];
 
     // Use % to cycle through colors if there are more instructions than colors
     return colors[index % colors.length];
@@ -160,7 +154,6 @@ type CUProfilingCardProps = {
     instructions: InstructionCUData[];
 };
 
-
 export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
     const instructionsWithDisplay = React.useMemo(
         () =>
@@ -171,10 +164,7 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
         [instructions]
     );
 
-    const totalCU = React.useMemo(
-        () => instructions.reduce((sum, item) => sum + item.computeUnits, 0),
-        [instructions]
-    );
+    const totalCU = React.useMemo(() => instructions.reduce((sum, item) => sum + item.computeUnits, 0), [instructions]);
 
     const totalDisplayCU = React.useMemo(
         () => instructionsWithDisplay.reduce((sum, item) => sum + item.displayCU, 0),
@@ -227,9 +217,7 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
                 <h3 className="card-header-title">CU profiling</h3>
             </div>
             <div className="card-body">
-                <div className="mb-3">
-                    Total: {totalCU.toLocaleString()}
-                </div>
+                <div className="mb-3">Total: {totalCU.toLocaleString()}</div>
 
                 <div style={{ height: '32px', marginLeft: '-8px' }}>
                     <Bar data={chartData} options={chartOptions} />
@@ -249,7 +237,8 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
                                 }}
                             />
                             <span>
-                                Instruction #{i + 1}: {item.displayUnits ? item.displayUnits : item.computeUnits.toLocaleString()}
+                                Instruction #{i + 1}:{' '}
+                                {item.displayUnits ? item.displayUnits : item.computeUnits.toLocaleString()}
                             </span>
                         </div>
                     ))}

@@ -35,7 +35,6 @@ export function CUProfilingSection({ signature }: SignatureProps) {
     return <CUProfilingCard instructions={instructionsForCU} />;
 }
 
-
 export function formatTransactionLogs(
     transactionWithMeta: ParsedTransactionWithMeta | null | undefined,
     cluster: Cluster
@@ -62,7 +61,7 @@ export function formatInstructionLogs({
         const computeUnits = logEntry?.computeUnits || 0;
 
         result.push({
-            ...(computeUnits === 0 && { displayUnits: "~3,000" }),
+            ...(computeUnits === 0 && { displayUnits: '~3,000' }),
             computeUnits,
             programId,
         });

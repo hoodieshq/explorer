@@ -47,7 +47,6 @@ export const TenInstructions: Story = {
     },
 };
 
-
 export const WithZeroComputeUnits: Story = {
     args: {
         instructions: [
