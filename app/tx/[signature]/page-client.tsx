@@ -10,7 +10,6 @@ import { Slot } from '@components/common/Slot';
 import { SolBalance } from '@components/common/SolBalance';
 import { TableCardBody } from '@components/common/TableCardBody';
 import { SignatureContext } from '@components/instruction/SignatureContext';
-import { CUProfilingSection } from '@components/transaction/CUProfilingSection';
 import { InstructionsSection } from '@components/transaction/InstructionsSection';
 import { ProgramLogSection } from '@components/transaction/ProgramLogSection';
 import { TokenBalancesCard } from '@components/transaction/TokenBalancesCard';
@@ -401,7 +400,6 @@ function DetailsSection({ signature }: SignatureProps) {
 
     return (
         <>
-            <CUProfilingSection signature={signature} />
             <AccountsCard signature={signature} />
             <TokenBalancesCard signature={signature} />
             <InstructionsSection signature={signature} />

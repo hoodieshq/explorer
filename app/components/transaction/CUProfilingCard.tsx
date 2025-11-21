@@ -4,8 +4,8 @@ import { Bar } from 'react-chartjs-2';
 
 Chart.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
-const MAX_BARS = 5;
-const MIN_BAR_CU = 100; // Minimum CU to show for instructions with 0 CU
+const MAX_BARS = 10;
+const MIN_BAR_CU = 3000; // Minimum CU to show for instructions with 0 CU
 
 const CU_PROFILE_CHART_OPTIONS = (totalCU: number): ChartOptions<'bar'> => {
     let currentMouseX = 0;
@@ -153,6 +153,7 @@ function getInstructionColor(index: number): string {
 export type InstructionCUData = {
     computeUnits: number;
     programId: string;
+    displayUnits?: string;
 };
 
 type CUProfilingCardProps = {
@@ -163,20 +164,20 @@ type CUProfilingCardProps = {
 export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
     const instructionsWithDisplay = React.useMemo(
         () =>
-            instructions.map(ix => ({
-                ...ix,
-                displayCU: ix.computeUnits === 0 ? MIN_BAR_CU : ix.computeUnits,
+            instructions.map(item => ({
+                ...item,
+                displayCU: item.computeUnits === 0 ? MIN_BAR_CU : item.computeUnits,
             })),
         [instructions]
     );
 
     const totalCU = React.useMemo(
-        () => instructions.reduce((sum, ix) => sum + ix.computeUnits, 0),
+        () => instructions.reduce((sum, item) => sum + item.computeUnits, 0),
         [instructions]
     );
 
     const totalDisplayCU = React.useMemo(
-        () => instructionsWithDisplay.reduce((sum, ix) => sum + ix.displayCU, 0),
+        () => instructionsWithDisplay.reduce((sum, item) => sum + item.displayCU, 0),
         [instructionsWithDisplay]
     );
 
@@ -196,22 +197,22 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
 
     const chartData: ChartData<'bar'> = React.useMemo(
         () => ({
-            datasets: instructionsWithDisplay.map((ix, idx) => ({
-                backgroundColor: getInstructionColor(idx),
+            datasets: instructionsWithDisplay.map((ix, i) => ({
+                backgroundColor: getInstructionColor(i),
                 barThickness: 24,
                 // Apply border radius only to the outer edges of the stacked bar
                 // round left corners, round right corners
                 borderRadius: {
-                    bottomLeft: idx === 0 ? 4 : 0,
-                    bottomRight: idx === instructionsWithDisplay.length - 1 ? 4 : 0,
-                    topLeft: idx === 0 ? 4 : 0,
-                    topRight: idx === instructionsWithDisplay.length - 1 ? 4 : 0,
+                    bottomLeft: i === 0 ? 4 : 0,
+                    bottomRight: i === instructionsWithDisplay.length - 1 ? 4 : 0,
+                    topLeft: i === 0 ? 4 : 0,
+                    topRight: i === instructionsWithDisplay.length - 1 ? 4 : 0,
                 },
                 borderSkipped: false,
                 borderWidth: 0,
                 data: [ix.displayCU],
-                hoverBackgroundColor: getInstructionColor(idx),
-                label: `Instruction #${idx + 1}`,
+                hoverBackgroundColor: getInstructionColor(i),
+                label: `Instruction #${i + 1}`,
             })),
             labels: [''],
         }),
@@ -236,11 +237,11 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
 
                 {/* Legend */}
                 <div className="d-flex flex-wrap gap-3 mt-3" style={{ fontSize: '14px' }}>
-                    {instructions.map((ix, idx) => (
-                        <div key={idx} className="d-flex align-items-center">
+                    {instructions.map((item, i) => (
+                        <div key={i} className="d-flex align-items-center">
                             <div
                                 style={{
-                                    backgroundColor: getInstructionColor(idx),
+                                    backgroundColor: getInstructionColor(i),
                                     borderRadius: '4px',
                                     height: '16px',
                                     marginRight: '8px',
@@ -248,7 +249,7 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
                                 }}
                             />
                             <span>
-                                Instruction #{idx + 1}: {ix.computeUnits.toLocaleString()}
+                                Instruction #{i + 1}: {item.displayUnits ? item.displayUnits : item.computeUnits.toLocaleString()}
                             </span>
                         </div>
                     ))}
@@ -258,7 +259,7 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
                                 Other:{' '}
                                 {instructions
                                     .slice(MAX_BARS)
-                                    .reduce((sum, ix) => sum + ix.computeUnits, 0)
+                                    .reduce((sum, item) => sum + item.computeUnits, 0)
                                     .toLocaleString()}
                             </span>
                         </div>
