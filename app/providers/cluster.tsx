@@ -3,6 +3,7 @@
 import { createSolanaRpc } from '@solana/kit';
 import { Cluster, clusterName, ClusterStatus, clusterUrl, DEFAULT_CLUSTER } from '@utils/cluster';
 import { localStorageIsAvailable } from '@utils/local-storage';
+import { setupRpcErrorSimulation } from '@utils/rpc-error-simulation';
 import { ReadonlyURLSearchParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { createContext, useContext, useEffect, useReducer, useState } from 'react';
 
@@ -84,6 +85,10 @@ function isWhitelistedRpc(url: string) {
 
 type ClusterProviderProps = { children: React.ReactNode };
 export function ClusterProvider({ children }: ClusterProviderProps) {
+    useEffect(() => {
+        setupRpcErrorSimulation();
+    }, []);
+
     const [state, dispatch] = useReducer(clusterReducer, {
         cluster: DEFAULT_CLUSTER,
         customUrl: DEFAULT_CUSTOM_URL,
