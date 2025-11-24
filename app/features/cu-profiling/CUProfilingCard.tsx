@@ -7,7 +7,7 @@ Chart.register(BarElement, CategoryScale, LinearScale, Tooltip);
 const MAX_BARS = 10;
 const MIN_BAR_CU = 3000; // Minimum CU to show for instructions with 0 CU
 
-const CU_PROFILE_CHART_OPTIONS = (totalCU: number): ChartOptions<'bar'> => {
+const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
     let currentMouseX = 0;
     let currentMouseY = 0;
 
@@ -181,7 +181,7 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
     }, []);
 
     const chartOptions = React.useMemo<ChartOptions<'bar'>>(
-        () => CU_PROFILE_CHART_OPTIONS(totalDisplayCU),
+        () => getCUProfileChartOptions(totalDisplayCU),
         [totalDisplayCU]
     );
 
@@ -212,21 +212,23 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
     if (instructions.length === 0) return null;
 
     return (
-        <div className="card">
+        <div className="e-card">
             <div className="card-header">
                 <h3 className="card-header-title">CU profiling</h3>
             </div>
-            <div className="card-body">
-                <div className="mb-3">Total: {totalCU.toLocaleString()}</div>
+            <div className="e-card-body">
+                <div className="mb-3">
+                    Total: {totalCU.toLocaleString()} CU
+                </div>
 
                 <div style={{ height: '32px', marginLeft: '-8px' }}>
                     <Bar data={chartData} options={chartOptions} />
                 </div>
 
                 {/* Legend */}
-                <div className="d-flex flex-wrap gap-3 mt-3" style={{ fontSize: '14px' }}>
+                <div className="e-flex e-flex-wrap e-gap-3 e-mt-3 e-text-xs">
                     {instructions.map((item, i) => (
-                        <div key={i} className="d-flex align-items-center">
+                        <div key={i} className="e-flex e-align-items-center">
                             <div
                                 style={{
                                     backgroundColor: getInstructionColor(i),
@@ -243,7 +245,7 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
                         </div>
                     ))}
                     {instructions.length > MAX_BARS && (
-                        <div className="d-flex align-items-center">
+                        <div className="e-flex e-align-items-center">
                             <span>
                                 Other:{' '}
                                 {instructions

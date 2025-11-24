@@ -8,7 +8,7 @@ const meta: Meta<typeof CUProfilingCard> = {
         layout: 'padded',
     },
     tags: ['autodocs'],
-    title: 'Transaction/CUProfilingCard',
+    title: 'Components/Common/CUProfilingCard',
 };
 
 export default meta;
