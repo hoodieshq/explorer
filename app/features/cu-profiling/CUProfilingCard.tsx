@@ -4,12 +4,15 @@ import { Bar } from 'react-chartjs-2';
 
 Chart.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
-const MAX_BARS = 10;
 const MIN_BAR_CU = 3000; // Minimum CU to show for instructions with 0 CU
+
+type ExtendedBarDataset = ChartData<'bar'>['datasets'][number] & {
+    displayUnits?: string;
+    actualCU?: number;
+};
 
 const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
     let currentMouseX = 0;
-    let currentMouseY = 0;
 
     return {
         animation: false,
@@ -30,7 +33,6 @@ const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
             // Capture actual mouse position for the tooltip
             if (event.native) {
                 currentMouseX = (event.native as MouseEvent).clientX;
-                currentMouseY = (event.native as MouseEvent).clientY;
             }
         },
         plugins: {
@@ -58,8 +60,12 @@ const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
                     if (tooltipModel.body) {
                         const dataPoint = tooltipModel.dataPoints[0];
                         const instructionLabel = dataPoint.dataset.label;
-                        const cuValue = dataPoint.parsed.x.toLocaleString();
-                        const color = dataPoint.dataset.backgroundColor as string;
+                        const color = dataPoint.dataset.backgroundColor;
+                        const dataset = dataPoint.dataset as ExtendedBarDataset;
+
+                        const isReserved = dataset.actualCU === 0 && dataset.displayUnits;
+                        const cuValue = dataset.displayUnits || dataset.actualCU?.toLocaleString();
+                        const cuText = isReserved ? 'CU reserved' : 'CU consumed';
 
                         const tooltipContent = tooltipEl.querySelector('div');
                         if (tooltipContent) {
@@ -94,21 +100,44 @@ const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
                                         color: rgba(255, 255, 255, 0.9);
                                         font-size: 13px;
                                         padding-left: 20px;
-                                    ">${cuValue} CU consumed</div>
+                                    ">${cuValue} ${cuText}</div>
                                 </div>
                             `;
                         }
                     }
 
-                    // Use captured mouse position
+                    // Use captured mouse position with edge detection
                     tooltipEl.style.opacity = '1';
                     tooltipEl.style.position = 'fixed';
-                    tooltipEl.style.left = currentMouseX + 'px';
-                    tooltipEl.style.top = currentMouseY + 'px';
                     tooltipEl.style.pointerEvents = 'none';
-                    tooltipEl.style.transform = 'translate(-50%, calc(-100% - 10px))';
                     tooltipEl.style.transition = 'all 0.1s ease';
                     tooltipEl.style.zIndex = '9999';
+
+                    const tooltipRect = tooltipEl.getBoundingClientRect();
+                    const tooltipWidth = tooltipRect.width || 180; // min-width
+
+                    const chartCanvas = context.chart.canvas;
+                    const canvasRect = chartCanvas.getBoundingClientRect();
+
+                    let left = currentMouseX;
+                    const top = canvasRect.top;
+                    let transform = 'translate(-50%, calc(-100% - 10px))';
+
+                    // Check right edge
+                    if (currentMouseX + tooltipWidth / 2 > canvasRect.right) {
+                        left = currentMouseX;
+                        transform = 'translate(-100%, calc(-100% - 10px))';
+                    }
+
+                    // Check left edge
+                    if (currentMouseX - tooltipWidth / 2 < canvasRect.left) {
+                        left = currentMouseX;
+                        transform = 'translate(0, calc(-100% - 10px))';
+                    }
+
+                    tooltipEl.style.left = left + 'px';
+                    tooltipEl.style.top = top + 'px';
+                    tooltipEl.style.transform = transform;
                 },
             },
         },
@@ -150,6 +179,7 @@ export type InstructionCUData = {
     displayUnits?: string;
 };
 
+
 type CUProfilingCardProps = {
     instructions: InstructionCUData[];
 };
@@ -187,12 +217,15 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
 
     const chartData: ChartData<'bar'> = React.useMemo(
         () => ({
-            datasets: instructionsWithDisplay.map((ix, i) => ({
+            datasets: instructionsWithDisplay.map((item, i) => ({
+                actualCU: item.computeUnits,
                 backgroundColor: getInstructionColor(i),
+                
+                
                 barThickness: 24,
                 // Apply border radius only to the outer edges of the stacked bar
-                // round left corners, round right corners
-                borderRadius: {
+// round left corners, round right corners
+borderRadius: {
                     bottomLeft: i === 0 ? 4 : 0,
                     bottomRight: i === instructionsWithDisplay.length - 1 ? 4 : 0,
                     topLeft: i === 0 ? 4 : 0,
@@ -200,7 +233,8 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
                 },
                 borderSkipped: false,
                 borderWidth: 0,
-                data: [ix.displayCU],
+                data: [item.displayCU],
+                displayUnits: item.displayUnits,
                 hoverBackgroundColor: getInstructionColor(i),
                 label: `Instruction #${i + 1}`,
             })),
@@ -244,17 +278,6 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
                             </span>
                         </div>
                     ))}
-                    {instructions.length > MAX_BARS && (
-                        <div className="e-flex e-align-items-center">
-                            <span>
-                                Other:{' '}
-                                {instructions
-                                    .slice(MAX_BARS)
-                                    .reduce((sum, item) => sum + item.computeUnits, 0)
-                                    .toLocaleString()}
-                            </span>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

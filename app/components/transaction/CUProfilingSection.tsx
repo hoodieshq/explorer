@@ -1,5 +1,3 @@
-import { CUProfilingCard } from '@/app/features/cu-profiling/CUProfilingCard';
-import { InstructionCUData } from '@/app/features/cu-profiling/CUProfilingCard';
 import { useCluster } from '@providers/cluster';
 import { useTransactionDetails } from '@providers/transactions';
 import { ParsedTransactionWithMeta } from '@solana/web3.js';
@@ -7,6 +5,9 @@ import { Cluster } from '@utils/cluster';
 import type { SignatureProps } from '@utils/index';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import React from 'react';
+
+import { CUProfilingCard } from '@/app/features/cu-profiling/CUProfilingCard';
+import { InstructionCUData } from '@/app/features/cu-profiling/CUProfilingCard';
 
 export function CUProfilingSection({ signature }: SignatureProps) {
     const details = useTransactionDetails(signature);
