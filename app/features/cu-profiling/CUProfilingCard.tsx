@@ -179,7 +179,6 @@ export type InstructionCUData = {
     displayUnits?: string;
 };
 
-
 type CUProfilingCardProps = {
     instructions: InstructionCUData[];
 };
@@ -220,12 +219,10 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
             datasets: instructionsWithDisplay.map((item, i) => ({
                 actualCU: item.computeUnits,
                 backgroundColor: getInstructionColor(i),
-                
-                
                 barThickness: 24,
                 // Apply border radius only to the outer edges of the stacked bar
-// round left corners, round right corners
-borderRadius: {
+                // round left corners, round right corners
+                borderRadius: {
                     bottomLeft: i === 0 ? 4 : 0,
                     bottomRight: i === instructionsWithDisplay.length - 1 ? 4 : 0,
                     topLeft: i === 0 ? 4 : 0,
@@ -251,18 +248,16 @@ borderRadius: {
                 <h3 className="card-header-title">CU profiling</h3>
             </div>
             <div className="e-card-body">
-                <div className="mb-3">
-                    Total: {totalCU.toLocaleString()} CU
-                </div>
+                <div className="mb-3">Total: {totalCU.toLocaleString()} CU</div>
 
                 <div style={{ height: '32px', marginLeft: '-8px' }}>
                     <Bar data={chartData} options={chartOptions} />
                 </div>
 
                 {/* Legend */}
-                <div className="e-flex e-flex-wrap e-gap-3 e-mt-3 e-text-xs">
+                <div className="e-mt-3 e-flex e-flex-wrap e-gap-3 e-text-xs">
                     {instructions.map((item, i) => (
-                        <div key={i} className="e-flex e-align-items-center">
+                        <div key={i} className="e-align-items-center e-flex">
                             <div
                                 style={{
                                     backgroundColor: getInstructionColor(i),
