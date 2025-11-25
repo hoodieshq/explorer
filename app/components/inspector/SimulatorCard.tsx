@@ -9,20 +9,47 @@ import {
     MessageAddressTableLookup,
     ParsedAccountData,
     ParsedMessageAccount,
+    PublicKey,
     SimulatedTransactionAccountInfo,
     TokenBalance,
     VersionedMessage,
     VersionedTransaction,
 } from '@solana/web3.js';
-import { PublicKey } from '@solana/web3.js';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import React from 'react';
+
+import { CUProfilingCard } from '@/app/features/cu-profiling/ui/CUProfilingCard';
+import { formatInstructionLogs } from '@/app/features/cu-profiling/ui/CUProfilingSection';
 
 import {
     generateTokenBalanceRows,
     TokenBalancesCardInner,
     TokenBalancesCardInnerProps,
 } from '../transaction/TokenBalancesCard';
+
+
+function SimulatorCUProfilingCard({
+    message,
+    logs,
+}: {
+    message: VersionedMessage;
+    logs: Array<InstructionLogs>;
+}) {
+    const instructionsForCU = React.useMemo(() => {
+        const instructions = message.compiledInstructions.map(ix => ({
+            programId: message.staticAccountKeys[ix.programIdIndex],
+        }));
+
+        return formatInstructionLogs({
+            instructionLogs: logs,
+            instructions,
+        });
+    }, [message, logs]);
+
+    if (instructionsForCU.length === 0) return null;
+
+    return <CUProfilingCard instructions={instructionsForCU} />;
+}
 
 export function SimulatorCard({
     message,
@@ -91,6 +118,7 @@ export function SimulatorCard({
                 </div>
                 <ProgramLogsCardBody message={message} logs={logs} cluster={cluster} url={url} />
             </div>
+            <SimulatorCUProfilingCard message={message} logs={logs} />
             {showTokenBalanceChanges &&
             simulationTokenBalanceRows &&
             !simulationError &&
