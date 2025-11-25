@@ -86,7 +86,6 @@ export function useIdlLastTransactionDate(
     return preferredVariant;
 }
 
-
 async function fetchAnchorIdlTimestamp(connection: Connection, programPubkey: PublicKey): Promise<number | null> {
     try {
         const [idlAddress] = PublicKey.findProgramAddressSync(
@@ -117,10 +116,9 @@ async function fetchPmpIdlTimestamp(url: string, programId: string): Promise<num
         });
 
         const connection = new Connection(url);
-        const signatures = await connection.getSignaturesForAddress(
-            new PublicKey(metadataAccount.address),
-            { limit: 1 }
-        );
+        const signatures = await connection.getSignaturesForAddress(new PublicKey(metadataAccount.address), {
+            limit: 1,
+        });
 
         if (signatures.length > 0 && signatures[0].blockTime) {
             return signatures[0].blockTime;
