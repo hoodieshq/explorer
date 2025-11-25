@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import { CUProfilingCard } from '../CUProfilingCard';
+import { CUProfilingCard } from '../ui/CUProfilingCard';
 
 const meta: Meta<typeof CUProfilingCard> = {
     component: CUProfilingCard,

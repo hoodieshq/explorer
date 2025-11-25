@@ -6,8 +6,7 @@ import type { SignatureProps } from '@utils/index';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import React from 'react';
 
-import { CUProfilingCard } from '@/app/features/cu-profiling/CUProfilingCard';
-import { InstructionCUData } from '@/app/features/cu-profiling/CUProfilingCard';
+import { CUProfilingCard, type InstructionCUData } from './CUProfilingCard';
 
 export function CUProfilingSection({ signature }: SignatureProps) {
     const details = useTransactionDetails(signature);
