@@ -1,10 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import { baseLogs, /*complexLogs,*/ errorLogs } from '@/app/entities/program-logs/model/mocks/logs';
-import {
-    parsedBaseLogs,
-    /*parsedComplexLogs,*/ parsedErrorLogs,
-} from '@/app/entities/program-logs/model/mocks/parsedLogs';
+import { baseLogs, errorLogs } from '@/app/entities/program-logs/model/mocks/logs';
+import { parsedBaseLogs, parsedErrorLogs } from '@/app/entities/program-logs/model/mocks/parsedLogs';
 
 import { InstructionActivity } from '../InstructionActivity';
 
@@ -48,13 +45,6 @@ export const Error: Story = {
         parseLogs: () => parsedErrorLogs,
     },
 };
-
-// export const Complex: Story = {
-//     args: {
-//         logs: complexLogs,
-//         parseLogs: () => parsedComplexLogs,
-//     },
-// };
 
 export const Empty: Story = {
     args: {

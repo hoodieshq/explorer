@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react';
 
-import { baseLogs, errorLogs } from '../model/mocks/logs';
-import { parsedBaseLogs, parsedErrorLogs } from '../model/mocks/parsedLogs';
-import { ProgramLogs } from './ProgramLogs';
+import { baseLogs, errorLogs } from '../../model/mocks/logs';
+import { parsedBaseLogs, parsedErrorLogs } from '../../model/mocks/parsedLogs';
+import { ProgramLogs } from '../ProgramLogs';
 
 const meta = {
     component: ProgramLogs,

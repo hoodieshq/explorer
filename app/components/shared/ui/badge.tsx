@@ -60,7 +60,7 @@ const badgeVariants = cva(
             variant: {
                 default: 'e-border-transparent e-text-neutral-900 [a&]:hover:e-bg-neutral-100/90',
                 destructive:
-                    'e-border-transparent e-bg-destructive -e-text-white [a&]:hover:e-bg-destructive/90 focus-visible:e-ring-destructive/20',
+                    'e-border-transparent e-bg-destructive e-text-white [a&]:hover:e-bg-destructive/90 focus-visible:e-ring-destructive/20',
                 info: 'e-border-transparent e-bg-teal-900 e-text-teal-400 [a&]:hover:e-bg-teal-900/90 focus-visible:e-ring-teal-900/20',
                 secondary:
                     'e-border-transparent e-bg-neutral-400 e-text-neutral-800 [a&]:hover:e-bg-neutral-900/90 focus-visible:e-ring-neutral-900/20',

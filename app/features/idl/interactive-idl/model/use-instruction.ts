@@ -1,13 +1,16 @@
 'use client';
 
 import type { InstructionData } from '@entities/idl/formatters/formatted-idl';
+import { useParsedLogs } from '@entities/program-logs';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
     Connection,
     PublicKey,
+    type RpcResponseAndContext,
     SendTransactionError,
+    type SimulatedTransactionResponse,
     Transaction,
-    TransactionError,
+    type TransactionError,
     TransactionInstruction,
     VersionedTransaction,
 } from '@solana/web3.js';
@@ -39,7 +42,7 @@ interface UseInstructionReturn {
             accounts: any;
             arguments: Record<string, string>;
         }
-    ) => Promise<string | null>;
+    ) => Promise<void>;
 
     // Validation helpers
     validateInstruction: (
@@ -49,10 +52,9 @@ interface UseInstructionReturn {
 
     // Status
     isExecuting: boolean;
-    lastError: string | null;
-    lastSuccess: string | null;
-    logs: string[];
-    transactionError: TransactionError | null;
+    preInvocationError: string | null;
+    lastResult: InstructionInvocationResult;
+    parseLogs: ReturnType<typeof useParsedLogs>['parseLogs'];
     initializeProgram: () => void;
     isProgramLoading: boolean;
     program: any;
@@ -68,11 +70,18 @@ export function useInstruction({
 }: UseInstructionOptions): UseInstructionReturn {
     const { connected, publicKey, ...wallet } = useWallet();
     const { cluster: currentCluster, customUrl } = useCluster();
-    const [isExecuting, setIsExecuting] = useState(false);
-    const [lastError, setLastError] = useState<string | null>(null);
-    const [lastSuccess, setLastSuccess] = useState<string | null>(null);
-    const [logs, setLogs] = useState<string[]>([]);
-    const [transactionError, setTransactionError] = useState<TransactionError | null>(null);
+
+    const [preInvocationError, setPreInvocationError] = useState<string | null>(null);
+    const {
+        isExecuting,
+        lastResult,
+        handleTxStart,
+        handleTxSuccess,
+        handleTxError,
+        handleTxEnd,
+        handleSimulatedTxResult,
+        parseLogs,
+    } = useInvocationState();
     const [initializationError, setInitializationError] = useState<string | null>(null);
     const [isProgramLoading, setIsProgramLoading] = useState(false);
     const [program, setProgram] = useAtom(programAtom);
@@ -196,17 +205,15 @@ export function useInstruction({
                 accounts: any;
                 arguments: Record<string, string>;
             }
-        ): Promise<string | null> => {
+        ): Promise<void> => {
             if (!connected || !publicKey || !wallet.signTransaction) {
-                setLastError('Wallet not connected');
-                return null;
+                setPreInvocationError('Wallet not connected');
+                return;
             }
+            setPreInvocationError(null);
+            handleTxStart();
 
-            setIsExecuting(true);
-            setLastError(null);
-            setLastSuccess(null);
-            setLogs([]);
-            setTransactionError(null);
+            let transaction: Transaction | undefined;
 
             try {
                 if (!idl) throw new Error('Idl is absent');
@@ -222,7 +229,6 @@ export function useInstruction({
                     interpreterName
                 );
 
-                let transaction: Transaction;
                 if (ix instanceof TransactionInstruction) {
                     // Create and sign transaction
                     transaction = new Transaction().add(ix);
@@ -244,14 +250,7 @@ export function useInstruction({
                         commitment: 'processed',
                     }
                 );
-                if (simulatedTx.value.err !== null) {
-                    if (simulatedTx.value.logs) setLogs(simulatedTx.value.logs);
-                    let errorMessage;
-                    if (typeof simulatedTx.value.err === 'string') {
-                        errorMessage = simulatedTx.value.err;
-                    }
-                    throw new Error(errorMessage ?? 'Could not simulate transaction');
-                }
+                handleSimulatedTxResult(simulatedTx);
 
                 // Sign the transaction
                 const signedTransaction = await wallet.signTransaction(transaction);
@@ -279,39 +278,42 @@ export function useInstruction({
                     maxSupportedTransactionVersion: 0,
                 });
 
-                if (publishedTransaction?.meta?.logMessages) {
-                    setLogs(publishedTransaction?.meta?.logMessages);
-                }
-
-                setLastSuccess(signature);
-                return signature;
+                handleTxSuccess(signature, publishedTransaction?.meta?.logMessages);
             } catch (error) {
-                const errorMessage = handleInvokeError(error);
-                setLastError(errorMessage);
-                if (error instanceof SendTransactionError) {
-                    setLogs(error.logs ?? []);
-                    setTransactionError(error);
-                }
-                console.error('Instruction execution failed:', error);
-                return null;
+                handleTxError(error, transaction);
             } finally {
-                setIsExecuting(false);
+                handleTxEnd();
             }
         },
-        [connected, publicKey, wallet, connection, idl, executor, program, interpreterName]
+        [
+            connected,
+            publicKey,
+            wallet,
+            connection,
+            idl,
+            executor,
+            program,
+            interpreterName,
+            handleTxStart,
+            handleTxSuccess,
+            handleTxError,
+            handleTxEnd,
+            handleSimulatedTxResult,
+        ]
     );
 
     return {
         initializationError,
         initializeProgram,
+        // Instruction
         invokeInstruction,
         isExecuting,
         isProgramLoading,
-        lastError,
-        lastSuccess,
-        logs,
+        lastResult,
+        parseLogs,
+        preInvocationError,
+
         program,
-        transactionError,
         validateInstruction,
     };
 }
@@ -347,6 +349,109 @@ function handleInitializeError(error: unknown | Error, message = 'Failed to init
     return errorMessage;
 }
 
+/**
+ * Result of invoking an instruction.
+ * - `{ status: 'success', signature: string, logs: string[], finishedAt: Date }` - Transaction succeeded with signature
+ * - `{ status: 'error', message: string | null, logs: string[], serializedTxMessage: string | null, finishedAt: Date }` - Transaction failed; message contains base64-encoded serialized transaction, or null if serialization failed
+ * - `null` - No transaction was executed yet
+ */
+export type InstructionInvocationResult =
+    | { status: 'success'; signature: string; logs: string[]; finishedAt: Date }
+    | { status: 'error'; message: string; logs: string[]; serializedTxMessage: string | null; finishedAt: Date }
+    | null;
+
+function useInvocationState() {
+    const [transactionError, setTransactionError] = useState<TransactionError | null>(null);
+    const { parseLogs } = useParsedLogs(transactionError);
+    const [serializedTxMessage, setSerializedTxMessage] = useState<string | null>(null);
+
+    const [logs, setLogs] = useState<string[]>([]);
+    const [isExecuting, setIsExecuting] = useState(false);
+    const [lastError, setLastError] = useState<{ finishedAt: Date; message: string } | null>(null);
+    const [lastSuccess, setLastSuccess] = useState<{ finishedAt: Date; signature: string } | null>(null);
+
+    const handleLogsChange = (logs: string[] | null | undefined) => {
+        if (!logs) return;
+        setLogs(logs);
+    };
+
+    const handleTxStart = () => {
+        setIsExecuting(true);
+        setLastError(null);
+        setLastSuccess(null);
+        setLogs([]);
+        setTransactionError(null);
+        setSerializedTxMessage(null);
+    };
+
+    const handleTxSuccess = (signature: string, logs: string[] | null | undefined) => {
+        setLastSuccess({ finishedAt: new Date(), signature });
+        handleLogsChange(logs);
+    };
+
+    const handleTxError = (error: unknown | Error, transaction: Transaction | undefined) => {
+        console.error('Instruction execution failed:', { error, transaction });
+        const errorMessage = handleInvokeError(error);
+        setLastError({ finishedAt: new Date(), message: errorMessage });
+        if (error instanceof SendTransactionError) {
+            setLogs(error.logs ?? []);
+            setTransactionError(error);
+        }
+        setSerializedTxMessage(serializeTransactionMessage(transaction));
+    };
+
+    const handleTxEnd = () => {
+        setIsExecuting(false);
+    };
+
+    const handleSimulatedTxResult = (simulatedTx: RpcResponseAndContext<SimulatedTransactionResponse>) => {
+        if (simulatedTx.value.err !== null) {
+            handleLogsChange(simulatedTx.value.logs);
+            let errorMessage;
+            if (typeof simulatedTx.value.err === 'string') {
+                errorMessage = simulatedTx.value.err;
+            }
+            throw new Error(errorMessage ?? 'Could not simulate transaction');
+        }
+    };
+
+    const lastResult: InstructionInvocationResult = (() => {
+        if (lastSuccess) {
+            return {
+                finishedAt: lastSuccess.finishedAt,
+                logs: logs,
+                signature: lastSuccess.signature,
+                status: 'success',
+            };
+        }
+        if (lastError) {
+            return {
+                finishedAt: lastError.finishedAt,
+                logs: logs,
+                message: lastError.message,
+                serializedTxMessage,
+                status: 'error',
+            };
+        }
+        return null;
+    })();
+
+    return {
+        handleSimulatedTxResult,
+
+        handleTxEnd,
+        handleTxError,
+        handleTxStart,
+        handleTxSuccess,
+
+        isExecuting,
+
+        lastResult,
+
+        parseLogs,
+    };
+}
+
 function handleInvokeError(error: unknown | Error, message = 'Failed to invoke instruction') {
     let errorMessage = message;
     if (error instanceof Error) {
@@ -357,4 +462,14 @@ function handleInvokeError(error: unknown | Error, message = 'Failed to invoke i
         }
     }
     return errorMessage;
+}
+
+function serializeTransactionMessage(transaction: Transaction | undefined): string | null {
+    if (!transaction) return null;
+    try {
+        return Buffer.from(transaction.serializeMessage()).toString('base64');
+    } catch (error) {
+        console.warn('Failed to serialize transaction message:', error);
+        return null;
+    }
 }

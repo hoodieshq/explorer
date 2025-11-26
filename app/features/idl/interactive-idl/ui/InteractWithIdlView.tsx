@@ -8,6 +8,7 @@ import { Switch } from '@/app/components/shared/ui/switch';
 import type { InstructionLogs } from '@/app/utils/program-logs';
 
 import { BaseIdl } from '../model/unified-program';
+import type { InstructionInvocationResult } from '../model/use-instruction';
 import type { InstructionCallParams } from '../model/use-instruction-form';
 import { ClusterSelector } from './ClusterSelector';
 import { ConnectWallet } from './ConnectWallet';
@@ -20,22 +21,20 @@ export function InteractWithIdlView({
     onExecuteInstruction,
     onTransactionSuccess,
     onTransactionError,
-    logs,
+    preInvocationError,
     parseLogs,
     isExecuting,
-    lastError,
-    lastSuccess,
+    lastResult,
 }: {
     instructions: InstructionData[];
     idl: BaseIdl | AnchorIdl | undefined;
     onExecuteInstruction: (data: InstructionData, params: InstructionCallParams) => Promise<void>;
     onTransactionSuccess?: (txSignature: string) => void;
     onTransactionError?: (error: string) => void;
-    logs: string[];
     parseLogs: (logs: string[]) => InstructionLogs[];
     isExecuting?: boolean;
-    lastError?: string | null;
-    lastSuccess?: string | null;
+    lastResult: InstructionInvocationResult;
+    preInvocationError: string | null;
 }) {
     const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
@@ -47,17 +46,23 @@ export function InteractWithIdlView({
 
     // Handle success state
     useLayoutEffect(() => {
-        if (lastSuccess && !isExecuting) {
-            onTransactionSuccess?.(lastSuccess);
+        if (lastResult?.status === 'success' && !isExecuting) {
+            onTransactionSuccess?.(lastResult.signature);
         }
-    }, [lastSuccess, isExecuting, onTransactionSuccess]);
+    }, [lastResult, isExecuting, onTransactionSuccess]);
 
     // Handle error state
     useLayoutEffect(() => {
-        if (lastError && !isExecuting) {
-            onTransactionError?.(lastError);
+        if (lastResult?.status === 'error' && !isExecuting) {
+            onTransactionError?.(lastResult.message);
         }
-    }, [lastError, isExecuting, onTransactionError]);
+    }, [lastResult, isExecuting, onTransactionError]);
+
+    useLayoutEffect(() => {
+        if (preInvocationError && !isExecuting) {
+            onTransactionError?.(preInvocationError);
+        }
+    }, [preInvocationError, isExecuting, onTransactionError]);
 
     const handleExpandAllToggle = (checked: boolean) => {
         const sections = checked ? allInstructionNames : [];
@@ -100,7 +105,11 @@ export function InteractWithIdlView({
 
                             <ConnectWallet />
 
-                            <InstructionActivity lastSuccess={lastSuccess} logs={logs} parseLogs={parseLogs} />
+                            <InstructionActivity
+                                lastResult={lastResult}
+                                logs={lastResult?.logs ?? []}
+                                parseLogs={parseLogs}
+                            />
                         </div>
                     </div>
                 </div>

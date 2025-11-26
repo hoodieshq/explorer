@@ -1,19 +1,28 @@
-import { ProgramLogs } from '@entities/program-logs';
+import { useExplorerLink } from '@entities/cluster';
+import { ProgramLogs, TxErrorStatus, TxSuccessStatus } from '@entities/program-logs';
 import { Card } from '@shared/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared/ui/tabs';
 import { ReactNode } from 'react';
 
 import type { InstructionLogs } from '@/app/utils/program-logs';
 
+import type { InstructionInvocationResult } from '../model/use-instruction';
+
 type InstructionActivityProps = {
-    lastSuccess?: string | null;
+    lastResult?: InstructionInvocationResult;
     logs: string[];
     parseLogs: (logs: string[]) => InstructionLogs[];
 };
-export function InstructionActivity({ lastSuccess, logs, parseLogs }: InstructionActivityProps) {
+export function InstructionActivity({ lastResult, logs, parseLogs }: InstructionActivityProps) {
     const tabs = [
         {
-            component: <ProgramLogs lastSuccess={lastSuccess} logs={logs} parseLogs={parseLogs} />,
+            component: (
+                <ProgramLogs
+                    header={lastResult && <TxStatusHeader lastResult={lastResult} />}
+                    logs={logs}
+                    parseLogs={parseLogs}
+                />
+            ),
             id: 'program-logs',
             title: 'Program logs',
         },
@@ -45,5 +54,22 @@ function CardWithTabs({ tabs }: { tabs: { id: string; title: string; component: 
                 ))}
             </Tabs>
         </Card>
+    );
+}
+
+function TxStatusHeader({ lastResult }: { lastResult: NonNullable<InstructionInvocationResult> }) {
+    const { link } = useExplorerLink(
+        lastResult.status === 'success'
+            ? `/tx/${lastResult.signature}`
+            : `/tx/inspector?message=${lastResult.serializedTxMessage}`
+    );
+    return lastResult.status === 'success' ? (
+        <TxSuccessStatus signature={lastResult.signature} date={lastResult.finishedAt} link={link} />
+    ) : (
+        <TxErrorStatus
+            message={lastResult.serializedTxMessage}
+            date={lastResult.finishedAt}
+            link={lastResult.serializedTxMessage ? link : null}
+        />
     );
 }

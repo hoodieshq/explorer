@@ -1,7 +1,6 @@
 import { LoadingCard } from '@components/shared/LoadingCard';
 import { ExplorerLink } from '@entities/cluster/ui/ExplorerLink';
 import type { InstructionData } from '@entities/idl/formatters/formatted-idl';
-import { useParsedLogs } from '@entities/program-logs';
 import { useToast } from '@shared/ui/sonner/use-toast';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useAtomValue } from 'jotai';
@@ -27,13 +26,12 @@ export function InteractWithIdl({
     const idl = useAtomValue(originalIdlAtom);
     const progId = useAtomValue(programIdAtom);
     const { connected, publicKey } = useWallet();
-    const { invokeInstruction, initializationError, isExecuting, lastError, lastSuccess, logs, transactionError } =
+    const { invokeInstruction, initializationError, isExecuting, lastResult, parseLogs, preInvocationError } =
         useInstruction({
             enabled: isEnabled({ connected, idl, programId: progId, publicKey }),
             idl,
             programId: progId?.toString(),
         });
-    const { parseLogs } = useParsedLogs(transactionError);
 
     const { requireConfirmation, confirm, cancel, isOpen, hasPendingAction } = useMainnetConfirmation<{
         data: InstructionData;
@@ -98,9 +96,8 @@ export function InteractWithIdl({
                 onTransactionSuccess={handleTransactionSuccess}
                 onTransactionError={handleTransactionError}
                 isExecuting={isExecuting}
-                lastError={lastError}
-                lastSuccess={lastSuccess}
-                logs={logs}
+                lastResult={lastResult}
+                preInvocationError={preInvocationError}
                 parseLogs={parseLogs}
             />
             {hasPendingAction && (
