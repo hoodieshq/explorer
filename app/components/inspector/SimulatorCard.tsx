@@ -136,7 +136,9 @@ function SolBalanceChangesCard({ balanceChanges }: { balanceChanges: SolBalanceC
                     <tbody className="list">
                         {balanceChanges.map((change, i) => (
                             <tr key={change.pubkey.toBase58()}>
-                                <td>{i + 1}</td>
+                                <td>
+                                    <span className="badge bg-info-soft me-1">{i + 1}</span>
+                                </td>
                                 <td>
                                     <Address pubkey={change.pubkey} link fetchTokenLabelInfo />
                                 </td>
