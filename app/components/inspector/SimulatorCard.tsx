@@ -1,3 +1,5 @@
+import { BalanceDelta } from '@components/common/BalanceDelta';
+import { SolBalance } from '@components/common/SolBalance';
 import { ProgramLogsCardBody } from '@components/ProgramLogsCardBody';
 import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@providers/accounts/tokens';
 import { useCluster } from '@providers/cluster';
@@ -16,13 +18,23 @@ import {
 } from '@solana/web3.js';
 import { PublicKey } from '@solana/web3.js';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
+import BigNumber from 'bignumber.js';
 import React from 'react';
 
+import { Address } from '../common/Address';
 import {
     generateTokenBalanceRows,
     TokenBalancesCardInner,
     TokenBalancesCardInnerProps,
 } from '../transaction/TokenBalancesCard';
+
+type SolBalanceChange = {
+    accountIndex: number;
+    delta: BigNumber;
+    postBalance: number;
+    preBalance: number;
+    pubkey: PublicKey;
+};
 
 export function SimulatorCard({
     message,
@@ -38,7 +50,9 @@ export function SimulatorCard({
         simulationLogs: logs,
         simulationError,
         simulationTokenBalanceRows,
+        simulationSolBalanceChanges,
     } = useSimulator(message);
+
     if (simulating) {
         return (
             <div className="card">
@@ -91,6 +105,9 @@ export function SimulatorCard({
                 </div>
                 <ProgramLogsCardBody message={message} logs={logs} cluster={cluster} url={url} />
             </div>
+            {simulationSolBalanceChanges && !simulationError && simulationSolBalanceChanges.length > 0 && (
+                <SolBalanceChangesCard balanceChanges={simulationSolBalanceChanges} />
+            )}
             {showTokenBalanceChanges &&
             simulationTokenBalanceRows &&
             !simulationError &&
@@ -101,17 +118,57 @@ export function SimulatorCard({
     );
 }
 
+function SolBalanceChangesCard({ balanceChanges }: { balanceChanges: SolBalanceChange[] }) {
+    return (
+        <div className="card">
+            <div className="card-header">
+                <h3 className="card-header-title">SOL Balance Changes</h3>
+            </div>
+            <div className="table-responsive mb-0">
+                <table className="table table-sm table-nowrap card-table">
+                    <thead>
+                        <tr>
+                            <th className="text-muted">#</th>
+                            <th className="text-muted">Address</th>
+                            <th className="text-muted">Change (SOL)</th>
+                            <th className="text-muted">Post Balance (SOL)</th>
+                        </tr>
+                    </thead>
+                    <tbody className="list">
+                        {balanceChanges.map(change => (
+                            <tr key={change.pubkey.toBase58()}>
+                                <td>{change.accountIndex + 1}</td>
+                                <td>
+                                    <Address pubkey={change.pubkey} link fetchTokenLabelInfo />
+                                </td>
+                                <td>
+                                    <BalanceDelta delta={change.delta} isSol />
+                                </td>
+                                <td>
+                                    <SolBalance lamports={change.postBalance} />
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+}
+
 function useSimulator(message: VersionedMessage) {
     const { cluster, url } = useCluster();
     const [simulating, setSimulating] = React.useState(false);
     const [logs, setLogs] = React.useState<Array<InstructionLogs> | null>(null);
     const [error, setError] = React.useState<string>();
     const [tokenBalanceRows, setTokenBalanceRows] = React.useState<TokenBalancesCardInnerProps>();
+    const [solBalanceChanges, setSolBalanceChanges] = React.useState<SolBalanceChange[]>();
 
     React.useEffect(() => {
         setLogs(null);
         setSimulating(false);
         setError(undefined);
+        setSolBalanceChanges(undefined);
     }, [url]);
 
     const onClick = React.useCallback(() => {
@@ -161,10 +218,28 @@ function useSimulator(message: VersionedMessage) {
                     replaceRecentBlockhash: true,
                 });
 
+                let accountsPost = resp.value.accounts;
+                const nonNullAccountsCount = accountsPost?.filter(acc => acc !== null).length ?? 0;
+
+                if (nonNullAccountsCount === 0) {
+                    const currentAccounts = await connection.getMultipleAccountsInfo(accountKeys);
+                    accountsPost = currentAccounts.map(acc =>
+                        acc
+                            ? {
+                                  data: ['', 'base64'],
+                                  executable: acc.executable,
+                                  lamports: acc.lamports,
+                                  owner: acc.owner.toBase58(),
+                                  rentEpoch: acc.rentEpoch,
+                              }
+                            : null
+                    );
+                }
+
                 const mintToDecimals: { [mintPk: string]: number } = getMintDecimals(
                     accountKeys,
                     parsedAccountsPre.value,
-                    resp.value.accounts as SimulatedTransactionAccountInfo[]
+                    accountsPost as SimulatedTransactionAccountInfo[]
                 );
 
                 const preTokenBalances: TokenBalance[] = [];
@@ -238,6 +313,31 @@ function useSimulator(message: VersionedMessage) {
                     setTokenBalanceRows({ rows: tokenBalanceRows });
                 }
 
+                const solChanges: SolBalanceChange[] = [];
+                for (let index = 0; index < accountKeys.length; index++) {
+                    const key = accountKeys[index];
+                    const parsedAccountPre = parsedAccountsPre.value[index];
+                    const accountPostData = accountsPost?.at(index);
+
+                    const pre = parsedAccountPre?.lamports ?? 0;
+                    const post = accountPostData?.lamports ?? 0;
+                    const delta = new BigNumber(post).minus(new BigNumber(pre));
+
+                    if (!delta.isZero()) {
+                        solChanges.push({
+                            accountIndex: index,
+                            delta,
+                            postBalance: post,
+                            preBalance: pre,
+                            pubkey: key,
+                        });
+                    }
+                }
+
+                if (solChanges.length > 0) {
+                    setSolBalanceChanges(solChanges);
+                }
+
                 if (resp.value.logs === null) {
                     throw new Error('Expected to receive logs from simulation');
                 }
@@ -269,6 +369,7 @@ function useSimulator(message: VersionedMessage) {
         simulating,
         simulationError: error,
         simulationLogs: logs,
+        simulationSolBalanceChanges: solBalanceChanges,
         simulationTokenBalanceRows: tokenBalanceRows,
     };
 }
