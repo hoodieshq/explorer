@@ -29,7 +29,6 @@ import {
 } from '../transaction/TokenBalancesCard';
 
 type SolBalanceChange = {
-    accountIndex: number;
     delta: BigNumber;
     postBalance: number;
     preBalance: number;
@@ -135,9 +134,9 @@ function SolBalanceChangesCard({ balanceChanges }: { balanceChanges: SolBalanceC
                         </tr>
                     </thead>
                     <tbody className="list">
-                        {balanceChanges.map(change => (
+                        {balanceChanges.map((change, i) => (
                             <tr key={change.pubkey.toBase58()}>
-                                <td>{change.accountIndex + 1}</td>
+                                <td>{i + 1}</td>
                                 <td>
                                     <Address pubkey={change.pubkey} link fetchTokenLabelInfo />
                                 </td>
@@ -325,7 +324,6 @@ function useSimulator(message: VersionedMessage) {
 
                     if (!delta.isZero()) {
                         solChanges.push({
-                            accountIndex: index,
                             delta,
                             postBalance: post,
                             preBalance: pre,
