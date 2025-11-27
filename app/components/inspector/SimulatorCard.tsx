@@ -18,8 +18,7 @@ import {
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import React from 'react';
 
-import { CUProfilingCard } from '@/app/features/cu-profiling/ui/CUProfilingCard';
-import { formatInstructionLogs } from '@/app/features/cu-profiling/ui/CUProfilingSection';
+import { CUProfilingCard, formatInstructionLogs } from '@/app/features/cu-profiling';
 
 import {
     generateTokenBalanceRows,
@@ -45,8 +44,6 @@ function SimulatorCUProfilingCard({
             instructions,
         });
     }, [message, logs]);
-
-    if (instructionsForCU.length === 0) return null;
 
     return <CUProfilingCard instructions={instructionsForCU} />;
 }

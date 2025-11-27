@@ -36,7 +36,7 @@ import Link from 'next/link';
 import React, { Suspense, useEffect, useState } from 'react';
 import { RefreshCw, Settings } from 'react-feather';
 
-import { CUProfilingSection } from '@/app/features/cu-profiling/ui/CUProfilingSection';
+import { CUProfilingSection } from '@/app/features/cu-profiling';
 import { estimateRequestedComputeUnitsForParsedTransaction } from '@/app/utils/compute-units-schedule';
 import { getEpochForSlot } from '@/app/utils/epoch-schedule';
 
