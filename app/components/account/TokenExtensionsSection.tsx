@@ -145,7 +145,7 @@ function ExtensionListItem({
     raw: boolean;
 }) {
     const handleToggleRaw = useCallback(
-        (e: React.MouseEvent<HTMLAnchorElement>) => {
+        (e: React.MouseEvent<HTMLSpanElement>) => {
             e.stopPropagation();
             onToggleRaw();
         },
@@ -153,12 +153,12 @@ function ExtensionListItem({
     );
 
     return (
-        <div className="w-100 e-w-100 text-white e-grid e-grid-cols-12-ext e-items-center e-gap-2 e-text-sm">
+        <span className="w-100 e-w-100 text-white e-grid e-grid-cols-12-ext e-items-center e-gap-2 e-text-sm">
             {/* Name */}
-            <div className="e-flex e-min-w-80 e-items-center e-gap-2 e-whitespace-nowrap e-font-normal max-sm:e-col-span-6 sm:e-col-span-6 md:e-col-span-6 lg:e-col-span-4 xl:e-col-span-3">
-                <div>{ext.name}</div>
+            <span className="e-flex e-min-w-80 e-items-center e-gap-2 e-whitespace-nowrap e-font-normal max-sm:e-col-span-6 sm:e-col-span-6 md:e-col-span-6 lg:e-col-span-4 xl:e-col-span-3">
+                <span>{ext.name}</span>
                 <TokenExtensionBadge extension={ext} />
-            </div>
+            </span>
 
             {/* Description */}
             <span className="e-text-[0.75rem] e-text-[#8E9090] e-underline e-decoration-[#1e2423] max-lg:e-hidden lg:e-col-span-6 lg:e-pl-12 xl:e-col-span-7">
@@ -166,8 +166,8 @@ function ExtensionListItem({
             </span>
 
             {/* External links badges */}
-            <div className="text-white e-flex e-justify-end e-gap-1 max-sm:e-col-span-6 sm:e-col-span-6 md:e-col-span-6 lg:e-col-span-2 xl:e-col-span-2">
-                <a key="raw" href="javascript:void(0)" onClick={handleToggleRaw}>
+            <span className="text-white e-flex e-justify-end e-gap-1 max-sm:e-col-span-6 sm:e-col-span-6 md:e-col-span-6 lg:e-col-span-2 xl:e-col-span-2">
+                <span key="raw" onClick={handleToggleRaw} className="e-cursor-pointer">
                     <Badge
                         className="text-white e-font-normal"
                         as="link"
@@ -177,7 +177,7 @@ function ExtensionListItem({
                     >
                         <Code size={16} /> Raw
                     </Badge>
-                </a>
+                </span>
                 {ext.externalLinks.map((link, index) => (
                     <a key={index} href={link.url} target="_blank" rel="noopener noreferrer">
                         <Badge variant="transparent" size="sm" as="link" className="text-white e-font-normal">
@@ -186,7 +186,7 @@ function ExtensionListItem({
                         </Badge>
                     </a>
                 ))}
-            </div>
-        </div>
+            </span>
+        </span>
     );
 }
