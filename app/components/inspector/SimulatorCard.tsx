@@ -15,10 +15,11 @@ import {
     VersionedMessage,
     VersionedTransaction,
 } from '@solana/web3.js';
+import { formatInstructionLogs } from '@utils/cu-profiling';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import React from 'react';
 
-import { CUProfilingCard, formatInstructionLogs } from '@/app/features/cu-profiling';
+import { CUProfilingCard } from '@/app/features/cu-profiling';
 
 import {
     generateTokenBalanceRows,

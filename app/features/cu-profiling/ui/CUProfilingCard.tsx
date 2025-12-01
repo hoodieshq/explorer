@@ -1,3 +1,4 @@
+import { InstructionCUData } from '@utils/cu-profiling';
 import { BarElement, CategoryScale, Chart, ChartData, ChartOptions, LinearScale, Tooltip } from 'chart.js';
 import React from 'react';
 import { Bar } from 'react-chartjs-2';
@@ -172,12 +173,6 @@ function getInstructionColor(index: number): string {
     // Use % to cycle through colors if there are more instructions than colors
     return colors[index % colors.length];
 }
-
-export type InstructionCUData = {
-    computeUnits: number;
-    programId: string;
-    displayUnits?: string;
-};
 
 type CUProfilingCardProps = {
     instructions: InstructionCUData[];

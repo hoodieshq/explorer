@@ -1,2 +1,2 @@
-export { CUProfilingCard, type InstructionCUData } from './ui/CUProfilingCard';
-export { CUProfilingSection, formatInstructionLogs, formatTransactionLogs } from './ui/CUProfilingSection';
+export { CUProfilingCard } from './ui/CUProfilingCard';
+export { CUProfilingSection, formatTransactionLogs } from './ui/CUProfilingSection';

@@ -2,11 +2,12 @@ import { useCluster } from '@providers/cluster';
 import { useTransactionDetails } from '@providers/transactions';
 import { ParsedTransactionWithMeta } from '@solana/web3.js';
 import { Cluster } from '@utils/cluster';
+import { formatInstructionLogs } from '@utils/cu-profiling';
 import type { SignatureProps } from '@utils/index';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import React from 'react';
 
-import { CUProfilingCard, type InstructionCUData } from './CUProfilingCard';
+import { CUProfilingCard } from './CUProfilingCard';
 
 export function CUProfilingSection({ signature }: SignatureProps) {
     const details = useTransactionDetails(signature);
@@ -43,29 +44,4 @@ export function formatTransactionLogs(
     const err = transactionWithMeta?.meta?.err || null;
 
     return logMessages ? parseProgramLogs(logMessages, err, cluster) : [];
-}
-
-export function formatInstructionLogs({
-    instructions,
-    instructionLogs,
-}: {
-    instructions: Array<{ programId: { toBase58(): string } }>;
-    instructionLogs: InstructionLogs[];
-}): InstructionCUData[] {
-    const result: InstructionCUData[] = [];
-
-    instructions.forEach((instruction, index) => {
-        const programId = instruction.programId.toBase58();
-
-        const logEntry = instructionLogs[index];
-        const computeUnits = logEntry?.computeUnits || 0;
-
-        result.push({
-            ...(computeUnits === 0 && { displayUnits: '~3,000' }),
-            computeUnits,
-            programId,
-        });
-    });
-
-    return result;
 }
