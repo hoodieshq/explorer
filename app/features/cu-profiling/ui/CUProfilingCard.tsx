@@ -243,7 +243,7 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
                 <h3 className="card-header-title">CU profiling</h3>
             </div>
             <div className="e-card-body">
-                <div className="mb-3">Total: {totalCU.toLocaleString()} CU</div>
+                {!!totalCU && <div className="mb-3">Total: {totalCU.toLocaleString()} CU</div>}
 
                 <div style={{ height: '32px', marginLeft: '-8px' }}>
                     <Bar data={chartData} options={chartOptions} />
