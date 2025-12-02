@@ -4,8 +4,8 @@ import BN from 'bn.js';
 import React from 'react';
 import { vi } from 'vitest';
 
-import { SolBalanceChangesCard } from '../SolBalanceChangesCard';
 import type { SolBalanceChange } from '../../lib/types';
+import { SolBalanceChangesCard } from '../SolBalanceChangesCard';
 
 vi.mock('@components/common/Address', () => ({
     Address: ({ pubkey }: { pubkey: PublicKey }) => <div data-testid="address">{pubkey.toBase58()}</div>,
