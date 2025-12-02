@@ -74,9 +74,7 @@ describe('useSimulator', () => {
         vi.spyOn(Connection.prototype, 'getMultipleParsedAccounts').mockImplementation(
             mockConnection.getMultipleParsedAccounts
         );
-        vi.spyOn(Connection.prototype, 'simulateTransaction').mockImplementation(
-            mockConnection.simulateTransaction
-        );
+        vi.spyOn(Connection.prototype, 'simulateTransaction').mockImplementation(mockConnection.simulateTransaction);
     });
 
     afterEach(() => {

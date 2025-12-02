@@ -48,10 +48,10 @@ export function SimulatorCard({ message, showTokenBalanceChanges }: SimulatorCar
                     {simulationError ? (
                         <div>
                             Simulation Failure:
-                            <span className="e-text-yellow-500 e-ml-2">{simulationError}</span>
+                            <span className="e-ml-2 e-text-yellow-500">{simulationError}</span>
                         </div>
                     ) : (
-                        <ul className="e-text-neutral-500 e-list-disc e-pl-5 e-space-y-2">
+                        <ul className="e-list-disc e-space-y-2 e-pl-5 e-text-neutral-500">
                             <li>
                                 Simulation is free and will run this transaction against the latest confirmed ledger
                                 state.
