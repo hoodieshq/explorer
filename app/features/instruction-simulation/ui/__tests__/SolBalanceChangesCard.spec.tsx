@@ -23,7 +23,6 @@ vi.mock('@components/common/SolBalance', () => ({
     SolBalance: ({ lamports }: { lamports: number }) => <div data-testid="sol-balance">{lamports}</div>,
 }));
 
-
 describe('SolBalanceChangesCard', () => {
     function createMockBalanceChange(
         pubkeyString: string,
