@@ -10,14 +10,13 @@ import { useFetchRawTransaction, useRawTransactionDetails } from '@providers/tra
 import usePrevious from '@react-hook/previous';
 import { Connection, MessageV0, PACKET_DATA_SIZE, PublicKey, VersionedMessage } from '@solana/web3.js';
 import { generated, PROGRAM_ADDRESS as SQUADS_V4_PROGRAM_ADDRESS } from '@sqds/multisig';
-const { VaultTransaction } = generated;
-
 import { useClusterPath } from '@utils/url';
 import bs58 from 'bs58';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import useSWR from 'swr';
 
+import { SimulatorCard } from '@/app/features/instruction-simulation';
 import { useCluster } from '@/app/providers/cluster';
 
 import { AccountsCard } from './AccountsCard';
@@ -26,7 +25,8 @@ import { AddressWithContext, createFeePayerValidator } from './AddressWithContex
 import { InstructionsSection } from './InstructionsSection';
 import { MIN_MESSAGE_LENGTH, RawInput } from './RawInputCard';
 import { TransactionSignatures } from './SignaturesCard';
-import { SimulatorCard } from './SimulatorCard';
+
+const { VaultTransaction } = generated;
 
 export type TransactionData = {
     rawMessage: Uint8Array;

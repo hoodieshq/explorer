@@ -1,0 +1,92 @@
+import { ProgramLogsCardBody } from '@components/ProgramLogsCardBody';
+import { TokenBalancesCardInner } from '@components/transaction/TokenBalancesCard';
+import { useCluster } from '@providers/cluster';
+import type { VersionedMessage } from '@solana/web3.js';
+import React from 'react';
+
+import { useSimulator } from '../model/useSimulator';
+import { SolBalanceChangesCard } from './SolBalanceChangesCard';
+
+type SimulatorCardProps = {
+    message: VersionedMessage;
+    showTokenBalanceChanges: boolean;
+};
+
+export function SimulatorCard({
+    message,
+    showTokenBalanceChanges,
+}: SimulatorCardProps) {
+    const { cluster, url } = useCluster();
+    const {
+        simulate,
+        simulating,
+        simulationLogs: logs,
+        simulationError,
+        simulationTokenBalanceRows,
+        simulationSolBalanceChanges,
+    } = useSimulator(message);
+
+    if (simulating) {
+        return (
+            <div className="card">
+                <div className="card-header">
+                    <h3 className="card-header-title">Transaction Simulation</h3>
+                </div>
+                <div className="card-body text-center">
+                    <span className="spinner-grow spinner-grow-sm me-2"></span>
+                    Simulating
+                </div>
+            </div>
+        );
+    } else if (!logs) {
+        return (
+            <div className="card">
+                <div className="card-header">
+                    <h3 className="card-header-title">Transaction Simulation</h3>
+                    <button className="btn btn-sm d-flex btn-white" onClick={simulate}>
+                        {simulationError ? 'Retry' : 'Simulate'}
+                    </button>
+                </div>
+                <div className="card-body">
+                    {simulationError ? (
+                        <>
+                            Simulation Failure:
+                            <span className="text-warning ms-2">{simulationError}</span>
+                        </>
+                    ) : (
+                        <ul className="text-muted">
+                            <li>
+                                Simulation is free and will run this transaction against the latest confirmed ledger
+                                state.
+                            </li>
+                            <li>No state changes will be persisted and all signature checks will be disabled.</li>
+                        </ul>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <>
+            <div className="card">
+                <div className="card-header">
+                    <h3 className="card-header-title">Transaction Simulation</h3>
+                    <button className="btn btn-sm d-flex btn-white" onClick={simulate}>
+                        Retry
+                    </button>
+                </div>
+                <ProgramLogsCardBody message={message} logs={logs} cluster={cluster} url={url} />
+            </div>
+            {simulationSolBalanceChanges && !simulationError && simulationSolBalanceChanges.length > 0 && (
+                <SolBalanceChangesCard balanceChanges={simulationSolBalanceChanges} />
+            )}
+            {showTokenBalanceChanges &&
+            simulationTokenBalanceRows &&
+            !simulationError &&
+            simulationTokenBalanceRows.rows.length ? (
+                <TokenBalancesCardInner rows={simulationTokenBalanceRows.rows} />
+            ) : null}
+        </>
+    );
+}

@@ -1,9 +1,6 @@
-import { BalanceDelta } from '@components/common/BalanceDelta';
-import { SolBalance } from '@components/common/SolBalance';
-import { ProgramLogsCardBody } from '@components/ProgramLogsCardBody';
-import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@providers/accounts/tokens';
+import { generateTokenBalanceRows, TokenBalancesCardInnerProps } from '@components/transaction/TokenBalancesCard';
 import { useCluster } from '@providers/cluster';
-import { AccountLayout, MintLayout } from '@solana/spl-token';
+import { AccountLayout } from '@solana/spl-token';
 import {
     AccountInfo,
     AddressLookupTableAccount,
@@ -11,153 +8,20 @@ import {
     MessageAddressTableLookup,
     ParsedAccountData,
     ParsedMessageAccount,
+    PublicKey,
     SimulatedTransactionAccountInfo,
     TokenBalance,
     VersionedMessage,
     VersionedTransaction,
 } from '@solana/web3.js';
-import { PublicKey } from '@solana/web3.js';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
-import BN from 'bn.js';
+import { BN } from 'bn.js';
 import React from 'react';
 
-import { Address } from '../common/Address';
-import {
-    generateTokenBalanceRows,
-    TokenBalancesCardInner,
-    TokenBalancesCardInnerProps,
-} from '../transaction/TokenBalancesCard';
+import { getMintDecimals, isTokenProgramBase58 } from '../lib/tokenAccountParsing';
+import type { SolBalanceChange } from '../lib/types';
 
-type SolBalanceChange = {
-    delta: BN;
-    postBalance: BN;
-    preBalance: BN;
-    pubkey: PublicKey;
-};
-
-export function SimulatorCard({
-    message,
-    showTokenBalanceChanges,
-}: {
-    message: VersionedMessage;
-    showTokenBalanceChanges: boolean;
-}) {
-    const { cluster, url } = useCluster();
-    const {
-        simulate,
-        simulating,
-        simulationLogs: logs,
-        simulationError,
-        simulationTokenBalanceRows,
-        simulationSolBalanceChanges,
-    } = useSimulator(message);
-
-    if (simulating) {
-        return (
-            <div className="card">
-                <div className="card-header">
-                    <h3 className="card-header-title">Transaction Simulation</h3>
-                </div>
-                <div className="card-body text-center">
-                    <span className="spinner-grow spinner-grow-sm me-2"></span>
-                    Simulating
-                </div>
-            </div>
-        );
-    } else if (!logs) {
-        return (
-            <div className="card">
-                <div className="card-header">
-                    <h3 className="card-header-title">Transaction Simulation</h3>
-                    <button className="btn btn-sm d-flex btn-white" onClick={simulate}>
-                        {simulationError ? 'Retry' : 'Simulate'}
-                    </button>
-                </div>
-                <div className="card-body">
-                    {simulationError ? (
-                        <>
-                            Simulation Failure:
-                            <span className="text-warning ms-2">{simulationError}</span>
-                        </>
-                    ) : (
-                        <ul className="text-muted">
-                            <li>
-                                Simulation is free and will run this transaction against the latest confirmed ledger
-                                state.
-                            </li>
-                            <li>No state changes will be persisted and all signature checks will be disabled.</li>
-                        </ul>
-                    )}
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <>
-            <div className="card">
-                <div className="card-header">
-                    <h3 className="card-header-title">Transaction Simulation</h3>
-                    <button className="btn btn-sm d-flex btn-white" onClick={simulate}>
-                        Retry
-                    </button>
-                </div>
-                <ProgramLogsCardBody message={message} logs={logs} cluster={cluster} url={url} />
-            </div>
-            {simulationSolBalanceChanges && !simulationError && simulationSolBalanceChanges.length > 0 && (
-                <SolBalanceChangesCard balanceChanges={simulationSolBalanceChanges} />
-            )}
-            {showTokenBalanceChanges &&
-            simulationTokenBalanceRows &&
-            !simulationError &&
-            simulationTokenBalanceRows.rows.length ? (
-                <TokenBalancesCardInner rows={simulationTokenBalanceRows.rows} />
-            ) : null}
-        </>
-    );
-}
-
-function SolBalanceChangesCard({ balanceChanges }: { balanceChanges: SolBalanceChange[] }) {
-    return (
-        <div className="card">
-            <div className="card-header">
-                <h3 className="card-header-title">SOL Balance Changes</h3>
-            </div>
-            <div className="table-responsive mb-0">
-                <table className="table table-sm table-nowrap card-table">
-                    <thead>
-                        <tr>
-                            <th className="text-muted">#</th>
-                            <th className="text-muted">Address</th>
-                            <th className="text-muted">Change (SOL)</th>
-                            <th className="text-muted">Post Balance (SOL)</th>
-                        </tr>
-                    </thead>
-                    <tbody className="list">
-                        {balanceChanges.map((change, i) => (
-                            <tr key={change.pubkey.toBase58()}>
-                                <td>
-                                    <span className="badge bg-info-soft me-1">{i + 1}</span>
-                                </td>
-                                <td>
-                                    <Address pubkey={change.pubkey} link fetchTokenLabelInfo />
-                                </td>
-                                <td>
-                                    <BalanceDelta delta={change.delta} isSol />
-                                </td>
-                                <td>
-                                    <SolBalance lamports={change.postBalance.toNumber()} />
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-}
-
-function useSimulator(message: VersionedMessage) {
+export function useSimulator(message: VersionedMessage) {
     const { cluster, url } = useCluster();
     const [simulating, setSimulating] = React.useState(false);
     const [logs, setLogs] = React.useState<Array<InstructionLogs> | null>(null);
@@ -373,55 +237,4 @@ function useSimulator(message: VersionedMessage) {
         simulationSolBalanceChanges: solBalanceChanges,
         simulationTokenBalanceRows: tokenBalanceRows,
     };
-}
-
-function isTokenProgramBase58(programIdBase58: string): boolean {
-    return programIdBase58 === TOKEN_PROGRAM_ID.toBase58() || programIdBase58 === TOKEN_2022_PROGRAM_ID.toBase58();
-}
-
-function getMintDecimals(
-    accountKeys: PublicKey[],
-    parsedAccountsPre: (AccountInfo<ParsedAccountData | Buffer> | null)[],
-    accountDatasPost: SimulatedTransactionAccountInfo[]
-): { [mintPk: string]: number } {
-    const mintToDecimals: { [mintPk: string]: number } = {};
-    // Get all the necessary mint decimals by looking at parsed token accounts
-    // and mints before, as well as mints after.
-    for (let index = 0; index < accountKeys.length; index++) {
-        const parsedAccount = parsedAccountsPre[index];
-        const key = accountKeys[index];
-
-        // Token account before
-        if (
-            parsedAccount &&
-            isTokenProgramBase58(parsedAccount.owner.toBase58()) &&
-            (parsedAccount.data as ParsedAccountData).parsed.type === 'account'
-        ) {
-            mintToDecimals[(parsedAccount?.data as ParsedAccountData).parsed.info.mint] = (
-                parsedAccount?.data as ParsedAccountData
-            ).parsed.info.tokenAmount.decimals;
-        }
-        // Mint account before
-        if (
-            parsedAccount &&
-            isTokenProgramBase58(parsedAccount.owner.toBase58()) &&
-            (parsedAccount?.data as ParsedAccountData).parsed.type === 'mint'
-        ) {
-            mintToDecimals[key.toBase58()] = (parsedAccount?.data as ParsedAccountData).parsed.info.decimals;
-        }
-
-        // Token account after
-        const accountDataPost = accountDatasPost.at(index)?.data[0];
-        const accountOwnerPost = accountDatasPost.at(index)?.owner;
-        if (
-            accountOwnerPost &&
-            isTokenProgramBase58(accountOwnerPost) &&
-            Buffer.from(accountDataPost!, 'base64').length === 82
-        ) {
-            const accountParsedPost = MintLayout.decode(Buffer.from(accountDataPost!, 'base64'));
-            mintToDecimals[key.toBase58()] = accountParsedPost.decimals;
-        }
-    }
-
-    return mintToDecimals;
 }
