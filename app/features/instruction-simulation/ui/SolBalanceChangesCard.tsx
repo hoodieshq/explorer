@@ -1,10 +1,10 @@
 import { Address } from '@components/common/Address';
 import { BalanceDelta } from '@components/common/BalanceDelta';
 import { SolBalance } from '@components/common/SolBalance';
+import { Badge } from '@components/shared/ui/badge';
 import React from 'react';
 
 import { SolBalanceChange } from '../lib/types';
-
 
 export function SolBalanceChangesCard({ balanceChanges }: { balanceChanges: SolBalanceChange[] }) {
     return (
@@ -12,29 +12,39 @@ export function SolBalanceChangesCard({ balanceChanges }: { balanceChanges: SolB
             <div className="card-header">
                 <h3 className="card-header-title">SOL Balance Changes</h3>
             </div>
-            <div className="table-responsive mb-0">
-                <table className="table table-sm table-nowrap card-table">
+            <div className="e-overflow-x-auto e-mb-0">
+                <table className="e-w-full e-text-sm">
                     <thead>
                         <tr>
-                            <th className="text-muted">#</th>
-                            <th className="text-muted">Address</th>
-                            <th className="text-muted">Change (SOL)</th>
-                            <th className="text-muted">Post Balance (SOL)</th>
+                            <th className="e-px-4 e-py-3 e-text-left e-border-t-0 e-border-b e-border-[#282d2b] e-text-neutral-500">
+                                #
+                            </th>
+                            <th className="e-px-4 e-py-3 e-text-left e-border-t-0 e-border-b e-border-[#282d2b] e-text-neutral-500">
+                                Address
+                            </th>
+                            <th className="e-px-4 e-py-3 e-text-left e-border-t-0 e-border-b e-border-[#282d2b] e-text-neutral-500">
+                                Change (SOL)
+                            </th>
+                            <th className="e-px-4 e-py-3 e-text-left e-border-t-0 e-border-b e-border-[#282d2b] e-text-neutral-500">
+                                Post Balance (SOL)
+                            </th>
                         </tr>
                     </thead>
-                    <tbody className="list">
+                    <tbody>
                         {balanceChanges.map((change, i) => (
                             <tr key={change.pubkey.toBase58()}>
-                                <td>
-                                    <span className="badge bg-info-soft me-1">{i + 1}</span>
+                                <td className="e-px-4 e-py-3 e-border-t-0 e-border-b e-border-[#282d2b]">
+                                    <Badge variant="secondary" size="xs">
+                                        {i + 1}
+                                    </Badge>
                                 </td>
-                                <td>
+                                <td className="e-px-4 e-py-3 e-border-t-0 e-border-b e-border-[#282d2b]">
                                     <Address pubkey={change.pubkey} link fetchTokenLabelInfo />
                                 </td>
-                                <td>
+                                <td className="e-px-4 e-py-3 e-border-t-0 e-border-b e-border-[#282d2b]">
                                     <BalanceDelta delta={change.delta} isSol />
                                 </td>
-                                <td>
+                                <td className="e-px-4 e-py-3 e-border-t-0 e-border-b e-border-[#282d2b]">
                                     <SolBalance lamports={change.postBalance.toNumber()} />
                                 </td>
                             </tr>

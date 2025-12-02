@@ -12,10 +12,7 @@ type SimulatorCardProps = {
     showTokenBalanceChanges: boolean;
 };
 
-export function SimulatorCard({
-    message,
-    showTokenBalanceChanges,
-}: SimulatorCardProps) {
+export function SimulatorCard({ message, showTokenBalanceChanges }: SimulatorCardProps) {
     const { cluster, url } = useCluster();
     const {
         simulate,
@@ -32,8 +29,8 @@ export function SimulatorCard({
                 <div className="card-header">
                     <h3 className="card-header-title">Transaction Simulation</h3>
                 </div>
-                <div className="card-body text-center">
-                    <span className="spinner-grow spinner-grow-sm me-2"></span>
+                <div className="card-body e-text-center">
+                    <span className="spinner-grow spinner-grow-sm e-mr-2"></span>
                     Simulating
                 </div>
             </div>
@@ -49,12 +46,12 @@ export function SimulatorCard({
                 </div>
                 <div className="card-body">
                     {simulationError ? (
-                        <>
+                        <div>
                             Simulation Failure:
-                            <span className="text-warning ms-2">{simulationError}</span>
-                        </>
+                            <span className="e-text-yellow-500 e-ml-2">{simulationError}</span>
+                        </div>
                     ) : (
-                        <ul className="text-muted">
+                        <ul className="e-text-neutral-500 e-list-disc e-pl-5 e-space-y-2">
                             <li>
                                 Simulation is free and will run this transaction against the latest confirmed ledger
                                 state.
