@@ -23,13 +23,6 @@ vi.mock('@components/common/SolBalance', () => ({
     SolBalance: ({ lamports }: { lamports: number }) => <div data-testid="sol-balance">{lamports}</div>,
 }));
 
-vi.mock('@components/shared/ui/badge', () => ({
-    Badge: ({ children, variant, size }: { children: React.ReactNode; variant?: string; size?: string }) => (
-        <span data-testid="badge" data-variant={variant} data-size={size}>
-            {children}
-        </span>
-    ),
-}));
 
 describe('SolBalanceChangesCard', () => {
     function createMockBalanceChange(
@@ -97,11 +90,9 @@ describe('SolBalanceChangesCard', () => {
 
         render(<SolBalanceChangesCard balanceChanges={balanceChanges} />);
 
-        const badges = screen.getAllByTestId('badge');
-        expect(badges).toHaveLength(3);
-        expect(badges[0]).toHaveTextContent('1');
-        expect(badges[1]).toHaveTextContent('2');
-        expect(badges[2]).toHaveTextContent('3');
+        expect(screen.getByText('1')).toBeInTheDocument();
+        expect(screen.getByText('2')).toBeInTheDocument();
+        expect(screen.getByText('3')).toBeInTheDocument();
 
         const addresses = screen.getAllByTestId('address');
         expect(addresses).toHaveLength(3);
@@ -131,7 +122,6 @@ describe('SolBalanceChangesCard', () => {
 
         render(<SolBalanceChangesCard balanceChanges={balanceChanges} />);
 
-        expect(screen.queryByTestId('badge')).not.toBeInTheDocument();
         expect(screen.queryByTestId('address')).not.toBeInTheDocument();
         expect(screen.queryByTestId('balance-delta')).not.toBeInTheDocument();
         expect(screen.queryByTestId('sol-balance')).not.toBeInTheDocument();
