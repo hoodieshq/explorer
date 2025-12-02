@@ -84,23 +84,11 @@ export function useSimulator(message: VersionedMessage) {
                     replaceRecentBlockhash: true,
                 });
 
-                let accountsPost = resp.value.accounts;
-                const nonNullAccountsCount = accountsPost?.filter(acc => acc !== null).length ?? 0;
-
-                if (nonNullAccountsCount === 0) {
-                    const currentAccounts = await connection.getMultipleAccountsInfo(accountKeys);
-                    accountsPost = currentAccounts.map(acc =>
-                        acc
-                            ? {
-                                  data: ['', 'base64'],
-                                  executable: acc.executable,
-                                  lamports: acc.lamports,
-                                  owner: acc.owner.toBase58(),
-                                  rentEpoch: acc.rentEpoch,
-                              }
-                            : null
-                    );
+                if (!resp.value.accounts) {
+                    throw new Error('RPC did not return account data after simulation');
                 }
+
+                const accountsPost = resp.value.accounts;
 
                 const mintToDecimals: { [mintPk: string]: number } = getMintDecimals(
                     accountKeys,
