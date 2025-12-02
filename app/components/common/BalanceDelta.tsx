@@ -1,17 +1,17 @@
 import { SolBalance } from '@components/common/SolBalance';
-import { BigNumber } from 'bignumber.js';
+import BN from 'bn.js';
 import React from 'react';
 
-export function BalanceDelta({ delta, isSol = false }: { delta: BigNumber; isSol?: boolean }) {
+export function BalanceDelta({ delta, isSol = false }: { delta: BN; isSol?: boolean }) {
     let sols;
 
     if (isSol) {
         sols = <SolBalance lamports={Math.abs(delta.toNumber())} />;
     }
 
-    if (delta.gt(0)) {
+    if (delta.gt(new BN(0))) {
         return <span className="badge bg-success-soft">+{isSol ? sols : delta.toString()}</span>;
-    } else if (delta.lt(0)) {
+    } else if (delta.lt(new BN(0))) {
         return <span className="badge bg-warning-soft">{isSol ? <>-{sols}</> : delta.toString()}</span>;
     }
 

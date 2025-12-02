@@ -18,7 +18,7 @@ import {
 } from '@solana/web3.js';
 import { PublicKey } from '@solana/web3.js';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
-import BigNumber from 'bignumber.js';
+import BN from 'bn.js';
 import React from 'react';
 
 import { Address } from '../common/Address';
@@ -29,9 +29,9 @@ import {
 } from '../transaction/TokenBalancesCard';
 
 type SolBalanceChange = {
-    delta: BigNumber;
-    postBalance: number;
-    preBalance: number;
+    delta: BN;
+    postBalance: BN;
+    preBalance: BN;
     pubkey: PublicKey;
 };
 
@@ -146,7 +146,7 @@ function SolBalanceChangesCard({ balanceChanges }: { balanceChanges: SolBalanceC
                                     <BalanceDelta delta={change.delta} isSol />
                                 </td>
                                 <td>
-                                    <SolBalance lamports={change.postBalance} />
+                                    <SolBalance lamports={change.postBalance.toNumber()} />
                                 </td>
                             </tr>
                         ))}
@@ -175,6 +175,7 @@ function useSimulator(message: VersionedMessage) {
     const onClick = React.useCallback(() => {
         if (simulating) return;
         setError(undefined);
+        setSolBalanceChanges(undefined);
         setSimulating(true);
 
         const connection = new Connection(url, 'confirmed');
@@ -322,13 +323,13 @@ function useSimulator(message: VersionedMessage) {
 
                     const pre = parsedAccountPre?.lamports ?? 0;
                     const post = accountPostData?.lamports ?? 0;
-                    const delta = new BigNumber(post).minus(new BigNumber(pre));
+                    const delta = new BN(post).sub(new BN(pre));
 
                     if (!delta.isZero()) {
                         solChanges.push({
                             delta,
-                            postBalance: post,
-                            preBalance: pre,
+                            postBalance: new BN(post),
+                            preBalance: new BN(pre),
                             pubkey: key,
                         });
                     }
