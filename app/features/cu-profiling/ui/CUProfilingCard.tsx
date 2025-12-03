@@ -5,8 +5,6 @@ import { Bar } from 'react-chartjs-2';
 
 Chart.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
-const MIN_BAR_CU = 3000; // Minimum CU to show for instructions with 0 CU
-
 type ExtendedBarDataset = ChartData<'bar'>['datasets'][number] & {
     displayUnits?: string;
     actualCU?: number;
@@ -176,22 +174,21 @@ function getInstructionColor(index: number): string {
 
 type CUProfilingCardProps = {
     instructions: InstructionCUData[];
+    unitsConsumed?: number;
 };
 
-export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
+export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCardProps) {
     const instructionsWithDisplay = React.useMemo(
         () =>
             instructions.map(item => ({
                 ...item,
-                displayCU: item.computeUnits === 0 ? MIN_BAR_CU : item.computeUnits,
+                displayCU: item.computeUnits === 0 ? (item.reservedValue || 0) : item.computeUnits,
             })),
         [instructions]
     );
 
-    const totalCU = React.useMemo(() => instructions.reduce((sum, item) => sum + item.computeUnits, 0), [instructions]);
-
     const totalDisplayCU = React.useMemo(
-        () => instructionsWithDisplay.reduce((sum, item) => sum + item.displayCU, 0),
+        () => instructionsWithDisplay.reduce((sum, item) => sum + (item.displayCU || 0), 0),
         [instructionsWithDisplay]
     );
 
@@ -243,7 +240,7 @@ export function CUProfilingCard({ instructions }: CUProfilingCardProps) {
                 <h3 className="card-header-title">CU profiling</h3>
             </div>
             <div className="e-card-body">
-                {!!totalCU && <div className="mb-3">Total: {totalCU.toLocaleString()} CU</div>}
+                {Boolean(unitsConsumed) && <div className="mb-3">Total: {unitsConsumed?.toLocaleString()} CU</div>}
 
                 <div style={{ height: '32px', marginLeft: '-8px' }}>
                     <Bar data={chartData} options={chartOptions} />

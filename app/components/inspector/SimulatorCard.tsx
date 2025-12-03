@@ -31,9 +31,15 @@ import {
 function SimulatorCUProfilingCard({
     message,
     logs,
+    unitsConsumed,
+    cluster,
+    epoch,
 }: {
     message: VersionedMessage;
     logs: Array<InstructionLogs>;
+    unitsConsumed?: number;
+    cluster: ReturnType<typeof useCluster>['cluster'];
+    epoch: bigint;
 }) {
     const instructionsForCU = React.useMemo(() => {
         const instructions = message.compiledInstructions.map(ix => ({
@@ -41,12 +47,14 @@ function SimulatorCUProfilingCard({
         }));
 
         return formatInstructionLogs({
+            cluster,
+            epoch,
             instructionLogs: logs,
             instructions,
         });
-    }, [message, logs]);
+    }, [message, logs, cluster, epoch]);
 
-    return <CUProfilingCard instructions={instructionsForCU} />;
+    return <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} />;
 }
 
 export function SimulatorCard({
@@ -60,9 +68,11 @@ export function SimulatorCard({
     const {
         simulate,
         simulating,
+        simulationEpoch,
         simulationLogs: logs,
         simulationError,
         simulationTokenBalanceRows,
+        simulationUnitsConsumed,
     } = useSimulator(message);
     if (simulating) {
         return (
@@ -116,7 +126,15 @@ export function SimulatorCard({
                 </div>
                 <ProgramLogsCardBody message={message} logs={logs} cluster={cluster} url={url} />
             </div>
-            <SimulatorCUProfilingCard message={message} logs={logs} />
+            {simulationEpoch !== undefined && (
+                <SimulatorCUProfilingCard
+                    message={message}
+                    logs={logs}
+                    unitsConsumed={simulationUnitsConsumed}
+                    cluster={cluster}
+                    epoch={simulationEpoch}
+                />
+            )}
             {showTokenBalanceChanges &&
             simulationTokenBalanceRows &&
             !simulationError &&
@@ -133,11 +151,15 @@ function useSimulator(message: VersionedMessage) {
     const [logs, setLogs] = React.useState<Array<InstructionLogs> | null>(null);
     const [error, setError] = React.useState<string>();
     const [tokenBalanceRows, setTokenBalanceRows] = React.useState<TokenBalancesCardInnerProps>();
+    const [unitsConsumed, setUnitsConsumed] = React.useState<number | undefined>();
+    const [epoch, setEpoch] = React.useState<bigint | undefined>();
 
     React.useEffect(() => {
         setLogs(null);
         setSimulating(false);
         setError(undefined);
+        setUnitsConsumed(undefined);
+        setEpoch(undefined);
     }, [url]);
 
     const onClick = React.useCallback(() => {
@@ -148,6 +170,10 @@ function useSimulator(message: VersionedMessage) {
         const connection = new Connection(url, 'confirmed');
         (async () => {
             try {
+                // Fetch current epoch info
+                const epochInfo = await connection.getEpochInfo();
+                setEpoch(BigInt(epochInfo.epoch));
+
                 const addressTableLookups: MessageAddressTableLookup[] = message.addressTableLookups;
                 const addressTableLookupKeys: PublicKey[] = addressTableLookups.map(
                     (addressTableLookup: MessageAddressTableLookup) => {
@@ -275,6 +301,10 @@ function useSimulator(message: VersionedMessage) {
                     // Prettify logs
                     setLogs(parseProgramLogs(resp.value.logs, resp.value.err, cluster));
                 }
+                // Set units consumed from simulation response
+                if (resp.value.unitsConsumed !== undefined) {
+                    setUnitsConsumed(resp.value.unitsConsumed);
+                }
                 // If the response has an error, the logs will say what it it, so no need to parse here.
                 if (resp.value.err) {
                     setError('TransactionError');
@@ -293,9 +323,11 @@ function useSimulator(message: VersionedMessage) {
     return {
         simulate: onClick,
         simulating,
+        simulationEpoch: epoch,
         simulationError: error,
         simulationLogs: logs,
         simulationTokenBalanceRows: tokenBalanceRows,
+        simulationUnitsConsumed: unitsConsumed,
     };
 }
 

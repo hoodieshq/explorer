@@ -56,14 +56,16 @@ export const WithZeroComputeUnits: Story = {
             },
             {
                 computeUnits: 0,
-                displayUnits: '~3,000',
-                programId: '22222222222222222222222222222222',
+                displayUnits: '~1,200',
+                programId: 'AddressLookupTab1e1111111111111111111111111',
+                reservedValue: 1200,
             },
             {
                 computeUnits: 30000,
                 programId: '33333333333333333333333333333333',
             },
         ],
+        unitsConsumed: 51200,
     },
 };
 
