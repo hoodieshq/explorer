@@ -17,7 +17,13 @@ const IDENTICON_WIDTH = 64;
 // is self-reported by the program author and may not be accurate. We only show this warning
 // when the displayed data actually comes from program metadata, not from the explorer's
 // trusted internal mapping (PROGRAM_INFO_BY_ID).
-export function ProgramHeader({ address, parsedData }: { address: string; parsedData: UpgradeableLoaderAccountData }) {
+export function ProgramHeader({
+    address,
+    parsedData,
+}: {
+    address: string;
+    parsedData?: UpgradeableLoaderAccountData | undefined;
+}) {
     const securityTxt = useSecurityTxt(address, parsedData);
     const { cluster } = useCluster();
 
