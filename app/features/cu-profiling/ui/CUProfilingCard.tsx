@@ -64,7 +64,8 @@ const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
                         const color = dataPoint.dataset.backgroundColor;
                         const dataset = dataPoint.dataset as ExtendedBarDataset;
 
-                        const value = dataset.actualCU || dataset.reservedValue || dataset.displayUnits || dataset.minValue;
+                        const value =
+                            dataset.actualCU || dataset.reservedValue || dataset.displayUnits || dataset.minValue;
 
                         const isReserved = !dataset.actualCU && !dataset.reservedValue && dataset.displayUnits;
                         const cuValue = value?.toLocaleString();

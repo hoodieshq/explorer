@@ -14,7 +14,6 @@ export type InstructionCUData = {
 
 const MIN_VALUE = 150;
 
-
 /**
  * Formats transaction instructions and their corresponding logs into compute unit data
  * @param instructions - Array of transaction instructions with programId

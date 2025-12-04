@@ -27,7 +27,6 @@ import {
     TokenBalancesCardInnerProps,
 } from '../transaction/TokenBalancesCard';
 
-
 function SimulatorCUProfilingCard({
     message,
     logs,
