@@ -176,7 +176,7 @@ describe('TransactionInspectorPage with Squads Transaction', () => {
                         isLoading: false,
                     };
                 }
-                return { data: null, error: null, isLoading: true };
+                return { data: null, error: null, isLoading: false };
             });
 
             render(
