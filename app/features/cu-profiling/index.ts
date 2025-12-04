@@ -1,2 +1,2 @@
 export { CUProfilingCard } from './ui/CUProfilingCard';
-export { CUProfilingSection, formatTransactionLogs } from './ui/CUProfilingSection';
+export { CUProfilingSection } from './ui/CUProfilingSection';

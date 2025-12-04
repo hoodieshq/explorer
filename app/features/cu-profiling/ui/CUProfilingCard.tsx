@@ -6,8 +6,10 @@ import { Bar } from 'react-chartjs-2';
 Chart.register(BarElement, CategoryScale, LinearScale, Tooltip);
 
 type ExtendedBarDataset = ChartData<'bar'>['datasets'][number] & {
-    displayUnits?: string;
+    displayUnits?: number;
+    reservedValue?: number;
     actualCU?: number;
+    minValue: number;
 };
 
 const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
@@ -62,8 +64,10 @@ const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
                         const color = dataPoint.dataset.backgroundColor;
                         const dataset = dataPoint.dataset as ExtendedBarDataset;
 
-                        const isReserved = dataset.actualCU === 0 && dataset.displayUnits;
-                        const cuValue = dataset.displayUnits || dataset.actualCU?.toLocaleString();
+                        const value = dataset.actualCU || dataset.reservedValue || dataset.displayUnits || dataset.minValue;
+
+                        const isReserved = !dataset.actualCU && !dataset.reservedValue && dataset.displayUnits;
+                        const cuValue = value?.toLocaleString();
                         const cuText = isReserved ? 'CU reserved' : 'CU consumed';
 
                         const tooltipContent = tooltipEl.querySelector('div');
@@ -99,7 +103,7 @@ const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
                                         color: rgba(255, 255, 255, 0.9);
                                         font-size: 13px;
                                         padding-left: 20px;
-                                    ">${cuValue} ${cuText}</div>
+                                    ">${isReserved && '~'}${cuValue} ${cuText}</div>
                                 </div>
                             `;
                         }
@@ -182,13 +186,13 @@ export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCard
         () =>
             instructions.map(item => ({
                 ...item,
-                displayCU: item.computeUnits === 0 ? (item.reservedValue || 0) : item.computeUnits,
+                displayCU: item.computeUnits || item.reservedValue || item.displayUnits || item.minValue,
             })),
         [instructions]
     );
 
     const totalDisplayCU = React.useMemo(
-        () => instructionsWithDisplay.reduce((sum, item) => sum + (item.displayCU || 0), 0),
+        () => instructionsWithDisplay.reduce((sum, item) => sum + item.displayCU, 0),
         [instructionsWithDisplay]
     );
 
@@ -226,6 +230,8 @@ export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCard
                 displayUnits: item.displayUnits,
                 hoverBackgroundColor: getInstructionColor(i),
                 label: `Instruction #${i + 1}`,
+                minValue: item.minValue,
+                reservedValue: item.reservedValue,
             })),
             labels: [''],
         }),
@@ -248,23 +254,28 @@ export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCard
 
                 {/* Legend */}
                 <div className="e-mt-3 e-flex e-flex-wrap e-gap-3 e-text-xs">
-                    {instructions.map((item, i) => (
-                        <div key={i} className="e-align-items-center e-flex">
-                            <div
-                                style={{
-                                    backgroundColor: getInstructionColor(i),
-                                    borderRadius: '4px',
-                                    height: '16px',
-                                    marginRight: '8px',
-                                    width: '16px',
-                                }}
-                            />
-                            <span>
-                                Instruction #{i + 1}:{' '}
-                                {item.displayUnits ? item.displayUnits : item.computeUnits.toLocaleString()}
-                            </span>
-                        </div>
-                    ))}
+                    {instructions.map((item, i) => {
+                        const isReserved = !item.computeUnits && !item.reservedValue && item.displayUnits;
+                        const value = item.computeUnits || item.reservedValue || item.displayUnits || item.minValue;
+
+                        return (
+                            <div key={i} className="e-align-items-center e-flex">
+                                <div
+                                    style={{
+                                        backgroundColor: getInstructionColor(i),
+                                        borderRadius: '4px',
+                                        height: '16px',
+                                        marginRight: '8px',
+                                        width: '16px',
+                                    }}
+                                />
+                                <span>
+                                    Instruction #{i + 1}: {isReserved && '~'}
+                                    {value.toLocaleString()}
+                                </span>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>

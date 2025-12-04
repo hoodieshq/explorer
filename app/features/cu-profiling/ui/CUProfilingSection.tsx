@@ -43,7 +43,7 @@ export function CUProfilingSection({ signature }: SignatureProps) {
     return <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} />;
 }
 
-export function formatTransactionLogs(
+function formatTransactionLogs(
     transactionWithMeta: ParsedTransactionWithMeta | null | undefined,
     cluster: Cluster
 ) {

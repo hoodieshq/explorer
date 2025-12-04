@@ -7,12 +7,13 @@ export type InstructionCUData = {
     programId: string;
     computeUnits: number;
 
-    // а надо ли теперь???
-    displayUnits?: string;
-
-    // Reserved compute units value (used when computeUnits is 0)
+    displayUnits?: number;
     reservedValue?: number;
+    minValue: number;
 };
+
+const MIN_VALUE = 150;
+
 
 /**
  * Formats transaction instructions and their corresponding logs into compute unit data
@@ -41,18 +42,15 @@ export function formatInstructionLogs({
         const logEntry = instructionLogs[index];
         const computeUnits = logEntry?.computeUnits ?? 0;
 
-        // Get the reserved compute units from the default values
-        const defaultValue = getDefaultComputeUnits(programId);
-        const reservedValue =
-            defaultValue ?? getReservedComputeUnits({ cluster, epoch, programId });
+        const reservedValue = getDefaultComputeUnits(programId);
+        const displayUnits = getReservedComputeUnits({ cluster, epoch, programId });
 
         const cuData: InstructionCUData = {
-            computeUnits,
-            // Add display value when CU == 0
-            ...(computeUnits === 0 ? { displayUnits: `~${reservedValue.toLocaleString()}` } : {}),
-            programId,
-            // Add reserved value when CU == 0
             ...(computeUnits === 0 ? { reservedValue } : {}),
+            ...(computeUnits === 0 ? { displayUnits } : {}),
+            computeUnits,
+            minValue: MIN_VALUE,
+            programId,
         };
 
         result.push(cuData);

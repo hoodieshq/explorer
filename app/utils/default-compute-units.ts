@@ -1,14 +1,8 @@
-// https://github.com/solana-foundation/solana-improvement-documents/blob/main/proposals/0170-builtin-instruction-cost-and-budget.md
-const MINIMAL_BUILTIN_COMPUTE_UNITS = 3_000;
-
 // https://github.com/anza-xyz/agave/blob/v2.1.13/programs/system/src/system_processor.rs#L299
 const SYSTEM_PROGRAM_INSTRUCTION_COMPUTE_UNITS = 150;
 
 // https://github.com/anza-xyz/agave/blob/v2.1.13/programs/address-lookup-table/src/processor.rs#L23
 const ADDRESS_LOOKUP_TABLE_INSTRUCTION_COMPUTE_UNITS = 750;
-
-// https://github.com/solana-foundation/solana-improvement-documents/blob/main/proposals/0170-builtin-instruction-cost-and-budget.md
-const ADDRESS_LOOKUP_TABLE_MAX_COMPUTE_UNITS = 1200;
 
 // https://github.com/anza-xyz/agave/blob/v2.1.13/programs/bpf_loader/src/lib.rs#L54
 const BPF_LOADER_COMPUTE_UNITS = 570;
@@ -31,9 +25,6 @@ const LOADER_V4_COMPUTE_UNITS = 2000;
 // https://github.com/anza-xyz/agave/blob/v2.1.13/programs/compute-budget/src/lib.rs#L3
 const COMPUTE_BUDGET_PROGRAM_COMPUTE_UNITS = 150;
 
-// https://github.com/solana-foundation/solana-improvement-documents/blob/main/proposals/0170-builtin-instruction-cost-and-budget.md
-const UPGRADEABLE_LOADER_MAX_COMPUTE_UNITS = 2520;
-
 export const PROGRAM_DEFAULT_COMPUTE_UNITS: Record<string, number> = {
     '11111111111111111111111111111111': SYSTEM_PROGRAM_INSTRUCTION_COMPUTE_UNITS,
     'AddressLookupTab1e1111111111111111111111111': ADDRESS_LOOKUP_TABLE_INSTRUCTION_COMPUTE_UNITS,
@@ -47,9 +38,9 @@ export const PROGRAM_DEFAULT_COMPUTE_UNITS: Record<string, number> = {
 };
 
 
-export function getDefaultComputeUnits(programId: string): number | null {
-    return PROGRAM_DEFAULT_COMPUTE_UNITS[programId] ?? null;
+export function getDefaultComputeUnits(programId: string): number {
+    return PROGRAM_DEFAULT_COMPUTE_UNITS[programId] ?? 0;
 }
 
-// нужен ли парсинг по типу инструкции? CreateLookupTable или ExtendLookupTable
-// для AddressLookupTab1e1111111111111111111111111
+// do we need to parse by instuction type? CreateLookupTable or ExtendLookupTable
+// for AddressLookupTab1e1111111111111111111111111
