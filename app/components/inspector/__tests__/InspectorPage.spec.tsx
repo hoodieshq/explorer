@@ -198,7 +198,7 @@ describe('TransactionInspectorPage with Squads Transaction', () => {
 
             await waitFor(
                 () => {
-                    expect(screen.queryByText(/Loading/i)).toBeNull();
+                    expect(screen.queryAllByText(/Loading/i)).toHaveLength(0);
                 },
                 { interval: 50, timeout: 10000 }
             );
