@@ -1,5 +1,5 @@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@components/shared/ui/accordion';
-import { SyntheticEvent, useCallback, useMemo, useRef, useState } from 'react';
+import { SyntheticEvent, useCallback, useMemo, useState } from 'react';
 import { Code, ExternalLink } from 'react-feather';
 
 import { SolarizedJsonViewer as ReactJson } from '@/app/components/common/JsonViewer';
@@ -93,7 +93,6 @@ function TokenExtensionAccordionItem({
     symbol?: string;
 }) {
     const [showRaw, setShowRaw] = useState(false);
-    const accordionTriggerRef = useRef<HTMLButtonElement>(null);
 
     const handleToggleRaw = useCallback(() => {
         onSelect(parsedExtension.extension);
@@ -106,7 +105,7 @@ function TokenExtensionAccordionItem({
 
     return (
         <>
-            <AccordionTrigger className="e-items-center" ref={accordionTriggerRef}>
+            <AccordionTrigger className="e-items-center">
                 <ExtensionListItem ext={parsedExtension} onToggleRaw={handleToggleRaw} raw={showRaw} />
             </AccordionTrigger>
             <AccordionContent>
