@@ -104,7 +104,7 @@ const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
                                         color: rgba(255, 255, 255, 0.9);
                                         font-size: 13px;
                                         padding-left: 20px;
-                                    ">${isReserved && '~'}${cuValue} ${cuText}</div>
+                                    ">${isReserved ? '~' : ''}${cuValue} ${cuText}</div>
                                 </div>
                             `;
                         }
