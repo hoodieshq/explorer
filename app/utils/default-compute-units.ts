@@ -40,6 +40,3 @@ export const PROGRAM_DEFAULT_COMPUTE_UNITS: Record<string, number> = {
 export function getDefaultComputeUnits(programId: string): number {
     return PROGRAM_DEFAULT_COMPUTE_UNITS[programId] ?? 0;
 }
-
-// do we need to parse by instuction type? CreateLookupTable or ExtendLookupTable
-// for AddressLookupTab1e1111111111111111111111111
