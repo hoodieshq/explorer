@@ -10,9 +10,13 @@ import { SolBalanceChangesCard } from './SolBalanceChangesCard';
 type SimulatorCardProps = {
     message: VersionedMessage;
     showTokenBalanceChanges: boolean;
+    accountBalances?: {
+        preBalances: number[];
+        postBalances: number[];
+    };
 };
 
-export function SimulatorCard({ message, showTokenBalanceChanges }: SimulatorCardProps) {
+export function SimulatorCard({ message, showTokenBalanceChanges, accountBalances }: SimulatorCardProps) {
     const { cluster, url } = useCluster();
     const {
         simulate,
@@ -21,7 +25,7 @@ export function SimulatorCard({ message, showTokenBalanceChanges }: SimulatorCar
         simulationError,
         simulationTokenBalanceRows,
         simulationSolBalanceChanges,
-    } = useSimulator(message);
+    } = useSimulator(message, accountBalances);
 
     if (simulating) {
         return (

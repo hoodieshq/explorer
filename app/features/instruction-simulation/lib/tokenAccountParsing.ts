@@ -7,7 +7,7 @@ import {
     type SimulatedTransactionAccountInfo,
 } from '@solana/web3.js';
 
-import { MINT_ACCOUNT_BUFFER_LENGTH } from './constants';
+export const MINT_ACCOUNT_BUFFER_LENGTH = 82;
 
 export function isTokenProgramBase58(programIdBase58: string): boolean {
     return programIdBase58 === TOKEN_PROGRAM_ID.toBase58() || programIdBase58 === TOKEN_2022_PROGRAM_ID.toBase58();

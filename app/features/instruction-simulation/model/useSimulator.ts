@@ -21,7 +21,13 @@ import React from 'react';
 import { getMintDecimals, isTokenProgramBase58 } from '../lib/tokenAccountParsing';
 import type { SolBalanceChange } from '../lib/types';
 
-export function useSimulator(message: VersionedMessage) {
+export function useSimulator(
+    message: VersionedMessage,
+    accountBalances?: {
+        preBalances: number[];
+        postBalances: number[];
+    }
+) {
     const { cluster, url } = useCluster();
     const [simulating, setSimulating] = React.useState(false);
     const [logs, setLogs] = React.useState<Array<InstructionLogs> | null>(null);
@@ -170,11 +176,21 @@ export function useSimulator(message: VersionedMessage) {
                 const solChanges: SolBalanceChange[] = [];
                 for (let index = 0; index < accountKeys.length; index++) {
                     const key = accountKeys[index];
-                    const parsedAccountPre = parsedAccountsPre.value[index];
-                    const accountPostData = accountsPost?.at(index);
 
-                    const pre = parsedAccountPre?.lamports ?? 0;
-                    const post = accountPostData?.lamports ?? 0;
+                    // Use real balances if available, otherwise use simulation data
+                    let pre: number;
+                    let post: number;
+
+                    if (accountBalances) {
+                        pre = accountBalances.preBalances[index] ?? 0;
+                        post = accountBalances.postBalances[index] ?? 0;
+                    } else {
+                        const parsedAccountPre = parsedAccountsPre.value[index];
+                        const accountPostData = accountsPost?.at(index);
+                        pre = parsedAccountPre?.lamports ?? 0;
+                        post = accountPostData?.lamports ?? 0;
+                    }
+
                     const delta = new BN(post).sub(new BN(pre));
 
                     if (!delta.isZero()) {
@@ -216,7 +232,7 @@ export function useSimulator(message: VersionedMessage) {
                 setSimulating(false);
             }
         })();
-    }, [cluster, url, message, simulating]);
+    }, [cluster, url, message, simulating, accountBalances]);
     return {
         simulate: onClick,
         simulating,

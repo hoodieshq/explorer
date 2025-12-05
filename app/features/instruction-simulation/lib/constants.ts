@@ -1,2 +1,0 @@
-export const TOKEN_ACCOUNT_BUFFER_LENGTH = 165;
-export const MINT_ACCOUNT_BUFFER_LENGTH = 82;
