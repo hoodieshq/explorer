@@ -31,7 +31,6 @@ import { intoTransactionInstruction } from '@utils/tx';
 import { useClusterPath } from '@utils/url';
 import useTabVisibility from '@utils/use-tab-visibility';
 import { BigNumber } from 'bignumber.js';
-import BN from 'bn.js';
 import bs58 from 'bs58';
 import Link from 'next/link';
 import React, { Suspense, useEffect, useState } from 'react';
@@ -438,7 +437,7 @@ function AccountsCard({ signature }: SignatureProps) {
                     <Address pubkey={pubkey} link fetchTokenLabelInfo />
                 </td>
                 <td>
-                    <BalanceDelta delta={new BN(delta.toString())} isSol />
+                    <BalanceDelta delta={delta} isSol />
                 </td>
                 <td>
                     <SolBalance lamports={post} />

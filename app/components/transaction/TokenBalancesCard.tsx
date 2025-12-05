@@ -4,7 +4,6 @@ import { useTransactionDetails } from '@providers/transactions';
 import { ParsedMessageAccount, PublicKey, TokenBalance } from '@solana/web3.js';
 import { SignatureProps } from '@utils/index';
 import { BigNumber } from 'bignumber.js';
-import BN from 'bn.js';
 import { useState } from 'react';
 import useAsyncEffect from 'use-async-effect';
 
@@ -119,7 +118,7 @@ function TokenBalanceRow({
                 <Address pubkey={new PublicKey(mint)} link fetchTokenLabelInfo />
             </td>
             <td>
-                <BalanceDelta delta={new BN(delta.multipliedBy(scaledUiAmountMultiplier).integerValue().toString())} />
+                <BalanceDelta delta={delta.multipliedBy(scaledUiAmountMultiplier)} />
             </td>
             <td>
                 {new BigNumber(balance).multipliedBy(scaledUiAmountMultiplier).toString()} {units}
