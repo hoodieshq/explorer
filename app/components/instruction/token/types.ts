@@ -241,6 +241,7 @@ const InitializeMetadataPointer = type({
     mint: PublicKeyFromString,
 });
 
+export type InitializeGroupMemberPointerInfo = Infer<typeof InitializeGroupMemberPointer>;
 const InitializeGroupMemberPointer = type({
     authority: PublicKeyFromString,
     memberAddress: PublicKeyFromString,
@@ -304,6 +305,51 @@ const UpdateMetadataPointer = type({
     mint: PublicKeyFromString,
 });
 
+export type InitializeGroupPointerInfo = Infer<typeof InitializeGroupPointer>;
+const InitializeGroupPointer = type({
+    authority: PublicKeyFromString,
+    groupAddress: PublicKeyFromString,
+    mint: PublicKeyFromString,
+});
+
+export type UpdateGroupPointerInfo = Infer<typeof UpdateGroupPointer>;
+const UpdateGroupPointer = type({
+    authority: PublicKeyFromString,
+    groupAddress: optional(nullable(PublicKeyFromString)),
+    mint: PublicKeyFromString,
+});
+
+export type UpdateGroupMemberPointerInfo = Infer<typeof UpdateGroupMemberPointer>;
+const UpdateGroupMemberPointer = type({
+    authority: PublicKeyFromString,
+    memberAddress: optional(nullable(PublicKeyFromString)),
+    mint: PublicKeyFromString,
+});
+
+export type InitializeTokenGroupInfo = Infer<typeof InitializeTokenGroup>;
+const InitializeTokenGroup = type({
+    group: PublicKeyFromString,
+    maxSize: number(),
+    mint: PublicKeyFromString,
+    mintAuthority: PublicKeyFromString,
+    updateAuthority: PublicKeyFromString,
+});
+
+export type UpdateTokenGroupMaxSizeInfo = Infer<typeof UpdateTokenGroupMaxSize>;
+const UpdateTokenGroupMaxSize = type({
+    group: PublicKeyFromString,
+    maxSize: number(),
+    updateAuthority: PublicKeyFromString,
+});
+
+export type UpdateTokenGroupUpdateAuthorityInfo = Infer<typeof UpdateTokenGroupUpdateAuthority>;
+const UpdateTokenGroupUpdateAuthority = type({
+    group: PublicKeyFromString,
+    newUpdateAuthority: PublicKeyFromString,
+    updateAuthority: PublicKeyFromString,
+});
+
+export type InitializeTokenGroupMemberInfo = Infer<typeof InitializeTokenGroupMember>;
 const InitializeTokenGroupMember = type({
     group: PublicKeyFromString,
     groupUpdateAuthority: PublicKeyFromString,
@@ -358,6 +404,12 @@ export const TokenInstructionType = enums([
     'updateTokenMetadataUpdateAuthority',
     'emitTokenMetadata',
     'updateMetadataPointer',
+    'initializeGroupPointer',
+    'updateGroupPointer',
+    'updateGroupMemberPointer',
+    'initializeTokenGroup',
+    'updateTokenGroupMaxSize',
+    'updateTokenGroupUpdateAuthority',
     'createNativeMint',
 ]);
 
@@ -379,6 +431,7 @@ export const IX_STRUCTS = {
     initializeAccount2: InitializeAccount2,
     initializeAccount3: InitializeAccount3,
     initializeGroupMemberPointer: InitializeGroupMemberPointer,
+    initializeGroupPointer: InitializeGroupPointer,
     initializeImmutableOwner: InitializeImmutableOwner,
     initializeMetadataPointer: InitializeMetadataPointer,
     initializeMint: InitializeMint,
@@ -387,6 +440,7 @@ export const IX_STRUCTS = {
     initializeMultisig: InitializeMultisig,
     initializeNonTransferableMint: InitializeNonTransferableMint,
     initializePermanentDelegate: InitializePermanentDelegate,
+    initializeTokenGroup: InitializeTokenGroup,
     initializeTokenGroupMember: InitializeTokenGroupMember,
     initializeTokenMetadata: InitializeTokenMetadata,
     memoTransferExtension: MemoTransferExtension,
@@ -404,7 +458,11 @@ export const IX_STRUCTS = {
     transferChecked: TransferChecked,
     transferFeeExtension: TransferFeeExtension,
     uiAmountToAmount: UiAmountToAmount,
+    updateGroupMemberPointer: UpdateGroupMemberPointer,
+    updateGroupPointer: UpdateGroupPointer,
     updateMetadataPointer: UpdateMetadataPointer,
+    updateTokenGroupMaxSize: UpdateTokenGroupMaxSize,
+    updateTokenGroupUpdateAuthority: UpdateTokenGroupUpdateAuthority,
     updateTokenMetadataField: UpdateTokenMetadataField,
     updateTokenMetadataUpdateAuthority: UpdateTokenMetadataUpdateAuthority,
 };
@@ -427,6 +485,7 @@ export const IX_TITLES = {
     initializeAccount2: 'Initialize Account (2)',
     initializeAccount3: 'Initialize Account (3)',
     initializeGroupMemberPointer: 'Initialize Group Member Pointer',
+    initializeGroupPointer: 'Initialize Group Pointer',
     initializeImmutableOwner: 'Initialize Immutable Owner',
     initializeMetadataPointer: 'Initialize Metadata Pointer',
     initializeMint: 'Initialize Mint',
@@ -435,6 +494,7 @@ export const IX_TITLES = {
     initializeMultisig: 'Initialize Multisig',
     initializeNonTransferableMint: 'Initialize Non-Transferable Mint',
     initializePermanentDelegate: 'Initialize Permanent Delegate',
+    initializeTokenGroup: 'Initialize Token Group',
     initializeTokenGroupMember: 'Initialize Token Group Member',
     initializeTokenMetadata: 'Initialize Token Metadata',
     memoTransferExtension: 'Memo Transfer Extension',
@@ -452,7 +512,11 @@ export const IX_TITLES = {
     transferChecked: 'Transfer (Checked)',
     transferFeeExtension: 'Transfer Fee Extension',
     uiAmountToAmount: 'UiAmount To Amount',
+    updateGroupMemberPointer: 'Update Group Member Pointer',
+    updateGroupPointer: 'Update Group Pointer',
     updateMetadataPointer: 'Update Metadata Pointer',
+    updateTokenGroupMaxSize: 'Update Token Group Max Size',
+    updateTokenGroupUpdateAuthority: 'Update Token Group Update Authority',
     updateTokenMetadataField: 'Update Token Metadata Field',
     updateTokenMetadataUpdateAuthority: 'Update Token Metadata Update Authority',
 };
