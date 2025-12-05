@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-redeclare */
 
 import { PublicKeyFromString } from '@validators/pubkey';
-import { array, enums, Infer, nullable, number, optional, string, type, union } from 'superstruct';
+import { array, boolean, enums, Infer, nullable, number, optional, string, type, union } from 'superstruct';
 
 export type TokenAmountUi = Infer<typeof TokenAmountUi>;
 export const TokenAmountUi = type({
@@ -234,6 +234,7 @@ const CreateNativeMint = type({
     systemProgram: PublicKeyFromString,
 });
 
+export type InitializeMetadataPointerInfo = Infer<typeof InitializeMetadataPointer>;
 const InitializeMetadataPointer = type({
     authority: PublicKeyFromString,
     metadataAddress: PublicKeyFromString,
@@ -255,6 +256,7 @@ const InitializePermanentDelegate = type({
     mint: PublicKeyFromString,
 });
 
+export type InitializeTokenMetadataInfo = Infer<typeof InitializeTokenMetadata>;
 const InitializeTokenMetadata = type({
     metadata: PublicKeyFromString,
     mint: PublicKeyFromString,
@@ -265,11 +267,41 @@ const InitializeTokenMetadata = type({
     uri: string(),
 });
 
+export type UpdateTokenMetadataFieldInfo = Infer<typeof UpdateTokenMetadataField>;
 const UpdateTokenMetadataField = type({
     field: string(),
     metadata: PublicKeyFromString,
     updateAuthority: PublicKeyFromString,
     value: string(),
+});
+
+export type RemoveTokenMetadataKeyInfo = Infer<typeof RemoveTokenMetadataKey>;
+const RemoveTokenMetadataKey = type({
+    idempotent: optional(boolean()),
+    key: string(),
+    metadata: PublicKeyFromString,
+    updateAuthority: PublicKeyFromString,
+});
+
+export type UpdateTokenMetadataUpdateAuthorityInfo = Infer<typeof UpdateTokenMetadataUpdateAuthority>;
+const UpdateTokenMetadataUpdateAuthority = type({
+    metadata: PublicKeyFromString,
+    newUpdateAuthority: PublicKeyFromString,
+    updateAuthority: PublicKeyFromString,
+});
+
+export type EmitTokenMetadataInfo = Infer<typeof EmitTokenMetadata>;
+const EmitTokenMetadata = type({
+    end: optional(nullable(number())),
+    metadata: PublicKeyFromString,
+    start: optional(nullable(number())),
+});
+
+export type UpdateMetadataPointerInfo = Infer<typeof UpdateMetadataPointer>;
+const UpdateMetadataPointer = type({
+    authority: PublicKeyFromString,
+    metadataAddress: optional(nullable(PublicKeyFromString)),
+    mint: PublicKeyFromString,
 });
 
 const InitializeTokenGroupMember = type({
@@ -322,6 +354,10 @@ export const TokenInstructionType = enums([
     'reallocate',
     'memoTransferExtension',
     'updateTokenMetadataField',
+    'removeTokenMetadataKey',
+    'updateTokenMetadataUpdateAuthority',
+    'emitTokenMetadata',
+    'updateMetadataPointer',
     'createNativeMint',
 ]);
 
@@ -336,6 +372,7 @@ export const IX_STRUCTS = {
     closeAccount: CloseAccount,
     createNativeMint: CreateNativeMint,
     defaultAccountStateExtension: DefaultAccountStateExtension,
+    emitTokenMetadata: EmitTokenMetadata,
     freezeAccount: FreezeAccount,
     getAccountDataSize: GetAccountDataSize,
     initializeAccount: InitializeAccount,
@@ -357,6 +394,7 @@ export const IX_STRUCTS = {
     mintTo2: MintToChecked,
     mintToChecked: MintToChecked,
     reallocate: Reallocate,
+    removeTokenMetadataKey: RemoveTokenMetadataKey,
     revoke: Revoke,
     setAuthority: SetAuthority,
     syncNative: SyncNative,
@@ -366,7 +404,9 @@ export const IX_STRUCTS = {
     transferChecked: TransferChecked,
     transferFeeExtension: TransferFeeExtension,
     uiAmountToAmount: UiAmountToAmount,
+    updateMetadataPointer: UpdateMetadataPointer,
     updateTokenMetadataField: UpdateTokenMetadataField,
+    updateTokenMetadataUpdateAuthority: UpdateTokenMetadataUpdateAuthority,
 };
 
 export const IX_TITLES = {
@@ -380,6 +420,7 @@ export const IX_TITLES = {
     closeAccount: 'Close Account',
     createNativeMint: 'Create Native Mint',
     defaultAccountStateExtension: 'Default Account State Extension',
+    emitTokenMetadata: 'Emit Token Metadata',
     freezeAccount: 'Freeze Account',
     getAccountDataSize: 'Get Account Data Size',
     initializeAccount: 'Initialize Account',
@@ -401,6 +442,7 @@ export const IX_TITLES = {
     mintTo2: 'Mint To (Checked)',
     mintToChecked: 'Mint To (Checked)',
     reallocate: 'Reallocate',
+    removeTokenMetadataKey: 'Remove Token Metadata Key',
     revoke: 'Revoke',
     setAuthority: 'Set Authority',
     syncNative: 'Sync Native',
@@ -410,5 +452,7 @@ export const IX_TITLES = {
     transferChecked: 'Transfer (Checked)',
     transferFeeExtension: 'Transfer Fee Extension',
     uiAmountToAmount: 'UiAmount To Amount',
+    updateMetadataPointer: 'Update Metadata Pointer',
     updateTokenMetadataField: 'Update Token Metadata Field',
+    updateTokenMetadataUpdateAuthority: 'Update Token Metadata Update Authority',
 };
