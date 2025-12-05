@@ -13,6 +13,7 @@ import {
     UpgradeNonceInfo,
     WithdrawNonceInfo,
 } from '@components/instruction/system/types';
+import { TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from '@providers/accounts/tokens';
 import {
     AccountMeta,
     AccountRole,
@@ -190,6 +191,12 @@ function discriminatorToBuffer(discrimnator: number): Buffer {
 function intoProgramName(programId: PublicKey): string | undefined {
     if (programId.equals(spl.ASSOCIATED_TOKEN_PROGRAM_ID)) {
         return 'spl-associated-token-account';
+    }
+    if (programId.equals(TOKEN_PROGRAM_ID)) {
+        return 'spl-token';
+    }
+    if (programId.equals(TOKEN_2022_PROGRAM_ID)) {
+        return 'spl-token-2022';
     }
     /* add other variants here */
 }

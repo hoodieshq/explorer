@@ -269,7 +269,7 @@ const UpdateTokenMetadataField = type({
     field: string(),
     metadata: PublicKeyFromString,
     updateAuthority: PublicKeyFromString,
-    value: PublicKeyFromString,
+    value: string(),
 });
 
 const InitializeTokenGroupMember = type({
