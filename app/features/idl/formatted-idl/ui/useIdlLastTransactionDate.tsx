@@ -45,7 +45,7 @@ export function useIdlLastTransactionDate(
                 return;
         }
 
-        let cancelled = false;
+        const abortController = new AbortController();
 
         async function fetchAndCompareTimestamps() {
             if (!programId) return;
@@ -54,12 +54,15 @@ export function useIdlLastTransactionDate(
                 const connection = new Connection(url);
                 const programPubkey = new PublicKey(programId);
 
-                const [anchorTimestamp, pmpTimestamp] = await Promise.all([
-                    fetchAnchorIdlTimestamp(connection, programPubkey),
-                    fetchPmpIdlTimestamp(url, programId),
+                const [anchorTimestamp, pmpTimestamp] = await Promise.race([
+                    Promise.all([
+                        fetchAnchorIdlTimestamp(connection, programPubkey),
+                        fetchPmpIdlTimestamp(url, programId),
+                    ]),
+                    new Promise<never>((_, reject) => {
+                        abortController.signal.addEventListener('abort', () => reject(new Error('Aborted')));
+                    }),
                 ]);
-
-                if (cancelled) return;
 
                 if (anchorTimestamp !== null && pmpTimestamp !== null) {
                     const preferred = anchorTimestamp >= pmpTimestamp ? IdlVariant.Anchor : IdlVariant.ProgramMetadata;
@@ -70,7 +73,7 @@ export function useIdlLastTransactionDate(
                     setPreferredVariant(IdlVariant.ProgramMetadata);
                 }
             } catch (error) {
-                if (!cancelled) {
+                if (!abortController.signal.aborted) {
                     console.error('[IDL Comparison] Error:', error);
                 }
             }
@@ -79,7 +82,7 @@ export function useIdlLastTransactionDate(
         fetchAndCompareTimestamps();
 
         return () => {
-            cancelled = true;
+            abortController.abort();
         };
     }, [programId, url, hasAnchorIdl, hasPmpIdl]);
 
