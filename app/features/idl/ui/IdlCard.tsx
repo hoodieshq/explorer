@@ -22,6 +22,7 @@ export function IdlCard({ programId }: { programId: string }) {
     const { idl } = useAnchorProgram(programId, url, cluster);
     const { programMetadataIdl } = useProgramMetadataIdl(programId, url, cluster);
     const [activeTabIndex, setActiveTabIndex] = useState<number>();
+    const [searchStr, setSearchStr] = useState<string>('');
 
     const tabs = useMemo<IdlTab[]>(() => {
         const pmpTab: IdlTab = {
@@ -70,7 +71,10 @@ export function IdlCard({ programId }: { programId: string }) {
                                 className={cn('nav-item nav-link', {
                                     active: tab.id === activeTab.id,
                                 })}
-                                onClick={() => setActiveTabIndex(tabs.findIndex(t => t.id === tab.id))}
+                                onClick={() => {
+                                    setActiveTabIndex(tabs.findIndex(t => t.id === tab.id));
+                                    setSearchStr('');
+                                }}
                             >
                                 {tab.title}
                             </button>
@@ -89,6 +93,8 @@ export function IdlCard({ programId }: { programId: string }) {
                     }
                     idl={activeTab.idl}
                     programId={programId}
+                    searchStr={searchStr}
+                    onSearchChange={setSearchStr}
                 />
             </div>
         </div>

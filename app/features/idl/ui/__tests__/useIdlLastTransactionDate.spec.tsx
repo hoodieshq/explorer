@@ -1,6 +1,6 @@
+import { Connection } from '@solana/web3.js';
 import { renderHook, waitFor } from '@testing-library/react';
-import { Connection, PublicKey } from '@solana/web3.js';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { IdlVariant, useIdlLastTransactionDate } from '../useIdlLastTransactionDate';
 
