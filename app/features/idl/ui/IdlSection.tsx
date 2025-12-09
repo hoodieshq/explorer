@@ -1,6 +1,5 @@
 'use client';
 
-import { useDebounceCallback } from '@react-hook/debounce';
 import { Button } from '@shared/ui/button';
 import { Input } from '@shared/ui/input';
 import { Label } from '@shared/ui/label';
@@ -28,9 +27,9 @@ export function IdlSection({
     const [isExpanded, setIsExpanded] = useState(false);
     const [isRawIdlView, setIsRawIdlView] = useState(false);
 
-    const onSearchIdl = useDebounceCallback((str: string) => {
+    const onSearchIdl = (str: string) => {
         onSearchChange(str);
-    }, 1000);
+    };
 
     const idlBase64 = useMemo(() => {
         return Buffer.from(JSON.stringify(idl, null, 2)).toString('base64');
