@@ -2,7 +2,7 @@ import { Connection } from '@solana/web3.js';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { IdlVariant, useIdlLastTransactionDate } from '../useIdlLastTransactionDate';
+import { IdlVariant, useIdlLastTransactionDate } from '../../model/useIdlLastTransactionDate';
 
 vi.mock('@providers/cluster', () => ({
     useCluster: vi.fn(() => ({

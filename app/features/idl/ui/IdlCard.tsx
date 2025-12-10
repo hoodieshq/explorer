@@ -7,9 +7,9 @@ import { Badge } from '@shared/ui/badge';
 import { cn } from '@shared/utils';
 import { useEffect, useMemo, useState } from 'react';
 
+import { IdlVariant, useIdlLastTransactionDate } from '../model/useIdlLastTransactionDate';
 import { IdlSection } from './IdlSection';
 
-type IdlVariant = 'program-metadata' | 'anchor';
 type IdlTab = {
     id: IdlVariant;
     idl: any;
@@ -24,28 +24,32 @@ export function IdlCard({ programId }: { programId: string }) {
     const [activeTabIndex, setActiveTabIndex] = useState<number>();
     const [searchStr, setSearchStr] = useState<string>('');
 
+    const preferredIdlVariant = useIdlLastTransactionDate(programId, Boolean(idl), Boolean(programMetadataIdl));
+
     const tabs = useMemo<IdlTab[]>(() => {
         const pmpTab: IdlTab = {
             badge: 'Program Metadata IDL',
-            id: 'program-metadata',
+            id: IdlVariant.ProgramMetadata,
             idl: programMetadataIdl,
             title: 'Program Metadata',
         };
         const idlTab: IdlTab = {
             badge: 'Anchor IDL',
-            id: 'anchor',
+            id: IdlVariant.Anchor,
             idl: idl,
             title: 'Anchor',
         };
 
-        /// Use PMP's IDL tab as the primary
         const idlTabs: IdlTab[] = [pmpTab];
 
-        // add Anchor's tab only if IDL is present
-        if (idl !== null) idlTabs.push(idlTab);
+        if (preferredIdlVariant === IdlVariant.Anchor) {
+            idlTabs.unshift(idlTab);
+        } else {
+            if (idl !== null) idlTabs.push(idlTab);
+        }
 
         return idlTabs;
-    }, [idl, programMetadataIdl]);
+    }, [idl, programMetadataIdl, preferredIdlVariant]);
 
     useEffect(() => {
         // wait until both data are ready and then activate first available in the array
