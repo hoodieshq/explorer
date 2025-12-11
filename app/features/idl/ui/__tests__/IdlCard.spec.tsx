@@ -1,5 +1,6 @@
 import type { Idl } from '@coral-xyz/anchor';
 import * as anchorModule from '@entities/idl';
+import { PublicKey } from '@solana/web3.js';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { vi } from 'vitest';
@@ -8,7 +9,6 @@ import * as programMetadataIdlModule from '@/app/entities/program-metadata';
 import { ClusterProvider } from '@/app/providers/cluster';
 
 import { IdlCard } from '../IdlCard';
-import { PublicKey } from '@solana/web3.js';
 
 vi.mock('next/navigation', () => ({
     usePathname: vi.fn(),
@@ -43,18 +43,18 @@ vi.mock('@solana/kit', () => ({
 }));
 
 const mockAnchorIdl: Idl = {
+    accounts: [],
     address: PublicKey.default.toString(),
-    errors: [],
     constants: [],
-    types: [],
+    errors: [],
     events: [],
     instructions: [],
-    accounts: [],
     metadata: {
         name: 'anchor_program',
         spec: '0.1.0',
         version: '0.1.0',
     },
+    types: [],
 };
 
 const mockProgramMetadataIdl = {
