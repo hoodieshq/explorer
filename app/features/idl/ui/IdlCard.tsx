@@ -1,5 +1,3 @@
-'use client';
-
 import { getIdlVersion, useAnchorProgram } from '@entities/idl';
 import { useProgramMetadataIdl } from '@entities/program-metadata';
 import { useCluster } from '@providers/cluster';
@@ -7,7 +5,7 @@ import { Badge } from '@shared/ui/badge';
 import { cn } from '@shared/utils';
 import { useEffect, useMemo, useState } from 'react';
 
-import { IdlVariant, useIdlLastTransactionDate } from '../model/useIdlLastTransactionDate';
+import { IdlVariant, useIdlLastTransactionDate } from '../model/use-idl-last-transaction-date';
 import { IdlSection } from './IdlSection';
 
 type IdlTab = {
@@ -27,38 +25,45 @@ export function IdlCard({ programId }: { programId: string }) {
     const preferredIdlVariant = useIdlLastTransactionDate(programId, Boolean(idl), Boolean(programMetadataIdl));
 
     const tabs = useMemo<IdlTab[]>(() => {
-        const pmpTab: IdlTab = {
-            badge: 'Program Metadata IDL',
-            id: IdlVariant.ProgramMetadata,
-            idl: programMetadataIdl,
-            title: 'Program Metadata',
-        };
-        const idlTab: IdlTab = {
-            badge: 'Anchor IDL',
-            id: IdlVariant.Anchor,
-            idl: idl,
-            title: 'Anchor',
-        };
+        const idlTabs: IdlTab[] = [];
 
-        const idlTabs: IdlTab[] = [pmpTab];
+        // Add pmpTab first (default)
+        if (programMetadataIdl) {
+            idlTabs.push({
+                badge: 'Program Metadata IDL',
+                id: IdlVariant.ProgramMetadata,
+                idl: programMetadataIdl,
+                title: 'Program Metadata',
+            });
+        }
 
-        if (preferredIdlVariant === IdlVariant.Anchor) {
-            idlTabs.unshift(idlTab);
-        } else {
-            if (idl !== null) idlTabs.push(idlTab);
+        // Optionally add anchor tab
+        if (idl) {
+            const anchorTab: IdlTab = {
+                badge: 'Anchor IDL',
+                id: IdlVariant.Anchor,
+                idl: idl,
+                title: 'Anchor',
+            };
+            // If anchor is preferred, put it first
+            if (preferredIdlVariant === IdlVariant.Anchor) {
+                idlTabs.unshift(anchorTab);
+            } else {
+                idlTabs.push(anchorTab);
+            }
         }
 
         return idlTabs;
     }, [idl, programMetadataIdl, preferredIdlVariant]);
 
     useEffect(() => {
-        // wait until both data are ready and then activate first available in the array
-        if (tabs.every(tab => tab.idl !== undefined)) {
-            setActiveTabIndex(tabs.findIndex(tab => tab.idl));
+        // Activate first tab when tabs are available
+        if (tabs.length > 0 && activeTabIndex === undefined) {
+            setActiveTabIndex(0);
         }
-    }, [tabs]);
+    }, [tabs, activeTabIndex]);
 
-    if ((!idl && !programMetadataIdl) || activeTabIndex === undefined) {
+    if (tabs.length === 0 || activeTabIndex === undefined) {
         return null;
     }
 
@@ -73,7 +78,7 @@ export function IdlCard({ programId }: { programId: string }) {
                             <button
                                 key={tab.title}
                                 className={cn('nav-item nav-link', {
-                                    active: tab.id === activeTab.id,
+                                    active: tab.id === activeTab?.id,
                                 })}
                                 onClick={() => {
                                     setActiveTabIndex(tabs.findIndex(t => t.id === tab.id));

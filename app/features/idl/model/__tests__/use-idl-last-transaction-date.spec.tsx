@@ -2,7 +2,7 @@ import { Connection } from '@solana/web3.js';
 import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { IdlVariant, useIdlLastTransactionDate } from '../../model/useIdlLastTransactionDate';
+import { IdlVariant, useIdlLastTransactionDate } from '../use-idl-last-transaction-date';
 
 vi.mock('@providers/cluster', () => ({
     useCluster: vi.fn(() => ({
@@ -177,9 +177,7 @@ describe('useIdlLastTransactionDate', () => {
     });
 
     it('should fallback to ProgramMetadata when both timestamp fetches fail', async () => {
-        mockConnection.getSignaturesForAddress
-            .mockResolvedValueOnce([]) 
-            .mockResolvedValueOnce([]);
+        mockConnection.getSignaturesForAddress.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
 
         const { fetchMetadataFromSeeds } = await import('@solana-program/program-metadata');
         vi.mocked(fetchMetadataFromSeeds).mockResolvedValue({

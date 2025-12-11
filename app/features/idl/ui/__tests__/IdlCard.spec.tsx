@@ -8,6 +8,7 @@ import * as programMetadataIdlModule from '@/app/entities/program-metadata';
 import { ClusterProvider } from '@/app/providers/cluster';
 
 import { IdlCard } from '../IdlCard';
+import { PublicKey } from '@solana/web3.js';
 
 vi.mock('next/navigation', () => ({
     usePathname: vi.fn(),
@@ -41,8 +42,14 @@ vi.mock('@solana/kit', () => ({
     })),
 }));
 
-const mockAnchorIdl = {
+const mockAnchorIdl: Idl = {
+    address: PublicKey.default.toString(),
+    errors: [],
+    constants: [],
+    types: [],
+    events: [],
     instructions: [],
+    accounts: [],
     metadata: {
         name: 'anchor_program',
         spec: '0.1.0',
@@ -110,7 +117,7 @@ describe('IdlCard', () => {
 
     test('should render IdlCard with Anchor IDL when anchorIdl exists', async () => {
         vi.spyOn(anchorModule, 'useAnchorProgram').mockReturnValue({
-            idl: mockAnchorIdl as unknown as Idl,
+            idl: mockAnchorIdl,
             program: null,
         });
 
@@ -133,7 +140,7 @@ describe('IdlCard', () => {
 
     test('should render IdlCard tabs when both IDLs exist', async () => {
         vi.spyOn(anchorModule, 'useAnchorProgram').mockReturnValue({
-            idl: mockAnchorIdl as unknown as Idl,
+            idl: mockAnchorIdl,
             program: null,
         });
 

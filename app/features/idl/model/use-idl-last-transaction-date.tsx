@@ -49,7 +49,6 @@ export function useIdlLastTransactionDate(
 
         async function fetchAndCompareTimestamps() {
             if (!programId) return;
-
             try {
                 const connection = new Connection(url);
                 const programPubkey = new PublicKey(programId);
