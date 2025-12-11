@@ -99,6 +99,15 @@ function TokenInstruction(props: InfoProps) {
         decimals = props.info.tokenAmount.decimals;
     }
 
+    attributes.push(
+        <tr key="program">
+            <td>Program</td>
+            <td className="text-lg-end">
+                <Address pubkey={props.ix.programId} alignRight link />
+            </td>
+        </tr>
+    );
+
     if (mintAddress) {
         if (tokenDetails) {
             tokenSymbol = tokenDetails.symbol;
