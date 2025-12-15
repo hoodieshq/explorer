@@ -53,6 +53,7 @@
         "@solana-program/token-2022": "0.6.1",
         "@solana/buffer-layout": "3.0.0",
         "@solana/kit": "2.3.0",
+        "@solana/options": "^5.0.0",
         "@solana/spl-account-compression": "0.1.8",
         "@solana/spl-token": "0.1.8",
         "@solana/wallet-adapter-base": "0.9.27",

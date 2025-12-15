@@ -15,13 +15,14 @@ import {
     UpdateTokenMetadataFieldInfo,
     UpdateTokenMetadataUpdateAuthorityInfo,
 } from '@components/instruction/token/types';
+import { unwrapOption } from '@solana/options';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
-    identifyToken2022Instruction,
     parseEmitTokenMetadataInstruction,
     parseInitializeGroupMemberPointerInstruction,
     parseInitializeGroupPointerInstruction,
     parseInitializeMetadataPointerInstruction,
+    parseInitializeMintInstruction,
     parseInitializeTokenGroupInstruction,
     parseInitializeTokenGroupMemberInstruction,
     parseInitializeTokenMetadataInstruction,
@@ -33,7 +34,6 @@ import {
     parseUpdateTokenGroupUpdateAuthorityInstruction,
     parseUpdateTokenMetadataFieldInstruction,
     parseUpdateTokenMetadataUpdateAuthorityInstruction,
-    Token2022Instruction,
 } from '@solana-program/token-2022';
 
 import { intoInstructionData } from '../into-parsed-data';
@@ -55,6 +55,21 @@ function safeNumber(value: bigint | number): number {
  */
 function tokenMetadataFieldToString(field: { __kind: string; fields?: readonly [string] }): string {
     return field.fields?.[0] ?? field.__kind.toLowerCase();
+}
+
+/**
+ * Convert parsed Token-2022 InitializeMint instruction to RPC format
+ */
+function convertInitializeMintInfo(parsed: any) {
+    const freezeAuthority = unwrapOption(parsed.data.freezeAuthority);
+
+    return {
+        decimals: parsed.data.decimals,
+        freezeAuthority: freezeAuthority ? new PublicKey(freezeAuthority) : null,
+        mint: new PublicKey(parsed.accounts.mint.address),
+        mintAuthority: new PublicKey(parsed.data.mintAuthority),
+        rentSysvar: new PublicKey(parsed.accounts.rent.address),
+    };
 }
 
 /**
@@ -100,9 +115,11 @@ function convertRemoveTokenMetadataKeyInfo(parsed: any): RemoveTokenMetadataKeyI
  * Convert parsed Token-2022 UpdateTokenMetadataUpdateAuthority instruction to RPC format
  */
 function convertUpdateTokenMetadataUpdateAuthorityInfo(parsed: any): UpdateTokenMetadataUpdateAuthorityInfo {
+    const newUpdateAuthority = unwrapOption(parsed.data.newUpdateAuthority);
+
     return {
         metadata: new PublicKey(parsed.accounts.metadata.address),
-        newUpdateAuthority: new PublicKey(parsed.data.newUpdateAuthority),
+        newUpdateAuthority: newUpdateAuthority ? new PublicKey(newUpdateAuthority) : new PublicKey(parsed.accounts.metadata.address),
         updateAuthority: new PublicKey(parsed.accounts.updateAuthority.address),
     };
 }
@@ -122,9 +139,12 @@ function convertEmitTokenMetadataInfo(parsed: any): EmitTokenMetadataInfo {
  * Convert parsed Token-2022 InitializeMetadataPointer instruction to RPC format
  */
 function convertInitializeMetadataPointerInfo(parsed: any): InitializeMetadataPointerInfo {
+    const authority = unwrapOption(parsed.data.authority);
+    const metadataAddress = unwrapOption(parsed.data.metadataAddress);
+
     return {
-        authority: new PublicKey(parsed.data.authority),
-        metadataAddress: new PublicKey(parsed.data.metadataAddress),
+        authority: authority ? new PublicKey(authority) : new PublicKey(parsed.accounts.mint.address),
+        metadataAddress: metadataAddress ? new PublicKey(metadataAddress) : new PublicKey(parsed.accounts.mint.address),
         mint: new PublicKey(parsed.accounts.mint.address),
     };
 }
@@ -133,9 +153,11 @@ function convertInitializeMetadataPointerInfo(parsed: any): InitializeMetadataPo
  * Convert parsed Token-2022 UpdateMetadataPointer instruction to RPC format
  */
 function convertUpdateMetadataPointerInfo(parsed: any): UpdateMetadataPointerInfo {
+    const metadataAddress = unwrapOption(parsed.data.metadataAddress);
+
     return {
-        authority: new PublicKey(parsed.accounts.authority.address),
-        metadataAddress: parsed.data.metadataAddress ? new PublicKey(parsed.data.metadataAddress) : null,
+        authority: new PublicKey(parsed.accounts.metadataPointerAuthority.address),
+        metadataAddress: metadataAddress ? new PublicKey(metadataAddress) : null,
         mint: new PublicKey(parsed.accounts.mint.address),
     };
 }
@@ -144,9 +166,12 @@ function convertUpdateMetadataPointerInfo(parsed: any): UpdateMetadataPointerInf
  * Convert parsed Token-2022 InitializeGroupPointer instruction to RPC format
  */
 function convertInitializeGroupPointerInfo(parsed: any): InitializeGroupPointerInfo {
+    const authority = unwrapOption(parsed.data.authority);
+    const groupAddress = unwrapOption(parsed.data.groupAddress);
+
     return {
-        authority: new PublicKey(parsed.data.authority),
-        groupAddress: new PublicKey(parsed.data.groupAddress),
+        authority: authority ? new PublicKey(authority) : new PublicKey(parsed.accounts.mint.address),
+        groupAddress: groupAddress ? new PublicKey(groupAddress) : new PublicKey(parsed.accounts.mint.address),
         mint: new PublicKey(parsed.accounts.mint.address),
     };
 }
@@ -155,9 +180,11 @@ function convertInitializeGroupPointerInfo(parsed: any): InitializeGroupPointerI
  * Convert parsed Token-2022 UpdateGroupPointer instruction to RPC format
  */
 function convertUpdateGroupPointerInfo(parsed: any): UpdateGroupPointerInfo {
+    const groupAddress = unwrapOption(parsed.data.groupAddress);
+
     return {
-        authority: new PublicKey(parsed.accounts.authority.address),
-        groupAddress: parsed.data.groupAddress ? new PublicKey(parsed.data.groupAddress) : null,
+        authority: new PublicKey(parsed.accounts.groupPointerAuthority.address),
+        groupAddress: groupAddress ? new PublicKey(groupAddress) : null,
         mint: new PublicKey(parsed.accounts.mint.address),
     };
 }
@@ -166,9 +193,12 @@ function convertUpdateGroupPointerInfo(parsed: any): UpdateGroupPointerInfo {
  * Convert parsed Token-2022 InitializeGroupMemberPointer instruction to RPC format
  */
 function convertInitializeGroupMemberPointerInfo(parsed: any): InitializeGroupMemberPointerInfo {
+    const authority = unwrapOption(parsed.data.authority);
+    const memberAddress = unwrapOption(parsed.data.memberAddress);
+
     return {
-        authority: new PublicKey(parsed.data.authority),
-        memberAddress: new PublicKey(parsed.data.memberAddress),
+        authority: authority ? new PublicKey(authority) : new PublicKey(parsed.accounts.mint.address),
+        memberAddress: memberAddress ? new PublicKey(memberAddress) : new PublicKey(parsed.accounts.mint.address),
         mint: new PublicKey(parsed.accounts.mint.address),
     };
 }
@@ -177,9 +207,11 @@ function convertInitializeGroupMemberPointerInfo(parsed: any): InitializeGroupMe
  * Convert parsed Token-2022 UpdateGroupMemberPointer instruction to RPC format
  */
 function convertUpdateGroupMemberPointerInfo(parsed: any): UpdateGroupMemberPointerInfo {
+    const memberAddress = unwrapOption(parsed.data.memberAddress);
+
     return {
-        authority: new PublicKey(parsed.accounts.authority.address),
-        memberAddress: parsed.data.memberAddress ? new PublicKey(parsed.data.memberAddress) : null,
+        authority: new PublicKey(parsed.accounts.groupMemberPointerAuthority.address),
+        memberAddress: memberAddress ? new PublicKey(memberAddress) : null,
         mint: new PublicKey(parsed.accounts.mint.address),
     };
 }
@@ -188,12 +220,14 @@ function convertUpdateGroupMemberPointerInfo(parsed: any): UpdateGroupMemberPoin
  * Convert parsed Token-2022 InitializeTokenGroup instruction to RPC format
  */
 function convertInitializeTokenGroupInfo(parsed: any): InitializeTokenGroupInfo {
+    const updateAuthority = unwrapOption(parsed.data.updateAuthority);
+
     return {
         group: new PublicKey(parsed.accounts.group.address),
-        maxSize: parsed.data.maxSize,
+        maxSize: safeNumber(parsed.data.maxSize),
         mint: new PublicKey(parsed.accounts.mint.address),
         mintAuthority: new PublicKey(parsed.accounts.mintAuthority.address),
-        updateAuthority: new PublicKey(parsed.data.updateAuthority),
+        updateAuthority: updateAuthority ? new PublicKey(updateAuthority) : new PublicKey(parsed.accounts.mintAuthority.address),
     };
 }
 
@@ -203,7 +237,7 @@ function convertInitializeTokenGroupInfo(parsed: any): InitializeTokenGroupInfo 
 function convertUpdateTokenGroupMaxSizeInfo(parsed: any): UpdateTokenGroupMaxSizeInfo {
     return {
         group: new PublicKey(parsed.accounts.group.address),
-        maxSize: parsed.data.maxSize,
+        maxSize: safeNumber(parsed.data.maxSize),
         updateAuthority: new PublicKey(parsed.accounts.updateAuthority.address),
     };
 }
@@ -212,9 +246,11 @@ function convertUpdateTokenGroupMaxSizeInfo(parsed: any): UpdateTokenGroupMaxSiz
  * Convert parsed Token-2022 UpdateTokenGroupUpdateAuthority instruction to RPC format
  */
 function convertUpdateTokenGroupUpdateAuthorityInfo(parsed: any): UpdateTokenGroupUpdateAuthorityInfo {
+    const newUpdateAuthority = unwrapOption(parsed.data.newUpdateAuthority);
+
     return {
         group: new PublicKey(parsed.accounts.group.address),
-        newUpdateAuthority: new PublicKey(parsed.data.newUpdateAuthority),
+        newUpdateAuthority: newUpdateAuthority ? new PublicKey(newUpdateAuthority) : new PublicKey(parsed.accounts.group.address),
         updateAuthority: new PublicKey(parsed.accounts.updateAuthority.address),
     };
 }
@@ -236,137 +272,91 @@ function convertInitializeTokenGroupMemberInfo(parsed: any): InitializeTokenGrou
  * Parse Token-2022 instruction and return parsed data in RPC format
  */
 export function parseToken2022Instruction(instruction: TransactionInstruction): { type: string; info: any } | null {
-    const { data } = instruction;
+    const idata = intoInstructionData(instruction);
+
+    // Try parsing each instruction type - the parsers check discriminators themselves
+    // Token-2022 uses Anchor-style discriminators (8-byte hash) for extension instructions
 
     try {
-        const instructionType = identifyToken2022Instruction(data);
+        const parsedIx = parseInitializeTokenMetadataInstruction(idata);
+        return { info: convertInitializeTokenMetadataInfo(parsedIx), type: 'initializeTokenMetadata' };
+    } catch {}
 
-        switch (instructionType) {
-            case Token2022Instruction.InitializeTokenMetadata: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseInitializeTokenMetadataInstruction(idata);
-                return {
-                    info: convertInitializeTokenMetadataInfo(parsedIx),
-                    type: 'initializeTokenMetadata',
-                };
-            }
-            case Token2022Instruction.UpdateTokenMetadataField: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseUpdateTokenMetadataFieldInstruction(idata);
-                return {
-                    info: convertUpdateTokenMetadataFieldInfo(parsedIx),
-                    type: 'updateTokenMetadataField',
-                };
-            }
-            case Token2022Instruction.RemoveTokenMetadataKey: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseRemoveTokenMetadataKeyInstruction(idata);
-                return {
-                    info: convertRemoveTokenMetadataKeyInfo(parsedIx),
-                    type: 'removeTokenMetadataKey',
-                };
-            }
-            case Token2022Instruction.UpdateTokenMetadataUpdateAuthority: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseUpdateTokenMetadataUpdateAuthorityInstruction(idata);
-                return {
-                    info: convertUpdateTokenMetadataUpdateAuthorityInfo(parsedIx),
-                    type: 'updateTokenMetadataUpdateAuthority',
-                };
-            }
-            case Token2022Instruction.EmitTokenMetadata: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseEmitTokenMetadataInstruction(idata);
-                return {
-                    info: convertEmitTokenMetadataInfo(parsedIx),
-                    type: 'emitTokenMetadata',
-                };
-            }
-            case Token2022Instruction.InitializeMetadataPointer: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseInitializeMetadataPointerInstruction(idata);
-                return {
-                    info: convertInitializeMetadataPointerInfo(parsedIx),
-                    type: 'initializeMetadataPointer',
-                };
-            }
-            case Token2022Instruction.UpdateMetadataPointer: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseUpdateMetadataPointerInstruction(idata);
-                return {
-                    info: convertUpdateMetadataPointerInfo(parsedIx),
-                    type: 'updateMetadataPointer',
-                };
-            }
-            case Token2022Instruction.InitializeGroupPointer: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseInitializeGroupPointerInstruction(idata);
-                return {
-                    info: convertInitializeGroupPointerInfo(parsedIx),
-                    type: 'initializeGroupPointer',
-                };
-            }
-            case Token2022Instruction.UpdateGroupPointer: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseUpdateGroupPointerInstruction(idata);
-                return {
-                    info: convertUpdateGroupPointerInfo(parsedIx),
-                    type: 'updateGroupPointer',
-                };
-            }
-            case Token2022Instruction.InitializeGroupMemberPointer: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseInitializeGroupMemberPointerInstruction(idata);
-                return {
-                    info: convertInitializeGroupMemberPointerInfo(parsedIx),
-                    type: 'initializeGroupMemberPointer',
-                };
-            }
-            case Token2022Instruction.UpdateGroupMemberPointer: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseUpdateGroupMemberPointerInstruction(idata);
-                return {
-                    info: convertUpdateGroupMemberPointerInfo(parsedIx),
-                    type: 'updateGroupMemberPointer',
-                };
-            }
-            case Token2022Instruction.InitializeTokenGroup: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseInitializeTokenGroupInstruction(idata);
-                return {
-                    info: convertInitializeTokenGroupInfo(parsedIx),
-                    type: 'initializeTokenGroup',
-                };
-            }
-            case Token2022Instruction.UpdateTokenGroupMaxSize: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseUpdateTokenGroupMaxSizeInstruction(idata);
-                return {
-                    info: convertUpdateTokenGroupMaxSizeInfo(parsedIx),
-                    type: 'updateTokenGroupMaxSize',
-                };
-            }
-            case Token2022Instruction.UpdateTokenGroupUpdateAuthority: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseUpdateTokenGroupUpdateAuthorityInstruction(idata);
-                return {
-                    info: convertUpdateTokenGroupUpdateAuthorityInfo(parsedIx),
-                    type: 'updateTokenGroupUpdateAuthority',
-                };
-            }
-            case Token2022Instruction.InitializeTokenGroupMember: {
-                const idata = intoInstructionData(instruction);
-                const parsedIx = parseInitializeTokenGroupMemberInstruction(idata);
-                return {
-                    info: convertInitializeTokenGroupMemberInfo(parsedIx),
-                    type: 'initializeTokenGroupMember',
-                };
-            }
-            default: {
-                return null;
-            }
-        }
-    } catch {
-        return null;
-    }
+    try {
+        const parsedIx = parseUpdateTokenMetadataFieldInstruction(idata);
+        return { info: convertUpdateTokenMetadataFieldInfo(parsedIx), type: 'updateTokenMetadataField' };
+    } catch {}
+
+    try {
+        const parsedIx = parseRemoveTokenMetadataKeyInstruction(idata);
+        return { info: convertRemoveTokenMetadataKeyInfo(parsedIx), type: 'removeTokenMetadataKey' };
+    } catch {}
+
+    try {
+        const parsedIx = parseUpdateTokenMetadataUpdateAuthorityInstruction(idata);
+        return { info: convertUpdateTokenMetadataUpdateAuthorityInfo(parsedIx), type: 'updateTokenMetadataUpdateAuthority' };
+    } catch {}
+
+    try {
+        const parsedIx = parseEmitTokenMetadataInstruction(idata);
+        return { info: convertEmitTokenMetadataInfo(parsedIx), type: 'emitTokenMetadata' };
+    } catch {}
+
+    try {
+        const parsedIx = parseInitializeMetadataPointerInstruction(idata);
+        return { info: convertInitializeMetadataPointerInfo(parsedIx), type: 'initializeMetadataPointer' };
+    } catch {}
+
+    try {
+        const parsedIx = parseUpdateMetadataPointerInstruction(idata);
+        return { info: convertUpdateMetadataPointerInfo(parsedIx), type: 'updateMetadataPointer' };
+    } catch {}
+
+    try {
+        const parsedIx = parseInitializeGroupPointerInstruction(idata);
+        return { info: convertInitializeGroupPointerInfo(parsedIx), type: 'initializeGroupPointer' };
+    } catch {}
+
+    try {
+        const parsedIx = parseUpdateGroupPointerInstruction(idata);
+        return { info: convertUpdateGroupPointerInfo(parsedIx), type: 'updateGroupPointer' };
+    } catch {}
+
+    try {
+        const parsedIx = parseInitializeGroupMemberPointerInstruction(idata);
+        return { info: convertInitializeGroupMemberPointerInfo(parsedIx), type: 'initializeGroupMemberPointer' };
+    } catch {}
+
+    try {
+        const parsedIx = parseUpdateGroupMemberPointerInstruction(idata);
+        return { info: convertUpdateGroupMemberPointerInfo(parsedIx), type: 'updateGroupMemberPointer' };
+    } catch {}
+
+    try {
+        const parsedIx = parseInitializeTokenGroupInstruction(idata);
+        return { info: convertInitializeTokenGroupInfo(parsedIx), type: 'initializeTokenGroup' };
+    } catch {}
+
+    try {
+        const parsedIx = parseUpdateTokenGroupMaxSizeInstruction(idata);
+        return { info: convertUpdateTokenGroupMaxSizeInfo(parsedIx), type: 'updateTokenGroupMaxSize' };
+    } catch {}
+
+    try {
+        const parsedIx = parseUpdateTokenGroupUpdateAuthorityInstruction(idata);
+        return { info: convertUpdateTokenGroupUpdateAuthorityInfo(parsedIx), type: 'updateTokenGroupUpdateAuthority' };
+    } catch {}
+
+    try {
+        const parsedIx = parseInitializeTokenGroupMemberInstruction(idata);
+        return { info: convertInitializeTokenGroupMemberInfo(parsedIx), type: 'initializeTokenGroupMember' };
+    } catch {}
+
+    // Try basic SPL Token instructions (these use single-byte discriminators)
+    try {
+        const parsedIx = parseInitializeMintInstruction(idata);
+        return { info: convertInitializeMintInfo(parsedIx), type: 'initializeMint' };
+    } catch {}
+
+    return null;
 }
