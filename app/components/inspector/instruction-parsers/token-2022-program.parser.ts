@@ -119,7 +119,9 @@ function convertUpdateTokenMetadataUpdateAuthorityInfo(parsed: any): UpdateToken
 
     return {
         metadata: new PublicKey(parsed.accounts.metadata.address),
-        newUpdateAuthority: newUpdateAuthority ? new PublicKey(newUpdateAuthority) : new PublicKey(parsed.accounts.metadata.address),
+        newUpdateAuthority: newUpdateAuthority
+            ? new PublicKey(newUpdateAuthority)
+            : new PublicKey(parsed.accounts.metadata.address),
         updateAuthority: new PublicKey(parsed.accounts.updateAuthority.address),
     };
 }
@@ -227,7 +229,9 @@ function convertInitializeTokenGroupInfo(parsed: any): InitializeTokenGroupInfo 
         maxSize: safeNumber(parsed.data.maxSize),
         mint: new PublicKey(parsed.accounts.mint.address),
         mintAuthority: new PublicKey(parsed.accounts.mintAuthority.address),
-        updateAuthority: updateAuthority ? new PublicKey(updateAuthority) : new PublicKey(parsed.accounts.mintAuthority.address),
+        updateAuthority: updateAuthority
+            ? new PublicKey(updateAuthority)
+            : new PublicKey(parsed.accounts.mintAuthority.address),
     };
 }
 
@@ -250,7 +254,9 @@ function convertUpdateTokenGroupUpdateAuthorityInfo(parsed: any): UpdateTokenGro
 
     return {
         group: new PublicKey(parsed.accounts.group.address),
-        newUpdateAuthority: newUpdateAuthority ? new PublicKey(newUpdateAuthority) : new PublicKey(parsed.accounts.group.address),
+        newUpdateAuthority: newUpdateAuthority
+            ? new PublicKey(newUpdateAuthority)
+            : new PublicKey(parsed.accounts.group.address),
         updateAuthority: new PublicKey(parsed.accounts.updateAuthority.address),
     };
 }
@@ -294,7 +300,10 @@ export function parseToken2022Instruction(instruction: TransactionInstruction): 
 
     try {
         const parsedIx = parseUpdateTokenMetadataUpdateAuthorityInstruction(idata);
-        return { info: convertUpdateTokenMetadataUpdateAuthorityInfo(parsedIx), type: 'updateTokenMetadataUpdateAuthority' };
+        return {
+            info: convertUpdateTokenMetadataUpdateAuthorityInfo(parsedIx),
+            type: 'updateTokenMetadataUpdateAuthority',
+        };
     } catch {} // eslint-disable-line no-empty
 
     try {
