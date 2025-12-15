@@ -280,83 +280,83 @@ export function parseToken2022Instruction(instruction: TransactionInstruction): 
     try {
         const parsedIx = parseInitializeTokenMetadataInstruction(idata);
         return { info: convertInitializeTokenMetadataInfo(parsedIx), type: 'initializeTokenMetadata' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseUpdateTokenMetadataFieldInstruction(idata);
         return { info: convertUpdateTokenMetadataFieldInfo(parsedIx), type: 'updateTokenMetadataField' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseRemoveTokenMetadataKeyInstruction(idata);
         return { info: convertRemoveTokenMetadataKeyInfo(parsedIx), type: 'removeTokenMetadataKey' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseUpdateTokenMetadataUpdateAuthorityInstruction(idata);
         return { info: convertUpdateTokenMetadataUpdateAuthorityInfo(parsedIx), type: 'updateTokenMetadataUpdateAuthority' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseEmitTokenMetadataInstruction(idata);
         return { info: convertEmitTokenMetadataInfo(parsedIx), type: 'emitTokenMetadata' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseInitializeMetadataPointerInstruction(idata);
         return { info: convertInitializeMetadataPointerInfo(parsedIx), type: 'initializeMetadataPointer' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseUpdateMetadataPointerInstruction(idata);
         return { info: convertUpdateMetadataPointerInfo(parsedIx), type: 'updateMetadataPointer' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseInitializeGroupPointerInstruction(idata);
         return { info: convertInitializeGroupPointerInfo(parsedIx), type: 'initializeGroupPointer' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseUpdateGroupPointerInstruction(idata);
         return { info: convertUpdateGroupPointerInfo(parsedIx), type: 'updateGroupPointer' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseInitializeGroupMemberPointerInstruction(idata);
         return { info: convertInitializeGroupMemberPointerInfo(parsedIx), type: 'initializeGroupMemberPointer' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseUpdateGroupMemberPointerInstruction(idata);
         return { info: convertUpdateGroupMemberPointerInfo(parsedIx), type: 'updateGroupMemberPointer' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseInitializeTokenGroupInstruction(idata);
         return { info: convertInitializeTokenGroupInfo(parsedIx), type: 'initializeTokenGroup' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseUpdateTokenGroupMaxSizeInstruction(idata);
         return { info: convertUpdateTokenGroupMaxSizeInfo(parsedIx), type: 'updateTokenGroupMaxSize' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseUpdateTokenGroupUpdateAuthorityInstruction(idata);
         return { info: convertUpdateTokenGroupUpdateAuthorityInfo(parsedIx), type: 'updateTokenGroupUpdateAuthority' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     try {
         const parsedIx = parseInitializeTokenGroupMemberInstruction(idata);
         return { info: convertInitializeTokenGroupMemberInfo(parsedIx), type: 'initializeTokenGroupMember' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     // Try basic SPL Token instructions (these use single-byte discriminators)
     try {
         const parsedIx = parseInitializeMintInstruction(idata);
         return { info: convertInitializeMintInfo(parsedIx), type: 'initializeMint' };
-    } catch {}
+    } catch {} // eslint-disable-line no-empty
 
     return null;
 }
