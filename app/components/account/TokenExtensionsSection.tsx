@@ -105,11 +105,11 @@ function TokenExtensionAccordionItem({
 
     return (
         <>
-            <div className="e-flex e-justify-between e-items-center">
+            <div className="e-flex e-items-center e-justify-between">
                 <AccordionTrigger className="e-items-baseline">
                     <ExtensionListItem ext={parsedExtension} />
                 </AccordionTrigger>
-                <div className="e-flex e-gap-1 e-items-center">
+                <div className="e-flex e-items-center e-gap-1">
                     <button
                         onClick={handleToggleRaw}
                         type="button"

@@ -108,6 +108,7 @@
         "@mdx-js/react": "3.1.0",
         "@solana/eslint-config-solana": "1.0.1",
         "@solana/prettier-config-solana": "0.0.2",
+        "@storybook/addon-a11y": "9.1.10",
         "@storybook/addon-docs": "9.1.10",
         "@storybook/addon-onboarding": "9.1.10",
         "@storybook/addon-vitest": "9.1.10",
