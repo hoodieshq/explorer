@@ -40,6 +40,7 @@ describe('formatInstructionLogs', () => {
             expect(result).toEqual([
                 {
                     computeUnits: 5000,
+                    instructionTitle: 'Unknown Program (TokenProgram)',
                     minValue: 150,
                     programId: 'TokenProgram',
                 },
@@ -62,9 +63,9 @@ describe('formatInstructionLogs', () => {
             });
 
             expect(result).toHaveLength(3);
-            expect(result[0]).toEqual({ computeUnits: 5000, minValue: 150, programId: 'TokenProgram' });
-            expect(result[1]).toEqual({ computeUnits: 150, minValue: 150, programId: 'SystemProgram' });
-            expect(result[2]).toEqual({ computeUnits: 1000, minValue: 150, programId: 'MemoProgram' });
+            expect(result[0]).toEqual({ computeUnits: 5000, instructionTitle: 'Unknown Program (TokenProgram)', minValue: 150, programId: 'TokenProgram' });
+            expect(result[1]).toEqual({ computeUnits: 150, instructionTitle: 'Unknown Program (SystemProgram)', minValue: 150, programId: 'SystemProgram' });
+            expect(result[2]).toEqual({ computeUnits: 1000, instructionTitle: 'Unknown Program (MemoProgram)', minValue: 150, programId: 'MemoProgram' });
         });
 
         it('should add displayUnits for instructions with 0 CU', () => {
@@ -82,6 +83,7 @@ describe('formatInstructionLogs', () => {
                 {
                     computeUnits: 0,
                     displayUnits: DEFAULT_RESERVED_CU,
+                    instructionTitle: 'Unknown Program (UnknownProgram)',
                     minValue: 150,
                     programId: 'UnknownProgram',
                     reservedValue: 0,
@@ -177,6 +179,7 @@ describe('formatInstructionLogs', () => {
 
             expect(result[0]).toEqual({
                 computeUnits: 5000,
+                instructionTitle: 'System Program',
                 minValue: 150,
                 programId: '11111111111111111111111111111111',
             });
@@ -212,6 +215,7 @@ describe('formatInstructionLogs', () => {
                 {
                     computeUnits: 0,
                     displayUnits: DEFAULT_RESERVED_CU,
+                    instructionTitle: 'Unknown Program (TokenProgram)',
                     minValue: 150,
                     programId: 'TokenProgram',
                     reservedValue: 0,
@@ -219,6 +223,7 @@ describe('formatInstructionLogs', () => {
                 {
                     computeUnits: 0,
                     displayUnits: DEFAULT_RESERVED_CU,
+                    instructionTitle: 'Unknown Program (SystemProgram)',
                     minValue: 150,
                     programId: 'SystemProgram',
                     reservedValue: 0,
@@ -245,10 +250,11 @@ describe('formatInstructionLogs', () => {
             });
 
             expect(result).toHaveLength(3);
-            expect(result[0]).toEqual({ computeUnits: 5000, minValue: 150, programId: 'TokenProgram' });
+            expect(result[0]).toEqual({ computeUnits: 5000, instructionTitle: 'Unknown Program (TokenProgram)', minValue: 150, programId: 'TokenProgram' });
             expect(result[1]).toEqual({
                 computeUnits: 0,
                 displayUnits: DEFAULT_RESERVED_CU,
+                instructionTitle: 'Unknown Program (SystemProgram)',
                 minValue: 150,
                 programId: 'SystemProgram',
                 reservedValue: 0,
@@ -256,6 +262,7 @@ describe('formatInstructionLogs', () => {
             expect(result[2]).toEqual({
                 computeUnits: 0,
                 displayUnits: DEFAULT_RESERVED_CU,
+                instructionTitle: 'Unknown Program (MemoProgram)',
                 minValue: 150,
                 programId: 'MemoProgram',
                 reservedValue: 0,
@@ -282,10 +289,11 @@ describe('formatInstructionLogs', () => {
             });
 
             expect(result).toEqual([
-                { computeUnits: 5000, minValue: 150, programId: 'TokenProgram' },
+                { computeUnits: 5000, instructionTitle: 'Unknown Program (TokenProgram)', minValue: 150, programId: 'TokenProgram' },
                 {
                     computeUnits: 0,
                     displayUnits: DEFAULT_RESERVED_CU,
+                    instructionTitle: 'Unknown Program (SystemProgram)',
                     minValue: 150,
                     programId: 'SystemProgram',
                     reservedValue: 0,
@@ -293,6 +301,7 @@ describe('formatInstructionLogs', () => {
                 {
                     computeUnits: 0,
                     displayUnits: DEFAULT_RESERVED_CU,
+                    instructionTitle: 'Unknown Program (UnknownProgram)',
                     minValue: 150,
                     programId: 'UnknownProgram',
                     reservedValue: 0,
