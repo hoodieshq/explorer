@@ -10,6 +10,7 @@ type ExtendedBarDataset = ChartData<'bar'>['datasets'][number] & {
     reservedValue?: number;
     actualCU?: number;
     minValue: number;
+    instructionTitle?: string;
 };
 
 const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
@@ -99,6 +100,15 @@ const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
                                             font-weight: 600;
                                         ">${instructionLabel}</div>
                                     </div>
+                                    ${
+                                        dataset.instructionTitle
+                                            && `<div style="
+                                        color: white;
+                                        font-size: 14px;
+                                        padding-left: 20px;
+                                        margin-bottom: 4px;
+                                    ">${dataset.instructionTitle}</div>`
+                                    }
                                     <div style="
                                         color: rgba(255, 255, 255, 0.9);
                                         font-size: 13px;
@@ -179,9 +189,10 @@ function getInstructionColor(index: number): string {
 type CUProfilingCardProps = {
     instructions: InstructionCUData[];
     unitsConsumed?: number;
+    unitsRequested?: number;
 };
 
-export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCardProps) {
+export function CUProfilingCard({ instructions, unitsConsumed, unitsRequested }: CUProfilingCardProps) {
     const instructionsWithDisplay = React.useMemo(
         () =>
             instructions.map(item => ({
@@ -229,6 +240,7 @@ export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCard
                 data: [item.displayCU],
                 displayUnits: item.displayUnits,
                 hoverBackgroundColor: getInstructionColor(i),
+                instructionTitle: item.instructionTitle,
                 label: `Instruction #${i + 1}`,
                 minValue: item.minValue,
                 reservedValue: item.reservedValue,
@@ -246,7 +258,12 @@ export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCard
                 <h3 className="card-header-title">CU profiling</h3>
             </div>
             <div className="e-card-body">
-                {Boolean(unitsConsumed) && <div className="mb-3">Total: {unitsConsumed?.toLocaleString()} CU</div>}
+                {Boolean(unitsConsumed) && (
+                    <div className="mb-3">
+                        Total: {unitsConsumed?.toLocaleString()}
+                        {unitsRequested && `/${unitsRequested.toLocaleString()}`} CU
+                    </div>
+                )}
 
                 <div style={{ height: '32px', marginLeft: '-8px' }}>
                     <Bar data={chartData} options={chartOptions} />
