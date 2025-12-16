@@ -49,7 +49,13 @@ export function CUProfilingSection({ signature }: SignatureProps) {
     if (!logMessages || logMessages.length === 0) return null;
     if (instructionsForCU.length === 0) return null;
 
-    return <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} unitsRequested={requestedUnits} />;
+    return (
+        <CUProfilingCard
+            instructions={instructionsForCU}
+            unitsConsumed={unitsConsumed}
+            unitsRequested={requestedUnits}
+        />
+    );
 }
 
 function formatTransactionLogs(transactionWithMeta: ParsedTransactionWithMeta | null | undefined, cluster: Cluster) {

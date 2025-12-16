@@ -71,7 +71,13 @@ function SimulatorCUProfilingCard({
         );
     }, [message, epoch, cluster]);
 
-    return <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} unitsRequested={requestedUnits} />;
+    return (
+        <CUProfilingCard
+            instructions={instructionsForCU}
+            unitsConsumed={unitsConsumed}
+            unitsRequested={requestedUnits}
+        />
+    );
 }
 
 export function SimulatorCard({

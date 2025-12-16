@@ -101,8 +101,8 @@ const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
                                         ">${instructionLabel}</div>
                                     </div>
                                     ${
-                                        dataset.instructionTitle
-                                            && `<div style="
+                                        dataset.instructionTitle &&
+                                        `<div style="
                                         color: white;
                                         font-size: 14px;
                                         padding-left: 20px;
