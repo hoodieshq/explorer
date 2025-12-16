@@ -60,15 +60,20 @@ function tokenMetadataFieldToString(field: { __kind: string; fields?: readonly [
 /**
  * Convert parsed Token-2022 InitializeMint instruction to RPC format
  */
-function convertInitializeMintInfo(parsed: any) {
-    const freezeAuthority = unwrapOption(parsed.data.freezeAuthority);
+function convertInitializeMintInfo(parsed: unknown) {
+    const typedParsed = parsed as {
+        data: { decimals: number; freezeAuthority: unknown; mintAuthority: unknown };
+        accounts: { mint: { address: unknown }; rent: { address: unknown } };
+    };
+
+    const freezeAuthority = unwrapOption(typedParsed.data.freezeAuthority);
 
     return {
-        decimals: parsed.data.decimals,
-        freezeAuthority: freezeAuthority ? new PublicKey(freezeAuthority) : null,
-        mint: new PublicKey(parsed.accounts.mint.address),
-        mintAuthority: new PublicKey(parsed.data.mintAuthority),
-        rentSysvar: new PublicKey(parsed.accounts.rent.address),
+        decimals: typedParsed.data.decimals,
+        freezeAuthority: freezeAuthority ? new PublicKey(freezeAuthority as PublicKey) : null,
+        mint: new PublicKey(typedParsed.accounts.mint.address as PublicKey),
+        mintAuthority: new PublicKey(typedParsed.data.mintAuthority as PublicKey),
+        rentSysvar: new PublicKey(typedParsed.accounts.rent.address as PublicKey),
     };
 }
 
