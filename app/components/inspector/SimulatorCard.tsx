@@ -16,6 +16,7 @@ import {
     VersionedMessage,
     VersionedTransaction,
 } from '@solana/web3.js';
+import { estimateRequestedComputeUnits } from '@utils/compute-units-schedule';
 import { formatInstructionLogs } from '@utils/cu-profiling';
 import { InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import React from 'react';
@@ -52,7 +53,25 @@ function SimulatorCUProfilingCard({
         });
     }, [message, logs, cluster, epoch]);
 
-    return <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} />;
+    const requestedUnits = React.useMemo(() => {
+        return estimateRequestedComputeUnits(
+            {
+                transaction: {
+                    message: {
+                        compiledInstructions: message.compiledInstructions.map(ix => ({
+                            data: ix.data,
+                            programIdIndex: ix.programIdIndex,
+                        })),
+                        staticAccountKeys: message.staticAccountKeys,
+                    },
+                },
+            },
+            epoch,
+            cluster
+        );
+    }, [message, epoch, cluster]);
+
+    return <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} unitsRequested={requestedUnits} />;
 }
 
 export function SimulatorCard({
