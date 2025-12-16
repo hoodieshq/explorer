@@ -1,3 +1,4 @@
+import path from 'node:path';
 import type { StorybookConfig } from '@storybook/nextjs-vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
@@ -23,6 +24,14 @@ const config: StorybookConfig = {
                     include: ['path', 'util'],
                 }),
             ],
+            resolve: {
+                ...config.resolve,
+                alias: {
+                    ...config.resolve?.alias,
+                    // Mock @bundlr-network/client which uses Node.js stream.Transform incompatible with browser
+                    '@bundlr-network/client': path.resolve(__dirname, './__mocks__/@bundlr-network/client.ts'),
+                },
+            },
         };
     },
 };
