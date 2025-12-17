@@ -17,7 +17,8 @@ export function BalanceDelta({ delta, isSol = false }: { delta: DeltaValue; isSo
     let sols;
 
     if (isSol) {
-        sols = <SolBalance lamports={Math.abs(value.toNumber())} />;
+        const absValue = value.abs();
+        sols = <SolBalance lamports={BigInt(absValue.toString())} />;
     }
 
     if (value.gt(0)) {
