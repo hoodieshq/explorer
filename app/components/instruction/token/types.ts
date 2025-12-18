@@ -432,5 +432,5 @@ export const IX_TITLES = {
     transferFeeExtension: 'Transfer Fee Extension',
     uiAmountToAmount: 'UiAmount To Amount',
     updateTokenMetadataField: 'Update Token Metadata Field',
-    updateTokenMetadataUpdateAuthority: 'Update Token Metadata Update Authority',
+    updateTokenMetadataUpdateAuthority: 'Update Token Metadata Authority',
 };

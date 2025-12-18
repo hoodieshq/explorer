@@ -17,6 +17,7 @@ import {
 } from '@components/instruction/token/types';
 import { type Option, unwrapOption } from '@solana/options';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
+import bs58 from 'bs58';
 import {
     identifyToken2022Instruction,
     parseEmitTokenMetadataInstruction,
@@ -114,6 +115,52 @@ function parseInitializeTokenMetadataInstructionCustom(instruction: TInstruction
             name,
             symbol,
             uri,
+        },
+    };
+}
+
+/**
+ * Custom parser for UpdateTokenMetadataUpdateAuthority instruction.
+ * The library's decoder has a bug where getBytesDecoder() is used without a fixed size
+ * for the discriminator, causing it to consume all remaining bytes.
+ *
+ * Instruction data format:
+ * - 8 bytes: discriminator
+ * - 32 bytes: newUpdateAuthority (Option encoded as address or 32 zero bytes for None)
+ *
+ * Accounts: metadata, updateAuthority
+ */
+function parseUpdateTokenMetadataUpdateAuthorityInstructionCustom(instruction: TInstruction): {
+    accounts: {
+        metadata: { address: string };
+        updateAuthority: { address: string };
+    };
+    data: {
+        newUpdateAuthority: string | null;
+    };
+} {
+    const data = instruction.data;
+    const accounts = instruction.accounts;
+
+    if (accounts.length < 2) {
+        throw new Error('Not enough accounts for UpdateTokenMetadataUpdateAuthority');
+    }
+
+    // Skip the 8-byte discriminator
+    const offset = 8;
+
+    // Read newUpdateAuthority (32 bytes - either an address or 32 zero bytes for None)
+    const authorityBytes = data.slice(offset, offset + 32);
+    const isZero = authorityBytes.every(b => b === 0);
+    const newUpdateAuthority = isZero ? null : bs58.encode(authorityBytes);
+
+    return {
+        accounts: {
+            metadata: { address: accounts[0].address },
+            updateAuthority: { address: accounts[1].address },
+        },
+        data: {
+            newUpdateAuthority,
         },
     };
 }
@@ -404,7 +451,8 @@ export function parseToken2022InstructionData(idata: TInstruction): { type: stri
                 return { info: convertRemoveTokenMetadataKeyInfo(parsed), type: 'removeTokenMetadataKey' };
             }
             case Token2022Instruction.UpdateTokenMetadataUpdateAuthority: {
-                const parsed = parseUpdateTokenMetadataUpdateAuthorityInstruction(idata);
+                // Use custom parser due to bug in library's decoder (getBytesDecoder without fixed size)
+                const parsed = parseUpdateTokenMetadataUpdateAuthorityInstructionCustom(idata);
                 return {
                     info: convertUpdateTokenMetadataUpdateAuthorityInfo(parsed),
                     type: 'updateTokenMetadataUpdateAuthority',
