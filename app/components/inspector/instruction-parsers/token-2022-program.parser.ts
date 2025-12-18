@@ -15,7 +15,7 @@ import {
     UpdateTokenMetadataFieldInfo,
     UpdateTokenMetadataUpdateAuthorityInfo,
 } from '@components/instruction/token/types';
-import { unwrapOption } from '@solana/options';
+import { type Option, unwrapOption } from '@solana/options';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
     parseEmitTokenMetadataInstruction,
@@ -66,7 +66,7 @@ function convertInitializeMintInfo(parsed: unknown) {
         accounts: { mint: { address: unknown }; rent: { address: unknown } };
     };
 
-    const freezeAuthority = unwrapOption(typedParsed.data.freezeAuthority);
+    const freezeAuthority = unwrapOption(typedParsed.data.freezeAuthority as Option<unknown>);
 
     return {
         decimals: typedParsed.data.decimals,
