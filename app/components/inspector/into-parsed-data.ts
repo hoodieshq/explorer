@@ -470,7 +470,7 @@ export function upcastTransactionInstruction(ix: TransactionInstruction) {
  * Wrap instruction into format compatible with @solana-program/token library' parsers.
  */
 type TAccount = NonNullable<AccountMeta>;
-type TInstruction = Instruction<string> &
+export type TInstruction = Instruction<string> &
     InstructionWithAccounts<readonly TAccount[]> &
     InstructionWithData<Uint8Array>;
 export function intoInstructionData(instruction: TransactionInstruction): TInstruction {

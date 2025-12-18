@@ -18,6 +18,7 @@ import {
 import { type Option, unwrapOption } from '@solana/options';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
+    identifyToken2022Instruction,
     parseEmitTokenMetadataInstruction,
     parseInitializeGroupMemberPointerInstruction,
     parseInitializeGroupPointerInstruction,
@@ -34,9 +35,10 @@ import {
     parseUpdateTokenGroupUpdateAuthorityInstruction,
     parseUpdateTokenMetadataFieldInstruction,
     parseUpdateTokenMetadataUpdateAuthorityInstruction,
+    Token2022Instruction,
 } from '@solana-program/token-2022';
 
-import { intoInstructionData } from '../into-parsed-data';
+import { intoInstructionData, TInstruction } from '../into-parsed-data';
 
 /**
  * Helper function to safely convert BigInt or number to regular number
@@ -46,6 +48,74 @@ function safeNumber(value: bigint | number): number {
         return Number(value);
     }
     return value;
+}
+
+/**
+ * Custom parser for InitializeTokenMetadata instruction.
+ * The library's decoder has a bug where getBytesDecoder() is used without a fixed size
+ * for the discriminator, causing it to consume all remaining bytes.
+ *
+ * Instruction data format:
+ * - 8 bytes: discriminator
+ * - u32 + string: name (length-prefixed)
+ * - u32 + string: symbol (length-prefixed)
+ * - u32 + string: uri (length-prefixed)
+ *
+ * Accounts: metadata, updateAuthority, mint, mintAuthority
+ */
+function parseInitializeTokenMetadataInstructionCustom(instruction: TInstruction): {
+    accounts: {
+        metadata: { address: string };
+        updateAuthority: { address: string };
+        mint: { address: string };
+        mintAuthority: { address: string };
+    };
+    data: {
+        name: string;
+        symbol: string;
+        uri: string;
+    };
+} {
+    const data = instruction.data;
+    const accounts = instruction.accounts;
+
+    if (accounts.length < 4) {
+        throw new Error('Not enough accounts for InitializeTokenMetadata');
+    }
+
+    // Skip the 8-byte discriminator
+    let offset = 8;
+
+    // Read name (u32 length + string)
+    const nameLength = new DataView(data.buffer, data.byteOffset + offset, 4).getUint32(0, true);
+    offset += 4;
+    const name = new TextDecoder().decode(data.slice(offset, offset + nameLength));
+    offset += nameLength;
+
+    // Read symbol (u32 length + string)
+    const symbolLength = new DataView(data.buffer, data.byteOffset + offset, 4).getUint32(0, true);
+    offset += 4;
+    const symbol = new TextDecoder().decode(data.slice(offset, offset + symbolLength));
+    offset += symbolLength;
+
+    // Read uri (u32 length + string)
+    const uriLength = new DataView(data.buffer, data.byteOffset + offset, 4).getUint32(0, true);
+    offset += 4;
+    const uri = new TextDecoder().decode(data.slice(offset, offset + uriLength));
+
+    return {
+        accounts: {
+            metadata: { address: accounts[0].address },
+            mintAuthority: { address: accounts[3].address },
+            mint: { address: accounts[2].address },
+            updateAuthority: { address: accounts[1].address },
+        },
+        data: {
+            name,
+            symbol,
+            uri,
+        },
+    };
 }
 
 /**
@@ -280,97 +350,101 @@ function convertInitializeTokenGroupMemberInfo(parsed: any): InitializeTokenGrou
 }
 
 /**
+ * Parse Token-2022 instruction data in @solana-program format and return parsed data in RPC format
+ */
+export function parseToken2022InstructionData(idata: TInstruction): { type: string; info: any } | null {
+    let instructionType: Token2022Instruction;
+    try {
+        instructionType = identifyToken2022Instruction(idata);
+    } catch {
+        return null;
+    }
+
+    try {
+        switch (instructionType) {
+            case Token2022Instruction.InitializeMint: {
+                const parsed = parseInitializeMintInstruction(idata);
+                return { info: convertInitializeMintInfo(parsed), type: 'initializeMint' };
+            }
+            case Token2022Instruction.InitializeMetadataPointer: {
+                const parsed = parseInitializeMetadataPointerInstruction(idata);
+                return { info: convertInitializeMetadataPointerInfo(parsed), type: 'initializeMetadataPointer' };
+            }
+            case Token2022Instruction.UpdateMetadataPointer: {
+                const parsed = parseUpdateMetadataPointerInstruction(idata);
+                return { info: convertUpdateMetadataPointerInfo(parsed), type: 'updateMetadataPointer' };
+            }
+            case Token2022Instruction.InitializeGroupPointer: {
+                const parsed = parseInitializeGroupPointerInstruction(idata);
+                return { info: convertInitializeGroupPointerInfo(parsed), type: 'initializeGroupPointer' };
+            }
+            case Token2022Instruction.UpdateGroupPointer: {
+                const parsed = parseUpdateGroupPointerInstruction(idata);
+                return { info: convertUpdateGroupPointerInfo(parsed), type: 'updateGroupPointer' };
+            }
+            case Token2022Instruction.InitializeGroupMemberPointer: {
+                const parsed = parseInitializeGroupMemberPointerInstruction(idata);
+                return { info: convertInitializeGroupMemberPointerInfo(parsed), type: 'initializeGroupMemberPointer' };
+            }
+            case Token2022Instruction.UpdateGroupMemberPointer: {
+                const parsed = parseUpdateGroupMemberPointerInstruction(idata);
+                return { info: convertUpdateGroupMemberPointerInfo(parsed), type: 'updateGroupMemberPointer' };
+            }
+            case Token2022Instruction.InitializeTokenMetadata: {
+                // Use custom parser due to bug in library's decoder (getBytesDecoder without fixed size)
+                const parsed = parseInitializeTokenMetadataInstructionCustom(idata);
+                return { info: convertInitializeTokenMetadataInfo(parsed), type: 'initializeTokenMetadata' };
+            }
+            case Token2022Instruction.UpdateTokenMetadataField: {
+                const parsed = parseUpdateTokenMetadataFieldInstruction(idata);
+                return { info: convertUpdateTokenMetadataFieldInfo(parsed), type: 'updateTokenMetadataField' };
+            }
+            case Token2022Instruction.RemoveTokenMetadataKey: {
+                const parsed = parseRemoveTokenMetadataKeyInstruction(idata);
+                return { info: convertRemoveTokenMetadataKeyInfo(parsed), type: 'removeTokenMetadataKey' };
+            }
+            case Token2022Instruction.UpdateTokenMetadataUpdateAuthority: {
+                const parsed = parseUpdateTokenMetadataUpdateAuthorityInstruction(idata);
+                return {
+                    info: convertUpdateTokenMetadataUpdateAuthorityInfo(parsed),
+                    type: 'updateTokenMetadataUpdateAuthority',
+                };
+            }
+            case Token2022Instruction.EmitTokenMetadata: {
+                const parsed = parseEmitTokenMetadataInstruction(idata);
+                return { info: convertEmitTokenMetadataInfo(parsed), type: 'emitTokenMetadata' };
+            }
+            case Token2022Instruction.InitializeTokenGroup: {
+                const parsed = parseInitializeTokenGroupInstruction(idata);
+                return { info: convertInitializeTokenGroupInfo(parsed), type: 'initializeTokenGroup' };
+            }
+            case Token2022Instruction.UpdateTokenGroupMaxSize: {
+                const parsed = parseUpdateTokenGroupMaxSizeInstruction(idata);
+                return { info: convertUpdateTokenGroupMaxSizeInfo(parsed), type: 'updateTokenGroupMaxSize' };
+            }
+            case Token2022Instruction.UpdateTokenGroupUpdateAuthority: {
+                const parsed = parseUpdateTokenGroupUpdateAuthorityInstruction(idata);
+                return {
+                    info: convertUpdateTokenGroupUpdateAuthorityInfo(parsed),
+                    type: 'updateTokenGroupUpdateAuthority',
+                };
+            }
+            case Token2022Instruction.InitializeTokenGroupMember: {
+                const parsed = parseInitializeTokenGroupMemberInstruction(idata);
+                return { info: convertInitializeTokenGroupMemberInfo(parsed), type: 'initializeTokenGroupMember' };
+            }
+            default:
+                return null;
+        }
+    } catch {
+        return null;
+    }
+}
+
+/**
  * Parse Token-2022 instruction and return parsed data in RPC format
  */
 export function parseToken2022Instruction(instruction: TransactionInstruction): { type: string; info: any } | null {
     const idata = intoInstructionData(instruction);
-
-    // Try parsing each instruction type - the parsers check discriminators themselves
-    // Token-2022 uses Anchor-style discriminators (8-byte hash) for extension instructions
-
-    try {
-        const parsedIx = parseInitializeTokenMetadataInstruction(idata);
-        return { info: convertInitializeTokenMetadataInfo(parsedIx), type: 'initializeTokenMetadata' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseUpdateTokenMetadataFieldInstruction(idata);
-        return { info: convertUpdateTokenMetadataFieldInfo(parsedIx), type: 'updateTokenMetadataField' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseRemoveTokenMetadataKeyInstruction(idata);
-        return { info: convertRemoveTokenMetadataKeyInfo(parsedIx), type: 'removeTokenMetadataKey' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseUpdateTokenMetadataUpdateAuthorityInstruction(idata);
-        return {
-            info: convertUpdateTokenMetadataUpdateAuthorityInfo(parsedIx),
-            type: 'updateTokenMetadataUpdateAuthority',
-        };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseEmitTokenMetadataInstruction(idata);
-        return { info: convertEmitTokenMetadataInfo(parsedIx), type: 'emitTokenMetadata' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseInitializeMetadataPointerInstruction(idata);
-        return { info: convertInitializeMetadataPointerInfo(parsedIx), type: 'initializeMetadataPointer' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseUpdateMetadataPointerInstruction(idata);
-        return { info: convertUpdateMetadataPointerInfo(parsedIx), type: 'updateMetadataPointer' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseInitializeGroupPointerInstruction(idata);
-        return { info: convertInitializeGroupPointerInfo(parsedIx), type: 'initializeGroupPointer' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseUpdateGroupPointerInstruction(idata);
-        return { info: convertUpdateGroupPointerInfo(parsedIx), type: 'updateGroupPointer' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseInitializeGroupMemberPointerInstruction(idata);
-        return { info: convertInitializeGroupMemberPointerInfo(parsedIx), type: 'initializeGroupMemberPointer' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseUpdateGroupMemberPointerInstruction(idata);
-        return { info: convertUpdateGroupMemberPointerInfo(parsedIx), type: 'updateGroupMemberPointer' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseInitializeTokenGroupInstruction(idata);
-        return { info: convertInitializeTokenGroupInfo(parsedIx), type: 'initializeTokenGroup' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseUpdateTokenGroupMaxSizeInstruction(idata);
-        return { info: convertUpdateTokenGroupMaxSizeInfo(parsedIx), type: 'updateTokenGroupMaxSize' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseUpdateTokenGroupUpdateAuthorityInstruction(idata);
-        return { info: convertUpdateTokenGroupUpdateAuthorityInfo(parsedIx), type: 'updateTokenGroupUpdateAuthority' };
-    } catch {} // eslint-disable-line no-empty
-
-    try {
-        const parsedIx = parseInitializeTokenGroupMemberInstruction(idata);
-        return { info: convertInitializeTokenGroupMemberInfo(parsedIx), type: 'initializeTokenGroupMember' };
-    } catch {} // eslint-disable-line no-empty
-
-    // Try basic SPL Token instructions (these use single-byte discriminators)
-    try {
-        const parsedIx = parseInitializeMintInstruction(idata);
-        return { info: convertInitializeMintInfo(parsedIx), type: 'initializeMint' };
-    } catch {} // eslint-disable-line no-empty
-
-    return null;
+    return parseToken2022InstructionData(idata);
 }
