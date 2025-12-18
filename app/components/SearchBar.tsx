@@ -154,6 +154,7 @@ export function SearchBar() {
                 blurInputOnSelect
                 onChange={onChange}
                 styles={{
+                    control: style => ({ ...style, pointerEvents: 'all' }),
                     input: style => ({
                         ...style,
                         gridTemplateColumns: '0 minmax(min-content, 1fr)',
