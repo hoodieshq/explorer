@@ -1,8 +1,5 @@
 import { ComputeBudgetProgram, ParsedInstruction, PartiallyDecodedInstruction } from '@solana/web3.js';
-import {
-    ComputeBudgetInstruction,
-    identifyComputeBudgetInstruction,
-} from '@solana-program/compute-budget';
+import { ComputeBudgetInstruction, identifyComputeBudgetInstruction } from '@solana-program/compute-budget';
 import bs58 from 'bs58';
 
 import { camelToTitleCase } from '.';
@@ -23,7 +20,9 @@ export type InstructionCUData = {
 
 const MIN_VALUE = 150;
 
-function getComputeBudgetInstructionName(instruction: ParsedInstruction | PartiallyDecodedInstruction): string | undefined {
+function getComputeBudgetInstructionName(
+    instruction: ParsedInstruction | PartiallyDecodedInstruction
+): string | undefined {
     try {
         if (!ComputeBudgetProgram.programId.equals(instruction.programId)) {
             return undefined;
@@ -33,9 +32,10 @@ function getComputeBudgetInstructionName(instruction: ParsedInstruction | Partia
             return undefined;
         }
 
-        const dataBuffer = typeof instruction.data === 'string'
-            ? Buffer.from(bs58.decode(instruction.data))
-            : Buffer.from(instruction.data);
+        const dataBuffer =
+            typeof instruction.data === 'string'
+                ? Buffer.from(bs58.decode(instruction.data))
+                : Buffer.from(instruction.data);
 
         const type = identifyComputeBudgetInstruction(dataBuffer);
 
