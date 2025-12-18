@@ -84,10 +84,10 @@ export async function getTokenInfoWithoutOnChainFallback(
     const chainId = getChainId(cluster);
     if (!chainId) return undefined;
 
-    // Request token info directly from UTL API
+    // Request token info through our API route to avoid CORS issues
     // We don't use the SDK here because we don't want it to fallback to an on-chain request
-    const response = await fetch(`https://token-list-api.solana.cloud/v1/mints?chainId=${chainId}`, {
-        body: JSON.stringify({ addresses: [address.toBase58()] }),
+    const response = await fetch('/api/token-list', {
+        body: JSON.stringify({ addresses: [address.toBase58()], chainId }),
         headers: {
             'Content-Type': 'application/json',
         },
