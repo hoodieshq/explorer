@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react';
+import { waitFor } from '@testing-library/react';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { Button } from './button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './tooltip';
@@ -22,6 +24,25 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
+    async play({ canvasElement }) {
+        const canvas = within(canvasElement);
+        const trigger = canvas.getByRole('button');
+        await userEvent.hover(trigger);
+
+        await waitFor(() => {
+            // Radix UI Tooltip renders two instances of the tooltip text for accessibility:
+            // 1. Visual tooltip - rendered in a portal, visible to users
+            // 2. Hidden element - linked via aria-describedby for screen readers
+            const tooltipContent = document.querySelector('[data-slot="tooltip-content"]');
+            expect(tooltipContent).toBeVisible();
+
+            // Verify accessibility: trigger should have aria-describedby pointing to a hidden element
+            const describedById = trigger.getAttribute('aria-describedby');
+            expect(describedById).toBeTruthy();
+            const screenReaderContent = document.getElementById(describedById!);
+            expect(screenReaderContent).toBeInTheDocument();
+        });
+    },
     render: () => (
         <Tooltip>
             <TooltipTrigger asChild>
