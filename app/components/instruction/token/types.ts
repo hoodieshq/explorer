@@ -528,5 +528,5 @@ export const IX_TITLES = {
     updateTokenGroupUpdateAuthority: 'Update Token Group Update Authority',
     updateTokenMetadataAuthority: 'Update Token Metadata Authority',
     updateTokenMetadataField: 'Update Token Metadata Field',
-    updateTokenMetadataUpdateAuthority: 'Update Token Metadata Update Authority',
+    updateTokenMetadataUpdateAuthority: 'Update Token Metadata Authority',
 };
