@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-redeclare */
 
-import { PublicKeyFromString } from '@validators/pubkey';
+import { NullablePublicKey, PublicKeyFromString } from '@validators/pubkey';
 import { array, boolean, enums, Infer, nullable, number, optional, string, type, union } from 'superstruct';
 
 export type TokenAmountUi = Infer<typeof TokenAmountUi>;
@@ -12,15 +12,15 @@ export const TokenAmountUi = type({
 
 const InitializeMint = type({
     decimals: number(),
-    freezeAuthority: optional(PublicKeyFromString),
+    freezeAuthority: NullablePublicKey,
     mint: PublicKeyFromString,
     mintAuthority: PublicKeyFromString,
-    rentSysvar: PublicKeyFromString,
+    rentSysvar: optional(PublicKeyFromString),
 });
 
 const InitializeMint2 = type({
     decimals: number(),
-    freezeAuthority: PublicKeyFromString,
+    freezeAuthority: NullablePublicKey,
     freezeAuthorityOption: optional(number()),
     mint: PublicKeyFromString,
     mintAuthority: PublicKeyFromString,
