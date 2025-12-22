@@ -17,7 +17,6 @@ import {
 } from '@components/instruction/token/types';
 import { type Option, unwrapOption } from '@solana/options';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
-import bs58 from 'bs58';
 import {
     identifyToken2022Instruction,
     parseEmitTokenMetadataInstruction,
@@ -27,7 +26,6 @@ import {
     parseInitializeMintInstruction,
     parseInitializeTokenGroupInstruction,
     parseInitializeTokenGroupMemberInstruction,
-    parseInitializeTokenMetadataInstruction,
     parseRemoveTokenMetadataKeyInstruction,
     parseUpdateGroupMemberPointerInstruction,
     parseUpdateGroupPointerInstruction,
@@ -35,9 +33,9 @@ import {
     parseUpdateTokenGroupMaxSizeInstruction,
     parseUpdateTokenGroupUpdateAuthorityInstruction,
     parseUpdateTokenMetadataFieldInstruction,
-    parseUpdateTokenMetadataUpdateAuthorityInstruction,
     Token2022Instruction,
 } from '@solana-program/token-2022';
+import bs58 from 'bs58';
 
 import { intoInstructionData, TInstruction } from '../into-parsed-data';
 
@@ -107,8 +105,8 @@ function parseInitializeTokenMetadataInstructionCustom(instruction: TInstruction
     return {
         accounts: {
             metadata: { address: accounts[0].address },
-            mintAuthority: { address: accounts[3].address },
             mint: { address: accounts[2].address },
+            mintAuthority: { address: accounts[3].address },
             updateAuthority: { address: accounts[1].address },
         },
         data: {
