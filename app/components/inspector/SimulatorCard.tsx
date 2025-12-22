@@ -42,6 +42,7 @@ function SimulatorCUProfilingCard({
 }) {
     const instructionsForCU = React.useMemo(() => {
         const instructions = message.compiledInstructions.map(ix => ({
+            data: ix.data,
             programId: message.staticAccountKeys[ix.programIdIndex],
         }));
 

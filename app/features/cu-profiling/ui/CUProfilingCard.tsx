@@ -13,6 +13,10 @@ type ExtendedBarDataset = ChartData<'bar'>['datasets'][number] & {
     instructionTitle?: string;
 };
 
+// We estimate roughly 5.5% of the total chart width for values <= 500
+const MIN_DISPLAY_PERCENTAGE = 0.055;
+const MIN_CU_THRESHOLD = 500;
+
 const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
     let currentMouseX = 0;
 
@@ -207,6 +211,20 @@ export function CUProfilingCard({ instructions, unitsConsumed, unitsRequested }:
         [instructionsWithDisplay]
     );
 
+    const getAdjustedDisplayValue = React.useCallback(
+        (baseCU: number) => {
+            if (baseCU > MIN_CU_THRESHOLD) return baseCU;
+            const minDisplayValue = totalDisplayCU * MIN_DISPLAY_PERCENTAGE;
+            return Math.max(baseCU, minDisplayValue);
+        },
+        [totalDisplayCU]
+    );
+
+    const adjustedTotalCU = React.useMemo(
+        () => instructionsWithDisplay.reduce((sum, item) => sum + getAdjustedDisplayValue(item.displayCU), 0),
+        [instructionsWithDisplay, getAdjustedDisplayValue]
+    );
+
     React.useEffect(() => {
         return () => {
             const tooltipEl = document.getElementById('cu-chartjs-tooltip');
@@ -217,8 +235,8 @@ export function CUProfilingCard({ instructions, unitsConsumed, unitsRequested }:
     }, []);
 
     const chartOptions = React.useMemo<ChartOptions<'bar'>>(
-        () => getCUProfileChartOptions(totalDisplayCU),
-        [totalDisplayCU]
+        () => getCUProfileChartOptions(adjustedTotalCU),
+        [adjustedTotalCU]
     );
 
     const chartData: ChartData<'bar'> = React.useMemo(
@@ -237,7 +255,7 @@ export function CUProfilingCard({ instructions, unitsConsumed, unitsRequested }:
                 },
                 borderSkipped: false,
                 borderWidth: 0,
-                data: [item.displayCU],
+                data: [getAdjustedDisplayValue(item.displayCU)],
                 displayUnits: item.displayUnits,
                 hoverBackgroundColor: getInstructionColor(i),
                 instructionTitle: item.instructionTitle,
@@ -247,7 +265,7 @@ export function CUProfilingCard({ instructions, unitsConsumed, unitsRequested }:
             })),
             labels: [''],
         }),
-        [instructionsWithDisplay]
+        [instructionsWithDisplay, getAdjustedDisplayValue]
     );
 
     if (instructions.length === 0) return null;
