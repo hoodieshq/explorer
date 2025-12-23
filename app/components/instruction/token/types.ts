@@ -284,6 +284,79 @@ const RemoveTokenMetadataKey = type({
     updateAuthority: PublicKeyFromString,
 });
 
+export type UpdateTokenMetadataUpdateAuthorityInfo = Infer<typeof UpdateTokenMetadataUpdateAuthority>;
+const UpdateTokenMetadataUpdateAuthority = type({
+    metadata: PublicKeyFromString,
+    newUpdateAuthority: PublicKeyFromString,
+    updateAuthority: PublicKeyFromString,
+});
+
+export type UpdateTokenMetadataAuthorityInfo = Infer<typeof UpdateTokenMetadataAuthority>;
+const UpdateTokenMetadataAuthority = type({
+    metadata: PublicKeyFromString,
+    newAuthority: PublicKeyFromString,
+    updateAuthority: PublicKeyFromString,
+});
+
+export type EmitTokenMetadataInfo = Infer<typeof EmitTokenMetadata>;
+const EmitTokenMetadata = type({
+    end: optional(nullable(number())),
+    metadata: PublicKeyFromString,
+    start: optional(nullable(number())),
+});
+
+export type UpdateMetadataPointerInfo = Infer<typeof UpdateMetadataPointer>;
+const UpdateMetadataPointer = type({
+    authority: PublicKeyFromString,
+    metadataAddress: optional(nullable(PublicKeyFromString)),
+    mint: PublicKeyFromString,
+});
+
+export type InitializeGroupPointerInfo = Infer<typeof InitializeGroupPointer>;
+const InitializeGroupPointer = type({
+    authority: PublicKeyFromString,
+    groupAddress: PublicKeyFromString,
+    mint: PublicKeyFromString,
+});
+
+export type UpdateGroupPointerInfo = Infer<typeof UpdateGroupPointer>;
+const UpdateGroupPointer = type({
+    authority: PublicKeyFromString,
+    groupAddress: optional(nullable(PublicKeyFromString)),
+    mint: PublicKeyFromString,
+});
+
+export type UpdateGroupMemberPointerInfo = Infer<typeof UpdateGroupMemberPointer>;
+const UpdateGroupMemberPointer = type({
+    authority: PublicKeyFromString,
+    memberAddress: optional(nullable(PublicKeyFromString)),
+    mint: PublicKeyFromString,
+});
+
+export type InitializeTokenGroupInfo = Infer<typeof InitializeTokenGroup>;
+const InitializeTokenGroup = type({
+    group: PublicKeyFromString,
+    maxSize: number(),
+    mint: PublicKeyFromString,
+    mintAuthority: PublicKeyFromString,
+    updateAuthority: PublicKeyFromString,
+});
+
+export type UpdateTokenGroupMaxSizeInfo = Infer<typeof UpdateTokenGroupMaxSize>;
+const UpdateTokenGroupMaxSize = type({
+    group: PublicKeyFromString,
+    maxSize: number(),
+    updateAuthority: PublicKeyFromString,
+});
+
+export type UpdateTokenGroupUpdateAuthorityInfo = Infer<typeof UpdateTokenGroupUpdateAuthority>;
+const UpdateTokenGroupUpdateAuthority = type({
+    group: PublicKeyFromString,
+    newUpdateAuthority: PublicKeyFromString,
+    updateAuthority: PublicKeyFromString,
+});
+
+export type InitializeTokenGroupMemberInfo = Infer<typeof InitializeTokenGroupMember>;
 const InitializeTokenGroupMember = type({
     group: PublicKeyFromString,
     groupUpdateAuthority: PublicKeyFromString,
@@ -334,6 +407,17 @@ export const TokenInstructionType = enums([
     'reallocate',
     'memoTransferExtension',
     'updateTokenMetadataField',
+    'removeTokenMetadataKey',
+    'updateTokenMetadataAuthority',
+    'updateTokenMetadataUpdateAuthority',
+    'emitTokenMetadata',
+    'updateMetadataPointer',
+    'initializeGroupPointer',
+    'updateGroupPointer',
+    'updateGroupMemberPointer',
+    'initializeTokenGroup',
+    'updateTokenGroupMaxSize',
+    'updateTokenGroupUpdateAuthority',
     'createNativeMint',
 ]);
 
@@ -382,6 +466,12 @@ export const IX_STRUCTS = {
     transferChecked: TransferChecked,
     transferFeeExtension: TransferFeeExtension,
     uiAmountToAmount: UiAmountToAmount,
+    updateGroupMemberPointer: UpdateGroupMemberPointer,
+    updateGroupPointer: UpdateGroupPointer,
+    updateMetadataPointer: UpdateMetadataPointer,
+    updateTokenGroupMaxSize: UpdateTokenGroupMaxSize,
+    updateTokenGroupUpdateAuthority: UpdateTokenGroupUpdateAuthority,
+    updateTokenMetadataAuthority: UpdateTokenMetadataAuthority,
     updateTokenMetadataField: UpdateTokenMetadataField,
     updateTokenMetadataUpdateAuthority: UpdateTokenMetadataUpdateAuthority,
 };
@@ -431,6 +521,12 @@ export const IX_TITLES = {
     transferChecked: 'Transfer (Checked)',
     transferFeeExtension: 'Transfer Fee Extension',
     uiAmountToAmount: 'UiAmount To Amount',
+    updateGroupMemberPointer: 'Update Group Member Pointer',
+    updateGroupPointer: 'Update Group Pointer',
+    updateMetadataPointer: 'Update Metadata Pointer',
+    updateTokenGroupMaxSize: 'Update Token Group Max Size',
+    updateTokenGroupUpdateAuthority: 'Update Token Group Update Authority',
+    updateTokenMetadataAuthority: 'Update Token Metadata Authority',
     updateTokenMetadataField: 'Update Token Metadata Field',
-    updateTokenMetadataUpdateAuthority: 'Update Token Metadata Authority',
+    updateTokenMetadataUpdateAuthority: 'Update Token Metadata Update Authority',
 };
