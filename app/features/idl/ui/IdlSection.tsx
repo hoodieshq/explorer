@@ -1,6 +1,4 @@
-'use client';
-
-import { useDebounceCallback } from '@react-hook/debounce';
+import type { SupportedIdl } from '@entities/idl';
 import { Button } from '@shared/ui/button';
 import { Input } from '@shared/ui/input';
 import { Label } from '@shared/ui/label';
@@ -8,18 +6,26 @@ import { Switch } from '@shared/ui/switch';
 import { useMemo, useState } from 'react';
 import { Code, Download, Search } from 'react-feather';
 
+import { WalletProvider } from '@/app/providers/wallet-provider';
 import { triggerDownload } from '@/app/shared/lib/triggerDownload';
 
 import { IdlRenderer } from './IdlRenderer';
 
-export function IdlSection({ idl, badge, programId }: { idl: any; badge: React.ReactNode; programId: string }) {
+export function IdlSection({
+    idl,
+    badge,
+    programId,
+    searchStr,
+    onSearchChange,
+}: {
+    idl: SupportedIdl;
+    badge: React.ReactNode;
+    programId: string;
+    searchStr: string;
+    onSearchChange: (str: string) => void;
+}) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isRawIdlView, setIsRawIdlView] = useState(false);
-    const [searchStr, setSearchStr] = useState('');
-
-    const onSearchIdl = useDebounceCallback((str: string) => {
-        setSearchStr(str);
-    }, 1000);
 
     const idlBase64 = useMemo(() => {
         return Buffer.from(JSON.stringify(idl, null, 2)).toString('base64');
@@ -46,7 +52,8 @@ export function IdlSection({ idl, badge, programId }: { idl: any; badge: React.R
                                 placeholder="Search..."
                                 variant="dark"
                                 className="e-pl-9"
-                                onChange={e => onSearchIdl(e.target.value)}
+                                value={searchStr}
+                                onChange={e => onSearchChange(e.target.value)}
                             />
                         </div>
                     )}
@@ -69,13 +76,15 @@ export function IdlSection({ idl, badge, programId }: { idl: any; badge: React.R
             </div>
 
             <div className="e-mt-4 e-min-h-48">
-                <IdlRenderer
-                    idl={idl}
-                    collapsed={!isExpanded}
-                    raw={isRawIdlView}
-                    searchStr={searchStr}
-                    programId={programId}
-                />
+                <WalletProvider skipToast autoConnect>
+                    <IdlRenderer
+                        idl={idl}
+                        collapsed={!isExpanded}
+                        raw={isRawIdlView}
+                        searchStr={searchStr}
+                        programId={programId}
+                    />
+                </WalletProvider>
             </div>
         </>
     );
