@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react';
-import { expect, within } from 'storybook/test';
+import { expect, userEvent, within } from 'storybook/test';
 
 import { ClusterProvider } from '@/app/providers/cluster';
 
@@ -36,25 +36,30 @@ export const Default: Story = {
         expect(placeholder).toBeInTheDocument();
     },
 };
-export const PointerEventsEnabled: Story = {
-    name: 'Pointer Events Enabled (Mobile Context Menu Fix)',
+export const MobileContextMenuFix: Story = {
+    name: 'Mobile Context Menu Fix (Copy/Paste)',
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
         const input = canvas.getByRole('combobox');
 
-        // Find the control container by traversing up from the input
-        // The control is the ancestor with role and classes applied by react-select
-        const control = input.closest('[class*="control"]');
+        // Verify input is visible and interactable
+        expect(input).toBeVisible();
+        expect(input).toBeEnabled();
 
-        expect(control).toBeInTheDocument();
+        // Verify input has sufficient width for touch targets
+        // By default react-select input is only 2px wide, making it impossible to tap on mobile
+        // Minimum touch target is 44px (Apple HIG) / 48px (Material Design)
+        // See: https://github.com/JedWatson/react-select/issues/4106
+        const inputRect = input.getBoundingClientRect();
+        expect(inputRect.width).toBeGreaterThan(44);
 
-        // Verify pointer-events is set to 'all' on the control
-        // This is critical for mobile Safari to show context menu (copy/paste) on long-press
-        const ctx = control!.ownerDocument.defaultView!;
-        const computedStyle = ctx.getComputedStyle(control as Element);
-        expect(computedStyle.pointerEvents).toBe('all');
+        // Verify we can click and type in the input
+        // This fails if pointer-events is 'none' on the control
+        // See: https://github.com/JedWatson/react-select/issues/3857
+        await userEvent.click(input);
+        expect(input).toHaveFocus();
 
-        // Verify the input is focusable (touch-action should not be 'none')
-        expect(input).not.toHaveStyle({ touchAction: 'none' });
+        await userEvent.type(input, 'test');
+        expect(input).toHaveValue('test');
     },
 };
