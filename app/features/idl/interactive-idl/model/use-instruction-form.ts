@@ -2,50 +2,7 @@ import type { ArgField, InstructionAccountData, InstructionData, NestedInstructi
 import { type Path, type SubmitHandler, useForm, type UseFormSetValue } from 'react-hook-form';
 
 import { isRequiredArg } from '../lib/instruction-args';
-
-type ArgumentType =
-    | 'bool'
-    | 'u8'
-    | 'u16'
-    | 'u32'
-    | 'u64'
-    | 'u128'
-    | 'i8'
-    | 'i16'
-    | 'i32'
-    | 'i64'
-    | 'i128'
-    | 'f32'
-    | 'f64'
-    | 'string'
-    | 'bytes'
-    | 'publicKey'
-    | 'pubkey';
-
-/* eslint-disable sort-keys-fix/sort-keys-fix */
-const DEFAULT_VALUES_PER_TYPE: Record<ArgumentType, string> = {
-    bool: 'false',
-    u8: '1',
-    u16: '1',
-    u32: '1',
-    u64: '1',
-    u128: '1',
-    i8: '1',
-    i16: '1',
-    i32: '1',
-    i64: '1',
-    i128: '1',
-    f32: '1.0',
-    f64: '1.0',
-    string: 'default',
-    bytes: 'data',
-    publicKey: '11111111111111111111111111111111',
-    pubkey: '11111111111111111111111111111111',
-} as const;
-/* eslint-enable sort-keys-fix/sort-keys-fix */
-
-const WRAPPED_TYPES_REGEXP = /^(?:option|coption|vec|array)\s*\(\s*([^,)]+)/;
-
+import { findDefaultValueForArgumentType } from './form-prefill/providers/argument-data-types-prefill-provider';
 export type InstructionCallParams = {
     accounts: Record<string, string>;
     arguments: Record<string, string>;
@@ -173,12 +130,4 @@ export function flattenNestedRecord(
     });
 
     return result;
-}
-
-function findDefaultValueForArgumentType(arg_type: string) {
-    const matches = arg_type.match(WRAPPED_TYPES_REGEXP);
-    if (matches) {
-        return DEFAULT_VALUES_PER_TYPE[matches[1] as ArgumentType] || '';
-    }
-    return DEFAULT_VALUES_PER_TYPE[arg_type as ArgumentType] || '';
 }
