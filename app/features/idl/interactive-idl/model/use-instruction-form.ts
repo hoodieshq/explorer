@@ -1,5 +1,3 @@
-'use client';
-
 import type { ArgField, InstructionAccountData, InstructionData, NestedInstructionAccountsData } from '@entities/idl';
 import { type Path, type SubmitHandler, useForm, type UseFormSetValue } from 'react-hook-form';
 
