@@ -105,7 +105,7 @@ export function useTabs(idl: FormattedIdl | null, originalIdl: SupportedIdl, sea
         ];
 
         // Only show interactive tab for Anchor IDLs (getIdlSpec returns null for legacy and codama)
-        if (originalIdl && getIdlSpec(originalIdl) !== null && !IS_INTERACTIVE_IDL_ENABLED) {
+        if (originalIdl && getIdlSpec(originalIdl) !== null && IS_INTERACTIVE_IDL_ENABLED) {
             const isInteractDisabled = !isInteractiveIdlSupported(originalIdl);
 
             tabItems.push({
