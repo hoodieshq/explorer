@@ -42,7 +42,7 @@ const DEFAULT_VALUES_PER_TYPE: Record<ArgumentType, string> = {
     publicKey: '11111111111111111111111111111111',
     pubkey: '11111111111111111111111111111111',
 } as const;
-/* eslint-disable */
+/* eslint-enable sort-keys-fix/sort-keys-fix */
 
 const WRAPPED_TYPES_REGEXP = /^(?:option|coption|vec|array)\s*\(\s*([^,)]+)/;
 
