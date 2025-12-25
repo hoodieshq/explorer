@@ -1,10 +1,13 @@
-import { ComputeBudgetProgram, ParsedInstruction, PartiallyDecodedInstruction, PublicKey } from '@solana/web3.js';
+import {
+    ComputeBudgetProgram,
+    ParsedInstruction,
+    PartiallyDecodedInstruction,
+    PublicKey,
+    TransactionInstruction,
+} from '@solana/web3.js';
 import { ComputeBudgetInstruction, identifyComputeBudgetInstruction } from '@solana-program/compute-budget';
 import {
-    AssociatedTokenInstruction,
     ASSOCIATED_TOKEN_PROGRAM_ADDRESS,
-    CREATE_ASSOCIATED_TOKEN_DISCRIMINATOR,
-    identifyAssociatedTokenInstruction,
     identifyTokenInstruction,
     TOKEN_PROGRAM_ADDRESS,
     TokenInstruction,
@@ -12,6 +15,8 @@ import {
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import { MEMO_PROGRAM_ADDRESS } from '@solana-program/memo';
 import bs58 from 'bs58';
+
+import { privateIntoParsedData } from '@components/inspector/into-parsed-data';
 
 const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(ASSOCIATED_TOKEN_PROGRAM_ADDRESS);
 const TOKEN_PROGRAM_ID = new PublicKey(TOKEN_PROGRAM_ADDRESS);
@@ -71,24 +76,14 @@ function getATAInstructionName(instruction: ParsedInstruction | PartiallyDecoded
         }
 
         if ('data' in instruction && instruction.data) {
-            let dataBuffer = getInstructionDataBuffer(instruction.data);
+            const transactionInstruction = new TransactionInstruction({
+                data: getInstructionDataBuffer(instruction.data),
+                keys: [],
+                programId: instruction.programId,
+            });
 
-            if (dataBuffer.equals(Buffer.alloc(CREATE_ASSOCIATED_TOKEN_DISCRIMINATOR))) {
-                dataBuffer = Buffer.from(Uint8Array.from([CREATE_ASSOCIATED_TOKEN_DISCRIMINATOR]));
-            }
-
-            const instructionType = identifyAssociatedTokenInstruction(dataBuffer);
-
-            switch (instructionType) {
-                case AssociatedTokenInstruction.CreateAssociatedToken:
-                    return 'create';
-                case AssociatedTokenInstruction.CreateAssociatedTokenIdempotent:
-                    return 'createIdempotent';
-                case AssociatedTokenInstruction.RecoverNestedAssociatedToken:
-                    return 'recoverNested';
-                default:
-                    return undefined;
-            }
+            const parsed = privateIntoParsedData(transactionInstruction);
+            return parsed.type || undefined;
         }
 
         return undefined;
