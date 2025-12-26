@@ -202,9 +202,7 @@ function createInstruction(overrides?: Partial<InstructionData>): InstructionDat
     };
 }
 
-function createArgField({ name, type, rawType }: {
-    name: string, type: string, rawType?: IdlType
-}) {
+function createArgField({ name, type, rawType }: { name: string; type: string; rawType?: IdlType }) {
     return {
         docs: [],
         name,
