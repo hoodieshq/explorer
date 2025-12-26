@@ -1,3 +1,4 @@
+import { IdlType } from '@coral-xyz/anchor/dist/cjs/idl';
 import type { UseFormReturn } from 'react-hook-form';
 
 import type { InstructionFormData } from '../use-instruction-form';
@@ -26,21 +27,4 @@ export type UseFormPrefillOptions = {
     config: PrefillConfig;
 };
 
-export type ArgumentType =
-    | 'bool'
-    | 'u8'
-    | 'u16'
-    | 'u32'
-    | 'u64'
-    | 'u128'
-    | 'i8'
-    | 'i16'
-    | 'i32'
-    | 'i64'
-    | 'i128'
-    | 'f32'
-    | 'f64'
-    | 'string'
-    | 'bytes'
-    | 'publicKey'
-    | 'pubkey';
+export type ArgumentType = Extract<IdlType, string>;

@@ -106,7 +106,7 @@ function createDefaultValues(instruction: InstructionData): InstructionFormData 
             if (!acc[instruction.name]) {
                 acc[instruction.name] = {};
             }
-            acc[instruction.name][arg.name] = findDefaultValueForArgumentType(arg.type);
+            acc[instruction.name][arg.name] = findDefaultValueForArgumentType(arg.rawType || arg.type);
             return acc;
         }, {} as Record<string, Record<string, string>>),
     };
