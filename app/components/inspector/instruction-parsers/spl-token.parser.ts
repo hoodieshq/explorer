@@ -44,6 +44,13 @@ export function parseTokenProgramInstruction(
                 };
                 return { info, type: 'closeAccount' };
             }
+            case TokenInstruction.SyncNative: {
+                const parsed = parseSyncNativeInstruction(intoInstructionData(instruction));
+                const info = {
+                    account: new PublicKey(parsed.accounts.account.address),
+                };
+                return { info, type: 'syncNative' };
+            }
             case TokenInstruction.Transfer: {
                 const parsed = parseTransferInstruction(intoInstructionData(instruction));
                 const info = {
@@ -70,13 +77,6 @@ export function parseTokenProgramInstruction(
                     },
                 };
                 return { info, type: 'transferChecked' };
-            }
-            case TokenInstruction.SyncNative: {
-                const parsed = parseSyncNativeInstruction(intoInstructionData(instruction));
-                const info = {
-                    account: new PublicKey(parsed.accounts.account.address),
-                };
-                return { info, type: 'syncNative' };
             }
             default: {
                 return null;
