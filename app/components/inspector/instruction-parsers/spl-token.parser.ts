@@ -1,3 +1,4 @@
+import { TokenInstructionType } from '@components/instruction/token/types';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
     identifyTokenInstruction,
@@ -10,13 +11,15 @@ import {
 } from '@solana-program/token';
 import { normalizeTokenAmount } from '@utils/index';
 
-import { upcastTransactionInstruction } from '../into-parsed-data';
+import { intoInstructionData } from '../into-parsed-data';
 
 /**
  * Parser for SPL Token Program instructions.
- * Returns { type: string; info: any } | null format.
+ * Returns { type: TokenInstructionType; info: any } | null format.
  */
-export function parseTokenProgramInstruction(instruction: TransactionInstruction): { type: string; info: any } | null {
+export function parseTokenProgramInstruction(
+    instruction: TransactionInstruction
+): { type: TokenInstructionType; info: unknown } | null {
     const { data } = instruction;
 
     try {
@@ -24,7 +27,7 @@ export function parseTokenProgramInstruction(instruction: TransactionInstruction
 
         switch (instructionType) {
             case TokenInstruction.Transfer: {
-                const parsed = parseTransferInstruction(upcastTransactionInstruction(instruction));
+                const parsed = parseTransferInstruction(intoInstructionData(instruction));
                 const info = {
                     amount: parsed.data.amount.toString(),
                     authority: new PublicKey(parsed.accounts.authority.address),
@@ -34,7 +37,7 @@ export function parseTokenProgramInstruction(instruction: TransactionInstruction
                 return { info, type: 'transfer' };
             }
             case TokenInstruction.TransferChecked: {
-                const parsed = parseTransferCheckedInstruction(upcastTransactionInstruction(instruction));
+                const parsed = parseTransferCheckedInstruction(intoInstructionData(instruction));
                 const amount = parsed.data.amount.toString();
                 const decimals = parsed.data.decimals;
                 const info = {
@@ -51,14 +54,14 @@ export function parseTokenProgramInstruction(instruction: TransactionInstruction
                 return { info, type: 'transferChecked' };
             }
             case TokenInstruction.SyncNative: {
-                const parsed = parseSyncNativeInstruction(upcastTransactionInstruction(instruction));
+                const parsed = parseSyncNativeInstruction(intoInstructionData(instruction));
                 const info = {
                     account: new PublicKey(parsed.accounts.account.address),
                 };
                 return { info, type: 'syncNative' };
             }
             case TokenInstruction.InitializeAccount: {
-                const parsed = parseInitializeAccountInstruction(upcastTransactionInstruction(instruction));
+                const parsed = parseInitializeAccountInstruction(intoInstructionData(instruction));
                 const info = {
                     account: new PublicKey(parsed.accounts.account.address),
                     mint: new PublicKey(parsed.accounts.mint.address),
@@ -68,7 +71,7 @@ export function parseTokenProgramInstruction(instruction: TransactionInstruction
                 return { info, type: 'initializeAccount' };
             }
             case TokenInstruction.CloseAccount: {
-                const parsed = parseCloseAccountInstruction(upcastTransactionInstruction(instruction));
+                const parsed = parseCloseAccountInstruction(intoInstructionData(instruction));
                 const info = {
                     account: new PublicKey(parsed.accounts.account.address),
                     destination: new PublicKey(parsed.accounts.destination.address),
