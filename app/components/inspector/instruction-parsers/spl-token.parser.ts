@@ -25,6 +25,25 @@ export function parseTokenProgramInstruction(
         const instructionType = identifyTokenInstruction(data);
 
         switch (instructionType) {
+            case TokenInstruction.InitializeAccount: {
+                const parsed = parseInitializeAccountInstruction(intoInstructionData(instruction));
+                const info = {
+                    account: new PublicKey(parsed.accounts.account.address),
+                    mint: new PublicKey(parsed.accounts.mint.address),
+                    owner: new PublicKey(parsed.accounts.owner.address),
+                    rentSysvar: new PublicKey(parsed.accounts.rent.address),
+                };
+                return { info, type: 'initializeAccount' };
+            }
+            case TokenInstruction.CloseAccount: {
+                const parsed = parseCloseAccountInstruction(intoInstructionData(instruction));
+                const info = {
+                    account: new PublicKey(parsed.accounts.account.address),
+                    destination: new PublicKey(parsed.accounts.destination.address),
+                    owner: new PublicKey(parsed.accounts.owner.address),
+                };
+                return { info, type: 'closeAccount' };
+            }
             case TokenInstruction.Transfer: {
                 const parsed = parseTransferInstruction(intoInstructionData(instruction));
                 const info = {
@@ -58,25 +77,6 @@ export function parseTokenProgramInstruction(
                     account: new PublicKey(parsed.accounts.account.address),
                 };
                 return { info, type: 'syncNative' };
-            }
-            case TokenInstruction.InitializeAccount: {
-                const parsed = parseInitializeAccountInstruction(intoInstructionData(instruction));
-                const info = {
-                    account: new PublicKey(parsed.accounts.account.address),
-                    mint: new PublicKey(parsed.accounts.mint.address),
-                    owner: new PublicKey(parsed.accounts.owner.address),
-                    rentSysvar: new PublicKey(parsed.accounts.rent.address),
-                };
-                return { info, type: 'initializeAccount' };
-            }
-            case TokenInstruction.CloseAccount: {
-                const parsed = parseCloseAccountInstruction(intoInstructionData(instruction));
-                const info = {
-                    account: new PublicKey(parsed.accounts.account.address),
-                    destination: new PublicKey(parsed.accounts.destination.address),
-                    owner: new PublicKey(parsed.accounts.owner.address),
-                };
-                return { info, type: 'closeAccount' };
             }
             default: {
                 return null;
