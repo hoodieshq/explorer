@@ -21,6 +21,7 @@ export function parseTokenProgramInstruction(instruction: TransactionInstruction
 
     try {
         const instructionType = identifyTokenInstruction(data);
+
         switch (instructionType) {
             case TokenInstruction.Transfer: {
                 const parsed = parseTransferInstruction(upcastTransactionInstruction(instruction));
