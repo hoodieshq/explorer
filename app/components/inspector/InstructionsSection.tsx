@@ -117,7 +117,6 @@ function InspectorInstructionCard({
     switch (ix.programId.toString()) {
         case ASSOCIATED_TOKEN_PROGRAM_ID.toString(): {
             // NOTE: current limitation is that innerInstructions won't be present at the AssociatedTokenDetailsCard. For that purpose we might need to simulateTransactions to get them.
-
             const asParsedInstruction = intoParsedInstruction(ix);
             return (
                 <AssociatedTokenDetailsCard

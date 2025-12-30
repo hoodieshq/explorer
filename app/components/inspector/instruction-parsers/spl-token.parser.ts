@@ -1,6 +1,8 @@
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
     identifyTokenInstruction,
+    parseCloseAccountInstruction,
+    parseInitializeAccountInstruction,
     parseSyncNativeInstruction,
     parseTransferCheckedInstruction,
     parseTransferInstruction,
@@ -19,7 +21,6 @@ export function parseTokenProgramInstruction(instruction: TransactionInstruction
 
     try {
         const instructionType = identifyTokenInstruction(data);
-
         switch (instructionType) {
             case TokenInstruction.Transfer: {
                 const parsed = parseTransferInstruction(upcastTransactionInstruction(instruction));
@@ -54,6 +55,25 @@ export function parseTokenProgramInstruction(instruction: TransactionInstruction
                     account: new PublicKey(parsed.accounts.account.address),
                 };
                 return { info, type: 'syncNative' };
+            }
+            case TokenInstruction.InitializeAccount: {
+                const parsed = parseInitializeAccountInstruction(upcastTransactionInstruction(instruction));
+                const info = {
+                    account: new PublicKey(parsed.accounts.account.address),
+                    mint: new PublicKey(parsed.accounts.mint.address),
+                    owner: new PublicKey(parsed.accounts.owner.address),
+                    rentSysvar: new PublicKey(parsed.accounts.rent.address),
+                };
+                return { info, type: 'initializeAccount' };
+            }
+            case TokenInstruction.CloseAccount: {
+                const parsed = parseCloseAccountInstruction(upcastTransactionInstruction(instruction));
+                const info = {
+                    account: new PublicKey(parsed.accounts.account.address),
+                    destination: new PublicKey(parsed.accounts.destination.address),
+                    owner: new PublicKey(parsed.accounts.owner.address),
+                };
+                return { info, type: 'closeAccount' };
             }
             default: {
                 return null;
