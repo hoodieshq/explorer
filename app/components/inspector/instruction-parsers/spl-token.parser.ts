@@ -25,6 +25,15 @@ export function parseTokenProgramInstruction(
         const instructionType = identifyTokenInstruction(data);
 
         switch (instructionType) {
+            case TokenInstruction.CloseAccount: {
+                const parsed = parseCloseAccountInstruction(intoInstructionData(instruction));
+                const info = {
+                    account: new PublicKey(parsed.accounts.account.address),
+                    destination: new PublicKey(parsed.accounts.destination.address),
+                    owner: new PublicKey(parsed.accounts.owner.address),
+                };
+                return { info, type: 'closeAccount' };
+            }
             case TokenInstruction.InitializeAccount: {
                 const parsed = parseInitializeAccountInstruction(intoInstructionData(instruction));
                 const info = {
@@ -34,15 +43,6 @@ export function parseTokenProgramInstruction(
                     rentSysvar: new PublicKey(parsed.accounts.rent.address),
                 };
                 return { info, type: 'initializeAccount' };
-            }
-            case TokenInstruction.CloseAccount: {
-                const parsed = parseCloseAccountInstruction(intoInstructionData(instruction));
-                const info = {
-                    account: new PublicKey(parsed.accounts.account.address),
-                    destination: new PublicKey(parsed.accounts.destination.address),
-                    owner: new PublicKey(parsed.accounts.owner.address),
-                };
-                return { info, type: 'closeAccount' };
             }
             case TokenInstruction.SyncNative: {
                 const parsed = parseSyncNativeInstruction(intoInstructionData(instruction));
