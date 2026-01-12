@@ -18,6 +18,7 @@ import {
 import { type Option, unwrapOption } from '@solana/options';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
+    getTokenMetadataFieldDecoder,
     identifyToken2022Instruction,
     parseEmitTokenMetadataInstruction,
     parseInitializeGroupMemberPointerInstruction,
@@ -32,7 +33,6 @@ import {
     parseUpdateMetadataPointerInstruction,
     parseUpdateTokenGroupMaxSizeInstruction,
     parseUpdateTokenGroupUpdateAuthorityInstruction,
-    parseUpdateTokenMetadataFieldInstruction,
     Token2022Instruction,
 } from '@solana-program/token-2022';
 import bs58 from 'bs58';
@@ -47,6 +47,20 @@ function safeNumber(value: bigint | number): number {
         return Number(value);
     }
     return value;
+}
+
+/**
+ * Helper function to get length-prefixed string length from data at given offset
+ */
+function getLengthPrefixedString(data: Uint8Array, offset: number): number {
+    return new DataView(data.buffer, data.byteOffset + offset, 4).getUint32(0, true);
+}
+
+/**
+ * Helper function to decode a string from data at given offset and length
+ */
+function decodeString(data: Uint8Array, offset: number, length: number): string {
+    return new TextDecoder().decode(data.slice(offset, offset + length));
 }
 
 /**
@@ -86,21 +100,21 @@ function parseInitializeTokenMetadataInstructionCustom(instruction: TInstruction
     let offset = 8;
 
     // Read name (u32 length + string)
-    const nameLength = new DataView(data.buffer, data.byteOffset + offset, 4).getUint32(0, true);
+    const nameLength = getLengthPrefixedString(data, offset);
     offset += 4;
-    const name = new TextDecoder().decode(data.slice(offset, offset + nameLength));
+    const name = decodeString(data, offset, nameLength);
     offset += nameLength;
 
     // Read symbol (u32 length + string)
-    const symbolLength = new DataView(data.buffer, data.byteOffset + offset, 4).getUint32(0, true);
+    const symbolLength = getLengthPrefixedString(data, offset);
     offset += 4;
-    const symbol = new TextDecoder().decode(data.slice(offset, offset + symbolLength));
+    const symbol = decodeString(data, offset, symbolLength);
     offset += symbolLength;
 
     // Read uri (u32 length + string)
-    const uriLength = new DataView(data.buffer, data.byteOffset + offset, 4).getUint32(0, true);
+    const uriLength = getLengthPrefixedString(data, offset);
     offset += 4;
-    const uri = new TextDecoder().decode(data.slice(offset, offset + uriLength));
+    const uri = decodeString(data, offset, uriLength);
 
     return {
         accounts: {
@@ -113,6 +127,65 @@ function parseInitializeTokenMetadataInstructionCustom(instruction: TInstruction
             name,
             symbol,
             uri,
+        },
+    };
+}
+
+/**
+ * Custom parser for UpdateTokenMetadataField instruction.
+ * The library's parser works but we need to handle the 8-byte discriminator
+ * that's present in the raw instruction data.
+ *
+ * Instruction data format:
+ * - 8 bytes: discriminator
+ * - TokenMetadataField enum (1 byte variant + optional data for Key variant)
+ * - u32 + string: value (length-prefixed)
+ *
+ * Accounts: metadata, updateAuthority
+ */
+function parseUpdateTokenMetadataFieldInstructionCustom(instruction: TInstruction): {
+    accounts: {
+        metadata: { address: string };
+        updateAuthority: { address: string };
+    };
+    data: {
+        field: { __kind: string; fields?: readonly [string] };
+        value: string;
+    };
+} {
+    const data = instruction.data;
+    const accounts = instruction.accounts;
+
+    if (accounts.length < 2) {
+        throw new Error('Not enough accounts for UpdateTokenMetadataField');
+    }
+
+    // Skip 8-byte instruction discriminator
+    let offset = 8;
+
+    // Decode field enum using library decoder
+    const field = getTokenMetadataFieldDecoder().decode(data.slice(offset));
+
+    // Calculate bytes consumed by field enum
+    let fieldBytesRead = 1;
+    if (field.__kind === 'Key' && field.fields?.[0]) {
+        fieldBytesRead += 4 + field.fields[0].length;
+    }
+    offset += fieldBytesRead;
+
+    // Read value (u32 length + string)
+    const valueLength = getLengthPrefixedString(data, offset);
+    offset += 4;
+    const value = decodeString(data, offset, valueLength);
+
+    return {
+        accounts: {
+            metadata: { address: accounts[0].address },
+            updateAuthority: { address: accounts[1].address },
+        },
+        data: {
+            field,
+            value,
         },
     };
 }
@@ -401,7 +474,7 @@ export function parseToken2022InstructionData(idata: TInstruction): { type: stri
     let instructionType: Token2022Instruction;
     try {
         instructionType = identifyToken2022Instruction(idata);
-    } catch {
+    } catch (error) {
         return null;
     }
 
@@ -441,7 +514,8 @@ export function parseToken2022InstructionData(idata: TInstruction): { type: stri
                 return { info: convertInitializeTokenMetadataInfo(parsed), type: 'initializeTokenMetadata' };
             }
             case Token2022Instruction.UpdateTokenMetadataField: {
-                const parsed = parseUpdateTokenMetadataFieldInstruction(idata);
+                // Use custom parser to handle 8-byte discriminator
+                const parsed = parseUpdateTokenMetadataFieldInstructionCustom(idata);
                 return { info: convertUpdateTokenMetadataFieldInfo(parsed), type: 'updateTokenMetadataField' };
             }
             case Token2022Instruction.RemoveTokenMetadataKey: {
