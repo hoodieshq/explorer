@@ -1,3 +1,5 @@
+import { PublicKey } from '@solana/web3.js';
+
 import { Cluster } from '../cluster';
 import { formatInstructionLogs } from '../cu-profiling';
 import { InstructionLogs } from '../program-logs';
@@ -7,9 +9,7 @@ const DEFAULT_RESERVED_CU = 200_000;
 // create mock instruction with programId
 function mockInstruction(programId: string) {
     return {
-        programId: {
-            toBase58: () => programId,
-        },
+        programId: new PublicKey(programId),
     };
 }
 
@@ -27,7 +27,8 @@ function mockInstructionLog(computeUnits: number, invokedProgram = 'TestProgram'
 describe('formatInstructionLogs', () => {
     describe('positive cases: basic functionality', () => {
         it('should format single instruction with CU consumption', () => {
-            const instructions = [mockInstruction('TokenProgram')];
+            const testProgramId = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+            const instructions = [mockInstruction(testProgramId)];
             const instructionLogs = [mockInstructionLog(5000)];
 
             const result = formatInstructionLogs({
@@ -40,17 +41,21 @@ describe('formatInstructionLogs', () => {
             expect(result).toEqual([
                 {
                     computeUnits: 5000,
+                    instructionTitle: 'Token Program',
                     minValue: 150,
-                    programId: 'TokenProgram',
+                    programId: testProgramId,
                 },
             ]);
         });
 
         it('should format multiple instructions with varying CU', () => {
+            const tokenProgramId = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+            const systemProgramId = '11111111111111111111111111111111';
+            const memoProgramId = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
             const instructions = [
-                mockInstruction('TokenProgram'),
-                mockInstruction('SystemProgram'),
-                mockInstruction('MemoProgram'),
+                mockInstruction(tokenProgramId),
+                mockInstruction(systemProgramId),
+                mockInstruction(memoProgramId),
             ];
             const instructionLogs = [mockInstructionLog(5000), mockInstructionLog(150), mockInstructionLog(1000)];
 
@@ -62,13 +67,29 @@ describe('formatInstructionLogs', () => {
             });
 
             expect(result).toHaveLength(3);
-            expect(result[0]).toEqual({ computeUnits: 5000, minValue: 150, programId: 'TokenProgram' });
-            expect(result[1]).toEqual({ computeUnits: 150, minValue: 150, programId: 'SystemProgram' });
-            expect(result[2]).toEqual({ computeUnits: 1000, minValue: 150, programId: 'MemoProgram' });
+            expect(result[0]).toEqual({
+                computeUnits: 5000,
+                instructionTitle: 'Token Program',
+                minValue: 150,
+                programId: tokenProgramId,
+            });
+            expect(result[1]).toEqual({
+                computeUnits: 150,
+                instructionTitle: 'System Program',
+                minValue: 150,
+                programId: systemProgramId,
+            });
+            expect(result[2]).toEqual({
+                computeUnits: 1000,
+                instructionTitle: 'Memo Program: Memo',
+                minValue: 150,
+                programId: memoProgramId,
+            });
         });
 
         it('should add displayUnits for instructions with 0 CU', () => {
-            const instructions = [mockInstruction('UnknownProgram')];
+            const memo1ProgramId = 'Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo';
+            const instructions = [mockInstruction(memo1ProgramId)];
             const instructionLogs = [mockInstructionLog(0)];
 
             const result = formatInstructionLogs({
@@ -82,15 +103,17 @@ describe('formatInstructionLogs', () => {
                 {
                     computeUnits: 0,
                     displayUnits: DEFAULT_RESERVED_CU,
+                    instructionTitle: 'Memo Program v1',
                     minValue: 150,
-                    programId: 'UnknownProgram',
+                    programId: memo1ProgramId,
                     reservedValue: 0,
                 },
             ]);
         });
 
         it('should not add displayUnits for instructions with non-zero CU', () => {
-            const instructions = [mockInstruction('TokenProgram')];
+            const tokenProgramId = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+            const instructions = [mockInstruction(tokenProgramId)];
             const instructionLogs = [mockInstructionLog(5000)];
 
             const result = formatInstructionLogs({
@@ -177,6 +200,7 @@ describe('formatInstructionLogs', () => {
 
             expect(result[0]).toEqual({
                 computeUnits: 5000,
+                instructionTitle: 'System Program',
                 minValue: 150,
                 programId: '11111111111111111111111111111111',
             });
@@ -198,7 +222,9 @@ describe('formatInstructionLogs', () => {
         });
 
         it('should handle empty instructionLogs array', () => {
-            const instructions = [mockInstruction('TokenProgram'), mockInstruction('SystemProgram')];
+            const tokenProgramId = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+            const systemProgramId = '11111111111111111111111111111111';
+            const instructions = [mockInstruction(tokenProgramId), mockInstruction(systemProgramId)];
             const instructionLogs: InstructionLogs[] = [];
 
             const result = formatInstructionLogs({
@@ -212,25 +238,30 @@ describe('formatInstructionLogs', () => {
                 {
                     computeUnits: 0,
                     displayUnits: DEFAULT_RESERVED_CU,
+                    instructionTitle: 'Token Program',
                     minValue: 150,
-                    programId: 'TokenProgram',
+                    programId: tokenProgramId,
                     reservedValue: 0,
                 },
                 {
                     computeUnits: 0,
                     displayUnits: DEFAULT_RESERVED_CU,
+                    instructionTitle: 'System Program',
                     minValue: 150,
-                    programId: 'SystemProgram',
-                    reservedValue: 0,
+                    programId: systemProgramId,
+                    reservedValue: 150,
                 },
             ]);
         });
 
         it('should handle instructionLogs shorter than instructions', () => {
+            const tokenProgramId = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+            const systemProgramId = '11111111111111111111111111111111';
+            const memoProgramId = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
             const instructions = [
-                mockInstruction('TokenProgram'),
-                mockInstruction('SystemProgram'),
-                mockInstruction('MemoProgram'),
+                mockInstruction(tokenProgramId),
+                mockInstruction(systemProgramId),
+                mockInstruction(memoProgramId),
             ];
             const instructionLogs = [
                 mockInstructionLog(5000),
@@ -245,28 +276,38 @@ describe('formatInstructionLogs', () => {
             });
 
             expect(result).toHaveLength(3);
-            expect(result[0]).toEqual({ computeUnits: 5000, minValue: 150, programId: 'TokenProgram' });
+            expect(result[0]).toEqual({
+                computeUnits: 5000,
+                instructionTitle: 'Token Program',
+                minValue: 150,
+                programId: tokenProgramId,
+            });
             expect(result[1]).toEqual({
                 computeUnits: 0,
                 displayUnits: DEFAULT_RESERVED_CU,
+                instructionTitle: 'System Program',
                 minValue: 150,
-                programId: 'SystemProgram',
-                reservedValue: 0,
+                programId: systemProgramId,
+                reservedValue: 150,
             });
             expect(result[2]).toEqual({
                 computeUnits: 0,
                 displayUnits: DEFAULT_RESERVED_CU,
+                instructionTitle: 'Memo Program: Memo',
                 minValue: 150,
-                programId: 'MemoProgram',
+                programId: memoProgramId,
                 reservedValue: 0,
             });
         });
 
         it('should handle transaction with mix of successful and failed instructions', () => {
+            const tokenProgramId = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+            const systemProgramId = '11111111111111111111111111111111';
+            const memo1ProgramId = 'Memo1UhkJRfHyvLMcVucJwxXeuD728EqVDDwQDxFMNo';
             const instructions = [
-                mockInstruction('TokenProgram'),
-                mockInstruction('SystemProgram'),
-                mockInstruction('UnknownProgram'), // failed
+                mockInstruction(tokenProgramId),
+                mockInstruction(systemProgramId),
+                mockInstruction(memo1ProgramId), // failed
             ];
             const instructionLogs = [
                 mockInstructionLog(5000),
@@ -282,19 +323,26 @@ describe('formatInstructionLogs', () => {
             });
 
             expect(result).toEqual([
-                { computeUnits: 5000, minValue: 150, programId: 'TokenProgram' },
                 {
-                    computeUnits: 0,
-                    displayUnits: DEFAULT_RESERVED_CU,
+                    computeUnits: 5000,
+                    instructionTitle: 'Token Program',
                     minValue: 150,
-                    programId: 'SystemProgram',
-                    reservedValue: 0,
+                    programId: tokenProgramId,
                 },
                 {
                     computeUnits: 0,
                     displayUnits: DEFAULT_RESERVED_CU,
+                    instructionTitle: 'System Program',
                     minValue: 150,
-                    programId: 'UnknownProgram',
+                    programId: systemProgramId,
+                    reservedValue: 150,
+                },
+                {
+                    computeUnits: 0,
+                    displayUnits: DEFAULT_RESERVED_CU,
+                    instructionTitle: 'Memo Program v1',
+                    minValue: 150,
+                    programId: memo1ProgramId,
                     reservedValue: 0,
                 },
             ]);

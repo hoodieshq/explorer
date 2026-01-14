@@ -2,6 +2,7 @@ import { useCluster } from '@providers/cluster';
 import { useTransactionDetails } from '@providers/transactions';
 import { ParsedTransactionWithMeta } from '@solana/web3.js';
 import { Cluster } from '@utils/cluster';
+import { estimateRequestedComputeUnitsForParsedTransaction } from '@utils/compute-units-schedule';
 import { formatInstructionLogs } from '@utils/cu-profiling';
 import { getEpochForSlot } from '@utils/epoch-schedule';
 import type { SignatureProps } from '@utils/index';
@@ -37,10 +38,24 @@ export function CUProfilingSection({ signature }: SignatureProps) {
         });
     }, [transactionWithMeta, instructionLogs, cluster, slot, clusterInfo]);
 
+    const requestedUnits = React.useMemo(() => {
+        if (!transactionWithMeta || !slot || !clusterInfo) return undefined;
+
+        const epoch = getEpochForSlot(clusterInfo.epochSchedule, BigInt(slot));
+
+        return estimateRequestedComputeUnitsForParsedTransaction(transactionWithMeta.transaction, epoch, cluster);
+    }, [transactionWithMeta, cluster, slot, clusterInfo]);
+
     if (!logMessages || logMessages.length === 0) return null;
     if (instructionsForCU.length === 0) return null;
 
-    return <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} />;
+    return (
+        <CUProfilingCard
+            instructions={instructionsForCU}
+            unitsConsumed={unitsConsumed}
+            unitsRequested={requestedUnits}
+        />
+    );
 }
 
 function formatTransactionLogs(transactionWithMeta: ParsedTransactionWithMeta | null | undefined, cluster: Cluster) {

@@ -5,13 +5,15 @@ import { formatInstructionLogs } from '@utils/cu-profiling';
 import type { InstructionLogs } from '@utils/program-logs';
 import React from 'react';
 
-type SimulatorCUProfilingCardProps = {
+import { estimateRequestedComputeUnits } from '@/app/utils/compute-units-schedule';
+
+interface ISimulatorCUProfilingCardProps {
     message: VersionedMessage;
     logs: Array<InstructionLogs>;
     unitsConsumed?: number;
     cluster: ReturnType<typeof useCluster>['cluster'];
     epoch: bigint;
-};
+}
 
 export function SimulatorCUProfilingCard({
     message,
@@ -19,9 +21,10 @@ export function SimulatorCUProfilingCard({
     unitsConsumed,
     cluster,
     epoch,
-}: SimulatorCUProfilingCardProps) {
+}: ISimulatorCUProfilingCardProps) {
     const instructionsForCU = React.useMemo(() => {
         const instructions = message.compiledInstructions.map(ix => ({
+            data: ix.data,
             programId: message.staticAccountKeys[ix.programIdIndex],
         }));
 
@@ -33,5 +36,29 @@ export function SimulatorCUProfilingCard({
         });
     }, [message, logs, cluster, epoch]);
 
-    return <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} />;
+    const requestedUnits = React.useMemo(() => {
+        return estimateRequestedComputeUnits(
+            {
+                transaction: {
+                    message: {
+                        compiledInstructions: message.compiledInstructions.map(ix => ({
+                            data: ix.data,
+                            programIdIndex: ix.programIdIndex,
+                        })),
+                        staticAccountKeys: message.staticAccountKeys,
+                    },
+                },
+            },
+            epoch,
+            cluster
+        );
+    }, [message, epoch, cluster]);
+
+    return (
+        <CUProfilingCard
+            instructions={instructionsForCU}
+            unitsConsumed={unitsConsumed}
+            unitsRequested={requestedUnits}
+        />
+    );
 }

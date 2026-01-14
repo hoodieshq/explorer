@@ -10,7 +10,12 @@ type ExtendedBarDataset = ChartData<'bar'>['datasets'][number] & {
     reservedValue?: number;
     actualCU?: number;
     minValue: number;
+    instructionTitle?: string;
 };
+
+// We estimate roughly 5.5% of the total chart width for values <= 500
+const MIN_DISPLAY_PERCENTAGE = 0.055;
+const DEFAULT_BAR_WIDTH = 500;
 
 const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
     let currentMouseX = 0;
@@ -99,6 +104,15 @@ const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
                                             font-weight: 600;
                                         ">${instructionLabel}</div>
                                     </div>
+                                    ${
+                                        dataset.instructionTitle &&
+                                        `<div style="
+                                        color: white;
+                                        font-size: 14px;
+                                        padding-left: 20px;
+                                        margin-bottom: 4px;
+                                    ">${dataset.instructionTitle}</div>`
+                                    }
                                     <div style="
                                         color: rgba(255, 255, 255, 0.9);
                                         font-size: 13px;
@@ -179,9 +193,10 @@ function getInstructionColor(index: number): string {
 type CUProfilingCardProps = {
     instructions: InstructionCUData[];
     unitsConsumed?: number;
+    unitsRequested?: number;
 };
 
-export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCardProps) {
+export function CUProfilingCard({ instructions, unitsConsumed, unitsRequested }: CUProfilingCardProps) {
     const instructionsWithDisplay = React.useMemo(
         () =>
             instructions.map(item => ({
@@ -196,6 +211,20 @@ export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCard
         [instructionsWithDisplay]
     );
 
+    const getAdjustedDisplayValue = React.useCallback(
+        (baseCU: number) => {
+            if (baseCU > DEFAULT_BAR_WIDTH) return baseCU;
+            const minDisplayValue = totalDisplayCU * MIN_DISPLAY_PERCENTAGE;
+            return Math.max(baseCU, minDisplayValue);
+        },
+        [totalDisplayCU]
+    );
+
+    const adjustedTotalCU = React.useMemo(
+        () => instructionsWithDisplay.reduce((sum, item) => sum + getAdjustedDisplayValue(item.displayCU), 0),
+        [instructionsWithDisplay, getAdjustedDisplayValue]
+    );
+
     React.useEffect(() => {
         return () => {
             const tooltipEl = document.getElementById('cu-chartjs-tooltip');
@@ -206,8 +235,8 @@ export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCard
     }, []);
 
     const chartOptions = React.useMemo<ChartOptions<'bar'>>(
-        () => getCUProfileChartOptions(totalDisplayCU),
-        [totalDisplayCU]
+        () => getCUProfileChartOptions(adjustedTotalCU),
+        [adjustedTotalCU]
     );
 
     const chartData: ChartData<'bar'> = React.useMemo(
@@ -226,16 +255,17 @@ export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCard
                 },
                 borderSkipped: false,
                 borderWidth: 0,
-                data: [item.displayCU],
+                data: [getAdjustedDisplayValue(item.displayCU)],
                 displayUnits: item.displayUnits,
                 hoverBackgroundColor: getInstructionColor(i),
+                instructionTitle: item.instructionTitle,
                 label: `Instruction #${i + 1}`,
                 minValue: item.minValue,
                 reservedValue: item.reservedValue,
             })),
             labels: [''],
         }),
-        [instructionsWithDisplay]
+        [instructionsWithDisplay, getAdjustedDisplayValue]
     );
 
     if (instructions.length === 0) return null;
@@ -246,7 +276,12 @@ export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCard
                 <h3 className="card-header-title">CU profiling</h3>
             </div>
             <div className="e-card-body">
-                {Boolean(unitsConsumed) && <div className="mb-3">Total: {unitsConsumed?.toLocaleString()} CU</div>}
+                {Boolean(unitsConsumed) && (
+                    <div className="mb-3">
+                        Total: {unitsConsumed?.toLocaleString()}
+                        {unitsRequested && `/${unitsRequested.toLocaleString()}`} CU
+                    </div>
+                )}
 
                 <div style={{ height: '32px', marginLeft: '-8px' }}>
                     <Bar data={chartData} options={chartOptions} />
