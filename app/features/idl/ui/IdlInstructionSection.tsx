@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Copy } from "react-feather";
+import { useState } from 'react';
+import { Copy } from 'react-feather';
 
 interface IIdlInstructionSectionProps {
     title: string;
