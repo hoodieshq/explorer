@@ -5,9 +5,10 @@ import { useCluster } from '@providers/cluster';
 import { Badge } from '@shared/ui/badge';
 import { cn } from '@shared/utils';
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Copy } from 'react-feather';
+import { AlertTriangle } from 'react-feather';
 
 import { IdlVariant, useIdlLastTransactionDate } from '../model/use-idl-last-transaction-date';
+import { IdlInstructionSection } from './IdlInstructionSection';
 import { IdlSection } from './IdlSection';
 
 type IdlTab = {
@@ -85,32 +86,21 @@ export function IdlCard({ programId }: { programId: string }) {
                             title="Create & manage IDL buffer"
                             description="First create a buffer from an IDL JSON file and then transfer authority of that buffer to a new Solana wallet/account"
                             commands={[
-                                'npx @solana-program/program-metadata create-buffer ./target/idl/let_me_buy.json',
-                                `npx @solana-program/program-metadata set-buffer-authority \\
-  --buffer $BUFFER_ACCOUNT \\
+                                'npx @solana-program/program-metadata@latest create-buffer ./target/idl/<program_name>.json',
+                                `npx @solana-program/program-metadata@latest set-buffer-authority $BUFFER_ACCOUNT \\
   --new-authority $NEW_AUTHORITY_WALLET`,
                             ]}
                         />
 
                         <IdlInstructionSection
-                            title="Create on-chain IDL"
+                            title="Create (or updates if it already exists) on-chain IDL"
                             description="They use the buffer to either create or update the IDL (Interface Definition Language) on-chain for a specific Solana program"
                             commands={[
-                                `npx @solana-program/program-metadata create idl $PROGRAM_ID \\
+                                `npx @solana-program/program-metadata@latest write idl $PROGRAM_ADDRESS \\
   --buffer $BUFFER_ACCOUNT \\
   --export $AUTHORITY_WALLET \\
-  --export-encoding base58`,
-                            ]}
-                        />
-
-                        <IdlInstructionSection
-                            title="Update on-chain IDL if it already exists"
-                            description="They use the buffer to either create or update the IDL (Interface Definition Language) on-chain for a specific Solana program"
-                            commands={[
-                                `npx @solana-program/program-metadata update idl $PROGRAM_ID \\
-  --buffer $BUFFER_ACCOUNT \\
-  --export $AUTHORITY_WALLET \\
-  --export-encoding base58`,
+  --export-encoding base58 \\
+  --close-buffer $BUFFER_BACK_ADDRESS`,
                             ]}
                         />
                     </div>
@@ -157,60 +147,6 @@ export function IdlCard({ programId }: { programId: string }) {
                     searchStr={searchStr}
                     onSearchChange={setSearchStr}
                 />
-            </div>
-        </div>
-    );
-}
-
-type IdlInstructionSectionProps = {
-    title: string;
-    description: string;
-    commands: string[];
-};
-
-function IdlInstructionSection({ title, description, commands }: IdlInstructionSectionProps) {
-    const [copied, setCopied] = useState(false);
-
-    const handleCopy = () => {
-        const allCommands = commands.join('\n');
-        navigator.clipboard.writeText(allCommands);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    return (
-        <div className="card">
-            <div className="card-body e-flex e-items-start e-justify-between e-space-x-2 e-px-3 e-py-2">
-                <div>
-                    <h5 className="e-mb-1 e-text-sm e-font-semibold">{title}</h5>
-                    <p className="e-mb-3 e-text-xs e-text-gray-500">{description}</p>
-                    <div>
-                        {commands.map((command, index) => (
-                            <div key={index} className="e-font-mono e-text-xs">
-                                <pre className="e-whitespace-pre-wrap e-bg-transparent e-p-0 e-text-green-400">
-                                    <span>&gt; </span>
-                                    {command}
-                                </pre>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <button
-                    onClick={handleCopy}
-                    type="button"
-                    className="btn btn-white btn-sm e-flex-shrink-0"
-                    aria-label={'Copy'}
-                    aria-pressed={true}
-                >
-                    {copied ? (
-                        <span className="e-text-green-400">Copied</span>
-                    ) : (
-                        <>
-                            <Copy size={16} /> Copy
-                        </>
-                    )}
-                </button>
             </div>
         </div>
     );
