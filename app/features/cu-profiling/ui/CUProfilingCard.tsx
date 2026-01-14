@@ -15,7 +15,7 @@ type ExtendedBarDataset = ChartData<'bar'>['datasets'][number] & {
 
 // We estimate roughly 5.5% of the total chart width for values <= 500
 const MIN_DISPLAY_PERCENTAGE = 0.055;
-const MIN_CU_THRESHOLD = 500;
+const DEFAULT_BAR_WIDTH = 500;
 
 const getCUProfileChartOptions = (totalCU: number): ChartOptions<'bar'> => {
     let currentMouseX = 0;
@@ -213,7 +213,7 @@ export function CUProfilingCard({ instructions, unitsConsumed, unitsRequested }:
 
     const getAdjustedDisplayValue = React.useCallback(
         (baseCU: number) => {
-            if (baseCU > MIN_CU_THRESHOLD) return baseCU;
+            if (baseCU > DEFAULT_BAR_WIDTH) return baseCU;
             const minDisplayValue = totalDisplayCU * MIN_DISPLAY_PERCENTAGE;
             return Math.max(baseCU, minDisplayValue);
         },

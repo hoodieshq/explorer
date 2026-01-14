@@ -1,3 +1,4 @@
+import { privateIntoParsedData } from '@components/inspector/into-parsed-data';
 import {
     ComputeBudgetProgram,
     ParsedInstruction,
@@ -6,6 +7,7 @@ import {
     TransactionInstruction,
 } from '@solana/web3.js';
 import { ComputeBudgetInstruction, identifyComputeBudgetInstruction } from '@solana-program/compute-budget';
+import { MEMO_PROGRAM_ADDRESS } from '@solana-program/memo';
 import {
     ASSOCIATED_TOKEN_PROGRAM_ADDRESS,
     identifyTokenInstruction,
@@ -13,10 +15,7 @@ import {
     TokenInstruction,
 } from '@solana-program/token';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
-import { MEMO_PROGRAM_ADDRESS } from '@solana-program/memo';
 import bs58 from 'bs58';
-
-import { privateIntoParsedData } from '@components/inspector/into-parsed-data';
 
 const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(ASSOCIATED_TOKEN_PROGRAM_ADDRESS);
 const TOKEN_PROGRAM_ID = new PublicKey(TOKEN_PROGRAM_ADDRESS);
@@ -35,9 +34,12 @@ function getParsedInstructionType(instruction: ParsedInstruction | PartiallyDeco
     return undefined;
 }
 
+type TInstruction = ParsedInstruction | PartiallyDecodedInstruction;
+type TInstructionNameReturnType = string | undefined;
+
 function getComputeBudgetInstructionName(
-    instruction: ParsedInstruction | PartiallyDecodedInstruction
-): string | undefined {
+    instruction: TInstruction
+): TInstructionNameReturnType {
     try {
         if (!ComputeBudgetProgram.programId.equals(instruction.programId)) {
             return undefined;
@@ -64,15 +66,10 @@ function getComputeBudgetInstructionName(
     }
 }
 
-function getATAInstructionName(instruction: ParsedInstruction | PartiallyDecodedInstruction): string | undefined {
+function getATAInstructionName(instruction: TInstruction): TInstructionNameReturnType {
     try {
         if (!ASSOCIATED_TOKEN_PROGRAM_ID.equals(instruction.programId)) {
             return undefined;
-        }
-
-        const parsedType = getParsedInstructionType(instruction);
-        if (parsedType) {
-            return parsedType;
         }
 
         if ('data' in instruction && instruction.data) {
@@ -92,18 +89,13 @@ function getATAInstructionName(instruction: ParsedInstruction | PartiallyDecoded
     }
 }
 
-function getTokenInstructionName(instruction: ParsedInstruction | PartiallyDecodedInstruction): string | undefined {
+function getTokenInstructionName(instruction: TInstruction): TInstructionNameReturnType {
     try {
         const isTokenProgram =
             TOKEN_PROGRAM_ID.equals(instruction.programId) || TOKEN_2022_PROGRAM_ID.equals(instruction.programId);
 
         if (!isTokenProgram) {
             return undefined;
-        }
-
-        const parsedType = getParsedInstructionType(instruction);
-        if (parsedType) {
-            return parsedType;
         }
 
         if ('data' in instruction && instruction.data) {
@@ -147,7 +139,7 @@ function getTokenInstructionName(instruction: ParsedInstruction | PartiallyDecod
     }
 }
 
-export function getInstructionName(instruction: ParsedInstruction | PartiallyDecodedInstruction): string | undefined {
+export function getInstructionName(instruction: TInstruction): TInstructionNameReturnType {
     const parsedType = getParsedInstructionType(instruction);
     if (parsedType) {
         return parsedType;

@@ -1,3 +1,4 @@
+import { getInstructionName } from '@entities/cu-profiling';
 import { ParsedInstruction } from '@solana/web3.js';
 
 import { camelToTitleCase } from '.';
@@ -6,7 +7,6 @@ import { getReservedComputeUnits } from './compute-units-schedule';
 import { getDefaultComputeUnits } from './default-compute-units';
 import { InstructionLogs } from './program-logs';
 import { getProgramName } from './tx';
-import { getInstructionName } from '@entities/cu-profiling';
 
 export type InstructionCUData = {
     programId: string;

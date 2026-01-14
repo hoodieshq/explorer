@@ -1,4 +1,3 @@
-import { estimateRequestedComputeUnits } from '@/app/utils/compute-units-schedule';
 import { CUProfilingCard } from '@features/cu-profiling';
 import { useCluster } from '@providers/cluster';
 import type { VersionedMessage } from '@solana/web3.js';
@@ -6,13 +5,15 @@ import { formatInstructionLogs } from '@utils/cu-profiling';
 import type { InstructionLogs } from '@utils/program-logs';
 import React from 'react';
 
-type SimulatorCUProfilingCardProps = {
+import { estimateRequestedComputeUnits } from '@/app/utils/compute-units-schedule';
+
+interface ISimulatorCUProfilingCardProps {
     message: VersionedMessage;
     logs: Array<InstructionLogs>;
     unitsConsumed?: number;
     cluster: ReturnType<typeof useCluster>['cluster'];
     epoch: bigint;
-};
+}
 
 export function SimulatorCUProfilingCard({
     message,
@@ -20,13 +21,7 @@ export function SimulatorCUProfilingCard({
     unitsConsumed,
     cluster,
     epoch,
-}: {
-    message: VersionedMessage;
-    logs: Array<InstructionLogs>;
-    unitsConsumed?: number;
-    cluster: ReturnType<typeof useCluster>['cluster'];
-    epoch: bigint;
-}) {
+}: ISimulatorCUProfilingCardProps) {
     const instructionsForCU = React.useMemo(() => {
         const instructions = message.compiledInstructions.map(ix => ({
             data: ix.data,
@@ -67,4 +62,3 @@ export function SimulatorCUProfilingCard({
         />
     );
 }
-
