@@ -37,9 +37,7 @@ function getParsedInstructionType(instruction: ParsedInstruction | PartiallyDeco
 type TInstruction = ParsedInstruction | PartiallyDecodedInstruction;
 type TInstructionNameReturnType = string | undefined;
 
-function getComputeBudgetInstructionName(
-    instruction: TInstruction
-): TInstructionNameReturnType {
+function getComputeBudgetInstructionName(instruction: TInstruction): TInstructionNameReturnType {
     try {
         if (!ComputeBudgetProgram.programId.equals(instruction.programId)) {
             return undefined;
