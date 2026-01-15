@@ -27,6 +27,7 @@ import { AnchorInterpreter } from './anchor/anchor-interpreter';
 import { IdlExecutor, populateAccounts, populateArguments } from './idl-executor';
 import type { UnifiedWallet } from './unified-program';
 import { BaseIdl } from './unified-program';
+import { useRpcCallsStatistics } from './use-rpc-calls-statistics';
 
 interface UseInstructionOptions {
     programId?: string;
@@ -84,6 +85,7 @@ export function useInstruction({
 }: UseInstructionOptions): UseInstructionReturn {
     const { connected, publicKey, ...wallet } = useWallet();
     const { cluster: currentCluster, customUrl } = useCluster();
+    const { customFetch } = useRpcCallsStatistics();
 
     const [preInvocationError, setPreInvocationError] = useState<string | null>(null);
     const {
@@ -105,8 +107,8 @@ export function useInstruction({
     // Get connection for the specified cluster
     const connection = useMemo(() => {
         const endpoint = cluster || clusterUrl(currentCluster, customUrl);
-        return new Connection(endpoint);
-    }, [cluster, currentCluster, customUrl]);
+        return new Connection(endpoint, { fetch: customFetch });
+    }, [cluster, currentCluster, customUrl, customFetch]);
 
     /// Allow to create Executor instance and update cluster-dependent connection
     const executorRef = useRef<IdlExecutor>();

@@ -11,6 +11,7 @@ import { ClusterSelector } from './ClusterSelector';
 import { ConnectWallet } from './ConnectWallet';
 import { InstructionActivity } from './InstructionActivity';
 import { InteractInstructions } from './InteractInstructions';
+import { RpcCallsStatistics } from './RpcCallsStatistics';
 
 export function InteractWithIdlView({
     instructions,
@@ -74,6 +75,8 @@ export function InteractWithIdlView({
                 <div className="e-order-1 e-h-full md:e-order-2 md:e-col-span-6">
                     <div className="e-top-4 md:e-sticky">
                         <div className="e-flex e-flex-col e-gap-y-4">
+                            <RpcCallsStatistics />
+
                             <ClusterSelector />
 
                             <ConnectWallet />
