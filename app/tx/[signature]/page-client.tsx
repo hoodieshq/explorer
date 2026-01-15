@@ -34,11 +34,14 @@ import useTabVisibility from '@utils/use-tab-visibility';
 import { BigNumber } from 'bignumber.js';
 import bs58 from 'bs58';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import React, { Suspense, useEffect, useState } from 'react';
 import { RefreshCw, Settings } from 'react-feather';
 
 import { estimateRequestedComputeUnitsForParsedTransaction } from '@/app/utils/compute-units-schedule';
 import { getEpochForSlot } from '@/app/utils/epoch-schedule';
+
+import { ReceiptView } from './ReceiptView';
 
 const AUTO_REFRESH_INTERVAL = 2000;
 const ZERO_CONFIRMATION_BAILOUT = 5;
@@ -84,6 +87,7 @@ function getTransactionErrorReason(
 
 export default function TransactionDetailsPageClient({ params: { signature: raw } }: Props) {
     let signature: TransactionSignature | undefined;
+    const searchParams = useSearchParams();
 
     try {
         const decoded = bs58.decode(raw);
@@ -119,6 +123,10 @@ export default function TransactionDetailsPageClient({ params: { signature: raw 
             setZeroConfirmationRetries(0);
         }
     }, [status, autoRefresh, setZeroConfirmationRetries]);
+
+    if (searchParams.get('view') === 'receipt' && signature) {
+        return <ReceiptView signature={signature} />;
+    }
 
     return (
         <div className="container mt-n3">

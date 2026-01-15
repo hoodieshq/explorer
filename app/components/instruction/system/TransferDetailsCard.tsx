@@ -1,9 +1,12 @@
 import { Address } from '@components/common/Address';
 import { SolBalance } from '@components/common/SolBalance';
 import { ParsedInstruction, SignatureResult, SystemProgram } from '@solana/web3.js';
-import React from 'react';
+import { useClusterPath } from '@utils/url';
+import Link from 'next/link';
+import React, { useContext } from 'react';
 
 import { InstructionCard } from '../InstructionCard';
+import { SignatureContext } from '../SignatureContext';
 import { TransferInfo } from './types';
 
 export function TransferDetailsCard(props: {
@@ -15,6 +18,11 @@ export function TransferDetailsCard(props: {
     childIndex?: number;
 }) {
     const { ix, index, result, info, innerCards, childIndex } = props;
+    const signature = useContext(SignatureContext);
+    const receiptPath = useClusterPath({
+        additionalParams: new URLSearchParams({ view: 'receipt' }),
+        pathname: `/tx/${signature}`,
+    });
 
     return (
         <InstructionCard
@@ -52,6 +60,17 @@ export function TransferDetailsCard(props: {
                     <SolBalance lamports={info.lamports} />
                 </td>
             </tr>
+
+            {signature && (
+                <tr>
+                    <td>Receipt</td>
+                    <td className="text-lg-end">
+                        <Link href={receiptPath} className="btn btn-sm btn-white">
+                            View
+                        </Link>
+                    </td>
+                </tr>
+            )}
         </InstructionCard>
     );
 }
