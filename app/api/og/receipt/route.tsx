@@ -1,84 +1,29 @@
+import { getData, OG_IMAGE_SIZE, ReceiptImage } from '@features/receipt';
 import { ImageResponse } from 'next/og';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'edge';
 
 export async function GET(request: NextRequest) {
+    // Long description url:
+    // http://localhost:3000/api/og/receipt?sender=7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU&receiver=9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM&date=2024-01-15+14%3A30%3A00&description=This+is+a+very+long+description+that+demonstrates+how+the+receipt+component+handles+extended+text+content.+It+includes+multiple+sentences+and+various+details+about+the+transaction%2C+such+as+the+purpose+of+the+payment%2C+the+services+rendered%2C+and+any+additional+context+that+might+be+relevant+to+understanding+the+nature+of+this+particular+blockchain+transaction+on+the+Solana+network.&network=Mainnet&fee=0.000005&total=1250.75
+    const { searchParams } = new URL(request.url);
+
+    const signature = searchParams.get('signature');
+    if (!signature) {
+        return new Response('Signature is required', {
+            status: 400,
+        });
+    }
+
     try {
-        const { searchParams } = new URL(request.url);
-
-        const sender = searchParams.get('sender') || '';
-        const receiver = searchParams.get('receiver') || '';
-        const date = searchParams.get('date') || '';
-        const memo = searchParams.get('memo') || '';
-        const transfers = searchParams.get('transfers') || '';
-        const instructions = searchParams.get('instructions') || '';
-        let transfersData: any[] = [];
-        let instructionsData: string[] = [];
-
-        try {
-            transfersData = transfers ? JSON.parse(transfers) : [];
-        } catch {
-            transfersData = [];
-        }
-
-        try {
-            instructionsData = instructions ? JSON.parse(instructions) : [];
-        } catch {
-            instructionsData = [];
-        }
-
-        const hasNoTransfers = transfersData.length === 0;
-        const hasMultipleTransfers = transfersData.length > 1;
-
-        return new ImageResponse(
-            (
-                <div
-                    style={{
-                        background: 'linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        height: '100%',
-                        width: '100%',
-                        padding: '60px',
-                    }}
-                >
-                    <div
-                        style={{
-                            position: 'relative',
-                            background: 'linear-gradient(180deg, #1e2d2d 0%, #162424 100%)',
-                            width: '900px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            padding: '0',
-                            overflow: 'hidden',
-                        }}
-                    >
-
-                        {/* Content */}
-                        <div
-                            style={{
-                                position: 'relative',
-                                zIndex: 1,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                padding: '50px 60px',
-                                height: '550px',
-                            }}
-                        >
-                        </div>
-                    </div>
-                </div>
-            ),
-            {
-                height: 630,
-                width: 1200,
-            }
-        );
-    } catch (e: any) {
-        console.error('Error generating OG image:', e);
-        return new Response(`Failed to generate image: ${e.message}`, {
+        const data = await getData(signature, searchParams);
+        return new ImageResponse(<ReceiptImage data={data} />, {
+            ...OG_IMAGE_SIZE,
+        });
+    } catch (e) {
+        const message = e instanceof Error ? e.message : 'Unknown error';
+        return new NextResponse(`Failed to process request: ${message}`, {
             status: 500,
         });
     }
