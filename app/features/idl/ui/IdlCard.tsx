@@ -86,7 +86,7 @@ export function IdlCard({ programId }: { programId: string }) {
                             title="Create & manage IDL buffer"
                             description="First create a buffer from an IDL JSON file and then transfer authority of that buffer to a new Solana wallet/account"
                             commands={[
-                                'npx @solana-program/program-metadata@latest create-buffer ./target/idl/<program_name>.json',
+                                'npx @solana-program/program-metadata@latest create-buffer ./target/idl/$PROGRAM_NAME.json',
                                 `npx @solana-program/program-metadata@latest set-buffer-authority $BUFFER_ACCOUNT \\
   --new-authority $NEW_AUTHORITY_WALLET`,
                             ]}
@@ -98,9 +98,7 @@ export function IdlCard({ programId }: { programId: string }) {
                             commands={[
                                 `npx @solana-program/program-metadata@latest write idl $PROGRAM_ADDRESS \\
   --buffer $BUFFER_ACCOUNT \\
-  --export $AUTHORITY_WALLET \\
-  --export-encoding base58 \\
-  --close-buffer $BUFFER_BACK_ADDRESS`,
+  --close-buffer $NEW_AUTHORITY_WALLET`,
                             ]}
                         />
                     </div>
