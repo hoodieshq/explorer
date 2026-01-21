@@ -7,7 +7,8 @@ import { FetchStatus } from '@providers/cache';
 import { useCluster } from '@providers/cluster';
 import { useFetchTransactionStatus, useTransactionDetails, useTransactionStatus } from '@providers/transactions';
 import { useFetchTransactionDetails } from '@providers/transactions/parsed';
-import { TransactionSignature } from '@solana/web3.js';
+import { ParsedInstruction, PublicKey, TransactionSignature } from '@solana/web3.js';
+import { MEMO_PROGRAM_ADDRESS } from '@solana-program/memo';
 import { ClusterStatus } from '@utils/cluster';
 import { displayTimestamp } from '@utils/date';
 import { lamportsToSolString } from '@utils/index';
@@ -20,46 +21,47 @@ import { cn } from '@/app/components/shared/utils';
 import { truncateAddress } from '@/app/entities/address/lib/utils';
 import { dollar } from '@/app/features/receipt/ui/images';
 
+import { AUTO_REFRESH_INTERVAL, AutoRefresh, AutoRefreshProps } from './page-client';
+
+const MEMO_PROGRAM_ID = new PublicKey(MEMO_PROGRAM_ADDRESS);
+
 interface IReceiptViewProps {
     signature: TransactionSignature;
 }
 
-export function ReceiptView({ signature }: IReceiptViewProps) {
+export function ReceiptView({ signature, autoRefresh }: IReceiptViewProps & AutoRefreshProps) {
     const fetchStatus = useFetchTransactionStatus();
-    const status = useTransactionStatus(signature);
-    const details = useTransactionDetails(signature);
     const fetchDetails = useFetchTransactionDetails();
+    const status = useTransactionStatus(signature); // getTransaction на странице транзакции чтобы зафетчить транзакцию
+    const details = useTransactionDetails(signature);
     const { status: clusterStatus, name: network } = useCluster();
-
+    
+    // Fetch transaction on load
     useEffect(() => {
         if (!status && clusterStatus === ClusterStatus.Connected) {
             fetchStatus(signature);
         }
-    }, [signature, clusterStatus, fetchStatus, status]);
-
-    useEffect(() => {
         if (!details && clusterStatus === ClusterStatus.Connected && status?.status === FetchStatus.Fetched) {
             fetchDetails(signature);
         }
-    }, [signature, clusterStatus, status, fetchDetails, details]);
+    }, [signature, clusterStatus, status, fetchDetails, details]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    if (!status || status.status === FetchStatus.Fetching) {
-        return (
-            <div className="container">
-                <LoadingCard message="Loading transaction details" />
-            </div>
-        );
-    }
+    // Effect to set and clear interval for auto-refresh
+    useEffect(() => {
+        if (autoRefresh === AutoRefresh.Active) {
+            const intervalHandle: NodeJS.Timeout = setInterval(() => fetchStatus(signature), AUTO_REFRESH_INTERVAL);
 
-    if (status.status === FetchStatus.FetchFailed) {
-        return (
-            <div className="container">
-                <ErrorCard retry={() => fetchStatus(signature)} text="Failed to fetch transaction" />
-            </div>
-        );
-    }
+            return () => {
+                clearInterval(intervalHandle);
+            };
+        }
+    }, [autoRefresh, fetchStatus, signature]);
 
-    if (!status.data?.info) {
+    if (!status || (status.status === FetchStatus.Fetching && autoRefresh === AutoRefresh.Inactive)) {
+        return <LoadingCard message="Loading transaction details" />;
+    } else if (status.status === FetchStatus.FetchFailed) {
+        return <ErrorCard retry={() => fetchStatus(signature)} text="Fetch Failed" />;
+    } else if (!status.data?.info) {
         return (
             <div className="container e-flex e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10 e-min-h-[90vh]">
                 <BluredCircle />
@@ -78,25 +80,32 @@ export function ReceiptView({ signature }: IReceiptViewProps) {
     }
 
     const { info } = status.data;
+
     const transactionWithMeta = details?.data?.transactionWithMeta;
+    const fee = transactionWithMeta?.meta?.fee;
     const transaction = transactionWithMeta?.transaction;
-    const meta = transactionWithMeta?.meta;
 
-    const accountKeys = transaction?.message?.accountKeys || [];
+    const instruction = transaction?.message.instructions.find(instruction => 'parsed' in instruction && "lamports" in instruction.parsed.info) as ParsedInstruction | undefined;
+    const memoInstruction = transaction?.message.instructions.find(
+        instruction =>
+            'parsed' in instruction &&
+            (instruction.programId.equals(MEMO_PROGRAM_ID))
+    ) as ParsedInstruction | undefined;
 
-    const description = '';
-    const sender = accountKeys.find(acc => acc.signer)?.pubkey.toString();
-    const receivers = accountKeys.filter(acc => !acc.signer);
-    const totalAmount = 0;
+    const memo = memoInstruction?.parsed || '';
+    const sender = instruction?.parsed.info.source;
+    const receiver = instruction?.parsed.info.destination;
+    const totalAmount = instruction?.parsed.info.lamports;
 
     const receiptData = {
+        confirmationStatus: info.confirmationStatus,
         date: info.timestamp !== 'unavailable' ? displayTimestamp(info.timestamp * 1000) : undefined,
-        description,
-        fee: meta?.fee ? `${lamportsToSolString(meta.fee, 8)} SOL` : undefined,
+        fee: fee ? `${lamportsToSolString(fee, 8)} SOL` : undefined,
+        memo,
         network,
-        receivers: receivers.length !== 0 ? receivers.map(receiver => truncateAddress(receiver.pubkey.toString(), 8, 8)) : undefined,
+        receivers: receiver ? truncateAddress(receiver, 8, 8) : undefined,
         sender: sender ? truncateAddress(sender, 8, 8) : undefined,
-        total: totalAmount > 0 ? lamportsToSolString(totalAmount, 2) : undefined,
+        total: totalAmount > 0 ? lamportsToSolString(totalAmount, 9) : undefined,
     };
 
     return (
@@ -114,12 +123,13 @@ export function ReceiptView({ signature }: IReceiptViewProps) {
 
 interface IReceiptData {
     date?: string;
-    description?: string;
+    memo?: string;
     fee?: string;
     network?: string;
-    receivers?: string[];
+    receivers?: string[] | string;
     sender?: string;
     total?: string;
+    confirmationStatus?: string;
 }
 
 function BluredCircle () {
@@ -128,7 +138,7 @@ function BluredCircle () {
     );
 }
 
-function BaseReceipt({ date, sender, receivers, network, fee, total, description }: IReceiptData) {
+function BaseReceipt({ date, sender, receivers, network, fee, total, memo, confirmationStatus }: IReceiptData) {
     return (
         <div className="zigzag e-relative e-w-full e-max-w-lg e-overflow-hidden e-bg-outer-space-900 e-pb-6">
             <Header date={date} />
@@ -136,9 +146,10 @@ function BaseReceipt({ date, sender, receivers, network, fee, total, description
                 sender={sender}
                 receivers={receivers}
                 network={network}
+                confirmationStatus={confirmationStatus}
             />
             <div className="e-my-5 e-border-t [border-top-style:dashed] e-border-white/10" />
-            <Footer fee={fee} total={total} description={description} />
+            <Footer fee={fee} total={total} memo={memo} />
         </div>
     );
 }
@@ -156,11 +167,8 @@ function Content({
     sender,
     receivers,
     network,
-}: {
-    sender?: string;
-    receivers?: string[];
-    network?: string;
-}) {
+    confirmationStatus,
+}: IReceiptData) {
     return (
         <div className="e-p-6 e-pt-8 e-grid e-gap-6 e-grid-cols-2 e-text-sm e-text-gray-400">
             <ListItem label="Sender" value={sender} />
@@ -168,7 +176,7 @@ function Content({
             <span>Status</span>
             <div className="e-text-right">
                 <Badge size="sm" variant="success">
-                    Finalized
+                    {confirmationStatus ? confirmationStatus.charAt(0).toUpperCase() + confirmationStatus.slice(1).toLowerCase() : 'Unknown'}
                 </Badge>
             </div>
             <ListItem label="Network" className='e-text-white' value={network} />
@@ -201,7 +209,7 @@ function ListItem({ label, value, className }: { label: string; value?: string |
     );
 }
 
-function Footer({ fee, total, description }: { fee?: string; total?: string; description?: string }) {
+function Footer({ fee, total, memo }: IReceiptData) {
     return (
         <div className="e-p-6 e-pt-0 e-text-xs e-text-gray-400">
             <div className="e-grid e-grid-cols-2 e-items-center">
@@ -211,10 +219,10 @@ function Footer({ fee, total, description }: { fee?: string; total?: string; des
                 <span className='e-text-right'>{fee || 'N/A'}</span>
             </div>
 
-            {description && 
+            {memo && 
                 <div className="e-flex e-flex-col e-mt-3 e-gap-1">
                     <span>Memo</span>
-                    <span className="e-text-xs e-text-white">{description}</span>
+                    <span className="e-text-xs e-text-white">{memo}</span>
                 </div>
             }
         </div>

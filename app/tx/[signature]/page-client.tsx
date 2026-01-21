@@ -43,16 +43,16 @@ import { getEpochForSlot } from '@/app/utils/epoch-schedule';
 
 import { ReceiptView } from './ReceiptView';
 
-const AUTO_REFRESH_INTERVAL = 2000;
+export const AUTO_REFRESH_INTERVAL = 2000;
 const ZERO_CONFIRMATION_BAILOUT = 5;
 
-enum AutoRefresh {
+export enum AutoRefresh {
     Active,
     Inactive,
     BailedOut,
 }
 
-type AutoRefreshProps = {
+export type AutoRefreshProps = {
     autoRefresh: AutoRefresh;
 };
 
@@ -125,7 +125,7 @@ export default function TransactionDetailsPageClient({ params: { signature: raw 
     }, [status, autoRefresh, setZeroConfirmationRetries]);
 
     if (searchParams.get('view') === 'receipt' && signature) {
-        return <ReceiptView signature={signature} />;
+        return <ReceiptView signature={signature} autoRefresh={autoRefresh} />;
     }
 
     return (
@@ -158,6 +158,10 @@ function StatusCard({ signature, autoRefresh }: SignatureProps & AutoRefreshProp
     const details = useTransactionDetails(signature);
     const { cluster, clusterInfo, name: clusterName, status: clusterStatus, url: clusterUrl } = useCluster();
     const inspectPath = useClusterPath({ pathname: `/tx/${signature}/inspect` });
+    const receiptPath = useClusterPath({
+        additionalParams: new URLSearchParams({ view: 'receipt' }),
+        pathname: `/tx/${signature}`,
+    });
 
     // Fetch transaction on load
     useEffect(() => {
@@ -246,6 +250,11 @@ function StatusCard({ signature, autoRefresh }: SignatureProps & AutoRefreshProp
         <div className="card">
             <div className="card-header align-items-center">
                 <h3 className="card-header-title">Overview</h3>
+                {transaction && (
+                    <Link className="btn btn-white btn-sm me-2" href={receiptPath}>
+                        View Receipt
+                    </Link>
+                )}
                 <Link className="btn btn-white btn-sm me-2" href={inspectPath}>
                     <Settings className="align-text-top me-2" size={13} />
                     Inspect

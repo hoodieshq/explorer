@@ -8,10 +8,8 @@ import {
     TransactionInstruction,
 } from '@solana/web3.js';
 import { normalizeTokenAmount } from '@utils/index';
-import { useClusterPath } from '@utils/url';
 import { ParsedInfo } from '@validators/index';
-import Link from 'next/link';
-import React, { ComponentType, useContext } from 'react';
+import React, { ComponentType } from 'react';
 import { create } from 'superstruct';
 import useSWR from 'swr';
 
@@ -21,7 +19,6 @@ import { TOKEN_IDS } from '@/app/utils/programs';
 import { getTokenInfo, getTokenInfoSwrKey } from '@/app/utils/token-info';
 
 import { InstructionCard } from '../InstructionCard';
-import { SignatureContext } from '../SignatureContext';
 import { IX_STRUCTS, IX_TITLES, TokenAmountUi, TokenInstructionType } from './types';
 
 type TitleInfoLessProps = Omit<InfoProps, 'info' | 'title'>;
@@ -188,25 +185,6 @@ function TokenInstruction({
             <tr key={key}>
                 <td>{label}</td>
                 <td className="text-lg-end">{tag}</td>
-            </tr>
-        );
-    }
-
-    const signature = useContext(SignatureContext);
-    const receiptPath = useClusterPath({
-        additionalParams: new URLSearchParams({ view: 'receipt' }),
-        pathname: `/tx/${signature}`,
-    });
-
-    if (signature) {
-        attributes.push(
-            <tr key="receipt-view">
-                <td>Receipt</td>
-                <td className="text-lg-end">
-                    <Link href={receiptPath} className="btn btn-sm btn-white">
-                        View
-                    </Link>
-                </td>
             </tr>
         );
     }
