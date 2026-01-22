@@ -418,7 +418,7 @@ importers:
         specifier: 6.10.2
         version: 6.10.2(eslint@8.39.0)
       eslint-plugin-simple-import-sort:
-        specifier: ^12.1.1
+        specifier: 12.1.1
         version: 12.1.1(eslint@8.39.0)
       eslint-plugin-storybook:
         specifier: 9.1.10
