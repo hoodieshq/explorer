@@ -58,7 +58,6 @@ async function fetchRawTransaction(dispatch: Dispatch, signature: TransactionSig
             maxSupportedTransactionVersion: 0,
         });
         fetchStatus = FetchStatus.Fetched;
-
         let data: Details = { raw: null };
         if (response !== null) {
             const { message, signatures } = response.transaction;

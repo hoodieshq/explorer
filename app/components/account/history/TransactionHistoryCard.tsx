@@ -8,9 +8,13 @@ import { useAccountHistory, useFetchAccountHistory } from '@providers/accounts/h
 import { FetchStatus } from '@providers/cache';
 import { PublicKey } from '@solana/web3.js';
 import { displayTimestampUtc } from '@utils/date';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import Moment from 'react-moment';
 
+import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
+
+import { Copyable } from '../../common/Copyable';
+import { DownloadableDropdown } from '../../common/Downloadable';
 import { getTransactionRows, HistoryCardFooter, HistoryCardHeader } from '../HistoryCardComponents';
 
 export function TransactionHistoryCard({ address }: { address: string }) {
@@ -51,7 +55,7 @@ export function TransactionHistoryCard({ address }: { address: string }) {
             return (
                 <tr key={signature}>
                     <td>
-                        <Signature signature={signature} link truncateChars={60} />
+                        <Signature signature={signature} link truncateChars={44} />
                     </td>
 
                     <td className="w-1">
@@ -71,6 +75,9 @@ export function TransactionHistoryCard({ address }: { address: string }) {
 
                     <td>
                         <span className={`badge bg-${statusClass}-soft`}>{statusText}</span>
+                    </td>
+                    <td>
+                        <TransactionRawDataDownloadField signature={signature} />
                     </td>
                 </tr>
             );
@@ -94,12 +101,32 @@ export function TransactionHistoryCard({ address }: { address: string }) {
                                 </>
                             )}
                             <th className="text-muted">Result</th>
+                            <th className="text-muted">Raw Data</th>
                         </tr>
                     </thead>
                     <tbody className="list">{detailsList}</tbody>
                 </table>
             </div>
             <HistoryCardFooter fetching={fetching} foundOldest={history.data.foundOldest} loadMore={() => loadMore()} />
+        </div>
+    );
+}
+
+function TransactionRawDataDownloadField({ signature }: { signature: string }) {
+    const fetchRaw = useFetchRawTransaction();
+    const transactionData = useRawTransactionDetails(signature)?.data?.raw?.message.serialize() || null;
+
+    const handleHover = useCallback(() => {
+        if (!transactionData) {
+            fetchRaw(signature);
+        }
+    }, [transactionData, signature, fetchRaw]);
+
+    return (
+        <div className="d-flex align-items-center gap-2" onMouseEnter={handleHover}>
+            <Copyable text={transactionData?.toString('base64') || null}>
+                <DownloadableDropdown data={transactionData} filename={signature} />
+            </Copyable>
         </div>
     );
 }
