@@ -1,10 +1,13 @@
-import { ComponentType, createRef, ReactNode, useCallback, useEffect, useState } from 'react';
+import { ComponentType, createRef, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Download, IconProps } from 'react-feather';
-import useAsyncEffect from 'use-async-effect';
 
 import { type ByteArray, encodeTransactionData, type EncodingFormat } from '@entities/transaction-data';
+import dynamic from 'next/dynamic';
 
 import { Button } from '../shared/ui/button';
+import type { DropdownProps } from './Dropdown';
+
+const Dropdown = dynamic<DropdownProps>(() => import('./Dropdown').then(m => m.Dropdown), { ssr: false });
 
 export function DownloadableIcon({
     data,
@@ -72,51 +75,36 @@ export function DownloadableDropdown({
     encodings?: EncodingFormat[];
 }) {
     const dropdownRef = createRef<HTMLButtonElement>();
-
-    useAsyncEffect(
-        async isMounted => {
-            if (!dropdownRef.current) {
-                return;
-            }
-            const Dropdown = (await import('bootstrap/js/dist/dropdown')).default;
-            if (!isMounted || !dropdownRef.current) {
-                return;
-            }
-            return new Dropdown(dropdownRef.current, {
-                popperConfig() {
-                    return {
-                        strategy: 'fixed',
-                    };
-                },
-            });
-        },
-        dropdown => {
-            if (dropdown) {
-                dropdown.dispose();
-            }
-        },
-        [dropdownRef]
+    const dropdownOptions = useMemo(
+        () => ({
+            popperConfig() {
+                return { strategy: 'fixed' as const };
+            },
+        }),
+        []
     );
 
     return (
-        <div className="dropdown e-overflow-visible">
-            <Button variant="outline" size="sm" ref={dropdownRef} data-bs-toggle="dropdown" type="button">
-                <Download size={12} />
-                Download
-            </Button>
-            <div className="dropdown-menu-end dropdown-menu e-z-10">
-                <div className="d-flex e-flex-col">
-                    {encodings.map(encoding => (
-                        <DownloadableDropdownButton
-                            key={encoding}
-                            data={data}
-                            encoding={encoding}
-                            filename={filename}
-                        />
-                    ))}
+        <Dropdown dropdownRef={dropdownRef} options={dropdownOptions}>
+            <div className="dropdown e-overflow-visible">
+                <Button variant="outline" size="sm" ref={dropdownRef} data-bs-toggle="dropdown" type="button">
+                    <Download size={12} />
+                    Download
+                </Button>
+                <div className="dropdown-menu-end dropdown-menu e-z-10">
+                    <div className="d-flex e-flex-col">
+                        {encodings.map(encoding => (
+                            <DownloadableDropdownButton
+                                key={encoding}
+                                data={data}
+                                encoding={encoding}
+                                filename={filename}
+                            />
+                        ))}
+                    </div>
                 </div>
             </div>
-        </div>
+        </Dropdown>
     );
 }
 
