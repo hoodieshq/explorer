@@ -13,7 +13,15 @@ type TokenBatchContextType = {
 
 const TokenBatchContext = createContext<TokenBatchContextType | undefined>(undefined);
 
-export function TokenBatchProvider({ children, cluster, addresses }: { children: React.ReactNode; cluster: Cluster; addresses: string[] }) {
+export function TokenBatchProvider({
+    children,
+    cluster,
+    addresses,
+}: {
+    children: React.ReactNode;
+    cluster: Cluster;
+    addresses: string[];
+}) {
     const [tokenMap, setTokenMap] = useState<Map<string, Token>>(new Map());
     const [hasFetched, setHasFetched] = useState(false);
 
@@ -33,11 +41,7 @@ export function TokenBatchProvider({ children, cluster, addresses }: { children:
 
     const getTokenInfo = (address: string) => tokenMap.get(address);
 
-    return (
-        <TokenBatchContext.Provider value={{ getTokenInfo }}>
-            {children}
-        </TokenBatchContext.Provider>
-    );
+    return <TokenBatchContext.Provider value={{ getTokenInfo }}>{children}</TokenBatchContext.Provider>;
 }
 
 export function useTokenBatch() {
