@@ -15,15 +15,15 @@ describe('transaction-data encoding', () => {
     const createTransferInstruction = () =>
         SystemProgram.transfer({
             fromPubkey: FROM_PUBKEY,
-            toPubkey: TO_PUBKEY,
             lamports: TRANSFER_AMOUNT,
+            toPubkey: TO_PUBKEY,
         });
 
     const createLegacyMessage = (): Uint8Array => {
         const message = new TransactionMessage({
+            instructions: [createTransferInstruction()],
             payerKey: FROM_PUBKEY,
             recentBlockhash: PublicKey.default.toBase58(),
-            instructions: [createTransferInstruction()],
         }).compileToLegacyMessage();
 
         return message.serialize();
@@ -31,9 +31,9 @@ describe('transaction-data encoding', () => {
 
     const createV0Message = (): Uint8Array => {
         const message = new TransactionMessage({
+            instructions: [createTransferInstruction()],
             payerKey: FROM_PUBKEY,
             recentBlockhash: PublicKey.default.toBase58(),
-            instructions: [createTransferInstruction()],
         }).compileToV0Message();
 
         return message.serialize();
@@ -74,13 +74,13 @@ describe('transaction-data encoding', () => {
     };
 
     const messageVariants = [
-        { name: 'legacy', create: createLegacyMessage },
-        { name: 'v0', create: createV0Message },
+        { create: createLegacyMessage, name: 'legacy' },
+        { create: createV0Message, name: 'v0' },
     ];
 
     const inputVariants = [
-        { name: 'Uint8Array', convert: (data: Uint8Array) => data },
-        { name: 'Buffer', convert: (data: Uint8Array) => Buffer.from(data) },
+        { convert: (data: Uint8Array) => data, name: 'Uint8Array' },
+        { convert: (data: Uint8Array) => Buffer.from(data), name: 'Buffer' },
     ];
 
     describe('hex encoding', () => {

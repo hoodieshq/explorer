@@ -21,9 +21,9 @@ const base64Provider: EncodingProvider = {
 };
 
 const providers: Record<EncodingFormat, EncodingProvider> = {
-    hex: hexProvider,
     base58: base58Provider,
     base64: base64Provider,
+    hex: hexProvider,
 };
 
 export function encodeTransactionData(data: ByteArray, format: EncodingFormat): string {

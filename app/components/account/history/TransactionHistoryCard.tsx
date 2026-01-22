@@ -11,8 +11,8 @@ import { displayTimestampUtc } from '@utils/date';
 import React, { useCallback, useMemo } from 'react';
 import Moment from 'react-moment';
 
-import { toBase64 } from '@/app/shared/lib/bytes';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
+import { toBase64 } from '@/app/shared/lib/bytes';
 
 import { Copyable } from '../../common/Copyable';
 import { DownloadableDropdown } from '../../common/Downloadable';

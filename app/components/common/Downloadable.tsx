@@ -1,8 +1,9 @@
+import { type ByteArray, encodeTransactionData, type EncodingFormat } from '@entities/transaction-data';
+import dynamic from 'next/dynamic';
 import { ComponentType, createRef, ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
 import { Download, IconProps } from 'react-feather';
 
-import { type ByteArray, encodeTransactionData, type EncodingFormat } from '@entities/transaction-data';
-import dynamic from 'next/dynamic';
+import { triggerDownload, triggerDownloadText } from '@/app/shared/lib/triggerDownload';
 
 import { Button } from '../shared/ui/button';
 import type { DropdownProps } from './Dropdown';
@@ -18,14 +19,7 @@ export function DownloadableIcon({
     filename: string;
     children: ReactNode;
 }) {
-    const handleClick = async () => {
-        const blob = new Blob([Buffer.from(data, 'base64')]);
-        const fileDownloadUrl = URL.createObjectURL(blob);
-        const tempLink = document.createElement('a');
-        tempLink.href = fileDownloadUrl;
-        tempLink.setAttribute('download', filename);
-        tempLink.click();
-    };
+    const handleClick = () => triggerDownload(data, filename);
 
     return (
         <>
@@ -48,14 +42,7 @@ export function DownloadableButton({
     type?: string;
     icon?: ComponentType<IconProps>;
 }) {
-    const handleDownload = async () => {
-        const blob = new Blob([Buffer.from(data, 'base64')], type ? { type } : {});
-        const fileDownloadUrl = URL.createObjectURL(blob);
-        const tempLink = document.createElement('a');
-        tempLink.href = fileDownloadUrl;
-        tempLink.setAttribute('download', filename);
-        tempLink.click();
-    };
+    const handleDownload = () => triggerDownload(data, filename, { type });
 
     return (
         <div onClick={handleDownload} style={{ alignItems: 'center', cursor: 'pointer', display: 'inline-flex' }}>
@@ -124,15 +111,7 @@ function DownloadableDropdownButton({
             if (!data) return;
 
             const encoded = encodeTransactionData(data, encoding);
-            const blob = new Blob([encoded], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${filename}_${encoding}.txt`;
-            link.click();
-
-            URL.revokeObjectURL(url);
+            triggerDownloadText(encoded, `${filename}_${encoding}.txt`);
         },
         [data, filename]
     );
