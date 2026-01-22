@@ -11,6 +11,7 @@ import { displayTimestampUtc } from '@utils/date';
 import React, { useCallback, useMemo } from 'react';
 import Moment from 'react-moment';
 
+import { toBase64 } from '@/app/shared/lib/bytes';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
 
 import { Copyable } from '../../common/Copyable';
@@ -124,7 +125,7 @@ function TransactionRawDataDownloadField({ signature }: { signature: string }) {
 
     return (
         <div className="d-flex align-items-center gap-2" onMouseEnter={handleHover}>
-            <Copyable text={transactionData?.toString('base64') || null}>
+            <Copyable text={transactionData ? toBase64(transactionData) : null}>
                 <DownloadableDropdown data={transactionData} filename={signature} />
             </Copyable>
         </div>

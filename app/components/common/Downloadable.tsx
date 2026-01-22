@@ -1,7 +1,8 @@
-import bs58 from 'bs58';
 import { ComponentType, createRef, ReactNode, useCallback, useEffect, useState } from 'react';
 import { Download, IconProps } from 'react-feather';
 import useAsyncEffect from 'use-async-effect';
+
+import { type ByteArray, encodeTransactionData, type EncodingFormat } from '@entities/transaction-data';
 
 import { Button } from '../shared/ui/button';
 
@@ -67,8 +68,8 @@ export function DownloadableDropdown({
     filename,
 }: {
     filename: string;
-    data: Buffer | Uint8Array | null;
-    encodings?: string[];
+    data: ByteArray | null;
+    encodings?: EncodingFormat[];
 }) {
     const dropdownRef = createRef<HTMLButtonElement>();
 
@@ -105,7 +106,7 @@ export function DownloadableDropdown({
             </Button>
             <div className="dropdown-menu-end dropdown-menu e-z-10">
                 <div className="d-flex e-flex-col">
-                    {encodings.map((encoding: string) => (
+                    {encodings.map(encoding => (
                         <DownloadableDropdownButton
                             key={encoding}
                             data={data}
@@ -124,38 +125,37 @@ function DownloadableDropdownButton({
     encoding,
     filename,
 }: {
-    data: Buffer | Uint8Array | null;
-    encoding: string;
+    data: ByteArray | null;
+    encoding: EncodingFormat;
     filename: string;
 }) {
     const [isLoading, setIsLoading] = useState<boolean>(false);
 
-    const handleDownload = (encoding: string) => {
+    const proceedDownload = useCallback(
+        (encoding: EncodingFormat) => {
+            if (!data) return;
+
+            const encoded = encodeTransactionData(data, encoding);
+            const blob = new Blob([encoded], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${filename}_${encoding}.txt`;
+            link.click();
+
+            URL.revokeObjectURL(url);
+        },
+        [data, filename]
+    );
+
+    const handleDownload = (encoding: EncodingFormat) => {
         if (!data) {
             setIsLoading(true);
             return;
         }
         proceedDownload(encoding);
     };
-
-    const proceedDownload = useCallback(
-        (encoding: string) => {
-            const localData = data as Buffer | Uint8Array;
-            let buffer;
-            if (encoding === 'base58') {
-                buffer = bs58.encode(localData);
-            } else {
-                buffer = new Blob([Buffer.from(localData.toString(encoding as BufferEncoding))], {});
-            }
-            const blob = new Blob([buffer], {});
-            const fileDownloadUrl = URL.createObjectURL(blob);
-            const tempLink = document.createElement('a');
-            tempLink.href = fileDownloadUrl;
-            tempLink.setAttribute('download', `${filename}_${encoding}.txt`);
-            tempLink.click();
-        },
-        [data, filename]
-    );
 
     useEffect(() => {
         if (data && isLoading) {
