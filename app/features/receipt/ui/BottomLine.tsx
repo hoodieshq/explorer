@@ -1,4 +1,4 @@
-export function Zigzag({ style }: { style?: React.CSSProperties }) {
+export function BottomLine({ style }: { style?: React.CSSProperties }) {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"

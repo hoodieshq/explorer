@@ -1,0 +1,192 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { Cluster } from '@/app/utils/cluster';
+
+import { getTokenInfo } from '../api/get-token-info';
+import { getTx } from '../api/get-tx';
+import { mockCustomFeePayerTransaction } from '../mocks/custom-fee-payer';
+import { mockMultipleTransfersTransaction } from '../mocks/multiple-transfers';
+import { mockNoTransferTransaction } from '../mocks/no-transfers';
+import { mockSingleTransferTransaction } from '../mocks/single-transfer';
+import { mockUsdcTransferTransaction } from '../mocks/usdc-cheked-transfer';
+import { mockUsdcRegularTransferTransaction } from '../mocks/usdc-regular-transfer';
+import { mockZeroTransferTransaction } from '../mocks/zero-transfer';
+import { createReceipt } from './create-receipt';
+
+vi.mock('../api/get-tx');
+vi.mock('../api/get-token-info');
+
+describe('createReceipt', () => {
+    const mockSignature = '5yKzCuw1e9d58HcnzSL31cczfXUux2H4Ga5TAR2RcQLE5W8BiTAC9x9MvhLtc4h99sC9XxLEAjhrXyfKezdMkZFV';
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    describe('SOL transfer receipts', () => {
+        it('should create a formatted SOL transfer receipt for a single transfer', async () => {
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockSingleTransferTransaction,
+            });
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toMatchObject({
+                fee: '0.000005',
+                network: 'Mainnet Beta',
+                receiver: '65MUM..L2Fhk',
+                sender: 'Hd3f3..R3bD5',
+                total: '0.3',
+                type: 'sol',
+            });
+            expect(result?.date).toBeDefined();
+        });
+
+        it('should return null for multiple SOL transfers', async () => {
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockMultipleTransfersTransaction,
+            });
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toBeNull();
+        });
+
+        it('should return null for zero SOL transfer', async () => {
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockZeroTransferTransaction,
+            });
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toBeNull();
+        });
+
+        it('should handle custom fee payer transaction', async () => {
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockCustomFeePayerTransaction,
+            });
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toMatchObject({
+                fee: '0.00001',
+                receiver: 'G2Gjo..N6wid',
+                sender: 'Hd3f3..R3bD5',
+                total: '0.5',
+                type: 'sol',
+            });
+        });
+
+        it('should format receipt for different clusters', async () => {
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.Devnet,
+                transaction: mockSingleTransferTransaction,
+            });
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toMatchObject({
+                network: 'Devnet',
+            });
+        });
+    });
+
+    describe('token transfer receipts', () => {
+        it('should create a formatted token transfer receipt for transferChecked', async () => {
+            const mockTokenInfo = {
+                logoURI: 'https://example.com/usdc.png',
+                symbol: 'USDC',
+            };
+
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockUsdcTransferTransaction,
+            });
+            vi.mocked(getTokenInfo).mockResolvedValueOnce(mockTokenInfo);
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toMatchObject({
+                fee: '0.000005',
+                network: 'Mainnet Beta',
+                receiver: 'Hd3f3..R3bD5',
+                sender: 'Hd3f3..R3bD5',
+                symbol: 'USDC',
+                total: '1',
+                type: 'token',
+            });
+            expect(getTokenInfo).toHaveBeenCalledWith(
+                '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+                Cluster.MainnetBeta
+            );
+        });
+
+        it('should create a formatted token transfer receipt for regular transfer', async () => {
+            const mockTokenInfo = {
+                symbol: 'USDC',
+            };
+
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockUsdcRegularTransferTransaction,
+            });
+            vi.mocked(getTokenInfo).mockResolvedValueOnce(mockTokenInfo);
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toMatchObject({
+                receiver: 'Hd3f3..R3bD5',
+                sender: 'Hd3f3..R3bD5',
+                symbol: 'USDC',
+                total: '1',
+                type: 'token',
+            });
+        });
+
+        it('should handle token transfer when getTokenInfo returns undefined', async () => {
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockUsdcTransferTransaction,
+            });
+            vi.mocked(getTokenInfo).mockResolvedValueOnce(undefined);
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toMatchObject({
+                type: 'token',
+            });
+        });
+
+        it('should handle token transfer when getTokenInfo throws an error', async () => {
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockUsdcTransferTransaction,
+            });
+            vi.mocked(getTokenInfo).mockRejectedValueOnce(new Error('Token info not found'));
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toMatchObject({
+                type: 'token',
+            });
+        });
+    });
+
+    describe('no transfer receipts', () => {
+        it('should return null for transaction with no transfers', async () => {
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockNoTransferTransaction,
+            });
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toBeNull();
+        });
+    });
+});

@@ -1,3 +1,2 @@
-export { IMAGE_SIZE as OG_IMAGE_SIZE } from './ui/BaseReceiptImage';
-export { ReceiptImage } from './ui/ReceiptImage';
-export { getData } from './api/get-data';
+export { IMAGE_SIZE as OG_IMAGE_SIZE, BaseReceiptImage } from './ui/BaseReceiptImage';
+export { createReceipt } from './model/create-receipt';

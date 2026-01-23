@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { expect, within } from 'storybook/test';
 
-import { BaseReceiptImage } from './BaseReceiptImage';
+import { BaseReceiptImage, IMAGE_SIZE } from './BaseReceiptImage';
 
 const meta: Meta<typeof BaseReceiptImage> = {
     argTypes: {
@@ -15,23 +15,27 @@ const meta: Meta<typeof BaseReceiptImage> = {
         },
     },
     component: BaseReceiptImage,
+    decorators: [
+        Story => (
+            <div style={{ height: IMAGE_SIZE.height, width: IMAGE_SIZE.width }}>
+                <Story />
+            </div>
+        ),
+    ],
     title: 'Features/Receipt/ReceiptImage',
 };
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const defaultAddress = 'TokenzQqasd1823...C1PXEpPxuEbasdnh891';
-
 export const Default: Story = {
     args: {
         data: {
             date: 'Jan 13, 2026 at 16:07:42',
-            description: 'Pizza payment',
             fee: '2.50',
             network: 'Mainnet',
-            receiver: defaultAddress,
-            sender: defaultAddress,
+            receiver: 'Hd3f3...R3bD4',
+            sender: '24x5...L3bD5',
             total: '143.25',
         },
     },
@@ -42,73 +46,36 @@ export const Default: Story = {
     },
 };
 
-export const WithoutDescription: Story = {
-    args: {
-        data: {
-            date: 'Jan 13, 2026 at 16:07:42',
-            fee: '2.50',
-            network: 'Mainnet',
-            receiver: defaultAddress,
-            sender: defaultAddress,
-            total: '143.25',
-        },
-    },
-};
-
-export const WithoutFee: Story = {
-    args: {
-        data: {
-            date: 'Jan 13, 2026 at 16:07:42',
-            network: 'Mainnet',
-            receiver: defaultAddress,
-            sender: defaultAddress,
-            total: '143.25',
-        },
-    },
-};
-
 export const LargeAmount: Story = {
     args: {
         data: {
             date: 'Jan 13, 2026 at 16:07:42',
-            description: 'Large transfer',
             fee: '5000',
+            memo: 'Large transfer',
             network: 'Mainnet',
-            receiver: defaultAddress,
-            sender: defaultAddress,
+            receiver: 'Hd3f3...R3bD4',
+            sender: '24x5...L3bD5',
             total: '100000.00',
         },
     },
 };
 
-export const LongDescription: Story = {
+export const LongMemo: Story = {
     args: {
         data: {
             date: 'Jan 13, 2026 at 16:07:42',
-            description:
-                'This is a very long description that demonstrates how the receipt component handles extended text content. It includes multiple sentences and various details about the transaction, such as the purpose of the payment, the services rendered, and any additional context that might be relevant to understanding the nature of this particular blockchain transaction on the Solana network.',
             fee: '0.000005',
+            memo: 'This is a very long description that demonstrates how the receipt component handles extended text content. It includes multiple sentences and various details about the transaction, such as the purpose of the payment, the services rendered, and any additional context that might be relevant to understanding the nature of this particular blockchain transaction on the Solana network.',
             network: 'Mainnet',
-            receiver: defaultAddress,
-            sender: defaultAddress,
+            receiver: 'Hd3f3...R3bD4',
+            sender: '24x5...L3bD5',
             total: '1250.75',
         },
     },
 };
 
-export const Minimal: Story = {
+export const NoReceipt: Story = {
     args: {
-        data: {
-            date: 'Jan 13, 2026 at 16:07:42',
-            description: 'Pizza payment',
-            fee: '2.50',
-            network: 'Mainnet',
-            receiver: defaultAddress,
-            sender: defaultAddress,
-            total: '143.25',
-        },
-        options: {
-            minimal: true,
-        },
+        data: null,
     },
 };

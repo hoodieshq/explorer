@@ -1,6 +1,7 @@
-import { dollar } from './images';
+import type { FormattedReceipt } from '../types';
+import { BottomLine } from './BottomLine';
 import { Logo } from './Logo';
-import { Zigzag } from './Zigzag';
+import { Warning } from './Warning';
 
 export const IMAGE_SIZE = {
     height: 630,
@@ -8,17 +9,8 @@ export const IMAGE_SIZE = {
 };
 
 type BaseReceiptImageProps = {
-    data: {
-        sender?: string;
-        receiver?: string;
-        date?: string;
-        description?: string;
-        network?: string;
-        fee?: string;
-        total?: string;
-    };
+    data: FormattedReceipt | null;
     options?: {
-        minimal?: boolean;
         size?: {
             height: number;
             width: number;
@@ -26,22 +18,26 @@ type BaseReceiptImageProps = {
     };
 };
 
-export function BaseReceiptImage({
-    data: { sender, receiver, date, description, network, fee, total },
-    options,
-}: BaseReceiptImageProps) {
-    const minimal = options?.minimal || false;
+export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
     const size = options?.size || IMAGE_SIZE;
+
+    if (!data) return <NoReceipt size={size} />;
+
+    const { sender, receiver, date, memo, fee, total } = data;
+    const truncatedMemo = memo ? (memo.length > 90 ? memo.substring(0, 90) + '...' : memo) : null;
+
+    const unit = data.type === 'sol' ? 'SOL' : data.symbol || 'TOKEN';
+
     return (
         <div
             style={{
-                alignItems: 'flex-start',
-                backgroundImage: `radial-gradient(ellipse at 50% 50%, ${colors.emerald700} 0%, ${colors.outerSpace950} 80%)`,
+                backgroundImage: `radial-gradient(ellipse at 50% 50%, ${colors.emerald700} 0%, #EBEBEB 90%)`,
                 display: 'flex',
                 fontFamily: 'system-ui, -apple-system, sans-serif',
-                height: size.height,
+                height: '100%',
                 justifyContent: 'center',
-                width: size.width,
+                padding: '0 75px 40px',
+                width: '100%',
             }}
         >
             <div
@@ -51,52 +47,88 @@ export function BaseReceiptImage({
                     overflow: 'hidden',
                     padding: '0',
                     position: 'relative',
-                    width: '1047px',
+                    width: '100%',
                 }}
             >
                 <div
                     style={{
-                        background: colors.outerSpace900,
-                        border: `1px solid ${colors.outerSpace950}`,
+                        background: colors.white,
                         borderBottom: 'none',
                         display: 'flex',
                         flexDirection: 'column',
+                        flexGrow: 1,
                     }}
                 >
-                    <Header date={date} minimal={minimal} />
-                    {minimal ? null : (
-                        <div
-                            style={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                padding: '24px 54px',
-                            }}
-                        >
-                            <ListItem label="Sender" value={sender} />
-                            <ListItem label="Receiver" value={receiver} />
-                            <ListItem label="Network" value={network} />
-                            {description && <DescriptionText text={description} truncate />}
-                        </div>
-                    )}
+                    <Header />
+                    <div
+                        style={{
+                            display: 'flex',
+                            flexDirection: 'column',
+                            flexGrow: 1,
+                        }}
+                    >
+                        <ListItem label="Sender" value={sender} />
+                        <ListItem label="Date" value={date} valueColor={colors.emerald900} />
+                        <ListItem
+                            label="1. Send"
+                            style={{ flexGrow: 1 }}
+                            value={
+                                <div style={{ display: 'flex', flexGrow: 1, fontSize: '36px', gap: '8px' }}>
+                                    <span style={{ color: colors.heavyMetal800, fontWeight: 600, lineHeight: '1em' }}>
+                                        {total} {unit}
+                                    </span>
+                                    <span style={{ color: colors.neutral500, lineHeight: '1em' }}>to</span>
+                                    <span
+                                        style={{ color: colors.emerald700, fontFamily: 'monospace', lineHeight: '1em' }}
+                                    >
+                                        {receiver}
+                                    </span>
+                                </div>
+                            }
+                        />
+                        {truncatedMemo && (
+                            <ListItem
+                                label="Memo"
+                                value={
+                                    <div
+                                        style={{
+                                            display: 'flex',
+                                            flexGrow: 1,
+                                            fontSize: '34px',
+                                            gap: '8px',
+                                            lineHeight: '1em',
+                                        }}
+                                    >
+                                        <span
+                                            style={{ color: colors.heavyMetal800, marginLeft: 'auto', width: '714px' }}
+                                        >
+                                            {truncatedMemo}
+                                        </span>
+                                    </div>
+                                }
+                                valueColor={colors.emerald900}
+                            />
+                        )}
+                    </div>
 
-                    <Footer fee={fee} total={total} minimal={minimal} />
+                    <Footer fee={fee} total={total} />
                 </div>
 
-                <Zigzag style={{ color: colors.outerSpace900 }} />
+                <BottomLine style={{ color: colors.white }} />
             </div>
         </div>
     );
 }
 
-function Header({ date, minimal }: { date?: string; minimal?: boolean }) {
+function Header() {
     return (
         <div
             style={{
                 alignItems: 'center',
-                borderBottom: '2px solid rgba(255, 255, 255, 0.1)',
+                borderBottom: `2px solid ${colors.neutral200}`,
                 display: 'flex',
                 justifyContent: 'space-between',
-                padding: minimal ? '54px 84px' : '32px 54px',
+                padding: '20px 54px',
             }}
         >
             <div
@@ -106,12 +138,12 @@ function Header({ date, minimal }: { date?: string; minimal?: boolean }) {
                     gap: '12px',
                 }}
             >
-                <Logo style={{ height: minimal ? '38px' : '26px', width: minimal ? '326px' : '229px' }} />
+                <Logo style={{ color: colors.heavyMetal800, height: '26px', width: '229px' }} />
 
                 <span
                     style={{
-                        color: colors.neutral200,
-                        fontSize: minimal ? '50px' : '35px',
+                        color: colors.heavyMetal800,
+                        fontSize: '35px',
                         fontWeight: 500,
                         marginLeft: '18px',
                     }}
@@ -119,114 +151,64 @@ function Header({ date, minimal }: { date?: string; minimal?: boolean }) {
                     Receipt
                 </span>
             </div>
-            {date && !minimal && (
-                <span
-                    style={{
-                        color: colors.neutral500,
-                        fontFamily: 'monospace',
-                        fontSize: '28px',
-                    }}
-                >
-                    {date}
-                </span>
-            )}
         </div>
     );
 }
 
-function Footer({ fee, total, minimal }: { fee?: string; total?: string; minimal?: boolean }) {
+function Footer({ fee, total }: { fee?: string; total?: string }) {
     if (!total) return null;
     return (
         <div
             style={{
-                borderTop: minimal ? 'none' : '2px dashed rgba(255, 255, 255, 0.15)',
+                borderTop: '2px dashed rgba(255, 255, 255, 0.15)',
                 display: 'flex',
                 flexDirection: 'column',
-                padding: minimal ? '40px 84px' : '29px 54px 16px',
+                padding: '29px 54px 16px',
             }}
         >
-            <Total total={total} minimal={minimal} />
-
-            {fee && (
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: colors.neutral500, fontSize: '44px', lineHeight: '1em' }}>Fee</span>
-                    <span style={{ color: colors.neutral500, fontSize: '50px', lineHeight: '1em' }}>{fee}</span>
-                </div>
-            )}
-        </div>
-    );
-}
-
-function Total({ total, minimal }: { total?: string; minimal?: boolean }) {
-    return (
-        <div
-            style={{
-                alignItems: 'center',
-                display: 'flex',
-                justifyContent: 'space-between',
-            }}
-        >
-            <span
-                style={{
-                    color: colors.neutral200,
-                    fontSize: minimal ? '44px' : '31px',
-                }}
-            >
-                Total
-            </span>
-            <div
-                style={{
-                    alignItems: 'center',
-                    display: 'flex',
-                    gap: '8px',
-                }}
-            >
-                <img
-                    alt="Dollar icon"
-                    src={dollar}
-                    height={minimal ? '80px' : '60px'}
-                    width={minimal ? '80px' : '60px'}
-                />
-
-                <span
-                    style={{
-                        color: colors.neutral200,
-                        fontSize: minimal ? '101px' : '70px',
-                        lineHeight: '1em',
-                        marginLeft: '10px',
-                    }}
-                >
-                    {total}
-                </span>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: colors.neutral500, fontSize: '36px', lineHeight: '1em' }}>Fee</span>
+                <span style={{ color: colors.emerald900, fontSize: '34px', lineHeight: '1em' }}>{fee} SOL</span>
             </div>
         </div>
     );
 }
 
-function ListItem({ label, value }: { label: string; value: React.ReactNode | string | undefined | null }) {
+function ListItem({
+    label,
+    value,
+    valueColor = colors.emerald700,
+    style,
+}: {
+    label: string;
+    value: React.ReactNode | string | undefined | null;
+    valueColor?: string;
+    style?: React.CSSProperties;
+}) {
     if (!value) return null;
     return (
         <div
             style={{
-                alignItems: 'center',
+                alignItems: 'flex-start',
+                borderBottom: `2px dashed ${colors.neutral200}`,
                 display: 'flex',
                 gap: '16px',
                 justifyContent: 'space-between',
+                padding: '22px 54px',
+
+                ...style,
             }}
         >
-            <DescriptionText text={label} />
+            <Description text={label} />
             {typeof value === 'string' ? (
                 <span
                     style={{
-                        color: colors.emerald700,
+                        color: valueColor,
                         display: 'flex',
                         flex: 1,
                         fontFamily: 'monospace',
-                        fontSize: '26px',
+                        fontSize: '34px',
                         justifyContent: 'flex-end',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
                     }}
                 >
                     {value}
@@ -238,25 +220,14 @@ function ListItem({ label, value }: { label: string; value: React.ReactNode | st
     );
 }
 
-function DescriptionText({ text, truncate }: { text: string; truncate?: boolean }) {
+function Description({ text }: { text: string }) {
     return (
         <span
             style={{
                 color: colors.neutral500,
-                fontSize: '28px',
+                fontSize: '36px',
                 lineHeight: '1em',
-                padding: '16px 0',
-                ...(truncate
-                    ? {
-                          display: 'block',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                          width: '100%',
-                      }
-                    : {
-                          flexShrink: 0,
-                      }),
+                // padding: '22px 0',
             }}
         >
             {text}
@@ -264,11 +235,56 @@ function DescriptionText({ text, truncate }: { text: string; truncate?: boolean 
     );
 }
 
+function NoReceipt({ size }: { size: { width: number; height: number } }) {
+    return (
+        <div
+            style={{
+                backgroundColor: colors.outerSpace900,
+                color: colors.destructive,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                height: size.height,
+                width: size.width,
+            }}
+        >
+            <div
+                style={{
+                    alignItems: 'flex-end',
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    padding: '23px 37px',
+                    width: '100%',
+                }}
+            >
+                <Logo style={{ color: colors.white, height: '26px', width: '229px' }} />
+            </div>
+
+            <div
+                style={{
+                    alignItems: 'center',
+                    display: 'flex',
+                    flexGrow: 1,
+                    fontSize: '51px',
+                    gap: '24px',
+                    justifyContent: 'center',
+                }}
+            >
+                <Warning />
+                There is no receipt for this transaction.
+            </div>
+        </div>
+    );
+}
+
 const colors = {
+    destructive: '#f765fb',
     emerald700: '#0ea476',
+    emerald900: '#053D2C',
     heavyMetal800: '#29302c',
     neutral200: '#e5e5e5',
     neutral500: '#737373',
     outerSpace900: '#1d2322',
     outerSpace950: '#101413',
+    white: '#fff',
 };
