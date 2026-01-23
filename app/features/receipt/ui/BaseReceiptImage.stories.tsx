@@ -31,6 +31,7 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
     args: {
         data: {
+            type: 'sol',
             date: 'Jan 13, 2026 at 16:07:42',
             fee: '2.50',
             network: 'Mainnet',
@@ -49,6 +50,7 @@ export const Default: Story = {
 export const LargeAmount: Story = {
     args: {
         data: {
+            type: 'sol',
             date: 'Jan 13, 2026 at 16:07:42',
             fee: '5000',
             memo: 'Large transfer',
@@ -63,6 +65,25 @@ export const LargeAmount: Story = {
 export const LongMemo: Story = {
     args: {
         data: {
+            type: 'sol',
+            date: 'Jan 13, 2026 at 16:07:42',
+            fee: '0.000005',
+            memo: 'This is a very long description that demonstrates how the receipt component handles extended text content. It includes multiple sentences and various details about the transaction, such as the purpose of the payment, the services rendered, and any additional context that might be relevant to understanding the nature of this particular blockchain transaction on the Solana network.',
+            network: 'Mainnet',
+            receiver: 'Hd3f3...R3bD4',
+            sender: '24x5...L3bD5',
+            total: '1250.75',
+        },
+    },
+};
+
+
+export const TokenTransfer: Story = {
+    args: {
+        data: {
+            type: 'token',
+            mint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
+            symbol: 'USDC',
             date: 'Jan 13, 2026 at 16:07:42',
             fee: '0.000005',
             memo: 'This is a very long description that demonstrates how the receipt component handles extended text content. It includes multiple sentences and various details about the transaction, such as the purpose of the payment, the services rendered, and any additional context that might be relevant to understanding the nature of this particular blockchain transaction on the Solana network.',
