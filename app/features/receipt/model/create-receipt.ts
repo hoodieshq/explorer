@@ -23,7 +23,7 @@ export async function extractReceiptData(
 ): Promise<FormattedReceipt | null> {
     const receipt =
         createSolTransferReceipt(tx) ||
-        (await createTokenTransferReceipt(tx, (mint: string | undefined) => getTokenSymbol(mint, cluster)));
+        (await createTokenTransferReceipt(tx, (mint: string | undefined) => getParsedTokenInfo(mint, cluster)));
 
     if (!receipt) return null;
 
@@ -43,6 +43,7 @@ function formatReceiptData(receipt: Receipt, cluster: Cluster): FormattedReceipt
             formatted: lamportsToSolString(receipt.fee, 9),
             raw: receipt.fee,
         },
+        logoURI: receipt.type === 'token' ? receipt.logoURI : undefined,
         memo: receipt.memo,
         network: clusterName(cluster),
         receiver: {
@@ -61,12 +62,13 @@ function formatReceiptData(receipt: Receipt, cluster: Cluster): FormattedReceipt
     };
 }
 
-async function getTokenSymbol(mint: string | undefined, cluster: Cluster): Promise<TokenInfo | undefined> {
+async function getParsedTokenInfo(mint: string | undefined, cluster: Cluster): Promise<TokenInfo | undefined> {
     if (!mint) return undefined;
     try {
         const tokenInfo = await getTokenInfo(mint, cluster);
         return tokenInfo;
     } catch (error) {
+        console.error('Unable to get token info', error);
         return undefined;
     }
 }

@@ -15,6 +15,7 @@ export type ReceiptToken = BaseReceipt & {
     type: 'token';
     mint: string | undefined;
     symbol: string | undefined;
+    logoURI: string | undefined;
 };
 
 export type Receipt = ReceiptSol | ReceiptToken;

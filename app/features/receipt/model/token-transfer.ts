@@ -65,6 +65,7 @@ export async function createTokenTransferReceipt(
     return {
         date,
         fee,
+        logoURI: tokenInfo?.logoURI,
         memo,
         mint,
         receiver,

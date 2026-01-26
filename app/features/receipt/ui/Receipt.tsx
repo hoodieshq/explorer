@@ -15,6 +15,7 @@ import React, { useEffect } from 'react';
 import { Info } from 'react-feather';
 import useSWR from 'swr';
 
+import { getProxiedUri } from '@/app/features/metadata';
 import { AUTO_REFRESH_INTERVAL, AutoRefresh, type AutoRefreshProps } from '@/app/tx/[signature]/page-client';
 
 import { extractReceiptData } from '../model/create-receipt';
@@ -90,11 +91,13 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
 
     if (!receipt) return <NoReceipt />;
 
+    const logoURI = receipt.logoURI ? getProxiedUri(receipt.logoURI) : undefined;
+
     return (
         <SignatureContext.Provider value={signature}>
             <div className="container e-flex e-min-h-[90vh] e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10">
                 <BluredCircle />
-                <BaseReceipt data={{ ...receipt, confirmationStatus: status.data?.info.confirmationStatus }} />
+                <BaseReceipt data={{ ...receipt, confirmationStatus: status.data?.info.confirmationStatus, logoURI }} />
                 <Link
                     href={transactionPath}
                     className="btn btn-white btn-sm me-2"

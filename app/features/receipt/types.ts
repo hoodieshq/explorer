@@ -24,6 +24,7 @@ export type FormattedBaseReceipt = {
         domain?: string;
     };
     memo?: string | undefined;
+    logoURI?: string | undefined;
 };
 
 export type FormattedReceiptSol = FormattedBaseReceipt;
