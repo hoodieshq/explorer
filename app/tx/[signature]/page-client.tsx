@@ -14,7 +14,7 @@ import { InstructionsSection } from '@components/transaction/InstructionsSection
 import { ProgramLogSection } from '@components/transaction/ProgramLogSection';
 import { TokenBalancesCard } from '@components/transaction/TokenBalancesCard';
 import { CUProfilingSection } from '@features/cu-profiling';
-import { ReceiptView } from '@features/receipt';
+import { Receipt } from '@features/receipt';
 import { FetchStatus } from '@providers/cache';
 import { useCluster } from '@providers/cluster';
 import {
@@ -124,7 +124,7 @@ export default function TransactionDetailsPageClient({ params: { signature: raw 
     }, [status, autoRefresh, setZeroConfirmationRetries]);
 
     if (searchParams.get('view') === 'receipt' && signature) {
-        return <ReceiptView signature={signature} autoRefresh={autoRefresh} />;
+        return <Receipt signature={signature} autoRefresh={autoRefresh} />;
     }
 
     return (
