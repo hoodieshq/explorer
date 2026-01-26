@@ -105,6 +105,7 @@ function Autocomplete<Item extends AutocompleteItem = AutocompleteItem>({
                 </PopoverPrimitive.Anchor>
                 {!open && <CommandList aria-hidden="true" className="hidden" />}
                 <PopoverPrimitive.Content
+                    asChild
                     align="start"
                     sideOffset={4}
                     onOpenAutoFocus={e => e.preventDefault()}
