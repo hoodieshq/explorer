@@ -31,13 +31,13 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
     args: {
         data: {
-            type: 'sol',
             date: 'Jan 13, 2026 at 16:07:42',
             fee: '2.50',
             network: 'Mainnet',
             receiver: 'Hd3f3...R3bD4',
             sender: '24x5...L3bD5',
             total: '143.25',
+            type: 'sol',
         },
     },
     play: async ({ canvasElement }) => {
@@ -50,7 +50,6 @@ export const Default: Story = {
 export const LargeAmount: Story = {
     args: {
         data: {
-            type: 'sol',
             date: 'Jan 13, 2026 at 16:07:42',
             fee: '5000',
             memo: 'Large transfer',
@@ -58,6 +57,7 @@ export const LargeAmount: Story = {
             receiver: 'Hd3f3...R3bD4',
             sender: '24x5...L3bD5',
             total: '100000.00',
+            type: 'sol',
         },
     },
 };
@@ -65,7 +65,6 @@ export const LargeAmount: Story = {
 export const LongMemo: Story = {
     args: {
         data: {
-            type: 'sol',
             date: 'Jan 13, 2026 at 16:07:42',
             fee: '0.000005',
             memo: 'This is a very long description that demonstrates how the receipt component handles extended text content. It includes multiple sentences and various details about the transaction, such as the purpose of the payment, the services rendered, and any additional context that might be relevant to understanding the nature of this particular blockchain transaction on the Solana network.',
@@ -73,6 +72,7 @@ export const LongMemo: Story = {
             receiver: 'Hd3f3...R3bD4',
             sender: '24x5...L3bD5',
             total: '1250.75',
+            type: 'sol',
         },
     },
 };
@@ -81,16 +81,16 @@ export const LongMemo: Story = {
 export const TokenTransfer: Story = {
     args: {
         data: {
-            type: 'token',
-            mint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
-            symbol: 'USDC',
             date: 'Jan 13, 2026 at 16:07:42',
             fee: '0.000005',
             memo: 'This is a very long description that demonstrates how the receipt component handles extended text content. It includes multiple sentences and various details about the transaction, such as the purpose of the payment, the services rendered, and any additional context that might be relevant to understanding the nature of this particular blockchain transaction on the Solana network.',
+            mint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
             network: 'Mainnet',
             receiver: 'Hd3f3...R3bD4',
             sender: '24x5...L3bD5',
+            symbol: 'USDC',
             total: '1250.75',
+            type: 'token',
         },
     },
 };

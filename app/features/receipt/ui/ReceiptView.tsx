@@ -22,7 +22,7 @@ import { Info } from 'react-feather';
 import { truncateAddress } from '@/app/entities/address/lib/utils';
 import { dollar } from '@/app/features/receipt/ui/images';
 
-import { AUTO_REFRESH_INTERVAL, AutoRefresh, AutoRefreshProps } from './page-client';
+import { AUTO_REFRESH_INTERVAL, AutoRefresh, AutoRefreshProps } from '../../../tx/[signature]/page-client';
 
 const MEMO_PROGRAM_ID = new PublicKey(MEMO_PROGRAM_ADDRESS);
 
