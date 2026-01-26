@@ -1,7 +1,7 @@
-import { InfoTooltip } from '@components/common/InfoTooltip';
 import { Badge } from '@components/shared/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@components/shared/ui/tooltip';
 import { cn } from '@components/shared/utils';
-import { displayTimestamp, displayTimestampUtc } from '@utils/date';
+import { displayTimestamp } from '@utils/date';
 
 // TODO: replace with real img
 import { dollar } from '@/app/features/receipt/ui/images';
@@ -40,11 +40,12 @@ export function Header({ date }: Pick<Data, 'date'>) {
         <div className="e-flex e-items-center e-justify-between e-gap-x-4 e-border-b e-border-white/10 e-p-6 e-pt-8 [border-bottom-style:solid]">
             <h3 className="e-m-0 e-flex-shrink-0 e-font-medium e-text-white">Solana Receipt</h3>
             {date && (
-                <InfoTooltip text={displayTimestampUtc(date.timestamp, true)} withHelpIcon={false} right>
-                    <span className="e-text-right e-font-mono e-text-sm e-text-gray-400">
-                        {displayTimestamp(date.timestamp, true)}
-                    </span>
-                </InfoTooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="e-text-right e-font-mono e-text-sm e-text-gray-400">{date.utc}</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{displayTimestamp(date.timestamp, true)}</TooltipContent>
+                </Tooltip>
             )}
         </div>
     );
@@ -89,11 +90,18 @@ function ListItem({
     return (
         <>
             <span>{label}</span>
-            <InfoTooltip text={tooltipText} withHelpIcon={false} right>
-                <span className={cn('e-truncate e-text-right e-font-mono e-text-green-400', className)} title={value}>
-                    {value}
-                </span>
-            </InfoTooltip>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <span className={cn('e-truncate e-text-right e-font-mono e-text-green-400', className)}>
+                        {value}
+                    </span>
+                </TooltipTrigger>
+                {tooltipText && (
+                    <TooltipContent side="right">
+                        <span className="e-text-green-400">{tooltipText}</span>
+                    </TooltipContent>
+                )}
+            </Tooltip>
         </>
     );
 }
@@ -103,9 +111,12 @@ function Footer({ fee, total, memo }: Pick<Data, 'fee' | 'total' | 'memo'>) {
         <div className="e-p-6 e-pt-0 e-text-xs e-text-gray-400">
             <div className="e-grid e-grid-cols-2 e-items-center">
                 <span className="e-text-white">Total</span>
-                <InfoTooltip text={total.raw} withHelpIcon={false} right>
-                    <Total total={total} />
-                </InfoTooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <Total total={total} />
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{total.raw}</TooltipContent>
+                </Tooltip>
                 <span>Fee</span>
                 <span className="e-text-right">{fee} SOL</span>
             </div>
