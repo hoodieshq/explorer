@@ -113,7 +113,7 @@ function Autocomplete<Item extends AutocompleteItem = AutocompleteItem>({
                             e.preventDefault();
                         }
                     }}
-                    className="e-z-10 e-w-[var(--radix-popover-trigger-width)] e-rounded-md e-border e-border-heavy-metal-900 e-shadow-2xl [border-style:solid] e-bg-heavy-metal-800"
+                    className="e-z-10 e-w-[var(--radix-popover-trigger-width)] e-rounded-md e-border e-border-heavy-metal-900 e-bg-heavy-metal-800 e-shadow-2xl [border-style:solid]"
                 >
                     <CommandList
                         onMouseDown={e => {

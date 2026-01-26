@@ -96,7 +96,7 @@ AccountInput.displayName = 'AccountInput';
 
 function AutocompleteItemContent({ option, seeds }: { option: AutocompleteItem; seeds: { name: string }[] }) {
     return (
-        <div className="e-flex e-flex-col e-w-full e-items-start e-justify-between e-px-4 e-py-1.5 e-text-xs">
+        <div className="e-flex e-w-full e-flex-col e-items-start e-justify-between e-px-4 e-py-1.5 e-text-xs">
             <span className="e-hidden md:e-inline">
                 {option.label}
                 {option.generated && (
