@@ -168,7 +168,6 @@ const useTokenInfo = (fetchTokenLabelInfo: boolean | undefined, pubkey: string) 
         // eslint-disable-next-line react-hooks/rules-of-hooks
         batchContext = useTokenBatch();
     } catch {
-        // Not in batch context
         return undefined;
     }
 
