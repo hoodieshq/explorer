@@ -35,12 +35,20 @@ describe('createReceipt', () => {
             expect(result).toMatchObject({
                 fee: '0.000005',
                 network: 'Mainnet Beta',
-                receiver: '65MUM..L2Fhk',
-                sender: 'Hd3f3..R3bD5',
-                total: '0.3',
-                type: 'sol',
+                receiver: {
+                    truncated: '65MUM..L2Fhk',
+                },
+                sender: {
+                    truncated: 'Hd3f3..R3bD5',
+                },
+                total: {
+                    formatted: '0.3',
+                    unit: 'SOL',
+                },
             });
             expect(result?.date).toBeDefined();
+            expect(result?.date.timestamp).toBeDefined();
+            expect(result?.date.utc).toBeDefined();
         });
 
         it('should return null for multiple SOL transfers', async () => {
@@ -75,10 +83,16 @@ describe('createReceipt', () => {
 
             expect(result).toMatchObject({
                 fee: '0.00001',
-                receiver: 'G2Gjo..N6wid',
-                sender: 'Hd3f3..R3bD5',
-                total: '0.5',
-                type: 'sol',
+                receiver: {
+                    truncated: 'G2Gjo..N6wid',
+                },
+                sender: {
+                    truncated: 'Hd3f3..R3bD5',
+                },
+                total: {
+                    formatted: '0.5',
+                    unit: 'SOL',
+                },
             });
         });
 
@@ -114,11 +128,16 @@ describe('createReceipt', () => {
             expect(result).toMatchObject({
                 fee: '0.000005',
                 network: 'Mainnet Beta',
-                receiver: 'Hd3f3..R3bD5',
-                sender: 'Hd3f3..R3bD5',
-                symbol: 'USDC',
-                total: '1',
-                type: 'token',
+                receiver: {
+                    truncated: 'Hd3f3..R3bD5',
+                },
+                sender: {
+                    truncated: 'Hd3f3..R3bD5',
+                },
+                total: {
+                    formatted: '1',
+                    unit: 'USDC',
+                },
             });
             expect(getTokenInfo).toHaveBeenCalledWith(
                 '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
@@ -140,11 +159,16 @@ describe('createReceipt', () => {
             const result = await createReceipt(mockSignature);
 
             expect(result).toMatchObject({
-                receiver: 'Hd3f3..R3bD5',
-                sender: 'Hd3f3..R3bD5',
-                symbol: 'USDC',
-                total: '1',
-                type: 'token',
+                receiver: {
+                    truncated: 'Hd3f3..R3bD5',
+                },
+                sender: {
+                    truncated: 'Hd3f3..R3bD5',
+                },
+                total: {
+                    formatted: '1',
+                    unit: 'USDC',
+                },
             });
         });
 
@@ -158,7 +182,9 @@ describe('createReceipt', () => {
             const result = await createReceipt(mockSignature);
 
             expect(result).toMatchObject({
-                type: 'token',
+                total: {
+                    unit: 'TOKEN',
+                },
             });
         });
 
@@ -172,7 +198,9 @@ describe('createReceipt', () => {
             const result = await createReceipt(mockSignature);
 
             expect(result).toMatchObject({
-                type: 'token',
+                total: {
+                    unit: 'TOKEN',
+                },
             });
         });
     });

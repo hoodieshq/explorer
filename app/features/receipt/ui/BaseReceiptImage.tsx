@@ -26,8 +26,6 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
     const { sender, receiver, date, memo, fee, total } = data;
     const truncatedMemo = memo ? (memo.length > 90 ? memo.substring(0, 90) + '...' : memo) : null;
 
-    const unit = data.type === 'sol' ? 'SOL' : data.symbol || 'TOKEN';
-
     return (
         <div
             style={{
@@ -67,21 +65,21 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                             flexGrow: 1,
                         }}
                     >
-                        <ListItem label="Sender" value={sender} />
-                        <ListItem label="Date" value={date} valueColor={colors.emerald900} />
+                        <ListItem label="Sender" value={sender.truncated} />
+                        <ListItem label="Date" value={date.utc} valueColor={colors.emerald900} />
                         <ListItem
                             label="1. Send"
                             style={{ flexGrow: 1 }}
                             value={
                                 <div style={{ display: 'flex', flexGrow: 1, fontSize: '36px', gap: '8px' }}>
                                     <span style={{ color: colors.heavyMetal800, fontWeight: 600, lineHeight: '1em' }}>
-                                        {total} {unit}
+                                        {total.formatted} {total.unit}
                                     </span>
                                     <span style={{ color: colors.neutral500, lineHeight: '1em' }}>to</span>
                                     <span
                                         style={{ color: colors.emerald700, fontFamily: 'monospace', lineHeight: '1em' }}
                                     >
-                                        {receiver}
+                                        {receiver.truncated}
                                     </span>
                                 </div>
                             }
@@ -111,7 +109,7 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                         )}
                     </div>
 
-                    <Footer fee={fee} total={total} />
+                    <Footer fee={fee} total={total.formatted} />
                 </div>
 
                 <BottomLine style={{ color: colors.white }} />
@@ -227,7 +225,6 @@ function Description({ text }: { text: string }) {
                 color: colors.neutral500,
                 fontSize: '36px',
                 lineHeight: '1em',
-                // padding: '22px 0',
             }}
         >
             {text}

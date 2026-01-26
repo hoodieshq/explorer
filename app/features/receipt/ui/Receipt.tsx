@@ -7,32 +7,34 @@ import { FetchStatus } from '@providers/cache';
 import { useCluster } from '@providers/cluster';
 import { useFetchTransactionStatus, useTransactionDetails, useTransactionStatus } from '@providers/transactions';
 import { useFetchTransactionDetails } from '@providers/transactions/parsed';
-import { ParsedInstruction, PublicKey, TransactionSignature } from '@solana/web3.js';
-import { MEMO_PROGRAM_ADDRESS } from '@solana-program/memo';
+import { TransactionSignature } from '@solana/web3.js';
 import { ClusterStatus } from '@utils/cluster';
-import { lamportsToSolString } from '@utils/index';
 import Link from 'next/link';
 import React, { useEffect } from 'react';
 import { Info } from 'react-feather';
+import useSWR from 'swr';
 
 import { AUTO_REFRESH_INTERVAL, AutoRefresh, type AutoRefreshProps } from '@/app/tx/[signature]/page-client';
 
-import { BaseReceipt, Header, Zigzag } from './BaseReceipt';
+import { extractReceiptData } from '../model/create-receipt';
+import { BaseReceipt, Header, NoReceipt, Zigzag } from './BaseReceipt';
 
-const MEMO_PROGRAM_ID = new PublicKey(MEMO_PROGRAM_ADDRESS);
-
-interface IReceiptProps {
+interface ReceiptProps {
     signature: TransactionSignature;
 }
 
-export function Receipt({ signature, autoRefresh }: IReceiptProps & AutoRefreshProps) {
+export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshProps) {
     const fetchStatus = useFetchTransactionStatus();
     const fetchDetails = useFetchTransactionDetails();
-    const status = useTransactionStatus(signature); // getTransaction на странице транзакции чтобы зафетчить транзакцию
+    const status = useTransactionStatus(signature);
     const details = useTransactionDetails(signature);
-    const { status: clusterStatus, name: network } = useCluster();
-    
-    // Fetch transaction on load
+    const { status: clusterStatus, cluster } = useCluster();
+
+    const tx = details?.data?.transactionWithMeta;
+    const { data: receipt } = useSWR(tx && cluster ? ['receipt', tx, cluster] : null, () =>
+        extractReceiptData(tx!, cluster)
+    );
+
     useEffect(() => {
         if (!status && clusterStatus === ClusterStatus.Connected) {
             fetchStatus(signature);
@@ -42,7 +44,6 @@ export function Receipt({ signature, autoRefresh }: IReceiptProps & AutoRefreshP
         }
     }, [signature, clusterStatus, status, fetchDetails, details]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Effect to set and clear interval for auto-refresh
     useEffect(() => {
         if (autoRefresh === AutoRefresh.Active) {
             const intervalHandle: NodeJS.Timeout = setInterval(() => fetchStatus(signature), AUTO_REFRESH_INTERVAL);
@@ -59,13 +60,13 @@ export function Receipt({ signature, autoRefresh }: IReceiptProps & AutoRefreshP
         return <ErrorCard retry={() => fetchStatus(signature)} text="Fetch Failed" />;
     } else if (!status.data?.info) {
         return (
-            <div className="container e-flex e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10 e-min-h-[90vh]">
+            <div className="container e-flex e-min-h-[90vh] e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10">
                 <BluredCircle />
-                
+
                 <div className="e-w-full e-max-w-lg">
-                    <div className="e-bg-outer-space-900 e-min-h-96">
-                        <Header date={Date.now()} />
-                        <div className="e-p-6 e-text-destructive e-space-x-1">
+                    <div className="e-min-h-96 e-bg-outer-space-900">
+                        <Header date={{ timestamp: new Date().getTime(), utc: new Date().toISOString() }} />
+                        <div className="e-space-x-1 e-p-6 e-text-destructive">
                             <Info size={16} />
                             <span>There is no receipt for this transaction</span>
                         </div>
@@ -80,40 +81,13 @@ export function Receipt({ signature, autoRefresh }: IReceiptProps & AutoRefreshP
         );
     }
 
-    const { info } = status.data;
-
-    const transactionWithMeta = details?.data?.transactionWithMeta;
-    const fee = transactionWithMeta?.meta?.fee;
-    const transaction = transactionWithMeta?.transaction;
-
-    const instruction = transaction?.message.instructions.find(instruction => 'parsed' in instruction && "lamports" in instruction.parsed.info) as ParsedInstruction | undefined;
-    const memoInstruction = transaction?.message.instructions.find(
-        instruction =>
-            'parsed' in instruction &&
-            (instruction.programId.equals(MEMO_PROGRAM_ID))
-    ) as ParsedInstruction | undefined;
-
-    const memo = memoInstruction?.parsed || '';
-    const sender = instruction?.parsed.info.source;
-    const receiver = instruction?.parsed.info.destination;
-    const lamports = instruction?.parsed.info.lamports;
-
-    const receiptData = {
-        confirmationStatus: info.confirmationStatus,
-        date: info.timestamp !== 'unavailable' ? info.timestamp * 1000 : undefined,
-        fee: fee ? `${lamportsToSolString(fee, 8)} SOL` : undefined,
-        lamports,
-        memo,
-        network,
-        receiver,
-        sender,
-    };
+    if (!receipt) return <NoReceipt />;
 
     return (
         <SignatureContext.Provider value={signature}>
-            <div className="container e-flex e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10 e-min-h-[90vh]">
+            <div className="container e-flex e-min-h-[90vh] e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10">
                 <BluredCircle />
-                <BaseReceipt {...receiptData} />
+                <BaseReceipt data={{ ...receipt, confirmationStatus: status.data?.info.confirmationStatus }} />
                 <Link href={`/tx/${signature}`} className="btn btn-white btn-sm me-2">
                     View transaction in Explorer
                 </Link>
@@ -122,10 +96,8 @@ export function Receipt({ signature, autoRefresh }: IReceiptProps & AutoRefreshP
     );
 }
 
-function BluredCircle () {
+function BluredCircle() {
     return (
-        <div className="e-absolute e-rounded-full e-bg-emerald-700 e-top-[55%] e-left-[50%] e-w-1/3 e-h-2/5 e-translate-x-[-50%] e-translate-y-[-50%] e-blur-[150px] e-z-[-1]"/>
+        <div className="e-absolute e-left-[50%] e-top-[55%] e-z-[-1] e-h-2/5 e-w-1/3 e-translate-x-[-50%] e-translate-y-[-50%] e-rounded-full e-bg-emerald-700 e-blur-[150px]" />
     );
 }
-
-

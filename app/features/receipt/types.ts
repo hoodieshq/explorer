@@ -1,17 +1,32 @@
-import type { ReceiptSol, ReceiptToken } from './model/types';
-
 export type FormattedBaseReceipt = {
-    date: string;
+    date: {
+        timestamp: number;
+        utc: string;
+    };
     fee: string;
-    total: string;
+    total: {
+        raw: string;
+        formatted: string;
+        unit: string;
+    };
     network: string;
+    sender: {
+        address: string;
+        truncated: string;
+        domain?: string;
+    };
+    receiver: {
+        address: string;
+        truncated: string;
+        domain?: string;
+    };
+    memo?: string | undefined;
 };
 
-export type FormattedReceiptSol = Omit<ReceiptSol, 'date' | 'fee' | 'total'> & FormattedBaseReceipt;
+export type FormattedReceiptSol = FormattedBaseReceipt;
 
-export type FormattedReceiptToken = Omit<ReceiptToken, 'date' | 'fee' | 'total'> &
-    FormattedBaseReceipt & {
-        symbol?: string | undefined;
-    };
+export type FormattedReceiptToken = FormattedBaseReceipt & {
+    symbol?: string | undefined;
+};
 
 export type FormattedReceipt = FormattedReceiptSol | FormattedReceiptToken;
