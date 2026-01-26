@@ -18,17 +18,7 @@ export async function generateMetadata({ params: { signature }, searchParams }: 
         const title = `Receipt | ${signature.slice(0, 16)}... | Solana`;
         const description = `Transaction receipt for ${signature} on Solana blockchain`;
 
-        const ogImageParams = new URLSearchParams();
-
-        if (searchParams.sender) ogImageParams.set('sender', searchParams.sender as string);
-        if (searchParams.receiver) ogImageParams.set('receiver', searchParams.receiver as string);
-        if (searchParams.date) ogImageParams.set('date', searchParams.date as string);
-        if (searchParams.memo) ogImageParams.set('memo', searchParams.memo as string);
-        if (searchParams.transfers) ogImageParams.set('transfers', searchParams.transfers as string);
-        if (searchParams.instructions) ogImageParams.set('instructions', searchParams.instructions as string);
-
-        const ogImageUrl = `/api/og/receipt?${ogImageParams.toString()}`;
-
+        const ogImageUrl = `/api/og/receipt/${signature}`;
         return {
             description,
             openGraph: {
