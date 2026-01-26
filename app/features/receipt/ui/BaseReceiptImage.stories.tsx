@@ -22,7 +22,7 @@ const meta: Meta<typeof BaseReceiptImage> = {
             </div>
         ),
     ],
-    title: 'Features/Receipt/ReceiptImage',
+    title: 'Features/Receipt/BaseReceiptImage',
 };
 
 export default meta;
