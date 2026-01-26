@@ -9,6 +9,7 @@ import { useFetchTransactionStatus, useTransactionDetails, useTransactionStatus 
 import { useFetchTransactionDetails } from '@providers/transactions/parsed';
 import { TransactionSignature } from '@solana/web3.js';
 import { ClusterStatus } from '@utils/cluster';
+import { useClusterPath } from '@utils/url';
 import Link from 'next/link';
 import React, { useEffect } from 'react';
 import { Info } from 'react-feather';
@@ -29,6 +30,7 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
     const status = useTransactionStatus(signature);
     const details = useTransactionDetails(signature);
     const { status: clusterStatus, cluster } = useCluster();
+    const transactionPath = useClusterPath({ pathname: `/tx/${signature}` });
 
     const tx = details?.data?.transactionWithMeta;
     const { data: receipt } = useSWR(tx && cluster ? ['receipt', tx, cluster] : null, () =>
@@ -74,7 +76,12 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
                     <Zigzag />
                 </div>
 
-                <Link href={`/tx/${signature}`} className="btn btn-white btn-sm me-2">
+                <Link
+                    href={transactionPath}
+                    className="btn btn-white btn-sm me-2"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
                     View transaction in Explorer
                 </Link>
             </div>
@@ -88,7 +95,12 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
             <div className="container e-flex e-min-h-[90vh] e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10">
                 <BluredCircle />
                 <BaseReceipt data={{ ...receipt, confirmationStatus: status.data?.info.confirmationStatus }} />
-                <Link href={`/tx/${signature}`} className="btn btn-white btn-sm me-2">
+                <Link
+                    href={transactionPath}
+                    className="btn btn-white btn-sm me-2"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
                     View transaction in Explorer
                 </Link>
             </div>
