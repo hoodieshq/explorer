@@ -24,6 +24,7 @@ describe('getTx', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.spyOn(console, 'error').mockImplementation(() => {});
 
         mockConnection = {
             getParsedTransaction: vi.fn(),

@@ -49,6 +49,7 @@ async function findTransactionCluster(signature: string): Promise<Cluster | null
                 return cluster;
             }
         } catch (error) {
+            console.error('Failed to find transaction cluster', error);
             return null;
         }
 
