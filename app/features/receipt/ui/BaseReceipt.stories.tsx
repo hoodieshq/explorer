@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react';
 import { expect, within } from 'storybook/test';
 
-import { BaseReceipt } from './BaseReceipt';
+import { BaseReceipt, NoReceipt as NoReceiptComponent } from './BaseReceipt';
 
 const meta: Meta<typeof BaseReceipt> = {
     argTypes: {
@@ -146,4 +146,9 @@ export const SmallAmount: Story = {
             },
         },
     },
+};
+
+
+export const NoReceipt: Story = {
+    render: () => (<NoReceiptComponent transactionPath="https://example.com/tx/ExampleTransactionSignature" />)
 };

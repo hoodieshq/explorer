@@ -2,8 +2,11 @@ import { Badge } from '@components/shared/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@components/shared/ui/tooltip';
 import { cn } from '@components/shared/utils';
 import { displayTimestamp } from '@utils/date';
+import Link from 'next/link';
+import { Info } from 'react-feather';
 
 import { FormattedReceipt } from '../types';
+import { BluredCircle } from './Receipt';
 
 type Data = FormattedReceipt & {
     confirmationStatus: string | undefined;
@@ -156,7 +159,7 @@ function Footer({ fee, total, memo, logoURI }: Pick<Data, 'fee' | 'total' | 'mem
                             </span>
                         </div>
                     </TooltipTrigger>
-                    <TooltipContent side="right">{total.raw}</TooltipContent>
+                    <TooltipContent side="right">{total.raw} USDC</TooltipContent>
                 </Tooltip>
                 <span>Fee</span>
 
@@ -182,12 +185,30 @@ export function Zigzag() {
     return <div className="zigzag e-bg-outer-space-900 e-pb-6" />;
 }
 
-export function NoReceipt() {
+export function NoReceipt({ transactionPath }: {transactionPath: string}) {
     return (
-        <div className="">
-            <div className=""></div>
+         <div className="container e-flex e-min-h-[90vh] e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10">
+                <BluredCircle />
 
-            <div className="">There is no receipt for this transaction.</div>
-        </div>
+                <div className="e-w-full e-max-w-lg">
+                    <div className="e-min-h-96 e-bg-outer-space-900">
+                        <Header date={{ timestamp: new Date().getTime(), utc: new Date().toISOString() }} />
+                        <div className="e-space-x-1 e-p-6 e-text-destructive">
+                            <Info size={16} />
+                            <span>There is no receipt for this transaction</span>
+                        </div>
+                    </div>
+                    <Zigzag />
+                </div>
+
+                <Link
+                    href={transactionPath}
+                    className="btn btn-white btn-sm me-2"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >
+                    View transaction in Explorer
+                </Link>
+            </div>
     );
 }
