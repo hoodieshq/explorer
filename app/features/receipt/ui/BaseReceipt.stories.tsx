@@ -34,10 +34,12 @@ export const Default: Story = {
                 address: 'Hd3f3kL9mP2qR3bD4nE5fG6hJ7kL8mN9oP0qR1sT2uV3wX4yZ5aB6cD7eF8g',
                 truncated: 'Hd3f3...R3bD4',
             },
+            receiverHref: 'https://example.com/receiver',
             sender: {
                 address: '24x5yL3bD5mN6oP7qR8sT9uV0wX1yZ2aB3cD4eF5gH6jK7lM8nO9pQ0rS1t',
                 truncated: '24x5...L3bD5',
             },
+            senderHref: 'https://example.com/sender',
             total: {
                 formatted: '143.25',
                 raw: 143250000000,
@@ -125,15 +127,18 @@ export const SmallAmount: Story = {
                 formatted: '0.000005',
                 raw: 5000,
             },
+            logoURI: 'https://example.com/logo.png',
             network: 'Mainnet',
             receiver: {
                 address: 'Hd3f3kL9mP2qR3bD4nE5fG6hJ7kL8mN9oP0qR1sT2uV3wX4yZ5aB6cD7eF8g',
                 truncated: 'Hd3f3...R3bD4',
             },
+            receiverHref: 'https://example.com/receiver',
             sender: {
                 address: '24x5yL3bD5mN6oP7qR8sT9uV0wX1yZ2aB3cD4eF5gH6jK7lM8nO9pQ0rS1t',
                 truncated: '24x5...L3bD5',
             },
+            senderHref: 'https://example.com/sender',
             total: {
                 formatted: '0.001',
                 raw: 1000000,

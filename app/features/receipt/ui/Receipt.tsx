@@ -3,6 +3,7 @@
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
 import { SignatureContext } from '@components/instruction/SignatureContext';
+import { useExplorerLink } from '@entities/cluster';
 import { FetchStatus } from '@providers/cache';
 import { useCluster } from '@providers/cluster';
 import { useFetchTransactionStatus, useTransactionDetails, useTransactionStatus } from '@providers/transactions';
@@ -37,6 +38,8 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
     const { data: receipt } = useSWR(tx && cluster ? ['receipt', tx, cluster] : null, () =>
         extractReceiptData(tx!, cluster)
     );
+    const senderLink = useExplorerLink(`/address/${receipt?.sender.address}`);
+    const receiverLink = useExplorerLink(`/address/${receipt?.receiver.address}`);
 
     useEffect(() => {
         if (!status && clusterStatus === ClusterStatus.Connected) {
@@ -97,7 +100,15 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
         <SignatureContext.Provider value={signature}>
             <div className="container e-flex e-min-h-[90vh] e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10">
                 <BluredCircle />
-                <BaseReceipt data={{ ...receipt, confirmationStatus: status.data?.info.confirmationStatus, logoURI }} />
+                <BaseReceipt
+                    data={{
+                        ...receipt,
+                        confirmationStatus: status.data?.info.confirmationStatus,
+                        logoURI,
+                        receiverHref: receiverLink.link,
+                        senderHref: senderLink.link,
+                    }}
+                />
                 <Link
                     href={transactionPath}
                     className="btn btn-white btn-sm me-2"

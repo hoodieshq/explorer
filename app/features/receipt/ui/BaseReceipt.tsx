@@ -5,14 +5,19 @@ import { displayTimestamp } from '@utils/date';
 
 import { FormattedReceipt } from '../types';
 
-type Data = FormattedReceipt & { confirmationStatus: string | undefined; logoURI: string | undefined };
+type Data = FormattedReceipt & {
+    confirmationStatus: string | undefined;
+    logoURI?: string | undefined;
+    senderHref?: string | undefined;
+    receiverHref?: string | undefined;
+};
 
 interface BaseReceiptProps {
     data: Data;
 }
 
 export function BaseReceipt({
-    data: { date, sender, receiver, network, fee, total, memo, confirmationStatus, logoURI },
+    data: { date, sender, receiver, network, fee, total, memo, confirmationStatus, logoURI, senderHref, receiverHref },
 }: BaseReceiptProps) {
     return (
         <div className="e-w-full e-max-w-lg">
@@ -23,6 +28,8 @@ export function BaseReceipt({
                     receiver={receiver}
                     network={network}
                     confirmationStatus={confirmationStatus}
+                    senderHref={senderHref}
+                    receiverHref={receiverHref}
                 />
                 <div className="e-my-5 e-border-t e-border-white/10 [border-top-style:dashed]" />
                 <Footer fee={fee} total={total} memo={memo} logoURI={logoURI} />
@@ -53,11 +60,16 @@ function Content({
     receiver,
     network,
     confirmationStatus,
-}: Pick<Data, 'sender' | 'receiver' | 'network' | 'confirmationStatus'>) {
+    senderHref,
+    receiverHref,
+}: Pick<Data, 'sender' | 'receiver' | 'network' | 'confirmationStatus'> & {
+    senderHref?: string;
+    receiverHref?: string;
+}) {
     return (
         <div className="e-grid e-grid-cols-2 e-gap-6 e-p-6 e-pt-8 e-text-sm e-text-gray-400">
-            <ListItem label="Sender" tooltipText={sender.address} value={sender.truncated} />
-            <ListItem label="Receiver" tooltipText={receiver.address} value={receiver.truncated} />
+            <ListItem label="Sender" tooltipText={sender.address} value={sender.truncated} href={senderHref} />
+            <ListItem label="Receiver" tooltipText={receiver.address} value={receiver.truncated} href={receiverHref} />
             <span>Status</span>
             <div className="e-text-right">
                 <Badge size="sm" variant="success">
@@ -76,22 +88,40 @@ function ListItem({
     value,
     className,
     tooltipText,
+    href,
 }: {
     label: string;
     value?: string;
     className?: string;
     tooltipText?: string;
+    href?: string;
 }) {
     if (!value) return null;
+
+    const content = (
+        <span className={cn('e-truncate e-text-right e-font-mono e-text-green-400', className)}>{value}</span>
+    );
 
     return (
         <>
             <span>{label}</span>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <span className={cn('e-truncate e-text-right e-font-mono e-text-green-400', className)}>
-                        {value}
-                    </span>
+                    {href ? (
+                        <a
+                            href={href}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={cn(
+                                'e-truncate e-text-right e-font-mono e-text-green-400 hover:e-underline',
+                                className
+                            )}
+                        >
+                            {value}
+                        </a>
+                    ) : (
+                        content
+                    )}
                 </TooltipTrigger>
                 {tooltipText && (
                     <TooltipContent side="right">
