@@ -3,9 +3,12 @@ export type FormattedBaseReceipt = {
         timestamp: number;
         utc: string;
     };
-    fee: string;
+    fee: {
+        raw: number;
+        formatted: string;
+    };
     total: {
-        raw: string;
+        raw: number;
         formatted: string;
         unit: string;
     };

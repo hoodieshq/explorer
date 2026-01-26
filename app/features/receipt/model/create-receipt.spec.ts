@@ -33,7 +33,10 @@ describe('createReceipt', () => {
             const result = await createReceipt(mockSignature);
 
             expect(result).toMatchObject({
-                fee: '0.000005',
+                fee: {
+                    formatted: '0.000005',
+                    raw: 5000,
+                },
                 network: 'Mainnet Beta',
                 receiver: {
                     truncated: '65MUM..L2Fhk',
@@ -43,6 +46,7 @@ describe('createReceipt', () => {
                 },
                 total: {
                     formatted: '0.3',
+                    raw: 300000000,
                     unit: 'SOL',
                 },
             });
@@ -82,7 +86,10 @@ describe('createReceipt', () => {
             const result = await createReceipt(mockSignature);
 
             expect(result).toMatchObject({
-                fee: '0.00001',
+                fee: {
+                    formatted: '0.00001',
+                    raw: 10000,
+                },
                 receiver: {
                     truncated: 'G2Gjo..N6wid',
                 },
@@ -91,6 +98,7 @@ describe('createReceipt', () => {
                 },
                 total: {
                     formatted: '0.5',
+                    raw: 500000000,
                     unit: 'SOL',
                 },
             });
@@ -126,7 +134,10 @@ describe('createReceipt', () => {
             const result = await createReceipt(mockSignature);
 
             expect(result).toMatchObject({
-                fee: '0.000005',
+                fee: {
+                    formatted: '0.000005',
+                    raw: 5000,
+                },
                 network: 'Mainnet Beta',
                 receiver: {
                     truncated: 'Hd3f3..R3bD5',
@@ -136,6 +147,7 @@ describe('createReceipt', () => {
                 },
                 total: {
                     formatted: '1',
+                    raw: 1,
                     unit: 'USDC',
                 },
             });
@@ -159,6 +171,10 @@ describe('createReceipt', () => {
             const result = await createReceipt(mockSignature);
 
             expect(result).toMatchObject({
+                fee: {
+                    formatted: '0.000005',
+                    raw: 5000,
+                },
                 receiver: {
                     truncated: 'Hd3f3..R3bD5',
                 },
@@ -167,6 +183,7 @@ describe('createReceipt', () => {
                 },
                 total: {
                     formatted: '1',
+                    raw: 1,
                     unit: 'USDC',
                 },
             });

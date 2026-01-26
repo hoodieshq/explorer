@@ -109,7 +109,7 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                         )}
                     </div>
 
-                    <Footer fee={fee} total={total.formatted} />
+                    <Footer fee={fee.formatted} total={total.formatted} />
                 </div>
 
                 <BottomLine style={{ color: colors.white }} />

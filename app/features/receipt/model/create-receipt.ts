@@ -39,7 +39,10 @@ function formatReceiptData(receipt: Receipt, cluster: Cluster): FormattedReceipt
             timestamp,
             utc: displayTimestampUtc(timestamp, true),
         },
-        fee: lamportsToSolString(receipt.fee, 9),
+        fee: {
+            formatted: lamportsToSolString(receipt.fee, 9),
+            raw: receipt.fee,
+        },
         memo: receipt.memo,
         network: clusterName(cluster),
         receiver: {
@@ -52,7 +55,7 @@ function formatReceiptData(receipt: Receipt, cluster: Cluster): FormattedReceipt
         },
         total: {
             formatted: receipt.type === 'sol' ? lamportsToSolString(receipt.total, 9) : String(receipt.total),
-            raw: String(receipt.total),
+            raw: receipt.total,
             unit,
         },
     };

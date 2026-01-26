@@ -113,12 +113,23 @@ function Footer({ fee, total, memo }: Pick<Data, 'fee' | 'total' | 'memo'>) {
                 <span className="e-text-white">Total</span>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <Total total={total} />
+                        <div className="e-flex e-items-center e-justify-end e-gap-2">
+                            <img alt="SOL token icon" src={dollar} height="20" width="20" className="e-flex-shrink-0" />
+                            <span className="e-text-2xl e-text-white">
+                                {total.formatted} {total.unit}
+                            </span>
+                        </div>
                     </TooltipTrigger>
                     <TooltipContent side="right">{total.raw}</TooltipContent>
                 </Tooltip>
                 <span>Fee</span>
-                <span className="e-text-right">{fee} SOL</span>
+
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <span className="e-text-right">{fee.formatted} SOL</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">{fee.raw}</TooltipContent>
+                </Tooltip>
             </div>
 
             {memo && (
@@ -127,17 +138,6 @@ function Footer({ fee, total, memo }: Pick<Data, 'fee' | 'total' | 'memo'>) {
                     <span className="e-text-xs e-text-white">{memo}</span>
                 </div>
             )}
-        </div>
-    );
-}
-
-function Total({ total }: Pick<Data, 'total'>) {
-    return (
-        <div className="e-flex e-items-center e-justify-end e-gap-2">
-            <img alt="SOL token icon" src={dollar} height="20" width="20" className="e-flex-shrink-0" />
-            <span className="e-text-2xl e-text-white">
-                {total.formatted} {total.unit}
-            </span>
         </div>
     );
 }
