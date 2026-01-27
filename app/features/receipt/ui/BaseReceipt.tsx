@@ -86,8 +86,18 @@ function Content({
 }) {
     return (
         <div className="e-grid e-grid-cols-2 e-gap-6 e-p-6 e-pt-8 e-text-sm e-text-gray-400">
-            <ListItem label="Sender" tooltipText={sender.address} value={sender.truncated} href={senderHref} />
-            <ListItem label="Receiver" tooltipText={receiver.address} value={receiver.truncated} href={receiverHref} />
+            <ListItem
+                label="Sender"
+                tooltipText={sender.address}
+                value={sender.domain ?? sender.truncated}
+                href={senderHref}
+            />
+            <ListItem
+                label="Receiver"
+                tooltipText={receiver.address}
+                value={receiver.domain ?? receiver.truncated}
+                href={receiverHref}
+            />
             <span>Status</span>
             <div className="e-text-right">
                 <Badge size="sm" variant="success">

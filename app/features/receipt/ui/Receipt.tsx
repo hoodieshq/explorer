@@ -19,7 +19,9 @@ import useSWR from 'swr';
 import { getProxiedUri } from '@/app/features/metadata';
 import { AUTO_REFRESH_INTERVAL, AutoRefresh, type AutoRefreshProps } from '@/app/tx/[signature]/page-client';
 
+import { usePrimaryDomain } from '../lib/use-primary-domain';
 import { extractReceiptData } from '../model/create-receipt';
+import type { FormattedReceipt } from '../types';
 import { BaseReceipt, NoReceipt } from './BaseReceipt';
 
 interface ReceiptProps {
@@ -35,12 +37,9 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
     const transactionPath = useClusterPath({ pathname: `/tx/${signature}` });
 
     const tx = details?.data?.transactionWithMeta;
-    const { data: receipt } = useSWR(tx && cluster ? ['receipt', tx, cluster] : null, () =>
+    const { data: receipt, isLoading: isReceiptLoading } = useSWR(tx && cluster ? ['receipt', tx, cluster] : null, () =>
         extractReceiptData(tx!, cluster)
     );
-    const senderLink = useExplorerLink(`/address/${receipt?.sender.address}`);
-    const receiverLink = useExplorerLink(`/address/${receipt?.receiver.address}`);
-    const tokenLink = useExplorerLink(receipt && 'mint' in receipt ? `/address/${receipt?.mint}` : '');
 
     useEffect(() => {
         if (!status && clusterStatus === ClusterStatus.Connected) {
@@ -61,16 +60,34 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
         }
     }, [autoRefresh, fetchStatus, signature]);
 
-    if (!status || (status.status === FetchStatus.Fetching && autoRefresh === AutoRefresh.Inactive)) {
-        return <LoadingCard message="Loading transaction details" />;
-    } else if (status.status === FetchStatus.FetchFailed) {
-        return <ErrorCard retry={() => fetchStatus(signature)} text="Fetch Failed" />;
-    } else if (!status.data?.info) {
-        return <NoReceipt transactionPath={transactionPath} />;
-    }
+    const isStatusLoading = !status || (status.status === FetchStatus.Fetching && autoRefresh === AutoRefresh.Inactive);
+    const isStatusFailed = status?.status === FetchStatus.FetchFailed;
+    const hasNoTxInfo = !status?.data?.info;
+    const isDetailsLoading =
+        details?.status === FetchStatus.Fetching || (details === undefined && status?.status === FetchStatus.Fetched);
 
+    if (isStatusLoading) return <LoadingCard message="Loading transaction details" />;
+    if (isStatusFailed) return <ErrorCard retry={() => fetchStatus(signature)} text="Fetch Failed" />;
+    if (hasNoTxInfo) return <NoReceipt transactionPath={transactionPath} />;
+    if (isDetailsLoading || isReceiptLoading) return <LoadingCard message="Loading receipt" />;
     if (!receipt) return <NoReceipt transactionPath={transactionPath} />;
 
+    return <ReceiptContent receipt={receipt} signature={signature} status={status} transactionPath={transactionPath} />;
+}
+
+interface ReceiptContentProps {
+    receipt: FormattedReceipt;
+    signature: TransactionSignature;
+    status: NonNullable<ReturnType<typeof useTransactionStatus>>;
+    transactionPath: string;
+}
+
+function ReceiptContent({ receipt, signature, status, transactionPath }: ReceiptContentProps) {
+    const senderDomain = usePrimaryDomain(receipt.sender.address);
+    const receiverDomain = usePrimaryDomain(receipt.receiver.address);
+    const senderLink = useExplorerLink(`/address/${receipt.sender.address}`);
+    const receiverLink = useExplorerLink(`/address/${receipt.receiver.address}`);
+    const tokenLink = useExplorerLink('mint' in receipt ? `/address/${receipt.mint}` : '');
     const logoURI = receipt.logoURI ? getProxiedUri(receipt.logoURI) : undefined;
 
     return (
@@ -80,9 +97,11 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
                 <BaseReceipt
                     data={{
                         ...receipt,
-                        confirmationStatus: status.data?.info.confirmationStatus,
+                        confirmationStatus: status.data?.info?.confirmationStatus,
                         logoURI,
+                        receiver: { ...receipt.receiver, domain: receiverDomain },
                         receiverHref: receiverLink.link,
+                        sender: { ...receipt.sender, domain: senderDomain },
                         senderHref: senderLink.link,
                         tokenHref: tokenLink.link,
                     }}

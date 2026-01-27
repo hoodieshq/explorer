@@ -115,6 +115,45 @@ export const LargeAmount: Story = {
     },
 };
 
+export const WithDomainNames: Story = {
+    args: {
+        data: {
+            confirmationStatus: 'finalized',
+            date: {
+                timestamp: 1737100062,
+                utc: 'Jan 13, 2026 at 16:07:42',
+            },
+            fee: {
+                formatted: '0.000005',
+                raw: 5000,
+            },
+            network: 'Mainnet',
+            receiver: {
+                address: 'Hd3f3kL9mP2qR3bD4nE5fG6hJ7kL8mN9oP0qR1sT2uV3wX4yZ5aB6cD7eF8g',
+                domain: 'bob.sol',
+                truncated: 'Hd3f3...R3bD4',
+            },
+            receiverHref: 'https://example.com/receiver',
+            sender: {
+                address: '24x5yL3bD5mN6oP7qR8sT9uV0wX1yZ2aB3cD4eF5gH6jK7lM8nO9pQ0rS1t',
+                domain: 'alex.sol',
+                truncated: '24x5...L3bD5',
+            },
+            senderHref: 'https://example.com/sender',
+            total: {
+                formatted: '2.5',
+                raw: 2500000000,
+                unit: 'SOL',
+            },
+        },
+    },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        expect(canvas.getByText('alex.sol')).toBeInTheDocument();
+        expect(canvas.getByText('bob.sol')).toBeInTheDocument();
+    },
+};
+
 export const TokenTransfer: Story = {
     args: {
         data: {
