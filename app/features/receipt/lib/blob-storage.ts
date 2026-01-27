@@ -1,9 +1,9 @@
+import { isEnvEnabled } from '@utils/env';
+import Logger from '@utils/logger';
 import { head, put } from '@vercel/blob';
 
-import Logger from '@/app/utils/logger';
-
 export function isBlobStorageEnabled(): boolean {
-    return process.env.NEXT_PUBLIC_RECEIPT_BLOB_ENABLED === 'true';
+    return isEnvEnabled(process.env.NEXT_PUBLIC_RECEIPT_BLOB_ENABLED) && Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
 /**
