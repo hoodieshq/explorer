@@ -2,19 +2,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Cluster } from '@/app/utils/cluster';
 
-import { getTokenInfo } from '../api/get-token-info';
-import { getTx } from '../api/get-tx';
-import { mockCustomFeePayerTransaction } from '../mocks/custom-fee-payer';
-import { mockMultipleTransfersTransaction } from '../mocks/multiple-transfers';
-import { mockNoTransferTransaction } from '../mocks/no-transfers';
-import { mockSingleTransferTransaction } from '../mocks/single-transfer';
-import { mockUsdcTransferTransaction } from '../mocks/usdc-cheked-transfer';
-import { mockUsdcRegularTransferTransaction } from '../mocks/usdc-regular-transfer';
-import { mockZeroTransferTransaction } from '../mocks/zero-transfer';
-import { createReceipt } from './create-receipt';
+import { getTokenInfo } from '../../api/get-token-info';
+import { getTx } from '../../api/get-tx';
+import { mockCustomFeePayerTransaction } from '../../mocks/custom-fee-payer';
+import { mockMultipleTransfersTransaction } from '../../mocks/multiple-transfers';
+import { mockNoTransferTransaction } from '../../mocks/no-transfers';
+import { mockSingleTransferTransaction } from '../../mocks/single-transfer';
+import { mockUsdcTransferTransaction } from '../../mocks/usdc-cheked-transfer';
+import { mockUsdcRegularTransferTransaction } from '../../mocks/usdc-regular-transfer';
+import { mockZeroTransferTransaction } from '../../mocks/zero-transfer';
+import { createReceipt } from '../create-receipt';
 
-vi.mock('../api/get-tx');
-vi.mock('../api/get-token-info');
+vi.mock('../../api/get-tx');
+vi.mock('../../api/get-token-info');
 
 describe('createReceipt', () => {
     const mockSignature = '5yKzCuw1e9d58HcnzSL31cczfXUux2H4Ga5TAR2RcQLE5W8BiTAC9x9MvhLtc4h99sC9XxLEAjhrXyfKezdMkZFV';

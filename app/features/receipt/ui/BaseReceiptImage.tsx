@@ -71,7 +71,16 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                             label="1. Send"
                             style={{ flexGrow: 1 }}
                             value={
-                                <div style={{ display: 'flex', flexGrow: 1, fontSize: '36px', gap: '8px' }}>
+                                <div
+                                    style={{
+                                        alignItems: 'center',
+                                        display: 'flex',
+                                        flexGrow: 1,
+                                        fontSize: '36px',
+                                        gap: '8px',
+                                        lineHeight: '1em',
+                                    }}
+                                >
                                     <span style={{ color: colors.heavyMetal800, fontWeight: 600, lineHeight: '1em' }}>
                                         {total.formatted} {total.unit}
                                     </span>
@@ -80,7 +89,6 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                                         style={{
                                             color: colors.emerald700,
                                             fontFamily: 'Roboto Mono, monospace',
-                                            lineHeight: '1em',
                                         }}
                                     >
                                         {receiver.truncated}

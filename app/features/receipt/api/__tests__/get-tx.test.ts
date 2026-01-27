@@ -3,8 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Cluster } from '@/app/utils/cluster';
 
-import { mockSingleTransferTransaction } from '../mocks/single-transfer';
-import { getTx } from './get-tx';
+import { mockSingleTransferTransaction } from '../../mocks/single-transfer';
+import { getTx } from '../get-tx';
 
 vi.mock('@solana/web3.js', async () => {
     const actual = await vi.importActual('@solana/web3.js');

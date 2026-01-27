@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import { mockNoTransferTransaction } from '../mocks/no-transfers';
-import { mockSingleTransferTransaction } from '../mocks/single-transfer';
-import { extractMemoFromTransaction } from './memo';
+import { mockNoTransferTransaction } from '../../mocks/no-transfers';
+import { mockSingleTransferTransaction } from '../../mocks/single-transfer';
+import { extractMemoFromTransaction } from '../memo';
 
 describe('extractMemoFromTransaction', () => {
     it('should extract memo from transaction with memo instruction', () => {
