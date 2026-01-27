@@ -21,10 +21,10 @@ export async function extractReceiptData(
     tx: ParsedTransactionWithMeta,
     cluster: Cluster
 ): Promise<FormattedReceipt | null> {
-    const receipt =
-        createSolTransferReceipt(tx) ||
-        (await createTokenTransferReceipt(tx, (mint: string | undefined) => getParsedTokenInfo(mint, cluster)));
-
+    let receipt: Receipt | null = createSolTransferReceipt(tx);
+    if (!receipt) {
+        receipt = await createTokenTransferReceipt(tx, (mint: string | undefined) => getParsedTokenInfo(mint, cluster));
+    }
     if (!receipt) return null;
 
     return formatReceiptData(receipt, cluster);
