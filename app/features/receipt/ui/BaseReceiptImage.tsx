@@ -31,7 +31,6 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
             style={{
                 backgroundImage: `radial-gradient(ellipse at 50% 50%, ${colors.emerald700} 0%, #EBEBEB 90%)`,
                 display: 'flex',
-                fontFamily: 'Inter, sans-serif',
                 height: '100%',
                 justifyContent: 'center',
                 padding: '0 75px 40px',
@@ -88,7 +87,6 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                                     <span
                                         style={{
                                             color: colors.emerald700,
-                                            fontFamily: 'Roboto Mono, monospace',
                                         }}
                                     >
                                         {receiver.truncated}
@@ -216,7 +214,6 @@ function ListItem({
                         color: valueColor,
                         display: 'flex',
                         flex: 1,
-                        fontFamily: 'Roboto Mono, monospace',
                         fontSize: '34px',
                         justifyContent: 'flex-end',
                     }}
