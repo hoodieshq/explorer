@@ -185,30 +185,30 @@ export function Zigzag() {
     return <div className="zigzag e-bg-outer-space-900 e-pb-6" />;
 }
 
-export function NoReceipt({ transactionPath }: {transactionPath: string}) {
+export function NoReceipt({ transactionPath }: { transactionPath: string }) {
     return (
-         <div className="container e-flex e-min-h-[90vh] e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10">
-                <BluredCircle />
+        <div className="container e-flex e-min-h-[90vh] e-flex-col e-items-center e-justify-center e-gap-6 e-px-5 e-py-10">
+            <BluredCircle />
 
-                <div className="e-w-full e-max-w-lg">
-                    <div className="e-min-h-96 e-bg-outer-space-900">
-                        <Header date={{ timestamp: new Date().getTime(), utc: new Date().toISOString() }} />
-                        <div className="e-space-x-1 e-p-6 e-text-destructive">
-                            <Info size={16} />
-                            <span>There is no receipt for this transaction</span>
-                        </div>
+            <div className="e-w-full e-max-w-lg">
+                <div className="e-min-h-96 e-bg-outer-space-900">
+                    <Header date={{ timestamp: new Date().getTime(), utc: new Date().toISOString() }} />
+                    <div className="e-space-x-1 e-p-6 e-text-destructive">
+                        <Info size={16} />
+                        <span>There is no receipt for this transaction</span>
                     </div>
-                    <Zigzag />
                 </div>
-
-                <Link
-                    href={transactionPath}
-                    className="btn btn-white btn-sm me-2"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    View transaction in Explorer
-                </Link>
+                <Zigzag />
             </div>
+
+            <Link
+                href={transactionPath}
+                className="btn btn-white btn-sm me-2"
+                target="_blank"
+                rel="noopener noreferrer"
+            >
+                View transaction in Explorer
+            </Link>
+        </div>
     );
 }

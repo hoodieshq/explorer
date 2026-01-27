@@ -77,7 +77,11 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                                     </span>
                                     <span style={{ color: colors.neutral500, lineHeight: '1em' }}>to</span>
                                     <span
-                                        style={{ color: colors.emerald700, fontFamily: 'Roboto Mono, monospace', lineHeight: '1em' }}
+                                        style={{
+                                            color: colors.emerald700,
+                                            fontFamily: 'Roboto Mono, monospace',
+                                            lineHeight: '1em',
+                                        }}
                                     >
                                         {receiver.truncated}
                                     </span>

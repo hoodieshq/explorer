@@ -24,7 +24,7 @@ export function getCachedReceipt(signature: string): FormattedReceipt | null {
 export function setCachedReceipt(signature: string, data: FormattedReceipt): void {
     if (receiptCache.size >= MAX_CACHE_SIZE) {
         const firstKey = receiptCache.keys().next().value;
-        
+
         if (firstKey) {
             receiptCache.delete(firstKey);
         }

@@ -64,9 +64,7 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
     } else if (status.status === FetchStatus.FetchFailed) {
         return <ErrorCard retry={() => fetchStatus(signature)} text="Fetch Failed" />;
     } else if (!status.data?.info) {
-        return (
-            <NoReceipt transactionPath={transactionPath} />
-        );
+        return <NoReceipt transactionPath={transactionPath} />;
     }
 
     if (!receipt) return <NoReceipt transactionPath={transactionPath} />;

@@ -148,7 +148,6 @@ export const SmallAmount: Story = {
     },
 };
 
-
 export const NoReceipt: Story = {
-    render: () => (<NoReceiptComponent transactionPath="https://example.com/tx/ExampleTransactionSignature" />)
+    render: () => <NoReceiptComponent transactionPath="https://example.com/tx/ExampleTransactionSignature" />,
 };

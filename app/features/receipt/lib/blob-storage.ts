@@ -1,4 +1,4 @@
-import { head,put } from '@vercel/blob';
+import { head, put } from '@vercel/blob';
 
 import Logger from '@/app/utils/logger';
 
@@ -8,7 +8,7 @@ export function isBlobStorageEnabled(): boolean {
 
 /**
  * Store receipt image in Vercel Blob
- * 
+ *
  * @param signature Transaction signature
  * @param imageBuffer Image buffer (PNG)
  * @returns Blob URL or null if failed
@@ -59,7 +59,7 @@ export async function getReceiptImageUrl(signature: string): Promise<string | nu
 
 /**
  * Fetch receipt image from Vercel Blob
- * 
+ *
  * @param url Blob URL
  * @returns Image buffer or null if failed
  */

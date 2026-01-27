@@ -34,16 +34,22 @@ export async function GET(_request: NextRequest, { params }: Props) {
         }
 
         let receipt = getCachedReceipt(signature);
-        
+
         if (!receipt) {
             receipt = await createReceipt(signature);
             if (receipt) setCachedReceipt(signature, receipt);
         }
 
         const [interRegularData, interSemiBoldData, robotoMonoData] = await Promise.all([
-            fetch('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.ttf').then(res => res.arrayBuffer()),
-            fetch('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.ttf').then(res => res.arrayBuffer()),
-            fetch('https://cdn.jsdelivr.net/fontsource/fonts/roboto-mono@latest/latin-400-normal.ttf').then(res => res.arrayBuffer()),
+            fetch('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-400-normal.ttf').then(res =>
+                res.arrayBuffer()
+            ),
+            fetch('https://cdn.jsdelivr.net/fontsource/fonts/inter@latest/latin-600-normal.ttf').then(res =>
+                res.arrayBuffer()
+            ),
+            fetch('https://cdn.jsdelivr.net/fontsource/fonts/roboto-mono@latest/latin-400-normal.ttf').then(res =>
+                res.arrayBuffer()
+            ),
         ]);
 
         const imageResponse = new ImageResponse(<BaseReceiptImage data={receipt} />, {
