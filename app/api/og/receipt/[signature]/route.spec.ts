@@ -28,7 +28,7 @@ describe('GET /api/og/receipt/[signature]', () => {
         vi.clearAllMocks();
     });
 
-    it('generates image successfully with signature', async () => {
+    it('should generate image successfully with signature', async () => {
         const { createReceipt } = await import('@features/receipt');
         const url = new URL('http://localhost:3000/api/og/receipt/test-signature-123');
         const request = new NextRequest(url.toString());
@@ -40,7 +40,7 @@ describe('GET /api/og/receipt/[signature]', () => {
         expect(createReceipt).toHaveBeenCalledWith('test-signature-123');
     });
 
-    it('returns 500 when getData fails', async () => {
+    it('should return 500 when createReceipt fails', async () => {
         const { createReceipt } = await import('@features/receipt');
         vi.mocked(createReceipt).mockRejectedValue(new Error('Transaction not found'));
 
