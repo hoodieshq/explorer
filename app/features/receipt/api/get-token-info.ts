@@ -27,7 +27,7 @@ export async function getTokenInfo(mintAddress: string, cluster: Cluster): Promi
     }
 
     const data = await response.json();
-    return data.content[0];
+    return data?.content?.[0];
 }
 
 function getChainIdForCluster(cluster: Cluster): number | undefined {
