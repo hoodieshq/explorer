@@ -115,10 +115,10 @@ export const LargeAmount: Story = {
     },
 };
 
-export const SmallAmount: Story = {
+export const TokenTransfer: Story = {
     args: {
         data: {
-            confirmationStatus: 'confirmed',
+            confirmationStatus: 'finalized',
             date: {
                 timestamp: 1737100062,
                 utc: 'Jan 13, 2026 at 16:07:42',
@@ -127,7 +127,9 @@ export const SmallAmount: Story = {
                 formatted: '0.000005',
                 raw: 5000,
             },
-            logoURI: 'https://example.com/logo.png',
+            logoURI:
+                'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU/logo.png',
+            mint: '4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU',
             network: 'Mainnet',
             receiver: {
                 address: 'Hd3f3kL9mP2qR3bD4nE5fG6hJ7kL8mN9oP0qR1sT2uV3wX4yZ5aB6cD7eF8g',
@@ -139,10 +141,11 @@ export const SmallAmount: Story = {
                 truncated: '24x5...L3bD5',
             },
             senderHref: 'https://example.com/sender',
+            tokenHref: 'https://example.com/token',
             total: {
-                formatted: '0.001',
-                raw: 1000000,
-                unit: 'SOL',
+                formatted: '1250.75',
+                raw: 1250750000,
+                unit: 'USDC',
             },
         },
     },

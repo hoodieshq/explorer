@@ -34,7 +34,7 @@ function formatReceiptData(receipt: Receipt, cluster: Cluster): FormattedReceipt
     const timestamp = receipt.date * 1000;
     const unit = receipt.type === 'sol' ? 'SOL' : receipt.symbol || 'TOKEN';
 
-    return {
+    const base = {
         date: {
             timestamp,
             utc: displayTimestampUtc(timestamp, true),
@@ -60,6 +60,10 @@ function formatReceiptData(receipt: Receipt, cluster: Cluster): FormattedReceipt
             unit,
         },
     };
+    if (receipt.type === 'token') {
+        return { ...base, mint: receipt.mint, symbol: receipt.symbol };
+    }
+    return base;
 }
 
 async function getParsedTokenInfo(mint: string | undefined, cluster: Cluster): Promise<TokenInfo | undefined> {

@@ -14,6 +14,7 @@ type Data = FormattedReceipt & {
     logoURI?: string | undefined;
     senderHref?: string | undefined;
     receiverHref?: string | undefined;
+    tokenHref?: string | undefined;
 };
 
 interface BaseReceiptProps {
@@ -21,7 +22,20 @@ interface BaseReceiptProps {
 }
 
 export function BaseReceipt({
-    data: { date, sender, receiver, network, fee, total, memo, confirmationStatus, logoURI, senderHref, receiverHref },
+    data: {
+        date,
+        sender,
+        receiver,
+        network,
+        fee,
+        total,
+        memo,
+        confirmationStatus,
+        logoURI,
+        senderHref,
+        receiverHref,
+        tokenHref,
+    },
 }: BaseReceiptProps) {
     return (
         <div className="e-w-full e-max-w-lg">
@@ -36,7 +50,7 @@ export function BaseReceipt({
                     receiverHref={receiverHref}
                 />
                 <div className="e-my-5 e-border-t e-border-white/10 [border-top-style:dashed]" />
-                <Footer fee={fee} total={total} memo={memo} logoURI={logoURI} />
+                <Footer fee={fee} total={total} memo={memo} logoURI={logoURI} tokenHref={tokenHref} />
             </div>
             <Zigzag />
         </div>
@@ -137,7 +151,13 @@ function ListItem({
     );
 }
 
-function Footer({ fee, total, memo, logoURI }: Pick<Data, 'fee' | 'total' | 'memo' | 'logoURI'>) {
+function Footer({
+    fee,
+    total,
+    memo,
+    logoURI,
+    tokenHref,
+}: Pick<Data, 'fee' | 'total' | 'memo' | 'logoURI' | 'tokenHref'>) {
     return (
         <div className="e-p-6 e-pt-0 e-text-xs e-text-gray-400">
             <div className="e-grid e-grid-cols-2 e-items-center">
@@ -145,16 +165,33 @@ function Footer({ fee, total, memo, logoURI }: Pick<Data, 'fee' | 'total' | 'mem
                 <Tooltip>
                     <TooltipTrigger asChild>
                         <div className="e-flex e-items-center e-justify-end e-gap-2">
-                            {logoURI && (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img
-                                    src={logoURI}
-                                    alt="Token logo"
-                                    height="20"
-                                    width="20"
-                                    className="e-flex-shrink-0"
-                                />
-                            )}
+                            {logoURI &&
+                                (tokenHref ? (
+                                    <a
+                                        href={tokenHref}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="e-flex-shrink-0"
+                                    >
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={logoURI}
+                                            alt="Token logo"
+                                            height="20"
+                                            width="20"
+                                            className="e-flex-shrink-0"
+                                        />
+                                    </a>
+                                ) : (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={logoURI}
+                                        alt="Token logo"
+                                        height="20"
+                                        width="20"
+                                        className="e-flex-shrink-0"
+                                    />
+                                ))}
                             <span className="e-text-2xl e-text-white">
                                 {total.formatted} {total.unit}
                             </span>

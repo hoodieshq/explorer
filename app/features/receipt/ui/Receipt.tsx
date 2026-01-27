@@ -40,6 +40,7 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
     );
     const senderLink = useExplorerLink(`/address/${receipt?.sender.address}`);
     const receiverLink = useExplorerLink(`/address/${receipt?.receiver.address}`);
+    const tokenLink = useExplorerLink(receipt && 'mint' in receipt ? `/address/${receipt?.mint}` : '');
 
     useEffect(() => {
         if (!status && clusterStatus === ClusterStatus.Connected) {
@@ -83,6 +84,7 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
                         logoURI,
                         receiverHref: receiverLink.link,
                         senderHref: senderLink.link,
+                        tokenHref: tokenLink.link,
                     }}
                 />
                 <Button size="sm" className="e-me-2" asChild>

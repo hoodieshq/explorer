@@ -30,6 +30,7 @@ export type FormattedBaseReceipt = {
 export type FormattedReceiptSol = FormattedBaseReceipt;
 
 export type FormattedReceiptToken = FormattedBaseReceipt & {
+    mint?: string | undefined;
     symbol?: string | undefined;
 };
 
