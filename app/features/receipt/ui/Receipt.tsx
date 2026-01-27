@@ -3,6 +3,7 @@
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
 import { SignatureContext } from '@components/instruction/SignatureContext';
+import { Button } from '@components/shared/ui/button';
 import { useExplorerLink } from '@entities/cluster';
 import { FetchStatus } from '@providers/cache';
 import { useCluster } from '@providers/cluster';
@@ -84,14 +85,11 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
                         senderHref: senderLink.link,
                     }}
                 />
-                <Link
-                    href={transactionPath}
-                    className="btn btn-white btn-sm me-2"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    View transaction in Explorer
-                </Link>
+                <Button size="sm" className="e-me-2" asChild>
+                    <Link href={transactionPath} target="_blank" rel="noopener noreferrer">
+                        View transaction in Explorer
+                    </Link>
+                </Button>
             </div>
         </SignatureContext.Provider>
     );

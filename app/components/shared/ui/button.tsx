@@ -28,7 +28,7 @@ const buttonVariants = cva(
             },
             variant: {
                 accent: 'e-border-0 e-bg-accent e-text-gray-900 hover:e-bg-accent/90',
-                default: 'e-bg-neutral-900 e-text-neutral-50 e-shadow hover:e-bg-neutral-900/90',
+                default: 'e-border-0 e-bg-neutral-900 e-text-neutral-50 e-shadow hover:e-bg-neutral-900/90',
                 destructive: 'e-bg-red-500 e-text-neutral-50 e-shadow-sm hover:e-bg-red-500/90',
                 ghost: 'hover:e-bg-neutral-100 hover:e-text-neutral-900',
                 link: 'e-text-neutral-900 e-underline-offset-4 hover:e-underline',

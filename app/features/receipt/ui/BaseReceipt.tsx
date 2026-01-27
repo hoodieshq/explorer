@@ -1,4 +1,5 @@
 import { Badge } from '@components/shared/ui/badge';
+import { Button } from '@components/shared/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@components/shared/ui/tooltip';
 import { cn } from '@components/shared/utils';
 import { displayTimestamp } from '@utils/date';
@@ -159,7 +160,7 @@ function Footer({ fee, total, memo, logoURI }: Pick<Data, 'fee' | 'total' | 'mem
                             </span>
                         </div>
                     </TooltipTrigger>
-                    <TooltipContent side="right">{total.raw} USDC</TooltipContent>
+                    <TooltipContent side="right">{total.raw}</TooltipContent>
                 </Tooltip>
                 <span>Fee</span>
 
@@ -201,14 +202,11 @@ export function NoReceipt({ transactionPath }: { transactionPath: string }) {
                 <Zigzag />
             </div>
 
-            <Link
-                href={transactionPath}
-                className="btn btn-white btn-sm me-2"
-                target="_blank"
-                rel="noopener noreferrer"
-            >
-                View transaction in Explorer
-            </Link>
+            <Button size="sm" className="e-me-2" asChild>
+                <Link href={transactionPath} target="_blank" rel="noopener noreferrer">
+                    View transaction in Explorer
+                </Link>
+            </Button>
         </div>
     );
 }
