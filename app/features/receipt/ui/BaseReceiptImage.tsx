@@ -67,7 +67,7 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                         <ListItem label="Sender" value={sender.truncated} />
                         <ListItem label="Date" value={date.utc} valueColor={colors.emerald900} />
                         <ListItem
-                            label="1. Send"
+                            label="1. Sent"
                             style={{ flexGrow: 1 }}
                             value={
                                 <div
