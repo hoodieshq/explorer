@@ -46,5 +46,5 @@ Name: Allow bots for OG images
 Description: Allow social media crawlers to fetch OG image previews
 Rule:
 ```
-If Request Path Starts with og/receipt
+If `Request Path` `Starts with` `/og/receipt/` AND Then `Log`
 ```
