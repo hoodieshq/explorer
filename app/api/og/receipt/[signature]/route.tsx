@@ -1,4 +1,3 @@
-import { ifNoneMatchMatches, notModifiedResponse } from '@/app/shared/lib/http-utils';
 import {
     BaseReceiptImage,
     createReceipt,
@@ -12,14 +11,14 @@ import {
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
 
+import { ifNoneMatchMatches, notModifiedResponse } from '@/app/shared/lib/http-utils';
+
 export const runtime = 'edge';
 
 const CACHE_DURATION = 30 * 60; // 30 minutes
 const CACHE_HEADERS = {
     'Cache-Control': `public, s-maxage=${CACHE_DURATION}, stale-while-revalidate=60, max-age=${CACHE_DURATION}`,
 };
-
-
 
 type Props = Readonly<{
     params: { signature: string };
@@ -31,7 +30,7 @@ export async function GET(request: NextRequest, { params }: Props) {
     if (!signature) new Response('Signature is required', { status: 400 });
 
     const etag = createEtag(signature);
-    if (ifNoneMatchMatches(request.headers, etag)) return notModifiedResponse({ etag, cacheHeaders: CACHE_HEADERS });
+    if (ifNoneMatchMatches(request.headers, etag)) return notModifiedResponse({ cacheHeaders: CACHE_HEADERS, etag });
 
     try {
         const receipt = await createReceipt(signature);
