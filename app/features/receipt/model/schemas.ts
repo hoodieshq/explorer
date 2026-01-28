@@ -1,5 +1,5 @@
 import type { Infer } from 'superstruct';
-import { assign, min, number, string, type, validate } from 'superstruct';
+import { assign, min, number, string, type } from 'superstruct';
 
 const positiveNumber = min(number(), 0, { exclusive: true });
 
