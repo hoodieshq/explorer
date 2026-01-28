@@ -1,4 +1,9 @@
-import type { ParsedInstruction, ParsedTransactionWithMeta, PartiallyDecodedInstruction } from '@solana/web3.js';
+import {
+    type ParsedInstruction,
+    type ParsedTransactionWithMeta,
+    type PartiallyDecodedInstruction,
+    SystemProgram,
+} from '@solana/web3.js';
 
 import { extractMemoFromTransaction } from './memo';
 import type { ReceiptSol } from './types';
@@ -53,7 +58,10 @@ function findSolTransferInstructions(
 ): (ParsedInstruction | PartiallyDecodedInstruction)[] {
     const { transaction: tx } = transaction;
     const instructions = tx.message.instructions.filter(
-        instruction => 'parsed' in instruction && instruction.parsed.type === 'transfer'
+        instruction =>
+            SystemProgram.programId.equals(instruction.programId) &&
+            'parsed' in instruction &&
+            instruction.parsed.type === 'transfer'
     );
     return instructions;
 }
