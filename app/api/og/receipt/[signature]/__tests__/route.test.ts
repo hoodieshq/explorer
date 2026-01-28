@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { GET } from './route';
+import { GET } from '../route';
 
 vi.mock('next/og', () => ({
     ImageResponse: vi.fn(() => {
@@ -26,6 +26,7 @@ vi.mock('@features/receipt', () => ({
 describe('GET /api/og/receipt/[signature]', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.spyOn(console, 'error').mockImplementation(() => {});
     });
 
     it('should generate image successfully with signature', async () => {
@@ -40,7 +41,7 @@ describe('GET /api/og/receipt/[signature]', () => {
         expect(createReceipt).toHaveBeenCalledWith('test-signature-123');
     });
 
-    it('should return 500 when createReceipt fails', async () => {
+    it('should return 404 when transaction or cluster not found', async () => {
         const { createReceipt } = await import('@features/receipt');
         vi.mocked(createReceipt).mockRejectedValue(new Error('Transaction not found'));
 
@@ -49,8 +50,34 @@ describe('GET /api/og/receipt/[signature]', () => {
 
         const response = await GET(request, { params: { signature: 'test-signature-123' } });
 
+        expect(response.status).toBe(404);
+        const text = await response.text();
+        expect(text).toBe('Receipt not found');
+    });
+
+    it('should return 502 when fetch transaction fails', async () => {
+        const { createReceipt } = await import('@features/receipt');
+        vi.mocked(createReceipt).mockRejectedValue(new Error('Failed to fetch transaction'));
+
+        const request = new NextRequest('http://localhost:3000/api/og/receipt/abc');
+
+        const response = await GET(request, { params: { signature: 'abc' } });
+
+        expect(response.status).toBe(502);
+        const text = await response.text();
+        expect(text).toBe('Failed to process request');
+    });
+
+    it('should return 500 for unknown errors', async () => {
+        const { createReceipt } = await import('@features/receipt');
+        vi.mocked(createReceipt).mockRejectedValue(new Error('Something broke'));
+
+        const request = new NextRequest('http://localhost:3000/api/og/receipt/abc');
+
+        const response = await GET(request, { params: { signature: 'abc' } });
+
         expect(response.status).toBe(500);
         const text = await response.text();
-        expect(text).toContain('Transaction not found');
+        expect(text).toBe('Failed to process request');
     });
 });
