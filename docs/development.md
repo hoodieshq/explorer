@@ -46,5 +46,17 @@ Name: Allow bots for OG images
 Description: Allow social media crawlers to fetch OG image previews
 Rule:
 ```
-If `Request Path` `Starts with` `/og/receipt/` AND Then `Log`
+If `Request Path` `Starts with` `/og/receipt/`
+    Then `Bypass`
 ```
+
+Name: Allow bots to visit receipt pages
+Description: Allow social media crawlers to visit receipt pages
+Rule:
+```
+If `Request Path` `Starts with` `/tx/`
+    AND `Query` `view` `Equals` `receipt`
+    Then `Bypass`
+```
+
+⚠️ Important note: `Log` mode does not allow the preview to work. `Bypass` is needed
