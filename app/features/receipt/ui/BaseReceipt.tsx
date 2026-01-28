@@ -127,23 +127,20 @@ function ListItem({
             <span>{label}</span>
             <Tooltip>
                 <div className="e-text-right">
-                <TooltipTrigger asChild>
-                    {href ? (
-                        <a
-                            href={href}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={cn(
-                                'e-truncate e-font-mono e-text-green-400 hover:e-underline',
-                                className
-                            )}
-                        >
-                            {value}
-                        </a>
-                    ) : (
-                        content
-                    )}
-                </TooltipTrigger>
+                    <TooltipTrigger asChild>
+                        {href ? (
+                            <a
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={cn('e-truncate e-font-mono e-text-green-400 hover:e-underline', className)}
+                            >
+                                {value}
+                            </a>
+                        ) : (
+                            content
+                        )}
+                    </TooltipTrigger>
                 </div>
                 {tooltipText && (
                     <TooltipContent side="right">
