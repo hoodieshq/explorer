@@ -1,0 +1,26 @@
+{
+    "$schema": "https://openapi.vercel.sh/vercel.json",
+    "framework": "nextjs",
+    "firewall": {
+        "rules": [
+            {
+                "name": "Allow bots for OG images",
+                "description": "Allow social media crawlers to fetch OG image previews",
+                "conditionGroup": [
+                    {
+                        "conditions": [
+                            {
+                                "type": "path",
+                                "op": "pre",
+                                "value": "/og/"
+                            }
+                        ]
+                    }
+                ],
+                "action": {
+                    "type": "allow"
+                }
+            }
+        ]
+    }
+}
