@@ -105,10 +105,18 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                                             fontSize: '34px',
                                             gap: '8px',
                                             lineHeight: '1em',
+                                            textAlign: 'right',
                                         }}
                                     >
                                         <span
-                                            style={{ color: colors.heavyMetal800, marginLeft: 'auto', width: '714px' }}
+                                            style={{
+                                                color: colors.heavyMetal800,
+                                                marginLeft: 'auto',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                                width: '714px',
+                                            }}
                                         >
                                             {truncatedMemo}
                                         </span>
@@ -153,7 +161,6 @@ function Header() {
                         color: colors.heavyMetal800,
                         fontSize: '35px',
                         fontWeight: 500,
-                        marginLeft: '18px',
                     }}
                 >
                     Receipt
