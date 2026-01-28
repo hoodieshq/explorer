@@ -70,7 +70,7 @@ describe('createReceipt', () => {
 
             const result = await createReceipt(mockSignature);
 
-            expect(result).toBeNull();
+            expect(result).toBeUndefined();
         });
 
         it('should return null for zero SOL transfer', async () => {
@@ -81,7 +81,7 @@ describe('createReceipt', () => {
 
             const result = await createReceipt(mockSignature);
 
-            expect(result).toBeNull();
+            expect(result).toBeUndefined();
         });
 
         it('should handle custom fee payer transaction', async () => {
@@ -314,7 +314,7 @@ describe('createReceipt', () => {
 
             const result = await createReceipt(mockSignature);
 
-            expect(result).toBeNull();
+            expect(result).toBeUndefined();
         });
     });
 });

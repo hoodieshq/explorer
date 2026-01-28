@@ -10,7 +10,7 @@ export type ApiData = {
 export async function getTx(
     signature: string,
     dependencies?: {
-        findCluster?: (signature: string) => Promise<Cluster | null>;
+        findCluster?: (signature: string) => Promise<Cluster | undefined>;
         fetchDetails?: (signature: string, rpcUrl: string) => Promise<ParsedTransactionWithMeta>;
     }
 ): Promise<ApiData> {
@@ -19,7 +19,7 @@ export async function getTx(
 
     const cluster = await findClusterFn(signature);
 
-    if (cluster === null) {
+    if (cluster === undefined) {
         throw new Error('Cluster not found');
     }
 
@@ -33,10 +33,10 @@ export async function getTx(
     return { cluster, transaction };
 }
 
-async function findTransactionCluster(signature: string): Promise<Cluster | null> {
+async function findTransactionCluster(signature: string): Promise<Cluster | undefined> {
     const clustersToTry: Cluster[] = [Cluster.MainnetBeta, Cluster.Devnet, Cluster.Testnet];
 
-    const clusterChecks = clustersToTry.map(async (cluster): Promise<Cluster | null> => {
+    const clusterChecks = clustersToTry.map(async (cluster): Promise<Cluster | undefined> => {
         const rpcUrl = serverClusterUrl(cluster, '');
         const connection = new Connection(rpcUrl, 'confirmed');
 
@@ -50,21 +50,21 @@ async function findTransactionCluster(signature: string): Promise<Cluster | null
             }
         } catch (error) {
             console.error('Failed to find transaction cluster', error);
-            return null;
+            return undefined;
         }
 
-        return null;
+        return undefined;
     });
 
     const results = await Promise.allSettled(clusterChecks);
 
     for (const result of results) {
-        if (result.status === 'fulfilled' && result.value !== null) {
+        if (result.status === 'fulfilled' && result.value !== undefined) {
             return result.value;
         }
     }
 
-    return null;
+    return undefined;
 }
 
 async function fetchTransactionDetails(signature: string, rpcUrl: string): Promise<ParsedTransactionWithMeta> {

@@ -9,7 +9,7 @@ export const IMAGE_SIZE = {
 };
 
 type BaseReceiptImageProps = {
-    data: FormattedReceipt | null;
+    data: FormattedReceipt | undefined;
     options?: {
         size?: {
             height: number;
@@ -24,7 +24,7 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
     if (!data) return <NoReceipt size={size} />;
 
     const { sender, receiver, date, memo, fee, total } = data;
-    const truncatedMemo = memo ? (memo.length > 90 ? memo.substring(0, 90) + '...' : memo) : null;
+    const truncatedMemo = memo ? (memo.length > 90 ? memo.substring(0, 90) + '...' : memo) : undefined;
 
     return (
         <div
@@ -189,7 +189,7 @@ function ListItem({
     style,
 }: {
     label: string;
-    value: React.ReactNode | string | undefined | null;
+    value: React.ReactNode | string | undefined;
     valueColor?: string;
     style?: React.CSSProperties;
 }) {

@@ -12,7 +12,7 @@ import { createSolTransferReceipt } from './sol-transfer';
 import { createTokenTransferReceipt } from './token-transfer';
 import { Receipt } from './types';
 
-export async function createReceipt(signature: string): Promise<FormattedReceipt | null> {
+export async function createReceipt(signature: string): Promise<FormattedReceipt | undefined> {
     const data = await getTx(signature);
     return extractReceiptData(data.transaction, data.cluster);
 }
@@ -20,12 +20,12 @@ export async function createReceipt(signature: string): Promise<FormattedReceipt
 export async function extractReceiptData(
     tx: ParsedTransactionWithMeta,
     cluster: Cluster
-): Promise<FormattedReceipt | null> {
-    let receipt: Receipt | null = createSolTransferReceipt(tx);
+): Promise<FormattedReceipt | undefined> {
+    let receipt: Receipt | undefined = createSolTransferReceipt(tx);
     if (!receipt) {
         receipt = await createTokenTransferReceipt(tx, (mint: string | undefined) => getParsedTokenInfo(mint, cluster));
     }
-    if (!receipt) return null;
+    if (!receipt) return undefined;
 
     return formatReceiptData(receipt, cluster);
 }

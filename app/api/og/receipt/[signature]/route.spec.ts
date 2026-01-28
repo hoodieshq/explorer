@@ -19,8 +19,8 @@ vi.mock('@features/receipt', () => ({
     OG_IMAGE_SIZE: { height: 630, width: 1200 },
     createReceipt: vi.fn(),
     getCachedReceipt: vi.fn(),
-    getReceiptImageUrl: vi.fn().mockResolvedValue(null),
-    storeReceiptImage: vi.fn().mockResolvedValue(null),
+    getReceiptImageUrl: vi.fn().mockResolvedValue(undefined),
+    storeReceiptImage: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe('GET /api/og/receipt/[signature]', () => {

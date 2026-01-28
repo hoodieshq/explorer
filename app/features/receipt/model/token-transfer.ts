@@ -53,16 +53,16 @@ type TokenTransferInstruction = ParsedInstruction & { parsed: TokenTransferParse
 export async function createTokenTransferReceipt(
     transaction: ParsedTransactionWithMeta,
     getTokenInfo: (mint: string | undefined) => Promise<TokenInfo | undefined>
-): Promise<ReceiptToken | null> {
+): Promise<ReceiptToken | undefined> {
     const instruction = getSingleTokenTransferInstruction(transaction);
-    if (!instruction) return null;
+    if (!instruction) return undefined;
 
     const raw = extractTokenTransferPayload(transaction, instruction);
 
     const [err, validated] = validate(raw, TokenTransferPayload);
     if (err) {
         console.error('Error validating token transfer payload', err);
-        return null;
+        return undefined;
     }
 
     const tokenInfo = await getTokenInfo(raw.mint);
@@ -77,11 +77,13 @@ export async function createTokenTransferReceipt(
 }
 
 // We support only single token transfer instruction per transaction by design.
-function getSingleTokenTransferInstruction(transaction: ParsedTransactionWithMeta): TokenTransferInstruction | null {
+function getSingleTokenTransferInstruction(
+    transaction: ParsedTransactionWithMeta
+): TokenTransferInstruction | undefined {
     const instructions = transaction.transaction.message.instructions.filter(
         (instruction): instruction is TokenTransferInstruction => isTokenTransfer(instruction)
     );
-    return instructions.length === 1 ? instructions[0] : null;
+    return instructions.length === 1 ? instructions[0] : undefined;
 }
 
 function isTokenTransfer(instruction: ParsedInstruction | PartiallyDecodedInstruction): boolean {

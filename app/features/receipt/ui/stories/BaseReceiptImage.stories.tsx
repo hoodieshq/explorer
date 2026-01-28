@@ -155,6 +155,6 @@ export const TokenTransfer: Story = {
 
 export const NoReceipt: Story = {
     args: {
-        data: null,
+        data: undefined,
     },
 };
