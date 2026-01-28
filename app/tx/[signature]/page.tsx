@@ -11,6 +11,9 @@ type Props = Readonly<{
     searchParams: Record<string, string | string[] | undefined>;
 }>;
 
+/// Receipt feature require BASE_URL to be set
+const RECEIPT_BASE_URL = process.env.RECEIPT_BASE_URL ?? '';
+
 export async function generateMetadata({ params: { signature }, searchParams }: Props): Promise<Metadata> {
     const isReceiptView = searchParams.view === 'receipt';
 
@@ -18,7 +21,8 @@ export async function generateMetadata({ params: { signature }, searchParams }: 
         const title = `Receipt | ${signature.slice(0, 16)}... | Solana`;
         const description = `Transaction receipt for ${signature} on Solana blockchain`;
 
-        const ogImageUrl = `/api/og/receipt/${signature}`;
+        const baseUrl = RECEIPT_BASE_URL.trim();
+        const ogImageUrl = `${baseUrl}/api/og/receipt/${signature}`;
         return {
             description,
             openGraph: {
