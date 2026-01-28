@@ -1,4 +1,4 @@
-import type { ParsedInstruction, ParsedTransactionWithMeta } from '@solana/web3.js';
+import type { ParsedInstruction, ParsedTransactionWithMeta, PartiallyDecodedInstruction } from '@solana/web3.js';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
@@ -76,14 +76,20 @@ export async function createTokenTransferReceipt(
     };
 }
 
+// We support only single token transfer instruction per transaction by design.
 function getSingleTokenTransferInstruction(transaction: ParsedTransactionWithMeta): TokenTransferInstruction | null {
     const instructions = transaction.transaction.message.instructions.filter(
-        (instruction): instruction is TokenTransferInstruction =>
-            isTokenProgram(instruction.programId) &&
-            'parsed' in instruction &&
-            ['transfer', 'transferChecked', 'transfer2'].includes(instruction.parsed.type)
+        (instruction): instruction is TokenTransferInstruction => isTokenTransfer(instruction)
     );
     return instructions.length === 1 ? instructions[0] : null;
+}
+
+function isTokenTransfer(instruction: ParsedInstruction | PartiallyDecodedInstruction): boolean {
+    return (
+        isTokenProgram(instruction.programId) &&
+        'parsed' in instruction &&
+        ['transfer', 'transferChecked', 'transfer2'].includes(instruction.parsed.type)
+    );
 }
 
 function extractTokenTransferPayload(transaction: ParsedTransactionWithMeta, instruction: TokenTransferInstruction) {

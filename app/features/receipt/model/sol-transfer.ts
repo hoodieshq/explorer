@@ -1,4 +1,9 @@
-import { type ParsedInstruction, type ParsedTransactionWithMeta, SystemProgram } from '@solana/web3.js';
+import {
+    type ParsedInstruction,
+    type ParsedTransactionWithMeta,
+    PartiallyDecodedInstruction,
+    SystemProgram,
+} from '@solana/web3.js';
 import { validate } from 'superstruct';
 
 import { extractMemoFromTransaction } from './memo';
@@ -35,14 +40,20 @@ export function createSolTransferReceipt(transaction: ParsedTransactionWithMeta)
     };
 }
 
+// We support only single sol transfer instruction per transaction by design.
 function getSingleSolTransferInstruction(transaction: ParsedTransactionWithMeta): SolTransferInstruction | null {
     const instructions = transaction.transaction.message.instructions.filter(
-        (instruction): instruction is SolTransferInstruction =>
-            SystemProgram.programId.equals(instruction.programId) &&
-            'parsed' in instruction &&
-            instruction.parsed.type === 'transfer'
+        (instruction): instruction is SolTransferInstruction => isSolTransfer(instruction)
     );
     return instructions.length === 1 ? instructions[0] : null;
+}
+
+function isSolTransfer(instruction: ParsedInstruction | PartiallyDecodedInstruction): boolean {
+    return (
+        SystemProgram.programId.equals(instruction.programId) &&
+        'parsed' in instruction &&
+        instruction.parsed.type === 'transfer'
+    );
 }
 
 function extractSolTransferPayload(transaction: ParsedTransactionWithMeta, instruction: SolTransferInstruction) {
