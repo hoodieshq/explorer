@@ -207,15 +207,17 @@ function Footer({
                             </span>
                         </div>
                     </TooltipTrigger>
-                    <TooltipContent side="right">{total.raw}</TooltipContent>
+                    <TooltipContent side="right">
+                        {total.unit === 'SOL' ? `${total.raw} lamports` : total.raw}
+                    </TooltipContent>
                 </Tooltip>
                 <span>Fee</span>
 
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <span className="e-text-right">{fee.formatted} SOL</span>
+                        <span className="e-text-right">~{fee.formatted} SOL</span>
                     </TooltipTrigger>
-                    <TooltipContent side="right">{fee.raw}</TooltipContent>
+                    <TooltipContent side="right">{fee.raw} lamports</TooltipContent>
                 </Tooltip>
             </div>
 
