@@ -1,11 +1,8 @@
-import {
-    type ParsedInstruction,
-    type ParsedTransactionWithMeta,
-    type PartiallyDecodedInstruction,
-    SystemProgram,
-} from '@solana/web3.js';
+import { type ParsedInstruction, type ParsedTransactionWithMeta, SystemProgram } from '@solana/web3.js';
+import { validate } from 'superstruct';
 
 import { extractMemoFromTransaction } from './memo';
+import { SolTransferPayload } from './schemas';
 import type { ReceiptSol } from './types';
 
 type SolTransferParsed = {
@@ -17,51 +14,45 @@ type SolTransferParsed = {
     };
 };
 
+type SolTransferInstruction = ParsedInstruction & { parsed: SolTransferParsed };
+
 export function createSolTransferReceipt(transaction: ParsedTransactionWithMeta): ReceiptSol | null {
-    const instructions = findSolTransferInstructions(transaction);
+    const instruction = getSingleSolTransferInstruction(transaction);
+    if (!instruction) return null;
 
-    // There is a requirement to support only one SOL transfer instruction in a transaction
-    if (instructions.length !== 1) {
-        return null;
-    }
-    const instruction = instructions[0];
-    if (!('parsed' in instruction)) {
-        return null;
-    }
+    const raw = extractSolTransferPayload(transaction, instruction);
 
-    const parsed: SolTransferParsed = instruction.parsed;
-
-    const sender = parsed.info.source;
-    const receiver = parsed.info.destination;
-    const fee = transaction.meta?.fee;
-    const date = transaction.blockTime;
-    const memo = extractMemoFromTransaction(transaction);
-    const total = parsed.info.lamports;
-
-    if (!total || !fee || !date || !sender || !receiver) {
+    const [err, validated] = validate(raw, SolTransferPayload);
+    if (err) {
+        console.error('Error validating sol transfer payload', err);
         return null;
     }
 
     return {
-        date,
-        fee,
-        memo,
-        receiver,
-        sender,
-        total,
+        ...validated,
+        memo: raw.memo,
         type: 'sol',
     };
 }
 
-function findSolTransferInstructions(
-    transaction: ParsedTransactionWithMeta
-): (ParsedInstruction | PartiallyDecodedInstruction)[] {
-    const { transaction: tx } = transaction;
-    const instructions = tx.message.instructions.filter(
-        instruction =>
+function getSingleSolTransferInstruction(transaction: ParsedTransactionWithMeta): SolTransferInstruction | null {
+    const instructions = transaction.transaction.message.instructions.filter(
+        (instruction): instruction is SolTransferInstruction =>
             SystemProgram.programId.equals(instruction.programId) &&
             'parsed' in instruction &&
             instruction.parsed.type === 'transfer'
     );
-    return instructions;
+    return instructions.length === 1 ? instructions[0] : null;
+}
+
+function extractSolTransferPayload(transaction: ParsedTransactionWithMeta, instruction: SolTransferInstruction) {
+    const { info } = instruction.parsed;
+    return {
+        date: transaction.blockTime ?? undefined,
+        fee: transaction.meta?.fee,
+        memo: extractMemoFromTransaction(transaction),
+        receiver: info.destination,
+        sender: info.source,
+        total: info.lamports,
+    };
 }

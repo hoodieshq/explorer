@@ -1,10 +1,12 @@
-import type { ParsedInstruction, ParsedTransactionWithMeta, PartiallyDecodedInstruction } from '@solana/web3.js';
+import type { ParsedInstruction, ParsedTransactionWithMeta } from '@solana/web3.js';
 import { PublicKey } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
+import { validate } from 'superstruct';
 
 import type { TokenInfo } from '../api/get-token-info';
 import { extractMemoFromTransaction } from './memo';
+import { TokenTransferPayload } from './schemas';
 import type { ReceiptToken } from './types';
 
 type TokenTransferParsed =
@@ -46,48 +48,70 @@ type TokenTransferParsed =
           };
       };
 
+type TokenTransferInstruction = ParsedInstruction & { parsed: TokenTransferParsed };
+
 export async function createTokenTransferReceipt(
     transaction: ParsedTransactionWithMeta,
     getTokenInfo: (mint: string | undefined) => Promise<TokenInfo | undefined>
 ): Promise<ReceiptToken | null> {
-    // There is a requirement to support only one token transfer instruction in a transaction
-    const instructions = findTokenTransferInstructions(transaction);
-    if (instructions.length !== 1) {
-        return null;
-    }
-    const instruction = instructions[0];
-    if (!('parsed' in instruction)) {
-        return null;
-    }
+    const instruction = getSingleTokenTransferInstruction(transaction);
+    if (!instruction) return null;
 
-    const parsed: TokenTransferParsed = instruction.parsed;
+    const raw = extractTokenTransferPayload(transaction, instruction);
 
-    const total = extractTotal(parsed, transaction);
-    const fee = transaction.meta?.fee;
-    const date = transaction.blockTime;
-    const memo = extractMemoFromTransaction(transaction);
-    const sender = parsed.info.authority;
-    const receiver = extractTokenReceiver(transaction, parsed.info.destination);
-    const mint = extractTokenMint(transaction, parsed);
-
-    if (!total || !fee || !date || !sender || !receiver) {
+    const [err, validated] = validate(raw, TokenTransferPayload);
+    if (err) {
+        console.error('Error validating token transfer payload', err);
         return null;
     }
 
-    const tokenInfo = await getTokenInfo(mint);
-
+    const tokenInfo = await getTokenInfo(raw.mint);
     return {
-        date,
-        fee,
+        ...validated,
         logoURI: tokenInfo?.logoURI,
-        memo,
-        mint,
-        receiver,
-        sender,
+        memo: raw.memo,
+        mint: raw.mint,
         symbol: tokenInfo?.symbol,
-        total,
         type: 'token',
     };
+}
+
+function getSingleTokenTransferInstruction(transaction: ParsedTransactionWithMeta): TokenTransferInstruction | null {
+    const instructions = transaction.transaction.message.instructions.filter(
+        (instruction): instruction is TokenTransferInstruction =>
+            isTokenProgram(instruction.programId) &&
+            'parsed' in instruction &&
+            ['transfer', 'transferChecked', 'transfer2'].includes(instruction.parsed.type)
+    );
+    return instructions.length === 1 ? instructions[0] : null;
+}
+
+function extractTokenTransferPayload(transaction: ParsedTransactionWithMeta, instruction: TokenTransferInstruction) {
+    const parsed = instruction.parsed;
+    return {
+        date: transaction.blockTime ?? undefined,
+        fee: transaction.meta?.fee,
+        memo: extractMemoFromTransaction(transaction),
+        mint: extractTokenMint(transaction, parsed),
+        receiver: extractTokenReceiver(transaction, parsed.info.destination),
+        sender: String(parsed.info.authority),
+        total: extractTotal(parsed, transaction),
+    };
+}
+
+function extractTokenMint(transaction: ParsedTransactionWithMeta, parsed: TokenTransferParsed): string | undefined {
+    if ('mint' in parsed.info) {
+        return parsed.info.mint;
+    }
+    const destinationTokenAccount = parsed.info.destination;
+
+    const accountIndex = transaction.transaction.message.accountKeys.findIndex(
+        account => account.pubkey.toString() === destinationTokenAccount
+    );
+
+    const tokenBalance = transaction.meta?.postTokenBalances?.find(balance => balance.accountIndex === accountIndex);
+
+    return tokenBalance?.mint;
 }
 
 function extractTokenReceiver(
@@ -105,21 +129,6 @@ function extractTokenReceiver(
     const tokenBalance = transaction.meta?.postTokenBalances?.find(balance => balance.accountIndex === accountIndex);
 
     return tokenBalance?.owner;
-}
-
-function extractTokenMint(transaction: ParsedTransactionWithMeta, parsed: TokenTransferParsed): string | undefined {
-    if ('mint' in parsed.info) {
-        return parsed.info.mint;
-    }
-    const destinationTokenAccount = parsed.info.destination;
-
-    const accountIndex = transaction.transaction.message.accountKeys.findIndex(
-        account => account.pubkey.toString() === destinationTokenAccount
-    );
-
-    const tokenBalance = transaction.meta?.postTokenBalances?.find(balance => balance.accountIndex === accountIndex);
-
-    return tokenBalance?.mint;
 }
 
 function extractTotal(parsed: TokenTransferParsed, transaction: ParsedTransactionWithMeta): number {
@@ -153,19 +162,6 @@ function getTokenDecimals(
     const tokenBalance = transaction.meta?.postTokenBalances?.find(balance => balance.accountIndex === accountIndex);
 
     return tokenBalance?.uiTokenAmount.decimals;
-}
-
-function findTokenTransferInstructions(
-    transaction: ParsedTransactionWithMeta
-): (ParsedInstruction | PartiallyDecodedInstruction)[] {
-    const { transaction: tx } = transaction;
-    const instructions = tx.message.instructions.filter(
-        instruction =>
-            isTokenProgram(instruction.programId) &&
-            'parsed' in instruction &&
-            ['transfer', 'transferChecked', 'transfer2'].includes(instruction.parsed.type)
-    );
-    return instructions;
 }
 
 function isTokenProgram(programId: PublicKey): boolean {
