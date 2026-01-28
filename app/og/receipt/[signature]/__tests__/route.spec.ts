@@ -23,7 +23,7 @@ vi.mock('@features/receipt', () => ({
     storeReceiptImage: vi.fn().mockResolvedValue(undefined),
 }));
 
-describe('GET /api/og/receipt/[signature]', () => {
+describe('GET /og/receipt/[signature]', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -31,7 +31,7 @@ describe('GET /api/og/receipt/[signature]', () => {
 
     it('should generate image successfully with signature', async () => {
         const { createReceipt } = await import('@features/receipt');
-        const url = new URL('http://localhost:3000/api/og/receipt/test-signature-123');
+        const url = new URL('http://localhost:3000/og/receipt/test-signature-123');
         const request = new NextRequest(url.toString());
 
         const response = await GET(request, { params: { signature: 'test-signature-123' } });
@@ -45,7 +45,7 @@ describe('GET /api/og/receipt/[signature]', () => {
         const { createReceipt } = await import('@features/receipt');
         vi.mocked(createReceipt).mockRejectedValue(new Error('Transaction not found'));
 
-        const url = new URL('http://localhost:3000/api/og/receipt/test-signature-123');
+        const url = new URL('http://localhost:3000/og/receipt/test-signature-123');
         const request = new NextRequest(url.toString());
 
         const response = await GET(request, { params: { signature: 'test-signature-123' } });
@@ -59,7 +59,7 @@ describe('GET /api/og/receipt/[signature]', () => {
         const { createReceipt } = await import('@features/receipt');
         vi.mocked(createReceipt).mockRejectedValue(new Error('Failed to fetch transaction'));
 
-        const request = new NextRequest('http://localhost:3000/api/og/receipt/abc');
+        const request = new NextRequest('http://localhost:3000/og/receipt/abc');
 
         const response = await GET(request, { params: { signature: 'abc' } });
 
@@ -72,7 +72,7 @@ describe('GET /api/og/receipt/[signature]', () => {
         const { createReceipt } = await import('@features/receipt');
         vi.mocked(createReceipt).mockRejectedValue(new Error('Something broke'));
 
-        const request = new NextRequest('http://localhost:3000/api/og/receipt/abc');
+        const request = new NextRequest('http://localhost:3000/og/receipt/abc');
 
         const response = await GET(request, { params: { signature: 'abc' } });
 

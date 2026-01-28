@@ -22,7 +22,7 @@ export async function generateMetadata({ params: { signature }, searchParams }: 
         const description = `Transaction receipt for ${signature} on Solana blockchain`;
 
         const baseUrl = RECEIPT_BASE_URL.trim();
-        const ogImageUrl = `${baseUrl}/api/og/receipt/${signature}`;
+        const ogImageUrl = `${baseUrl}/og/receipt/${signature}`;
         return {
             description,
             openGraph: {
