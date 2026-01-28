@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Cluster } from '@/app/utils/cluster';
 
@@ -8,6 +8,8 @@ import { mockCustomFeePayerTransaction } from '../../mocks/custom-fee-payer';
 import { mockMultipleTransfersTransaction } from '../../mocks/multiple-transfers';
 import { mockNoTransferTransaction } from '../../mocks/no-transfers';
 import { mockSingleTransferTransaction } from '../../mocks/single-transfer';
+import { mockToken2022TransferTransaction } from '../../mocks/token-2022-transfer';
+import { mockToken2022Transfer2Transaction } from '../../mocks/token-2022-transfer2';
 import { mockUsdcTransferTransaction } from '../../mocks/usdc-cheked-transfer';
 import { mockUsdcRegularTransferTransaction } from '../../mocks/usdc-regular-transfer';
 import { mockZeroTransferTransaction } from '../../mocks/zero-transfer';
@@ -224,6 +226,82 @@ describe('createReceipt', () => {
                     unit: 'TOKEN',
                 },
             });
+        });
+
+        it('should create a formatted token transfer receipt for Token-2022 transfer2', async () => {
+            const mockTokenInfo = {
+                logoURI: 'https://example.com/t22.png',
+                symbol: 'T22',
+            };
+
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockToken2022Transfer2Transaction,
+            });
+            vi.mocked(getTokenInfo).mockResolvedValueOnce(mockTokenInfo);
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toMatchObject({
+                fee: {
+                    formatted: '0.000005',
+                    raw: 5000,
+                },
+                network: 'Mainnet Beta',
+                receiver: {
+                    truncated: '65MUM..L2Fhk',
+                },
+                sender: {
+                    truncated: 'Hd3f3..R3bD5',
+                },
+                total: {
+                    formatted: '100',
+                    raw: 100,
+                    unit: 'T22',
+                },
+            });
+            expect(getTokenInfo).toHaveBeenCalledWith(
+                '7xKXtg2CW87d97TXJSDpbD5jBkheTqA83TZRuJosgAsU',
+                Cluster.MainnetBeta
+            );
+        });
+
+        it('should create a formatted token transfer receipt for Token-2022 transferChecked', async () => {
+            const mockTokenInfo = {
+                logoURI: 'https://example.com/token-2022.png',
+                symbol: 'T2022',
+            };
+
+            vi.mocked(getTx).mockResolvedValueOnce({
+                cluster: Cluster.MainnetBeta,
+                transaction: mockToken2022TransferTransaction,
+            });
+            vi.mocked(getTokenInfo).mockResolvedValueOnce(mockTokenInfo);
+
+            const result = await createReceipt(mockSignature);
+
+            expect(result).toMatchObject({
+                fee: {
+                    formatted: '0.000005',
+                    raw: 5000,
+                },
+                network: 'Mainnet Beta',
+                receiver: {
+                    truncated: '65MUM..L2Fhk',
+                },
+                sender: {
+                    truncated: 'Hd3f3..R3bD5',
+                },
+                total: {
+                    formatted: '100',
+                    raw: 100,
+                    unit: 'T2022',
+                },
+            });
+            expect(getTokenInfo).toHaveBeenCalledWith(
+                'AN8h2reVWuPAWXhfJQounhTMqb5bvwVKumX6pMmSK25U',
+                Cluster.MainnetBeta
+            );
         });
     });
 

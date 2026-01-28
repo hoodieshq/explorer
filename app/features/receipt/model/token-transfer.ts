@@ -23,6 +23,20 @@ type TokenTransferParsed =
           };
       }
     | {
+          type: 'transfer2';
+          info: {
+              source?: string;
+              destination?: string;
+              authority?: string;
+              mint?: string;
+              tokenAmount?: {
+                  uiAmountString?: string | null;
+                  amount?: string;
+                  decimals?: number;
+              };
+          };
+      }
+    | {
           type: 'transfer';
           info: {
               amount?: string;
@@ -109,7 +123,7 @@ function extractTokenMint(transaction: ParsedTransactionWithMeta, parsed: TokenT
 }
 
 function extractTotal(parsed: TokenTransferParsed, transaction: ParsedTransactionWithMeta): number {
-    if (parsed.type === 'transferChecked') {
+    if (parsed.type === 'transferChecked' || parsed.type === 'transfer2') {
         return parseFloat(parsed.info.tokenAmount?.uiAmountString || '0');
     }
 
