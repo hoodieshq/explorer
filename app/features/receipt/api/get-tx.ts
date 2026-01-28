@@ -74,22 +74,15 @@ async function fetchTransactionDetails(signature: string, rpcUrl: string): Promi
     const connection = new Connection(rpcUrl, 'confirmed');
 
     try {
-        let transaction = await connection.getParsedTransaction(signature, {
+        const transaction = await connection.getParsedTransaction(signature, {
             ...rpcRequestConfig,
             commitment: 'confirmed',
         });
 
-        if (transaction) {
-            return transaction;
-        }
-
-        transaction = await connection.getParsedTransaction(signature, {
-            ...rpcRequestConfig,
-            commitment: 'finalized',
-        });
         if (!transaction) {
             throw new Error('Transaction not found');
         }
+        
         return transaction;
     } catch (error) {
         throw new Error('Failed to fetch transaction', { cause: error });

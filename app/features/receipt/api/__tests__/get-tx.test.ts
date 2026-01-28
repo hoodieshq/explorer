@@ -52,31 +52,6 @@ describe('getTx', () => {
                 transaction: mockSingleTransferTransaction,
             });
         });
-
-        it('should fetch transaction with finalized commitment when confirmed returns null', async () => {
-            mockConnection.getSignatureStatus.mockResolvedValueOnce({
-                value: {
-                    confirmationStatus: 'confirmed',
-                    slot: 12345,
-                },
-            });
-            mockConnection.getSignatureStatus.mockResolvedValueOnce({
-                value: null,
-            });
-            mockConnection.getSignatureStatus.mockResolvedValueOnce({
-                value: null,
-            });
-
-            mockConnection.getParsedTransaction.mockResolvedValueOnce(null);
-            mockConnection.getParsedTransaction.mockResolvedValueOnce(mockSingleTransferTransaction);
-
-            const result = await getTx(mockSignature);
-
-            expect(result).toEqual({
-                cluster: Cluster.MainnetBeta,
-                transaction: mockSingleTransferTransaction,
-            });
-        });
     });
 
     describe('error handling', () => {
