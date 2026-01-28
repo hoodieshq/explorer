@@ -82,7 +82,7 @@ async function fetchTransactionDetails(signature: string, rpcUrl: string): Promi
         if (!transaction) {
             throw new Error('Transaction not found');
         }
-        
+
         return transaction;
     } catch (error) {
         throw new Error('Failed to fetch transaction', { cause: error });

@@ -30,7 +30,7 @@ export async function extractReceiptData(
     return formatReceiptData(receipt, cluster);
 }
 
-function formatReceiptData(receipt: Receipt, cluster: Cluster): FormattedReceipt {
+export function formatReceiptData(receipt: Receipt, cluster: Cluster): FormattedReceipt {
     const timestamp = receipt.date * 1000;
     const unit = receipt.type === 'sol' ? 'SOL' : receipt.symbol || 'TOKEN';
 

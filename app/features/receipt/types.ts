@@ -35,3 +35,11 @@ export type FormattedReceiptToken = FormattedBaseReceipt & {
 };
 
 export type FormattedReceipt = FormattedReceiptSol | FormattedReceiptToken;
+
+export type FormattedExtendedReceipt = FormattedReceipt & {
+    confirmationStatus: string | undefined;
+    logoURI?: string | undefined;
+    senderHref?: string | undefined;
+    receiverHref?: string | undefined;
+    tokenHref?: string | undefined;
+};

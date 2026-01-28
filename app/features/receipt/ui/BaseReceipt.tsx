@@ -6,19 +6,11 @@ import { displayTimestamp } from '@utils/date';
 import Link from 'next/link';
 import { Info } from 'react-feather';
 
-import { FormattedReceipt } from '../types';
+import type { FormattedExtendedReceipt } from '../types';
 import { BluredCircle } from './Receipt';
 
-type Data = FormattedReceipt & {
-    confirmationStatus: string | undefined;
-    logoURI?: string | undefined;
-    senderHref?: string | undefined;
-    receiverHref?: string | undefined;
-    tokenHref?: string | undefined;
-};
-
 interface BaseReceiptProps {
-    data: Data;
+    data: FormattedExtendedReceipt;
 }
 
 export function BaseReceipt({
@@ -57,7 +49,7 @@ export function BaseReceipt({
     );
 }
 
-export function Header({ date }: Pick<Data, 'date'>) {
+export function Header({ date }: Pick<FormattedExtendedReceipt, 'date'>) {
     return (
         <div className="e-flex e-items-center e-justify-between e-gap-x-4 e-border-b e-border-white/10 e-p-6 e-pt-8 [border-bottom-style:solid]">
             <h3 className="e-m-0 e-flex-shrink-0 e-font-medium e-text-white">Solana Receipt</h3>
@@ -80,7 +72,7 @@ function Content({
     confirmationStatus,
     senderHref,
     receiverHref,
-}: Pick<Data, 'sender' | 'receiver' | 'network' | 'confirmationStatus'> & {
+}: Pick<FormattedExtendedReceipt, 'sender' | 'receiver' | 'network' | 'confirmationStatus'> & {
     senderHref?: string;
     receiverHref?: string;
 }) {
@@ -167,7 +159,7 @@ function Footer({
     memo,
     logoURI,
     tokenHref,
-}: Pick<Data, 'fee' | 'total' | 'memo' | 'logoURI' | 'tokenHref'>) {
+}: Pick<FormattedExtendedReceipt, 'fee' | 'total' | 'memo' | 'logoURI' | 'tokenHref'>) {
     return (
         <div className="e-p-6 e-pt-0 e-text-xs e-text-gray-400">
             <div className="e-grid e-grid-cols-2 e-items-center">
