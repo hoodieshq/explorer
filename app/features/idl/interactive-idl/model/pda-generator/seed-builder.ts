@@ -22,9 +22,7 @@ export function buildSeedsWithInfo(
 ): SeedInfo {
     const processed = seeds.map(seed => processSeed(seed, args, accounts, instruction));
     const info = processed.map(p => p.info);
-    const buffers = processed.every(p => p.buffer !== null)
-        ? (processed.map(p => p.buffer) as Buffer[])
-        : null;
+    const buffers = processed.every(p => p.buffer !== null) ? (processed.map(p => p.buffer) as Buffer[]) : null;
     return { buffers, info };
 }
 
@@ -68,8 +66,7 @@ function processArgSeed(
         return { buffer: null, info: { name: camelPath, value: null } };
     }
     const argDef =
-        instruction.args.find(a => a.name === seed.path) ??
-        instruction.args.find(a => camelCase(a.name) === camelPath);
+        instruction.args.find(a => a.name === seed.path) ?? instruction.args.find(a => camelCase(a.name) === camelPath);
     if (argDef?.type === undefined) {
         return { buffer: null, info: { name: camelPath, value } };
     }
@@ -93,7 +90,6 @@ function processAccountSeed(
         return { buffer: null, info: { name: camelPath, value } };
     }
 }
-
 
 const INTEGER_SEED_SIZES: Record<string, number> = {
     i128: 16,
@@ -147,8 +143,8 @@ function argToSeedBuffer(value: string, type: PdaArgument['type']): Buffer | nul
             typeof elementType === 'string' && elementType === 'u8'
                 ? parseU8ArrayFromHex(trimmed, length) ?? parseIntegerArray(value, 'u8', length)
                 : typeof elementType === 'string'
-                  ? parseIntegerArray(value, elementType, length)
-                  : null;
+                ? parseIntegerArray(value, elementType, length)
+                : null;
         return bytes ? Buffer.from(bytes) : null;
     }
 

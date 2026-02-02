@@ -229,9 +229,7 @@ describe('usePdas', () => {
             'close_donation_epoch_v1'
         );
 
-        function runDonateTest(
-            formValues: { accounts?: Record<string, string>; arguments?: Record<string, string> }
-        ) {
+        function runDonateTest(formValues: { accounts?: Record<string, string>; arguments?: Record<string, string> }) {
             const form = createMockForm();
             for (const [key, val] of Object.entries(formValues.accounts ?? {})) {
                 form.setValue(`accounts.${DONATE_KEY}.${key}`, val);
