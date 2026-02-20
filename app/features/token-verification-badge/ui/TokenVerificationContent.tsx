@@ -69,24 +69,15 @@ export function TokenVerificationContent({
     verifiedSources,
     unverifiedSources,
     verificationFoundSources,
-    alignRight,
 }: {
     verifiedSources: VerificationSource[];
     unverifiedSources: VerificationSource[];
     verificationFoundSources: VerificationSource[];
-    alignRight: boolean;
 }) {
     const hasVerification = verifiedSources.length > 0;
 
     return (
-        <div
-            className={cn(
-                'e-absolute e-top-full e-z-50 e-mt-1 e-w-72 e-rounded-xl',
-                'e-border e-border-solid e-border-outer-space-800 e-bg-outer-space-900 e-p-4',
-                alignRight ? 'e-right-0' : 'e-left-0'
-            )}
-            style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)' }}
-        >
+        <div>
             <p className="e-mb-1 e-text-base e-font-semibold e-text-gray-200">
                 {hasVerification ? (
                     <>

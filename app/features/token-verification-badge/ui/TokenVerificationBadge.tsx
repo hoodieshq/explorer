@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 
+import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/shared/ui/popover';
 import { FullLegacyTokenInfo, FullTokenInfo } from '@/app/utils/token-info';
 
 import { useTokenVerification } from '../model/use-verification-sources';
@@ -15,8 +16,6 @@ export type TokenVerificationBadgeProps = {
 
 export function TokenVerificationBadge({ tokenInfo, isTokenInfoLoading }: TokenVerificationBadgeProps) {
     const [isOpen, setIsOpen] = useState(false);
-    const [alignRight, setAlignRight] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
 
     const {
         isLoading: isVerificationLoading,
@@ -25,48 +24,25 @@ export function TokenVerificationBadge({ tokenInfo, isTokenInfoLoading }: TokenV
         verificationFoundSources,
     } = useTokenVerification(tokenInfo);
 
-    useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        }
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-            return () => document.removeEventListener('mousedown', handleClickOutside);
-        }
-    }, [isOpen]);
-
-    useEffect(() => {
-        if (isOpen && containerRef.current) {
-            const rect = containerRef.current.getBoundingClientRect();
-            const dropdownWidth = 300;
-            const wouldOverflow = rect.left + dropdownWidth > window.innerWidth;
-            setAlignRight(wouldOverflow);
-        }
-    }, [isOpen]);
-
     const isLoading = isVerificationLoading || isTokenInfoLoading;
 
     return (
-        <div ref={containerRef} className="e-relative e-w-full md:e-h-[stretch]">
-            <TokenVerificationButton
-                isLoading={isLoading}
-                isOpen={isOpen}
-                setIsOpen={setIsOpen}
-                verifiedSources={verifiedSources}
-                verificationFoundSources={verificationFoundSources}
-            />
-
-            {isOpen && (
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+                <TokenVerificationButton
+                    isLoading={isLoading}
+                    isOpen={isOpen}
+                    verifiedSources={verifiedSources}
+                    verificationFoundSources={verificationFoundSources}
+                />
+            </PopoverTrigger>
+            <PopoverContent align="start" collisionPadding={8} side="bottom" className="e-w-72 e-p-4">
                 <TokenVerificationContent
                     verifiedSources={verifiedSources}
                     unverifiedSources={unverifiedSources}
                     verificationFoundSources={verificationFoundSources}
-                    alignRight={alignRight}
                 />
-            )}
-        </div>
+            </PopoverContent>
+        </Popover>
     );
 }
