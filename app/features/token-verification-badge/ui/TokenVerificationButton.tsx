@@ -1,19 +1,30 @@
+import { cva } from 'class-variance-authority';
 import React from 'react';
 
 import { cn } from '@/app/components/shared/utils';
 
 import { EVerificationSource, VerificationSource } from '../lib/types';
-import { RISK_MAX_LEVEL_GOOD, RISK_MAX_LEVEL_WARNING } from '../model/use-rugcheck';
+import { ERiskLevel, RISK_MAX_LEVEL_GOOD, RISK_MAX_LEVEL_WARNING } from '../model/use-rugcheck';
 import { VerificationIcon } from './VerificationIcon';
 
-function getSourceBorderColor(source: VerificationSource): string {
+const sourceBorderVariants = cva('e-flex e-rounded e-border e-border-solid e-p-px e-opacity-80', {
+    variants: {
+        tone: {
+            [ERiskLevel.Danger]: 'e-border-red-400',
+            [ERiskLevel.Good]: 'e-border-green-400',
+            [ERiskLevel.Warning]: 'e-border-orange-400',
+        },
+    },
+});
+
+function getSourceBorderTone(source: VerificationSource): ERiskLevel {
     if (source && source.name === EVerificationSource.RugCheck && source.score !== undefined) {
-        if (source.score <= RISK_MAX_LEVEL_GOOD) return 'e-border-green-400';
-        if (source.score <= RISK_MAX_LEVEL_WARNING) return 'e-border-orange-400';
-        return 'e-border-red-400';
+        if (source.score <= RISK_MAX_LEVEL_GOOD) return ERiskLevel.Good;
+        if (source.score <= RISK_MAX_LEVEL_WARNING) return ERiskLevel.Warning;
+        return ERiskLevel.Danger;
     }
 
-    return source.verified ? 'e-border-green-400' : 'e-border-red-400';
+    return source.verified ? ERiskLevel.Good : ERiskLevel.Danger;
 }
 
 type TokenVerificationButtonProps = {
@@ -56,13 +67,7 @@ export const TokenVerificationButton = React.forwardRef<HTMLButtonElement, Token
                     <div className="e-flex e-flex-shrink-0 e-items-center e-gap-1">
                         {hasVerification ? (
                             verificationFoundSources.map((source, idx) => (
-                                <div
-                                    key={idx}
-                                    className={cn(
-                                        'e-flex e-rounded e-border e-border-solid e-p-px e-opacity-80',
-                                        getSourceBorderColor(source)
-                                    )}
-                                >
+                                <div key={idx} className={sourceBorderVariants({ tone: getSourceBorderTone(source) })}>
                                     {source.icon}
                                 </div>
                             ))
