@@ -1,10 +1,12 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
-import React from 'react';
 import { decodeAttestation, SOLANA_ATTESTATION_SERVICE_PROGRAM_ADDRESS as SAS_PROGRAM_ID } from 'sas-lib';
+import useSWR from 'swr';
 
 import { useCluster } from '@/app/providers/cluster';
 import { Cluster } from '@/app/utils/cluster';
+
+import { TOKEN_VERIFICATION_SWR_CONFIG } from './token-verification-cache';
 
 export enum BlupryntStatus {
     Success,
@@ -20,71 +22,62 @@ export type BlupryntResult = {
 
 const BLUPRYNT_CREDENTIAL = 'FygHgyQWuSHP9ob7Bt64gGrzRsuuxUbnAiKKeZDtCKeQ';
 
-export function useBluprynt(mintAddress?: string): BlupryntResult | undefined {
-    const { cluster, url } = useCluster();
-    const [result, setResult] = React.useState<BlupryntResult>();
+type BlupryntSwrKey = ['bluprynt-verification', string, string];
 
-    React.useEffect(() => {
-        if (!mintAddress || cluster !== Cluster.MainnetBeta) {
-            return;
-        }
+function getBlupryntSwrKey(cluster: Cluster, rpcUrl: string, mintAddress?: string): BlupryntSwrKey | null {
+    if (!mintAddress || cluster !== Cluster.MainnetBeta) {
+        return null;
+    }
 
-        let stale = false;
+    return ['bluprynt-verification', mintAddress, rpcUrl];
+}
 
-        const checkVerification = async () => {
-            setResult({ status: BlupryntStatus.Loading, verified: false });
+async function fetchBlupryntVerification([, mintAddress, rpcUrl]: BlupryntSwrKey): Promise<BlupryntResult> {
+    try {
+        const connection = new Connection(rpcUrl);
+        const accounts = await connection.getProgramAccounts(new PublicKey(SAS_PROGRAM_ID), {
+            filters: [{ memcmp: { bytes: BLUPRYNT_CREDENTIAL, offset: 33 } }],
+        });
 
+        const verified = accounts.some(account => {
             try {
-                const connection = new Connection(url);
-                const accounts = await connection.getProgramAccounts(new PublicKey(SAS_PROGRAM_ID), {
-                    filters: [{ memcmp: { bytes: BLUPRYNT_CREDENTIAL, offset: 33 } }],
-                });
+                const decoded = decodeAttestation({
+                    address: account.pubkey.toBase58(),
+                    data: Uint8Array.from(account.account.data),
+                } as any);
+                const att = (decoded as any).data;
 
-                if (stale) return;
-
-                const verified = accounts.some(account => {
-                    try {
-                        const decoded = decodeAttestation({
-                            address: account.pubkey.toBase58(),
-                            data: Uint8Array.from(account.account.data),
-                        } as any);
-                        const att = (decoded as any).data;
-
-                        if (
-                            att.nonce === mintAddress ||
-                            att.signer === mintAddress ||
-                            att.tokenAccount === mintAddress
-                        ) {
-                            return true;
-                        }
-
-                        if (att.data?.length >= 32 && bs58.encode(att.data.slice(0, 32)) === mintAddress) {
-                            return true;
-                        }
-
-                        return false;
-                    } catch {
-                        return false;
-                    }
-                });
-
-                setResult({
-                    status: verified ? BlupryntStatus.Success : BlupryntStatus.NotFound,
-                    verified,
-                });
-            } catch {
-                if (!stale) {
-                    setResult({ status: BlupryntStatus.FetchFailed, verified: false });
+                if (att.nonce === mintAddress || att.signer === mintAddress || att.tokenAccount === mintAddress) {
+                    return true;
                 }
+
+                if (att.data?.length >= 32 && bs58.encode(att.data.slice(0, 32)) === mintAddress) {
+                    return true;
+                }
+
+                return false;
+            } catch {
+                return false;
             }
+        });
+
+        return {
+            status: verified ? BlupryntStatus.Success : BlupryntStatus.NotFound,
+            verified,
         };
+    } catch {
+        return { status: BlupryntStatus.FetchFailed, verified: false };
+    }
+}
 
-        checkVerification();
+export function useBlupryntVerification(mintAddress?: string): BlupryntResult | undefined {
+    const { cluster, url } = useCluster();
+    const swrKey = getBlupryntSwrKey(cluster, url, mintAddress);
+    const { data, isLoading } = useSWR(swrKey, fetchBlupryntVerification, TOKEN_VERIFICATION_SWR_CONFIG);
 
-        return () => {
-            stale = true;
-        };
-    }, [mintAddress, cluster, url]);
+    if (isLoading && !data) {
+        return { status: BlupryntStatus.Loading, verified: false };
+    }
 
-    return result;
+    return data || { status: BlupryntStatus.FetchFailed, verified: false };
 }

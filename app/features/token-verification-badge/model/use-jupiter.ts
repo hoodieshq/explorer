@@ -1,7 +1,9 @@
-import React from 'react';
+import useSWR from 'swr';
 
 import { useCluster } from '@/app/providers/cluster';
 import { Cluster } from '@/app/utils/cluster';
+
+import { TOKEN_VERIFICATION_SWR_CONFIG } from './token-verification-cache';
 
 export enum JupiterStatus {
     Success,
@@ -14,43 +16,39 @@ export type JupiterResult = {
     status: JupiterStatus;
 };
 
-export function useJupiterVerification(mintAddress?: string): JupiterResult | undefined {
-    const { cluster } = useCluster();
-    const [result, setResult] = React.useState<JupiterResult>();
+type JupiterSwrKey = ['jupiter-verification', string];
 
-    React.useEffect(() => {
-        if (!mintAddress || cluster !== Cluster.MainnetBeta) {
-            return;
+function getJupiterSwrKey(cluster: Cluster, mintAddress?: string): JupiterSwrKey | null {
+    if (!mintAddress || cluster !== Cluster.MainnetBeta) {
+        return null;
+    }
+
+    return ['jupiter-verification', mintAddress];
+}
+
+async function fetchJupiterVerification([, mintAddress]: JupiterSwrKey): Promise<JupiterResult> {
+    try {
+        const response = await fetch(`/api/jupiter/${mintAddress}`);
+
+        if (!response.ok) {
+            return { status: JupiterStatus.FetchFailed, verified: false };
         }
 
-        let stale = false;
+        const data = (await response.json()) as { verified?: boolean };
+        return { status: JupiterStatus.Success, verified: data.verified === true };
+    } catch {
+        return { status: JupiterStatus.FetchFailed, verified: false };
+    }
+}
 
-        const checkVerification = async () => {
-            setResult({ status: JupiterStatus.Loading, verified: false });
+export function useJupiterVerification(mintAddress?: string): JupiterResult | undefined {
+    const { cluster } = useCluster();
+    const swrKey = getJupiterSwrKey(cluster, mintAddress);
+    const { data, isLoading } = useSWR(swrKey, fetchJupiterVerification, TOKEN_VERIFICATION_SWR_CONFIG);
 
-            try {
-                const response = await fetch(`/api/jupiter/${mintAddress}`);
+    if (isLoading && !data) {
+        return { status: JupiterStatus.Loading, verified: false };
+    }
 
-                if (stale) return;
-
-                if (!response.ok) {
-                    setResult({ status: JupiterStatus.FetchFailed, verified: false });
-                    return;
-                }
-
-                const data = await response.json();
-                setResult({ status: JupiterStatus.Success, verified: data.verified === true });
-            } catch {
-                setResult({ status: JupiterStatus.FetchFailed, verified: false });
-            }
-        };
-
-        checkVerification();
-
-        return () => {
-            stale = true;
-        };
-    }, [mintAddress, cluster]);
-
-    return result;
+    return data || { status: JupiterStatus.FetchFailed, verified: false };
 }

@@ -9,10 +9,10 @@ import JupiterLogo from '../icons/jupiter-logo.png';
 import RugCheckLogo from '../icons/rugcheck-logo.png';
 import SolflareLogo from '../icons/solflare-logo.png';
 import { EVerificationSource, VerificationSource } from '../lib/types';
-import { BlupryntStatus, useBluprynt } from './use-bluprynt';
-import { CoingeckoStatus, useCoinGecko } from './use-coingecko';
+import { BlupryntStatus, useBlupryntVerification } from './use-bluprynt';
+import { CoingeckoStatus, useCoinGeckoVerification } from './use-coingecko';
 import { JupiterStatus, useJupiterVerification } from './use-jupiter';
-import { getRiskLevel, RugCheckStatus, useRugCheck } from './use-rugcheck';
+import { getRiskLevel, RugCheckStatus, useRugCheckVerification } from './use-rugcheck';
 
 const ICON_SIZE = 16;
 
@@ -29,10 +29,10 @@ export type TokenVerificationResult = {
 };
 
 export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyTokenInfo): TokenVerificationResult {
-    const blupryntInfo = useBluprynt(tokenInfo?.address);
-    const coinInfo = useCoinGecko(tokenInfo?.extensions?.coingeckoId);
+    const blupryntInfo = useBlupryntVerification(tokenInfo?.address);
+    const coinInfo = useCoinGeckoVerification(tokenInfo?.extensions?.coingeckoId);
     const jupiterInfo = useJupiterVerification(tokenInfo?.address);
-    const rugCheckInfo = useRugCheck(tokenInfo?.address);
+    const rugCheckInfo = useRugCheckVerification(tokenInfo?.address);
 
     const isLoading =
         blupryntInfo?.status === BlupryntStatus.Loading ||

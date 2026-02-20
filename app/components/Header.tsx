@@ -2,12 +2,12 @@ import { AccountHeader } from '@components/account/AccountHeader';
 import { TokenMarketData } from '@components/common/TokenMarketData';
 import { ComponentProps } from 'react';
 
-import { TokenVerificationBadge, useCoinGecko } from '@/app/features/token-verification-badge';
+import { TokenVerificationBadge, useCoinGeckoVerification } from '@/app/features/token-verification-badge';
 
 type HeaderProps = ComponentProps<typeof AccountHeader>;
 
 export function Header({ address, account, tokenInfo, isTokenInfoLoading }: HeaderProps) {
-    const coinInfo = useCoinGecko(tokenInfo?.extensions?.coingeckoId);
+    const coinInfo = useCoinGeckoVerification(tokenInfo?.extensions?.coingeckoId);
 
     return (
         <div className="header">
