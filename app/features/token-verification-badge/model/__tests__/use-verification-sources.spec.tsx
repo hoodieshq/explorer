@@ -4,17 +4,17 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FullLegacyTokenInfo, FullTokenInfo } from '@/app/utils/token-info';
 
 import { EVerificationSource } from '../../lib/types';
-import { BlupryntStatus, useBluprynt } from '../use-bluprynt';
-import { CoingeckoStatus, useCoinGecko } from '../use-coingecko';
+import { BlupryntStatus, useBlupryntVerification } from '../use-bluprynt';
+import { CoingeckoStatus, useCoinGeckoVerification } from '../use-coingecko';
 import { JupiterStatus, useJupiterVerification } from '../use-jupiter';
-import { RugCheckStatus, useRugCheck } from '../use-rugcheck';
+import { RugCheckStatus, useRugCheckVerification } from '../use-rugcheck';
 import { useTokenVerification } from '../use-verification-sources';
 
 vi.mock('../use-bluprynt', async importOriginal => {
     const original = await importOriginal<typeof import('../use-bluprynt')>();
     return {
         ...original,
-        useBluprynt: vi.fn(),
+        useBlupryntVerification: vi.fn(),
     };
 });
 
@@ -22,7 +22,7 @@ vi.mock('../use-coingecko', async importOriginal => {
     const original = await importOriginal<typeof import('../use-coingecko')>();
     return {
         ...original,
-        useCoinGecko: vi.fn(),
+        useCoinGeckoVerification: vi.fn(),
     };
 });
 
@@ -38,7 +38,7 @@ vi.mock('../use-rugcheck', async importOriginal => {
     const original = await importOriginal<typeof import('../use-rugcheck')>();
     return {
         ...original,
-        useRugCheck: vi.fn(),
+        useRugCheckVerification: vi.fn(),
     };
 });
 
@@ -55,25 +55,25 @@ const tokenInfo: FullTokenInfo = {
 describe('useTokenVerification', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        vi.mocked(useBluprynt).mockReturnValue(undefined);
-        vi.mocked(useCoinGecko).mockReturnValue(undefined);
+        vi.mocked(useBlupryntVerification).mockReturnValue(undefined);
+        vi.mocked(useCoinGeckoVerification).mockReturnValue(undefined);
         vi.mocked(useJupiterVerification).mockReturnValue(undefined);
-        vi.mocked(useRugCheck).mockReturnValue(undefined);
+        vi.mocked(useRugCheckVerification).mockReturnValue(undefined);
     });
 
     it('aggregates verification sources and derived source lists', () => {
-        vi.mocked(useBluprynt).mockReturnValue({
+        vi.mocked(useBlupryntVerification).mockReturnValue({
             status: BlupryntStatus.Success,
             verified: true,
         });
-        vi.mocked(useCoinGecko).mockReturnValue({
+        vi.mocked(useCoinGeckoVerification).mockReturnValue({
             status: CoingeckoStatus.Success,
         });
         vi.mocked(useJupiterVerification).mockReturnValue({
             status: JupiterStatus.Success,
             verified: false,
         });
-        vi.mocked(useRugCheck).mockReturnValue({
+        vi.mocked(useRugCheckVerification).mockReturnValue({
             score: 70,
             status: RugCheckStatus.Success,
         });
@@ -99,7 +99,7 @@ describe('useTokenVerification', () => {
     });
 
     it('reports loading when an applicable source is loading', () => {
-        vi.mocked(useBluprynt).mockReturnValue({
+        vi.mocked(useBlupryntVerification).mockReturnValue({
             status: BlupryntStatus.Loading,
             verified: false,
         });
@@ -118,18 +118,18 @@ describe('useTokenVerification', () => {
             symbol: 'LGCY',
         };
 
-        vi.mocked(useCoinGecko).mockReturnValue({
+        vi.mocked(useCoinGeckoVerification).mockReturnValue({
             status: CoingeckoStatus.Loading,
         });
         vi.mocked(useJupiterVerification).mockReturnValue({
             status: JupiterStatus.FetchFailed,
             verified: false,
         });
-        vi.mocked(useRugCheck).mockReturnValue({
+        vi.mocked(useRugCheckVerification).mockReturnValue({
             score: 0,
             status: RugCheckStatus.FetchFailed,
         });
-        vi.mocked(useBluprynt).mockReturnValue({
+        vi.mocked(useBlupryntVerification).mockReturnValue({
             status: BlupryntStatus.NotFound,
             verified: false,
         });

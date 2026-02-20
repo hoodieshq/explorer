@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const JUPITER_API_KEY = process.env.JUPITER_API_KEY;
+const JUPITER_API_KEY = process.env.NEXT_PUBLIC_JUPITER_API_KEY;
 
 export async function GET(_request: Request, { params }: { params: Promise<{ mintAddress: string }> }) {
     const { mintAddress } = await params;
