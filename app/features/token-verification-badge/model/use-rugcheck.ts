@@ -25,8 +25,6 @@ export enum ERiskLevel {
 export const RISK_MAX_LEVEL_GOOD = 25;
 export const RISK_MAX_LEVEL_WARNING = 65;
 
-const RUGCHECK_API_KEY = process.env.NEXT_PUBLIC_RUGCHECK_API_KEY;
-
 function getRiskLevel(score: number): ERiskLevel {
     if (score <= RISK_MAX_LEVEL_GOOD) return ERiskLevel.Good;
     if (score <= RISK_MAX_LEVEL_WARNING) return ERiskLevel.Warning;
@@ -55,8 +53,7 @@ export function useRugCheck(mintAddress?: string): RugCheckResult | undefined {
             setResult({ score: 0, status: RugCheckStatus.Loading });
 
             try {
-                const headers: HeadersInit = RUGCHECK_API_KEY ? { 'x-api-key': RUGCHECK_API_KEY } : {};
-                const response = await fetch(`https://api.rugcheck.xyz/v1/tokens/${mintAddress}/report`, { headers });
+                const response = await fetch(`/api/rugcheck/${mintAddress}`);
 
                 if (stale) return;
 

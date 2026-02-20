@@ -17,8 +17,6 @@ export type JupiterResult = {
     status: JupiterStatus;
 };
 
-const JUPITER_API_KEY = process.env.NEXT_PUBLIC_JUPITER_API_KEY;
-
 export function useJupiterVerification(mintAddress?: string): JupiterResult | undefined {
     const { cluster } = useCluster();
     const [result, setResult] = React.useState<JupiterResult>();
@@ -41,8 +39,7 @@ export function useJupiterVerification(mintAddress?: string): JupiterResult | un
             setResult({ status: JupiterStatus.Loading, verified: false });
 
             try {
-                const headers: HeadersInit = JUPITER_API_KEY ? { 'x-api-key': JUPITER_API_KEY } : {};
-                const response = await fetch(`https://api.jup.ag/tokens/v2/search?query=${mintAddress}`, { headers });
+                const response = await fetch(`/api/jupiter/${mintAddress}`);
 
                 if (stale) return;
 
@@ -52,8 +49,7 @@ export function useJupiterVerification(mintAddress?: string): JupiterResult | un
                 }
 
                 const data = await response.json();
-                const token = Array.isArray(data) ? data.find((t: { id?: string }) => t.id === mintAddress) : null;
-                const res: JupiterResult = { status: JupiterStatus.Success, verified: token?.isVerified === true };
+                const res: JupiterResult = { status: JupiterStatus.Success, verified: data.verified === true };
 
                 setToCache(cacheKey, res);
                 setResult(res);
