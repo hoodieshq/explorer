@@ -10,7 +10,7 @@ export enum RugCheckStatus {
 }
 
 export type RugCheckResult = {
-    score: number;
+    score?: number;
     status: RugCheckStatus;
 };
 
@@ -55,7 +55,7 @@ export function useRugCheck(mintAddress?: string): RugCheckResult | undefined {
                 const data = await response.json();
                 setResult({ score: data.score, status: RugCheckStatus.Success });
             } catch {
-                setResult({ score: 0, status: RugCheckStatus.FetchFailed });
+                setResult({ score: undefined, status: RugCheckStatus.FetchFailed });
             }
         };
 
