@@ -1,7 +1,5 @@
-import { RISK_MAX_LEVEL_GOOD, RISK_MAX_LEVEL_WARNING } from '@/app/utils/rugcheck';
-
-import { VerificationSource } from '../lib/types';
-import { EVerificationSource } from '../model/use-verification-sources';
+import { EVerificationSource, VerificationSource } from '../lib/types';
+import { RISK_MAX_LEVEL_GOOD, RISK_MAX_LEVEL_WARNING } from '../model/use-rugcheck';
 import { VerificationIcon } from './VerificationIcon';
 
 function getSourceBorderColor(source: VerificationSource): string {

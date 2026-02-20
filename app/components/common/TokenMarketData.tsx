@@ -1,7 +1,7 @@
 import { LoadingCard } from '@components/shared/LoadingCard';
-import { CoinGeckoResult, CoingeckoStatus, CoinInfo } from '@utils/coingecko';
 import { useRef } from 'react';
 
+import { CoinGeckoResult, CoingeckoStatus, CoinInfo } from '@/app/features/token-verification-badge';
 import { FullLegacyTokenInfo, FullTokenInfo } from '@/app/utils/token-info';
 
 import { MarketData } from './token-market-data/MarketData';

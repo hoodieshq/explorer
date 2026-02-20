@@ -1,4 +1,4 @@
-import { getCookie, setCookie } from './cookie';
+import { getCookie, setCookie } from '@/app/utils/cookie';
 
 const CACHE_TOKEN_VERIFICATION_MS = 4 * 60 * 60 * 1000; // 4 hours
 const cache = new Map<string, { data: unknown; timestamp: number }>();

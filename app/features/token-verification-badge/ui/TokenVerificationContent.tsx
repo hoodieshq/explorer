@@ -1,9 +1,7 @@
 import { Check } from 'react-feather';
 
-import { ERiskLevel } from '@/app/utils/rugcheck';
-
-import { VerificationSource } from '../lib/types';
-import { EVerificationSource } from '../model/use-verification-sources';
+import { EVerificationSource, VerificationSource } from '../lib/types';
+import { ERiskLevel } from '../model/use-rugcheck';
 
 function getLevelColor(level?: ERiskLevel): string {
     switch (level) {

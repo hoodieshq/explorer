@@ -1,10 +1,11 @@
 import React from 'react';
 
-import { EVerificationSource } from '../features/token-verification-badge';
-import { useCluster } from '../providers/cluster';
-import { Cluster } from './cluster';
-import { createCacheKey, getFromCache, setToCache } from './token-verification-cache';
-import useTabVisibility from './use-tab-visibility';
+import { useCluster } from '@/app/providers/cluster';
+import { Cluster } from '@/app/utils/cluster';
+import useTabVisibility from '@/app/utils/use-tab-visibility';
+
+import { EVerificationSource } from '../lib/types';
+import { createCacheKey, getFromCache, setToCache } from './verification-cache';
 
 const PRICE_REFRESH = 10000;
 

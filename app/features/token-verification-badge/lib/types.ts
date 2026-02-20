@@ -1,3 +1,11 @@
+export enum EVerificationSource {
+    Bluprynt = 'Bluprynt',
+    CoinGecko = 'CoinGecko',
+    Solflare = 'Solflare',
+    Jupiter = 'Jupiter',
+    RugCheck = 'RugCheck',
+}
+
 export type VerificationSource = {
     name: string;
     verified: boolean;

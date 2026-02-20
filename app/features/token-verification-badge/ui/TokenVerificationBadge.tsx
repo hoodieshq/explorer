@@ -2,38 +2,29 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-import { BlupryntResult, BlupryntStatus } from '@/app/utils/bluprynt';
-import { CoinGeckoResult, CoingeckoStatus } from '@/app/utils/coingecko';
-import { JupiterResult, JupiterStatus } from '@/app/utils/jupiter';
-import { RugCheckResult, RugCheckStatus } from '@/app/utils/rugcheck';
 import { FullLegacyTokenInfo, FullTokenInfo } from '@/app/utils/token-info';
 
-import { useVerificationSources } from '../model/use-verification-sources';
+import { useTokenVerification } from '../model/use-verification-sources';
 import { TokenVerificationButton } from './TokenVerificationButton';
 import { TokenVerificationContent } from './TokenVerificationContent';
 
-export type TokenVerificationProps = {
+export type TokenVerificationBadgeProps = {
     tokenInfo?: FullTokenInfo | FullLegacyTokenInfo;
-    coinInfo?: CoinGeckoResult;
-    jupiterInfo?: JupiterResult;
-    rugCheckInfo?: RugCheckResult;
-    blupryntInfo?: BlupryntResult;
     isTokenInfoLoading?: boolean;
 };
 
-export function TokenVerificationBadge({
-    tokenInfo,
-    jupiterInfo,
-    rugCheckInfo,
-    coinInfo,
-    blupryntInfo,
-    isTokenInfoLoading,
-}: TokenVerificationProps) {
+export function TokenVerificationBadge({ tokenInfo, isTokenInfoLoading }: TokenVerificationBadgeProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [alignRight, setAlignRight] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
-    // Close dropdown when clicking outside
+    const {
+        isLoading: isVerificationLoading,
+        verifiedSources,
+        unverifiedSources,
+        verificationFoundSources,
+    } = useTokenVerification(tokenInfo);
+
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
@@ -47,7 +38,6 @@ export function TokenVerificationBadge({
         }
     }, [isOpen]);
 
-    // Check if dropdown would overflow viewport and adjust alignment
     useEffect(() => {
         if (isOpen && containerRef.current) {
             const rect = containerRef.current.getBoundingClientRect();
@@ -57,20 +47,7 @@ export function TokenVerificationBadge({
         }
     }, [isOpen]);
 
-    const { verifiedSources, unverifiedSources, verificationFoundSources } = useVerificationSources({
-        blupryntInfo,
-        coinInfo,
-        jupiterInfo,
-        rugCheckInfo,
-        tokenInfo,
-    });
-
-    const isLoading =
-        blupryntInfo?.status === BlupryntStatus.Loading ||
-        (Boolean(tokenInfo?.extensions?.coingeckoId) && coinInfo?.status === CoingeckoStatus.Loading) ||
-        jupiterInfo?.status === JupiterStatus.Loading ||
-        rugCheckInfo?.status === RugCheckStatus.Loading ||
-        isTokenInfoLoading;
+    const isLoading = isVerificationLoading || isTokenInfoLoading;
 
     return (
         <div ref={containerRef} className="e-relative e-w-full md:e-h-[stretch]">
@@ -82,7 +59,6 @@ export function TokenVerificationBadge({
                 verificationFoundSources={verificationFoundSources}
             />
 
-            {/* Dropdown */}
             {isOpen && (
                 <TokenVerificationContent
                     verifiedSources={verifiedSources}

@@ -1,18 +1,18 @@
 import Image from 'next/image';
 import { useMemo } from 'react';
 
-import { BlupryntStatus } from '@/app/utils/bluprynt';
-import { CoingeckoStatus } from '@/app/utils/coingecko';
-import { JupiterStatus } from '@/app/utils/jupiter';
-import { getRiskLevel, RugCheckStatus } from '@/app/utils/rugcheck';
+import { FullLegacyTokenInfo, FullTokenInfo } from '@/app/utils/token-info';
 
 import BlupryntLogo from '../icons/bluprynt-logo.png';
 import CoinGeckoLogo from '../icons/coingecko-logo.png';
 import JupiterLogo from '../icons/jupiter-logo.png';
 import RugCheckLogo from '../icons/rugcheck-logo.png';
 import SolflareLogo from '../icons/solflare-logo.png';
-import { VerificationSource } from '../lib/types';
-import { TokenVerificationProps } from '../ui/TokenVerificationBadge';
+import { EVerificationSource, VerificationSource } from '../lib/types';
+import { BlupryntStatus, useBluprynt } from './use-bluprynt';
+import { CoingeckoStatus, useCoinGecko } from './use-coingecko';
+import { JupiterStatus, useJupiterVerification } from './use-jupiter';
+import { getRiskLevel, RugCheckStatus, useRugCheck } from './use-rugcheck';
 
 const ICON_SIZE = 16;
 
@@ -20,26 +20,26 @@ function Icon({ src, alt }: { src: typeof SolflareLogo; alt: string }) {
     return <Image src={src} alt={alt} width={ICON_SIZE} height={ICON_SIZE} className="e-rounded-full" />;
 }
 
-export enum EVerificationSource {
-    Bluprynt = 'Bluprynt',
-    CoinGecko = 'CoinGecko',
-    Solflare = 'Solflare',
-    Jupiter = 'Jupiter',
-    RugCheck = 'RugCheck',
-}
-
-export function useVerificationSources({
-    tokenInfo,
-    coinInfo,
-    jupiterInfo,
-    rugCheckInfo,
-    blupryntInfo,
-}: TokenVerificationProps): {
+export type TokenVerificationResult = {
+    isLoading: boolean;
     sources: VerificationSource[];
     verifiedSources: VerificationSource[];
     unverifiedSources: VerificationSource[];
     verificationFoundSources: VerificationSource[];
-} {
+};
+
+export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyTokenInfo): TokenVerificationResult {
+    const blupryntInfo = useBluprynt(tokenInfo?.address);
+    const coinInfo = useCoinGecko(tokenInfo?.extensions?.coingeckoId);
+    const jupiterInfo = useJupiterVerification(tokenInfo?.address);
+    const rugCheckInfo = useRugCheck(tokenInfo?.address);
+
+    const isLoading =
+        blupryntInfo?.status === BlupryntStatus.Loading ||
+        (Boolean(tokenInfo?.extensions?.coingeckoId) && coinInfo?.status === CoingeckoStatus.Loading) ||
+        jupiterInfo?.status === JupiterStatus.Loading ||
+        rugCheckInfo?.status === RugCheckStatus.Loading;
+
     const blupryntVerified = blupryntInfo?.status === BlupryntStatus.Success && blupryntInfo.verified;
     const coingeckoVerified = !!tokenInfo?.extensions?.coingeckoId && coinInfo?.status === CoingeckoStatus.Success;
     const solflareVerified = tokenInfo && 'verified' in tokenInfo ? tokenInfo.verified : false;
@@ -94,12 +94,13 @@ export function useVerificationSources({
         ],
         [
             blupryntVerified,
-            blupryntInfo,
+            blupryntInfo?.status,
             coingeckoVerified,
+            coinInfo?.status,
             solflareVerified,
             jupiterVerified,
-            jupiterInfo,
-            rugCheckInfo,
+            jupiterInfo?.status,
+            rugCheckInfo?.status,
             rugCheckScore,
             rugCheckLevel,
             rugCheckVerified,
@@ -107,9 +108,9 @@ export function useVerificationSources({
         ]
     );
 
-    const verifiedSources = sources.filter(s => s.verified);
-    const unverifiedSources = sources.filter(s => !s.verified);
-    const verificationFoundSources = sources.filter(s => s.isVerificationFound);
+    const verifiedSources = useMemo(() => sources.filter(s => s.verified), [sources]);
+    const unverifiedSources = useMemo(() => sources.filter(s => !s.verified), [sources]);
+    const verificationFoundSources = useMemo(() => sources.filter(s => s.isVerificationFound), [sources]);
 
-    return { sources, unverifiedSources, verificationFoundSources, verifiedSources };
+    return { isLoading, sources, unverifiedSources, verificationFoundSources, verifiedSources };
 }
