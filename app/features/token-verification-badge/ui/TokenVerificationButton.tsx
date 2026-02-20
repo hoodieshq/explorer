@@ -1,3 +1,5 @@
+import { cn } from '@/app/components/shared/utils';
+
 import { EVerificationSource, VerificationSource } from '../lib/types';
 import { RISK_MAX_LEVEL_GOOD, RISK_MAX_LEVEL_WARNING } from '../model/use-rugcheck';
 import { VerificationIcon } from './VerificationIcon';
@@ -30,9 +32,12 @@ export function TokenVerificationButton({
     return (
         <button
             onClick={() => setIsOpen(!isOpen)}
-            className={`e-flex e-w-full e-items-center e-rounded e-border e-border-solid e-bg-[#1C2120] e-p-2 md:e-h-[stretch] md:e-min-h-[69px] md:e-w-[160px] md:e-flex-col md:e-items-start md:e-px-3 md:e-py-2 ${
-                isOpen ? 'e-border-green-400' : 'e-border-black'
-            } ${isLoading ? 'e-cursor-not-allowed' : 'e-cursor-pointer'}`}
+            className={cn(
+                'e-flex e-w-full e-items-center e-rounded e-border e-border-solid e-bg-[#1C2120] e-p-2',
+                'md:e-h-[stretch] md:e-min-h-[69px] md:e-w-[160px] md:e-flex-col md:e-items-start md:e-px-3 md:e-py-2',
+                isOpen ? 'e-border-green-400' : 'e-border-black',
+                isLoading ? 'e-cursor-not-allowed' : 'e-cursor-pointer'
+            )}
         >
             <div className="e-flex e-w-full e-items-center e-gap-2 md:e-mb-2">
                 <p className="e-m-0 e-text-sm e-text-white">Verification</p>
@@ -52,9 +57,10 @@ export function TokenVerificationButton({
                         verificationFoundSources.map((source, idx) => (
                             <div
                                 key={idx}
-                                className={`e-flex e-rounded e-border e-border-solid e-p-px e-opacity-80 ${getSourceBorderColor(
-                                    source
-                                )}`}
+                                className={cn(
+                                    'e-flex e-rounded e-border e-border-solid e-p-px e-opacity-80',
+                                    getSourceBorderColor(source)
+                                )}
                             >
                                 {source.icon}
                             </div>

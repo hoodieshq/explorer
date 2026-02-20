@@ -1,19 +1,26 @@
+import { cva, VariantProps } from 'class-variance-authority';
 import { Check } from 'react-feather';
+
+import { cn } from '@/app/components/shared/utils';
 
 import { EVerificationSource, VerificationSource } from '../lib/types';
 import { ERiskLevel } from '../model/use-rugcheck';
 
-function getLevelColor(level?: ERiskLevel): string {
-    switch (level) {
-        case ERiskLevel.Good:
-            return 'e-text-green-400';
-        case ERiskLevel.Warning:
-            return 'e-text-orange-400';
-        case ERiskLevel.Danger:
-            return 'e-text-red-400';
-        default:
-            return 'e-text-gray-400';
-    }
+const riskLevelVariants = cva('', {
+    variants: {
+        level: {
+            [ERiskLevel.Danger]: 'e-text-red-400',
+            [ERiskLevel.Good]: 'e-text-green-400',
+            [ERiskLevel.Warning]: 'e-text-orange-400',
+        },
+    },
+});
+
+type RiskLevelVariants = VariantProps<typeof riskLevelVariants>;
+
+function RiskLevelText({ level, children }: { level?: ERiskLevel; children: React.ReactNode }) {
+    const variant = level?.toLowerCase() as RiskLevelVariants['level'];
+    return <span className={cn(riskLevelVariants({ level: variant }))}>{children}</span>;
 }
 
 function VerificationBadge({ source }: { source: VerificationSource }) {
@@ -23,7 +30,7 @@ function VerificationBadge({ source }: { source: VerificationSource }) {
                 {source.icon}
                 <span className="e-text-xs e-text-gray-200">
                     {source.name} risk: {source.score}/100 -{' '}
-                    <span className={getLevelColor(source.level as ERiskLevel)}>{source.level}</span>
+                    <RiskLevelText level={source.level as ERiskLevel}>{source.level}</RiskLevelText>
                 </span>
             </div>
         );
@@ -73,9 +80,11 @@ export function TokenVerificationContent({
 
     return (
         <div
-            className={`e-absolute e-top-full e-z-50 e-mt-1 e-w-72 e-rounded-xl e-border e-border-solid e-border-outer-space-800 e-bg-outer-space-900 e-p-4 ${
+            className={cn(
+                'e-absolute e-top-full e-z-50 e-mt-1 e-w-72 e-rounded-xl',
+                'e-border e-border-solid e-border-outer-space-800 e-bg-outer-space-900 e-p-4',
                 alignRight ? 'e-right-0' : 'e-left-0'
-            }`}
+            )}
             style={{ boxShadow: '0 4px 12px rgba(0, 0, 0, 0.5)' }}
         >
             <p className="e-mb-1 e-text-base e-font-semibold e-text-gray-200">
