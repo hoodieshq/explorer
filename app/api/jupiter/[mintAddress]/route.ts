@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 
-const JUPITER_API_KEY = process.env.NEXT_PUBLIC_JUPITER_API_KEY;
+const JUPITER_API_KEY = process.env.JUPITER_API_KEY;
 
-export async function GET(_request: Request, { params }: { params: Promise<{ mintAddress: string }> }) {
-    const { mintAddress } = await params;
+type Params = {
+    params: {
+        mintAddress: string;
+    };
+};
+
+export async function GET(_request: Request, { params: { mintAddress } }: Params) {
 
     if (!mintAddress) {
         return NextResponse.json({ error: 'Missing mint address' }, { status: 400 });

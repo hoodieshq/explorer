@@ -11,8 +11,13 @@ const COINGECKO_QUERY = [
     'tickers=false',
 ].join('&');
 
-export async function GET(_request: Request, { params }: { params: Promise<{ coinId: string }> }) {
-    const { coinId } = await params;
+type Params = {
+    params: {
+        coinId: string;
+    };
+};
+
+export async function GET(_request: Request, { params: { coinId } }: Params) {
 
     if (!coinId) {
         return NextResponse.json({ error: 'Missing coin id' }, { status: 400 });
