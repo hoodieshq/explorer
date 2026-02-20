@@ -3,9 +3,6 @@ import React from 'react';
 import { useCluster } from '@/app/providers/cluster';
 import { Cluster } from '@/app/utils/cluster';
 
-import { EVerificationSource } from '../lib/types';
-import { createCacheKey, getFromCache, setToCache } from './verification-cache';
-
 export enum JupiterStatus {
     Success,
     FetchFailed,
@@ -26,13 +23,6 @@ export function useJupiterVerification(mintAddress?: string): JupiterResult | un
             return;
         }
 
-        const cacheKey = createCacheKey(EVerificationSource.Jupiter, mintAddress);
-        const cached = getFromCache<JupiterResult>(cacheKey);
-        if (cached) {
-            setResult(cached);
-            return;
-        }
-
         let stale = false;
 
         const checkVerification = async () => {
@@ -49,10 +39,7 @@ export function useJupiterVerification(mintAddress?: string): JupiterResult | un
                 }
 
                 const data = await response.json();
-                const res: JupiterResult = { status: JupiterStatus.Success, verified: data.verified === true };
-
-                setToCache(cacheKey, res);
-                setResult(res);
+                setResult({ status: JupiterStatus.Success, verified: data.verified === true });
             } catch {
                 setResult({ status: JupiterStatus.FetchFailed, verified: false });
             }

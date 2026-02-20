@@ -3,9 +3,6 @@ import React from 'react';
 import { useCluster } from '@/app/providers/cluster';
 import { Cluster } from '@/app/utils/cluster';
 
-import { EVerificationSource } from '../lib/types';
-import { createCacheKey, getFromCache, setToCache } from './verification-cache';
-
 export enum RugCheckStatus {
     Success,
     FetchFailed,
@@ -40,13 +37,6 @@ export function useRugCheck(mintAddress?: string): RugCheckResult | undefined {
             return;
         }
 
-        const cacheKey = createCacheKey(EVerificationSource.RugCheck, mintAddress);
-        const cached = getFromCache<RugCheckResult>(cacheKey);
-        if (cached) {
-            setResult(cached);
-            return;
-        }
-
         let stale = false;
 
         const checkRisk = async () => {
@@ -63,11 +53,7 @@ export function useRugCheck(mintAddress?: string): RugCheckResult | undefined {
                 }
 
                 const data = await response.json();
-                const score = data.score_normalised;
-                const res: RugCheckResult = { score, status: RugCheckStatus.Success };
-
-                setToCache(cacheKey, res);
-                setResult(res);
+                setResult({ score: data.score, status: RugCheckStatus.Success });
             } catch {
                 setResult({ score: 0, status: RugCheckStatus.FetchFailed });
             }

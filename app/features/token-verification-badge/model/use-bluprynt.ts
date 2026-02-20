@@ -6,9 +6,6 @@ import { decodeAttestation, SOLANA_ATTESTATION_SERVICE_PROGRAM_ADDRESS as SAS_PR
 import { useCluster } from '@/app/providers/cluster';
 import { Cluster } from '@/app/utils/cluster';
 
-import { EVerificationSource } from '../lib/types';
-import { createCacheKey, getFromCache, setToCache } from './verification-cache';
-
 export enum BlupryntStatus {
     Success,
     FetchFailed,
@@ -29,13 +26,6 @@ export function useBluprynt(mintAddress?: string): BlupryntResult | undefined {
 
     React.useEffect(() => {
         if (!mintAddress || cluster !== Cluster.MainnetBeta) {
-            return;
-        }
-
-        const cacheKey = createCacheKey(EVerificationSource.Bluprynt, mintAddress);
-        const cached = getFromCache<BlupryntResult>(cacheKey);
-        if (cached) {
-            setResult(cached);
             return;
         }
 
@@ -78,13 +68,10 @@ export function useBluprynt(mintAddress?: string): BlupryntResult | undefined {
                     }
                 });
 
-                const res: BlupryntResult = {
+                setResult({
                     status: verified ? BlupryntStatus.Success : BlupryntStatus.NotFound,
                     verified,
-                };
-
-                setToCache(cacheKey, res);
-                setResult(res);
+                });
             } catch {
                 if (!stale) {
                     setResult({ status: BlupryntStatus.FetchFailed, verified: false });

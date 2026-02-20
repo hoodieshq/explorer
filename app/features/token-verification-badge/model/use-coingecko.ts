@@ -4,9 +4,6 @@ import { useCluster } from '@/app/providers/cluster';
 import { Cluster } from '@/app/utils/cluster';
 import useTabVisibility from '@/app/utils/use-tab-visibility';
 
-import { EVerificationSource } from '../lib/types';
-import { createCacheKey, getFromCache, setToCache } from './verification-cache';
-
 const PRICE_REFRESH = 10000;
 
 export enum CoingeckoStatus {
@@ -62,15 +59,6 @@ export function useCoinGecko(coinId?: string): CoinGeckoResult | undefined {
         if (cluster !== Cluster.MainnetBeta) {
             return;
         }
-        const cacheKey = createCacheKey(EVerificationSource.CoinGecko, coinId);
-        const cached = getFromCache<CoinGeckoResult>(cacheKey);
-        if (cached) {
-            if (cached.coinInfo) {
-                cached.coinInfo.last_updated = new Date(cached.coinInfo.last_updated);
-            }
-            setCoinInfo(cached);
-            return;
-        }
 
         let interval: NodeJS.Timeout | undefined;
         let stale = false;
@@ -97,7 +85,7 @@ export function useCoinGecko(coinId?: string): CoinGeckoResult | undefined {
                         return;
                     }
                     const info: CoinInfoResult = await response.json();
-                    const res: CoinGeckoResult = {
+                    setCoinInfo({
                         coinInfo: {
                             last_updated: new Date(info.last_updated),
                             market_cap: info.market_data.market_cap.usd,
@@ -107,9 +95,7 @@ export function useCoinGecko(coinId?: string): CoinGeckoResult | undefined {
                             volume_24: info.market_data.total_volume.usd,
                         },
                         status: CoingeckoStatus.Success,
-                    };
-                    setToCache(cacheKey, res);
-                    setCoinInfo(res);
+                    });
                 } catch {
                     setCoinInfo({
                         status: CoingeckoStatus.FetchFailed,
