@@ -26,15 +26,15 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
     try {
         const connection = new Connection(serverClusterUrl(Cluster.MainnetBeta, ''), 'confirmed');
 
-        // Attestation layout:
+        // Attestation layout (1-byte discriminator):
         // - 1 byte discriminator (offset 0)
-        // - 32 bytes schema pubkey (offset 1)
+        // - 32 bytes nonce/mint address (offset 1)
         // - 32 bytes credential pubkey (offset 33)
-        // - 32 bytes nonce/mint address (offset 65)
+        // - 32 bytes schema pubkey (offset 65)
         const accounts = await connection.getProgramAccounts(new PublicKey(SAS_PROGRAM_ID), {
             filters: [
                 { memcmp: { bytes: BLUPRYNT_CREDENTIAL, offset: 33 } },
-                { memcmp: { bytes: mintAddress, offset: 65 } },
+                { memcmp: { bytes: mintAddress, offset: 1 } },
             ],
             dataSlice: { offset: 0, length: 0 },
         });
