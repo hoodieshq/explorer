@@ -68,7 +68,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
             verified: coingeckoVerified,
         },
         {
-            applyUrl: 'https://catdetlist.jup.ag/',
+            applyUrl: 'https://verified.jup.ag/tokens',
             icon: <Icon src={JupiterLogo} alt="Jupiter" />,
             isVerificationFound: jupiterInfo?.status === JupiterStatus.Success,
             name: EVerificationSource.Jupiter,
@@ -82,7 +82,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
             verified: solflareVerified,
         },
         {
-            applyUrl: 'https://rugcheck.xyz/',
+            applyUrl: 'https://rugcheck.xyz/auth?redirectTo=%2Fauth',
             icon: <Icon src={RugCheckLogo} alt="RugCheck" />,
             isVerificationFound: rugCheckInfo?.status === RugCheckStatus.Success,
             level: rugCheckLevel,

@@ -18,7 +18,6 @@ type Params = {
 };
 
 export async function GET(_request: Request, { params: { coinId } }: Params) {
-
     if (!coinId) {
         return NextResponse.json({ error: 'Missing coin id' }, { status: 400 });
     }

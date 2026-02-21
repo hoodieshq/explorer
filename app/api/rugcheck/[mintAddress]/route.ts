@@ -9,7 +9,6 @@ type Params = {
 };
 
 export async function GET(_request: Request, { params: { mintAddress } }: Params) {
-
     if (!mintAddress) {
         return NextResponse.json({ error: 'Missing mint address' }, { status: 400 });
     }
