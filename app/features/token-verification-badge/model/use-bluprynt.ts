@@ -1,6 +1,3 @@
-import { Connection, PublicKey } from '@solana/web3.js';
-import bs58 from 'bs58';
-import { decodeAttestation, SOLANA_ATTESTATION_SERVICE_PROGRAM_ADDRESS as SAS_PROGRAM_ID } from 'sas-lib';
 import useSWR from 'swr';
 
 import { useCluster } from '@/app/providers/cluster';
@@ -20,50 +17,29 @@ export type BlupryntResult = {
     status: BlupryntStatus;
 };
 
-const BLUPRYNT_CREDENTIAL = 'FygHgyQWuSHP9ob7Bt64gGrzRsuuxUbnAiKKeZDtCKeQ';
+type BlupryntSwrKey = ['bluprynt-verification', string];
 
-type BlupryntSwrKey = ['bluprynt-verification', string, string];
-
-function getBlupryntSwrKey(cluster: Cluster, rpcUrl: string, mintAddress?: string): BlupryntSwrKey | null {
+function getBlupryntSwrKey(cluster: Cluster, mintAddress?: string): BlupryntSwrKey | null {
     if (!mintAddress || cluster !== Cluster.MainnetBeta) {
         return null;
     }
 
-    return ['bluprynt-verification', mintAddress, rpcUrl];
+    return ['bluprynt-verification', mintAddress];
 }
 
-async function fetchBlupryntVerification([, mintAddress, rpcUrl]: BlupryntSwrKey): Promise<BlupryntResult> {
+async function fetchBlupryntVerification([, mintAddress]: BlupryntSwrKey): Promise<BlupryntResult> {
     try {
-        const connection = new Connection(rpcUrl);
-        const accounts = await connection.getProgramAccounts(new PublicKey(SAS_PROGRAM_ID), {
-            filters: [{ memcmp: { bytes: BLUPRYNT_CREDENTIAL, offset: 33 } }],
-        });
+        const response = await fetch(`/api/bluprynt/${mintAddress}`);
 
-        const verified = accounts.some(account => {
-            try {
-                const decoded = decodeAttestation({
-                    address: account.pubkey.toBase58(),
-                    data: Uint8Array.from(account.account.data),
-                } as any);
-                const att = (decoded as any).data;
+        if (!response.ok) {
+            return { status: BlupryntStatus.FetchFailed, verified: false };
+        }
 
-                if (att.nonce === mintAddress || att.signer === mintAddress || att.tokenAccount === mintAddress) {
-                    return true;
-                }
-
-                if (att.data?.length >= 32 && bs58.encode(att.data.slice(0, 32)) === mintAddress) {
-                    return true;
-                }
-
-                return false;
-            } catch {
-                return false;
-            }
-        });
+        const data: { verified: boolean } = await response.json();
 
         return {
-            status: verified ? BlupryntStatus.Success : BlupryntStatus.NotFound,
-            verified,
+            status: data.verified ? BlupryntStatus.Success : BlupryntStatus.NotFound,
+            verified: data.verified,
         };
     } catch {
         return { status: BlupryntStatus.FetchFailed, verified: false };
@@ -71,8 +47,8 @@ async function fetchBlupryntVerification([, mintAddress, rpcUrl]: BlupryntSwrKey
 }
 
 export function useBlupryntVerification(mintAddress?: string): BlupryntResult | undefined {
-    const { cluster, url } = useCluster();
-    const swrKey = getBlupryntSwrKey(cluster, url, mintAddress);
+    const { cluster } = useCluster();
+    const swrKey = getBlupryntSwrKey(cluster, mintAddress);
     const { data, isLoading } = useSWR(swrKey, fetchBlupryntVerification, TOKEN_VERIFICATION_SWR_CONFIG);
 
     if (isLoading && !data) {
