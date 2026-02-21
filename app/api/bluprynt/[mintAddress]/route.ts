@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from '@solana/web3.js';
-import { SOLANA_ATTESTATION_SERVICE_PROGRAM_ADDRESS as SAS_PROGRAM_ID } from 'sas-lib';
 import { Cluster, serverClusterUrl } from '@utils/cluster';
 import { NextResponse } from 'next/server';
+import { SOLANA_ATTESTATION_SERVICE_PROGRAM_ADDRESS as SAS_PROGRAM_ID } from 'sas-lib';
 
 const BLUPRYNT_CREDENTIAL = process.env.NEXT_PUBLIC_BLUPRYNT_CREDENTIAL_AUTHORITY;
 
@@ -32,11 +32,11 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         // - 32 bytes credential pubkey (offset 33)
         // - 32 bytes schema pubkey (offset 65)
         const accounts = await connection.getProgramAccounts(new PublicKey(SAS_PROGRAM_ID), {
+            dataSlice: { length: 0, offset: 0 },
             filters: [
                 { memcmp: { bytes: BLUPRYNT_CREDENTIAL, offset: 33 } },
                 { memcmp: { bytes: mintAddress, offset: 1 } },
             ],
-            dataSlice: { offset: 0, length: 0 },
         });
 
         const verified = accounts.length > 0;
