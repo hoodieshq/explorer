@@ -27,6 +27,13 @@ function getBlupryntSwrKey(cluster: Cluster, mintAddress?: string): BlupryntSwrK
     return ['bluprynt-verification', mintAddress];
 }
 
+export function parseApiResponse(data: { verified: boolean }): BlupryntResult {
+    return {
+        status: data.verified ? BlupryntStatus.Success : BlupryntStatus.NotFound,
+        verified: data.verified,
+    };
+}
+
 async function fetchBlupryntVerification([, mintAddress]: BlupryntSwrKey): Promise<BlupryntResult> {
     try {
         const response = await fetch(`/api/bluprynt/${mintAddress}`);
@@ -36,11 +43,7 @@ async function fetchBlupryntVerification([, mintAddress]: BlupryntSwrKey): Promi
         }
 
         const data: { verified: boolean } = await response.json();
-
-        return {
-            status: data.verified ? BlupryntStatus.Success : BlupryntStatus.NotFound,
-            verified: data.verified,
-        };
+        return parseApiResponse(data);
     } catch {
         return { status: BlupryntStatus.FetchFailed, verified: false };
     }
