@@ -24,13 +24,13 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         });
 
         if (!response.ok) {
-            return NextResponse.json({ error: 'Failed to fetch rugcheck data' }, { status: response.status, headers: CACHE_HEADERS });
+            return NextResponse.json({ error: 'Failed to fetch rugcheck data' }, { headers: CACHE_HEADERS, status: response.status });
         }
 
         const data = await response.json();
         return NextResponse.json({ score: data.score_normalised }, { headers: CACHE_HEADERS });
     } catch (error) {
         console.error('Rugcheck API error:', error);
-        return NextResponse.json({ error: 'Failed to fetch rugcheck data' }, { status: 500, headers: { 'Cache-Control': 'no-store, max-age=0' } });
+        return NextResponse.json({ error: 'Failed to fetch rugcheck data' }, { headers: { 'Cache-Control': 'no-store, max-age=0' }, status: 500 });
     }
 }

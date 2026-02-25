@@ -24,7 +24,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         });
 
         if (!response.ok) {
-            return NextResponse.json({ error: 'Failed to fetch jupiter data' }, { status: response.status, headers: CACHE_HEADERS });
+            return NextResponse.json({ error: 'Failed to fetch jupiter data' }, { headers: CACHE_HEADERS, status: response.status });
         }
 
         const data = await response.json();
@@ -32,6 +32,6 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         return NextResponse.json({ verified: token?.isVerified === true }, { headers: CACHE_HEADERS });
     } catch (error) {
         console.error('Jupiter API error:', error);
-        return NextResponse.json({ error: 'Failed to fetch jupiter data' }, { status: 500, headers: { 'Cache-Control': 'no-store, max-age=0' } });
+        return NextResponse.json({ error: 'Failed to fetch jupiter data' }, { headers: { 'Cache-Control': 'no-store, max-age=0' }, status: 500 });
     }
 }

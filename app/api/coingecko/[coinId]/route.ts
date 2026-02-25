@@ -29,13 +29,13 @@ export async function GET(_request: Request, { params: { coinId } }: Params) {
         });
 
         if (!response.ok) {
-            return NextResponse.json({ error: 'Failed to fetch coingecko data' }, { status: response.status, headers: CACHE_HEADERS });
+            return NextResponse.json({ error: 'Failed to fetch coingecko data' }, { headers: CACHE_HEADERS, status: response.status });
         }
 
         const data = await response.json();
         return NextResponse.json(data, { headers: CACHE_HEADERS });
     } catch (error) {
         console.error('Coingecko API error:', error);
-        return NextResponse.json({ error: 'Failed to fetch coingecko data' }, { status: 500, headers: { 'Cache-Control': 'no-store, max-age=0' } });
+        return NextResponse.json({ error: 'Failed to fetch coingecko data' }, { headers: { 'Cache-Control': 'no-store, max-age=0' }, status: 500 });
     }
 }
