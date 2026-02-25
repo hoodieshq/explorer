@@ -93,7 +93,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
     ];
 
     const verifiedSources = sources.filter(s => s.verified);
-    const unverifiedSources = sources.filter(s => !s.verified);
+    const unverifiedSources = sources.filter(s => !s.verified && !s.isVerificationFound);
     const verificationFoundSources = sources.filter(s => s.isVerificationFound);
 
     return { isLoading, sources, unverifiedSources, verificationFoundSources, verifiedSources };

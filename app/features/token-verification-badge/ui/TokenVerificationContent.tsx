@@ -1,5 +1,5 @@
 import { cva } from 'class-variance-authority';
-import { Check } from 'react-feather';
+import { Check, X } from 'react-feather';
 
 import { cn } from '@/app/components/shared/utils';
 
@@ -33,17 +33,13 @@ function VerificationBadge({ source }: { source: VerificationSource }) {
         );
     }
 
-    if (source.verified) {
         return (
             <div className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-heavy-metal-600 e-bg-heavy-metal-800 e-p-1">
                 {source.icon}
                 <span className="e-text-xs e-text-gray-200">{source.name}</span>
-                <Check className="e-text-green-400" size={16} />
+                {source.verified ? <Check className="e-text-green-400" size={16} /> : <X className="e-text-red-400" size={16} /> }
             </div>
         );
-    }
-
-    return null;
 }
 
 function ApplyForVerificationLink({ source }: { source: VerificationSource }) {
@@ -71,7 +67,7 @@ export function TokenVerificationContent({
     unverifiedSources: VerificationSource[];
     verificationFoundSources: VerificationSource[];
 }) {
-    const hasVerification = verifiedSources.length > 0;
+    const hasVerification = verificationFoundSources.length > 0;
 
     return (
         <div>
