@@ -9,6 +9,7 @@ const BLUPRYNT_CREDENTIAL = process.env.BLUPRYNT_CREDENTIAL_AUTHORITY;
 
 // Cache for 4 hours, allow stale for 1 hour while revalidating
 const CACHE_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=3600' };
+const NO_STORE_HEADERS = { 'Cache-Control': 'no-store, max-age=0' };
 
 type Params = {
     params: {
@@ -24,7 +25,10 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
     }
 
     if (!BLUPRYNT_CREDENTIAL) {
-        return NextResponse.json({ verified: false }, { headers: CACHE_HEADERS });
+        return NextResponse.json(
+            { error: 'Bluprynt credential authority is not configured' },
+            { headers: NO_STORE_HEADERS, status: 500 }
+        );
     }
 
     try {
@@ -48,6 +52,9 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         return NextResponse.json({ verified }, { headers: CACHE_HEADERS });
     } catch (error) {
         Logger.error('Bluprynt verification error:', error);
-        return NextResponse.json({ verified: false }, { headers: { 'Cache-Control': 'no-store' } });
+        return NextResponse.json(
+            { error: 'Failed to verify bluprynt data' },
+            { headers: NO_STORE_HEADERS, status: 500 }
+        );
     }
 }

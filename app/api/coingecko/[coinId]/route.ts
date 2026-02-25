@@ -4,6 +4,7 @@ import Logger from '@/app/utils/logger';
 
 const CACHE_MAX_AGE = 14400;
 const CACHE_HEADERS = { 'Cache-Control': `public, s-maxage=${CACHE_MAX_AGE}, stale-while-revalidate=3600` };
+const NO_STORE_HEADERS = { 'Cache-Control': 'no-store, max-age=0' };
 
 // eslint-disable-next-line no-restricted-syntax -- CoinGecko coin IDs only contain lowercase letters, numbers, and hyphens
 const VALID_COIN_ID = /^[a-z0-9-]+$/;
@@ -36,7 +37,7 @@ export async function GET(_request: Request, { params: { coinId } }: Params) {
         if (!response.ok) {
             return NextResponse.json(
                 { error: 'Failed to fetch coingecko data' },
-                { headers: CACHE_HEADERS, status: response.status }
+                { headers: NO_STORE_HEADERS, status: response.status }
             );
         }
 
@@ -46,7 +47,7 @@ export async function GET(_request: Request, { params: { coinId } }: Params) {
         Logger.error('Coingecko API error:', error);
         return NextResponse.json(
             { error: 'Failed to fetch coingecko data' },
-            { headers: { 'Cache-Control': 'no-store, max-age=0' }, status: 500 }
+            { headers: NO_STORE_HEADERS, status: 500 }
         );
     }
 }

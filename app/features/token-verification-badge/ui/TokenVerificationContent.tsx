@@ -74,11 +74,16 @@ function ApplyForVerificationLink({ source }: { source: VerificationSource }) {
 
 function RateLimitedBadge({ source }: { source: VerificationSource }) {
     return (
-        <div className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-orange-600/50 e-bg-orange-900/20 e-p-1">
+        <a
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer" 
+            className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-orange-600/50 e-bg-orange-900/20 hover:e-border-orange-500 hover:e-bg-orange-800/50 e-p-1"
+        >
             {source.icon}
             <span className="e-text-xs e-text-orange-400">{source.name}</span>
             <AlertCircle className="e-text-orange-400" size={14} />
-        </div>
+        </a>
     );
 }
 
@@ -130,9 +135,10 @@ export function TokenVerificationContent({
 
             {rateLimitedSources.length > 0 && (
                 <div className="e-mt-4">
-                    <p className="e-mb-1 e-text-[10px] e-uppercase e-tracking-wider e-text-orange-400">
+                    <p className="e-text-[10px] e-m-0 e-uppercase e-tracking-wider e-text-orange-400">
                         Rate limited (try again later)
                     </p>
+                    <p className='e-text-[10px] e-mb-1 e-text-heavy-metal-400'>You can check validators manually</p>
                     <div className="e-flex e-flex-wrap e-gap-2">
                         {rateLimitedSources.map((source, idx) => (
                             <RateLimitedBadge key={idx} source={source} />

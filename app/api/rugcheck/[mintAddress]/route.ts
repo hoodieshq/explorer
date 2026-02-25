@@ -7,6 +7,7 @@ const RUGCHECK_API_KEY = process.env.RUGCHECK_API_KEY;
 
 const CACHE_MAX_AGE = 14400;
 const CACHE_HEADERS = { 'Cache-Control': `public, s-maxage=${CACHE_MAX_AGE}, stale-while-revalidate=3600` };
+const NO_STORE_HEADERS = { 'Cache-Control': 'no-store, max-age=0' };
 
 type Params = {
     params: {
@@ -31,7 +32,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         if (!response.ok) {
             return NextResponse.json(
                 { error: 'Failed to fetch rugcheck data' },
-                { headers: CACHE_HEADERS, status: response.status }
+                { headers: NO_STORE_HEADERS, status: response.status }
             );
         }
 
@@ -41,7 +42,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         Logger.error('Rugcheck API error:', error);
         return NextResponse.json(
             { error: 'Failed to fetch rugcheck data' },
-            { headers: { 'Cache-Control': 'no-store, max-age=0' }, status: 500 }
+            { headers: NO_STORE_HEADERS, status: 500 }
         );
     }
 }
