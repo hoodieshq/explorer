@@ -1,6 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
-import Logger from '@/app/utils/logger';
 import { NextResponse } from 'next/server';
+
+import Logger from '@/app/utils/logger';
 
 const RUGCHECK_API_KEY = process.env.RUGCHECK_API_KEY;
 

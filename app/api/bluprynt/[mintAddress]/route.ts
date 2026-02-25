@@ -1,8 +1,9 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Cluster, serverClusterUrl } from '@utils/cluster';
-import Logger from '@/app/utils/logger';
 import { NextResponse } from 'next/server';
 import { SOLANA_ATTESTATION_SERVICE_PROGRAM_ADDRESS as SAS_PROGRAM_ID } from 'sas-lib';
+
+import Logger from '@/app/utils/logger';
 
 const BLUPRYNT_CREDENTIAL = process.env.BLUPRYNT_CREDENTIAL_AUTHORITY;
 

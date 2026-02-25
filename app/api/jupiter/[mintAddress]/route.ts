@@ -1,6 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
-import Logger from '@/app/utils/logger';
 import { NextResponse } from 'next/server';
+
+import Logger from '@/app/utils/logger';
 
 const JUPITER_API_KEY = process.env.JUPITER_API_KEY;
 

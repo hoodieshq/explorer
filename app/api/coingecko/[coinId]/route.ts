@@ -1,10 +1,11 @@
-import Logger from '@/app/utils/logger';
 import { NextResponse } from 'next/server';
+
+import Logger from '@/app/utils/logger';
 
 const CACHE_MAX_AGE = 14400;
 const CACHE_HEADERS = { 'Cache-Control': `public, s-maxage=${CACHE_MAX_AGE}, stale-while-revalidate=3600` };
 
-// CoinGecko coin IDs only contain lowercase letters, numbers, and hyphens
+// eslint-disable-next-line no-restricted-syntax -- CoinGecko coin IDs only contain lowercase letters, numbers, and hyphens
 const VALID_COIN_ID = /^[a-z0-9-]+$/;
 
 const COINGECKO_QUERY = [
