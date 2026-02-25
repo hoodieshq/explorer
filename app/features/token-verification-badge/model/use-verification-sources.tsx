@@ -51,10 +51,11 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
 
     const sources: VerificationSource[] = [
         {
-            applyUrl: 'https://www.bluprynt.com/',
+            applyUrl: 'https://verified.bluprynt.com/assets/new',
             icon: <Icon src={BlupryntLogo} alt="Bluprynt" />,
             isVerificationFound: blupryntInfo?.status === BlupryntStatus.Success,
             name: EVerificationSource.Bluprynt,
+            url: `https://verified.bluprynt.com/verified-assets/${tokenInfo?.address}/solana`,
             verified: blupryntVerified,
         },
         {
@@ -65,6 +66,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
                 tokenInfo?.extensions?.coingeckoId && coinInfo?.status === CoingeckoStatus.Success
             ),
             name: EVerificationSource.CoinGecko,
+            url: `https://www.coingecko.com/en/coins/${tokenInfo?.extensions?.coingeckoId}`,
             verified: coingeckoVerified,
         },
         {
@@ -72,6 +74,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
             icon: <Icon src={JupiterLogo} alt="Jupiter" />,
             isVerificationFound: jupiterInfo?.status === JupiterStatus.Success,
             name: EVerificationSource.Jupiter,
+            url: `https://jup.ag/tokens/${tokenInfo?.address}`,
             verified: jupiterVerified,
         },
         {
@@ -79,6 +82,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
             icon: <Icon src={SolflareLogo} alt="Solflare" />,
             isVerificationFound: tokenInfo && 'verified' in tokenInfo,
             name: EVerificationSource.Solflare,
+            url: `https://www.solflare.com/prices/${tokenInfo?.address}`,
             verified: solflareVerified,
         },
         {
@@ -88,6 +92,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
             level: rugCheckLevel,
             name: EVerificationSource.RugCheck,
             score: rugCheckScore,
+            url: `https://rugcheck.xyz/tokens/${tokenInfo?.address}`,
             verified: rugCheckVerified,
         },
     ];

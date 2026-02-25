@@ -23,23 +23,37 @@ function RiskLevelText({ level, children }: { level?: ERiskLevel; children: Reac
 function VerificationBadge({ source }: { source: VerificationSource }) {
     if (source.name === EVerificationSource.RugCheck && source.score !== undefined) {
         return (
-            <div className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-heavy-metal-600 e-bg-heavy-metal-800 e-p-1">
+            <a
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-heavy-metal-600 e-bg-heavy-metal-800 e-p-1 hover:e-border-heavy-metal-500 hover:e-bg-heavy-metal-700"
+            >
                 {source.icon}
                 <span className="e-text-xs e-text-gray-200">
                     {source.name} risk: {source.score}/100 -{' '}
                     <RiskLevelText level={source.level as ERiskLevel}>{source.level}</RiskLevelText>
                 </span>
-            </div>
+            </a>
         );
     }
 
-        return (
-            <div className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-heavy-metal-600 e-bg-heavy-metal-800 e-p-1">
-                {source.icon}
-                <span className="e-text-xs e-text-gray-200">{source.name}</span>
-                {source.verified ? <Check className="e-text-green-400" size={16} /> : <X className="e-text-red-400" size={16} /> }
-            </div>
-        );
+    return (
+        <a
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-heavy-metal-600 e-bg-heavy-metal-800 e-p-1 hover:e-border-heavy-metal-500 hover:e-bg-heavy-metal-700"
+        >
+            {source.icon}
+            <span className="e-text-xs e-text-gray-200">{source.name}</span>
+            {source.verified ? (
+                <Check className="e-text-green-400" size={16} />
+            ) : (
+                <X className="e-text-red-400" size={16} />
+            )}
+        </a>
+    );
 }
 
 function ApplyForVerificationLink({ source }: { source: VerificationSource }) {
@@ -59,11 +73,9 @@ function ApplyForVerificationLink({ source }: { source: VerificationSource }) {
 }
 
 export function TokenVerificationContent({
-    verifiedSources,
     unverifiedSources,
     verificationFoundSources,
 }: {
-    verifiedSources: VerificationSource[];
     unverifiedSources: VerificationSource[];
     verificationFoundSources: VerificationSource[];
 }) {

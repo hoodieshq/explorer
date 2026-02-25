@@ -14,4 +14,5 @@ export type VerificationSource = {
     level?: string;
     isVerificationFound?: boolean;
     applyUrl?: string;
+    url?: string;
 };

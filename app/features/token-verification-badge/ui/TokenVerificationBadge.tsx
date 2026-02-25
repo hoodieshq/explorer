@@ -26,9 +26,12 @@ export function TokenVerificationBadge({ tokenInfo, isTokenInfoLoading }: TokenV
 
     const isLoading = isVerificationLoading || isTokenInfoLoading;
 
+    const handleMouseEnter = () => setIsOpen(true);
+    const handleMouseLeave = () => setIsOpen(false);
+
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild>
+            <PopoverTrigger asChild onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
                 <TokenVerificationButton
                     isLoading={isLoading}
                     isOpen={isOpen}
@@ -36,9 +39,15 @@ export function TokenVerificationBadge({ tokenInfo, isTokenInfoLoading }: TokenV
                     verificationFoundSources={verificationFoundSources}
                 />
             </PopoverTrigger>
-            <PopoverContent align="start" collisionPadding={8} side="bottom" className="e-w-72 e-p-4">
+            <PopoverContent
+                align="start"
+                collisionPadding={8}
+                side="bottom"
+                className="e-w-72 e-p-4"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+            >
                 <TokenVerificationContent
-                    verifiedSources={verifiedSources}
                     unverifiedSources={unverifiedSources}
                     verificationFoundSources={verificationFoundSources}
                 />
