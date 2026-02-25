@@ -1,7 +1,7 @@
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { FullLegacyTokenInfo, FullTokenInfo } from '@/app/utils/token-info';
+import { FullTokenInfo } from '@/app/utils/token-info';
 
 import { EVerificationSource } from '../../lib/types';
 import { BlupryntStatus, useBlupryntVerification } from '../use-bluprynt';
@@ -80,7 +80,6 @@ describe('useTokenVerification', () => {
 
         const { result } = renderHook(() => useTokenVerification(tokenInfo));
 
-        expect(result.current.isLoading).toBe(false);
         expect(result.current.sources).toHaveLength(5);
         expect(result.current.verificationFoundSources.map(source => source.name)).toEqual([
             EVerificationSource.Bluprynt,
@@ -95,47 +94,6 @@ describe('useTokenVerification', () => {
             EVerificationSource.Solflare,
             EVerificationSource.RugCheck,
         ]);
-        expect(result.current.unverifiedSources.map(source => source.name)).toEqual([EVerificationSource.Jupiter]);
-    });
-
-    it('reports loading when an applicable source is loading', () => {
-        vi.mocked(useBlupryntVerification).mockReturnValue({
-            status: BlupryntStatus.Loading,
-            verified: false,
-        });
-
-        const { result } = renderHook(() => useTokenVerification(tokenInfo));
-
-        expect(result.current.isLoading).toBe(true);
-    });
-
-    it('ignores CoinGecko loading when token has no CoinGecko id', () => {
-        const legacyTokenInfo: FullLegacyTokenInfo = {
-            address: 'legacy-token-address',
-            chainId: 101,
-            decimals: 6,
-            name: 'Legacy Token',
-            symbol: 'LGCY',
-        };
-
-        vi.mocked(useCoinGeckoVerification).mockReturnValue({
-            status: CoingeckoStatus.Loading,
-        });
-        vi.mocked(useJupiterVerification).mockReturnValue({
-            status: JupiterStatus.FetchFailed,
-            verified: false,
-        });
-        vi.mocked(useRugCheckVerification).mockReturnValue({
-            score: 0,
-            status: RugCheckStatus.FetchFailed,
-        });
-        vi.mocked(useBlupryntVerification).mockReturnValue({
-            status: BlupryntStatus.NotFound,
-            verified: false,
-        });
-
-        const { result } = renderHook(() => useTokenVerification(legacyTokenInfo));
-
-        expect(result.current.isLoading).toBe(false);
+        expect(result.current.unverifiedSources).toHaveLength(0);
     });
 });

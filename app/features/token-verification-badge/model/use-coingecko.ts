@@ -10,6 +10,7 @@ export enum CoingeckoStatus {
     Success,
     FetchFailed,
     Loading,
+    RateLimited,
 }
 
 export interface CoinInfo {
@@ -76,6 +77,11 @@ async function fetchCoinGeckoVerification([, coinId]: CoinGeckoSwrKey): Promise<
         const response = await fetch(`/api/coingecko/${coinId}`);
 
         if (!response.ok) {
+            if (response.status === 429) {
+                return {
+                    status: CoingeckoStatus.RateLimited,
+                };
+            }
             return {
                 status: CoingeckoStatus.FetchFailed,
             };

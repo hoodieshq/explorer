@@ -9,6 +9,7 @@ export enum JupiterStatus {
     Success,
     FetchFailed,
     Loading,
+    RateLimited,
 }
 
 export type JupiterResult = {
@@ -31,6 +32,9 @@ async function fetchJupiterVerification([, mintAddress]: JupiterSwrKey): Promise
         const response = await fetch(`/api/jupiter/${mintAddress}`);
 
         if (!response.ok) {
+            if (response.status === 429) {
+                return { status: JupiterStatus.RateLimited, verified: false };
+            }
             return { status: JupiterStatus.FetchFailed, verified: false };
         }
 

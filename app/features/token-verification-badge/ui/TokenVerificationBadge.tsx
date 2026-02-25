@@ -1,7 +1,6 @@
 'use client';
 
-import { useState } from 'react';
-
+import { useHoverPopover } from '@/app/components/shared/hooks';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/shared/ui/popover';
 import { FullLegacyTokenInfo, FullTokenInfo } from '@/app/utils/token-info';
 
@@ -15,25 +14,16 @@ export type TokenVerificationBadgeProps = {
 };
 
 export function TokenVerificationBadge({ tokenInfo, isTokenInfoLoading }: TokenVerificationBadgeProps) {
-    const [isOpen, setIsOpen] = useState(false);
+    const { hoverHandlers, isOpen, setIsOpen } = useHoverPopover();
 
-    const {
-        isLoading: isVerificationLoading,
-        verifiedSources,
-        unverifiedSources,
-        verificationFoundSources,
-    } = useTokenVerification(tokenInfo);
-
-    const isLoading = isVerificationLoading || isTokenInfoLoading;
-
-    const handleMouseEnter = () => setIsOpen(true);
-    const handleMouseLeave = () => setIsOpen(false);
+    const { rateLimitedSources, unverifiedSources, verificationFoundSources, verifiedSources } =
+        useTokenVerification(tokenInfo);
 
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+            <PopoverTrigger asChild {...hoverHandlers}>
                 <TokenVerificationButton
-                    isLoading={isLoading}
+                    isLoading={isTokenInfoLoading}
                     isOpen={isOpen}
                     verifiedSources={verifiedSources}
                     verificationFoundSources={verificationFoundSources}
@@ -44,10 +34,11 @@ export function TokenVerificationBadge({ tokenInfo, isTokenInfoLoading }: TokenV
                 collisionPadding={8}
                 side="bottom"
                 className="e-w-72 e-p-4"
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
+                {...hoverHandlers}
             >
                 <TokenVerificationContent
+                    isLoading={isTokenInfoLoading}
+                    rateLimitedSources={rateLimitedSources}
                     unverifiedSources={unverifiedSources}
                     verificationFoundSources={verificationFoundSources}
                 />

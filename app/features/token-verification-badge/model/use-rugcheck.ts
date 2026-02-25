@@ -9,6 +9,7 @@ export enum RugCheckStatus {
     Success,
     FetchFailed,
     Loading,
+    RateLimited,
 }
 
 export type RugCheckResult = {
@@ -45,6 +46,9 @@ async function fetchRugCheckVerification([, mintAddress]: RugCheckSwrKey): Promi
         const response = await fetch(`/api/rugcheck/${mintAddress}`);
 
         if (!response.ok) {
+            if (response.status === 429) {
+                return { score: undefined, status: RugCheckStatus.RateLimited };
+            }
             return { score: undefined, status: RugCheckStatus.FetchFailed };
         }
 

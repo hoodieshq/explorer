@@ -7,12 +7,13 @@ export enum EVerificationSource {
 }
 
 export type VerificationSource = {
-    name: string;
-    verified: boolean;
-    icon: React.ReactNode;
-    score?: number;
-    level?: string;
-    isVerificationFound?: boolean;
     applyUrl?: string;
+    icon: React.ReactNode;
+    isRateLimited?: boolean;
+    isVerificationFound?: boolean;
+    level?: string;
+    name: string;
+    score?: number;
     url?: string;
+    verified: boolean;
 };

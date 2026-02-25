@@ -21,11 +21,11 @@ function Icon({ src, alt }: { src: StaticImageData; alt: string }) {
 }
 
 export type TokenVerificationResult = {
-    isLoading: boolean;
+    rateLimitedSources: VerificationSource[];
     sources: VerificationSource[];
-    verifiedSources: VerificationSource[];
     unverifiedSources: VerificationSource[];
     verificationFoundSources: VerificationSource[];
+    verifiedSources: VerificationSource[];
 };
 
 export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyTokenInfo): TokenVerificationResult {
@@ -33,12 +33,6 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
     const coinInfo = useCoinGeckoVerification(tokenInfo?.extensions?.coingeckoId);
     const jupiterInfo = useJupiterVerification(tokenInfo?.address);
     const rugCheckInfo = useRugCheckVerification(tokenInfo?.address);
-
-    const isLoading =
-        blupryntInfo?.status === BlupryntStatus.Loading ||
-        (Boolean(tokenInfo?.extensions?.coingeckoId) && coinInfo?.status === CoingeckoStatus.Loading) ||
-        jupiterInfo?.status === JupiterStatus.Loading ||
-        rugCheckInfo?.status === RugCheckStatus.Loading;
 
     const blupryntVerified = blupryntInfo?.status === BlupryntStatus.Success && blupryntInfo.verified;
     const coingeckoVerified = !!tokenInfo?.extensions?.coingeckoId && coinInfo?.status === CoingeckoStatus.Success;
@@ -51,7 +45,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
 
     const sources: VerificationSource[] = [
         {
-            applyUrl: 'https://verified.bluprynt.com/assets/new',
+            applyUrl: 'https://app.bluprynt.com/register/account?integration_partner=solana_explorer',
             icon: <Icon src={BlupryntLogo} alt="Bluprynt" />,
             isVerificationFound: blupryntInfo?.status === BlupryntStatus.Success,
             name: EVerificationSource.Bluprynt,
@@ -62,6 +56,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
             applyUrl:
                 'https://support.coingecko.com/hc/en-us/articles/23725417857817-Verification-Guide-for-Listing-Update-Requests-on-CoinGecko',
             icon: <Icon src={CoinGeckoLogo} alt="CoinGecko" />,
+            isRateLimited: coinInfo?.status === CoingeckoStatus.RateLimited,
             isVerificationFound: Boolean(
                 tokenInfo?.extensions?.coingeckoId && coinInfo?.status === CoingeckoStatus.Success
             ),
@@ -72,6 +67,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
         {
             applyUrl: 'https://verified.jup.ag/tokens',
             icon: <Icon src={JupiterLogo} alt="Jupiter" />,
+            isRateLimited: jupiterInfo?.status === JupiterStatus.RateLimited,
             isVerificationFound: jupiterInfo?.status === JupiterStatus.Success,
             name: EVerificationSource.Jupiter,
             url: `https://jup.ag/tokens/${tokenInfo?.address}`,
@@ -88,6 +84,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
         {
             applyUrl: 'https://rugcheck.xyz/auth?redirectTo=%2Fauth',
             icon: <Icon src={RugCheckLogo} alt="RugCheck" />,
+            isRateLimited: rugCheckInfo?.status === RugCheckStatus.RateLimited,
             isVerificationFound: rugCheckInfo?.status === RugCheckStatus.Success,
             level: rugCheckLevel,
             name: EVerificationSource.RugCheck,
@@ -97,9 +94,10 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
         },
     ];
 
+    const rateLimitedSources = sources.filter(s => s.isRateLimited);
     const verifiedSources = sources.filter(s => s.verified);
-    const unverifiedSources = sources.filter(s => !s.verified && !s.isVerificationFound);
+    const unverifiedSources = sources.filter(s => !s.verified && !s.isVerificationFound && !s.isRateLimited);
     const verificationFoundSources = sources.filter(s => s.isVerificationFound);
 
-    return { isLoading, sources, unverifiedSources, verificationFoundSources, verifiedSources };
+    return { rateLimitedSources, sources, unverifiedSources, verificationFoundSources, verifiedSources };
 }

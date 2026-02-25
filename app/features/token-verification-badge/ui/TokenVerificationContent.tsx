@@ -1,5 +1,5 @@
 import { cva } from 'class-variance-authority';
-import { Check, X } from 'react-feather';
+import { AlertCircle, Check, X } from 'react-feather';
 
 import { cn } from '@/app/components/shared/utils';
 
@@ -72,14 +72,32 @@ function ApplyForVerificationLink({ source }: { source: VerificationSource }) {
     );
 }
 
+function RateLimitedBadge({ source }: { source: VerificationSource }) {
+    return (
+        <div className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-orange-600/50 e-bg-orange-900/20 e-p-1">
+            {source.icon}
+            <span className="e-text-xs e-text-orange-400">{source.name}</span>
+            <AlertCircle className="e-text-orange-400" size={14} />
+        </div>
+    );
+}
+
 export function TokenVerificationContent({
+    isLoading,
+    rateLimitedSources,
     unverifiedSources,
     verificationFoundSources,
 }: {
+    isLoading?: boolean;
+    rateLimitedSources: VerificationSource[];
     unverifiedSources: VerificationSource[];
     verificationFoundSources: VerificationSource[];
 }) {
     const hasVerification = verificationFoundSources.length > 0;
+
+    if (isLoading) {
+        return <p className="e-m-0 e-text-base e-font-semibold e-text-gray-200">Checking verifications</p>;
+    }
 
     return (
         <div>
@@ -108,6 +126,19 @@ export function TokenVerificationContent({
                 <span className="e-mb-2 e-text-xs e-text-heavy-metal-400">
                     This doesn&apos;t mean it&apos;s scam, just make double check if it&apos;s what you need.
                 </span>
+            )}
+
+            {rateLimitedSources.length > 0 && (
+                <div className="e-mt-4">
+                    <p className="e-mb-1 e-text-[10px] e-uppercase e-tracking-wider e-text-orange-400">
+                        Rate limited (try again later)
+                    </p>
+                    <div className="e-flex e-flex-wrap e-gap-2">
+                        {rateLimitedSources.map((source, idx) => (
+                            <RateLimitedBadge key={idx} source={source} />
+                        ))}
+                    </div>
+                </div>
             )}
 
             {unverifiedSources.length > 0 && (

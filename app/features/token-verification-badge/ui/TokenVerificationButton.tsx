@@ -40,7 +40,6 @@ export const TokenVerificationButton = React.forwardRef<HTMLButtonElement, Token
             <button
                 ref={ref}
                 type="button"
-                disabled={isLoading}
                 className={cn(
                     'e-flex e-w-full e-shrink-0 e-items-center e-rounded e-border e-border-solid e-bg-[#1C2120] e-p-2',
                     'md:e-h-[stretch] md:e-min-h-[69px] md:e-w-[160px] md:e-flex-col md:e-items-start md:e-px-3 md:e-py-2',
@@ -53,11 +52,7 @@ export const TokenVerificationButton = React.forwardRef<HTMLButtonElement, Token
                 <div className="e-flex e-w-full e-items-center e-gap-2 md:e-mb-2">
                     <p className="e-m-0 e-text-sm e-text-white">Verification</p>
 
-                    <VerificationIcon
-                        verifiedSources={verifiedSources}
-                        verificationFoundSources={verificationFoundSources}
-                        isLoading={isLoading}
-                    />
+                    <VerificationIcon verificationFoundSources={verificationFoundSources} isLoading={isLoading} />
                 </div>
 
                 {isLoading ? (
