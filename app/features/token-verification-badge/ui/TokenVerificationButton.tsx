@@ -4,7 +4,7 @@ import React from 'react';
 import { cn } from '@/app/components/shared/utils';
 
 import { EVerificationSource, VerificationSource } from '../lib/types';
-import { ERiskLevel, RISK_MAX_LEVEL_GOOD, RISK_MAX_LEVEL_WARNING } from '../model/use-rugcheck';
+import { ERiskLevel, getRiskLevel } from '../model/use-rugcheck';
 import { VerificationIcon } from './VerificationIcon';
 
 const sourceBorderVariants = cva('e-flex e-rounded e-border e-border-solid e-p-px e-opacity-80', {
@@ -19,9 +19,7 @@ const sourceBorderVariants = cva('e-flex e-rounded e-border e-border-solid e-p-p
 
 function getSourceBorderTone(source: VerificationSource): ERiskLevel {
     if (source && source.name === EVerificationSource.RugCheck && source.score !== undefined) {
-        if (source.score <= RISK_MAX_LEVEL_GOOD) return ERiskLevel.Good;
-        if (source.score <= RISK_MAX_LEVEL_WARNING) return ERiskLevel.Warning;
-        return ERiskLevel.Danger;
+        return getRiskLevel(source.score);
     }
 
     return source.verified ? ERiskLevel.Good : ERiskLevel.Danger;
@@ -42,6 +40,7 @@ export const TokenVerificationButton = React.forwardRef<HTMLButtonElement, Token
             <button
                 ref={ref}
                 type="button"
+                disabled={isLoading}
                 className={cn(
                     'e-flex e-w-full e-items-center e-rounded e-border e-border-solid e-bg-[#1C2120] e-p-2',
                     'md:e-h-[stretch] md:e-min-h-[69px] md:e-w-[160px] md:e-flex-col md:e-items-start md:e-px-3 md:e-py-2',

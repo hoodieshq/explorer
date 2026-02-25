@@ -17,7 +17,7 @@ export function VerificationIcon({
     isLoading?: boolean;
     verifiedSources: VerificationSource[];
     verificationFoundSources: VerificationSource[];
-}): JSX.Element {
+}): React.ReactElement {
     const rugCheckSource = verificationFoundSources.find(source => source.name === EVerificationSource.RugCheck);
     const rugCheckScore = rugCheckSource?.score;
     const hasRugCheckScore = rugCheckScore !== undefined;
