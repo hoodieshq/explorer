@@ -1,9 +1,10 @@
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Cluster, serverClusterUrl } from '@utils/cluster';
+import Logger from '@/app/utils/logger';
 import { NextResponse } from 'next/server';
 import { SOLANA_ATTESTATION_SERVICE_PROGRAM_ADDRESS as SAS_PROGRAM_ID } from 'sas-lib';
 
-const BLUPRYNT_CREDENTIAL = process.env.NEXT_PUBLIC_BLUPRYNT_CREDENTIAL_AUTHORITY;
+const BLUPRYNT_CREDENTIAL = process.env.BLUPRYNT_CREDENTIAL_AUTHORITY;
 
 // Cache for 4 hours, allow stale for 1 hour while revalidating
 const CACHE_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=3600' };
@@ -15,8 +16,10 @@ type Params = {
 };
 
 export async function GET(_request: Request, { params: { mintAddress } }: Params) {
-    if (!mintAddress) {
-        return NextResponse.json({ error: 'Missing mint address' }, { status: 400 });
+    try {
+        new PublicKey(mintAddress);
+    } catch {
+        return NextResponse.json({ error: 'Invalid mint address' }, { status: 400 });
     }
 
     if (!BLUPRYNT_CREDENTIAL) {
@@ -43,7 +46,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
         return NextResponse.json({ verified }, { headers: CACHE_HEADERS });
     } catch (error) {
-        console.error('Bluprynt verification error:', error);
+        Logger.error('Bluprynt verification error:', error);
         return NextResponse.json({ verified: false }, { headers: { 'Cache-Control': 'no-store' } });
     }
 }
