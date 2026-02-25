@@ -1,4 +1,4 @@
-import { cva, VariantProps } from 'class-variance-authority';
+import { cva } from 'class-variance-authority';
 import { Check } from 'react-feather';
 
 import { cn } from '@/app/components/shared/utils';
@@ -16,11 +16,8 @@ const riskLevelVariants = cva('', {
     },
 });
 
-type RiskLevelVariants = VariantProps<typeof riskLevelVariants>;
-
 function RiskLevelText({ level, children }: { level?: ERiskLevel; children: React.ReactNode }) {
-    const variant = level?.toLowerCase() as RiskLevelVariants['level'];
-    return <span className={cn(riskLevelVariants({ level: variant }))}>{children}</span>;
+    return <span className={cn(riskLevelVariants({ level }))}>{children}</span>;
 }
 
 function VerificationBadge({ source }: { source: VerificationSource }) {

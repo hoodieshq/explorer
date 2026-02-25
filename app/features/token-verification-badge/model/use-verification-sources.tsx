@@ -47,7 +47,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
 
     const rugCheckScore = rugCheckInfo?.status === RugCheckStatus.Success ? rugCheckInfo.score : undefined;
     const rugCheckLevel = rugCheckScore !== undefined ? getRiskLevel(rugCheckScore) : undefined;
-    const rugCheckVerified = Boolean(rugCheckScore || rugCheckScore === 0);
+    const rugCheckVerified = rugCheckScore !== undefined;
 
     const sources: VerificationSource[] = [
         {
