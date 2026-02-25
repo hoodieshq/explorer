@@ -24,7 +24,8 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         const data = await response.json();
         const token = Array.isArray(data) ? data.find((t: { id?: string }) => t.id === mintAddress) : null;
         return NextResponse.json({ verified: token?.isVerified === true });
-    } catch {
+    } catch (error) {
+        console.error('Jupiter API error:', error);
         return NextResponse.json({ error: 'Failed to fetch jupiter data' }, { status: 500 });
     }
 }

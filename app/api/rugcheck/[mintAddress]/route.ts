@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const RUGCHECK_API_KEY = process.env.RUGCHECK_API_KEY;
+const RUGCHECK_API_KEY = process.env.NEXT_PUBLIC_RUGCHECK_API_KEY;
 
 type Params = {
     params: {
@@ -23,7 +23,8 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
         const data = await response.json();
         return NextResponse.json({ score: data.score_normalised });
-    } catch {
+    } catch (error) {
+        console.error('Rugcheck API error:', error);
         return NextResponse.json({ error: 'Failed to fetch rugcheck data' }, { status: 500 });
     }
 }
