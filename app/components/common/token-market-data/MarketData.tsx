@@ -21,7 +21,7 @@ type MarketDataProps = {
     label: string;
     lastUpdatedAt?: Date;
     rank?: number;
-    value: { price: number; trend: number; precision: number } | { volume: number };
+    value: { price: number; trend?: number; precision: number } | { volume: number };
 };
 
 export function MarketData({ label, lastUpdatedAt, value, rank }: MarketDataProps) {
@@ -73,11 +73,11 @@ export function MarketData({ label, lastUpdatedAt, value, rank }: MarketDataProp
                         <span className={dynamicVariant({ trend })}>
                             {trend === 'up' ? (
                                 <>
-                                    <span className="e-text-[8px]">&uarr;</span> {value.trend.toFixed(2)}%
+                                    <span className="e-text-[8px]">&uarr;</span> {value.trend?.toFixed(2)}%
                                 </>
                             ) : trend === 'down' ? (
                                 <>
-                                    <span className="e-text-[8px]">&darr;</span> {value.trend.toFixed(2)}%
+                                    <span className="e-text-[8px]">&darr;</span> {value.trend?.toFixed(2)}%
                                 </>
                             ) : (
                                 '0%'
@@ -90,7 +90,8 @@ export function MarketData({ label, lastUpdatedAt, value, rank }: MarketDataProp
     );
 }
 
-function getDynamicTrend(dynamic: number) {
+function getDynamicTrend(dynamic?: number) {
+    if (dynamic === undefined) return 'neutral';
     if (dynamic > 0) return 'up';
     else if (dynamic < 0) return 'down';
     else return 'neutral';
