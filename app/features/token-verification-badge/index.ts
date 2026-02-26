@@ -6,3 +6,4 @@ export { EVerificationSource } from './lib/types';
 export type { VerificationSource } from './lib/types';
 export { useCoinGeckoVerification, CoingeckoStatus } from './model/use-coingecko';
 export type { CoinGeckoResult, CoinInfo } from './model/use-coingecko';
+export * from './config';

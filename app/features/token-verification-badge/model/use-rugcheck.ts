@@ -4,6 +4,7 @@ import { useCluster } from '@/app/providers/cluster';
 import { Cluster } from '@/app/utils/cluster';
 
 import { TOKEN_VERIFICATION_SWR_CONFIG } from './token-verification-cache';
+import { RISK_MAX_LEVEL_GOOD, RISK_MAX_LEVEL_WARNING } from '../config';
 
 export enum RugCheckStatus {
     Success,
@@ -22,8 +23,6 @@ export enum ERiskLevel {
     Warning = 'Warning',
     Danger = 'Danger',
 }
-export const RISK_MAX_LEVEL_GOOD = 25;
-export const RISK_MAX_LEVEL_WARNING = 65;
 
 type RugCheckSwrKey = ['rugcheck', string];
 

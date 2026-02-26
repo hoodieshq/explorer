@@ -7,16 +7,6 @@ import { Popover, PopoverContent, PopoverTrigger } from './popover';
 
 const meta: Meta<typeof Popover> = {
     component: Popover,
-    decorators: [
-        Story => (
-            <div className="e-flex e-min-h-96 e-items-center e-justify-center">
-                <Story />
-            </div>
-        ),
-    ],
-    parameters: {
-        layout: 'centered',
-    },
     title: 'Components/Shared/UI/Popover',
 };
 
