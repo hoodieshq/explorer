@@ -1,4 +1,4 @@
-import { is, number, string, type } from 'superstruct';
+import { is, number, optional, string, type } from 'superstruct';
 import useSWR from 'swr';
 
 import { useCluster } from '@/app/providers/cluster';
@@ -18,7 +18,7 @@ export interface CoinInfo {
     price: number;
     volume_24: number;
     market_cap: number;
-    price_change_percentage_24h: number;
+    price_change_percentage_24h: number | undefined;
     market_cap_rank: number;
     last_updated: Date;
 }
@@ -33,9 +33,11 @@ const CoinInfoResultSchema = type({
         market_cap: type({
             usd: number(),
         }),
-        price_change_percentage_24h_in_currency: type({
-            usd: number(),
-        }),
+        price_change_percentage_24h_in_currency: optional(
+            type({
+                usd: optional(number()),
+            })
+        ),
         total_volume: type({
             usd: number(),
         }),
@@ -102,7 +104,7 @@ async function fetchCoinGeckoVerification([, coinId]: CoinGeckoSwrKey): Promise<
                 market_cap: data.market_data.market_cap.usd,
                 market_cap_rank: data.market_cap_rank,
                 price: data.market_data.current_price.usd,
-                price_change_percentage_24h: data.market_data.price_change_percentage_24h_in_currency.usd,
+                price_change_percentage_24h: data.market_data.price_change_percentage_24h_in_currency?.usd,
                 volume_24: data.market_data.total_volume.usd,
             },
             status: CoingeckoStatus.Success,

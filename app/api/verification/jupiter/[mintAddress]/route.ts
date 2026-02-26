@@ -1,9 +1,17 @@
 import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
+import { array, boolean, is, optional, string, type } from 'superstruct';
 
 import Logger from '@/app/utils/logger';
 
 import { CACHE_HEADERS, CACHE_MAX_AGE, NO_STORE_HEADERS } from '../../config';
+
+const JupiterTokenSchema = type({
+    id: string(),
+    isVerified: optional(boolean()),
+});
+
+const JupiterResponseSchema = array(JupiterTokenSchema);
 
 const JUPITER_API_KEY = process.env.JUPITER_API_KEY;
 
@@ -41,7 +49,12 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         }
 
         const data = await response.json();
-        const token = Array.isArray(data) ? data.find((t: { id?: string }) => t.id === mintAddress) : null;
+
+        if (!is(data, JupiterResponseSchema)) {
+            return NextResponse.json({ verified: false }, { headers: CACHE_HEADERS });
+        }
+
+        const token = data.find(t => t.id === mintAddress);
         return NextResponse.json({ verified: token?.isVerified === true }, { headers: CACHE_HEADERS });
     } catch (error) {
         Logger.error('Jupiter API error:', error);

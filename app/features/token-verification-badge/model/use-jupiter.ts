@@ -1,9 +1,14 @@
+import { boolean, is, type } from 'superstruct';
 import useSWR from 'swr';
 
 import { useCluster } from '@/app/providers/cluster';
 import { Cluster } from '@/app/utils/cluster';
 
 import { TOKEN_VERIFICATION_SWR_CONFIG } from './token-verification-cache';
+
+const JupiterResultSchema = type({
+    verified: boolean(),
+});
 
 export enum JupiterStatus {
     Success,
@@ -38,8 +43,13 @@ async function fetchJupiterVerification([, mintAddress]: JupiterSwrKey): Promise
             return { status: JupiterStatus.FetchFailed, verified: false };
         }
 
-        const data = (await response.json()) as { verified?: boolean };
-        return { status: JupiterStatus.Success, verified: data.verified === true };
+        const data = await response.json();
+
+        if (!is(data, JupiterResultSchema)) {
+            return { status: JupiterStatus.FetchFailed, verified: false };
+        }
+
+        return { status: JupiterStatus.Success, verified: data.verified };
     } catch {
         return { status: JupiterStatus.FetchFailed, verified: false };
     }
