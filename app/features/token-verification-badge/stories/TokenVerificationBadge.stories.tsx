@@ -30,7 +30,7 @@ function TokenVerificationBadge({
 }) {
     const [isOpen, setIsOpen] = useState(false);
 
-    const { rateLimitedSources, sourcesToApply, verificationFoundSources, verifiedSources } = mockResult;
+    const { rateLimitedSources, sourcesToApply, verificationFoundSources } = mockResult;
 
     const handleMouseEnter = () => setIsOpen(true);
     const handleMouseLeave = () => setIsOpen(false);
@@ -42,7 +42,6 @@ function TokenVerificationBadge({
                     isLoading={isLoading}
                     isOpen={isOpen}
                     verificationFoundSources={verificationFoundSources}
-                    verifiedSources={verifiedSources}
                 />
             </PopoverTrigger>
             <PopoverContent
@@ -80,7 +79,6 @@ export const Loading: Story = {
             sources: [],
             sourcesToApply: [],
             verificationFoundSources: [],
-            verifiedSources: [],
         },
     },
 };

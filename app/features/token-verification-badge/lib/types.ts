@@ -1,4 +1,4 @@
-import { ERiskLevel } from "../model/use-rugcheck";
+import { ERiskLevel } from '../model/use-rugcheck';
 
 export enum EVerificationSource {
     Bluprynt = 'Bluprynt',
@@ -10,7 +10,6 @@ export enum EVerificationSource {
 
 export type VerificationSource = {
     applyUrl?: string;
-    icon: React.ReactNode;
     isRateLimited?: boolean;
     isVerificationFound?: boolean;
     level?: ERiskLevel;

@@ -1,31 +1,16 @@
-import { StaticImageData } from 'next/image';
-import Image from 'next/image';
-
 import { FullLegacyTokenInfo, FullTokenInfo } from '@/app/utils/token-info';
 
-import BlupryntLogo from '../icons/bluprynt-logo.png';
-import CoinGeckoLogo from '../icons/coingecko-logo.png';
-import JupiterLogo from '../icons/jupiter-logo.png';
-import RugCheckLogo from '../icons/rugcheck-logo.png';
-import SolflareLogo from '../icons/solflare-logo.png';
 import { EVerificationSource, VerificationSource } from '../lib/types';
 import { BlupryntStatus, useBlupryntVerification } from './use-bluprynt';
 import { CoingeckoStatus, useCoinGeckoVerification } from './use-coingecko';
 import { JupiterStatus, useJupiterVerification } from './use-jupiter';
 import { ERiskLevel, getRiskLevel, RugCheckStatus, useRugCheckVerification } from './use-rugcheck';
 
-const ICON_SIZE = 16;
-
-function Icon({ src, alt }: { src: StaticImageData; alt: string }) {
-    return <Image src={src} alt={alt} width={ICON_SIZE} height={ICON_SIZE} className="e-rounded-full" />;
-}
-
 export type TokenVerificationResult = {
     rateLimitedSources: VerificationSource[];
     sources: VerificationSource[];
     sourcesToApply: VerificationSource[];
     verificationFoundSources: VerificationSource[];
-    verifiedSources: VerificationSource[];
 };
 
 export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyTokenInfo): TokenVerificationResult {
@@ -46,7 +31,6 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
     const sources: VerificationSource[] = [
         {
             applyUrl: 'https://app.bluprynt.com/register/account?integration_partner=solana_explorer',
-            icon: <Icon src={BlupryntLogo} alt="Bluprynt" />,
             isVerificationFound: blupryntInfo?.status === BlupryntStatus.Success,
             name: EVerificationSource.Bluprynt,
             url: `https://verified.bluprynt.com/verified-assets/${tokenInfo?.address}/solana`,
@@ -55,7 +39,6 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
         {
             applyUrl:
                 'https://support.coingecko.com/hc/en-us/articles/23725417857817-Verification-Guide-for-Listing-Update-Requests-on-CoinGecko',
-            icon: <Icon src={CoinGeckoLogo} alt="CoinGecko" />,
             isRateLimited: coinInfo?.status === CoingeckoStatus.RateLimited,
             isVerificationFound: Boolean(
                 tokenInfo?.extensions?.coingeckoId && coinInfo?.status === CoingeckoStatus.Success
@@ -66,7 +49,6 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
         },
         {
             applyUrl: 'https://verified.jup.ag/tokens',
-            icon: <Icon src={JupiterLogo} alt="Jupiter" />,
             isRateLimited: jupiterInfo?.status === JupiterStatus.RateLimited,
             isVerificationFound: jupiterInfo?.status === JupiterStatus.Success,
             name: EVerificationSource.Jupiter,
@@ -75,7 +57,6 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
         },
         {
             applyUrl: 'https://help.solflare.com/en/articles/9260147-i-cannot-find-a-token-in-solflare',
-            icon: <Icon src={SolflareLogo} alt="Solflare" />,
             isVerificationFound: tokenInfo && 'verified' in tokenInfo,
             name: EVerificationSource.Solflare,
             url: `https://www.solflare.com/prices/${tokenInfo?.address}`,
@@ -83,7 +64,6 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
         },
         {
             applyUrl: 'https://rugcheck.xyz/auth?redirectTo=%2Fauth',
-            icon: <Icon src={RugCheckLogo} alt="RugCheck" />,
             isRateLimited: rugCheckInfo?.status === RugCheckStatus.RateLimited,
             isVerificationFound: rugCheckInfo?.status === RugCheckStatus.Success,
             level: rugCheckLevel,
@@ -95,9 +75,8 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
     ];
 
     const rateLimitedSources = sources.filter(s => s.isRateLimited);
-    const verifiedSources = sources.filter(s => s.verified);
     const sourcesToApply = sources.filter(s => !s.verified && !s.isVerificationFound && !s.isRateLimited);
     const verificationFoundSources = sources.filter(s => s.isVerificationFound);
 
-    return { rateLimitedSources, sources, sourcesToApply, verificationFoundSources, verifiedSources };
+    return { rateLimitedSources, sources, sourcesToApply, verificationFoundSources };
 }

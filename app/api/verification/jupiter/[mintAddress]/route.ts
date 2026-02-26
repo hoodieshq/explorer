@@ -2,7 +2,8 @@ import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
 
 import Logger from '@/app/utils/logger';
-import { CACHE_HEADERS, NO_STORE_HEADERS, CACHE_MAX_AGE } from '../../config';
+
+import { CACHE_HEADERS, CACHE_MAX_AGE, NO_STORE_HEADERS } from '../../config';
 
 const JUPITER_API_KEY = process.env.JUPITER_API_KEY;
 
@@ -44,9 +45,6 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         return NextResponse.json({ verified: token?.isVerified === true }, { headers: CACHE_HEADERS });
     } catch (error) {
         Logger.error('Jupiter API error:', error);
-        return NextResponse.json(
-            { error: 'Failed to fetch jupiter data' },
-            { headers: NO_STORE_HEADERS, status: 500 }
-        );
+        return NextResponse.json({ error: 'Failed to fetch jupiter data' }, { headers: NO_STORE_HEADERS, status: 500 });
     }
 }

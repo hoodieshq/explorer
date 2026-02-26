@@ -1,3 +1,4 @@
+import { is, number, type } from 'superstruct';
 import useSWR from 'swr';
 
 import { useCluster } from '@/app/providers/cluster';
@@ -5,6 +6,10 @@ import { Cluster } from '@/app/utils/cluster';
 
 import { RISK_MAX_LEVEL_GOOD, RISK_MAX_LEVEL_WARNING } from '../config';
 import { TOKEN_VERIFICATION_SWR_CONFIG } from './token-verification-cache';
+
+const RugCheckResultSchema = type({
+    score: number(),
+});
 
 export enum RugCheckStatus {
     Success,
@@ -51,7 +56,12 @@ async function fetchRugCheckVerification([, mintAddress]: RugCheckSwrKey): Promi
             return { score: undefined, status: RugCheckStatus.FetchFailed };
         }
 
-        const data = (await response.json()) as { score?: number };
+        const data = await response.json();
+
+        if (!is(data, RugCheckResultSchema)) {
+            return { score: undefined, status: RugCheckStatus.FetchFailed };
+        }
+
         return { score: data.score, status: RugCheckStatus.Success };
     } catch {
         return { score: undefined, status: RugCheckStatus.FetchFailed };

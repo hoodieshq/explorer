@@ -1,3 +1,4 @@
+import { is, number, string, type } from 'superstruct';
 import useSWR from 'swr';
 
 import { useCluster } from '@/app/providers/cluster';
@@ -22,24 +23,24 @@ export interface CoinInfo {
     last_updated: Date;
 }
 
-export interface CoinInfoResult {
-    last_updated: string;
-    market_cap_rank: number;
-    market_data: {
-        current_price: {
-            usd: number;
-        };
-        market_cap: {
-            usd: number;
-        };
-        price_change_percentage_24h_in_currency: {
-            usd: number;
-        };
-        total_volume: {
-            usd: number;
-        };
-    };
-}
+const CoinInfoResultSchema = type({
+    last_updated: string(),
+    market_cap_rank: number(),
+    market_data: type({
+        current_price: type({
+            usd: number(),
+        }),
+        market_cap: type({
+            usd: number(),
+        }),
+        price_change_percentage_24h_in_currency: type({
+            usd: number(),
+        }),
+        total_volume: type({
+            usd: number(),
+        }),
+    }),
+});
 
 export type CoinGeckoResult = {
     coinInfo?: CoinInfo;
@@ -87,15 +88,22 @@ async function fetchCoinGeckoVerification([, coinId]: CoinGeckoSwrKey): Promise<
             };
         }
 
-        const info = (await response.json()) as CoinInfoResult;
+        const data = await response.json();
+
+        if (!is(data, CoinInfoResultSchema)) {
+            return {
+                status: CoingeckoStatus.FetchFailed,
+            };
+        }
+
         return {
             coinInfo: {
-                last_updated: new Date(info.last_updated),
-                market_cap: info.market_data.market_cap.usd,
-                market_cap_rank: info.market_cap_rank,
-                price: info.market_data.current_price.usd,
-                price_change_percentage_24h: info.market_data.price_change_percentage_24h_in_currency.usd,
-                volume_24: info.market_data.total_volume.usd,
+                last_updated: new Date(data.last_updated),
+                market_cap: data.market_data.market_cap.usd,
+                market_cap_rank: data.market_cap_rank,
+                price: data.market_data.current_price.usd,
+                price_change_percentage_24h: data.market_data.price_change_percentage_24h_in_currency.usd,
+                volume_24: data.market_data.total_volume.usd,
             },
             status: CoingeckoStatus.Success,
         };
@@ -118,5 +126,5 @@ export function useCoinGeckoVerification(coinId?: string): CoinGeckoResult | und
         };
     }
 
-    return data ?? undefined;
+    return data;
 }

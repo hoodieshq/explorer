@@ -5,6 +5,7 @@ import { cn } from '@/app/components/shared/utils';
 
 import { EVerificationSource, VerificationSource } from '../lib/types';
 import { ERiskLevel } from '../model/use-rugcheck';
+import { SourceIcon } from './SourceIcon';
 
 const riskLevelVariants = cva('', {
     variants: {
@@ -29,7 +30,7 @@ function VerificationBadge({ source }: { source: VerificationSource }) {
                 rel="noopener noreferrer"
                 className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-heavy-metal-600 e-bg-heavy-metal-800 e-p-1 hover:e-border-heavy-metal-500 hover:e-bg-heavy-metal-700"
             >
-                {source.icon}
+                <SourceIcon source={source.name} />
                 <span className="e-text-xs e-text-gray-200">
                     {source.name} risk: {source.score}/100 -{' '}
                     <RiskLevelText level={source.level as ERiskLevel}>{source.level}</RiskLevelText>
@@ -45,7 +46,7 @@ function VerificationBadge({ source }: { source: VerificationSource }) {
             rel="noopener noreferrer"
             className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-heavy-metal-600 e-bg-heavy-metal-800 e-p-1 hover:e-border-heavy-metal-500 hover:e-bg-heavy-metal-700"
         >
-            {source.icon}
+            <SourceIcon source={source.name} />
             <span className="e-text-xs e-text-gray-200">{source.name}</span>
             {source.verified ? (
                 <Check className="e-text-green-400" size={16} />
@@ -77,10 +78,10 @@ function RateLimitedBadge({ source }: { source: VerificationSource }) {
         <a
             href={source.url}
             target="_blank"
-            rel="noopener noreferrer" 
-            className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-orange-600/50 e-bg-orange-900/20 hover:e-border-orange-500 hover:e-bg-orange-800/50 e-p-1"
+            rel="noopener noreferrer"
+            className="e-flex e-items-center e-gap-1 e-rounded-md e-border e-border-solid e-border-orange-600/50 e-bg-orange-900/20 e-p-1 hover:e-border-orange-500 hover:e-bg-orange-800/50"
         >
-            {source.icon}
+            <SourceIcon source={source.name} />
             <span className="e-text-xs e-text-orange-400">{source.name}</span>
             <AlertCircle className="e-text-orange-400" size={14} />
         </a>
@@ -135,10 +136,10 @@ export function TokenVerificationContent({
 
             {rateLimitedSources.length > 0 && (
                 <div className="e-mt-4">
-                    <p className="e-text-[10px] e-m-0 e-uppercase e-tracking-wider e-text-orange-400">
+                    <p className="e-m-0 e-text-[10px] e-uppercase e-tracking-wider e-text-orange-400">
                         Rate limited (try again later)
                     </p>
-                    <p className='e-text-[10px] e-mb-1 e-text-heavy-metal-400'>You can check validators manually</p>
+                    <p className="e-mb-1 e-text-[10px] e-text-heavy-metal-400">You can check validators manually</p>
                     <div className="e-flex e-flex-wrap e-gap-2">
                         {rateLimitedSources.map((source, idx) => (
                             <RateLimitedBadge key={idx} source={source} />

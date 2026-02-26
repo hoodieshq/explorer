@@ -1,25 +1,11 @@
-import Image from 'next/image';
-
-import BlupryntLogo from '../icons/bluprynt-logo.png';
-import CoinGeckoLogo from '../icons/coingecko-logo.png';
-import JupiterLogo from '../icons/jupiter-logo.png';
-import RugCheckLogo from '../icons/rugcheck-logo.png';
-import SolflareLogo from '../icons/solflare-logo.png';
 import { EVerificationSource, VerificationSource } from '../lib/types';
 import { ERiskLevel } from '../model/use-rugcheck';
 import { TokenVerificationResult } from '../model/use-verification-sources';
-
-const ICON_SIZE = 16;
-
-function Icon({ src, alt }: { src: typeof BlupryntLogo; alt: string }) {
-    return <Image src={src} alt={alt} width={ICON_SIZE} height={ICON_SIZE} className="e-rounded-full" />;
-}
 
 const MOCK_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
 export const mockBlupryntSource = (overrides?: Partial<VerificationSource>): VerificationSource => ({
     applyUrl: 'https://verified.bluprynt.com/assets/new',
-    icon: <Icon src={BlupryntLogo} alt="Bluprynt" />,
     isVerificationFound: true,
     name: EVerificationSource.Bluprynt,
     url: `https://verified.bluprynt.com/verified-assets/${MOCK_ADDRESS}/solana`,
@@ -30,7 +16,6 @@ export const mockBlupryntSource = (overrides?: Partial<VerificationSource>): Ver
 export const mockCoinGeckoSource = (overrides?: Partial<VerificationSource>): VerificationSource => ({
     applyUrl:
         'https://support.coingecko.com/hc/en-us/articles/23725417857817-Verification-Guide-for-Listing-Update-Requests-on-CoinGecko',
-    icon: <Icon src={CoinGeckoLogo} alt="CoinGecko" />,
     isVerificationFound: true,
     name: EVerificationSource.CoinGecko,
     url: `https://www.coingecko.com/en/coins/usd-coin`,
@@ -40,7 +25,6 @@ export const mockCoinGeckoSource = (overrides?: Partial<VerificationSource>): Ve
 
 export const mockJupiterSource = (overrides?: Partial<VerificationSource>): VerificationSource => ({
     applyUrl: 'https://verified.jup.ag/tokens',
-    icon: <Icon src={JupiterLogo} alt="Jupiter" />,
     isVerificationFound: true,
     name: EVerificationSource.Jupiter,
     url: `https://jup.ag/tokens/${MOCK_ADDRESS}`,
@@ -50,7 +34,6 @@ export const mockJupiterSource = (overrides?: Partial<VerificationSource>): Veri
 
 export const mockSolflareSource = (overrides?: Partial<VerificationSource>): VerificationSource => ({
     applyUrl: 'https://help.solflare.com/en/articles/9260147-i-cannot-find-a-token-in-solflare',
-    icon: <Icon src={SolflareLogo} alt="Solflare" />,
     isVerificationFound: true,
     name: EVerificationSource.Solflare,
     url: `https://www.solflare.com/prices/${MOCK_ADDRESS}`,
@@ -60,7 +43,6 @@ export const mockSolflareSource = (overrides?: Partial<VerificationSource>): Ver
 
 export const mockRugCheckSource = (overrides?: Partial<VerificationSource>): VerificationSource => ({
     applyUrl: 'https://rugcheck.xyz/auth?redirectTo=%2Fauth',
-    icon: <Icon src={RugCheckLogo} alt="RugCheck" />,
     isVerificationFound: true,
     level: ERiskLevel.Good,
     name: EVerificationSource.RugCheck,
@@ -119,7 +101,6 @@ export const mockDangerousTokenSources = (): VerificationSource[] => [
 // Helper to create TokenVerificationResult
 export const createMockVerificationResult = (sources: VerificationSource[]): TokenVerificationResult => {
     const rateLimitedSources = sources.filter(s => s.isRateLimited);
-    const verifiedSources = sources.filter(s => s.verified);
     const sourcesToApply = sources.filter(s => !s.verified && !s.isVerificationFound && !s.isRateLimited);
     const verificationFoundSources = sources.filter(s => s.isVerificationFound);
 
@@ -128,6 +109,5 @@ export const createMockVerificationResult = (sources: VerificationSource[]): Tok
         sources,
         sourcesToApply,
         verificationFoundSources,
-        verifiedSources,
     };
 };

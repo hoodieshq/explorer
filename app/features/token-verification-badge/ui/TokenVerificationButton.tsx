@@ -5,6 +5,7 @@ import { cn } from '@/app/components/shared/utils';
 
 import { EVerificationSource, VerificationSource } from '../lib/types';
 import { ERiskLevel, getRiskLevel } from '../model/use-rugcheck';
+import { SourceIcon } from './SourceIcon';
 import { VerificationIcon } from './VerificationIcon';
 
 const sourceBorderVariants = cva('e-flex e-rounded e-border e-border-solid e-p-px e-opacity-80', {
@@ -28,13 +29,12 @@ function getSourceBorderTone(source: VerificationSource): ERiskLevel {
 type TokenVerificationButtonProps = {
     isLoading?: boolean;
     isOpen: boolean;
-    verifiedSources: VerificationSource[];
     verificationFoundSources: VerificationSource[];
 } & React.ComponentPropsWithoutRef<'button'>;
 
 export const TokenVerificationButton = React.forwardRef<HTMLButtonElement, TokenVerificationButtonProps>(
-    ({ isLoading, isOpen, verifiedSources, verificationFoundSources, className, ...props }, ref) => {
-        const hasVerification = verifiedSources.length > 0;
+    ({ isLoading, isOpen, verificationFoundSources, className, ...props }, ref) => {
+        const hasVerification = verificationFoundSources.length > 0;
 
         return (
             <button
@@ -62,7 +62,7 @@ export const TokenVerificationButton = React.forwardRef<HTMLButtonElement, Token
                         {hasVerification ? (
                             verificationFoundSources.map((source, idx) => (
                                 <div key={idx} className={sourceBorderVariants({ tone: getSourceBorderTone(source) })}>
-                                    {source.icon}
+                                    <SourceIcon source={source.name} />
                                 </div>
                             ))
                         ) : (

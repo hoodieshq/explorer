@@ -1,8 +1,14 @@
 import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
+import { is, number, type } from 'superstruct';
 
 import Logger from '@/app/utils/logger';
-import { CACHE_HEADERS, NO_STORE_HEADERS, CACHE_MAX_AGE } from '../../config';
+
+import { CACHE_HEADERS, CACHE_MAX_AGE, NO_STORE_HEADERS } from '../../config';
+
+const RugCheckResponseSchema = type({
+    score_normalised: number(),
+});
 
 const RUGCHECK_API_KEY = process.env.RUGCHECK_API_KEY;
 
@@ -40,6 +46,14 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         }
 
         const data = await response.json();
+
+        if (!is(data, RugCheckResponseSchema)) {
+            return NextResponse.json(
+                { error: 'Invalid response from rugcheck API' },
+                { headers: NO_STORE_HEADERS, status: 502 }
+            );
+        }
+
         return NextResponse.json({ score: data.score_normalised }, { headers: CACHE_HEADERS });
     } catch (error) {
         Logger.error('Rugcheck API error:', error);
