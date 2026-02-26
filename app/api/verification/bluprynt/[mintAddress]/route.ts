@@ -4,12 +4,9 @@ import { NextResponse } from 'next/server';
 import { SOLANA_ATTESTATION_SERVICE_PROGRAM_ADDRESS as SAS_PROGRAM_ID } from 'sas-lib';
 
 import Logger from '@/app/utils/logger';
+import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
 
 const BLUPRYNT_CREDENTIAL = process.env.BLUPRYNT_CREDENTIAL_AUTHORITY;
-
-// Cache for 4 hours, allow stale for 1 hour while revalidating
-const CACHE_HEADERS = { 'Cache-Control': 'public, s-maxage=14400, stale-while-revalidate=3600' };
-const NO_STORE_HEADERS = { 'Cache-Control': 'no-store, max-age=0' };
 
 type Params = {
     params: {

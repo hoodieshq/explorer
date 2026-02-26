@@ -30,7 +30,7 @@ function TokenVerificationBadge({
 }) {
     const [isOpen, setIsOpen] = useState(false);
 
-    const { rateLimitedSources, unverifiedSources, verificationFoundSources, verifiedSources } = mockResult;
+    const { rateLimitedSources, sourcesToApply, verificationFoundSources, verifiedSources } = mockResult;
 
     const handleMouseEnter = () => setIsOpen(true);
     const handleMouseLeave = () => setIsOpen(false);
@@ -55,7 +55,7 @@ function TokenVerificationBadge({
             >
                 <TokenVerificationContent
                     rateLimitedSources={rateLimitedSources}
-                    unverifiedSources={unverifiedSources}
+                    sourcesToApply={sourcesToApply}
                     verificationFoundSources={verificationFoundSources}
                     isLoading={isLoading}
                 />
@@ -78,7 +78,7 @@ export const Loading: Story = {
         mockResult: {
             rateLimitedSources: [],
             sources: [],
-            unverifiedSources: [],
+            sourcesToApply: [],
             verificationFoundSources: [],
             verifiedSources: [],
         },

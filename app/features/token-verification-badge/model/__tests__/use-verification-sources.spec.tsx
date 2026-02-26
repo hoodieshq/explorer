@@ -94,6 +94,6 @@ describe('useTokenVerification', () => {
             EVerificationSource.Solflare,
             EVerificationSource.RugCheck,
         ]);
-        expect(result.current.unverifiedSources).toHaveLength(0);
+        expect(result.current.sourcesToApply).toHaveLength(0);
     });
 });

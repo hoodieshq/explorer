@@ -36,7 +36,7 @@ export function parseApiResponse(data: { verified: boolean }): BlupryntResult {
 
 async function fetchBlupryntVerification([, mintAddress]: BlupryntSwrKey): Promise<BlupryntResult> {
     try {
-        const response = await fetch(`/api/bluprynt/${mintAddress}`);
+        const response = await fetch(`/api/verification/bluprynt/${mintAddress}`);
 
         if (!response.ok) {
             return { status: BlupryntStatus.FetchFailed, verified: false };

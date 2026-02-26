@@ -12,7 +12,7 @@ import { EVerificationSource, VerificationSource } from '../lib/types';
 import { BlupryntStatus, useBlupryntVerification } from './use-bluprynt';
 import { CoingeckoStatus, useCoinGeckoVerification } from './use-coingecko';
 import { JupiterStatus, useJupiterVerification } from './use-jupiter';
-import { getRiskLevel, RugCheckStatus, useRugCheckVerification } from './use-rugcheck';
+import { ERiskLevel, getRiskLevel, RugCheckStatus, useRugCheckVerification } from './use-rugcheck';
 
 const ICON_SIZE = 16;
 
@@ -23,7 +23,7 @@ function Icon({ src, alt }: { src: StaticImageData; alt: string }) {
 export type TokenVerificationResult = {
     rateLimitedSources: VerificationSource[];
     sources: VerificationSource[];
-    unverifiedSources: VerificationSource[];
+    sourcesToApply: VerificationSource[];
     verificationFoundSources: VerificationSource[];
     verifiedSources: VerificationSource[];
 };
@@ -41,7 +41,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
 
     const rugCheckScore = rugCheckInfo?.status === RugCheckStatus.Success ? rugCheckInfo.score : undefined;
     const rugCheckLevel = rugCheckScore !== undefined ? getRiskLevel(rugCheckScore) : undefined;
-    const rugCheckVerified = rugCheckScore !== undefined;
+    const rugCheckVerified = rugCheckLevel === ERiskLevel.Good;
 
     const sources: VerificationSource[] = [
         {
@@ -96,8 +96,8 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
 
     const rateLimitedSources = sources.filter(s => s.isRateLimited);
     const verifiedSources = sources.filter(s => s.verified);
-    const unverifiedSources = sources.filter(s => !s.verified && !s.isVerificationFound && !s.isRateLimited);
+    const sourcesToApply = sources.filter(s => !s.verified && !s.isVerificationFound && !s.isRateLimited);
     const verificationFoundSources = sources.filter(s => s.isVerificationFound);
 
-    return { rateLimitedSources, sources, unverifiedSources, verificationFoundSources, verifiedSources };
+    return { rateLimitedSources, sources, sourcesToApply, verificationFoundSources, verifiedSources };
 }

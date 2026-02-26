@@ -74,7 +74,7 @@ function getCoinGeckoSwrKey(
 
 async function fetchCoinGeckoVerification([, coinId]: CoinGeckoSwrKey): Promise<CoinGeckoResult> {
     try {
-        const response = await fetch(`/api/coingecko/${coinId}`);
+        const response = await fetch(`/api/verification/coingecko/${coinId}`);
 
         if (!response.ok) {
             if (response.status === 429) {

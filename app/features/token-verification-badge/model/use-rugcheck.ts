@@ -3,8 +3,8 @@ import useSWR from 'swr';
 import { useCluster } from '@/app/providers/cluster';
 import { Cluster } from '@/app/utils/cluster';
 
-import { TOKEN_VERIFICATION_SWR_CONFIG } from './token-verification-cache';
 import { RISK_MAX_LEVEL_GOOD, RISK_MAX_LEVEL_WARNING } from '../config';
+import { TOKEN_VERIFICATION_SWR_CONFIG } from './token-verification-cache';
 
 export enum RugCheckStatus {
     Success,
@@ -42,7 +42,7 @@ function getRugCheckSwrKey(cluster: Cluster, mintAddress?: string): RugCheckSwrK
 
 async function fetchRugCheckVerification([, mintAddress]: RugCheckSwrKey): Promise<RugCheckResult> {
     try {
-        const response = await fetch(`/api/rugcheck/${mintAddress}`);
+        const response = await fetch(`/api/verification/rugcheck/${mintAddress}`);
 
         if (!response.ok) {
             if (response.status === 429) {

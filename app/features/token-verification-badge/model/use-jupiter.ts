@@ -29,7 +29,7 @@ function getJupiterSwrKey(cluster: Cluster, mintAddress?: string): JupiterSwrKey
 
 async function fetchJupiterVerification([, mintAddress]: JupiterSwrKey): Promise<JupiterResult> {
     try {
-        const response = await fetch(`/api/jupiter/${mintAddress}`);
+        const response = await fetch(`/api/verification/jupiter/${mintAddress}`);
 
         if (!response.ok) {
             if (response.status === 429) {

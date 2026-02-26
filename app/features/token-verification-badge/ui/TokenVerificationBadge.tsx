@@ -16,7 +16,7 @@ export type TokenVerificationBadgeProps = {
 export function TokenVerificationBadge({ tokenInfo, isTokenInfoLoading }: TokenVerificationBadgeProps) {
     const { hoverHandlers, isOpen, setIsOpen } = useHoverPopover();
 
-    const { rateLimitedSources, unverifiedSources, verificationFoundSources, verifiedSources } =
+    const { rateLimitedSources, sourcesToApply, verificationFoundSources, verifiedSources } =
         useTokenVerification(tokenInfo);
 
     return (
@@ -39,7 +39,7 @@ export function TokenVerificationBadge({ tokenInfo, isTokenInfoLoading }: TokenV
                 <TokenVerificationContent
                     isLoading={isTokenInfoLoading}
                     rateLimitedSources={rateLimitedSources}
-                    unverifiedSources={unverifiedSources}
+                    sourcesToApply={sourcesToApply}
                     verificationFoundSources={verificationFoundSources}
                 />
             </PopoverContent>

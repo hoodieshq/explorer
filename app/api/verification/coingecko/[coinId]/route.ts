@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import Logger from '@/app/utils/logger';
-
-const CACHE_MAX_AGE = 14400;
-const CACHE_HEADERS = { 'Cache-Control': `public, s-maxage=${CACHE_MAX_AGE}, stale-while-revalidate=3600` };
-const NO_STORE_HEADERS = { 'Cache-Control': 'no-store, max-age=0' };
+import { CACHE_HEADERS, NO_STORE_HEADERS, CACHE_MAX_AGE } from '../../config';
 
 // eslint-disable-next-line no-restricted-syntax -- CoinGecko coin IDs only contain lowercase letters, numbers, and hyphens
 const VALID_COIN_ID = /^[a-z0-9-]+$/;

@@ -90,12 +90,12 @@ function RateLimitedBadge({ source }: { source: VerificationSource }) {
 export function TokenVerificationContent({
     isLoading,
     rateLimitedSources,
-    unverifiedSources,
+    sourcesToApply,
     verificationFoundSources,
 }: {
     isLoading?: boolean;
     rateLimitedSources: VerificationSource[];
-    unverifiedSources: VerificationSource[];
+    sourcesToApply: VerificationSource[];
     verificationFoundSources: VerificationSource[];
 }) {
     const hasVerification = verificationFoundSources.length > 0;
@@ -147,13 +147,13 @@ export function TokenVerificationContent({
                 </div>
             )}
 
-            {unverifiedSources.length > 0 && (
+            {sourcesToApply.length > 0 && (
                 <div className="e-mt-4">
                     <p className="e-mb-1 e-text-[10px] e-uppercase e-tracking-wider e-text-heavy-metal-400">
                         Apply for {hasVerification ? 'extra ' : ''}verification
                     </p>
                     <div className="e-flex e-flex-wrap e-gap-x-3 e-gap-y-1">
-                        {unverifiedSources.map((source, idx) => (
+                        {sourcesToApply.map((source, idx) => (
                             <ApplyForVerificationLink key={idx} source={source} />
                         ))}
                     </div>

@@ -2,12 +2,9 @@ import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
 
 import Logger from '@/app/utils/logger';
+import { CACHE_HEADERS, NO_STORE_HEADERS, CACHE_MAX_AGE } from '../../config';
 
 const JUPITER_API_KEY = process.env.JUPITER_API_KEY;
-
-const CACHE_MAX_AGE = 14400;
-const CACHE_HEADERS = { 'Cache-Control': `public, s-maxage=${CACHE_MAX_AGE}, stale-while-revalidate=3600` };
-const NO_STORE_HEADERS = { 'Cache-Control': 'no-store, max-age=0' };
 
 type Params = {
     params: {
@@ -22,10 +19,16 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         return NextResponse.json({ error: 'Invalid mint address' }, { status: 400 });
     }
 
+    if (!JUPITER_API_KEY) {
+        return NextResponse.json(
+            { error: 'Jupiter API key is not configured' },
+            { headers: NO_STORE_HEADERS, status: 500 }
+        );
+    }
+
     try {
-        const requestHeaders: HeadersInit = JUPITER_API_KEY ? { 'x-api-key': JUPITER_API_KEY } : {};
         const response = await fetch(`https://api.jup.ag/tokens/v2/search?query=${mintAddress}`, {
-            headers: requestHeaders,
+            headers: { 'x-api-key': JUPITER_API_KEY },
             next: { revalidate: CACHE_MAX_AGE },
         });
 
