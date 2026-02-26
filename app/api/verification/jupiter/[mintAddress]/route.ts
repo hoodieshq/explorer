@@ -57,7 +57,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         const token = data.find(t => t.id === mintAddress);
         return NextResponse.json({ verified: token?.isVerified === true }, { headers: CACHE_HEADERS });
     } catch (error) {
-        Logger.error('Jupiter API error:', error);
+        Logger.error(new Error('Jupiter API error', { cause: error }));
         return NextResponse.json({ error: 'Failed to fetch jupiter data' }, { headers: NO_STORE_HEADERS, status: 500 });
     }
 }

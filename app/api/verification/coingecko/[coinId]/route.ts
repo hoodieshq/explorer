@@ -42,7 +42,7 @@ export async function GET(_request: Request, { params: { coinId } }: Params) {
         const data = await response.json();
         return NextResponse.json(data, { headers: CACHE_HEADERS });
     } catch (error) {
-        Logger.error('Coingecko API error:', error);
+        Logger.error(new Error('Coingecko API error', { cause: error }));
         return NextResponse.json(
             { error: 'Failed to fetch coingecko data' },
             { headers: NO_STORE_HEADERS, status: 500 }
