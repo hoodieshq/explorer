@@ -35,7 +35,6 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
     try {
         const response = await fetch(`https://premium.rugcheck.xyz/v1/tokens/${mintAddress}/report`, {
             headers: { 'x-api-key': RUGCHECK_API_KEY },
-            next: { revalidate: CACHE_MAX_AGE },
         });
 
         if (!response.ok) {
