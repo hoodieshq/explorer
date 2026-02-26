@@ -4,7 +4,7 @@ import { is, number, type } from 'superstruct';
 
 import Logger from '@/app/utils/logger';
 
-import { CACHE_HEADERS, CACHE_MAX_AGE, NO_STORE_HEADERS } from '../../config';
+import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
 
 const RugCheckResponseSchema = type({
     score_normalised: number(),
