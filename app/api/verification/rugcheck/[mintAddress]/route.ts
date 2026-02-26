@@ -56,7 +56,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
         return NextResponse.json({ score: data.score_normalised }, { headers: CACHE_HEADERS });
     } catch (error) {
-        Logger.error('Rugcheck API error:', error);
+        Logger.error(new Error('Rugcheck API error', { cause: error }));
         return NextResponse.json(
             { error: 'Failed to fetch rugcheck data' },
             { headers: NO_STORE_HEADERS, status: 500 }
