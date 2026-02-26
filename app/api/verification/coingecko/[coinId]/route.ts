@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 import Logger from '@/app/utils/logger';
 
-import { CACHE_HEADERS, CACHE_MAX_AGE, NO_STORE_HEADERS } from '../../config';
+import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
 
 // eslint-disable-next-line no-restricted-syntax -- CoinGecko coin IDs only contain lowercase letters, numbers, and hyphens
 const VALID_COIN_ID = /^[a-z0-9-]+$/;
@@ -28,9 +28,7 @@ export async function GET(_request: Request, { params: { coinId } }: Params) {
     }
 
     try {
-        const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?${COINGECKO_QUERY}`, {
-            next: { revalidate: CACHE_MAX_AGE },
-        });
+        const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?${COINGECKO_QUERY}`, {});
 
         if (!response.ok) {
             return NextResponse.json(

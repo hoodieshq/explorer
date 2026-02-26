@@ -4,7 +4,7 @@ import { array, boolean, is, optional, string, type } from 'superstruct';
 
 import Logger from '@/app/utils/logger';
 
-import { CACHE_HEADERS, CACHE_MAX_AGE, NO_STORE_HEADERS } from '../../config';
+import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
 
 const JupiterTokenSchema = type({
     id: string(),
@@ -38,7 +38,6 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
     try {
         const response = await fetch(`https://api.jup.ag/tokens/v2/search?query=${mintAddress}`, {
             headers: { 'x-api-key': JUPITER_API_KEY },
-            next: { revalidate: CACHE_MAX_AGE },
         });
 
         if (!response.ok) {
