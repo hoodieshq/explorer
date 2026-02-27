@@ -1,9 +1,14 @@
+import { boolean, is, type } from 'superstruct';
 import useSWR from 'swr';
 
 import { useCluster } from '@/app/providers/cluster';
 import { Cluster } from '@/app/utils/cluster';
 
 import { TOKEN_VERIFICATION_SWR_CONFIG } from './token-verification-cache';
+
+const BlupryntResultSchema = type({
+    verified: boolean(),
+});
 
 export enum BlupryntStatus {
     Success,
@@ -27,13 +32,6 @@ function getBlupryntSwrKey(cluster: Cluster, mintAddress?: string): BlupryntSwrK
     return ['bluprynt-verification', mintAddress];
 }
 
-export function parseApiResponse(data: { verified: boolean }): BlupryntResult {
-    return {
-        status: data.verified ? BlupryntStatus.Success : BlupryntStatus.NotFound,
-        verified: data.verified,
-    };
-}
-
 async function fetchBlupryntVerification([, mintAddress]: BlupryntSwrKey): Promise<BlupryntResult> {
     try {
         const response = await fetch(`/api/verification/bluprynt/${mintAddress}`);
@@ -42,8 +40,16 @@ async function fetchBlupryntVerification([, mintAddress]: BlupryntSwrKey): Promi
             return { status: BlupryntStatus.FetchFailed, verified: false };
         }
 
-        const data: { verified: boolean } = await response.json();
-        return parseApiResponse(data);
+        const data = await response.json();
+
+        if (!is(data, BlupryntResultSchema)) {
+            return { status: BlupryntStatus.FetchFailed, verified: false };
+        }
+
+        return {
+            status: data.verified ? BlupryntStatus.Success : BlupryntStatus.NotFound,
+            verified: data.verified,
+        };
     } catch {
         return { status: BlupryntStatus.FetchFailed, verified: false };
     }

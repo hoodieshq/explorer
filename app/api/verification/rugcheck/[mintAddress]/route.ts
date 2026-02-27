@@ -27,7 +27,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
     if (!RUGCHECK_API_KEY) {
         return NextResponse.json(
-            { error: 'Rugcheck API key is not configured' },
+            { error: 'Rugcheck API is misconfigured' },
             { headers: NO_STORE_HEADERS, status: 500 }
         );
     }

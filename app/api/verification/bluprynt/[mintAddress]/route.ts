@@ -24,7 +24,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
     if (!BLUPRYNT_CREDENTIAL) {
         return NextResponse.json(
-            { error: 'Bluprynt credential authority is not configured' },
+            { error: 'Bluprynt API is misconfigured' },
             { headers: NO_STORE_HEADERS, status: 500 }
         );
     }

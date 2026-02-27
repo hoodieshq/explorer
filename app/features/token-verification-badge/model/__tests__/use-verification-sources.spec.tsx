@@ -226,6 +226,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: 15,
                 status: RugCheckStatus.Success,
+                verified: true,
             });
 
             const { result } = renderHook(() => useTokenVerification(baseTokenInfo));
@@ -241,6 +242,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: 45,
                 status: RugCheckStatus.Success,
+                verified: false,
             });
 
             const { result } = renderHook(() => useTokenVerification(baseTokenInfo));
@@ -256,6 +258,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: 85,
                 status: RugCheckStatus.Success,
+                verified: false,
             });
 
             const { result } = renderHook(() => useTokenVerification(baseTokenInfo));
@@ -271,6 +274,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: undefined,
                 status: RugCheckStatus.RateLimited,
+                verified: false,
             });
 
             const { result } = renderHook(() => useTokenVerification(baseTokenInfo));
@@ -285,6 +289,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: undefined,
                 status: RugCheckStatus.FetchFailed,
+                verified: false,
             });
 
             const { result } = renderHook(() => useTokenVerification(baseTokenInfo));
@@ -312,6 +317,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: 20,
                 status: RugCheckStatus.Success,
+                verified: true,
             });
 
             const { result } = renderHook(() => useTokenVerification(baseTokenInfo));
@@ -341,6 +347,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: undefined,
                 status: RugCheckStatus.FetchFailed,
+                verified: false,
             });
 
             const { result } = renderHook(() => useTokenVerification(baseTokenInfo));
@@ -366,6 +373,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: undefined,
                 status: RugCheckStatus.FetchFailed,
+                verified: false,
             });
 
             const unverifiedToken = { ...baseTokenInfo, verified: false };
@@ -395,6 +403,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: undefined,
                 status: RugCheckStatus.RateLimited,
+                verified: false,
             });
 
             const unverifiedToken = { ...baseTokenInfo, verified: false };
@@ -419,6 +428,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: undefined,
                 status: RugCheckStatus.FetchFailed,
+                verified: false,
             });
 
             const unverifiedToken = { ...baseTokenInfo, verified: false };
@@ -442,6 +452,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: 20,
                 status: RugCheckStatus.Success,
+                verified: true,
             });
 
             const { result } = renderHook(() => useTokenVerification(baseTokenInfo));
@@ -473,6 +484,7 @@ describe('useTokenVerification', () => {
             vi.mocked(useRugCheckVerification).mockReturnValue({
                 score: 50,
                 status: RugCheckStatus.Success,
+                verified: false,
             });
 
             const { result } = renderHook(() => useTokenVerification(baseTokenInfo));

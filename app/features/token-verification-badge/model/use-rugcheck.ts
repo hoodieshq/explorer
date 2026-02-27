@@ -21,6 +21,7 @@ export enum RugCheckStatus {
 export type RugCheckResult = {
     score?: number;
     status: RugCheckStatus;
+    verified: boolean;
 };
 
 export enum ERiskLevel {
@@ -51,20 +52,21 @@ async function fetchRugCheckVerification([, mintAddress]: RugCheckSwrKey): Promi
 
         if (!response.ok) {
             if (response.status === 429) {
-                return { score: undefined, status: RugCheckStatus.RateLimited };
+                return { score: undefined, status: RugCheckStatus.RateLimited, verified: false };
             }
-            return { score: undefined, status: RugCheckStatus.FetchFailed };
+            return { score: undefined, status: RugCheckStatus.FetchFailed, verified: false };
         }
 
         const data = await response.json();
 
         if (!is(data, RugCheckResultSchema)) {
-            return { score: undefined, status: RugCheckStatus.FetchFailed };
+            return { score: undefined, status: RugCheckStatus.FetchFailed, verified: false };
         }
 
-        return { score: data.score, status: RugCheckStatus.Success };
+        const verified = data.score <= RISK_MAX_LEVEL_GOOD;
+        return { score: data.score, status: RugCheckStatus.Success, verified };
     } catch {
-        return { score: undefined, status: RugCheckStatus.FetchFailed };
+        return { score: undefined, status: RugCheckStatus.FetchFailed, verified: false };
     }
 }
 
@@ -74,10 +76,10 @@ export function useRugCheckVerification(mintAddress?: string): RugCheckResult | 
     const { data, isLoading } = useSWR(swrKey, fetchRugCheckVerification, TOKEN_VERIFICATION_SWR_CONFIG);
 
     if (isLoading && !data) {
-        return { score: undefined, status: RugCheckStatus.Loading };
+        return { score: undefined, status: RugCheckStatus.Loading, verified: false };
     }
 
-    return data || { score: undefined, status: RugCheckStatus.FetchFailed };
+    return data || { score: undefined, status: RugCheckStatus.FetchFailed, verified: false };
 }
 
 export { getRiskLevel };

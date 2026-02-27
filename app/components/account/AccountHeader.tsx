@@ -42,6 +42,15 @@ export function AccountHeader({
     const isProgram = parsedData && isUpgradeableLoaderAccountData(parsedData) && parsedData?.parsed.type === 'program';
     const isNativeProgram = Boolean(account?.executable);
 
+    const fallback = (
+        <div className="e-flex e-flex-col">
+            <h6 className="header-pretitle">Details</h6>
+            <h2 className="header-title">Account</h2>
+        </div>
+    );
+
+    if (isTokenInfoLoading) return fallback;
+
     if (isMetaplexNFT(parsedData, mintInfo) && parsedData.nftData) {
         return <MetaplexNFTHeader nftData={parsedData.nftData} address={address} />;
     }
@@ -68,12 +77,6 @@ export function AccountHeader({
         return <ProgramHeader address={address} />;
     }
 
-    const fallback = (
-        <div className="e-flex e-flex-col">
-            <h6 className="header-pretitle">Details</h6>
-            <h2 className="header-title">Account</h2>
-        </div>
-    );
     if (account) {
         return (
             <ErrorBoundary fallback={fallback}>

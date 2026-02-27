@@ -30,7 +30,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
     if (!JUPITER_API_KEY) {
         return NextResponse.json(
-            { error: 'Jupiter API key is not configured' },
+            { error: 'Jupiter API is misconfigured' },
             { headers: NO_STORE_HEADERS, status: 500 }
         );
     }
