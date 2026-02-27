@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
 import { array, boolean, is, optional, string, type } from 'superstruct';
@@ -34,10 +35,18 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
     try {
         const response = await fetch(`https://api.jup.ag/tokens/v2/search?query=${mintAddress}`, {
-            headers: { 'x-api-key': JUPITER_API_KEY },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': JUPITER_API_KEY,
+            },
         });
 
         if (!response.ok) {
+            if (response.status === 429) {
+                Sentry.captureMessage('Jupiter API rate limit exceeded', { level: 'warning' });
+            } else {
+                Sentry.captureException(new Error(`Jupiter API error: ${response.status}`));
+            }
             return NextResponse.json(
                 { error: 'Failed to fetch jupiter data' },
                 { headers: NO_STORE_HEADERS, status: response.status }
@@ -54,6 +63,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         return NextResponse.json({ verified: token?.isVerified === true }, { headers: CACHE_HEADERS });
     } catch (error) {
         Logger.error(new Error('Jupiter API error', { cause: error }));
+        Sentry.captureException(error);
         return NextResponse.json({ error: 'Failed to fetch jupiter data' }, { headers: NO_STORE_HEADERS, status: 500 });
     }
 }

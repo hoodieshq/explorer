@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { Connection, PublicKey } from '@solana/web3.js';
 import { Cluster, serverClusterUrl } from '@utils/cluster';
 import { NextResponse } from 'next/server';
@@ -50,6 +51,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         return NextResponse.json({ verified }, { headers: CACHE_HEADERS });
     } catch (error) {
         Logger.error(new Error('Bluprynt verification error', { cause: error }));
+        Sentry.captureException(error);
         return NextResponse.json(
             { error: 'Failed to verify bluprynt data' },
             { headers: NO_STORE_HEADERS, status: 500 }

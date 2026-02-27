@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/nextjs';
 import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
 import { is, number, type } from 'superstruct';
@@ -34,10 +35,18 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
     try {
         const response = await fetch(`https://premium.rugcheck.xyz/v1/tokens/${mintAddress}/report`, {
-            headers: { 'x-api-key': RUGCHECK_API_KEY },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': RUGCHECK_API_KEY,
+            },
         });
 
         if (!response.ok) {
+            if (response.status === 429) {
+                Sentry.captureMessage('Rugcheck API rate limit exceeded', { level: 'warning' });
+            } else {
+                Sentry.captureException(new Error(`Rugcheck API error: ${response.status}`));
+            }
             return NextResponse.json(
                 { error: 'Failed to fetch rugcheck data' },
                 { headers: NO_STORE_HEADERS, status: response.status }
@@ -56,6 +65,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
         return NextResponse.json({ score: data.score_normalised }, { headers: CACHE_HEADERS });
     } catch (error) {
         Logger.error(new Error('Rugcheck API error', { cause: error }));
+        Sentry.captureException(error);
         return NextResponse.json(
             { error: 'Failed to fetch rugcheck data' },
             { headers: NO_STORE_HEADERS, status: 500 }
