@@ -23,14 +23,15 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
     const coingeckoVerified = !!tokenInfo?.extensions?.coingeckoId && coinInfo?.status === CoingeckoStatus.Success;
     const solflareVerified = tokenInfo && 'verified' in tokenInfo ? tokenInfo.verified : false;
     const jupiterVerified = jupiterInfo?.status === JupiterStatus.Success && jupiterInfo.verified;
+    const rugCheckVerified = rugCheckInfo?.status === RugCheckStatus.Success && rugCheckInfo.verified;
 
     const rugCheckScore = rugCheckInfo?.status === RugCheckStatus.Success ? rugCheckInfo.score : undefined;
     const rugCheckLevel = rugCheckScore !== undefined ? getRiskLevel(rugCheckScore) : undefined;
-    const rugCheckVerified = rugCheckLevel === ERiskLevel.Good;
 
     const sources: VerificationSource[] = [
         {
             applyUrl: 'https://app.bluprynt.com/register/account?integration_partner=solana_explorer',
+            isRateLimited: blupryntInfo?.status === BlupryntStatus.RateLimited,
             isVerificationFound: blupryntInfo?.status === BlupryntStatus.Success,
             name: EVerificationSource.Bluprynt,
             url: `https://verified.bluprynt.com/verified-assets/${tokenInfo?.address}/solana`,
@@ -63,7 +64,7 @@ export function useTokenVerification(tokenInfo?: FullTokenInfo | FullLegacyToken
             verified: solflareVerified,
         },
         {
-            applyUrl: 'https://rugcheck.xyz/auth?redirectTo=%2Fauth',
+            applyUrl: 'https://rugcheck.xyz/verify/token',
             isRateLimited: rugCheckInfo?.status === RugCheckStatus.RateLimited,
             isVerificationFound: rugCheckInfo?.status === RugCheckStatus.Success,
             level: rugCheckLevel,
