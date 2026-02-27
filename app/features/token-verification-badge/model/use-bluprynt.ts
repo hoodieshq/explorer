@@ -15,6 +15,7 @@ export enum BlupryntStatus {
     FetchFailed,
     Loading,
     NotFound,
+    RateLimited,
 }
 
 export type BlupryntResult = {
@@ -37,6 +38,9 @@ async function fetchBlupryntVerification([, mintAddress]: BlupryntSwrKey): Promi
         const response = await fetch(`/api/verification/bluprynt/${mintAddress}`);
 
         if (!response.ok) {
+            if (response.status === 429) {
+                return { status: BlupryntStatus.RateLimited, verified: false };
+            }
             return { status: BlupryntStatus.FetchFailed, verified: false };
         }
 

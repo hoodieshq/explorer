@@ -7,6 +7,12 @@ import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
 // eslint-disable-next-line no-restricted-syntax -- CoinGecko coin IDs only contain lowercase letters, numbers, and hyphens
 const VALID_COIN_ID = /^[a-z0-9-]+$/;
 
+const COINGECKO_API_KEY = process.env.COINGECKO_API_KEY;
+
+const COINGECKO_BASE_URL = COINGECKO_API_KEY
+    ? 'https://pro-api.coingecko.com/api/v3'
+    : 'https://api.coingecko.com/api/v3';
+
 const COINGECKO_QUERY = [
     'community_data=false',
     'developer_data=false',
@@ -28,7 +34,9 @@ export async function GET(_request: Request, { params: { coinId } }: Params) {
     }
 
     try {
-        const response = await fetch(`https://api.coingecko.com/api/v3/coins/${coinId}?${COINGECKO_QUERY}`, {});
+        const response = await fetch(`${COINGECKO_BASE_URL}/coins/${coinId}?${COINGECKO_QUERY}`, {
+            headers: COINGECKO_API_KEY ? { 'x-cg-pro-api-key': COINGECKO_API_KEY } : undefined,
+        });
 
         if (!response.ok) {
             return NextResponse.json(

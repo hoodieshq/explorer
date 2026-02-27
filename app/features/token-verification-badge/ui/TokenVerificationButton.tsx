@@ -3,9 +3,9 @@ import React from 'react';
 
 import { cn } from '@/app/components/shared/utils';
 
+import { SourceIcon } from '../icons/SourceIcon';
 import { EVerificationSource, VerificationSource } from '../lib/types';
 import { ERiskLevel, getRiskLevel } from '../model/use-rugcheck';
-import { SourceIcon } from './SourceIcon';
 import { VerificationIcon } from './VerificationIcon';
 
 const sourceBorderVariants = cva('e-flex e-rounded e-border e-border-solid e-p-px e-opacity-80', {

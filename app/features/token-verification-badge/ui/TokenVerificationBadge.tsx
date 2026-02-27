@@ -1,12 +1,9 @@
 'use client';
 
-import { useHoverPopover } from '@/app/components/shared/hooks';
-import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/shared/ui/popover';
 import { FullLegacyTokenInfo, FullTokenInfo } from '@/app/utils/token-info';
 
 import { useTokenVerification } from '../model/use-verification-sources';
-import { TokenVerificationButton } from './TokenVerificationButton';
-import { TokenVerificationContent } from './TokenVerificationContent';
+import { BaseTokenVerificationBadge } from './BaseTokenVerificationBadge';
 
 export type TokenVerificationBadgeProps = {
     tokenInfo?: FullTokenInfo | FullLegacyTokenInfo;
@@ -14,33 +11,7 @@ export type TokenVerificationBadgeProps = {
 };
 
 export function TokenVerificationBadge({ tokenInfo, isTokenInfoLoading }: TokenVerificationBadgeProps) {
-    const { hoverHandlers, isOpen, setIsOpen } = useHoverPopover();
+    const verificationResult = useTokenVerification(tokenInfo);
 
-    const { rateLimitedSources, sourcesToApply, verificationFoundSources } = useTokenVerification(tokenInfo);
-
-    return (
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild {...hoverHandlers}>
-                <TokenVerificationButton
-                    isLoading={isTokenInfoLoading}
-                    isOpen={isOpen}
-                    verificationFoundSources={verificationFoundSources}
-                />
-            </PopoverTrigger>
-            <PopoverContent
-                align="start"
-                collisionPadding={8}
-                side="bottom"
-                className="e-w-72 e-p-4"
-                {...hoverHandlers}
-            >
-                <TokenVerificationContent
-                    isLoading={isTokenInfoLoading}
-                    rateLimitedSources={rateLimitedSources}
-                    sourcesToApply={sourcesToApply}
-                    verificationFoundSources={verificationFoundSources}
-                />
-            </PopoverContent>
-        </Popover>
-    );
+    return <BaseTokenVerificationBadge verificationResult={verificationResult} isLoading={isTokenInfoLoading} />;
 }

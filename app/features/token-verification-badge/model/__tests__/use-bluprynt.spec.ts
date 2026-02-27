@@ -25,6 +25,7 @@ describe('useBlupryntVerification', () => {
     it.each([
         [BlupryntStatus.Success, true],
         [BlupryntStatus.NotFound, false],
+        [BlupryntStatus.RateLimited, false],
     ])('should return %s status when verified is %s', (status, verified) => {
         mockSWR({ status, verified });
         const { result } = renderHook(() => useBlupryntVerification('mint'));

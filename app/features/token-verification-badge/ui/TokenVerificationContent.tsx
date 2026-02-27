@@ -3,9 +3,9 @@ import { AlertCircle, Check, X } from 'react-feather';
 
 import { cn } from '@/app/components/shared/utils';
 
+import { SourceIcon } from '../icons/SourceIcon';
 import { EVerificationSource, VerificationSource } from '../lib/types';
 import { ERiskLevel } from '../model/use-rugcheck';
-import { SourceIcon } from './SourceIcon';
 
 const riskLevelVariants = cva('', {
     variants: {

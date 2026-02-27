@@ -1,6 +1,6 @@
-import { EVerificationSource, VerificationSource } from '../lib/types';
-import { ERiskLevel } from '../model/use-rugcheck';
-import { TokenVerificationResult } from '../model/use-verification-sources';
+import { EVerificationSource, VerificationSource } from '../../lib/types';
+import { ERiskLevel } from '../../model/use-rugcheck';
+import { TokenVerificationResult } from '../../model/use-verification-sources';
 
 const MOCK_ADDRESS = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 
