@@ -4,7 +4,7 @@ import { EVerificationSource, VerificationSource } from '../lib/types';
 import { BlupryntStatus, useBlupryntVerification } from './use-bluprynt';
 import { CoingeckoStatus, useCoinGeckoVerification } from './use-coingecko';
 import { JupiterStatus, useJupiterVerification } from './use-jupiter';
-import { ERiskLevel, getRiskLevel, RugCheckStatus, useRugCheckVerification } from './use-rugcheck';
+import { getRiskLevel, RugCheckStatus, useRugCheckVerification } from './use-rugcheck';
 
 export type TokenVerificationResult = {
     rateLimitedSources: VerificationSource[];
