@@ -1,11 +1,11 @@
 import Image from 'next/image';
 
-import BlupryntLogo from '../icons/bluprynt-logo.png';
-import CoinGeckoLogo from '../icons/coingecko-logo.png';
-import JupiterLogo from '../icons/jupiter-logo.png';
-import RugCheckLogo from '../icons/rugcheck-logo.png';
-import SolflareLogo from '../icons/solflare-logo.png';
-import { EVerificationSource } from '../lib/types';
+import { EVerificationSource } from '../../lib/types';
+import BlupryntLogo from './bluprynt-logo.png';
+import CoinGeckoLogo from './coingecko-logo.png';
+import JupiterLogo from './jupiter-logo.png';
+import RugCheckLogo from './rugcheck-logo.png';
+import SolflareLogo from './solflare-logo.png';
 
 const ICON_SIZE = 16;
 
