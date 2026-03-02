@@ -5,6 +5,9 @@ import Logger from '@/app/utils/logger';
 
 import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
 
+// Prevent Next.js from caching this route to avoid body.tee() errors
+export const dynamic = 'force-dynamic';
+
 // eslint-disable-next-line no-restricted-syntax -- CoinGecko coin IDs only contain lowercase letters, numbers, and hyphens
 const VALID_COIN_ID = /^[a-z0-9-]+$/;
 

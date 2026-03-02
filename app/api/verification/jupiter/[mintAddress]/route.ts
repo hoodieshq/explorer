@@ -7,6 +7,9 @@ import Logger from '@/app/utils/logger';
 
 import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
 
+// Prevent Next.js from caching this route to avoid body.tee() errors
+export const dynamic = 'force-dynamic';
+
 const JupiterTokenSchema = type({
     id: string(),
     isVerified: optional(boolean()),
