@@ -5,9 +5,6 @@ import Logger from '@/app/utils/logger';
 
 import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
 
-// Prevent Next.js from caching this route to avoid body.tee() errors
-export const dynamic = 'force-dynamic';
-
 // eslint-disable-next-line no-restricted-syntax -- CoinGecko coin IDs only contain lowercase letters, numbers, and hyphens
 const VALID_COIN_ID = /^[a-z0-9-]+$/;
 
@@ -39,6 +36,7 @@ export async function GET(_request: Request, { params: { coinId } }: Params) {
 
     try {
         const response = await fetch(`${COINGECKO_BASE_URL}/coins/${coinId}?${COINGECKO_QUERY}`, {
+            cache: 'no-store',
             headers: {
                 'Content-Type': 'application/json',
                 ...(COINGECKO_API_KEY && { 'x-cg-pro-api-key': COINGECKO_API_KEY }),

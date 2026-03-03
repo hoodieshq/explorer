@@ -7,9 +7,6 @@ import Logger from '@/app/utils/logger';
 
 import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
 
-// Prevent Next.js from caching this route to avoid body.tee() errors
-export const dynamic = 'force-dynamic';
-
 const JupiterTokenSchema = type({
     id: string(),
     isVerified: optional(boolean()),
@@ -38,6 +35,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
     try {
         const response = await fetch(`https://api.jup.ag/tokens/v2/search?query=${mintAddress}`, {
+            cache: 'no-store',
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': JUPITER_API_KEY,
