@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
-import fetch from 'node-fetch';
 import { NextResponse } from 'next/server';
+import fetch from 'node-fetch';
 
 import Logger from '@/app/utils/logger';
 

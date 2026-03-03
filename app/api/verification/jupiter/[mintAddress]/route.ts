@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nextjs';
 import { PublicKey } from '@solana/web3.js';
-import fetch from 'node-fetch';
 import { NextResponse } from 'next/server';
+import fetch from 'node-fetch';
 import { array, boolean, is, optional, string, type } from 'superstruct';
 
 import Logger from '@/app/utils/logger';
