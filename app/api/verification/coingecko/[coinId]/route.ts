@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import fetch from 'node-fetch';
 import { NextResponse } from 'next/server';
 
 import Logger from '@/app/utils/logger';
@@ -39,7 +40,6 @@ export async function GET(_request: Request, { params: { coinId } }: Params) {
 
     try {
         const response = await fetch(`${COINGECKO_BASE_URL}/coins/${coinId}?${COINGECKO_QUERY}`, {
-            cache: 'no-store',
             headers: {
                 'Content-Type': 'application/json',
                 ...(COINGECKO_API_KEY && { 'x-cg-pro-api-key': COINGECKO_API_KEY }),

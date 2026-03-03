@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { PublicKey } from '@solana/web3.js';
+import fetch from 'node-fetch';
 import { NextResponse } from 'next/server';
 import { is, number, type } from 'superstruct';
 
@@ -38,7 +39,6 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
     try {
         const response = await fetch(`https://premium.rugcheck.xyz/v1/tokens/${mintAddress}/report`, {
-            cache: 'no-store',
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': RUGCHECK_API_KEY,

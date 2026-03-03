@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { PublicKey } from '@solana/web3.js';
+import fetch from 'node-fetch';
 import { NextResponse } from 'next/server';
 import { array, boolean, is, optional, string, type } from 'superstruct';
 
@@ -38,7 +39,6 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
 
     try {
         const response = await fetch(`https://api.jup.ag/tokens/v2/search?query=${mintAddress}`, {
-            cache: 'no-store',
             headers: {
                 'Content-Type': 'application/json',
                 'x-api-key': JUPITER_API_KEY,
