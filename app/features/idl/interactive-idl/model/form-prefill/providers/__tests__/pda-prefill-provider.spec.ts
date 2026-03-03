@@ -21,7 +21,7 @@ describe('createPdaPrefillDependency', () => {
         expect(dependency.watchesFormValues).toBe(true);
     });
 
-    it('should not fill when IDL is undefined', () => {
+    it('should not fill when IDL is undefined', async () => {
         const { createForm, mockInstruction } = setup(votingIdl030, 'initialize_poll');
         const { form, fieldNames } = createForm();
 
@@ -30,12 +30,12 @@ describe('createPdaPrefillDependency', () => {
         });
 
         const setValueSpy = vi.spyOn(form, 'setValue');
-        dependency.onValueChange(mockInstruction.name, form);
+        await dependency.onValueChange(mockInstruction.name, form);
 
         expect(setValueSpy).not.toHaveBeenCalled();
     });
 
-    it('should fill PDA account when form values are provided', () => {
+    it('should fill PDA account when form values are provided', async () => {
         const { createForm, mockIdl, mockInstruction } = setup(votingIdl030, 'initialize_poll');
         const { form, fieldNames } = createForm();
 
@@ -45,7 +45,7 @@ describe('createPdaPrefillDependency', () => {
             account: fieldNames.account,
         });
 
-        dependency.onValueChange(mockInstruction.name, form);
+        await dependency.onValueChange(mockInstruction.name, form);
 
         const pollValue = form.getValues('accounts.initializePoll.poll');
         expect(pollValue).toBeDefined();
@@ -53,7 +53,7 @@ describe('createPdaPrefillDependency', () => {
         expect(pollValue).not.toBe('');
     });
 
-    it('should not overwrite existing PDA value if it matches', () => {
+    it('should not overwrite existing PDA value if it matches', async () => {
         const { createForm, mockIdl, mockInstruction } = setup(votingIdl030, 'initialize_poll');
         const { form, fieldNames } = createForm();
 
@@ -63,15 +63,15 @@ describe('createPdaPrefillDependency', () => {
             account: fieldNames.account,
         });
 
-        dependency.onValueChange(mockInstruction.name, form);
+        await dependency.onValueChange(mockInstruction.name, form);
         const firstValue = form.getValues('accounts.initializePoll.poll');
 
-        dependency.onValueChange(mockInstruction.name, form);
+        await dependency.onValueChange(mockInstruction.name, form);
 
         expect(form.getValues('accounts.initializePoll.poll')).toBe(firstValue);
     });
 
-    it('should handle nested PDA accounts', () => {
+    it('should handle nested PDA accounts', async () => {
         const { createForm, mockIdl, mockInstruction } = setup(votingIdl030Variations, 'instruction_with_nested');
         const { form, fieldNames } = createForm();
 
@@ -81,14 +81,14 @@ describe('createPdaPrefillDependency', () => {
             account: fieldNames.account,
         });
 
-        dependency.onValueChange(mockInstruction.name, form);
+        await dependency.onValueChange(mockInstruction.name, form);
 
         const nestedAccountValue = form.getValues('accounts.instructionWithNested.nestedGroup.nestedAccount');
         expect(nestedAccountValue).toBeDefined();
         expect(typeof nestedAccountValue).toBe('string');
     });
 
-    it('should not fill non-PDA accounts', () => {
+    it('should not fill non-PDA accounts', async () => {
         const { createForm, mockIdl, mockInstruction } = setup(votingIdl030Variations, 'instruction_with_non_pda');
         const { form, fieldNames } = createForm();
 
@@ -97,12 +97,12 @@ describe('createPdaPrefillDependency', () => {
         });
 
         const setValueSpy = vi.spyOn(form, 'setValue');
-        dependency.onValueChange(mockInstruction.name, form);
+        await dependency.onValueChange(mockInstruction.name, form);
 
         expect(setValueSpy).not.toHaveBeenCalled();
     });
 
-    it('should preserve manual edits', () => {
+    it('should preserve manual edits', async () => {
         const { createForm, mockIdl, mockInstruction } = setup(votingIdl030, 'initialize_poll');
         const { form, fieldNames } = createForm();
 
@@ -112,17 +112,17 @@ describe('createPdaPrefillDependency', () => {
             account: fieldNames.account,
         });
 
-        dependency.onValueChange(mockInstruction.name, form);
+        await dependency.onValueChange(mockInstruction.name, form);
 
         const manualEdit = 'ManuallyEditedAddress123456789';
         form.setValue('accounts.initializePoll.poll', manualEdit);
 
-        dependency.onValueChange(mockInstruction.name, form);
+        await dependency.onValueChange(mockInstruction.name, form);
 
         expect(form.getValues('accounts.initializePoll.poll')).toBe(manualEdit);
     });
 
-    it('should update auto-filled fields when generated value changes', () => {
+    it('should update auto-filled fields when generated value changes', async () => {
         const { createForm, mockIdl, mockInstruction } = setup(votingIdl030, 'initialize_poll');
         const { form, fieldNames } = createForm();
 
@@ -132,12 +132,12 @@ describe('createPdaPrefillDependency', () => {
             account: fieldNames.account,
         });
 
-        dependency.onValueChange(mockInstruction.name, form);
+        await dependency.onValueChange(mockInstruction.name, form);
         const firstValue = form.getValues('accounts.initializePoll.poll');
 
         form.setValue('arguments.initializePoll.pollId', '456');
 
-        dependency.onValueChange(mockInstruction.name, form);
+        await dependency.onValueChange(mockInstruction.name, form);
         const secondValue = form.getValues('accounts.initializePoll.poll');
 
         expect(secondValue).not.toBe(firstValue);

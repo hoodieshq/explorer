@@ -43,7 +43,7 @@ export function createPdaPrefillDependency(
     return {
         getValue: () => instruction.name,
         id: 'pda-prefill',
-        onValueChange: (_value: unknown, form: UseFormReturn<InstructionFormData>) => {
+        onValueChange: async (_value: unknown, form: UseFormReturn<InstructionFormData>) => {
             if (!idl) {
                 return;
             }
@@ -55,7 +55,7 @@ export function createPdaPrefillDependency(
             }
 
             const formValues = form.getValues();
-            const pdas = computePdas(idl, instruction, formValues);
+            const pdas = await computePdas(idl, instruction, formValues);
 
             for (const [accountName, path] of pdaAccountPaths.entries()) {
                 const pdaData = pdas[accountName];

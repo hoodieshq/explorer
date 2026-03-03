@@ -33,13 +33,21 @@ export interface PdaInstruction {
 }
 
 /**
+ * Result of PDA generation for a single account
+ */
+export interface PdaGenerationResult {
+    generated: string | null;
+    seeds: { value: string | null; name: string }[];
+}
+
+/**
  * Provider for extracting PDA information from different IDL formats
  */
 export type PdaProvider = {
     /**
      * Unique name identifier for this provider
      */
-    name: 'anchor';
+    name: 'anchor' | 'codama';
 
     /**
      * Check if this provider can handle the given IDL
@@ -56,4 +64,15 @@ export type PdaProvider = {
      * Returns null if instruction not found
      */
     findInstruction: (idl: SupportedIdl, instructionName: string) => PdaInstruction | null;
+
+    /**
+     * Directly compute PDA addresses for an instruction's accounts.
+     * When provided, this takes precedence over findInstruction + manual derivation.
+     */
+    computePdas?: (
+        idl: SupportedIdl,
+        instructionName: string,
+        args: Record<string, string | undefined>,
+        accounts: Record<string, string | Record<string, string | undefined> | undefined>
+    ) => Promise<Record<string, PdaGenerationResult>>;
 };

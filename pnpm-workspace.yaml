@@ -1,0 +1,4 @@
+minimumReleaseAgeExclude:
+  - '@hoodieshq/*'
+  - '@codama/*'
+  - codama

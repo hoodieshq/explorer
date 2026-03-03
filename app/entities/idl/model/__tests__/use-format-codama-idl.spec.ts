@@ -56,7 +56,7 @@ describe('useFormatCodamaIdl', () => {
         expect(args).toHaveLength(1);
         expect(args?.[0]).toMatchObject({
             name: 'seed',
-            type: 'string:utf8',
+            type: 'string',
         });
     });
 

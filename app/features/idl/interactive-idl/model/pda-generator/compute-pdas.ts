@@ -5,28 +5,29 @@ import type { DeepPartial } from 'react-hook-form';
 
 import type { InstructionFormData } from '../use-instruction-form';
 import { createAnchorPdaProvider } from './anchor-provider';
+import { createCodamaPdaProvider } from './codama-provider';
 import { resolveProgramId } from './program-resolver';
 import { createPdaProviderRegistry } from './registry';
 import { buildSeedsWithInfo } from './seed-builder';
+import type { PdaGenerationResult } from './types';
 
 const defaultRegistry = createPdaProviderRegistry();
 defaultRegistry.register(createAnchorPdaProvider());
-
-export interface PdaGenerationResult {
-    generated: string | null;
-    seeds: { value: string | null; name: string }[];
-}
+defaultRegistry.register(createCodamaPdaProvider());
 
 /**
  * Computes PDA addresses for accounts that have PDA seeds defined.
  * Returns a map of account names (camelCase) to their computed PDA data.
+ *
+ * If the provider supports direct `computePdas`, delegates to it (async).
+ * Otherwise falls back to the synchronous findInstruction + seed-builder path.
  */
-export function computePdas(
+export async function computePdas(
     idl: SupportedIdl | undefined,
     instruction: InstructionData,
     formValues: DeepPartial<InstructionFormData>,
-): Record<string, PdaGenerationResult> {
-    if (!idl) {
+): Promise<Record<string, PdaGenerationResult>> {
+    if (!idl || !instruction) {
         return {};
     }
 
@@ -40,13 +41,36 @@ export function computePdas(
         return {};
     }
 
+    const args = formValues.arguments?.[instruction.name] || {};
+    const accounts = formValues.accounts?.[instruction.name] || {};
+
+    // Use provider's direct PDA computation if available
+    if (provider.computePdas) {
+        return provider.computePdas(
+            idl,
+            instruction.name,
+            args as Record<string, string | undefined>,
+            accounts as Record<string, string | Record<string, string | undefined> | undefined>
+        );
+    }
+
+    // Fallback: sync path using findInstruction + seed-builder
+    return computePdasSync(idl, instruction, provider, programId, args, accounts);
+}
+
+function computePdasSync(
+    idl: SupportedIdl,
+    instruction: InstructionData,
+    provider: ReturnType<typeof defaultRegistry.findProvider> & object,
+    programId: PublicKey,
+    args: Record<string, unknown>,
+    accounts: Record<string, unknown>
+): Record<string, PdaGenerationResult> {
     const idlInstruction = provider.findInstruction(idl, instruction.name);
     if (!idlInstruction) {
         return {};
     }
 
-    const args = formValues.arguments?.[instruction.name] || {};
-    const accounts = formValues.accounts?.[instruction.name] || {};
     const pdaAddresses: Record<string, PdaGenerationResult> = {};
 
     for (const account of idlInstruction.accounts) {
@@ -64,12 +88,15 @@ export function computePdas(
         try {
             const { buffers: seedBuffers, info: seedInfo } = buildSeedsWithInfo(
                 account.pda.seeds,
-                args,
-                accounts,
+                args as Record<string, string | undefined>,
+                accounts as Record<string, string | Record<string, string | undefined> | undefined>,
                 idlInstruction,
             );
 
-            const derivationProgramId = resolveProgramId(programId, account.pda.program, { accounts, args });
+            const derivationProgramId = resolveProgramId(programId, account.pda.program, {
+                accounts: accounts as Record<string, string | Record<string, string | undefined> | undefined>,
+                args: args as Record<string, string | undefined>,
+            });
 
             if (seedBuffers && derivationProgramId) {
                 const [pda] = PublicKey.findProgramAddressSync(seedBuffers, derivationProgramId);
@@ -84,7 +111,12 @@ export function computePdas(
                 };
             }
         } catch {
-            const { info: seedInfo } = buildSeedsWithInfo(account.pda.seeds, args, accounts, idlInstruction);
+            const { info: seedInfo } = buildSeedsWithInfo(
+                account.pda.seeds,
+                args as Record<string, string | undefined>,
+                accounts as Record<string, string | Record<string, string | undefined> | undefined>,
+                idlInstruction
+            );
             pdaAddresses[camelName] = {
                 generated: null,
                 seeds: seedInfo,

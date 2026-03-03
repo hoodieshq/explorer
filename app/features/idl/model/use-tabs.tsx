@@ -1,12 +1,6 @@
 'use client';
 
-import {
-    FormattedIdl,
-    getIdlSpec,
-    isIdlProgramIdMismatch,
-    isInteractiveIdlSupported,
-    type SupportedIdl,
-} from '@entities/idl';
+import { FormattedIdl, isIdlProgramIdMismatch, isInteractiveIdlSupported, type SupportedIdl } from '@entities/idl';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@shared/ui/tooltip';
 import { cn } from '@shared/utils';
 import { isEnvEnabled } from '@utils/env';
@@ -112,22 +106,16 @@ export function useTabs(idl: FormattedIdl | null, originalIdl: SupportedIdl, pro
             },
         ];
 
-        // Only show interactive tab for Anchor IDLs (getIdlSpec returns null for legacy and codama)
-        if (originalIdl && getIdlSpec(originalIdl) !== null && IS_INTERACTIVE_IDL_ENABLED) {
-            const isVersionUnsupported = !isInteractiveIdlSupported(originalIdl);
+        // Show interactive tab for modern Anchor IDLs and Codama IDLs
+        if (originalIdl && isInteractiveIdlSupported(originalIdl) && IS_INTERACTIVE_IDL_ENABLED) {
             const isProgramIdMismatch = programId ? isIdlProgramIdMismatch(originalIdl, programId) : false;
-            const isInteractDisabled = isVersionUnsupported || isProgramIdMismatch;
-
-            const warningMessage = isProgramIdMismatch
-                ? 'IDL program address does not match the current program'
-                : 'Current version of IDL is not supported';
 
             tabItems.push({
                 disabled: !idl.instructions?.length,
                 id: 'interact',
                 render: () =>
-                    isInteractDisabled ? (
-                        <BaseWarningCard message={warningMessage} />
+                    isProgramIdMismatch ? (
+                        <BaseWarningCard message="IDL program address does not match the current program" />
                     ) : (
                         <InteractWithIdl
                             data={idl.instructions}
@@ -141,7 +129,7 @@ export function useTabs(idl: FormattedIdl | null, originalIdl: SupportedIdl, pro
                     ),
                 title: (
                     <InteractWithIdlTabName
-                        isInteractDisabled={isInteractDisabled}
+                        isInteractDisabled={isProgramIdMismatch}
                         isProgramIdMismatch={isProgramIdMismatch}
                     />
                 ),
@@ -198,8 +186,8 @@ function InteractWithIdlTabName({
     const tooltipMessage = isProgramIdMismatch
         ? 'IDL program address does not match the current program'
         : isInteractDisabled
-          ? 'Currently we support only modern Anchor IDL >= 0.30.1'
-          : "Launch Anchor's instructions";
+          ? 'Interactive IDL is not supported for this version'
+          : 'Launch program instructions';
 
     return (
         <Tooltip>

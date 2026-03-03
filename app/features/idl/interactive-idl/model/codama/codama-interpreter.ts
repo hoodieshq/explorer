@@ -1,36 +1,55 @@
 import { getIdlSpecType } from '@entities/idl/model/converters/convert-legacy-idl';
-import type { Connection, PublicKey, TransactionInstruction, VersionedMessage } from '@solana/web3.js';
+import { createProgramClient } from '@hoodieshq/dynamic-instructions';
+import type { Connection, TransactionInstruction, VersionedMessage } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 
 import type { IdlInterpreter } from '../idl-interpreter.d';
-import type { UnifiedAccounts, UnifiedArguments, UnifiedProgram, UnifiedWallet } from '../unified-program.d';
+import type { BaseIdl, UnifiedAccounts, UnifiedArguments, UnifiedWallet } from '../unified-program.d';
+import { CodamaUnifiedProgram } from './codama-program';
 
 /**
- * Codama IDL interpreter (stub implementation)
- * Currently not supported, but properly identifies Codama IDLs to prevent infinite retries
+ * Codama IDL interpreter
  */
-export class CodamaInterpreter implements IdlInterpreter<any, UnifiedProgram> {
+export class CodamaInterpreter implements IdlInterpreter<BaseIdl, CodamaUnifiedProgram> {
     static readonly NAME = 'codama' as const;
     name = CodamaInterpreter.NAME;
 
-    canHandle(idl: any): boolean {
+    canHandle(idl: unknown): boolean {
         return getIdlSpecType(idl) === CodamaInterpreter.NAME;
     }
 
     async createProgram(
         _connection: Connection,
         _wallet: UnifiedWallet,
-        _programId: PublicKey | string,
-        _idl: any,
-    ): Promise<UnifiedProgram> {
-        throw new Error('Codama IDL format is not yet supported for interactive features.');
+        programId: PublicKey | string,
+        idl: BaseIdl,
+    ): Promise<CodamaUnifiedProgram> {
+        const publicKey = typeof programId === 'string' ? new PublicKey(programId) : programId;
+        const programIdStr = publicKey.toBase58();
+
+        const client = createProgramClient(idl, { programId: programIdStr });
+
+        return new CodamaUnifiedProgram(publicKey, idl, client);
     }
 
     async createInstruction(
-        _program: UnifiedProgram,
-        _instructionName: string,
-        _accounts: UnifiedAccounts,
-        _args: UnifiedArguments,
+        program: CodamaUnifiedProgram,
+        instructionName: string,
+        accounts: Record<string, string> | UnifiedAccounts,
+        args: UnifiedArguments,
     ): Promise<TransactionInstruction | VersionedMessage> {
-        throw new Error('Codama IDL format is not yet supported for interactive features.');
+        // Normalize accounts to UnifiedAccounts (Record<string, PublicKey | null>)
+        const normalizedAccounts: UnifiedAccounts = {};
+        for (const [key, value] of Object.entries(accounts)) {
+            if (!value || value === '') {
+                normalizedAccounts[key] = null;
+            } else if (typeof value === 'string') {
+                normalizedAccounts[key] = value.trim() !== '' ? new PublicKey(value) : null;
+            } else {
+                normalizedAccounts[key] = value;
+            }
+        }
+
+        return program.buildInstruction(instructionName, normalizedAccounts, args);
     }
 }
