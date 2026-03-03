@@ -7,6 +7,8 @@ import Logger from '@/app/utils/logger';
 
 import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
 
+export const dynamic = 'force-dynamic';
+
 const RugCheckResponseSchema = type({
     score_normalised: number(),
 });
