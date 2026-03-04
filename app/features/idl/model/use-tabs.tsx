@@ -127,12 +127,7 @@ export function useTabs(idl: FormattedIdl | null, originalIdl: SupportedIdl, pro
                             onWalletConnected={idlAnalytics.trackWalletConnected}
                         />
                     ),
-                title: (
-                    <InteractWithIdlTabName
-                        isInteractDisabled={isProgramIdMismatch}
-                        isProgramIdMismatch={isProgramIdMismatch}
-                    />
-                ),
+                title: <InteractWithIdlTabName isProgramIdMismatch={isProgramIdMismatch} />,
             } as InteractTab);
         }
 
@@ -169,32 +164,24 @@ function NoSearchResultsPlaceholder({ tabName }: { tabName: string }) {
     );
 }
 
-function InteractWithIdlTabName({
-    isInteractDisabled,
-    isProgramIdMismatch = false,
-}: {
-    isInteractDisabled: boolean;
-    isProgramIdMismatch?: boolean;
-}) {
+function InteractWithIdlTabName({ isProgramIdMismatch = false }: { isProgramIdMismatch?: boolean }) {
     const tab = (
         <div className="e-flex e-items-center e-gap-1">
-            {isInteractDisabled ? <XCircle size={14} /> : <PlayCircle size={14} />}
+            {isProgramIdMismatch ? <XCircle size={14} /> : <PlayCircle size={14} />}
             Interact
         </div>
     );
 
     const tooltipMessage = isProgramIdMismatch
         ? 'IDL program address does not match the current program'
-        : isInteractDisabled
-          ? 'Interactive IDL is not supported for this version'
-          : 'Launch program instructions';
+        : 'Launch program instructions';
 
     return (
         <Tooltip>
             <TooltipTrigger asChild>
                 <div
                     className={cn('e-w-fit', {
-                        'e-cursor-not-allowed e-opacity-50': isInteractDisabled,
+                        'e-cursor-not-allowed e-opacity-50': isProgramIdMismatch,
                     })}
                 >
                     {tab}

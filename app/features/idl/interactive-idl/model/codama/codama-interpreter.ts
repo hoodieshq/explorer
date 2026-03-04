@@ -41,7 +41,7 @@ export class CodamaInterpreter implements IdlInterpreter<BaseIdl, CodamaUnifiedP
         // Normalize accounts to UnifiedAccounts (Record<string, PublicKey | null>)
         const normalizedAccounts: UnifiedAccounts = {};
         for (const [key, value] of Object.entries(accounts)) {
-            if (!value || value === '') {
+            if (!value) {
                 normalizedAccounts[key] = null;
             } else if (typeof value === 'string') {
                 normalizedAccounts[key] = value.trim() !== '' ? new PublicKey(value) : null;
