@@ -143,6 +143,70 @@ describe('CodamaInterpreter', () => {
         });
     });
 
+    describe('account normalization', () => {
+        it('should normalize null account values', async () => {
+            const idl = loadIdl('system-program-idl.json');
+            const program = await interpreter.createProgram(mockConnection, mockWallet, mockProgramId, idl);
+
+            const source = 'Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV';
+            // Passing null for destination — should normalize to null and let buildInstruction handle it
+            await expect(
+                interpreter.createInstruction(program, 'transferSol', { destination: null as any, source }, ['1000'])
+            ).rejects.toThrow();
+        });
+
+        it('should normalize empty string account to null', async () => {
+            const idl = loadIdl('system-program-idl.json');
+            const program = await interpreter.createProgram(mockConnection, mockWallet, mockProgramId, idl);
+
+            const source = 'Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV';
+            await expect(
+                interpreter.createInstruction(program, 'transferSol', { destination: '', source }, ['1000'])
+            ).rejects.toThrow();
+        });
+
+        it('should normalize whitespace-only account to null', async () => {
+            const idl = loadIdl('system-program-idl.json');
+            const program = await interpreter.createProgram(mockConnection, mockWallet, mockProgramId, idl);
+
+            const source = 'Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV';
+            await expect(
+                interpreter.createInstruction(program, 'transferSol', { destination: '   ', source }, ['1000'])
+            ).rejects.toThrow();
+        });
+
+        it('should throw descriptive error for invalid public key', async () => {
+            const idl = loadIdl('system-program-idl.json');
+            const program = await interpreter.createProgram(mockConnection, mockWallet, mockProgramId, idl);
+
+            const source = 'Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV';
+            await expect(
+                interpreter.createInstruction(
+                    program,
+                    'transferSol',
+                    { destination: 'not-a-valid-pubkey!!!', source },
+                    ['1000']
+                )
+            ).rejects.toThrow('Invalid public key for account "destination"');
+        });
+
+        it('should accept PublicKey objects directly', async () => {
+            const idl = loadIdl('system-program-idl.json');
+            const program = await interpreter.createProgram(mockConnection, mockWallet, mockProgramId, idl);
+
+            const source = new PublicKey('Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV');
+            const destination = new PublicKey('2xNweLHLKifGNBhLp2giBonGDJ3dPAHpSTaMJmfcMon8');
+
+            const ix = await interpreter.createInstruction(
+                program,
+                'transferSol',
+                { destination, source } as any,
+                ['1000']
+            );
+            expect(ix).toBeInstanceOf(TransactionInstruction);
+        });
+    });
+
     describe('argument conversion', () => {
         it('should convert u64 string args to BigInt via the instruction builder', async () => {
             const idl = loadIdl('system-program-idl.json');

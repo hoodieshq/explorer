@@ -44,6 +44,14 @@ describe('convertValue', () => {
         it('should convert non-string number value', () => {
             expect(convertValue(42, numberType('u8'))).toBe(42);
         });
+
+        it('should throw for invalid number string', () => {
+            expect(() => convertValue('abc', numberType('u32'))).toThrow('Invalid number value');
+        });
+
+        it('should throw for invalid BigInt string', () => {
+            expect(() => convertValue('not-a-number', numberType('u64'))).toThrow('Invalid integer value');
+        });
     });
 
     describe('booleanTypeNode', () => {
@@ -95,6 +103,23 @@ describe('convertValue', () => {
             const result = convertValue('[1, 2, 3, 255]', bytesType());
             expect(result).toEqual(new Uint8Array([1, 2, 3, 255]));
         });
+
+        it('should convert empty hex string to empty Uint8Array', () => {
+            // empty string returns null from the top-level guard
+            expect(convertValue('00', bytesType())).toEqual(new Uint8Array([0]));
+        });
+
+        it('should throw for odd-length hex string', () => {
+            expect(() => convertValue('abc', bytesType())).toThrow('Hex string must have even length');
+        });
+
+        it('should throw for invalid hex characters', () => {
+            expect(() => convertValue('zzzz', bytesType())).toThrow('Invalid hex character');
+        });
+
+        it('should throw for invalid JSON array', () => {
+            expect(() => convertValue('[1, 2,', bytesType())).toThrow('Invalid bytes array');
+        });
     });
 
     describe('optionTypeNode', () => {
@@ -108,6 +133,18 @@ describe('convertValue', () => {
 
         it('should unwrap and convert the inner value', () => {
             expect(convertValue('42', optionType(numberType('u64')))).toBe(BigInt(42));
+        });
+
+        it('should handle remainderOptionTypeNode', () => {
+            const type = { kind: 'remainderOptionTypeNode', item: numberType('u8') } as unknown as TypeNode;
+            expect(convertValue('null', type)).toBeNull();
+            expect(convertValue('42', type)).toBe(42);
+        });
+
+        it('should handle zeroableOptionTypeNode', () => {
+            const type = { kind: 'zeroableOptionTypeNode', item: stringType() } as unknown as TypeNode;
+            expect(convertValue('none', type)).toBeNull();
+            expect(convertValue('hello', type)).toBe('hello');
         });
     });
 
@@ -181,6 +218,15 @@ describe('convertValue', () => {
             const type = structType([{ name: 'x', type: numberType('u8') }]);
             expect(convertValue('42', type)).toBe(42);
         });
+
+        it('should convert missing field to null', () => {
+            const type = structType([
+                { name: 'a', type: numberType('u8') },
+                { name: 'b', type: numberType('u8') },
+            ]);
+            const result = convertValue({ a: '5' }, type);
+            expect(result).toEqual({ a: 5, b: null });
+        });
     });
 
     describe('enumTypeNode', () => {
@@ -194,6 +240,11 @@ describe('convertValue', () => {
             const result = convertValue('{"Transfer": {"amount": 100}}', type);
             expect(result).toEqual({ Transfer: { amount: 100 } });
         });
+
+        it('should throw for invalid JSON object variant', () => {
+            const type = enumType([{ name: 'Transfer' }]);
+            expect(() => convertValue('{invalid', type)).toThrow('Invalid JSON for enum');
+        });
     });
 
     describe('tupleTypeNode', () => {
@@ -206,6 +257,18 @@ describe('convertValue', () => {
         it('should return non-array parsed value as-is', () => {
             const type = tupleType([numberType('u8')]);
             expect(convertValue('42', type)).toBe(42);
+        });
+
+        it('should pass through extra items beyond type definitions', () => {
+            const type = tupleType([numberType('u8')]);
+            const result = convertValue('[1, "extra"]', type);
+            expect(result).toEqual([1, 'extra']);
+        });
+
+        it('should handle already-parsed array value', () => {
+            const type = tupleType([numberType('u8'), stringType()]);
+            const result = convertValue([10, 'hello'], type);
+            expect(result).toEqual([10, 'hello']);
         });
     });
 
@@ -248,6 +311,54 @@ describe('convertValue', () => {
         it('should unwrap dateTimeTypeNode to BigInt', () => {
             expect(convertValue('1700000000', dateTimeType())).toBe(BigInt(1700000000));
         });
+
+        it('should unwrap amountTypeNode', () => {
+            expect(convertValue('500', amountType())).toBe(BigInt(500));
+        });
+
+        it('should unwrap postOffsetTypeNode', () => {
+            const type = wrapperType('postOffsetTypeNode', stringType());
+            expect(convertValue('hello', type)).toBe('hello');
+        });
+
+        it('should unwrap preOffsetTypeNode', () => {
+            const type = wrapperType('preOffsetTypeNode', numberType('u8'));
+            expect(convertValue('42', type)).toBe(42);
+        });
+
+        it('should unwrap sentinelTypeNode', () => {
+            const type = wrapperType('sentinelTypeNode', stringType());
+            expect(convertValue('test', type)).toBe('test');
+        });
+
+        it('should unwrap hiddenPrefixTypeNode', () => {
+            const type = wrapperType('hiddenPrefixTypeNode', numberType('u64'));
+            expect(convertValue('100', type)).toBe(BigInt(100));
+        });
+
+        it('should unwrap hiddenSuffixTypeNode', () => {
+            const type = wrapperType('hiddenSuffixTypeNode', stringType());
+            expect(convertValue('data', type)).toBe('data');
+        });
+    });
+
+    describe('setTypeNode', () => {
+        it('should parse JSON array like arrayTypeNode', () => {
+            const type = setType(numberType('u8'));
+            const result = convertValue('[1, 2, 3]', type);
+            expect(result).toEqual([1, 2, 3]);
+        });
+
+        it('should recursively convert set items', () => {
+            const type = setType(numberType('u64'));
+            const result = convertValue('[100, 200]', type);
+            expect(result).toEqual([BigInt(100), BigInt(200)]);
+        });
+
+        it('should handle comma-separated input', () => {
+            const type = setType(stringType());
+            expect(convertValue('a, b, c', type)).toEqual(['a', 'b', 'c']);
+        });
     });
 
     describe('mapTypeNode', () => {
@@ -257,10 +368,32 @@ describe('convertValue', () => {
             expect(result).toEqual({ a: 1, b: 2 });
         });
 
-        it('should pass object value through', () => {
+        it('should recursively convert object values', () => {
             const type = mapType(stringType(), numberType('u8'));
             const obj = { x: 10 };
-            expect(convertValue(obj, type)).toBe(obj);
+            expect(convertValue(obj, type)).toStrictEqual({ x: 10 });
+        });
+
+        it('should convert map values to BigInt for u64', () => {
+            const type = mapType(stringType(), numberType('u64'));
+            expect(convertValue({ a: '100' }, type)).toStrictEqual({ a: BigInt(100) });
+        });
+
+        it('should return non-object parsed value as-is', () => {
+            const type = mapType(stringType(), numberType('u8'));
+            expect(convertValue('42', type)).toBe(42);
+        });
+
+        it('should return null for null parsed value', () => {
+            const type = mapType(stringType(), numberType('u8'));
+            expect(convertValue('null', type)).toBeNull();
+        });
+
+        it('should recursively convert nested struct values in map', () => {
+            const innerStruct = structType([{ name: 'amount', type: numberType('u64') }]);
+            const type = mapType(stringType(), innerStruct);
+            const result = convertValue({ key1: { amount: '999' } }, type);
+            expect(result).toStrictEqual({ key1: { amount: BigInt(999) } });
         });
     });
 
@@ -383,9 +516,22 @@ const mapType = (key: TypeNode, value: TypeNode): TypeNode =>
         count: { kind: 'prefixedCountNode', prefix: numberType('u32') },
     } as unknown as TypeNode);
 
+const setType = (item: TypeNode): TypeNode =>
+    ({
+        kind: 'setTypeNode',
+        item,
+        count: { kind: 'prefixedCountNode', prefix: numberType('u32') },
+    } as unknown as TypeNode);
+
 const solAmountType = (): TypeNode =>
     ({
         kind: 'solAmountTypeNode',
+        number: numberType('u64'),
+    } as unknown as TypeNode);
+
+const amountType = (): TypeNode =>
+    ({
+        kind: 'amountTypeNode',
         number: numberType('u64'),
     } as unknown as TypeNode);
 
@@ -394,6 +540,8 @@ const dateTimeType = (): TypeNode =>
         kind: 'dateTimeTypeNode',
         number: numberType('i64'),
     } as unknown as TypeNode);
+
+const wrapperType = (kind: string, type: TypeNode): TypeNode => ({ kind, type } as unknown as TypeNode);
 
 // Minimal RootNode with a defined type for testing definedTypeLinkNode
 function rootWithDefinedType(name: string, type: TypeNode): RootNode {

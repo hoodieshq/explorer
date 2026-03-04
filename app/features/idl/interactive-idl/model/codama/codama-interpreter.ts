@@ -44,7 +44,15 @@ export class CodamaInterpreter implements IdlInterpreter<BaseIdl, CodamaUnifiedP
             if (!value) {
                 normalizedAccounts[key] = null;
             } else if (typeof value === 'string') {
-                normalizedAccounts[key] = value.trim() !== '' ? new PublicKey(value) : null;
+                if (value.trim() === '') {
+                    normalizedAccounts[key] = null;
+                } else {
+                    try {
+                        normalizedAccounts[key] = new PublicKey(value);
+                    } catch {
+                        throw new Error(`Invalid public key for account "${key}": ${value}`);
+                    }
+                }
             } else {
                 normalizedAccounts[key] = value;
             }

@@ -80,9 +80,16 @@ function convertBytes({ str }: ConvertCtx) {
             throw new Error(`Invalid bytes array: ${str}`);
         }
     }
+    if (str.length % 2 !== 0) {
+        throw new Error(`Hex string must have even length, got ${str.length}`);
+    }
     const bytes = new Uint8Array(str.length / 2);
     for (let i = 0; i < str.length; i += 2) {
-        bytes[i / 2] = parseInt(str.substring(i, i + 2), 16);
+        const byte = parseInt(str.substring(i, i + 2), 16);
+        if (isNaN(byte)) {
+            throw new Error(`Invalid hex character at position ${i}: "${str.substring(i, i + 2)}"`);
+        }
+        bytes[i / 2] = byte;
     }
     return bytes;
 }
@@ -142,8 +149,17 @@ function convertDefinedTypeLink({ value, root }: ConvertCtx, typeNode: TypeNode)
     return convertValue(value, definedType.type, root);
 }
 
-function convertMap({ value, str }: ConvertCtx) {
-    return typeof value === 'string' ? parseJSON(str, 'map') : value;
+function convertMap({ value, str, root }: ConvertCtx, typeNode: TypeNode) {
+    const obj = typeof value === 'string' ? parseJSON(str, 'map') : value;
+    if (typeof obj !== 'object' || obj === null) return obj;
+    const { key: keyType, value: valueType } = typeNode as { key: TypeNode; value: TypeNode };
+    const result: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+        const convertedKey = convertValue(k, keyType, root);
+        const convertedValue = convertValue(v, valueType, root);
+        result[String(convertedKey)] = convertedValue;
+    }
+    return result;
 }
 
 function unwrapType({ value, root }: ConvertCtx, typeNode: TypeNode) {
