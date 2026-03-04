@@ -1,11 +1,10 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import type { SupportedIdl } from '@entities/idl';
 import { PublicKey } from '@solana/web3.js';
 import type { RootNode } from 'codama';
 import { describe, expect, it } from 'vitest';
-
-import type { SupportedIdl } from '@entities/idl';
 
 import { createCodamaPdaProvider } from './codama-provider';
 
@@ -57,7 +56,7 @@ describe('createCodamaPdaProvider', () => {
             const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
-                { pollId: '123', candidateName: 'Alice' },
+                { candidateName: 'Alice', pollId: '123' },
                 {}
             );
 
@@ -96,7 +95,7 @@ describe('createCodamaPdaProvider', () => {
             const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
-                { pollId: '', candidateName: 'Alice' },
+                { candidateName: 'Alice', pollId: '' },
                 {}
             );
 
@@ -167,7 +166,7 @@ describe('createCodamaPdaProvider', () => {
             const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
-                { pollId: '1', candidateName: 'Bob' },
+                { candidateName: 'Bob', pollId: '1' },
                 {}
             );
 
@@ -181,7 +180,7 @@ describe('createCodamaPdaProvider', () => {
 
         it('should generate consistent addresses for same inputs', async () => {
             const provider = createCodamaPdaProvider();
-            const args = { pollId: '42', candidateName: 'Consistent' };
+            const args = { candidateName: 'Consistent', pollId: '42' };
 
             const result1 = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
@@ -206,7 +205,7 @@ describe('createCodamaPdaProvider', () => {
             const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
-                { pollId: 'not-a-number', candidateName: 'Alice' },
+                { candidateName: 'Alice', pollId: 'not-a-number' },
                 {}
             );
 
@@ -218,9 +217,7 @@ describe('createCodamaPdaProvider', () => {
             // Create an IDL with a pdaLinkNode reference instead of inline pdaNode
             const idlWithPdaLink = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
             // Move the inline PDA to the program.pdas array and replace with a link
-            const initCandidateIx = idlWithPdaLink.program.instructions.find(
-                i => i.name === 'initializePoll'
-            )!;
+            const initCandidateIx = idlWithPdaLink.program.instructions.find(i => i.name === 'initializePoll')!;
             const pollAccount = initCandidateIx.accounts.find(a => a.name === 'poll')!;
             const pdaValue = (pollAccount as any).defaultValue;
             const inlinePda = pdaValue.pda;
@@ -246,17 +243,15 @@ describe('createCodamaPdaProvider', () => {
 
         it('should handle conditionalValueNode with pdaValueNode in ifTrue', async () => {
             const idlWithConditional = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
-            const initPollIx = idlWithConditional.program.instructions.find(
-                i => i.name === 'initializePoll'
-            )!;
+            const initPollIx = idlWithConditional.program.instructions.find(i => i.name === 'initializePoll')!;
             const pollAccount = initPollIx.accounts.find(a => a.name === 'poll')!;
             const originalDefault = (pollAccount as any).defaultValue;
 
             // Wrap the pdaValueNode in a conditionalValueNode
             (pollAccount as any).defaultValue = {
-                kind: 'conditionalValueNode',
                 condition: { kind: 'argumentValueNode', name: 'pollId' },
                 ifTrue: originalDefault,
+                kind: 'conditionalValueNode',
             };
 
             const provider = createCodamaPdaProvider();
@@ -273,16 +268,14 @@ describe('createCodamaPdaProvider', () => {
 
         it('should handle conditionalValueNode with pdaValueNode in ifFalse', async () => {
             const idlWithConditional = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
-            const initPollIx = idlWithConditional.program.instructions.find(
-                i => i.name === 'initializePoll'
-            )!;
+            const initPollIx = idlWithConditional.program.instructions.find(i => i.name === 'initializePoll')!;
             const pollAccount = initPollIx.accounts.find(a => a.name === 'poll')!;
             const originalDefault = (pollAccount as any).defaultValue;
 
             (pollAccount as any).defaultValue = {
-                kind: 'conditionalValueNode',
                 condition: { kind: 'argumentValueNode', name: 'pollId' },
                 ifFalse: originalDefault,
+                kind: 'conditionalValueNode',
             };
 
             const provider = createCodamaPdaProvider();
@@ -304,7 +297,7 @@ describe('createCodamaPdaProvider', () => {
             const result1 = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
-                { pollId: '1', candidateName: 'A' },
+                { candidateName: 'A', pollId: '1' },
                 {}
             );
 
@@ -312,7 +305,7 @@ describe('createCodamaPdaProvider', () => {
             const result2 = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'vote',
-                { pollId: '1', candidateName: 'A' },
+                { candidateName: 'A', pollId: '1' },
                 {}
             );
 
@@ -325,9 +318,7 @@ describe('createCodamaPdaProvider', () => {
 
         it('should handle constant seed with bytesValueNode (base16)', async () => {
             const idlWithBytesSeed = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
-            const constSeedIx = idlWithBytesSeed.program.instructions.find(
-                i => i.name === 'instructionWithConstSeed'
-            )!;
+            const constSeedIx = idlWithBytesSeed.program.instructions.find(i => i.name === 'instructionWithConstSeed')!;
             const pdaAccount = constSeedIx.accounts.find(a => a.name === 'pdaAccount')!;
             const pdaNode = (pdaAccount as any).defaultValue.pda;
 
@@ -335,7 +326,7 @@ describe('createCodamaPdaProvider', () => {
             pdaNode.seeds[0] = {
                 kind: 'constantPdaSeedNode',
                 type: { kind: 'bytesTypeNode' },
-                value: { kind: 'bytesValueNode', data: 'deadbeef', encoding: 'base16' },
+                value: { data: 'deadbeef', encoding: 'base16', kind: 'bytesValueNode' },
             };
 
             const provider = createCodamaPdaProvider();
@@ -352,9 +343,7 @@ describe('createCodamaPdaProvider', () => {
 
         it('should handle constant seed with bytesValueNode (base58)', async () => {
             const idlWithBytesSeed = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
-            const constSeedIx = idlWithBytesSeed.program.instructions.find(
-                i => i.name === 'instructionWithConstSeed'
-            )!;
+            const constSeedIx = idlWithBytesSeed.program.instructions.find(i => i.name === 'instructionWithConstSeed')!;
             const pdaAccount = constSeedIx.accounts.find(a => a.name === 'pdaAccount')!;
             const pdaNode = (pdaAccount as any).defaultValue.pda;
 
@@ -362,7 +351,7 @@ describe('createCodamaPdaProvider', () => {
             pdaNode.seeds[0] = {
                 kind: 'constantPdaSeedNode',
                 type: { kind: 'bytesTypeNode' },
-                value: { kind: 'bytesValueNode', data: 'Ldp', encoding: 'base58' },
+                value: { data: 'Ldp', encoding: 'base58', kind: 'bytesValueNode' },
             };
 
             const provider = createCodamaPdaProvider();
@@ -374,14 +363,13 @@ describe('createCodamaPdaProvider', () => {
             );
 
             expect(result.pdaAccount).toBeDefined();
+            // eslint-disable-next-line no-restricted-syntax -- regex needed to match hex prefix pattern
             expect(result.pdaAccount.seeds[0].name).toMatch(/^0x/);
         });
 
         it('should handle constant seed with bytesValueNode (base64)', async () => {
             const idlWithBytesSeed = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
-            const constSeedIx = idlWithBytesSeed.program.instructions.find(
-                i => i.name === 'instructionWithConstSeed'
-            )!;
+            const constSeedIx = idlWithBytesSeed.program.instructions.find(i => i.name === 'instructionWithConstSeed')!;
             const pdaAccount = constSeedIx.accounts.find(a => a.name === 'pdaAccount')!;
             const pdaNode = (pdaAccount as any).defaultValue.pda;
 
@@ -389,7 +377,7 @@ describe('createCodamaPdaProvider', () => {
             pdaNode.seeds[0] = {
                 kind: 'constantPdaSeedNode',
                 type: { kind: 'bytesTypeNode' },
-                value: { kind: 'bytesValueNode', data: 'aGVsbG8=', encoding: 'base64' },
+                value: { data: 'aGVsbG8=', encoding: 'base64', kind: 'bytesValueNode' },
             };
 
             const provider = createCodamaPdaProvider();
@@ -407,16 +395,14 @@ describe('createCodamaPdaProvider', () => {
 
         it('should handle constant seed with bytesValueNode (utf8)', async () => {
             const idlWithBytesSeed = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
-            const constSeedIx = idlWithBytesSeed.program.instructions.find(
-                i => i.name === 'instructionWithConstSeed'
-            )!;
+            const constSeedIx = idlWithBytesSeed.program.instructions.find(i => i.name === 'instructionWithConstSeed')!;
             const pdaAccount = constSeedIx.accounts.find(a => a.name === 'pdaAccount')!;
             const pdaNode = (pdaAccount as any).defaultValue.pda;
 
             pdaNode.seeds[0] = {
                 kind: 'constantPdaSeedNode',
                 type: { kind: 'bytesTypeNode' },
-                value: { kind: 'bytesValueNode', data: 'abc', encoding: 'utf8' },
+                value: { data: 'abc', encoding: 'utf8', kind: 'bytesValueNode' },
             };
 
             const provider = createCodamaPdaProvider();

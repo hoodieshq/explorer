@@ -1,4 +1,4 @@
-import type { InstructionData, SupportedIdl } from '@entities/idl';
+import type { InstructionData } from '@entities/idl';
 import { camelCase } from 'change-case';
 import { useEffect, useMemo, useRef } from 'react';
 import type { FieldPath, UseFormReturn } from 'react-hook-form';

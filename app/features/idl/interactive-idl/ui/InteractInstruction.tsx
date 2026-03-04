@@ -58,7 +58,7 @@ export function InteractInstruction({
         },
         form,
     });
-    usePdaPrefill({ pdas, form, instruction, fieldNames });
+    usePdaPrefill({ fieldNames, form, instruction, pdas });
 
     const executeDisabled = !walletConnected || isExecuting;
 

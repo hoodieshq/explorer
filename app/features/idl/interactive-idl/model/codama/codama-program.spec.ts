@@ -77,11 +77,7 @@ describe('CodamaUnifiedProgram', () => {
             const source = new PublicKey('Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV');
             const destination = new PublicKey('2xNweLHLKifGNBhLp2giBonGDJ3dPAHpSTaMJmfcMon8');
 
-            const ix = await program.buildInstruction(
-                'transferSol',
-                { destination, source },
-                ['500']
-            );
+            const ix = await program.buildInstruction('transferSol', { destination, source }, ['500']);
 
             // Both source and destination are writable signers for transferSol
             const sourceKey = ix.keys.find(k => k.pubkey.equals(source));
@@ -95,11 +91,7 @@ describe('CodamaUnifiedProgram', () => {
             const destination = new PublicKey('2xNweLHLKifGNBhLp2giBonGDJ3dPAHpSTaMJmfcMon8');
 
             // Large value that exceeds Number.MAX_SAFE_INTEGER
-            const ix = await program.buildInstruction(
-                'transferSol',
-                { destination, source },
-                ['9999999999999999999']
-            );
+            const ix = await program.buildInstruction('transferSol', { destination, source }, ['9999999999999999999']);
 
             expect(ix).toBeInstanceOf(TransactionInstruction);
             expect(ix.data.length).toBeGreaterThan(0);
@@ -118,17 +110,16 @@ describe('CodamaUnifiedProgram', () => {
         it('should throw for unknown instruction name', async () => {
             const program = createProgram(systemIdl);
 
-            await expect(
-                program.buildInstruction('fakeInstruction', {}, [])
-            ).rejects.toThrow('Instruction "fakeInstruction" not found');
+            await expect(program.buildInstruction('fakeInstruction', {}, [])).rejects.toThrow(
+                'Instruction "fakeInstruction" not found'
+            );
         });
 
         it('should include available instruction names in error message', async () => {
             const program = createProgram(systemIdl);
 
-            await expect(
-                program.buildInstruction('fakeInstruction', {}, [])
-            ).rejects.toThrow(/Available:/);
+            // eslint-disable-next-line no-restricted-syntax -- regex needed to match partial error message
+            await expect(program.buildInstruction('fakeInstruction', {}, [])).rejects.toThrow(/Available:/);
         });
 
         it('should filter omitted arguments (discriminators)', async () => {
@@ -167,6 +158,7 @@ describe('CodamaUnifiedProgram', () => {
                     },
                     ['Test', 'not-a-number']
                 )
+                // eslint-disable-next-line no-restricted-syntax -- regex needed to match partial error message
             ).rejects.toThrow(/Could not convert "pollId" argument/);
         });
     });

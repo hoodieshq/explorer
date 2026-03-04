@@ -136,13 +136,13 @@ describe('convertValue', () => {
         });
 
         it('should handle remainderOptionTypeNode', () => {
-            const type = { kind: 'remainderOptionTypeNode', item: numberType('u8') } as unknown as TypeNode;
+            const type = { item: numberType('u8'), kind: 'remainderOptionTypeNode' } as unknown as TypeNode;
             expect(convertValue('null', type)).toBeNull();
             expect(convertValue('42', type)).toBe(42);
         });
 
         it('should handle zeroableOptionTypeNode', () => {
-            const type = { kind: 'zeroableOptionTypeNode', item: stringType() } as unknown as TypeNode;
+            const type = { item: stringType(), kind: 'zeroableOptionTypeNode' } as unknown as TypeNode;
             expect(convertValue('none', type)).toBeNull();
             expect(convertValue('hello', type)).toBe('hello');
         });
@@ -202,7 +202,7 @@ describe('convertValue', () => {
                 { name: 'amount', type: numberType('u64') },
             ]);
             const result = convertValue('{"name": "test", "amount": "100"}', type);
-            expect(result).toEqual({ name: 'test', amount: BigInt(100) });
+            expect(result).toEqual({ amount: BigInt(100), name: 'test' });
         });
 
         it('should handle object value directly', () => {
@@ -409,9 +409,9 @@ describe('getUserFacingArguments', () => {
     it('should filter out omitted arguments', () => {
         const node = {
             arguments: [
-                { name: 'discriminator', defaultValueStrategy: 'omitted', type: bytesType(), docs: [] },
-                { name: 'amount', defaultValueStrategy: undefined, type: numberType('u64'), docs: [] },
-                { name: 'name', defaultValueStrategy: undefined, type: stringType(), docs: [] },
+                { defaultValueStrategy: 'omitted', docs: [], name: 'discriminator', type: bytesType() },
+                { defaultValueStrategy: undefined, docs: [], name: 'amount', type: numberType('u64') },
+                { defaultValueStrategy: undefined, docs: [], name: 'name', type: stringType() },
             ],
         };
         const result = getUserFacingArguments(node as any);
@@ -422,8 +422,8 @@ describe('getUserFacingArguments', () => {
     it('should return all arguments when none are omitted', () => {
         const node = {
             arguments: [
-                { name: 'a', type: numberType('u8'), docs: [] },
-                { name: 'b', type: stringType(), docs: [] },
+                { docs: [], name: 'a', type: numberType('u8') },
+                { docs: [], name: 'b', type: stringType() },
             ],
         };
         const result = getUserFacingArguments(node as any);
@@ -432,7 +432,7 @@ describe('getUserFacingArguments', () => {
 
     it('should return empty array when all are omitted', () => {
         const node = {
-            arguments: [{ name: 'disc', defaultValueStrategy: 'omitted', type: bytesType(), docs: [] }],
+            arguments: [{ defaultValueStrategy: 'omitted', docs: [], name: 'disc', type: bytesType() }],
         };
         const result = getUserFacingArguments(node as any);
         expect(result).toHaveLength(0);
@@ -445,22 +445,22 @@ describe('getUserFacingArguments', () => {
 // (e.g. CamelCaseString) that plain string literals don't satisfy.
 // ---------------------------------------------------------------------------
 const numberType = (format: string): TypeNode =>
-    ({ kind: 'numberTypeNode', format, endian: 'le' } as unknown as TypeNode);
+    ({ endian: 'le', format, kind: 'numberTypeNode' } as unknown as TypeNode);
 
 const booleanType = (): TypeNode =>
-    ({ kind: 'booleanTypeNode', size: { kind: 'numberTypeNode', format: 'u8', endian: 'le' } } as unknown as TypeNode);
+    ({ kind: 'booleanTypeNode', size: { endian: 'le', format: 'u8', kind: 'numberTypeNode' } } as unknown as TypeNode);
 
 const publicKeyType = (): TypeNode => ({ kind: 'publicKeyTypeNode' } as unknown as TypeNode);
 
-const stringType = (): TypeNode => ({ kind: 'stringTypeNode', encoding: 'utf8' } as unknown as TypeNode);
+const stringType = (): TypeNode => ({ encoding: 'utf8', kind: 'stringTypeNode' } as unknown as TypeNode);
 
 const bytesType = (): TypeNode => ({ kind: 'bytesTypeNode' } as unknown as TypeNode);
 
 const arrayType = (item: TypeNode, count?: object): TypeNode =>
     ({
-        kind: 'arrayTypeNode',
-        item,
         count: count ?? { kind: 'prefixedCountNode', prefix: numberType('u32') },
+        item,
+        kind: 'arrayTypeNode',
     } as unknown as TypeNode);
 
 const fixedArrayType = (item: TypeNode, length: number): TypeNode =>
@@ -468,21 +468,21 @@ const fixedArrayType = (item: TypeNode, length: number): TypeNode =>
 
 const optionType = (item: TypeNode): TypeNode =>
     ({
-        kind: 'optionTypeNode',
-        item,
         fixed: false,
+        item,
+        kind: 'optionTypeNode',
         prefix: numberType('u8'),
     } as unknown as TypeNode);
 
 const structType = (fields: Array<{ name: string; type: TypeNode }>): TypeNode =>
     ({
-        kind: 'structTypeNode',
         fields: fields.map(f => ({
+            docs: [],
             kind: 'structFieldTypeNode',
             name: f.name,
             type: f.type,
-            docs: [],
         })),
+        kind: 'structTypeNode',
     } as unknown as TypeNode);
 
 const enumType = (variants: Array<{ name: string }>): TypeNode =>
@@ -494,33 +494,33 @@ const enumType = (variants: Array<{ name: string }>): TypeNode =>
         })),
     } as unknown as TypeNode);
 
-const tupleType = (items: TypeNode[]): TypeNode => ({ kind: 'tupleTypeNode', items } as unknown as TypeNode);
+const tupleType = (items: TypeNode[]): TypeNode => ({ items, kind: 'tupleTypeNode' } as unknown as TypeNode);
 
 const fixedSizeType = (type: TypeNode, size: number): TypeNode =>
-    ({ kind: 'fixedSizeTypeNode', type, size } as unknown as TypeNode);
+    ({ kind: 'fixedSizeTypeNode', size, type } as unknown as TypeNode);
 
 const sizePrefixType = (type: TypeNode): TypeNode =>
     ({
         kind: 'sizePrefixTypeNode',
-        type,
         prefix: numberType('u32'),
+        type,
     } as unknown as TypeNode);
 
 const definedTypeLinkType = (name: string): TypeNode => ({ kind: 'definedTypeLinkNode', name } as unknown as TypeNode);
 
 const mapType = (key: TypeNode, value: TypeNode): TypeNode =>
     ({
-        kind: 'mapTypeNode',
-        key,
-        value,
         count: { kind: 'prefixedCountNode', prefix: numberType('u32') },
+        key,
+        kind: 'mapTypeNode',
+        value,
     } as unknown as TypeNode);
 
 const setType = (item: TypeNode): TypeNode =>
     ({
-        kind: 'setTypeNode',
-        item,
         count: { kind: 'prefixedCountNode', prefix: numberType('u32') },
+        item,
+        kind: 'setTypeNode',
     } as unknown as TypeNode);
 
 const solAmountType = (): TypeNode =>
@@ -546,29 +546,29 @@ const wrapperType = (kind: string, type: TypeNode): TypeNode => ({ kind, type } 
 // Minimal RootNode with a defined type for testing definedTypeLinkNode
 function rootWithDefinedType(name: string, type: TypeNode): RootNode {
     return {
+        additionalPrograms: [],
         kind: 'rootNode',
-        standard: 'codama',
-        version: '1.0.0',
         program: {
-            kind: 'programNode',
-            name: 'test',
-            publicKey: '11111111111111111111111111111111',
-            version: '0.1.0',
-            origin: 'anchor',
-            docs: [],
             accounts: [],
-            instructions: [],
             definedTypes: [
                 {
+                    docs: [],
                     kind: 'definedTypeNode',
                     name,
-                    docs: [],
                     type,
                 },
             ],
-            pdas: [],
+            docs: [],
             errors: [],
+            instructions: [],
+            kind: 'programNode',
+            name: 'test',
+            origin: 'anchor',
+            pdas: [],
+            publicKey: '11111111111111111111111111111111',
+            version: '0.1.0',
         },
-        additionalPrograms: [],
+        standard: 'codama',
+        version: '1.0.0',
     } as unknown as RootNode;
 }

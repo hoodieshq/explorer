@@ -197,12 +197,9 @@ describe('CodamaInterpreter', () => {
             const source = new PublicKey('Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV');
             const destination = new PublicKey('2xNweLHLKifGNBhLp2giBonGDJ3dPAHpSTaMJmfcMon8');
 
-            const ix = await interpreter.createInstruction(
-                program,
-                'transferSol',
-                { destination, source } as any,
-                ['1000']
-            );
+            const ix = await interpreter.createInstruction(program, 'transferSol', { destination, source } as any, [
+                '1000',
+            ]);
             expect(ix).toBeInstanceOf(TransactionInstruction);
         });
     });

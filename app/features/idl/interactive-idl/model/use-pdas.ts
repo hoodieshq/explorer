@@ -2,6 +2,8 @@ import type { InstructionData, SupportedIdl } from '@entities/idl';
 import { useEffect, useState } from 'react';
 import { type Control, useWatch } from 'react-hook-form';
 
+import { Logger } from '@/app/shared/lib/logger';
+
 import { computePdas } from './pda-generator/compute-pdas';
 import type { PdaGenerationResult } from './pda-generator/types';
 import type { InstructionFormData } from './use-instruction-form';
@@ -29,7 +31,7 @@ export function usePdas({
                     if (!cancelled) setPdas(result);
                 })
                 .catch(error => {
-                    console.error('Failed to compute PDAs:', error);
+                    Logger.error(error, { message: 'Failed to compute PDAs' });
                     if (!cancelled) setPdas({});
                 });
         }, PDA_DEBOUNCE_MS);

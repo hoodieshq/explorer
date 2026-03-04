@@ -13,7 +13,7 @@ export function convertValue(value: unknown, typeNode: TypeNode, root?: RootNode
 
     const str = typeof value === 'string' ? value : String(value);
     const handler = handlers[typeNode.kind];
-    if (handler) return handler({ value, str, root }, typeNode);
+    if (handler) return handler({ root, str, value }, typeNode);
     return value;
 }
 
@@ -31,31 +31,31 @@ export function getUserFacingArguments(instructionNode: {
 // ---------------------------------------------------------------------------
 
 const handlers: Partial<Record<TypeNode['kind'], Handler>> = {
-    numberTypeNode: convertNumber,
-    booleanTypeNode: ({ str, value }) => str === 'true' || value === true,
-    publicKeyTypeNode: ({ str }) => str,
-    stringTypeNode: ({ str }) => str,
-    bytesTypeNode: convertBytes,
-    optionTypeNode: convertOption,
-    remainderOptionTypeNode: convertOption,
-    zeroableOptionTypeNode: convertOption,
+    amountTypeNode: unwrapNumber,
     arrayTypeNode: convertArray,
-    setTypeNode: convertArray,
-    structTypeNode: convertStruct,
-    enumTypeNode: convertEnum,
-    tupleTypeNode: convertTuple,
+    booleanTypeNode: ({ str, value }) => str === 'true' || value === true,
+    bytesTypeNode: convertBytes,
+    dateTimeTypeNode: unwrapNumber,
     definedTypeLinkNode: convertDefinedTypeLink,
-    mapTypeNode: convertMap,
+    enumTypeNode: convertEnum,
     fixedSizeTypeNode: unwrapType,
-    sizePrefixTypeNode: unwrapType,
-    postOffsetTypeNode: unwrapType,
-    preOffsetTypeNode: unwrapType,
-    sentinelTypeNode: unwrapType,
     hiddenPrefixTypeNode: unwrapType,
     hiddenSuffixTypeNode: unwrapType,
+    mapTypeNode: convertMap,
+    numberTypeNode: convertNumber,
+    optionTypeNode: convertOption,
+    postOffsetTypeNode: unwrapType,
+    preOffsetTypeNode: unwrapType,
+    publicKeyTypeNode: ({ str }) => str,
+    remainderOptionTypeNode: convertOption,
+    sentinelTypeNode: unwrapType,
+    setTypeNode: convertArray,
+    sizePrefixTypeNode: unwrapType,
     solAmountTypeNode: unwrapNumber,
-    amountTypeNode: unwrapNumber,
-    dateTimeTypeNode: unwrapNumber,
+    stringTypeNode: ({ str }) => str,
+    structTypeNode: convertStruct,
+    tupleTypeNode: convertTuple,
+    zeroableOptionTypeNode: convertOption,
 };
 
 function convertNumber({ str }: ConvertCtx, typeNode: TypeNode) {

@@ -1,11 +1,11 @@
-import type { InstructionData, SupportedIdl } from '@entities/idl';
+import type { SupportedIdl } from '@entities/idl';
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import type { PdaGenerationResult } from '../../../pda-generator/types';
 import votingIdl030 from '../../../__mocks__/anchor/anchor-0.30.0-voting-AXcxp15oz1L4YYtqZo6Qt6EkUj1jtLR6wXYqaJvn4oye.json';
 import votingIdl030Variations from '../../../__mocks__/anchor/anchor-0.30.0-voting-variations-AXcxp15oz1L4YYtqZo6Qt6EkUj1jtLR6wXYqaJvn4oye.json';
 import { findInstruction } from '../../../__tests__/utils';
+import type { PdaGenerationResult } from '../../../pda-generator/types';
 import { useInstructionForm } from '../../../use-instruction-form';
 import { usePdaPrefill } from '../use-pda-prefill';
 
@@ -21,10 +21,10 @@ describe('usePdaPrefill', () => {
 
         renderHook(() =>
             usePdaPrefill({
-                pdas: {},
+                fieldNames: { account: fieldNames.account },
                 form,
                 instruction: mockInstruction,
-                fieldNames: { account: fieldNames.account },
+                pdas: {},
             })
         );
 
@@ -39,12 +39,12 @@ describe('usePdaPrefill', () => {
 
         renderHook(() =>
             usePdaPrefill({
+                fieldNames: { account: fieldNames.account },
+                form,
+                instruction: mockInstruction,
                 pdas: {
                     poll: { generated: null, seeds: [{ name: 'pollId', value: null }] },
                 },
-                form,
-                instruction: mockInstruction,
-                fieldNames: { account: fieldNames.account },
             })
         );
 
@@ -57,12 +57,12 @@ describe('usePdaPrefill', () => {
 
         renderHook(() =>
             usePdaPrefill({
+                fieldNames: { account: fieldNames.account },
+                form,
+                instruction: mockInstruction,
                 pdas: {
                     poll: { generated: MOCK_PDA_ADDRESS_1, seeds: [{ name: 'pollId', value: '123' }] },
                 },
-                form,
-                instruction: mockInstruction,
-                fieldNames: { account: fieldNames.account },
             })
         );
 
@@ -80,10 +80,10 @@ describe('usePdaPrefill', () => {
 
         const { rerender } = renderHook(() =>
             usePdaPrefill({
-                pdas,
+                fieldNames: { account: fieldNames.account },
                 form,
                 instruction: mockInstruction,
-                fieldNames: { account: fieldNames.account },
+                pdas,
             })
         );
 
@@ -102,12 +102,12 @@ describe('usePdaPrefill', () => {
 
         renderHook(() =>
             usePdaPrefill({
+                fieldNames: { account: fieldNames.account },
+                form,
+                instruction: mockInstruction,
                 pdas: {
                     nestedAccount: { generated: MOCK_PDA_ADDRESS_1, seeds: [{ name: 'pollId', value: '123' }] },
                 },
-                form,
-                instruction: mockInstruction,
-                fieldNames: { account: fieldNames.account },
             })
         );
 
@@ -123,10 +123,10 @@ describe('usePdaPrefill', () => {
 
         renderHook(() =>
             usePdaPrefill({
-                pdas: {},
+                fieldNames: { account: fieldNames.account },
                 form,
                 instruction: mockInstruction,
-                fieldNames: { account: fieldNames.account },
+                pdas: {},
             })
         );
 
@@ -140,10 +140,10 @@ describe('usePdaPrefill', () => {
         const { rerender } = renderHook(
             ({ pdas }) =>
                 usePdaPrefill({
-                    pdas,
+                    fieldNames: { account: fieldNames.account },
                     form,
                     instruction: mockInstruction,
-                    fieldNames: { account: fieldNames.account },
+                    pdas,
                 }),
             {
                 initialProps: {
@@ -177,10 +177,10 @@ describe('usePdaPrefill', () => {
         const { rerender } = renderHook(
             ({ pdas }) =>
                 usePdaPrefill({
-                    pdas,
+                    fieldNames: { account: fieldNames.account },
                     form,
                     instruction: mockInstruction,
-                    fieldNames: { account: fieldNames.account },
+                    pdas,
                 }),
             {
                 initialProps: {
