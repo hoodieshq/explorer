@@ -49,7 +49,17 @@ export function convertValue(value: unknown, typeNode: TypeNode, root?: RootNode
 
         case 'arrayTypeNode':
         case 'setTypeNode': {
-            const parsed: unknown = typeof value === 'string' ? JSON.parse(value) : value;
+            let parsed: unknown;
+            if (typeof value === 'string') {
+                try {
+                    parsed = JSON.parse(value);
+                } catch {
+                    // Fall back to comma-separated splitting (matches form input format)
+                    parsed = value.split(',').map(s => s.trim());
+                }
+            } else {
+                parsed = value;
+            }
             if (!Array.isArray(parsed)) return [convertValue(parsed, typeNode.item, root)];
             return parsed.map(item => convertValue(item, typeNode.item, root));
         }

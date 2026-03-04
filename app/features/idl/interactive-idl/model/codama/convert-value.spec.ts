@@ -1,0 +1,426 @@
+import type { RootNode, TypeNode } from 'codama';
+import { describe, expect, it } from 'vitest';
+
+import { convertValue, getUserFacingArguments } from './convert-value';
+
+describe('convertValue', () => {
+    describe('nullish / empty values', () => {
+        it('should return null for undefined', () => {
+            expect(convertValue(undefined, stringType())).toBeNull();
+        });
+
+        it('should return null for null', () => {
+            expect(convertValue(null, stringType())).toBeNull();
+        });
+
+        it('should return null for empty string', () => {
+            expect(convertValue('', numberType('u8'))).toBeNull();
+        });
+    });
+
+    describe('numberTypeNode', () => {
+        it.each([
+            ['u8', '42', 42],
+            ['u16', '1000', 1000],
+            ['u32', '123456', 123456],
+            ['i8', '-5', -5],
+            ['i16', '-1000', -1000],
+            ['i32', '-123456', -123456],
+            ['f32', '3.14', 3.14],
+            ['f64', '2.718281828', 2.718281828],
+        ])('should convert %s string to Number', (format, input, expected) => {
+            expect(convertValue(input, numberType(format))).toBe(expected);
+        });
+
+        it.each([
+            ['u64', '9999999999999'],
+            ['u128', '340282366920938463463374607431768211455'],
+            ['i64', '-9999999999999'],
+            ['i128', '170141183460469231731687303715884105727'],
+        ])('should convert %s string to BigInt', (format, input) => {
+            expect(convertValue(input, numberType(format))).toBe(BigInt(input));
+        });
+
+        it('should convert non-string number value', () => {
+            expect(convertValue(42, numberType('u8'))).toBe(42);
+        });
+    });
+
+    describe('booleanTypeNode', () => {
+        it('should convert "true" to true', () => {
+            expect(convertValue('true', booleanType())).toBe(true);
+        });
+
+        it('should convert "false" to false', () => {
+            expect(convertValue('false', booleanType())).toBe(false);
+        });
+
+        it('should convert boolean true to true', () => {
+            expect(convertValue(true, booleanType())).toBe(true);
+        });
+
+        it('should convert boolean false to false', () => {
+            expect(convertValue(false, booleanType())).toBe(false);
+        });
+
+        it('should convert arbitrary string to false', () => {
+            expect(convertValue('yes', booleanType())).toBe(false);
+        });
+    });
+
+    describe('publicKeyTypeNode', () => {
+        it('should return the string as-is', () => {
+            const key = 'Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV';
+            expect(convertValue(key, publicKeyType())).toBe(key);
+        });
+    });
+
+    describe('stringTypeNode', () => {
+        it('should return the string as-is', () => {
+            expect(convertValue('hello', stringType())).toBe('hello');
+        });
+
+        it('should convert non-string to string', () => {
+            expect(convertValue(123, stringType())).toBe('123');
+        });
+    });
+
+    describe('bytesTypeNode', () => {
+        it('should convert hex string to Uint8Array', () => {
+            const result = convertValue('deadbeef', bytesType());
+            expect(result).toEqual(new Uint8Array([0xde, 0xad, 0xbe, 0xef]));
+        });
+
+        it('should convert JSON array string to Uint8Array', () => {
+            const result = convertValue('[1, 2, 3, 255]', bytesType());
+            expect(result).toEqual(new Uint8Array([1, 2, 3, 255]));
+        });
+    });
+
+    describe('optionTypeNode', () => {
+        it('should return null for "null"', () => {
+            expect(convertValue('null', optionType(stringType()))).toBeNull();
+        });
+
+        it('should return null for "none"', () => {
+            expect(convertValue('none', optionType(numberType('u8')))).toBeNull();
+        });
+
+        it('should unwrap and convert the inner value', () => {
+            expect(convertValue('42', optionType(numberType('u64')))).toBe(BigInt(42));
+        });
+    });
+
+    describe('arrayTypeNode', () => {
+        it('should parse JSON array of numbers', () => {
+            const result = convertValue('[1, 2, 3]', arrayType(numberType('u8')));
+            expect(result).toEqual([1, 2, 3]);
+        });
+
+        it('should parse JSON array of strings', () => {
+            const result = convertValue('["Alice", "Bob"]', arrayType(stringType()));
+            expect(result).toEqual(['Alice', 'Bob']);
+        });
+
+        it('should handle comma-separated strings (form input format)', () => {
+            const result = convertValue('Alice, Bob', arrayType(stringType()));
+            expect(result).toEqual(['Alice', 'Bob']);
+        });
+
+        it('should handle comma-separated numbers', () => {
+            const result = convertValue('1, 2, 3', arrayType(numberType('u8')));
+            expect(result).toEqual([1, 2, 3]);
+        });
+
+        it('should handle fixed-size array with comma-separated strings', () => {
+            const result = convertValue('Alice, Bob', fixedArrayType(sizePrefixType(stringType()), 2));
+            expect(result).toEqual(['Alice', 'Bob']);
+        });
+
+        it('should convert already-parsed array value', () => {
+            const result = convertValue(['a', 'b'], arrayType(stringType()));
+            expect(result).toEqual(['a', 'b']);
+        });
+
+        it('should wrap a non-array value in an array', () => {
+            const result = convertValue(42, arrayType(numberType('u8')));
+            expect(result).toEqual([42]);
+        });
+
+        it('should recursively convert array items with BigInt', () => {
+            const result = convertValue('[100, 200]', arrayType(numberType('u64')));
+            expect(result).toEqual([BigInt(100), BigInt(200)]);
+        });
+
+        it('should handle single comma-separated value', () => {
+            const result = convertValue('hello', arrayType(stringType()));
+            expect(result).toEqual(['hello']);
+        });
+    });
+
+    describe('structTypeNode', () => {
+        it('should parse JSON string and convert fields', () => {
+            const type = structType([
+                { name: 'name', type: stringType() },
+                { name: 'amount', type: numberType('u64') },
+            ]);
+            const result = convertValue('{"name": "test", "amount": "100"}', type);
+            expect(result).toEqual({ name: 'test', amount: BigInt(100) });
+        });
+
+        it('should handle object value directly', () => {
+            const type = structType([
+                { name: 'x', type: numberType('u8') },
+                { name: 'y', type: numberType('u8') },
+            ]);
+            const result = convertValue({ x: '10', y: '20' }, type);
+            expect(result).toEqual({ x: 10, y: 20 });
+        });
+
+        it('should return non-object as-is', () => {
+            const type = structType([{ name: 'x', type: numberType('u8') }]);
+            expect(convertValue('42', type)).toBe(42);
+        });
+    });
+
+    describe('enumTypeNode', () => {
+        it('should return simple string variant', () => {
+            const type = enumType([{ name: 'Active' }, { name: 'Inactive' }]);
+            expect(convertValue('Active', type)).toBe('Active');
+        });
+
+        it('should parse JSON object variant', () => {
+            const type = enumType([{ name: 'Transfer' }]);
+            const result = convertValue('{"Transfer": {"amount": 100}}', type);
+            expect(result).toEqual({ Transfer: { amount: 100 } });
+        });
+    });
+
+    describe('tupleTypeNode', () => {
+        it('should parse JSON tuple and convert each item', () => {
+            const type = tupleType([numberType('u8'), stringType(), numberType('u64')]);
+            const result = convertValue('[1, "hello", "999"]', type);
+            expect(result).toEqual([1, 'hello', BigInt(999)]);
+        });
+
+        it('should return non-array parsed value as-is', () => {
+            const type = tupleType([numberType('u8')]);
+            expect(convertValue('42', type)).toBe(42);
+        });
+    });
+
+    describe('definedTypeLinkNode', () => {
+        it('should resolve defined type and convert', () => {
+            const root = rootWithDefinedType('candidateName', structType([{ name: 'name', type: stringType() }]));
+            const type = definedTypeLinkType('candidateName');
+            const result = convertValue('{"name": "Alice"}', type, root);
+            expect(result).toEqual({ name: 'Alice' });
+        });
+
+        it('should return value as-is when root is not provided', () => {
+            const type = definedTypeLinkType('candidateName');
+            expect(convertValue('test', type)).toBe('test');
+        });
+
+        it('should return value as-is when defined type is not found', () => {
+            const root = rootWithDefinedType('other', stringType());
+            const type = definedTypeLinkType('nonExistent');
+            expect(convertValue('test', type, root)).toBe('test');
+        });
+    });
+
+    describe('wrapper type nodes', () => {
+        it('should unwrap fixedSizeTypeNode', () => {
+            const type = fixedSizeType(bytesType(), 8);
+            const result = convertValue('deadbeef01020304', type);
+            expect(result).toEqual(new Uint8Array([0xde, 0xad, 0xbe, 0xef, 0x01, 0x02, 0x03, 0x04]));
+        });
+
+        it('should unwrap sizePrefixTypeNode', () => {
+            const type = sizePrefixType(stringType());
+            expect(convertValue('hello', type)).toBe('hello');
+        });
+
+        it('should unwrap solAmountTypeNode to BigInt', () => {
+            expect(convertValue('1000000000', solAmountType())).toBe(BigInt(1000000000));
+        });
+
+        it('should unwrap dateTimeTypeNode to BigInt', () => {
+            expect(convertValue('1700000000', dateTimeType())).toBe(BigInt(1700000000));
+        });
+    });
+
+    describe('mapTypeNode', () => {
+        it('should parse JSON map', () => {
+            const type = mapType(stringType(), numberType('u8'));
+            const result = convertValue('{"a": 1, "b": 2}', type);
+            expect(result).toEqual({ a: 1, b: 2 });
+        });
+
+        it('should pass object value through', () => {
+            const type = mapType(stringType(), numberType('u8'));
+            const obj = { x: 10 };
+            expect(convertValue(obj, type)).toBe(obj);
+        });
+    });
+
+    describe('unknown type node', () => {
+        it('should return value as-is for unrecognized kinds', () => {
+            const type = { kind: 'someUnknownTypeNode' } as unknown as TypeNode;
+            expect(convertValue('hello', type)).toBe('hello');
+        });
+    });
+});
+
+describe('getUserFacingArguments', () => {
+    it('should filter out omitted arguments', () => {
+        const node = {
+            arguments: [
+                { name: 'discriminator', defaultValueStrategy: 'omitted', type: bytesType(), docs: [] },
+                { name: 'amount', defaultValueStrategy: undefined, type: numberType('u64'), docs: [] },
+                { name: 'name', defaultValueStrategy: undefined, type: stringType(), docs: [] },
+            ],
+        };
+        const result = getUserFacingArguments(node as any);
+        expect(result).toHaveLength(2);
+        expect(result.map(a => a.name)).toEqual(['amount', 'name']);
+    });
+
+    it('should return all arguments when none are omitted', () => {
+        const node = {
+            arguments: [
+                { name: 'a', type: numberType('u8'), docs: [] },
+                { name: 'b', type: stringType(), docs: [] },
+            ],
+        };
+        const result = getUserFacingArguments(node as any);
+        expect(result).toHaveLength(2);
+    });
+
+    it('should return empty array when all are omitted', () => {
+        const node = {
+            arguments: [{ name: 'disc', defaultValueStrategy: 'omitted', type: bytesType(), docs: [] }],
+        };
+        const result = getUserFacingArguments(node as any);
+        expect(result).toHaveLength(0);
+    });
+});
+
+// ---------------------------------------------------------------------------
+// Helper factories for TypeNode literals
+// Cast through `unknown` because codama uses branded string types
+// (e.g. CamelCaseString) that plain string literals don't satisfy.
+// ---------------------------------------------------------------------------
+const numberType = (format: string): TypeNode =>
+    ({ kind: 'numberTypeNode', format, endian: 'le' } as unknown as TypeNode);
+
+const booleanType = (): TypeNode =>
+    ({ kind: 'booleanTypeNode', size: { kind: 'numberTypeNode', format: 'u8', endian: 'le' } } as unknown as TypeNode);
+
+const publicKeyType = (): TypeNode => ({ kind: 'publicKeyTypeNode' } as unknown as TypeNode);
+
+const stringType = (): TypeNode => ({ kind: 'stringTypeNode', encoding: 'utf8' } as unknown as TypeNode);
+
+const bytesType = (): TypeNode => ({ kind: 'bytesTypeNode' } as unknown as TypeNode);
+
+const arrayType = (item: TypeNode, count?: object): TypeNode =>
+    ({
+        kind: 'arrayTypeNode',
+        item,
+        count: count ?? { kind: 'prefixedCountNode', prefix: numberType('u32') },
+    } as unknown as TypeNode);
+
+const fixedArrayType = (item: TypeNode, length: number): TypeNode =>
+    arrayType(item, { kind: 'fixedCountNode', value: length });
+
+const optionType = (item: TypeNode): TypeNode =>
+    ({
+        kind: 'optionTypeNode',
+        item,
+        fixed: false,
+        prefix: numberType('u8'),
+    } as unknown as TypeNode);
+
+const structType = (fields: Array<{ name: string; type: TypeNode }>): TypeNode =>
+    ({
+        kind: 'structTypeNode',
+        fields: fields.map(f => ({
+            kind: 'structFieldTypeNode',
+            name: f.name,
+            type: f.type,
+            docs: [],
+        })),
+    } as unknown as TypeNode);
+
+const enumType = (variants: Array<{ name: string }>): TypeNode =>
+    ({
+        kind: 'enumTypeNode',
+        variants: variants.map(v => ({
+            kind: 'enumEmptyVariantTypeNode',
+            name: v.name,
+        })),
+    } as unknown as TypeNode);
+
+const tupleType = (items: TypeNode[]): TypeNode => ({ kind: 'tupleTypeNode', items } as unknown as TypeNode);
+
+const fixedSizeType = (type: TypeNode, size: number): TypeNode =>
+    ({ kind: 'fixedSizeTypeNode', type, size } as unknown as TypeNode);
+
+const sizePrefixType = (type: TypeNode): TypeNode =>
+    ({
+        kind: 'sizePrefixTypeNode',
+        type,
+        prefix: numberType('u32'),
+    } as unknown as TypeNode);
+
+const definedTypeLinkType = (name: string): TypeNode => ({ kind: 'definedTypeLinkNode', name } as unknown as TypeNode);
+
+const mapType = (key: TypeNode, value: TypeNode): TypeNode =>
+    ({
+        kind: 'mapTypeNode',
+        key,
+        value,
+        count: { kind: 'prefixedCountNode', prefix: numberType('u32') },
+    } as unknown as TypeNode);
+
+const solAmountType = (): TypeNode =>
+    ({
+        kind: 'solAmountTypeNode',
+        number: numberType('u64'),
+    } as unknown as TypeNode);
+
+const dateTimeType = (): TypeNode =>
+    ({
+        kind: 'dateTimeTypeNode',
+        number: numberType('i64'),
+    } as unknown as TypeNode);
+
+// Minimal RootNode with a defined type for testing definedTypeLinkNode
+function rootWithDefinedType(name: string, type: TypeNode): RootNode {
+    return {
+        kind: 'rootNode',
+        standard: 'codama',
+        version: '1.0.0',
+        program: {
+            kind: 'programNode',
+            name: 'test',
+            publicKey: '11111111111111111111111111111111',
+            version: '0.1.0',
+            origin: 'anchor',
+            docs: [],
+            accounts: [],
+            instructions: [],
+            definedTypes: [
+                {
+                    kind: 'definedTypeNode',
+                    name,
+                    docs: [],
+                    type,
+                },
+            ],
+            pdas: [],
+            errors: [],
+        },
+        additionalPrograms: [],
+    } as unknown as RootNode;
+}
