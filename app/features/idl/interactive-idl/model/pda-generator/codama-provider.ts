@@ -40,11 +40,6 @@ export function createCodamaPdaProvider(): PdaProvider {
             return deriveInstructionPdas(client, root, ixNode.accounts, formArgs, formAccounts);
         },
 
-        // Not used when computePdas is available, but required by the interface
-        findInstruction(): null {
-            return null;
-        },
-
         getProgramId(idl: SupportedIdl): PublicKey | null {
             const root = idl as RootNode;
             try {

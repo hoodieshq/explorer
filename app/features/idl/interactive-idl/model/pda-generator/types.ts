@@ -60,16 +60,9 @@ export type PdaProvider = {
     getProgramId: (idl: SupportedIdl) => PublicKey | null;
 
     /**
-     * Find instruction by name in the IDL
-     * Returns null if instruction not found
+     * Compute PDA addresses for an instruction's accounts.
      */
-    findInstruction: (idl: SupportedIdl, instructionName: string) => PdaInstruction | null;
-
-    /**
-     * Directly compute PDA addresses for an instruction's accounts.
-     * When provided, this takes precedence over findInstruction + manual derivation.
-     */
-    computePdas?: (
+    computePdas: (
         idl: SupportedIdl,
         instructionName: string,
         args: Record<string, string | undefined>,

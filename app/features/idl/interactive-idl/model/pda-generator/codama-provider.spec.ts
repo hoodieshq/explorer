@@ -45,23 +45,16 @@ describe('createCodamaPdaProvider', () => {
         });
     });
 
-    describe('findInstruction', () => {
-        it('should always return null', () => {
-            const provider = createCodamaPdaProvider();
-            expect(provider.findInstruction!(votingIdl as unknown as SupportedIdl, 'initializeCandidate')).toBeNull();
-        });
-    });
-
     describe('computePdas', () => {
         it('should return empty object for unknown instruction', async () => {
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(votingIdl as unknown as SupportedIdl, 'nonExistent', {}, {});
+            const result = await provider.computePdas(votingIdl as unknown as SupportedIdl, 'nonExistent', {}, {});
             expect(result).toEqual({});
         });
 
         it('should derive PDAs with argument seeds', async () => {
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { pollId: '123', candidateName: 'Alice' },
@@ -83,7 +76,7 @@ describe('createCodamaPdaProvider', () => {
 
         it('should return null for generated when required argument seed is missing', async () => {
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { candidateName: 'Alice' },
@@ -100,7 +93,7 @@ describe('createCodamaPdaProvider', () => {
 
         it('should return null for generated when argument seed value is empty', async () => {
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { pollId: '', candidateName: 'Alice' },
@@ -114,7 +107,7 @@ describe('createCodamaPdaProvider', () => {
         it('should derive PDA with account seeds', async () => {
             const provider = createCodamaPdaProvider();
             const authorityKey = PublicKey.default.toBase58();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'instructionWithAccountSeed',
                 {},
@@ -129,7 +122,7 @@ describe('createCodamaPdaProvider', () => {
 
         it('should return null when account seed value is missing', async () => {
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'instructionWithAccountSeed',
                 {},
@@ -142,7 +135,7 @@ describe('createCodamaPdaProvider', () => {
 
         it('should return null when account seed is whitespace-only', async () => {
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'instructionWithAccountSeed',
                 {},
@@ -155,7 +148,7 @@ describe('createCodamaPdaProvider', () => {
 
         it('should handle constant string seeds', async () => {
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
@@ -171,7 +164,7 @@ describe('createCodamaPdaProvider', () => {
 
         it('should skip accounts without PDA default value', async () => {
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { pollId: '1', candidateName: 'Bob' },
@@ -190,13 +183,13 @@ describe('createCodamaPdaProvider', () => {
             const provider = createCodamaPdaProvider();
             const args = { pollId: '42', candidateName: 'Consistent' };
 
-            const result1 = await provider.computePdas!(
+            const result1 = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 args,
                 {}
             );
-            const result2 = await provider.computePdas!(
+            const result2 = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 args,
@@ -210,7 +203,7 @@ describe('createCodamaPdaProvider', () => {
         it('should return null for generated when seed value fails conversion', async () => {
             const provider = createCodamaPdaProvider();
             // pollId expects u64 but we pass an invalid value
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { pollId: 'not-a-number', candidateName: 'Alice' },
@@ -239,7 +232,7 @@ describe('createCodamaPdaProvider', () => {
             pdaValue.pda = { kind: 'pdaLinkNode', name: 'poll' };
 
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 idlWithPdaLink as unknown as SupportedIdl,
                 'initializePoll',
                 { pollId: '99' },
@@ -267,7 +260,7 @@ describe('createCodamaPdaProvider', () => {
             };
 
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 idlWithConditional as unknown as SupportedIdl,
                 'initializePoll',
                 { pollId: '7' },
@@ -293,7 +286,7 @@ describe('createCodamaPdaProvider', () => {
             };
 
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 idlWithConditional as unknown as SupportedIdl,
                 'initializePoll',
                 { pollId: '7' },
@@ -308,7 +301,7 @@ describe('createCodamaPdaProvider', () => {
             const provider = createCodamaPdaProvider();
 
             // First call creates a client
-            const result1 = await provider.computePdas!(
+            const result1 = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { pollId: '1', candidateName: 'A' },
@@ -316,7 +309,7 @@ describe('createCodamaPdaProvider', () => {
             );
 
             // Second call should reuse cached client and produce same results
-            const result2 = await provider.computePdas!(
+            const result2 = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'vote',
                 { pollId: '1', candidateName: 'A' },
@@ -346,7 +339,7 @@ describe('createCodamaPdaProvider', () => {
             };
 
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 idlWithBytesSeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
@@ -373,7 +366,7 @@ describe('createCodamaPdaProvider', () => {
             };
 
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 idlWithBytesSeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
@@ -400,7 +393,7 @@ describe('createCodamaPdaProvider', () => {
             };
 
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 idlWithBytesSeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
@@ -427,7 +420,7 @@ describe('createCodamaPdaProvider', () => {
             };
 
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 idlWithBytesSeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
@@ -455,7 +448,7 @@ describe('createCodamaPdaProvider', () => {
             };
 
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 idlWithPubkeySeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
@@ -482,7 +475,7 @@ describe('createCodamaPdaProvider', () => {
             };
 
             const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas!(
+            const result = await provider.computePdas(
                 idlWithProgIdSeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
