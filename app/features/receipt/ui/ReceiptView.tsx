@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@components/shared/ui/button';
+import * as Sentry from '@sentry/nextjs';
 import { TransactionSignature } from '@solana/web3.js';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -35,8 +36,9 @@ export function ReceiptView({ data, signature, transactionPath }: ReceiptViewPro
         try {
             await navigator.share({ url: globalThis.location.href });
             receiptAnalytics.trackShareNative(signature);
-        } catch {
-            // handle
+        } catch (e) {
+            if (e instanceof Error && e.name === 'AbortError') return;
+            Sentry.captureException(e);
         }
     }
 
