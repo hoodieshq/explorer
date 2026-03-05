@@ -11,6 +11,7 @@ import type { FormattedExtendedReceipt } from '../types';
 import { BaseReceipt, BlurredCircle } from './BaseReceipt';
 import { CopyLinkShareItem } from './CopyLinkShareItem';
 import { PopoverButton } from './PopoverButton';
+import { ShareOnXShareItem } from './ShareOnXShareItem';
 
 interface ReceiptViewProps {
     data: FormattedExtendedReceipt;
@@ -42,6 +43,7 @@ export function ReceiptView({ data, signature, transactionPath }: ReceiptViewPro
                 </div>
                 <div className="e-flex e-items-start e-gap-0.5">
                     <PopoverButton icon={<Share2 size={12} />} label="Share">
+                        <ShareOnXShareItem onShare={() => receiptAnalytics.trackShareOnX(signature)} />
                         <CopyLinkShareItem onCopy={() => receiptAnalytics.trackShareCopyLink(signature)} />
                     </PopoverButton>
                 </div>
