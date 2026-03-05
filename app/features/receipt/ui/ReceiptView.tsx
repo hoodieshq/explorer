@@ -24,7 +24,7 @@ export function ReceiptView({ data, signature, transactionPath }: ReceiptViewPro
     const [canNativeShare, setCanNativeShare] = useState(false);
 
     useEffect(() => {
-        setCanNativeShare(navigator.maxTouchPoints > 0 && typeof navigator.share === 'function');
+        setCanNativeShare(typeof navigator.share === 'function');
     }, []);
 
     function handleViewTxClick() {
