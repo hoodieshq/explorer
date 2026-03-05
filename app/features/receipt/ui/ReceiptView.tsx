@@ -24,7 +24,7 @@ export function ReceiptView({ data, signature, transactionPath }: ReceiptViewPro
     const [canNativeShare, setCanNativeShare] = useState(false);
 
     useEffect(() => {
-        setCanNativeShare(typeof navigator.share === 'function');
+        setCanNativeShare(navigator.maxTouchPoints > 0 && typeof navigator.share === 'function');
     }, []);
 
     function handleViewTxClick() {
@@ -59,12 +59,12 @@ export function ReceiptView({ data, signature, transactionPath }: ReceiptViewPro
                 </div>
                 <div className="e-flex e-items-start e-gap-0.5">
                 {canNativeShare ? (
-                    <Button variant="compact" size="compact" onClick={handleNativeShare}>
+                    <Button variant="compact" size="compact" onClick={handleNativeShare} className="e-max-h-[25px]">
                         <Share2 size={12} />
                         Share
                     </Button>
                 ) : (
-                    <PopoverButton icon={<Share2 size={12} />} label="Share">
+                    <PopoverButton icon={<Share2 size={12} />} label="Share" className="e-max-h-[25px]">
                         <ShareOnXShareItem onShare={() => receiptAnalytics.trackShareOnX(signature)} />
                         <CopyLinkShareItem onCopy={() => receiptAnalytics.trackShareCopyLink(signature)} />
                     </PopoverButton>
