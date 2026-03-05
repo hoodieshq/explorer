@@ -3,6 +3,7 @@
 import { Button } from '@components/shared/ui/button';
 import { TransactionSignature } from '@solana/web3.js';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { Share2 } from 'react-feather';
 
 import { receiptAnalytics } from '@/app/shared/lib/analytics';
@@ -20,8 +21,23 @@ interface ReceiptViewProps {
 }
 
 export function ReceiptView({ data, signature, transactionPath }: ReceiptViewProps) {
+    const [canNativeShare, setCanNativeShare] = useState(false);
+
+    useEffect(() => {
+        setCanNativeShare(typeof navigator.share === 'function');
+    }, []);
+
     function handleViewTxClick() {
         receiptAnalytics.trackViewTxClicked(signature);
+    }
+
+    async function handleNativeShare() {
+        try {
+            await navigator.share({ url: globalThis.location.href });
+            receiptAnalytics.trackShareNative(signature);
+        } catch {
+            // handle
+        }
     }
 
     return (
@@ -42,10 +58,17 @@ export function ReceiptView({ data, signature, transactionPath }: ReceiptViewPro
                     </Button>
                 </div>
                 <div className="e-flex e-items-start e-gap-0.5">
+                {canNativeShare ? (
+                    <Button variant="compact" size="compact" onClick={handleNativeShare}>
+                        <Share2 size={12} />
+                        Share
+                    </Button>
+                ) : (
                     <PopoverButton icon={<Share2 size={12} />} label="Share">
                         <ShareOnXShareItem onShare={() => receiptAnalytics.trackShareOnX(signature)} />
                         <CopyLinkShareItem onCopy={() => receiptAnalytics.trackShareCopyLink(signature)} />
                     </PopoverButton>
+                )}
                 </div>
             </div>
         </div>
