@@ -25,7 +25,12 @@ export function ReceiptView({ data, signature, transactionPath }: ReceiptViewPro
     const [canNativeShare, setCanNativeShare] = useState(false);
 
     useEffect(() => {
-        setCanNativeShare(typeof navigator.share === 'function');
+        const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches;
+        const hasNoHover = window.matchMedia("(hover: none)").matches;
+        
+        setCanNativeShare(
+            typeof navigator.share === 'function' && hasCoarsePointer && hasNoHover
+        );
     }, []);
 
     function handleViewTxClick() {
