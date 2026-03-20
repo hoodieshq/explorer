@@ -85,6 +85,7 @@ export function BaseSearch({
                             <Search className="e-shrink-0 e-text-heavy-metal-100" size={15} />
                             <Command.Input
                                 ref={inputRef}
+                                autoFocus
                                 value={value}
                                 onValueChange={handleInputChange}
                                 onKeyDown={handleKeyDown}
