@@ -11,13 +11,18 @@ export function useSearch(query: string) {
     const trimmed = query.trim();
 
     return useSWR(
-        trimmed.length > 0 ? ['search', trimmed, cluster, clusterInfo?.epochInfo.epoch] : null,
+        trimmed.length > 0 ? ['search', trimmed, cluster] : null,
         () =>
             search(searchProviders, trimmed, {
                 cluster,
                 currentEpoch: clusterInfo?.epochInfo.epoch,
             }),
-        { keepPreviousData: true }
+        {
+            keepPreviousData: false,
+            revalidateIfStale: false,
+            revalidateOnFocus: false,
+            revalidateOnReconnect: false,
+        }
     );
 }
 
