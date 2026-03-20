@@ -1,4 +1,4 @@
-import { Domain } from '@entities/domain/lib/domain-struct';
+import { Domain } from '@entities/domain';
 import { Cluster } from '@utils/cluster';
 import { is } from 'superstruct';
 

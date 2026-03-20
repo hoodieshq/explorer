@@ -5,26 +5,22 @@
  * @see https://github.com/solflare-wallet/utl-api
  */
 
-import { Address } from '@solana/kit';
 import { Cluster } from '@utils/cluster';
+import { array, is, string, type } from 'superstruct';
 
 import { Logger } from '@/app/shared/lib/logger';
 
 import type { SearchItem } from '../lib/types';
 
-type TokenSearchApiResponse = {
-    content: {
-        address: Address;
-        chainId: number;
-        name: string;
-        symbol: string;
-        verified: boolean;
-        decimals: number;
-        holders: number;
-        logoUri: string;
-        tags: string[];
-    }[];
-};
+const TokenSchema = type({
+    address: string(),
+    name: string(),
+    symbol: string(),
+});
+
+const TokenSearchResponseSchema = type({
+    content: array(TokenSchema),
+});
 
 // https://github.com/solflare-wallet/utl-sdk/blob/master/src/types.ts#L5
 const CHAIN_IDS: Partial<Record<Cluster, number>> = {
@@ -63,8 +59,14 @@ export async function searchTokens(query: string, cluster: Cluster): Promise<Sea
             return [];
         }
 
-        const { content } = (await response.json()) as TokenSearchApiResponse;
-        return content.map(token => ({
+        const data = await response.json();
+
+        if (!is(data, TokenSearchResponseSchema)) {
+            Logger.error(new Error('Token search API response validation failed'), { chainId, query, sentry: true });
+            return [];
+        }
+
+        return data.content.map(token => ({
             label: token.name,
             pathname: '/address/' + token.address,
             value: [token.name, token.symbol, token.address],
