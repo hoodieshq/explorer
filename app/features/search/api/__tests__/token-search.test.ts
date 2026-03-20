@@ -3,8 +3,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { searchTokens, TOKEN_SEARCH_API_URL } from '../token-search';
 
-vi.mock('@utils/logger', () => ({
-    default: { error: vi.fn() },
+vi.mock('@/app/shared/lib/logger', () => ({
+    Logger: { error: vi.fn() },
 }));
 
 function mockTokenResponse(content: object[]) {
@@ -94,7 +94,7 @@ describe('searchTokens', () => {
     it('should return empty and log on non-ok response', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('error', { status: 500 }));
 
-        const Logger = (await import('@utils/logger')).default;
+        const { Logger } = await import('@/app/shared/lib/logger');
         const results = await searchTokens('USDC', Cluster.MainnetBeta);
 
         expect(results).toEqual([]);
@@ -104,7 +104,7 @@ describe('searchTokens', () => {
     it('should return empty and log on network error', async () => {
         vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('network failure'));
 
-        const Logger = (await import('@utils/logger')).default;
+        const { Logger } = await import('@/app/shared/lib/logger');
         const results = await searchTokens('USDC', Cluster.MainnetBeta);
 
         expect(results).toEqual([]);

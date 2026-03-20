@@ -1,4 +1,4 @@
-import Logger from '@utils/logger';
+import { Logger } from '@/app/shared/lib/logger';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { SearchContext, SearchOptions, SearchProvider, SearchProviderRegistry } from '../../lib/types';

@@ -1,5 +1,5 @@
 import { useCluster } from '@providers/cluster';
-import Logger from '@utils/logger';
+import { Logger } from '@/app/shared/lib/logger';
 import useSWR from 'swr';
 
 import type { SearchContext, SearchOptions, SearchProvider, SearchProviderRegistry } from '../lib/types';
