@@ -147,7 +147,7 @@ export function BaseSearch({
                         }}
                         className={cn(
                             'e-z-10 e-rounded-md e-shadow-2xl [border-style:solid]',
-                            'e-w-[var(--radix-popover-trigger-width)] e-min-w-[min(400px,100vw)]',
+                            'e-w-[var(--radix-popover-trigger-width)]',
                             'e-border e-border-heavy-metal-700 e-bg-heavy-metal-800'
                         )}
                     >
