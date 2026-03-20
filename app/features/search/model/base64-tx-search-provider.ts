@@ -1,8 +1,7 @@
 import bs58 from 'bs58';
 
-import { MIN_MESSAGE_LENGTH, parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
-
 import { toBase64 } from '@/app/shared/lib/bytes';
+import { MIN_MESSAGE_LENGTH, parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
 
 import type { SearchOptions, SearchProvider } from '../lib/types';
 
