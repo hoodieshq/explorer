@@ -7,7 +7,8 @@
 
 import { Address } from '@solana/kit';
 import { Cluster } from '@utils/cluster';
-import Logger from '@utils/logger';
+
+import { Logger } from '@/app/shared/lib/logger';
 
 import type { SearchItem } from '../lib/types';
 
