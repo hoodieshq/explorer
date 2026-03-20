@@ -1,4 +1,4 @@
-import Logger from '@utils/logger';
+import { Logger } from '@/app/shared/lib/logger';
 
 import type { SearchProvider, SearchProviderRegistry } from '../lib/types';
 import { accountSearchProvider } from './account-search-provider';
