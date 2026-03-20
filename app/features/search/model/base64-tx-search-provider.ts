@@ -2,6 +2,8 @@ import bs58 from 'bs58';
 
 import { MIN_MESSAGE_LENGTH, parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
 
+import { toBase64 } from '@/app/shared/lib/bytes';
+
 import type { SearchOptions, SearchProvider } from '../lib/types';
 
 /**
@@ -59,7 +61,7 @@ export const base64TxSearchProvider: SearchProvider = {
         const pathname = '/tx/inspector';
         const searchParams = new URLSearchParams();
 
-        const messageBase64 = Buffer.from(parsed.messageBytes).toString('base64');
+        const messageBase64 = toBase64(parsed.messageBytes);
         searchParams.set('message', messageBase64);
 
         if (parsed.signatures) {
