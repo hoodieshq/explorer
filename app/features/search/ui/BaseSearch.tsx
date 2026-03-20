@@ -78,11 +78,11 @@ export function BaseSearch({
                             className={cn(
                                 'e-flex e-items-center e-gap-3',
                                 'e-rounded-md e-border e-border-heavy-metal-700 e-bg-heavy-metal-800',
-                                'e-px-4 e-py-2 e-shadow-md',
+                                'e-h-9 e-px-4 e-shadow-md',
                                 'e-transition-shadow focus-within:e-shadow-[0_0_0.4rem_#00d18c]'
                             )}
                         >
-                            <Search className="e-shrink-0 e-text-heavy-metal-400" size={15} />
+                            <Search className="e-shrink-0 e-text-heavy-metal-100" size={15} />
                             <Command.Input
                                 ref={inputRef}
                                 value={value}
@@ -101,7 +101,7 @@ export function BaseSearch({
                                 className={cn(
                                     'e-w-full e-min-w-0 e-flex-1',
                                     'e-border-none e-bg-transparent e-outline-none',
-                                    'e-text-sm e-text-white placeholder:e-text-heavy-metal-400'
+                                    'e-text-sm e-text-white placeholder:e-text-heavy-metal-100'
                                 )}
                             />
                             {hasValue ? (
@@ -123,9 +123,9 @@ export function BaseSearch({
                             ) : (
                                 <kbd
                                     className={cn(
-                                        'e-flex e-h-5 e-w-5 e-shrink-0 e-items-center e-justify-center',
-                                        'e-rounded e-border e-border-heavy-metal-600',
-                                        'e-text-xs e-text-heavy-metal-400'
+                                        'e-flex e-h-6 e-w-6 e-shrink-0 e-items-center e-justify-center',
+                                        'e-rounded e-border e-border-solid e-border-heavy-metal-950 e-bg-heavy-metal-700',
+                                        'e-text-sm e-text-heavy-metal-100'
                                     )}
                                 >
                                     /
