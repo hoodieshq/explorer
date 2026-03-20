@@ -102,7 +102,8 @@ export function BaseSearch({
                                 className={cn(
                                     'e-w-full e-min-w-0 e-flex-1',
                                     'e-border-none e-bg-transparent e-outline-none',
-                                    'e-text-sm e-text-white placeholder:e-text-heavy-metal-100'
+                                    'e-text-sm e-text-white placeholder:e-text-heavy-metal-100',
+                                    'e-overflow-hidden e-text-ellipsis'
                                 )}
                             />
                             {hasValue ? (
