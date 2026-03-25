@@ -6,6 +6,7 @@ import { base64TxSearchProvider } from './base64-tx-search-provider';
 import { blockSearchProvider } from './block-search-provider';
 import { domainSearchProvider } from './domain-search-provider';
 import { epochSearchProvider } from './epoch-search-provider';
+import { explorerUrlSearchProvider } from './explorer-url-search-provider';
 import { featureGateSearchProvider } from './feature-gate-search-provider';
 import { loaderSearchProvider } from './loader-search-provider';
 import { programSearchProvider } from './program-search-provider';
@@ -17,6 +18,7 @@ import { transactionSearchProvider } from './transaction-search-provider';
 // The base64TxSearchProvider rejects inputs that decode as valid bs58 to avoid
 // misinterpreting pubkeys/signatures as serialized transactions.
 const allProviders: SearchProvider[] = [
+    explorerUrlSearchProvider,
     programSearchProvider,
     loaderSearchProvider,
     sysvarSearchProvider,

@@ -4,6 +4,8 @@ export type SearchItem = {
     label: string;
     value: string[];
     pathname: string;
+    /** When set, overrides the current cluster context during navigation. */
+    cluster?: Cluster;
 };
 
 export interface SearchOptions {

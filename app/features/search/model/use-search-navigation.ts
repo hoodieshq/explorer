@@ -1,5 +1,5 @@
 import { useCluster } from '@providers/cluster';
-import { clusterSlug } from '@utils/cluster';
+import { Cluster, clusterSlug } from '@utils/cluster';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback } from 'react';
 
@@ -15,14 +15,23 @@ export function useSearchNavigation(): (option: SearchItem) => void {
     return useCallback(
         (option: SearchItem) => {
             const { pathname } = option;
+            const effectiveCluster = option.cluster ?? cluster;
+
             if (pathname.includes('?')) {
                 const [path, currentSearchParamsString] = pathname.split('?');
                 const nextPath = pickClusterParams(
                     path,
                     new URLSearchParams(currentSearchParamsString),
-                    new URLSearchParams(`cluster=${clusterSlug(cluster)}`),
+                    new URLSearchParams(`cluster=${clusterSlug(effectiveCluster)}`),
                 );
                 router.push(nextPath);
+            } else if (option.cluster !== undefined) {
+                // Item carries its own cluster — use it instead of inheriting from the URL bar.
+                if (effectiveCluster === Cluster.MainnetBeta) {
+                    router.push(pathname);
+                } else {
+                    router.push(`${pathname}?cluster=${clusterSlug(effectiveCluster)}`);
+                }
             } else {
                 const nextQueryString = searchParams?.toString();
                 router.push(`${pathname}${nextQueryString ? `?${nextQueryString}` : ''}`);

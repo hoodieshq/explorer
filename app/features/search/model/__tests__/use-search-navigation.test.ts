@@ -41,6 +41,33 @@ describe('useSearchNavigation', () => {
         expect(url.searchParams.get('cluster')).toBe('devnet');
     });
 
+    it('should use the item cluster override instead of the current cluster', () => {
+        const { result } = renderHook(() => useSearchNavigation());
+
+        result.current({
+            cluster: Cluster.Testnet,
+            label: 'solscan.io — Account',
+            pathname: '/address/abc',
+            value: ['https://solscan.io/account/abc?cluster=testnet'],
+        });
+
+        expect(pushMock).toHaveBeenCalledWith('/address/abc?cluster=testnet');
+    });
+
+    it('should omit cluster param when item cluster override is MainnetBeta', () => {
+        const { result } = renderHook(() => useSearchNavigation());
+
+        result.current({
+            cluster: Cluster.MainnetBeta,
+            label: 'solscan.io — Account',
+            pathname: '/address/abc',
+            value: ['https://solscan.io/account/abc'],
+        });
+
+        // Current app cluster is devnet, but item overrides to mainnet — no param needed
+        expect(pushMock).toHaveBeenCalledWith('/address/abc');
+    });
+
     it('should preserve existing query params in pathname with ?', () => {
         const { result } = renderHook(() => useSearchNavigation());
 
