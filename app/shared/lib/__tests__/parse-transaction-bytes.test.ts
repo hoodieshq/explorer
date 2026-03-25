@@ -131,7 +131,7 @@ describe('parseTransactionBytes', () => {
 
         // VersionedTransaction.deserialize also rejects the mismatch
         expect(() => VersionedTransaction.deserialize(ambiguousBytes)).toThrow(
-            'Expected signatures length to be equal to the number of required signatures'
+            'Expected signatures length to be equal to the number of required signatures',
         );
 
         // parseTransactionBytes falls back to bare message
@@ -150,7 +150,7 @@ describe('parseTransactionBytes', () => {
 
         // VersionedTransaction.deserialize also rejects the mismatch
         expect(() => VersionedTransaction.deserialize(ambiguousBytes)).toThrow(
-            'Expected signatures length to be equal to the number of required signatures'
+            'Expected signatures length to be equal to the number of required signatures',
         );
 
         // parseTransactionBytes falls back to bare message

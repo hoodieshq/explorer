@@ -15,7 +15,7 @@ describe('domainSearchProvider', () => {
         const mockOwner = '7v91N7iZ9mNicL8WfG6cgSCKyRXydQjLh6UYBWwm6y1Q';
         const mockAddress = '9ZNTfG4NyQgxy2SWjSiQoUyBPEvXT2xo7fKc5hPYYJ7b';
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-            new Response(JSON.stringify({ address: mockAddress, owner: mockOwner }))
+            new Response(JSON.stringify({ address: mockAddress, owner: mockOwner })),
         );
 
         const results = await domainSearchProvider.search('toly.sol', ctx);
@@ -56,7 +56,7 @@ describe('domainSearchProvider', () => {
 
     it('should return empty when API returns incomplete info', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
-            new Response(JSON.stringify({ address: null, owner: null }))
+            new Response(JSON.stringify({ address: null, owner: null })),
         );
 
         const results = await domainSearchProvider.search('missing.sol', ctx);

@@ -34,7 +34,7 @@ export const Default: Story = {
         expect(input).toBeInTheDocument();
 
         const placeholder = canvas.getByPlaceholderText(
-            'Search for blocks, accounts, transactions, programs, and tokens'
+            'Search for blocks, accounts, transactions, programs, and tokens',
         );
         expect(placeholder).toBeInTheDocument();
     },
@@ -133,7 +133,7 @@ export const SelectResult: Story = {
 
         await userEvent.click(item);
         expect(args.onSelect).toHaveBeenCalledWith(
-            expect.objectContaining({ label: 'Token A', pathname: '/address/tokenA' })
+            expect.objectContaining({ label: 'Token A', pathname: '/address/tokenA' }),
         );
     },
 };

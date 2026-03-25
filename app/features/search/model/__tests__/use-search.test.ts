@@ -48,7 +48,7 @@ describe('resolveProviders', () => {
         expect(results).toEqual([makeResult('Good', 'g'), makeResult('Also', 'a')]);
         expect(errorSpy).toHaveBeenCalledOnce();
         expect(errorSpy).toHaveBeenCalledWith(
-            expect.objectContaining({ cause: expect.any(Error), message: expect.stringContaining('Bad') })
+            expect.objectContaining({ cause: expect.any(Error), message: expect.stringContaining('Bad') }),
         );
 
         errorSpy.mockRestore();
@@ -219,7 +219,7 @@ describe('search', () => {
 function makeProvider(
     name: string,
     kind: SearchProvider['kind'],
-    impl: (query: string, ctx: SearchContext) => SearchOptions[] | Promise<SearchOptions[]>
+    impl: (query: string, ctx: SearchContext) => SearchOptions[] | Promise<SearchOptions[]>,
 ): SearchProvider {
     return { kind, name, priority: 0, search: impl };
 }

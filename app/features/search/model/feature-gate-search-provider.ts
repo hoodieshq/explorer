@@ -20,7 +20,7 @@ export const featureGateSearchProvider: SearchProvider = {
     priority: 30,
     search(query: string): SearchOptions[] {
         const features = (FEATURES as FeatureInfoType[]).filter(
-            feature => feature.key && feature.title.toUpperCase().includes(query.toUpperCase())
+            feature => feature.key && feature.title.toUpperCase().includes(query.toUpperCase()),
         );
 
         if (features.length === 0) return [];

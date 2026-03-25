@@ -24,7 +24,7 @@ export function SearchBar() {
             setSearch('');
             setOpen(false);
         },
-        [navigate]
+        [navigate],
     );
 
     return (

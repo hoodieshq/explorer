@@ -42,7 +42,7 @@ function buildTier(kind: SearchProvider['kind']): SearchProvider[] {
         if (existing) {
             Logger.warn(
                 `Providers "${existing}" and "${p.name}" in "${kind}" tier share priority ${p.priority}. ` +
-                    'Assign distinct priority values for deterministic display order.'
+                    'Assign distinct priority values for deterministic display order.',
             );
         }
         seen.set(p.priority, p.name);

@@ -31,6 +31,6 @@ describe('searchProviders registry', () => {
         kind => {
             const priorities = searchProviders[kind].map(p => p.priority);
             expect(new Set(priorities).size).toBe(priorities.length);
-        }
+        },
     );
 });

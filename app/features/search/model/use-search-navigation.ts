@@ -20,7 +20,7 @@ export function useSearchNavigation(): (option: SearchItem) => void {
                 const nextPath = pickClusterParams(
                     path,
                     new URLSearchParams(currentSearchParamsString),
-                    new URLSearchParams(`cluster=${clusterSlug(cluster)}`)
+                    new URLSearchParams(`cluster=${clusterSlug(cluster)}`),
                 );
                 router.push(nextPath);
             } else {
@@ -28,6 +28,6 @@ export function useSearchNavigation(): (option: SearchItem) => void {
                 router.push(`${pathname}${nextQueryString ? `?${nextQueryString}` : ''}`);
             }
         },
-        [cluster, router, searchParams]
+        [cluster, router, searchParams],
     );
 }

@@ -22,7 +22,7 @@ export function useSearch(query: string) {
             revalidateIfStale: false,
             revalidateOnFocus: false,
             revalidateOnReconnect: false,
-        }
+        },
     );
 }
 
@@ -35,7 +35,7 @@ export function useSearch(query: string) {
 export async function search(
     registry: SearchProviderRegistry,
     query: string,
-    ctx: SearchContext
+    ctx: SearchContext,
 ): Promise<SearchOptions[]> {
     const { local, fallback, remote } = registry;
 
@@ -55,7 +55,7 @@ export async function search(
 export async function resolveProviders(
     providers: SearchProvider[],
     query: string,
-    ctx: SearchContext
+    ctx: SearchContext,
 ): Promise<SearchOptions[]> {
     const settled = await Promise.allSettled(providers.map(async p => p.search(query, ctx)));
     return settled.flatMap((result, i) => {

@@ -37,7 +37,7 @@ export function BaseSearch({
             onValueChange(next);
             onOpenChange(next.trim().length > 0);
         },
-        [onValueChange, onOpenChange]
+        [onValueChange, onOpenChange],
     );
 
     const handleClear = useCallback(() => {
@@ -58,7 +58,7 @@ export function BaseSearch({
                 onOpenChange(true);
             }
         },
-        [open, onOpenChange]
+        [open, onOpenChange],
     );
 
     useHotkeys(
@@ -66,7 +66,7 @@ export function BaseSearch({
             ['/', () => inputRef.current?.focus()],
             ['mod+k', () => inputRef.current?.focus()],
         ],
-        ['INPUT', 'TEXTAREA']
+        ['INPUT', 'TEXTAREA'],
     );
 
     return (
@@ -79,7 +79,7 @@ export function BaseSearch({
                                 'e-flex e-items-center e-gap-3',
                                 'e-rounded-md e-border e-border-heavy-metal-700 e-bg-heavy-metal-800',
                                 'e-h-9 e-px-4 e-shadow-md',
-                                'e-transition-shadow focus-within:e-shadow-[0_0_0.4rem_#00d18c]'
+                                'e-transition-shadow focus-within:e-shadow-[0_0_0.4rem_#00d18c]',
                             )}
                         >
                             <Search className="e-shrink-0 e-text-heavy-metal-100" size={15} />
@@ -103,7 +103,7 @@ export function BaseSearch({
                                     'e-w-full e-min-w-0 e-flex-1',
                                     'e-border-none e-bg-transparent e-outline-none',
                                     'e-text-sm e-text-white placeholder:e-text-heavy-metal-100',
-                                    'e-overflow-hidden e-text-ellipsis'
+                                    'e-overflow-hidden e-text-ellipsis',
                                 )}
                             />
                             {hasValue ? (
@@ -117,7 +117,7 @@ export function BaseSearch({
                                     className={cn(
                                         'e-flex e-shrink-0 e-cursor-pointer e-items-center e-justify-center',
                                         'e-appearance-none e-border-none e-bg-transparent e-p-0',
-                                        'e-text-heavy-metal-400 e-transition-colors hover:e-text-heavy-metal-200'
+                                        'e-text-heavy-metal-400 e-transition-colors hover:e-text-heavy-metal-200',
                                     )}
                                 >
                                     <X size={16} />
@@ -127,7 +127,7 @@ export function BaseSearch({
                                     className={cn(
                                         'e-flex e-h-6 e-w-6 e-shrink-0 e-items-center e-justify-center',
                                         'e-rounded e-border e-border-solid e-border-heavy-metal-950 e-bg-heavy-metal-700',
-                                        'e-text-sm e-text-heavy-metal-100'
+                                        'e-text-sm e-text-heavy-metal-100',
                                     )}
                                 >
                                     /
@@ -150,7 +150,7 @@ export function BaseSearch({
                         className={cn(
                             'e-z-10 e-rounded-md e-shadow-2xl [border-style:solid]',
                             'e-w-[var(--radix-popover-trigger-width)]',
-                            'e-border e-border-heavy-metal-700 e-bg-heavy-metal-800'
+                            'e-border e-border-heavy-metal-700 e-bg-heavy-metal-800',
                         )}
                     >
                         <CommandList
@@ -165,7 +165,7 @@ export function BaseSearch({
                                 'e-max-h-96 e-overflow-y-auto e-overflow-x-hidden e-py-2',
                                 '[&::-webkit-scrollbar]:e-w-2',
                                 '[&::-webkit-scrollbar-thumb]:e-rounded-full [&::-webkit-scrollbar-thumb]:e-bg-heavy-metal-600 [&::-webkit-scrollbar-thumb]:hover:e-bg-heavy-metal-500',
-                                '[&::-webkit-scrollbar-track]:e-rounded-md [&::-webkit-scrollbar-track]:e-bg-heavy-metal-800'
+                                '[&::-webkit-scrollbar-track]:e-rounded-md [&::-webkit-scrollbar-track]:e-bg-heavy-metal-800',
                             )}
                         >
                             {isLoading && (
@@ -184,7 +184,7 @@ export function BaseSearch({
                                                   '[&_[cmdk-group-heading]]:e-border-b [&_[cmdk-group-heading]]:e-border-heavy-metal-700',
                                                   '[&_[cmdk-group-heading]]:e-px-4 [&_[cmdk-group-heading]]:e-pb-1.5 [&_[cmdk-group-heading]]:e-pt-1',
                                                   '[&_[cmdk-group-heading]]:e-text-xs [&_[cmdk-group-heading]]:e-font-semibold [&_[cmdk-group-heading]]:e-uppercase [&_[cmdk-group-heading]]:e-tracking-wide',
-                                                  '[&_[cmdk-group-heading]]:e-text-heavy-metal-200'
+                                                  '[&_[cmdk-group-heading]]:e-text-heavy-metal-200',
                                               )}
                                           >
                                               {group.options.map(option => (
@@ -197,14 +197,14 @@ export function BaseSearch({
                                                       className={cn(
                                                           'e-cursor-pointer e-px-4 e-py-1.5',
                                                           'e-text-sm e-text-white e-transition-colors',
-                                                          'hover:e-bg-heavy-metal-700 aria-[selected=true]:e-bg-heavy-metal-600'
+                                                          'hover:e-bg-heavy-metal-700 aria-[selected=true]:e-bg-heavy-metal-600',
                                                       )}
                                                   >
                                                       {renderItem ? renderItem(option) : option.label}
                                                   </CommandItem>
                                               ))}
                                           </CommandGroup>
-                                      ) : null
+                                      ) : null,
                                   )
                                 : null}
                             {!isLoading ? (
