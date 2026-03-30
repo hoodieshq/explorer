@@ -48,6 +48,7 @@ import { ExternalLink, RefreshCw } from 'react-feather';
 import { create } from 'superstruct';
 import useSWR from 'swr';
 
+import { refreshAnalytics } from '@/app/shared/lib/analytics';
 import { Logger } from '@/app/shared/lib/logger';
 import { FullLegacyTokenInfo, getTokenInfo, getTokenInfoSwrKey } from '@/app/utils/token-info';
 
@@ -130,7 +131,10 @@ function FungibleTokenMintAccountCard({
     tokenInfo?: FullLegacyTokenInfo;
 }) {
     const fetchInfo = useRefreshAccount();
-    const refresh = () => fetchInfo(account.pubkey, 'parsed');
+    const refresh = () => {
+        refreshAnalytics.trackButtonClicked('token_mint_card');
+        fetchInfo(account.pubkey, 'parsed');
+    };
 
     const bridgeContractAddress = getEthAddress(tokenInfo?.extensions?.bridgeContract);
     const assetContractAddress = getEthAddress(tokenInfo?.extensions?.assetContract);
@@ -258,7 +262,10 @@ function NonFungibleTokenMintAccountCard({
     mintInfo: MintAccountInfo;
 }) {
     const fetchInfo = useRefreshAccount();
-    const refresh = () => fetchInfo(account.pubkey, 'parsed');
+    const refresh = () => {
+        refreshAnalytics.trackButtonClicked('nft_mint_card');
+        fetchInfo(account.pubkey, 'parsed');
+    };
 
     const collection = nftData.metadata.collection;
     return (
@@ -395,7 +402,13 @@ function TokenAccountCard({ account, info }: { account: Account; info: TokenAcco
                 <h3 className="card-header-title mb-0 d-flex align-items-center">
                     Token{account.owner.toBase58() === TOKEN_2022_PROGRAM_ID.toBase58() && '-2022'} Account
                 </h3>
-                <button className="btn btn-white btn-sm" onClick={() => refresh(account.pubkey, 'parsed')}>
+                <button
+                    className="btn btn-white btn-sm"
+                    onClick={() => {
+                        refreshAnalytics.trackButtonClicked('token_account_card');
+                        refresh(account.pubkey, 'parsed');
+                    }}
+                >
                     <RefreshCw className="align-text-top me-2" size={13} />
                     Refresh
                 </button>
@@ -500,7 +513,13 @@ function MultisigAccountCard({ account, info }: { account: Account; info: Multis
         <div className="card">
             <div className="card-header">
                 <h3 className="card-header-title mb-0 d-flex align-items-center">Multisig Account</h3>
-                <button className="btn btn-white btn-sm" onClick={() => refresh(account.pubkey, 'parsed')}>
+                <button
+                    className="btn btn-white btn-sm"
+                    onClick={() => {
+                        refreshAnalytics.trackButtonClicked('multisig_account_card');
+                        refresh(account.pubkey, 'parsed');
+                    }}
+                >
                     <RefreshCw className="align-text-top ms-2" size={13} />
                     Refresh
                 </button>

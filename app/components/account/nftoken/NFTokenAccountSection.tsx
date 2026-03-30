@@ -8,6 +8,7 @@ import { Suspense, useState } from 'react';
 import { RefreshCw } from 'react-feather';
 
 import { getProxiedUri } from '@/app/features/metadata/utils';
+import { refreshAnalytics } from '@/app/shared/lib/analytics';
 
 import { UnknownAccountCard } from '../UnknownAccountCard';
 import { parseNFTokenCollectionAccount, parseNFTokenNFTAccount } from './isNFTokenAccount';
@@ -30,7 +31,10 @@ export function NFTokenAccountSection({ account }: { account: Account }) {
 
 const NFTCard = ({ nft }: { nft: NftokenTypes.NftAccount }) => {
     const fetchInfo = useRefreshAccount();
-    const refresh = () => fetchInfo(new PublicKey(nft.address), 'parsed');
+    const refresh = () => {
+        refreshAnalytics.trackButtonClicked('nft_token_card');
+        fetchInfo(new PublicKey(nft.address), 'parsed');
+    };
 
     return (
         <div className="card">
@@ -118,7 +122,10 @@ export const NftokenImage = ({ url, size }: { url: string | undefined; size: num
 
 const CollectionCard = ({ collection }: { collection: NftokenTypes.CollectionAccount }) => {
     const fetchInfo = useRefreshAccount();
-    const refresh = () => fetchInfo(new PublicKey(collection.address), 'parsed');
+    const refresh = () => {
+        refreshAnalytics.trackButtonClicked('nft_token_collection_card');
+        fetchInfo(new PublicKey(collection.address), 'parsed');
+    };
 
     return (
         <div className="card">

@@ -9,6 +9,8 @@ import { AddressLookupTableAccountInfo } from '@validators/accounts/address-look
 import React from 'react';
 import { RefreshCw } from 'react-feather';
 
+import { refreshAnalytics } from '@/app/shared/lib/analytics';
+
 export function AddressLookupTableAccountSection(
     params:
         | {
@@ -37,7 +39,13 @@ export function AddressLookupTableAccountSection(
         <div className="card">
             <div className="card-header">
                 <h3 className="card-header-title mb-0 d-flex align-items-center">Address Lookup Table Account</h3>
-                <button className="btn btn-white btn-sm" onClick={() => refresh(account.pubkey, 'parsed')}>
+                <button
+                    className="btn btn-white btn-sm"
+                    onClick={() => {
+                        refreshAnalytics.trackButtonClicked('address_lookup_table_section');
+                        refresh(account.pubkey, 'parsed');
+                    }}
+                >
                     <RefreshCw className="align-text-top me-2" size={13} />
                     Refresh
                 </button>

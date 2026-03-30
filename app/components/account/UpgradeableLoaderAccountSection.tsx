@@ -24,6 +24,7 @@ import { ExternalLink, RefreshCw } from 'react-feather';
 import { ProgramSecurityTXTBadge } from '@/app/features/security-txt/ui/SecurityTXTBadge';
 import { ProgramSecurityTXTLabel } from '@/app/features/security-txt/ui/SecurityTXTLabel';
 import { useSquadsMultisigLookup } from '@/app/providers/squadsMultisig';
+import { refreshAnalytics } from '@/app/shared/lib/analytics';
 import { Cluster } from '@/app/utils/cluster';
 import { useClusterPath } from '@/app/utils/url';
 
@@ -81,7 +82,13 @@ export function UpgradeableProgramSection({
                 <h3 className="card-header-title mb-0 d-flex align-items-center">
                     {programData === undefined && 'Closed '}Program Account
                 </h3>
-                <button className="btn btn-white btn-sm" onClick={() => refresh(account.pubkey, 'parsed')}>
+                <button
+                    className="btn btn-white btn-sm"
+                    onClick={() => {
+                        refreshAnalytics.trackButtonClicked('program_section');
+                        refresh(account.pubkey, 'parsed');
+                    }}
+                >
                     <RefreshCw className="align-text-top me-2" size={13} />
                     Refresh
                 </button>
@@ -203,7 +210,13 @@ export function UpgradeableProgramDataSection({
         <div className="card">
             <div className="card-header">
                 <h3 className="card-header-title mb-0 d-flex align-items-center">Program Executable Data Account</h3>
-                <button className="btn btn-white btn-sm" onClick={() => refresh(account.pubkey, 'parsed')}>
+                <button
+                    className="btn btn-white btn-sm"
+                    onClick={() => {
+                        refreshAnalytics.trackButtonClicked('program_data_section');
+                        refresh(account.pubkey, 'parsed');
+                    }}
+                >
                     <RefreshCw className="align-text-top me-2" size={13} />
                     Refresh
                 </button>
@@ -267,7 +280,13 @@ export function UpgradeableProgramBufferSection({
         <div className="card">
             <div className="card-header">
                 <h3 className="card-header-title mb-0 d-flex align-items-center">Program Deploy Buffer Account</h3>
-                <button className="btn btn-white btn-sm" onClick={() => refresh(account.pubkey, 'parsed')}>
+                <button
+                    className="btn btn-white btn-sm"
+                    onClick={() => {
+                        refreshAnalytics.trackButtonClicked('program_buffer_section');
+                        refresh(account.pubkey, 'parsed');
+                    }}
+                >
                     <RefreshCw className="align-text-top me-2" size={13} />
                     Refresh
                 </button>
