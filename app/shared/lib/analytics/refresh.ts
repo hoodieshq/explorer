@@ -1,4 +1,4 @@
-import { type GA4EventName, trackEvent } from './track-event';
+import { trackEvent } from './track-event';
 
 export enum RefreshEvent {
     ButtonClicked = 'rfsh_button_clicked',
