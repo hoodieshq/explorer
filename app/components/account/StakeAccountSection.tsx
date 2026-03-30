@@ -10,6 +10,8 @@ import { StakeAccountInfo, StakeAccountType, StakeMeta } from '@validators/accou
 import React from 'react';
 import { RefreshCw } from 'react-feather';
 
+import { refreshAnalytics } from '@/app/shared/lib/analytics';
+
 const U64_MAX = BigInt('0xffffffffffffffff');
 
 export function StakeAccountSection({
@@ -97,7 +99,13 @@ function OverviewCard({
         <div className="card">
             <div className="card-header">
                 <h3 className="card-header-title mb-0 d-flex align-items-center">Stake Account</h3>
-                <button className="btn btn-white btn-sm" onClick={() => refresh(account.pubkey, 'parsed')}>
+                <button
+                    className="btn btn-white btn-sm"
+                    onClick={() => {
+                        refreshAnalytics.trackButtonClicked('stake_account_section');
+                        refresh(account.pubkey, 'parsed');
+                    }}
+                >
                     <RefreshCw className="align-text-top me-2" size={13} />
                     Refresh
                 </button>
