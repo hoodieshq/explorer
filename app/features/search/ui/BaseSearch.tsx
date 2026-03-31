@@ -77,8 +77,8 @@ export function BaseSearch({
                         <div
                             className={cn(
                                 'e-flex e-items-center e-gap-3',
-                                'e-rounded-md e-border e-border-heavy-metal-700 e-bg-heavy-metal-800',
-                                'e-h-9 e-px-4 e-shadow-md',
+                                'e-rounded-md e-border e-border-heavy-metal-950 e-bg-heavy-metal-800 [border-style:solid]',
+                                'e-h-[38px] e-px-4 e-shadow-md',
                                 'e-transition-shadow focus-within:e-shadow-[0_0_0.4rem_#00d18c]',
                             )}
                         >
@@ -115,9 +115,9 @@ export function BaseSearch({
                                         handleClear();
                                     }}
                                     className={cn(
-                                        'e-flex e-shrink-0 e-cursor-pointer e-items-center e-justify-center',
-                                        'e-appearance-none e-border-none e-bg-transparent e-p-0',
-                                        'e-text-heavy-metal-400 e-transition-colors hover:e-text-heavy-metal-200',
+                                        'e-flex e-h-6 e-w-6 e-shrink-0 e-cursor-pointer e-items-center e-justify-center',
+                                        'e-appearance-none e-rounded e-border e-border-solid e-border-heavy-metal-950 e-bg-heavy-metal-700 e-p-0',
+                                        'e-text-heavy-metal-100 e-transition-colors hover:e-text-heavy-metal-400',
                                     )}
                                 >
                                     <X size={16} />
@@ -150,7 +150,7 @@ export function BaseSearch({
                         className={cn(
                             'e-z-10 e-rounded-md e-shadow-2xl [border-style:solid]',
                             'e-w-[var(--radix-popover-trigger-width)]',
-                            'e-border e-border-heavy-metal-700 e-bg-heavy-metal-800',
+                            'e-border e-border-heavy-metal-950 e-bg-heavy-metal-800',
                         )}
                     >
                         <CommandList
@@ -181,10 +181,9 @@ export function BaseSearch({
                                               heading={group.label}
                                               className={cn(
                                                   '[&_[cmdk-group-heading]]:e-mb-1 [&_[cmdk-group-heading]]:e-mt-2 [&_[cmdk-group-heading]]:e-select-none',
-                                                  '[&_[cmdk-group-heading]]:e-border-b [&_[cmdk-group-heading]]:e-border-heavy-metal-700',
-                                                  '[&_[cmdk-group-heading]]:e-px-4 [&_[cmdk-group-heading]]:e-pb-1.5 [&_[cmdk-group-heading]]:e-pt-1',
-                                                  '[&_[cmdk-group-heading]]:e-text-xs [&_[cmdk-group-heading]]:e-font-semibold [&_[cmdk-group-heading]]:e-uppercase [&_[cmdk-group-heading]]:e-tracking-wide',
-                                                  '[&_[cmdk-group-heading]]:e-text-heavy-metal-200',
+                                                  '[&_[cmdk-group-heading]]:e-px-3 [&_[cmdk-group-heading]]:e-pb-0.5 [&_[cmdk-group-heading]]:e-pt-0',
+                                                  '[&_[cmdk-group-heading]]:e-text-[11.25px] [&_[cmdk-group-heading]]:e-font-medium [&_[cmdk-group-heading]]:e-uppercase',
+                                                  '[&_[cmdk-group-heading]]:e-text-[#999]',
                                               )}
                                           >
                                               {group.options.map(option => (
@@ -195,8 +194,8 @@ export function BaseSearch({
                                                       onSelect={() => onSelect(option)}
                                                       keywords={option.value}
                                                       className={cn(
-                                                          'e-cursor-pointer e-px-4 e-py-1.5',
-                                                          'e-text-sm e-text-white e-transition-colors',
+                                                          'e-cursor-pointer e-px-3 e-py-2',
+                                                          'e-text-[15px] e-text-white e-transition-colors',
                                                           'hover:e-bg-heavy-metal-700 aria-[selected=true]:e-bg-heavy-metal-600',
                                                       )}
                                                   >
