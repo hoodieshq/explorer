@@ -65,10 +65,11 @@ describe('domainSearchProvider', () => {
         vi.restoreAllMocks();
     });
 
-    it('should throw when fetch fails', async () => {
+    it('should return empty when fetch fails', async () => {
         vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('network error'));
 
-        await expect(domainSearchProvider.search('broken.sol', ctx)).rejects.toThrow('network error');
+        const results = await domainSearchProvider.search('broken.sol', ctx);
+        expect(results).toEqual([]);
 
         vi.restoreAllMocks();
     });

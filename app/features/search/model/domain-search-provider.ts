@@ -2,7 +2,11 @@ import { Domain, ResolvedDomainInfoSchema } from '@entities/domain';
 import { Cluster } from '@utils/cluster';
 import { is } from 'superstruct';
 
+import { Logger } from '@/app/shared/lib/logger';
+
 import type { SearchContext, SearchOptions, SearchProvider } from '../lib/types';
+
+const SEARCH_TIMEOUT_MS = 5_000;
 
 /**
  * Remote search provider that resolves Solana domain names (SNS / Bonfida).
@@ -25,32 +29,45 @@ export const domainSearchProvider: SearchProvider = {
             return [];
         }
 
-        const domainInfoResponse = await fetch(`/api/domain-info/${query}`);
-        const domainInfo: unknown = await domainInfoResponse.json();
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);
 
-        if (!is(domainInfo, ResolvedDomainInfoSchema) || !domainInfo) return [];
+        try {
+            const domainInfoResponse = await fetch(`/api/domain-info/${query}`, { signal: controller.signal });
 
-        return [
-            {
-                label: 'Domain Owner',
-                options: [
-                    {
-                        label: domainInfo.owner,
-                        pathname: `/address/${domainInfo.owner}`,
-                        value: [query],
-                    },
-                ],
-            },
-            {
-                label: 'Name Service Account',
-                options: [
-                    {
-                        label: query,
-                        pathname: `/address/${domainInfo.address}`,
-                        value: [query],
-                    },
-                ],
-            },
-        ];
+            if (!domainInfoResponse.ok) return [];
+
+            const domainInfo: unknown = await domainInfoResponse.json();
+
+            if (!is(domainInfo, ResolvedDomainInfoSchema) || !domainInfo) return [];
+
+            return [
+                {
+                    label: 'Domain Owner',
+                    options: [
+                        {
+                            label: domainInfo.owner,
+                            pathname: `/address/${domainInfo.owner}`,
+                            value: [query],
+                        },
+                    ],
+                },
+                {
+                    label: 'Name Service Account',
+                    options: [
+                        {
+                            label: query,
+                            pathname: `/address/${domainInfo.address}`,
+                            value: [query],
+                        },
+                    ],
+                },
+            ];
+        } catch (error) {
+            Logger.error(new Error('Domain search request failed', { cause: error }), { query });
+            return [];
+        } finally {
+            clearTimeout(timeoutId);
+        }
     },
 };
