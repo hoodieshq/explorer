@@ -5,6 +5,7 @@
  * @see https://github.com/solflare-wallet/utl-api
  */
 
+import { getChainId } from '@entities/chain-id';
 import { Cluster } from '@utils/cluster';
 import { array, is, string, type } from 'superstruct';
 
@@ -22,13 +23,6 @@ const TokenSearchResponseSchema = type({
     content: array(TokenSchema),
 });
 
-// https://github.com/solflare-wallet/utl-sdk/blob/master/src/types.ts#L5
-const CHAIN_IDS: Partial<Record<Cluster, number>> = {
-    [Cluster.MainnetBeta]: 101,
-    [Cluster.Testnet]: 102,
-    [Cluster.Devnet]: 103,
-};
-
 export const TOKEN_SEARCH_API_URL = 'https://token-list-api.solana.cloud/v1/search';
 
 const SEARCH_TIMEOUT_MS = 5_000;
@@ -39,8 +33,8 @@ export async function searchTokens(query: string, cluster: Cluster): Promise<Sea
         return [];
     }
 
-    const chainId = CHAIN_IDS[cluster];
-    if (chainId == null) return [];
+    const chainId = getChainId(cluster);
+    if (chainId == undefined) return [];
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), SEARCH_TIMEOUT_MS);

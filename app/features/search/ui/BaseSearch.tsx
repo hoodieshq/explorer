@@ -94,10 +94,7 @@ export function BaseSearch({
                                         onOpenChange(true);
                                     }
                                 }}
-                                onBlur={() => {
-                                    // Delay to allow click on items
-                                    setTimeout(() => onOpenChange(false), 150);
-                                }}
+                                onBlur={() => onOpenChange(false)}
                                 placeholder="Search for blocks, accounts, transactions, programs, and tokens"
                                 className={cn(
                                     'e-w-full e-min-w-0 e-flex-1',
