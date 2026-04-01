@@ -1,8 +1,6 @@
-import { Domain } from '@entities/domain';
+import { Domain, ResolvedDomainInfoSchema } from '@entities/domain';
 import { Cluster } from '@utils/cluster';
 import { is } from 'superstruct';
-
-import type { FetchedDomainInfo } from '@/app/api/domain-info/[domain]/route';
 
 import type { SearchContext, SearchOptions, SearchProvider } from '../lib/types';
 
@@ -28,9 +26,9 @@ export const domainSearchProvider: SearchProvider = {
         }
 
         const domainInfoResponse = await fetch(`/api/domain-info/${query}`);
-        const domainInfo = (await domainInfoResponse.json()) as FetchedDomainInfo;
+        const domainInfo: unknown = await domainInfoResponse.json();
 
-        if (!domainInfo?.owner || !domainInfo?.address) return [];
+        if (!is(domainInfo, ResolvedDomainInfoSchema) || !domainInfo) return [];
 
         return [
             {
