@@ -6,8 +6,46 @@ import { Logger } from '@/app/shared/lib/logger';
 
 const BOT_RESPONSE = { body: { error: 'Access denied: request identified as automated bot' }, status: 401 } as const;
 
+const BOT_UA_PATTERN = /Twitterbot|facebookexternalhit|LinkedInBot|Slackbot|Discordbot|WhatsApp/i;
+
+// TODO: temporary bot fast-path — remove after debugging Twitter card issue
+function serveBotMetaPage(request: NextRequest): Response | undefined {
+    const ua = request.headers.get('user-agent') ?? '';
+    if (!BOT_UA_PATTERN.test(ua)) return undefined;
+
+    const { pathname } = request.nextUrl;
+    const match = pathname.match(/^\/address\/([^/]+)/);
+    if (!match) return undefined;
+
+    const address = match[1];
+    const baseUrl = request.nextUrl.origin;
+    const ogImageUrl = `${baseUrl}/og/feature-gate/${address}`;
+    const pageUrl = `${baseUrl}${pathname}`;
+    const title = `Feature Gate | ${address} | Solana`;
+
+    const html = `<!DOCTYPE html>
+<html><head>
+<meta property="og:title" content="${title}" />
+<meta property="og:image" content="${ogImageUrl}" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:url" content="${pageUrl}" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${title}" />
+<meta name="twitter:image" content="${ogImageUrl}" />
+</head><body></body></html>`;
+
+    return new Response(html, {
+        headers: { 'Content-Type': 'text/html; charset=utf-8' },
+    });
+}
+
 export async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
+
+    // TODO: temporary bot fast-path — remove after debugging Twitter card issue
+    const botResponse = serveBotMetaPage(request);
+    if (botResponse) return botResponse;
 
     if (!isEnvEnabled(process.env.NEXT_PUBLIC_BOTID_ENABLED)) {
         return NextResponse.next();
@@ -58,7 +96,7 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-    matcher: ['/api/:path*'],
+    matcher: ['/api/:path*', '/address/:path*'],
 };
 
 // BotIdClient protected routes - only API routes need protection
