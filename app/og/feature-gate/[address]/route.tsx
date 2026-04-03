@@ -33,7 +33,11 @@ export async function GET(_request: NextRequest, { params }: Props) {
         const imageBuffer = await imageResponse.arrayBuffer();
 
         return new NextResponse(imageBuffer, {
-            headers: { ...CACHE_HEADERS, 'Content-Type': 'image/png' },
+            headers: {
+                ...CACHE_HEADERS,
+                'Content-Length': String(imageBuffer.byteLength),
+                'Content-Type': 'image/png',
+            },
         });
     } catch (e) {
         Logger.error(new Error('[og:feature-gate] Failed to generate image', { cause: e }), { address, sentry: true });
