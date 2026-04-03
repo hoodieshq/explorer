@@ -26,17 +26,11 @@ export async function GET(_request: NextRequest, { params }: Props) {
     const feature = getFeatureInfo(address);
     if (!feature) return new NextResponse('Feature not found', { status: 404 });
 
-    try {
-        const imageResponse = new ImageResponse(<BaseFeatureGateImage title={feature.title} simds={feature.simds} />, {
-            ...OG_IMAGE_SIZE,
-        });
-        const imageBuffer = await imageResponse.arrayBuffer();
-
-        return new NextResponse(imageBuffer, {
-            headers: { ...CACHE_HEADERS, 'Content-Type': 'image/png' },
-        });
-    } catch (e) {
-        Logger.error(new Error('[og:feature-gate] Failed to generate image', { cause: e }), { address, sentry: true });
-        return new NextResponse('Failed to process request', { status: 500 });
-    }
+    // TODO: temporary static image test — remove after debugging Twitter card issue
+    const origin = new URL(_request.url).origin;
+    const res = await fetch(`${origin}/og-test.png`);
+    const buf = await res.arrayBuffer();
+    return new NextResponse(buf, {
+        headers: { ...CACHE_HEADERS, 'Content-Type': 'image/png' },
+    });
 }
