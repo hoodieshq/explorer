@@ -3,6 +3,7 @@ import { Metadata } from 'next/types';
 import { ComponentProps } from 'react';
 
 import { withSentryTraceData } from '@/app/utils/with-sentry-trace-data';
+import { IdlCard } from '@/app/components/account/idl/IdlCard';
 
 import IdlPageClient from './page-client';
 
