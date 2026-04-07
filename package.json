@@ -15,6 +15,7 @@
         "sb": "storybook dev -p 6006",
         "scan": "next dev & react-scan localhost:3000",
         "start": "next start",
+        "types": "tsc --noEmit",
         "test": "vitest --project specs run",
         "test:ci": "vitest --project specs run",
         "test:e2e": "playwright test",
