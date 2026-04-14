@@ -17,9 +17,9 @@ type TokenSearchResult = {
 
 const searchCache = new Map<string, { data: SearchOptions[]; expiresAt: number }>();
 
-export const heliusSearchProvider: SearchProvider = {
+export const tokenSearchProvider: SearchProvider = {
     kind: 'remote',
-    name: 'helius',
+    name: 'token-search',
     priority: 100,
     async search(query: string, ctx: SearchContext): Promise<SearchOptions[]> {
         if (process.env.NEXT_PUBLIC_DISABLE_TOKEN_SEARCH || !query.trim()) {
@@ -48,7 +48,7 @@ export const heliusSearchProvider: SearchProvider = {
             });
 
             if (!response.ok) {
-                Logger.warn('[helius-search] search error', {
+                Logger.warn('[token-search] search error', {
                     query: trimmed,
                     status: response.status.toString(),
                 });
@@ -57,7 +57,7 @@ export const heliusSearchProvider: SearchProvider = {
 
             const data = await response.json();
             if (!data?.success || !data.results) {
-                Logger.error(new Error('[helius-search] invalid search response'), { query: trimmed });
+                Logger.error(new Error('[token-search] invalid search response'), { query: trimmed });
                 return [];
             }
 
@@ -78,7 +78,7 @@ export const heliusSearchProvider: SearchProvider = {
             searchCache.set(cacheKey, { data: sections, expiresAt: Date.now() + SEARCH_CACHE_TTL_MS });
             return sections;
         } catch (error) {
-            Logger.error(error instanceof Error ? error : new Error('[helius-search] request failed'), {
+            Logger.error(error instanceof Error ? error : new Error('[token-search] request failed'), {
                 query: trimmed,
             });
             return [];

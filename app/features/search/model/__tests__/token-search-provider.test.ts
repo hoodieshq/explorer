@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { heliusSearchProvider } from '../helius-search-provider';
+import { tokenSearchProvider } from '../token-search-provider';
 import { createSearchContext } from './provider-test-utils';
 
 const ctx = createSearchContext();
@@ -43,31 +43,31 @@ afterEach(() => {
     delete process.env.NEXT_PUBLIC_DISABLE_TOKEN_SEARCH;
 });
 
-describe('heliusSearchProvider', () => {
+describe('tokenSearchProvider', () => {
     it('should have kind "remote"', () => {
-        expect(heliusSearchProvider.kind).toBe('remote');
+        expect(tokenSearchProvider.kind).toBe('remote');
     });
 
     it('should return [] for empty query', async () => {
-        const result = await heliusSearchProvider.search('', ctx);
+        const result = await tokenSearchProvider.search('', ctx);
         expect(result).toEqual([]);
     });
 
     it('should return [] for whitespace-only query', async () => {
-        const result = await heliusSearchProvider.search('   ', ctx);
+        const result = await tokenSearchProvider.search('   ', ctx);
         expect(result).toEqual([]);
     });
 
     it('should return [] when NEXT_PUBLIC_DISABLE_TOKEN_SEARCH is set', async () => {
         process.env.NEXT_PUBLIC_DISABLE_TOKEN_SEARCH = '1';
-        const result = await heliusSearchProvider.search('sol', ctx);
+        const result = await tokenSearchProvider.search('sol', ctx);
         expect(result).toEqual([]);
     });
 
     it('should return a Tokens section on success', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(makeApiResponse());
 
-        const result = await heliusSearchProvider.search('sol-unique-1', ctx);
+        const result = await tokenSearchProvider.search('sol-unique-1', ctx);
 
         expect(result).toEqual([
             {
@@ -88,35 +88,35 @@ describe('heliusSearchProvider', () => {
     it('should return [] when the token list is empty', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(makeApiResponse([]));
 
-        const result = await heliusSearchProvider.search('sol-unique-2', ctx);
+        const result = await tokenSearchProvider.search('sol-unique-2', ctx);
         expect(result).toEqual([]);
     });
 
     it('should return [] when fetch throws', async () => {
         vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('network error'));
 
-        const result = await heliusSearchProvider.search('sol-unique-3', ctx);
+        const result = await tokenSearchProvider.search('sol-unique-3', ctx);
         expect(result).toEqual([]);
     });
 
     it('should return [] when response is not ok', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('Internal Server Error', { status: 500 }));
 
-        const result = await heliusSearchProvider.search('sol-unique-4', ctx);
+        const result = await tokenSearchProvider.search('sol-unique-4', ctx);
         expect(result).toEqual([]);
     });
 
     it('should return [] when response shape is invalid', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({ unexpected: true })));
 
-        const result = await heliusSearchProvider.search('sol-unique-5', ctx);
+        const result = await tokenSearchProvider.search('sol-unique-5', ctx);
         expect(result).toEqual([]);
     });
 
     it('should set icon to undefined when token has no icon', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(makeApiResponse([makeToken({ icon: null })]));
 
-        const result = await heliusSearchProvider.search('sol-unique-6', ctx);
+        const result = await tokenSearchProvider.search('sol-unique-6', ctx);
         expect(result[0].options[0].icon).toBeUndefined();
     });
 
@@ -124,8 +124,8 @@ describe('heliusSearchProvider', () => {
         const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(makeApiResponse());
 
         const query = 'cache-test-query-' + Date.now();
-        await heliusSearchProvider.search(query, ctx);
-        await heliusSearchProvider.search(query, ctx);
+        await tokenSearchProvider.search(query, ctx);
+        await tokenSearchProvider.search(query, ctx);
 
         expect(fetchSpy).toHaveBeenCalledTimes(1);
     });
@@ -134,8 +134,8 @@ describe('heliusSearchProvider', () => {
         const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(makeApiResponse());
 
         const ts = Date.now();
-        await heliusSearchProvider.search('query-a-' + ts, ctx);
-        await heliusSearchProvider.search('query-b-' + ts, ctx);
+        await tokenSearchProvider.search('query-a-' + ts, ctx);
+        await tokenSearchProvider.search('query-b-' + ts, ctx);
 
         expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
@@ -144,12 +144,12 @@ describe('heliusSearchProvider', () => {
         const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(makeApiResponse());
 
         const query = 'ttl-test-' + Date.now();
-        await heliusSearchProvider.search(query, ctx);
+        await tokenSearchProvider.search(query, ctx);
 
         // Advance past the 30s TTL
         vi.advanceTimersByTime(31_000);
 
-        await heliusSearchProvider.search(query, ctx);
+        await tokenSearchProvider.search(query, ctx);
 
         expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
