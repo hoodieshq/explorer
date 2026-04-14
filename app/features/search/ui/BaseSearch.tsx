@@ -12,7 +12,15 @@ import { SearchResultItem } from './SearchEntity';
 import { SearchFilters } from './SearchFilters';
 import { SearchGroupHeading } from './SearchGroupHeading';
 
-export const FILTER_TABS = [
+export type FilterId = 'all' | 'feature-gates' | 'other' | 'programs' | 'tokens';
+
+type FilterTab = {
+    groups: string[] | null;
+    id: FilterId;
+    label: string;
+};
+
+export const FILTER_TABS: FilterTab[] = [
     { groups: null, id: 'all', label: 'All' },
     { groups: ['Tokens'], id: 'tokens', label: 'Tokens' },
     { groups: ['Programs', 'Program Loaders'], id: 'programs', label: 'Programs' },
@@ -31,9 +39,7 @@ export const FILTER_TABS = [
         id: 'other',
         label: 'Other',
     },
-] as const;
-
-export type FilterId = (typeof FILTER_TABS)[number]['id'];
+];
 
 export type BaseSearchProps = {
     value: string;
@@ -66,9 +72,7 @@ export function BaseSearch({
         return Object.fromEntries(
             FILTER_TABS.map(tab => [
                 tab.id,
-                tab.groups === null
-                    ? total
-                    : (tab.groups as readonly string[]).reduce((sum, label) => sum + (byGroup.get(label) ?? 0), 0),
+                tab.groups === null ? total : tab.groups.reduce((sum, label) => sum + (byGroup.get(label) ?? 0), 0),
             ]),
         ) as Record<FilterId, number>;
     }, [results]);
@@ -78,9 +82,7 @@ export function BaseSearch({
     // Filter results for active tab, always showing Feature Gates last in "All" view
     const filteredResults = useMemo(() => {
         const tab = FILTER_TABS.find(t => t.id === activeFilter);
-        const filtered = tab?.groups
-            ? results.filter(g => (tab.groups as readonly string[]).includes(g.label))
-            : results;
+        const filtered = tab?.groups ? results.filter(g => tab.groups!.includes(g.label)) : results;
 
         if (activeFilter !== 'all') return filtered;
 
