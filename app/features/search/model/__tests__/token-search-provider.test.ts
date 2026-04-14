@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resetSearchApiCache } from '../search-api';
 import { tokenSearchProvider } from '../token-search-provider';
 import { createSearchContext } from './provider-test-utils';
 
@@ -32,13 +33,14 @@ function makeToken(overrides: Record<string, unknown> = {}) {
 }
 
 beforeEach(() => {
-    // Clear the module-level cache between tests by resetting fetch and advancing time
     vi.useFakeTimers();
+    resetSearchApiCache();
 });
 
 afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    resetSearchApiCache();
     // Reset env
     delete process.env.NEXT_PUBLIC_DISABLE_TOKEN_SEARCH;
 });
