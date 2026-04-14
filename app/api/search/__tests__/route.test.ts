@@ -1,7 +1,7 @@
 import fetch from 'node-fetch';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getAssetBatch } from '@/app/entities/das/helius-das-adapter';
+import { getAssetBatch } from '@/app/entities/das/triton-das-adapter';
 
 import { GET } from '../route';
 
@@ -15,7 +15,7 @@ vi.mock('node-fetch', async () => {
     return { ...actual, default: vi.fn() };
 });
 
-vi.mock('@/app/entities/das/helius-das-adapter', () => ({
+vi.mock('@/app/entities/das/triton-das-adapter', () => ({
     getAssetBatch: vi.fn(),
 }));
 

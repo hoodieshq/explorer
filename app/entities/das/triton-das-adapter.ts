@@ -1,9 +1,9 @@
 /**
- * Helius DAS adapter.
+ * Triton DAS adapter.
  *
  * Uses standard DAS JSON-RPC methods and standard parameters only.
- * Provider-specific options (displayOptions, tokenType, etc.) are intentionally excluded.
- * Switching to Triton requires only changing the endpoint URL and method name (getAssetBatch → getAssets).
+ * Provider-specific options are intentionally excluded.
+ * Set TRITON_RPC_URL to your Triton RPC endpoint (API key embedded in the URL).
  */
 
 import fetch from 'node-fetch';
@@ -11,14 +11,6 @@ import fetch from 'node-fetch';
 import { Logger } from '@/app/shared/lib/logger';
 
 import type { DasAsset, DasGetAssetBatchResponse, DasJsonRpcError } from './types';
-
-const HELIUS_DAS_ENDPOINT = 'https://mainnet.helius-rpc.com/';
-
-function getHeliusDasUrl(): string | null {
-    const apiKey = process.env.HELIUS_API_KEY;
-    if (!apiKey) return null;
-    return `${HELIUS_DAS_ENDPOINT}?api-key=${apiKey}`;
-}
 
 function isDasError(response: unknown): response is DasJsonRpcError {
     return (
@@ -34,9 +26,9 @@ function isDasError(response: unknown): response is DasJsonRpcError {
  * Returns null if DAS is not configured or the request fails.
  */
 export async function getAssetBatch(ids: string[], signal?: AbortSignal): Promise<DasAsset[] | null> {
-    const url = getHeliusDasUrl();
+    const url = process.env.TRITON_RPC_URL;
     if (!url) {
-        Logger.warn('[das:helius] HELIUS_API_KEY is not configured — skipping enrichment');
+        Logger.warn('[das:triton] TRITON_RPC_URL is not configured — skipping enrichment');
         return null;
     }
 
@@ -47,7 +39,7 @@ export async function getAssetBatch(ids: string[], signal?: AbortSignal): Promis
             body: JSON.stringify({
                 id: 'explorer-search',
                 jsonrpc: '2.0',
-                method: 'getAssetBatch',
+                method: 'getAssets',
                 params: {
                     ids,
                 },
@@ -58,14 +50,14 @@ export async function getAssetBatch(ids: string[], signal?: AbortSignal): Promis
         });
 
         if (!response.ok) {
-            Logger.warn(`[das:helius] getAssetBatch returned ${response.status}`, { sentry: true });
+            Logger.warn(`[das:triton] getAssets returned ${response.status}`, { sentry: true });
             return null;
         }
 
         const data = (await response.json()) as DasGetAssetBatchResponse | DasJsonRpcError;
 
         if (isDasError(data)) {
-            Logger.warn('[das:helius] getAssetBatch error', {
+            Logger.warn('[das:triton] getAssets error', {
                 dasError: data.error.message,
                 sentry: true,
             });
@@ -74,7 +66,7 @@ export async function getAssetBatch(ids: string[], signal?: AbortSignal): Promis
 
         return data.result;
     } catch (error) {
-        Logger.error(error instanceof Error ? error : new Error('[das:helius] getAssetBatch failed'), {
+        Logger.error(error instanceof Error ? error : new Error('[das:triton] getAssets failed'), {
             sentry: true,
         });
         return null;

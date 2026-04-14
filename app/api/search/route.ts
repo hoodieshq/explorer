@@ -7,7 +7,7 @@ import { array, boolean, is, nullable, number, optional, string, type } from 'su
 
 import { matchAbortError } from '@/app/api/metadata/proxy/feature/errors';
 import { NO_STORE_HEADERS } from '@/app/api/verification/config';
-import { getAssetBatch } from '@/app/entities/das/helius-das-adapter';
+import { getAssetBatch } from '@/app/entities/das/triton-das-adapter';
 import type { DasAsset } from '@/app/entities/das/types';
 import { UTL_API_BASE_URL } from '@/app/entities/token-info/env';
 import { Logger } from '@/app/shared/lib/logger';
