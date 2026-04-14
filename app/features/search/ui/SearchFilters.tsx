@@ -21,7 +21,7 @@ export function SearchFilters({ tabs, activeFilter, counts, onFilterChange }: Se
                 <button
                     key={tab.id}
                     className={cn(
-                        'e-flex e-shrink-0 e-cursor-pointer e-items-center e-gap-1 e-rounded-full e-px-2.5 e-py-0.5',
+                        'e-flex e-shrink-0 e-cursor-pointer e-items-center e-gap-1 e-px-2.5 e-py-0.5',
                         'e-rounded-md e-border e-border-solid e-text-xs e-font-medium e-transition-colors',
                         activeFilter === tab.id
                             ? 'e-border-accent-600 e-bg-accent-600 e-text-heavy-metal-950'
