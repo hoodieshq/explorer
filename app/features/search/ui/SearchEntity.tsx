@@ -1,5 +1,4 @@
 import { cn } from '@shared/utils';
-import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 import type { SearchItem } from '../lib/types';
@@ -22,13 +21,11 @@ function EntityIcon({ icon, label }: { icon?: string; label: string }) {
 
     if (icon && !error) {
         return (
-            <Image
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
                 alt={`entity-icon-${label}`}
                 className="e-h-9 e-w-9 e-shrink-0 e-rounded-lg e-object-cover"
-                height={36}
                 src={icon}
-                unoptimized
-                width={36}
                 onError={() => setError(true)}
             />
         );
