@@ -38,7 +38,6 @@
 | Dynamic | `/api/program-metadata-idl` | 0 B | 0 B |
 | Dynamic | `/api/receipt/price/[mintAddress]` | 0 B | 0 B |
 | Dynamic | `/api/search` | 0 B | 0 B |
-| Dynamic | `/api/search/auth` | 0 B | 0 B |
 | Dynamic | `/api/sns-domains/[address]` | 0 B | 0 B |
 | Dynamic | `/api/token-info` | 0 B | 0 B |
 | Dynamic | `/api/verification/bluprynt/[mintAddress]` | 0 B | 0 B |
