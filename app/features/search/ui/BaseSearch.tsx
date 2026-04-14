@@ -15,7 +15,6 @@ import { SearchGroupHeading } from './SearchGroupHeading';
 export const FILTER_TABS = [
     { groups: null, id: 'all', label: 'All' },
     { groups: ['Tokens'], id: 'tokens', label: 'Tokens' },
-    { groups: ['Validators'], id: 'validators', label: 'Validators' },
     { groups: ['Programs', 'Program Loaders'], id: 'programs', label: 'Programs' },
     { groups: ['Feature Gates'], id: 'feature-gates', label: 'Feature Gates' },
     {
@@ -85,10 +84,16 @@ export function BaseSearch({
 
         if (activeFilter !== 'all') return filtered;
 
-        const fgIndex = filtered.findIndex(g => g.label === 'Feature Gates');
-        if (fgIndex === -1 || fgIndex === filtered.length - 1) return filtered;
         const reordered = [...filtered];
-        reordered.push(reordered.splice(fgIndex, 1)[0]);
+
+        // Tokens first
+        const tokensIdx = reordered.findIndex(g => g.label === 'Tokens');
+        if (tokensIdx > 0) reordered.unshift(reordered.splice(tokensIdx, 1)[0]);
+
+        // Feature Gates last
+        const fgIndex = reordered.findIndex(g => g.label === 'Feature Gates');
+        if (fgIndex !== -1 && fgIndex < reordered.length - 1) reordered.push(reordered.splice(fgIndex, 1)[0]);
+
         return reordered;
     }, [results, activeFilter]);
 

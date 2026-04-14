@@ -6,7 +6,6 @@ import type { SearchContext, SearchOptions, SearchProvider } from '../lib/types'
 
 const SEARCH_CACHE_TTL_MS = 30_000;
 const SEARCH_CACHE_MAX_SIZE = 100;
-const SEARCH_LIMIT = 20;
 
 type TokenSearchResult = {
     icon?: string | null;
@@ -40,7 +39,6 @@ export const heliusSearchProvider: SearchProvider = {
         try {
             const params = new URLSearchParams({
                 cluster: clusterSlug(ctx.cluster),
-                limit: SEARCH_LIMIT.toString(),
                 q: trimmed,
             });
 
@@ -50,7 +48,7 @@ export const heliusSearchProvider: SearchProvider = {
             });
 
             if (!response.ok) {
-                Logger.error(new Error('[helius-search] search error'), {
+                Logger.warn('[helius-search] search error', {
                     query: trimmed,
                     status: response.status.toString(),
                 });
