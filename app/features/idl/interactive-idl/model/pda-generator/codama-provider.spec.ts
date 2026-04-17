@@ -4,6 +4,16 @@ import path from 'node:path';
 import type { SupportedIdl } from '@entities/idl';
 import { PublicKey } from '@solana/web3.js';
 import type { RootNode } from 'codama';
+import {
+    accountValueNode,
+    instructionAccountNode,
+    instructionNode,
+    pdaNode,
+    pdaSeedValueNode,
+    pdaValueNode,
+    publicKeyTypeNode,
+    variablePdaSeedNode,
+} from 'codama';
 import { describe, expect, it } from 'vitest';
 
 import { createCodamaPdaProvider } from './codama-provider';
@@ -484,29 +494,26 @@ describe('createCodamaPdaProvider', () => {
         it('should return null for generated when account PDA seed references itself', async () => {
             const idlWithSelfRef = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
 
-            (idlWithSelfRef.program.instructions as any[]).push({
-                accounts: [
-                    {
-                        defaultValue: {
-                            kind: 'pdaValueNode',
-                            pda: { kind: 'pdaLinkNode', name: 'recursive' },
-                            seeds: [
-                                {
-                                    kind: 'pdaSeedValueNode',
-                                    name: 'recursive',
-                                    value: { kind: 'accountValueNode', name: 'recursive' },
-                                },
-                            ],
-                        },
-                        kind: 'instructionAccountNode',
-                        name: 'recursive',
-                    },
-                ],
-                arguments: [],
-                docs: [],
-                kind: 'instructionNode',
-                name: 'selfReferencePda',
+            const selfRefPda = pdaNode({
+                name: 'recursive',
+                seeds: [variablePdaSeedNode('recursive', publicKeyTypeNode())],
             });
+
+            (idlWithSelfRef.program.instructions as any[]).push(
+                instructionNode({
+                    accounts: [
+                        instructionAccountNode({
+                            defaultValue: pdaValueNode(selfRefPda, [
+                                pdaSeedValueNode('recursive', accountValueNode('recursive')),
+                            ]),
+                            isSigner: false,
+                            isWritable: true,
+                            name: 'recursive',
+                        }),
+                    ],
+                    name: 'selfReferencePda',
+                }),
+            );
 
             const provider = createCodamaPdaProvider();
             const result = await provider.computePdas(
