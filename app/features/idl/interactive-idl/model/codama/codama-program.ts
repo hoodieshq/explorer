@@ -54,7 +54,11 @@ function toLocalTransactionInstruction(instruction: KitInstruction): Transaction
  * Wraps a ProgramClient from @hoodieshq/dynamic-instructions.
  */
 export class CodamaUnifiedProgram implements UnifiedProgram {
-    constructor(public programId: PublicKey, public idl: BaseIdl, private client: ProgramClient) {}
+    constructor(
+        public programId: PublicKey,
+        public idl: BaseIdl,
+        private client: ProgramClient,
+    ) {}
 
     getClient(): ProgramClient {
         return this.client;
@@ -63,7 +67,7 @@ export class CodamaUnifiedProgram implements UnifiedProgram {
     async buildInstruction(
         instructionName: string,
         accounts: UnifiedAccounts,
-        args: UnifiedArguments
+        args: UnifiedArguments,
     ): Promise<TransactionInstruction> {
         const { root } = this.client;
 
@@ -72,8 +76,8 @@ export class CodamaUnifiedProgram implements UnifiedProgram {
         if (!instructionNode) {
             throw new Error(
                 `Instruction "${instructionName}" not found. Available: ${[...this.client.instructions.keys()].join(
-                    ', '
-                )}`
+                    ', ',
+                )}`,
             );
         }
 

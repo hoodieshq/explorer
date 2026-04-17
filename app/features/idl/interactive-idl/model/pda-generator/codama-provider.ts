@@ -62,7 +62,7 @@ async function deriveInstructionPdas(
     root: RootNode,
     accounts: InstructionAccountNode[],
     formArgs: Record<string, string | undefined>,
-    formAccounts: Record<string, string | Record<string, string | undefined> | undefined>
+    formAccounts: Record<string, string | Record<string, string | undefined> | undefined>,
 ): Promise<Record<string, PdaGenerationResult>> {
     const pdaMap = new Map<string, PdaNode>(root.program.pdas.map(p => [p.name, p]));
     const results: Record<string, PdaGenerationResult> = {};
@@ -77,7 +77,7 @@ async function deriveInstructionPdas(
             seedMappings,
             root,
             formArgs,
-            formAccounts
+            formAccounts,
         );
 
         const accountName = camelCase(acc.name);
@@ -109,7 +109,7 @@ async function deriveInstructionPdas(
 
 function getAccountPdaInfo(
     acc: InstructionAccountNode,
-    pdaMap: Map<string, PdaNode>
+    pdaMap: Map<string, PdaNode>,
 ): { pdaNode: PdaNode; seedMappings: PdaValueNode['seeds'] } | null {
     const pdaValue = getPdaValueNode(acc);
     if (!pdaValue) return null;
@@ -153,7 +153,7 @@ function buildSeedInputs(
     seedMappings: PdaValueNode['seeds'],
     root: RootNode,
     formArgs: Record<string, string | undefined>,
-    formAccounts: Record<string, string | Record<string, string | undefined> | undefined>
+    formAccounts: Record<string, string | Record<string, string | undefined> | undefined>,
 ): SeedInputResult {
     const seedInputs: Record<string, unknown> = {};
     const seedInfo: PdaGenerationResult['seeds'] = [];

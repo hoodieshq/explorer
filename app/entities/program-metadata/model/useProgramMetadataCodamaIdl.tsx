@@ -12,7 +12,7 @@ export function useProgramMetadataCodamaIdl(
     programAddress: string,
     url: string,
     cluster: Cluster,
-    useSuspense = false
+    useSuspense = false,
 ) {
     const { programMetadata } = useProgramCanonicalMetadata(
         programAddress,
@@ -20,7 +20,7 @@ export function useProgramMetadataCodamaIdl(
         url,
         cluster,
         PMP_IDL_ENABLED,
-        useSuspense
+        useSuspense,
     );
     return { codamaIdl: programMetadata as CodamaIdl | undefined };
 }

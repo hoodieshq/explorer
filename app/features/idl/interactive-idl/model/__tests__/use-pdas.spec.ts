@@ -410,7 +410,7 @@ describe('usePdas', () => {
         it('should generate PDA with account seeds', async () => {
             const { createMockForm, mockInstruction, mockIdl, getPdas } = setup(
                 codamaVotingIdl,
-                'instructionWithAccountSeed'
+                'instructionWithAccountSeed',
             );
             const form = createMockForm();
             const accountPubkey = PublicKey.default.toString();
@@ -429,7 +429,7 @@ describe('usePdas', () => {
         it('should generate PDA with const seeds', async () => {
             const { createMockForm, mockInstruction, mockIdl, getPdas } = setup(
                 codamaVotingIdl,
-                'instructionWithConstSeed'
+                'instructionWithConstSeed',
             );
             const form = createMockForm();
 

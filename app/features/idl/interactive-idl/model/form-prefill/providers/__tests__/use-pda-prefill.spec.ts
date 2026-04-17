@@ -25,7 +25,7 @@ describe('usePdaPrefill', () => {
                 form,
                 instruction: mockInstruction,
                 pdas: {},
-            })
+            }),
         );
 
         expect(setValueSpy).not.toHaveBeenCalled();
@@ -45,7 +45,7 @@ describe('usePdaPrefill', () => {
                 pdas: {
                     poll: { generated: null, seeds: [{ name: 'pollId', value: null }] },
                 },
-            })
+            }),
         );
 
         expect(setValueSpy).not.toHaveBeenCalled();
@@ -63,7 +63,7 @@ describe('usePdaPrefill', () => {
                 pdas: {
                     poll: { generated: MOCK_PDA_ADDRESS_1, seeds: [{ name: 'pollId', value: '123' }] },
                 },
-            })
+            }),
         );
 
         const pollValue = form.getValues('accounts.initializePoll.poll');
@@ -84,7 +84,7 @@ describe('usePdaPrefill', () => {
                 form,
                 instruction: mockInstruction,
                 pdas,
-            })
+            }),
         );
 
         expect(form.getValues('accounts.initializePoll.poll')).toBe(MOCK_PDA_ADDRESS_1);
@@ -108,7 +108,7 @@ describe('usePdaPrefill', () => {
                 pdas: {
                     nestedAccount: { generated: MOCK_PDA_ADDRESS_1, seeds: [{ name: 'pollId', value: '123' }] },
                 },
-            })
+            }),
         );
 
         const nestedAccountValue = form.getValues('accounts.instructionWithNested.nestedGroup.nestedAccount');
@@ -127,7 +127,7 @@ describe('usePdaPrefill', () => {
                 form,
                 instruction: mockInstruction,
                 pdas: {},
-            })
+            }),
         );
 
         expect(setValueSpy).not.toHaveBeenCalled();
@@ -151,7 +151,7 @@ describe('usePdaPrefill', () => {
                         poll: { generated: MOCK_PDA_ADDRESS_1, seeds: [{ name: 'pollId', value: '123' }] },
                     } as Record<string, PdaGenerationResult>,
                 },
-            }
+            },
         );
 
         expect(form.getValues('accounts.initializePoll.poll')).toBe(MOCK_PDA_ADDRESS_1);
@@ -188,7 +188,7 @@ describe('usePdaPrefill', () => {
                         poll: { generated: MOCK_PDA_ADDRESS_1, seeds: [{ name: 'pollId', value: '123' }] },
                     } as Record<string, PdaGenerationResult>,
                 },
-            }
+            },
         );
 
         expect(form.getValues('accounts.initializePoll.poll')).toBe(MOCK_PDA_ADDRESS_1);
@@ -212,7 +212,7 @@ function setup(idl: unknown, instructionName: string) {
             useInstructionForm({
                 instruction: mockInstruction,
                 onSubmit: vi.fn(),
-            })
+            }),
         ).result.current;
     };
 

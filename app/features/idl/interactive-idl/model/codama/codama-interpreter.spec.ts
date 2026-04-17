@@ -122,7 +122,7 @@ describe('CodamaInterpreter', () => {
                 program,
                 'transferSol',
                 { destination, source },
-                ['1000000000'] // amount as positional string arg
+                ['1000000000'], // amount as positional string arg
             );
 
             expect(ix).toBeDefined();
@@ -138,7 +138,7 @@ describe('CodamaInterpreter', () => {
             const program = await interpreter.createProgram(mockConnection, mockWallet, mockProgramId, idl);
 
             await expect(interpreter.createInstruction(program, 'nonExistentInstruction', {}, [])).rejects.toThrow(
-                'not found'
+                'not found',
             );
         });
     });
@@ -151,7 +151,7 @@ describe('CodamaInterpreter', () => {
             const source = 'Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV';
             // Passing null for destination — should normalize to null and let buildInstruction handle it
             await expect(
-                interpreter.createInstruction(program, 'transferSol', { destination: null as any, source }, ['1000'])
+                interpreter.createInstruction(program, 'transferSol', { destination: null as any, source }, ['1000']),
             ).rejects.toThrow();
         });
 
@@ -161,7 +161,7 @@ describe('CodamaInterpreter', () => {
 
             const source = 'Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV';
             await expect(
-                interpreter.createInstruction(program, 'transferSol', { destination: '', source }, ['1000'])
+                interpreter.createInstruction(program, 'transferSol', { destination: '', source }, ['1000']),
             ).rejects.toThrow();
         });
 
@@ -171,7 +171,7 @@ describe('CodamaInterpreter', () => {
 
             const source = 'Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV';
             await expect(
-                interpreter.createInstruction(program, 'transferSol', { destination: '   ', source }, ['1000'])
+                interpreter.createInstruction(program, 'transferSol', { destination: '   ', source }, ['1000']),
             ).rejects.toThrow();
         });
 
@@ -185,8 +185,8 @@ describe('CodamaInterpreter', () => {
                     program,
                     'transferSol',
                     { destination: 'not-a-valid-pubkey!!!', source },
-                    ['1000']
-                )
+                    ['1000'],
+                ),
             ).rejects.toThrow('Invalid public key for account "destination"');
         });
 

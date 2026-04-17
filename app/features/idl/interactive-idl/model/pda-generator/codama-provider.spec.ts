@@ -57,7 +57,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { candidateName: 'Alice', pollId: '123' },
-                {}
+                {},
             );
 
             expect(result.poll).toBeDefined();
@@ -79,7 +79,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { candidateName: 'Alice' },
-                {}
+                {},
             );
 
             expect(result.poll.generated).toBeNull();
@@ -96,7 +96,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { candidateName: 'Alice', pollId: '' },
-                {}
+                {},
             );
 
             expect(result.poll.generated).toBeNull();
@@ -110,7 +110,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'instructionWithAccountSeed',
                 {},
-                { authority: authorityKey }
+                { authority: authorityKey },
             );
 
             expect(result.pdaAccount).toBeDefined();
@@ -125,7 +125,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'instructionWithAccountSeed',
                 {},
-                {}
+                {},
             );
 
             expect(result.pdaAccount.generated).toBeNull();
@@ -138,7 +138,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'instructionWithAccountSeed',
                 {},
-                { authority: '   ' }
+                { authority: '   ' },
             );
 
             expect(result.pdaAccount.generated).toBeNull();
@@ -151,7 +151,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
-                {}
+                {},
             );
 
             expect(result.pdaAccount).toBeDefined();
@@ -167,7 +167,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { candidateName: 'Bob', pollId: '1' },
-                {}
+                {},
             );
 
             // signer and systemProgram have no pdaValueNode
@@ -186,13 +186,13 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 args,
-                {}
+                {},
             );
             const result2 = await provider.computePdas(
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 args,
-                {}
+                {},
             );
 
             expect(result1.poll.generated).toBe(result2.poll.generated);
@@ -206,7 +206,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { candidateName: 'Alice', pollId: 'not-a-number' },
-                {}
+                {},
             );
 
             expect(result.poll.generated).toBeNull();
@@ -233,7 +233,7 @@ describe('createCodamaPdaProvider', () => {
                 idlWithPdaLink as unknown as SupportedIdl,
                 'initializePoll',
                 { pollId: '99' },
-                {}
+                {},
             );
 
             expect(result.poll).toBeDefined();
@@ -259,7 +259,7 @@ describe('createCodamaPdaProvider', () => {
                 idlWithConditional as unknown as SupportedIdl,
                 'initializePoll',
                 { pollId: '7' },
-                {}
+                {},
             );
 
             expect(result.poll).toBeDefined();
@@ -283,7 +283,7 @@ describe('createCodamaPdaProvider', () => {
                 idlWithConditional as unknown as SupportedIdl,
                 'initializePoll',
                 { pollId: '7' },
-                {}
+                {},
             );
 
             expect(result.poll).toBeDefined();
@@ -298,7 +298,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'initializeCandidate',
                 { candidateName: 'A', pollId: '1' },
-                {}
+                {},
             );
 
             // Second call should reuse cached client and produce same results
@@ -306,7 +306,7 @@ describe('createCodamaPdaProvider', () => {
                 votingIdl as unknown as SupportedIdl,
                 'vote',
                 { candidateName: 'A', pollId: '1' },
-                {}
+                {},
             );
 
             // Both should work (proving the client was usable both times)
@@ -334,7 +334,7 @@ describe('createCodamaPdaProvider', () => {
                 idlWithBytesSeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
-                {}
+                {},
             );
 
             expect(result.pdaAccount).toBeDefined();
@@ -359,7 +359,7 @@ describe('createCodamaPdaProvider', () => {
                 idlWithBytesSeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
-                {}
+                {},
             );
 
             expect(result.pdaAccount).toBeDefined();
@@ -385,7 +385,7 @@ describe('createCodamaPdaProvider', () => {
                 idlWithBytesSeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
-                {}
+                {},
             );
 
             expect(result.pdaAccount).toBeDefined();
@@ -410,7 +410,7 @@ describe('createCodamaPdaProvider', () => {
                 idlWithBytesSeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
-                {}
+                {},
             );
 
             expect(result.pdaAccount).toBeDefined();
@@ -421,7 +421,7 @@ describe('createCodamaPdaProvider', () => {
         it('should handle constant seed with publicKeyValueNode', async () => {
             const idlWithPubkeySeed = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
             const constSeedIx = idlWithPubkeySeed.program.instructions.find(
-                i => i.name === 'instructionWithConstSeed'
+                i => i.name === 'instructionWithConstSeed',
             )!;
             const pdaAccount = constSeedIx.accounts.find(a => a.name === 'pdaAccount')!;
             const pdaNode = (pdaAccount as any).defaultValue.pda;
@@ -438,7 +438,7 @@ describe('createCodamaPdaProvider', () => {
                 idlWithPubkeySeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
-                {}
+                {},
             );
 
             expect(result.pdaAccount).toBeDefined();
@@ -449,7 +449,7 @@ describe('createCodamaPdaProvider', () => {
         it('should handle constant seed with programIdValueNode', async () => {
             const idlWithProgIdSeed = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
             const constSeedIx = idlWithProgIdSeed.program.instructions.find(
-                i => i.name === 'instructionWithConstSeed'
+                i => i.name === 'instructionWithConstSeed',
             )!;
             const pdaAccount = constSeedIx.accounts.find(a => a.name === 'pdaAccount')!;
             const pdaNode = (pdaAccount as any).defaultValue.pda;
@@ -465,7 +465,7 @@ describe('createCodamaPdaProvider', () => {
                 idlWithProgIdSeed as unknown as SupportedIdl,
                 'instructionWithConstSeed',
                 {},
-                {}
+                {},
             );
 
             expect(result.pdaAccount).toBeDefined();

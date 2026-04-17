@@ -66,6 +66,6 @@ export type PdaProvider = {
         idl: SupportedIdl,
         instructionName: string,
         args: Record<string, string | undefined>,
-        accounts: Record<string, string | Record<string, string | undefined> | undefined>
+        accounts: Record<string, string | Record<string, string | undefined> | undefined>,
     ) => Promise<Record<string, PdaGenerationResult>>;
 };

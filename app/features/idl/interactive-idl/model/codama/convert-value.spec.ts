@@ -445,23 +445,23 @@ describe('getUserFacingArguments', () => {
 // (e.g. CamelCaseString) that plain string literals don't satisfy.
 // ---------------------------------------------------------------------------
 const numberType = (format: string): TypeNode =>
-    ({ endian: 'le', format, kind: 'numberTypeNode' } as unknown as TypeNode);
+    ({ endian: 'le', format, kind: 'numberTypeNode' }) as unknown as TypeNode;
 
 const booleanType = (): TypeNode =>
-    ({ kind: 'booleanTypeNode', size: { endian: 'le', format: 'u8', kind: 'numberTypeNode' } } as unknown as TypeNode);
+    ({ kind: 'booleanTypeNode', size: { endian: 'le', format: 'u8', kind: 'numberTypeNode' } }) as unknown as TypeNode;
 
-const publicKeyType = (): TypeNode => ({ kind: 'publicKeyTypeNode' } as unknown as TypeNode);
+const publicKeyType = (): TypeNode => ({ kind: 'publicKeyTypeNode' }) as unknown as TypeNode;
 
-const stringType = (): TypeNode => ({ encoding: 'utf8', kind: 'stringTypeNode' } as unknown as TypeNode);
+const stringType = (): TypeNode => ({ encoding: 'utf8', kind: 'stringTypeNode' }) as unknown as TypeNode;
 
-const bytesType = (): TypeNode => ({ kind: 'bytesTypeNode' } as unknown as TypeNode);
+const bytesType = (): TypeNode => ({ kind: 'bytesTypeNode' }) as unknown as TypeNode;
 
 const arrayType = (item: TypeNode, count?: object): TypeNode =>
     ({
         count: count ?? { kind: 'prefixedCountNode', prefix: numberType('u32') },
         item,
         kind: 'arrayTypeNode',
-    } as unknown as TypeNode);
+    }) as unknown as TypeNode;
 
 const fixedArrayType = (item: TypeNode, length: number): TypeNode =>
     arrayType(item, { kind: 'fixedCountNode', value: length });
@@ -472,7 +472,7 @@ const optionType = (item: TypeNode): TypeNode =>
         item,
         kind: 'optionTypeNode',
         prefix: numberType('u8'),
-    } as unknown as TypeNode);
+    }) as unknown as TypeNode;
 
 const structType = (fields: Array<{ name: string; type: TypeNode }>): TypeNode =>
     ({
@@ -483,7 +483,7 @@ const structType = (fields: Array<{ name: string; type: TypeNode }>): TypeNode =
             type: f.type,
         })),
         kind: 'structTypeNode',
-    } as unknown as TypeNode);
+    }) as unknown as TypeNode;
 
 const enumType = (variants: Array<{ name: string }>): TypeNode =>
     ({
@@ -492,21 +492,21 @@ const enumType = (variants: Array<{ name: string }>): TypeNode =>
             kind: 'enumEmptyVariantTypeNode',
             name: v.name,
         })),
-    } as unknown as TypeNode);
+    }) as unknown as TypeNode;
 
-const tupleType = (items: TypeNode[]): TypeNode => ({ items, kind: 'tupleTypeNode' } as unknown as TypeNode);
+const tupleType = (items: TypeNode[]): TypeNode => ({ items, kind: 'tupleTypeNode' }) as unknown as TypeNode;
 
 const fixedSizeType = (type: TypeNode, size: number): TypeNode =>
-    ({ kind: 'fixedSizeTypeNode', size, type } as unknown as TypeNode);
+    ({ kind: 'fixedSizeTypeNode', size, type }) as unknown as TypeNode;
 
 const sizePrefixType = (type: TypeNode): TypeNode =>
     ({
         kind: 'sizePrefixTypeNode',
         prefix: numberType('u32'),
         type,
-    } as unknown as TypeNode);
+    }) as unknown as TypeNode;
 
-const definedTypeLinkType = (name: string): TypeNode => ({ kind: 'definedTypeLinkNode', name } as unknown as TypeNode);
+const definedTypeLinkType = (name: string): TypeNode => ({ kind: 'definedTypeLinkNode', name }) as unknown as TypeNode;
 
 const mapType = (key: TypeNode, value: TypeNode): TypeNode =>
     ({
@@ -514,34 +514,34 @@ const mapType = (key: TypeNode, value: TypeNode): TypeNode =>
         key,
         kind: 'mapTypeNode',
         value,
-    } as unknown as TypeNode);
+    }) as unknown as TypeNode;
 
 const setType = (item: TypeNode): TypeNode =>
     ({
         count: { kind: 'prefixedCountNode', prefix: numberType('u32') },
         item,
         kind: 'setTypeNode',
-    } as unknown as TypeNode);
+    }) as unknown as TypeNode;
 
 const solAmountType = (): TypeNode =>
     ({
         kind: 'solAmountTypeNode',
         number: numberType('u64'),
-    } as unknown as TypeNode);
+    }) as unknown as TypeNode;
 
 const amountType = (): TypeNode =>
     ({
         kind: 'amountTypeNode',
         number: numberType('u64'),
-    } as unknown as TypeNode);
+    }) as unknown as TypeNode;
 
 const dateTimeType = (): TypeNode =>
     ({
         kind: 'dateTimeTypeNode',
         number: numberType('i64'),
-    } as unknown as TypeNode);
+    }) as unknown as TypeNode;
 
-const wrapperType = (kind: string, type: TypeNode): TypeNode => ({ kind, type } as unknown as TypeNode);
+const wrapperType = (kind: string, type: TypeNode): TypeNode => ({ kind, type }) as unknown as TypeNode;
 
 // Minimal RootNode with a defined type for testing definedTypeLinkNode
 function rootWithDefinedType(name: string, type: TypeNode): RootNode {

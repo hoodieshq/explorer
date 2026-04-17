@@ -46,7 +46,7 @@ async function computePdas(
     idl: SupportedIdl,
     instructionName: string,
     args: Record<string, string | undefined>,
-    accounts: Record<string, string | Record<string, string | undefined> | undefined>
+    accounts: Record<string, string | Record<string, string | undefined> | undefined>,
 ): Promise<Record<string, PdaGenerationResult>> {
     const programId = getProgramId(idl);
     if (!programId) return {};
@@ -67,7 +67,7 @@ async function computePdas(
                 account.pda.seeds,
                 args,
                 accounts,
-                instruction
+                instruction,
             );
 
             const derivationProgramId = resolveProgramId(programId, account.pda.program, { accounts, args });

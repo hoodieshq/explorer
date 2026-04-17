@@ -63,7 +63,7 @@ describe('CodamaUnifiedProgram', () => {
                     destination: new PublicKey(destination),
                     source: new PublicKey(source),
                 },
-                ['1000000']
+                ['1000000'],
             );
 
             expect(ix).toBeInstanceOf(TransactionInstruction);
@@ -103,7 +103,7 @@ describe('CodamaUnifiedProgram', () => {
 
             // Passing null for destination
             await expect(
-                program.buildInstruction('transferSol', { destination: null, source }, ['1000'])
+                program.buildInstruction('transferSol', { destination: null, source }, ['1000']),
             ).rejects.toThrow();
         });
 
@@ -111,7 +111,7 @@ describe('CodamaUnifiedProgram', () => {
             const program = createProgram(systemIdl);
 
             await expect(program.buildInstruction('fakeInstruction', {}, [])).rejects.toThrow(
-                'Instruction "fakeInstruction" not found'
+                'Instruction "fakeInstruction" not found',
             );
         });
 
@@ -136,7 +136,7 @@ describe('CodamaUnifiedProgram', () => {
                     signer,
                     systemProgram: new PublicKey('11111111111111111111111111111111'),
                 },
-                ['TestCandidate', '42']
+                ['TestCandidate', '42'],
             );
 
             expect(ix).toBeInstanceOf(TransactionInstruction);
@@ -156,8 +156,8 @@ describe('CodamaUnifiedProgram', () => {
                         signer,
                         systemProgram: new PublicKey('11111111111111111111111111111111'),
                     },
-                    ['Test', 'not-a-number']
-                )
+                    ['Test', 'not-a-number'],
+                ),
                 // eslint-disable-next-line no-restricted-syntax -- regex needed to match partial error message
             ).rejects.toThrow(/Could not convert "pollId" argument/);
         });
