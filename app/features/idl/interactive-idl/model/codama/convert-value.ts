@@ -80,6 +80,13 @@ function convertBytes({ str }: ConvertCtx) {
             throw new Error(`Invalid bytes array: ${str}`);
         }
     }
+    // Comma-separated values from array of inputs in UI (e.g. "1, 1, 1, 1").
+    if (str.includes(',')) {
+        const parts = str.split(',').map(s => Number(s.trim()));
+        if (parts.some(isNaN)) throw new Error(`Invalid bytes values: ${str}`);
+        return new Uint8Array(parts);
+    }
+    // Hex string
     if (str.length % 2 !== 0) {
         throw new Error(`Hex string must have even length, got ${str.length}`);
     }

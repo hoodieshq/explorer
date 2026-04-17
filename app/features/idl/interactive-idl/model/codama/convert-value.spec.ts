@@ -120,6 +120,26 @@ describe('convertValue', () => {
         it('should throw for invalid JSON array', () => {
             expect(() => convertValue('[1, 2,', bytesType())).toThrow('Invalid bytes array');
         });
+
+        it('should convert comma-separated decimal values with spaces to Uint8Array', () => {
+            const result = convertValue('1, 1, 1, 1', bytesType());
+            expect(result).toEqual(new Uint8Array([1, 1, 1, 1]));
+        });
+
+        it('should convert comma-separated decimal values without spaces', () => {
+            const result = convertValue('1,2,3,255', bytesType());
+            expect(result).toEqual(new Uint8Array([1, 2, 3, 255]));
+        });
+
+        it('should throw for comma-separated values outside byte range', () => {
+            expect(() => convertValue('1, 256, 3', bytesType())).toThrow('Invalid bytes values');
+        });
+
+        it('should convert comma-separated values wrapped in fixedSizeTypeNode', () => {
+            const type = fixedSizeType(bytesType(), 4);
+            const result = convertValue('1, 1, 1, 1', type);
+            expect(result).toEqual(new Uint8Array([1, 1, 1, 1]));
+        });
     });
 
     describe('optionTypeNode', () => {
