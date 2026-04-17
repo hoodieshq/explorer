@@ -479,4 +479,44 @@ describe('createCodamaPdaProvider', () => {
             });
         });
     });
+
+    describe('self-referencing PDA cycles', () => {
+        it('should return null for generated when account PDA seed references itself', async () => {
+            const idlWithSelfRef = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
+
+            (idlWithSelfRef.program.instructions as any[]).push({
+                accounts: [
+                    {
+                        defaultValue: {
+                            kind: 'pdaValueNode',
+                            pda: { kind: 'pdaLinkNode', name: 'recursive' },
+                            seeds: [
+                                {
+                                    kind: 'pdaSeedValueNode',
+                                    name: 'recursive',
+                                    value: { kind: 'accountValueNode', name: 'recursive' },
+                                },
+                            ],
+                        },
+                        kind: 'instructionAccountNode',
+                        name: 'recursive',
+                    },
+                ],
+                arguments: [],
+                docs: [],
+                kind: 'instructionNode',
+                name: 'selfReferencePda',
+            });
+
+            const provider = createCodamaPdaProvider();
+            const result = await provider.computePdas(
+                idlWithSelfRef as unknown as SupportedIdl,
+                'selfReferencePda',
+                {},
+                { recursive: 'Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV' },
+            );
+
+            expect(result.recursive.generated).toBeNull();
+        });
+    });
 });

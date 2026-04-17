@@ -72,6 +72,13 @@ async function deriveInstructionPdas(
         if (!pdaInfo) continue;
 
         const { pdaNode, seedMappings } = pdaInfo;
+        const accountName = camelCase(acc.name);
+
+        if (hasSelfReferencingSeed(seedMappings, accountName)) {
+            results[accountName] = { generated: null, seeds: [] };
+            continue;
+        }
+
         const { seedInputs, seedInfo, allResolved } = buildSeedInputs(
             pdaNode,
             seedMappings,
@@ -79,8 +86,6 @@ async function deriveInstructionPdas(
             formArgs,
             formAccounts,
         );
-
-        const accountName = camelCase(acc.name);
 
         if (!allResolved) {
             results[accountName] = { generated: null, seeds: seedInfo };
@@ -106,6 +111,13 @@ async function deriveInstructionPdas(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Detect self-referencing PDA seeds. Auto-filling these would cause infinite UI update loops.
+ */
+function hasSelfReferencingSeed(seedMappings: PdaValueNode['seeds'], accountName: string): boolean {
+    return seedMappings.some(m => m.value.kind === 'accountValueNode' && camelCase(m.value.name) === accountName);
+}
 
 function getAccountPdaInfo(
     acc: InstructionAccountNode,
