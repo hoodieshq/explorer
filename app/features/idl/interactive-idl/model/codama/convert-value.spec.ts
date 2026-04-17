@@ -131,8 +131,8 @@ describe('convertValue', () => {
             expect(result).toEqual(new Uint8Array([1, 2, 3, 255]));
         });
 
-        it('should throw for comma-separated values outside byte range', () => {
-            expect(() => convertValue('1, 256, 3', bytesType())).toThrow('Invalid bytes values');
+        it('should throw for comma-separated non-numeric values', () => {
+            expect(() => convertValue('1, abc, 3', bytesType())).toThrow('Invalid bytes values');
         });
 
         it('should convert comma-separated values wrapped in fixedSizeTypeNode', () => {
