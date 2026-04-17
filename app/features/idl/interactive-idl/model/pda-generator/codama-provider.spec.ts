@@ -6,12 +6,15 @@ import { PublicKey } from '@solana/web3.js';
 import type { RootNode } from 'codama';
 import {
     accountValueNode,
+    bytesTypeNode,
+    constantPdaSeedNode,
     instructionAccountNode,
     instructionNode,
     pdaNode,
     pdaSeedValueNode,
     pdaValueNode,
     publicKeyTypeNode,
+    stringValueNode,
     variablePdaSeedNode,
 } from 'codama';
 import { describe, expect, it } from 'vitest';
@@ -524,6 +527,137 @@ describe('createCodamaPdaProvider', () => {
             );
 
             expect(result.recursive.generated).toBeNull();
+        });
+
+        it('should return null for generated when two PDA accounts reference each other (A->B, B->A)', async () => {
+            const idlWithCycle = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
+
+            const pdaANode = pdaNode({
+                name: 'pdaA',
+                seeds: [variablePdaSeedNode('pdaB', publicKeyTypeNode())],
+            });
+            const pdaBNode = pdaNode({
+                name: 'pdaB',
+                seeds: [variablePdaSeedNode('pdaA', publicKeyTypeNode())],
+            });
+
+            (idlWithCycle.program.instructions as any[]).push(
+                instructionNode({
+                    accounts: [
+                        instructionAccountNode({
+                            defaultValue: pdaValueNode(pdaANode, [pdaSeedValueNode('pdaB', accountValueNode('pdaB'))]),
+                            isSigner: false,
+                            isWritable: true,
+                            name: 'pdaA',
+                        }),
+                        instructionAccountNode({
+                            defaultValue: pdaValueNode(pdaBNode, [pdaSeedValueNode('pdaA', accountValueNode('pdaA'))]),
+                            isSigner: false,
+                            isWritable: true,
+                            name: 'pdaB',
+                        }),
+                    ],
+                    name: 'twoNodeCyclePda',
+                }),
+            );
+
+            const provider = createCodamaPdaProvider();
+            const someKey = 'Htp9MGP8Tig923ZFY7Qf2zzbMUmYneFRAhSp7vSg4wxV';
+            const result = await provider.computePdas(
+                idlWithCycle as unknown as SupportedIdl,
+                'twoNodeCyclePda',
+                {},
+                { pdaA: someKey, pdaB: someKey },
+            );
+
+            expect(result.pdaA.generated).toBeNull();
+            expect(result.pdaB.generated).toBeNull();
+        });
+
+        it('should resolve chained PDAs that do not form a cycle (level4->level3->level2->level1->signer)', async () => {
+            const idlWithChain = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
+
+            const makeLevelPda = (name: string, seedName: string) =>
+                pdaNode({
+                    name,
+                    seeds: [
+                        constantPdaSeedNode(bytesTypeNode(), stringValueNode(name)),
+                        variablePdaSeedNode(seedName, publicKeyTypeNode()),
+                    ],
+                });
+
+            (idlWithChain.program.instructions as any[]).push(
+                instructionNode({
+                    accounts: [
+                        instructionAccountNode({
+                            isSigner: true,
+                            isWritable: true,
+                            name: 'signer',
+                        }),
+                        instructionAccountNode({
+                            defaultValue: pdaValueNode(makeLevelPda('level1', 'signer'), [
+                                pdaSeedValueNode('signer', accountValueNode('signer')),
+                            ]),
+                            isSigner: false,
+                            isWritable: true,
+                            name: 'level1',
+                        }),
+                        instructionAccountNode({
+                            defaultValue: pdaValueNode(makeLevelPda('level2', 'level1'), [
+                                pdaSeedValueNode('level1', accountValueNode('level1')),
+                            ]),
+                            isSigner: false,
+                            isWritable: true,
+                            name: 'level2',
+                        }),
+                        instructionAccountNode({
+                            defaultValue: pdaValueNode(makeLevelPda('level3', 'level2'), [
+                                pdaSeedValueNode('level2', accountValueNode('level2')),
+                            ]),
+                            isSigner: false,
+                            isWritable: true,
+                            name: 'level3',
+                        }),
+                        instructionAccountNode({
+                            defaultValue: pdaValueNode(makeLevelPda('level4', 'level3'), [
+                                pdaSeedValueNode('level3', accountValueNode('level3')),
+                            ]),
+                            isSigner: false,
+                            isWritable: true,
+                            name: 'level4',
+                        }),
+                    ],
+                    name: 'fourLevelPda',
+                }),
+            );
+
+            const provider = createCodamaPdaProvider();
+            const signerKey = PublicKey.default.toBase58();
+            const programId = new PublicKey(idlWithChain.program.publicKey);
+            const levels = ['level1', 'level2', 'level3', 'level4'];
+
+            // Pre-compute expected PDAs.
+            const expected: Map<string, string> = new Map();
+            let prevKey = new PublicKey(signerKey);
+            for (const level of levels) {
+                const [pda] = PublicKey.findProgramAddressSync([Buffer.from(level), prevKey.toBytes()], programId);
+                expected.set(level, pda.toBase58());
+                prevKey = pda;
+            }
+
+            // Each round resolves one more level, feeding it back as form input as its done in the UI.
+            const formAccounts: Record<string, string> = { signer: signerKey };
+            for (const level of levels) {
+                const result = await provider.computePdas(
+                    idlWithChain as unknown as SupportedIdl,
+                    'fourLevelPda',
+                    {},
+                    formAccounts,
+                );
+
+                expect(result[level].generated).toBe(expected.get(level));
+                formAccounts[level] = result[level].generated!;
+            }
         });
     });
 });

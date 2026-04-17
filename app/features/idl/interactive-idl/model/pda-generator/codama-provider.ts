@@ -3,8 +3,22 @@ import { getIdlSpecType, type SupportedIdl } from '@entities/idl';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { camelCase } from 'change-case';
-import type { ConstantPdaSeedNode, InstructionAccountNode, PdaNode, PdaValueNode, RootNode, TypeNode } from 'codama';
-import { isNode } from 'codama';
+import type {
+    ConstantPdaSeedNode,
+    InstructionAccountNode,
+    InstructionNode,
+    PdaNode,
+    PdaValueNode,
+    RootNode,
+    TypeNode,
+} from 'codama';
+import {
+    CODAMA_ERROR__VISITORS__CYCLIC_DEPENDENCY_DETECTED_WHEN_RESOLVING_INSTRUCTION_DEFAULT_VALUES,
+    getResolvedInstructionInputsVisitor,
+    isCodamaError,
+    isNode,
+    visit,
+} from 'codama';
 
 import { convertValue } from '../codama/convert-value';
 import type { PdaGenerationResult, PdaProvider } from './types';
@@ -37,7 +51,7 @@ export function createCodamaPdaProvider(): PdaProvider {
             const ixNode = root.program.instructions.find(i => camelCase(i.name) === instructionName);
             if (!ixNode) return {};
 
-            return deriveInstructionPdas(client, root, ixNode.accounts, formArgs, formAccounts);
+            return deriveInstructionPdas(client, root, ixNode, formArgs, formAccounts);
         },
 
         getProgramId(idl: SupportedIdl): PublicKey | null {
@@ -60,21 +74,22 @@ export function createCodamaPdaProvider(): PdaProvider {
 async function deriveInstructionPdas(
     client: ProgramClient,
     root: RootNode,
-    accounts: InstructionAccountNode[],
+    instruction: InstructionNode,
     formArgs: Record<string, string | undefined>,
     formAccounts: Record<string, string | Record<string, string | undefined> | undefined>,
 ): Promise<Record<string, PdaGenerationResult>> {
     const pdaMap = new Map<string, PdaNode>(root.program.pdas.map(p => [p.name, p]));
     const results: Record<string, PdaGenerationResult> = {};
+    const recursiveAccounts = findRecursivePdaAccounts(instruction);
 
-    for (const acc of accounts) {
+    for (const acc of instruction.accounts) {
         const pdaInfo = getAccountPdaInfo(acc, pdaMap);
         if (!pdaInfo) continue;
 
         const { pdaNode, seedMappings } = pdaInfo;
         const accountName = camelCase(acc.name);
 
-        if (hasSelfReferencingSeed(seedMappings, accountName)) {
+        if (recursiveAccounts.has(accountName)) {
             results[accountName] = { generated: null, seeds: [] };
             continue;
         }
@@ -113,10 +128,28 @@ async function deriveInstructionPdas(
 // ---------------------------------------------------------------------------
 
 /**
- * Detect self-referencing PDA seeds. Auto-filling these would cause infinite UI update loops.
+ * Find PDA accounts involved in dependency cycles (A->A, A->B->A, A->B->C->A, etc.).
+ * Auto-filling these would cause infinite update loops in the UI.
+ *
+ * Delegates to codama's getResolvedInstructionInputsVisitor which throws on cycles
+ * We catch the error and extract the cyclic account names.
  */
-function hasSelfReferencingSeed(seedMappings: PdaValueNode['seeds'], accountName: string): boolean {
-    return seedMappings.some(m => m.value.kind === 'accountValueNode' && camelCase(m.value.name) === accountName);
+function findRecursivePdaAccounts(instruction: InstructionNode): Set<string> {
+    try {
+        visit(instruction, getResolvedInstructionInputsVisitor());
+        return new Set();
+    } catch (e) {
+        if (
+            isCodamaError(
+                e,
+                CODAMA_ERROR__VISITORS__CYCLIC_DEPENDENCY_DETECTED_WHEN_RESOLVING_INSTRUCTION_DEFAULT_VALUES,
+            )
+        ) {
+            const cycleNames = e.context.cycle.filter(n => n.kind === 'instructionAccountNode').map(n => n.name);
+            return new Set(cycleNames);
+        }
+        return new Set();
+    }
 }
 
 function getAccountPdaInfo(
