@@ -1,4 +1,4 @@
-import type { ProgramClient } from '@hoodieshq/dynamic-instructions';
+import type { ProgramClient } from '@codama/dynamic-client';
 import type { TransactionInstruction } from '@solana/web3.js';
 import { PublicKey, TransactionInstruction as TransactionInstructionClass } from '@solana/web3.js';
 
@@ -8,10 +8,10 @@ import { convertValue, getUserFacingArguments } from './convert-value';
 /**
  * Structural types used instead of importing { AccountRole, Instruction } from
  * '@solana/kit' because the explorer uses @solana/kit 2.x while
- * @hoodieshq/dynamic-instructions depends on @solana/kit 5.x, making the
+ * @codama/dynamic-client depends on @solana/kit 6.x, making the
  * nominal types incompatible at the version boundary.
  *
- * Upgrading the explorer to @solana/kit 5.x would fix this but requires a
+ * Upgrading the explorer to @solana/kit 6.x would fix this but requires a
  * coordinated bump of @solana-program/system, @solana-program/token,
  * @solana-program/program-metadata (all currently peered to kit ^2.1.0) and
  * removing the pnpm override that pins @solana/addresses to 2.1.0.
@@ -22,9 +22,9 @@ interface KitInstruction {
     data?: Uint8Array;
 }
 
-// Values from @solana/kit AccountRole enum (v5.x):
+// Values from @solana/kit AccountRole enum (v6.x):
 // READONLY = 0, WRITABLE = 1, READONLY_SIGNER = 2, WRITABLE_SIGNER = 3
-// See: https://github.com/anza-xyz/kit/blob/main/packages/instructions/src/account.ts
+// See: https://github.com/anza-xyz/kit/blob/main/packages/instructions/src/roles.ts
 const WRITABLE_SIGNER = 3;
 const READONLY_SIGNER = 2;
 const WRITABLE = 1;
@@ -32,10 +32,8 @@ const WRITABLE = 1;
 /**
  * Convert a kit-style Instruction to a local TransactionInstruction.
  *
- * The library's `toLegacyTransactionInstruction` produces instances from its
- * own bundled @solana/web3.js, which breaks `instanceof` checks in the
- * explorer's execution layer. This helper creates instances using the
- * explorer's own classes instead.
+ * Creates TransactionInstruction instances using the explorer's own classes
+ * so that `instanceof` checks in the execution layer work as expected.
  */
 function toLocalTransactionInstruction(instruction: KitInstruction): TransactionInstruction {
     return new TransactionInstructionClass({
@@ -51,7 +49,7 @@ function toLocalTransactionInstruction(instruction: KitInstruction): Transaction
 
 /**
  * Unified program implementation for Codama IDLs.
- * Wraps a ProgramClient from @hoodieshq/dynamic-instructions.
+ * Wraps a ProgramClient from @codama/dynamic-client.
  */
 export class CodamaUnifiedProgram implements UnifiedProgram {
     constructor(
@@ -110,7 +108,7 @@ export class CodamaUnifiedProgram implements UnifiedProgram {
 
         const instruction = await methodFn(namedArgs).accounts(accountsInput).instruction();
 
-        // Cast needed: dynamic-instructions uses @solana/kit 5.x types while
+        // Cast needed: dynamic-client uses @solana/kit 6.x types while
         // the explorer uses 2.x — the shape is identical at runtime.
         return toLocalTransactionInstruction(instruction as unknown as KitInstruction);
     }

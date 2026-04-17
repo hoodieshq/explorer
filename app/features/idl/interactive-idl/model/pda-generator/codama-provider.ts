@@ -1,5 +1,5 @@
+import { createProgramClient, type ProgramClient } from '@codama/dynamic-client';
 import { getIdlSpecType, type SupportedIdl } from '@entities/idl';
-import { createProgramClient, type ProgramClient } from '@hoodieshq/dynamic-instructions';
 import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { camelCase } from 'change-case';
@@ -11,7 +11,7 @@ import type { PdaGenerationResult, PdaProvider } from './types';
 
 /**
  * PDA provider for Codama IDL format.
- * Uses createProgramClient from @hoodieshq/dynamic-instructions for PDA derivation.
+ * Uses createProgramClient from @codama/dynamic-client for PDA derivation.
  */
 export function createCodamaPdaProvider(): PdaProvider {
     let cachedClient: ProgramClient | undefined;
@@ -88,7 +88,7 @@ async function deriveInstructionPdas(
         }
 
         try {
-            const pdaFn = client.pdas[pdaNode.name];
+            const pdaFn = client.pdas?.[pdaNode.name];
             if (!pdaFn) {
                 results[accountName] = { generated: null, seeds: seedInfo };
                 continue;

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
-import { createProgramClient } from '@hoodieshq/dynamic-instructions';
+import { createProgramClient } from '@codama/dynamic-client';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import type { RootNode } from 'codama';
 import { describe, expect, it } from 'vitest';
