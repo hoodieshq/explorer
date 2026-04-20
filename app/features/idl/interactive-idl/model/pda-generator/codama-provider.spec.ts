@@ -6,14 +6,23 @@ import { PublicKey } from '@solana/web3.js';
 import type { RootNode } from 'codama';
 import {
     accountValueNode,
+    argumentValueNode,
+    booleanValueNode,
     bytesTypeNode,
+    conditionalValueNode,
     constantPdaSeedNode,
+    constantPdaSeedNodeFromString,
     instructionAccountNode,
     instructionNode,
+    noneValueNode,
+    numberValueNode,
+    pdaLinkNode,
     pdaNode,
     pdaSeedValueNode,
     pdaValueNode,
     publicKeyTypeNode,
+    publicKeyValueNode,
+    resolverValueNode,
     stringValueNode,
     variablePdaSeedNode,
 } from 'codama';
@@ -23,6 +32,15 @@ import { createCodamaPdaProvider } from './codama-provider';
 
 function loadCodamaIdl(filename: string): RootNode {
     const idlPath = path.resolve(__dirname, '../__mocks__/codama', filename);
+    return JSON.parse(readFileSync(idlPath, 'utf8')) as RootNode;
+}
+
+function loadPmpCodamaIdl(): RootNode {
+    const idlPath = path.resolve(
+        __dirname,
+        '../../../../../entities/idl/mocks/codama',
+        'codama-1.0.0-ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S.json',
+    );
     return JSON.parse(readFileSync(idlPath, 'utf8')) as RootNode;
 }
 
@@ -236,7 +254,7 @@ describe('createCodamaPdaProvider', () => {
             const inlinePda = pdaValue.pda;
 
             // Add PDA to program.pdas
-            (idlWithPdaLink.program.pdas as any[]).push(inlinePda);
+            idlWithPdaLink.program.pdas.push(inlinePda);
 
             // Replace inline pdaNode with pdaLinkNode
             pdaValue.pda = { kind: 'pdaLinkNode', name: 'poll' };
@@ -252,55 +270,6 @@ describe('createCodamaPdaProvider', () => {
             expect(result.poll).toBeDefined();
             expect(result.poll.generated).not.toBeNull();
             expect(result.poll.seeds[0]).toEqual({ name: 'pollId', value: '99' });
-        });
-
-        it('should handle conditionalValueNode with pdaValueNode in ifTrue', async () => {
-            const idlWithConditional = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
-            const initPollIx = idlWithConditional.program.instructions.find(i => i.name === 'initializePoll')!;
-            const pollAccount = initPollIx.accounts.find(a => a.name === 'poll')!;
-            const originalDefault = (pollAccount as any).defaultValue;
-
-            // Wrap the pdaValueNode in a conditionalValueNode
-            (pollAccount as any).defaultValue = {
-                condition: { kind: 'argumentValueNode', name: 'pollId' },
-                ifTrue: originalDefault,
-                kind: 'conditionalValueNode',
-            };
-
-            const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas(
-                idlWithConditional as unknown as SupportedIdl,
-                'initializePoll',
-                { pollId: '7' },
-                {},
-            );
-
-            expect(result.poll).toBeDefined();
-            expect(result.poll.generated).not.toBeNull();
-        });
-
-        it('should handle conditionalValueNode with pdaValueNode in ifFalse', async () => {
-            const idlWithConditional = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
-            const initPollIx = idlWithConditional.program.instructions.find(i => i.name === 'initializePoll')!;
-            const pollAccount = initPollIx.accounts.find(a => a.name === 'poll')!;
-            const originalDefault = (pollAccount as any).defaultValue;
-
-            (pollAccount as any).defaultValue = {
-                condition: { kind: 'argumentValueNode', name: 'pollId' },
-                ifFalse: originalDefault,
-                kind: 'conditionalValueNode',
-            };
-
-            const provider = createCodamaPdaProvider();
-            const result = await provider.computePdas(
-                idlWithConditional as unknown as SupportedIdl,
-                'initializePoll',
-                { pollId: '7' },
-                {},
-            );
-
-            expect(result.poll).toBeDefined();
-            expect(result.poll.generated).not.toBeNull();
         });
 
         it('should use cached client for same program key and version', async () => {
@@ -489,6 +458,359 @@ describe('createCodamaPdaProvider', () => {
             expect(result.pdaAccount.seeds[0]).toEqual({
                 name: `0x${expectedHex}`,
                 value: `0x${expectedHex}`,
+            });
+        });
+    });
+
+    describe('compute pda with conditionalValueNode branch', () => {
+        const emptyPda = pdaNode({ name: 'syntheticEmpty', seeds: [] });
+        const pdaBranch = pdaValueNode(pdaLinkNode('syntheticEmpty'));
+        const ixName = 'initializePoll';
+        const literalBranch = publicKeyValueNode('11111111111111111111111111111111');
+
+        const cloneWithConditional = (conditional: ReturnType<typeof conditionalValueNode>): RootNode => {
+            const idl = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
+            idl.program.pdas.push(emptyPda);
+            const ix = idl.program.instructions.find(i => i.name === ixName)!;
+            const pollAcc = ix.accounts.find(a => a.name === 'poll')!;
+            (pollAcc as any).defaultValue = conditional;
+            return idl;
+        };
+
+        const buildEqualityIdl = (
+            condition: ReturnType<typeof argumentValueNode> | ReturnType<typeof accountValueNode>,
+            value: Parameters<typeof conditionalValueNode>[0]['value'],
+        ) => {
+            const idl = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
+            // Build two synthetic PDAs with CONSTANT seeds (no arg dependency).
+            const truePda = pdaNode({
+                name: 'eqTrueBranch',
+                seeds: [constantPdaSeedNodeFromString('utf8', 'TRUE')],
+            });
+            const falsePda = pdaNode({
+                name: 'eqFalseBranch',
+                seeds: [constantPdaSeedNodeFromString('utf8', 'FALSE')],
+            });
+            idl.program.pdas.push(truePda, falsePda);
+
+            const ix = idl.program.instructions.find(i => i.name === 'initializePoll')!;
+            const pollAcc = ix.accounts.find(a => a.name === 'poll')!;
+            (pollAcc as any).defaultValue = conditionalValueNode({
+                condition,
+                ifFalse: pdaValueNode(pdaLinkNode('eqFalseBranch')),
+                ifTrue: pdaValueNode(pdaLinkNode('eqTrueBranch')),
+                value,
+            });
+
+            const programId = new PublicKey(votingIdl.program.publicKey);
+            const [expectedTrueAddr] = PublicKey.findProgramAddressSync([new TextEncoder().encode('TRUE')], programId);
+            const [expectedFalseAddr] = PublicKey.findProgramAddressSync(
+                [new TextEncoder().encode('FALSE')],
+                programId,
+            );
+
+            return { expectedFalseAddr, expectedTrueAddr, idl };
+        };
+
+        it('should evaluate condition.value equality and select the correct branch', async () => {
+            // Two branches with different seed lists.
+            const idl = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
+            const ix = idl.program.instructions.find(i => i.name === ixName)!;
+            const pollAcc = ix.accounts.find(a => a.name === 'poll')!;
+            const basePda = (pollAcc as any).defaultValue.pda;
+            const baseSeedValues = (pollAcc as any).defaultValue.seeds;
+
+            const ifTruePda = { ...basePda, name: 'trueBranch' };
+            const ifFalsePda = {
+                ...basePda,
+                name: 'falseBranch',
+                seeds: [...basePda.seeds, constantPdaSeedNodeFromString('utf8', 'else')],
+            };
+
+            (pollAcc as any).defaultValue = conditionalValueNode({
+                condition: argumentValueNode('pollId'),
+                ifFalse: pdaValueNode(ifFalsePda, baseSeedValues),
+                ifTrue: pdaValueNode(ifTruePda, baseSeedValues),
+                value: numberValueNode(7),
+            });
+            idl.program.pdas.push(ifTruePda, ifFalsePda);
+
+            const provider = createCodamaPdaProvider();
+            const ifTrueBranch = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: '7' },
+                {},
+            );
+            const ifFalseBranch = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: '8' },
+                {},
+            );
+
+            expect(ifTrueBranch.poll.generated).not.toBeNull();
+            expect(ifFalseBranch.poll.generated).not.toBeNull();
+            expect(ifTrueBranch.poll.generated).not.toBe(ifFalseBranch.poll.generated);
+        });
+
+        it('should return no PDA when condition is true and ifTrue is not a pdaValueNode', async () => {
+            // ifTrue = publicKey literal (user types it), ifFalse = PDA (auto-derived).
+            // Arg present ⇒ condition truthy ⇒ correct answer is "user will type it" ⇒ no auto-derive.
+            const idl = cloneWithConditional(
+                conditionalValueNode({
+                    condition: argumentValueNode('pollId'),
+                    ifFalse: pdaBranch,
+                    ifTrue: literalBranch,
+                }),
+            );
+            const provider = createCodamaPdaProvider();
+            const result = await provider.computePdas(idl as unknown as SupportedIdl, ixName, { pollId: '7' }, {});
+            expect(result.poll).toBeUndefined();
+        });
+
+        it('should return no PDA when condition is false and ifFalse is not a pdaValueNode', async () => {
+            const idl = cloneWithConditional(
+                conditionalValueNode({
+                    condition: argumentValueNode('pollId'),
+                    ifFalse: literalBranch,
+                    ifTrue: pdaBranch,
+                }),
+            );
+            const provider = createCodamaPdaProvider();
+            const result = await provider.computePdas(idl as unknown as SupportedIdl, ixName, { pollId: '' }, {});
+            expect(result.poll).toBeUndefined();
+        });
+
+        it('should return no PDA when condition is true but only ifFalse exists', async () => {
+            const idl = cloneWithConditional(
+                conditionalValueNode({
+                    condition: argumentValueNode('pollId'),
+                    ifFalse: pdaBranch,
+                }),
+            );
+            const provider = createCodamaPdaProvider();
+            const result = await provider.computePdas(idl as unknown as SupportedIdl, ixName, { pollId: '7' }, {});
+            expect(result.poll).toBeUndefined();
+        });
+
+        it('should return no PDA when condition is false but only ifTrue exists', async () => {
+            const idl = cloneWithConditional(
+                conditionalValueNode({
+                    condition: argumentValueNode('pollId'),
+                    ifTrue: pdaBranch,
+                }),
+            );
+            const provider = createCodamaPdaProvider();
+            const result = await provider.computePdas(idl as unknown as SupportedIdl, ixName, { pollId: '' }, {});
+            expect(result.poll).toBeUndefined();
+        });
+
+        it('should compare numberValueNode by stringified number', async () => {
+            const { idl, expectedTrueAddr, expectedFalseAddr } = buildEqualityIdl(
+                argumentValueNode('pollId'),
+                numberValueNode(0),
+            );
+            const provider = createCodamaPdaProvider();
+            const ifTrueBranch = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: '0' },
+                {},
+            );
+            const ifFalseBranch = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: '1' },
+                {},
+            );
+            expect(ifTrueBranch.poll.generated).toBe(expectedTrueAddr.toBase58());
+            expect(ifFalseBranch.poll.generated).toBe(expectedFalseAddr.toBase58());
+        });
+
+        it('should trim whitespace from user-supplied values before equality check', async () => {
+            const { idl, expectedTrueAddr } = buildEqualityIdl(argumentValueNode('pollId'), numberValueNode(7));
+            const provider = createCodamaPdaProvider();
+            const padded = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: '  7  ' },
+                {},
+            );
+            expect(padded.poll.generated).toBe(expectedTrueAddr.toBase58());
+        });
+
+        it('should compare booleanValueNode against string "true"/"false"', async () => {
+            const { idl, expectedTrueAddr, expectedFalseAddr } = buildEqualityIdl(
+                argumentValueNode('pollId'),
+                booleanValueNode(true),
+            );
+            const provider = createCodamaPdaProvider();
+            const ifTrueBranch = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: 'true' },
+                {},
+            );
+            const ifFalseBranch = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: 'false' },
+                {},
+            );
+            expect(ifTrueBranch.poll.generated).toBe(expectedTrueAddr.toBase58());
+            expect(ifFalseBranch.poll.generated).toBe(expectedFalseAddr.toBase58());
+        });
+
+        it('should compare stringValueNode against string', async () => {
+            const { idl, expectedTrueAddr, expectedFalseAddr } = buildEqualityIdl(
+                argumentValueNode('pollId'),
+                stringValueNode('hello'),
+            );
+            const provider = createCodamaPdaProvider();
+            const ifTrueBranch = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: 'hello' },
+                {},
+            );
+            const ifFalseBranch = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: 'world' },
+                {},
+            );
+            expect(ifTrueBranch.poll.generated).toBe(expectedTrueAddr.toBase58());
+            expect(ifFalseBranch.poll.generated).toBe(expectedFalseAddr.toBase58());
+        });
+
+        it('should compare publicKeyValueNode against accountValueNode source', async () => {
+            const conditionalValue = '11111111111111111111111111111111';
+            const otherValue = 'SysvarRent111111111111111111111111111111111';
+            const { idl, expectedTrueAddr, expectedFalseAddr } = buildEqualityIdl(
+                accountValueNode('signer'),
+                publicKeyValueNode(conditionalValue),
+            );
+            const provider = createCodamaPdaProvider();
+            const ifTrueBranch = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                {},
+                { signer: conditionalValue },
+            );
+            const ifFalseBranch = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                {},
+                { signer: otherValue },
+            );
+            expect(ifTrueBranch.poll.generated).toBe(expectedTrueAddr.toBase58());
+            expect(ifFalseBranch.poll.generated).toBe(expectedFalseAddr.toBase58());
+        });
+
+        it('should treat a missing arg as empty (ifFalse)', async () => {
+            const { idl, expectedFalseAddr } = buildEqualityIdl(argumentValueNode('pollId'), numberValueNode(7));
+            const provider = createCodamaPdaProvider();
+            const result = await provider.computePdas(idl as unknown as SupportedIdl, 'initializePoll', {}, {});
+            expect(result.poll.generated).toBe(expectedFalseAddr.toBase58());
+        });
+
+        it('should fallback to ifTrue when expected value-node kind is unsupported', async () => {
+            const { idl, expectedTrueAddr } = buildEqualityIdl(argumentValueNode('pollId'), noneValueNode());
+            const provider = createCodamaPdaProvider();
+            const result = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: '7' },
+                {},
+            );
+            expect(result.poll.generated).toBe(expectedTrueAddr.toBase58());
+        });
+
+        it('should fallback to the only available branch when condition is unknown', async () => {
+            const idlWithConditional = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
+            const initPollIx = idlWithConditional.program.instructions.find(i => i.name === 'initializePoll')!;
+            const pollAccount = initPollIx.accounts.find(a => a.name === 'poll')!;
+            const originalDefault = (pollAccount as any).defaultValue;
+
+            // resolverValueNode is unevaluable from form state — provider falls back to the only populated branch (ifFalse here).
+            (pollAccount as any).defaultValue = conditionalValueNode({
+                condition: resolverValueNode('unknown'),
+                ifFalse: originalDefault,
+            });
+
+            const provider = createCodamaPdaProvider();
+            const result = await provider.computePdas(
+                idlWithConditional as unknown as SupportedIdl,
+                'initializePoll',
+                { pollId: '7' },
+                {},
+            );
+
+            expect(result.poll).toBeDefined();
+            expect(result.poll.generated).not.toBeNull();
+        });
+
+        describe('PMP conditional branch', () => {
+            const pmpIdl = loadPmpCodamaIdl();
+            const programKey = '5v4CbtQTxb4iYAW1MCJMpVu5Dud9ybmRqzXs4bTCJm3o';
+            const authorityKey = '6hb98KJuyK4xfYEqMw8uLndqDMsx23ZcfzDxVRYHtdW9';
+            const programDataKey = '8X6pQzHbYUDpmA5FyZ9hExgJ1b5fPexUoQWfu6cFvQhP';
+            const seed = 'testtesttesttest';
+            const seedBytes = new TextEncoder().encode(seed);
+            const PMP = new PublicKey(pmpIdl.program.publicKey);
+
+            it('should select canonical branch (ifTrue) when programData is provided', async () => {
+                const provider = createCodamaPdaProvider();
+                const result = await provider.computePdas(
+                    pmpIdl as unknown as SupportedIdl,
+                    'initialize',
+                    { seed },
+                    { authority: authorityKey, program: programKey, programData: programDataKey },
+                );
+
+                const [expectedCanonical] = PublicKey.findProgramAddressSync(
+                    [new PublicKey(programKey).toBytes(), seedBytes],
+                    PMP,
+                );
+                expect(result.metadata.generated).toBe(expectedCanonical.toBase58());
+                // Canonical seeds [program, seed].
+                expect(result.metadata.seeds.map(s => s.name)).toEqual(['program', 'seed']);
+            });
+
+            it('should select nonCanonical branch (ifFalse) when programData is empty', async () => {
+                const provider = createCodamaPdaProvider();
+                const result = await provider.computePdas(
+                    pmpIdl as unknown as SupportedIdl,
+                    'initialize',
+                    { seed },
+                    { authority: authorityKey, program: programKey },
+                );
+
+                const [expectedNonCanonical] = PublicKey.findProgramAddressSync(
+                    [new PublicKey(programKey).toBytes(), new PublicKey(authorityKey).toBytes(), seedBytes],
+                    PMP,
+                );
+                expect(result.metadata.generated).toBe(expectedNonCanonical.toBase58());
+                // NonCanonical seeds [program, authority, seed].
+                expect(result.metadata.seeds.map(s => s.name)).toEqual(['program', 'authority', 'seed']);
+            });
+
+            it('should treat whitespace-only programData as empty (nonCanonical)', async () => {
+                const provider = createCodamaPdaProvider();
+                const result = await provider.computePdas(
+                    pmpIdl as unknown as SupportedIdl,
+                    'initialize',
+                    { seed },
+                    { authority: authorityKey, program: programKey, programData: '   ' },
+                );
+
+                const [expectedNonCanonical] = PublicKey.findProgramAddressSync(
+                    [new PublicKey(programKey).toBytes(), new PublicKey(authorityKey).toBytes(), seedBytes],
+                    PMP,
+                );
+                expect(result.metadata.generated).toBe(expectedNonCanonical.toBase58());
+                expect(result.metadata.seeds.map(s => s.name)).toEqual(['program', 'authority', 'seed']);
             });
         });
     });
