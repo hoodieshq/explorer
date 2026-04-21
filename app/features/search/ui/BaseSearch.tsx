@@ -4,106 +4,53 @@ import { useHotkeys } from '@mantine/hooks';
 import * as PopoverPrimitive from '@radix-ui/react-popover';
 import { cn } from '@shared/utils';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from 'cmdk';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useRef } from 'react';
 import { Search, X } from 'react-feather';
 
+import type { FilterId, FilterTab } from '../lib/filter-tabs';
 import type { SearchItem, SearchOptions } from '../lib/types';
-import { SearchResultItem } from './SearchEntity';
 import { SearchFilters } from './SearchFilters';
 import { SearchGroupHeading } from './SearchGroupHeading';
+import { SearchResultItem } from './SearchResultItem';
 
-export type FilterId = 'all' | 'feature-gates' | 'other' | 'programs' | 'tokens';
-
-type FilterTab = {
-    groups: string[] | null;
-    id: FilterId;
-    label: string;
-};
-
-export const FILTER_TABS: FilterTab[] = [
-    { groups: null, id: 'all', label: 'All' },
-    { groups: ['Tokens'], id: 'tokens', label: 'Tokens' },
-    { groups: ['Programs', 'Program Loaders'], id: 'programs', label: 'Programs' },
-    { groups: ['Feature Gates'], id: 'feature-gates', label: 'Feature Gates' },
-    {
-        groups: [
-            'Accounts',
-            'Sysvars',
-            'Transactions',
-            'Blocks',
-            'Epochs',
-            'Domains',
-            'Domain Owners',
-            'Name Service Accounts',
-        ],
-        id: 'other',
-        label: 'Other',
-    },
-];
+export type { FilterId, FilterTab } from '../lib/filter-tabs';
+export { FILTER_TABS } from '../lib/filter-tabs';
 
 export type BaseSearchProps = {
     value: string;
     open: boolean;
-    results: SearchOptions[];
+    filteredResults: SearchOptions[];
+    counts: Record<FilterId, number>;
+    visibleTabs: FilterTab[];
+    activeFilter: FilterId;
     isLoading: boolean;
     onValueChange: (value: string) => void;
     onOpenChange: (open: boolean) => void;
+    onFilterChange: (filter: FilterId) => void;
     onSelect: (option: SearchItem) => void;
 };
 
 export function BaseSearch({
     value,
     open,
-    results,
+    filteredResults,
+    counts,
+    visibleTabs,
+    activeFilter,
     isLoading,
     onValueChange,
     onOpenChange,
+    onFilterChange,
     onSelect,
 }: BaseSearchProps) {
     const inputRef = useRef<HTMLInputElement>(null);
-    const [activeFilter, setActiveFilter] = useState<FilterId>('all');
     const hasValue = value.length > 0;
-    const hasResults = results.some(g => g.options.length > 0);
-
-    // Count results per tab
-    const counts = useMemo<Record<FilterId, number>>(() => {
-        const byGroup = new Map(results.map(g => [g.label, g.options.length]));
-        const total = results.reduce((sum, g) => sum + g.options.length, 0);
-        return Object.fromEntries(
-            FILTER_TABS.map(tab => [
-                tab.id,
-                tab.groups === null ? total : tab.groups.reduce((sum, label) => sum + (byGroup.get(label) ?? 0), 0),
-            ]),
-        ) as Record<FilterId, number>;
-    }, [results]);
-
-    const visibleTabs = useMemo(() => FILTER_TABS.filter(t => t.id === 'all' || counts[t.id] > 0), [counts]);
-
-    // Filter results for active tab, always showing Feature Gates last in "All" view
-    const filteredResults = useMemo(() => {
-        const tab = FILTER_TABS.find(t => t.id === activeFilter);
-        const filtered = tab?.groups ? results.filter(g => tab.groups!.includes(g.label)) : results;
-
-        if (activeFilter !== 'all') return filtered;
-
-        const reordered = [...filtered];
-
-        // Tokens first
-        const tokensIdx = reordered.findIndex(g => g.label === 'Tokens');
-        if (tokensIdx > 0) reordered.unshift(reordered.splice(tokensIdx, 1)[0]);
-
-        // Feature Gates last
-        const fgIndex = reordered.findIndex(g => g.label === 'Feature Gates');
-        if (fgIndex !== -1 && fgIndex < reordered.length - 1) reordered.push(reordered.splice(fgIndex, 1)[0]);
-
-        return reordered;
-    }, [results, activeFilter]);
+    const hasResults = filteredResults.some(g => g.options.length > 0);
 
     const handleInputChange = useCallback(
         (next: string) => {
             onValueChange(next);
             onOpenChange(next.trim().length > 0);
-            setActiveFilter('all');
         },
         [onValueChange, onOpenChange],
     );
@@ -111,7 +58,6 @@ export function BaseSearch({
     const handleClear = useCallback(() => {
         onValueChange('');
         onOpenChange(false);
-        setActiveFilter('all');
         inputRef.current?.blur();
     }, [onValueChange, onOpenChange]);
 
@@ -220,7 +166,7 @@ export function BaseSearch({
                                     activeFilter={activeFilter}
                                     counts={counts}
                                     tabs={visibleTabs}
-                                    onFilterChange={setActiveFilter}
+                                    onFilterChange={onFilterChange}
                                 />
                             )}
 

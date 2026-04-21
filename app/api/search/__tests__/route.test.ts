@@ -1,21 +1,16 @@
 import fetch from 'node-fetch';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { getAssetBatch } from '@/app/entities/das/triton-das-adapter';
+import { getAssetBatch } from '@/app/entities/digital-asset/api';
 
 import { GET } from '../route';
-
-// Unwrap unstable_cache so the inner async function runs directly in tests
-vi.mock('next/cache', () => ({
-    unstable_cache: (fn: (...args: unknown[]) => unknown) => fn,
-}));
 
 vi.mock('node-fetch', async () => {
     const actual = await vi.importActual('node-fetch');
     return { ...actual, default: vi.fn() };
 });
 
-vi.mock('@/app/entities/das/triton-das-adapter', () => ({
+vi.mock('@/app/entities/digital-asset/api', () => ({
     getAssetBatch: vi.fn(),
 }));
 
@@ -45,11 +40,9 @@ function mockFetch(status: number, body: unknown) {
     } as Awaited<ReturnType<typeof fetch>>);
 }
 
-/** Each test uses a unique query to prevent unstable_cache from returning a cached response. */
 let testSeq = 0;
 function makeRequest(q: string, cluster = 'mainnet-beta') {
-    const unique = `${q}-${++testSeq}`;
-    return new Request(`http://localhost/api/search?q=${encodeURIComponent(unique)}&cluster=${cluster}`);
+    return new Request(`http://localhost/api/search?q=${encodeURIComponent(q)}-${++testSeq}&cluster=${cluster}`);
 }
 
 const originalEnv = { ...process.env };
@@ -66,15 +59,15 @@ afterEach(() => {
 
 describe('GET /api/search', () => {
     describe('empty / guard cases', () => {
-        it('returns empty with no-store headers for empty query', async () => {
+        it('should return empty with cache headers for empty query', async () => {
             const res = await GET(new Request('http://localhost/api/search?q='));
             expect(res.status).toBe(200);
             const data = await res.json();
             expect(data).toMatchObject({ results: { tokens: [] }, success: true });
-            expect(res.headers.get('Cache-Control')).toContain('no-store');
+            expect(res.headers.get('Cache-Control')).toContain('s-maxage=30');
         });
 
-        it('returns empty with no-store headers for non-mainnet cluster', async () => {
+        it('should return empty with no-store headers for non-mainnet cluster', async () => {
             const res = await GET(new Request(`http://localhost/api/search?q=sol-${++testSeq}&cluster=devnet`));
             expect(res.status).toBe(200);
             const data = await res.json();
@@ -82,17 +75,17 @@ describe('GET /api/search', () => {
             expect(res.headers.get('Cache-Control')).toContain('no-store');
         });
 
-        it('returns empty with no-store headers when query exceeds max length', async () => {
+        it('should return empty with cache headers when query exceeds max length', async () => {
             const longQuery = 'a'.repeat(201);
             const res = await GET(new Request(`http://localhost/api/search?q=${longQuery}`));
             expect(res.status).toBe(200);
             const data = await res.json();
             expect(data).toMatchObject({ results: { tokens: [] }, success: true });
-            expect(res.headers.get('Cache-Control')).toContain('no-store');
+            expect(res.headers.get('Cache-Control')).toContain('s-maxage=30');
             expect(fetchMock).not.toHaveBeenCalled();
         });
 
-        it('returns empty with cache headers when Jupiter returns empty array', async () => {
+        it('should return empty with cache headers when Jupiter returns empty array', async () => {
             mockFetch(200, []);
             const res = await GET(makeRequest('sol'));
             const data = await res.json();
@@ -102,7 +95,7 @@ describe('GET /api/search', () => {
     });
 
     describe('Jupiter discovery', () => {
-        it('returns normalized tokens on success', async () => {
+        it('should normalize tokens on success', async () => {
             mockFetch(200, [makeJupiterToken()]);
             const res = await GET(makeRequest('sol'));
             const data = await res.json();
@@ -118,13 +111,13 @@ describe('GET /api/search', () => {
             });
         });
 
-        it('returns cache headers on success', async () => {
+        it('should return cache headers on success', async () => {
             mockFetch(200, [makeJupiterToken()]);
             const res = await GET(makeRequest('sol'));
             expect(res.headers.get('Cache-Control')).toContain('s-maxage=30');
         });
 
-        it('detects address query type', async () => {
+        it('should detect address query type', async () => {
             mockFetch(200, [makeJupiterToken()]);
             const res = await GET(
                 new Request(`http://localhost/api/search?q=${encodeURIComponent(VALID_ADDRESS)}-${++testSeq}`),
@@ -134,7 +127,7 @@ describe('GET /api/search', () => {
             expect(['address', 'text']).toContain(data.queryType);
         });
 
-        it('returns empty when Jupiter returns non-ok', async () => {
+        it('should return empty when Jupiter returns non-ok', async () => {
             mockFetch(429, {});
             const res = await GET(makeRequest('sol'));
             const data = await res.json();
@@ -143,7 +136,7 @@ describe('GET /api/search', () => {
     });
 
     describe('UTL fallback', () => {
-        it('uses UTL when JUPITER_API_KEY is not set', async () => {
+        it('should use UTL when JUPITER_API_KEY is not set', async () => {
             delete process.env.JUPITER_API_KEY;
             mockFetch(200, {
                 content: [{ address: VALID_ADDRESS, name: 'Wrapped SOL', symbol: 'SOL' }],
@@ -159,7 +152,7 @@ describe('GET /api/search', () => {
             });
         });
 
-        it('marks UTL tokens as unverified', async () => {
+        it('should mark UTL tokens as unverified', async () => {
             delete process.env.JUPITER_API_KEY;
             mockFetch(200, { content: [{ address: VALID_ADDRESS, name: 'Test', symbol: 'TST' }] });
 
@@ -170,7 +163,7 @@ describe('GET /api/search', () => {
     });
 
     describe('DAS icon enrichment', () => {
-        it('enriches icon from DAS when logoUri is null', async () => {
+        it('should enrich icon from DAS when logoUri is null', async () => {
             mockFetch(200, [makeJupiterToken({ logoURI: null })]);
             getAssetBatchMock.mockResolvedValueOnce([
                 {
@@ -192,7 +185,7 @@ describe('GET /api/search', () => {
             expect(data.results.tokens[0].icon).toBe('https://das.example.com/sol.png');
         });
 
-        it('prefers logoUri over DAS image when both present', async () => {
+        it('should prefer logoUri over DAS image when both present', async () => {
             mockFetch(200, [makeJupiterToken({ logoURI: 'https://original.com/sol.png' })]);
             getAssetBatchMock.mockResolvedValueOnce([
                 {
@@ -214,13 +207,13 @@ describe('GET /api/search', () => {
             expect(data.results.tokens[0].icon).toBe('https://original.com/sol.png');
         });
 
-        it('uses null icon when DAS returns null and logoUri is absent', async () => {
+        it('should use null icon when DAS returns null and logoUri is absent', async () => {
             mockFetch(200, [makeJupiterToken({ logoURI: null })]);
             getAssetBatchMock.mockResolvedValueOnce(null);
 
             const res = await GET(makeRequest('sol'));
             const data = await res.json();
-            expect(data.results.tokens[0].icon).toBeNull();
+            expect(data.results.tokens[0].icon).toBeUndefined();
         });
     });
 });

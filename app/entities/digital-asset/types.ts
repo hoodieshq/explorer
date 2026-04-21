@@ -3,7 +3,7 @@
  * Only standard parameters are used — no provider-specific fields.
  */
 
-export type DasAssetInterface =
+export type DigitalAssetInterface =
     | 'Custom'
     | 'FungibleAsset'
     | 'FungibleToken'
@@ -13,7 +13,7 @@ export type DasAssetInterface =
     | 'V1_PRINT'
     | string;
 
-export type DasAsset = {
+export type DigitalAsset = {
     burnt: boolean;
     content: {
         $schema: string;
@@ -35,7 +35,7 @@ export type DasAsset = {
         };
     };
     id: string;
-    interface: DasAssetInterface;
+    interface: DigitalAssetInterface;
     mutable: boolean;
     token_info?: {
         decimals?: number;
@@ -49,20 +49,3 @@ export type DasAsset = {
         token_program?: string;
     };
 };
-
-export type DasJsonRpcResponse<T> = {
-    id: string;
-    jsonrpc: '2.0';
-    result: T;
-};
-
-export type DasJsonRpcError = {
-    error: {
-        code: number;
-        message: string;
-    };
-    id: string;
-    jsonrpc: '2.0';
-};
-
-export type DasGetAssetBatchResponse = DasJsonRpcResponse<DasAsset[]>;

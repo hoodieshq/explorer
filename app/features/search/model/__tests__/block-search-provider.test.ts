@@ -15,7 +15,7 @@ describe('blockSearchProvider', () => {
         expect(results).toEqual([
             {
                 label: 'Blocks',
-                options: [{ label: 'Slot #12345', pathname: '/block/12345', value: ['12345'] }],
+                options: [{ label: 'Slot #12345', pathname: '/block/12345', type: 'block', value: ['12345'] }],
             },
         ]);
     });

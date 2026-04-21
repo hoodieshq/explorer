@@ -14,7 +14,7 @@ describe('epochSearchProvider', () => {
         expect(results).toEqual([
             {
                 label: 'Epochs',
-                options: [{ label: 'Epoch #100', pathname: '/epoch/100', value: ['100'] }],
+                options: [{ label: 'Epoch #100', pathname: '/epoch/100', type: 'epoch', value: ['100'] }],
             },
         ]);
     });

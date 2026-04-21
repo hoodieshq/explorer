@@ -7,6 +7,8 @@ export type SearchItem = {
     /** When set, overrides the current cluster context during navigation. */
     cluster?: Cluster;
     icon?: string;
+    sublabel?: string;
+    type?: string;
     verified?: boolean;
 };
 

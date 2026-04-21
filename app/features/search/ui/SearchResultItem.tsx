@@ -4,14 +4,6 @@ import { useEffect, useState } from 'react';
 import type { SearchItem } from '../lib/types';
 import { VerifiedBadge } from './VerifiedBadge';
 
-function getSubLabel(item: SearchItem): string | null {
-    const parts = item.pathname.split('/');
-    const type = parts[1];
-    const id = parts.at(-1);
-    if ((type === 'address' || type === 'tx') && id && id.length >= 32) return id;
-    return null;
-}
-
 function EntityIcon({ icon, label }: { icon?: string; label: string }) {
     const [error, setError] = useState(false);
 
@@ -44,8 +36,6 @@ function EntityIcon({ icon, label }: { icon?: string; label: string }) {
 }
 
 export function SearchResultItem({ option }: { option: SearchItem }) {
-    const sublabel = getSubLabel(option);
-
     return (
         <div className="e-flex e-items-center e-gap-3">
             <EntityIcon icon={option.icon} label={option.label} />
@@ -54,8 +44,10 @@ export function SearchResultItem({ option }: { option: SearchItem }) {
                     <span className="e-truncate e-text-sm e-font-medium e-text-white">{option.label}</span>
                     {option.verified && <VerifiedBadge />}
                 </div>
-                {sublabel && (
-                    <span className="e-block e-truncate e-font-mono e-text-xs e-text-heavy-metal-300">{sublabel}</span>
+                {option.sublabel && (
+                    <span className="e-block e-truncate e-font-mono e-text-xs e-text-heavy-metal-300">
+                        {option.sublabel}
+                    </span>
                 )}
             </div>
         </div>
