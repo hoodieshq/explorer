@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { resetSearchApiCache } from '../search-api';
 import { tokenSearchProvider } from '../token-search-provider';
 import { createSearchContext } from './provider-test-utils';
 
@@ -34,15 +33,11 @@ function makeToken(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
     vi.useFakeTimers();
-    resetSearchApiCache();
 });
 
 afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
-    resetSearchApiCache();
-    // Reset env
-    delete process.env.NEXT_PUBLIC_DISABLE_TOKEN_SEARCH;
 });
 
 describe('tokenSearchProvider', () => {
@@ -60,16 +55,10 @@ describe('tokenSearchProvider', () => {
         expect(result).toEqual([]);
     });
 
-    it('should return [] when NEXT_PUBLIC_DISABLE_TOKEN_SEARCH is set', async () => {
-        process.env.NEXT_PUBLIC_DISABLE_TOKEN_SEARCH = '1';
-        const result = await tokenSearchProvider.search('sol', ctx);
-        expect(result).toEqual([]);
-    });
-
     it('should return a Tokens section on success', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(makeApiResponse());
 
-        const result = await tokenSearchProvider.search('sol-unique-1', ctx);
+        const result = await tokenSearchProvider.search('sol', ctx);
 
         expect(result).toEqual([
             {
@@ -79,6 +68,8 @@ describe('tokenSearchProvider', () => {
                         icon: 'https://example.com/sol.png',
                         label: 'SOL - Wrapped SOL',
                         pathname: '/address/' + TOKEN_ADDRESS,
+                        sublabel: TOKEN_ADDRESS,
+                        type: 'address',
                         value: ['Wrapped SOL', 'SOL', TOKEN_ADDRESS],
                         verified: true,
                     },
@@ -90,69 +81,35 @@ describe('tokenSearchProvider', () => {
     it('should return [] when the token list is empty', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(makeApiResponse([]));
 
-        const result = await tokenSearchProvider.search('sol-unique-2', ctx);
+        const result = await tokenSearchProvider.search('sol', ctx);
         expect(result).toEqual([]);
     });
 
     it('should return [] when fetch throws', async () => {
         vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('network error'));
 
-        const result = await tokenSearchProvider.search('sol-unique-3', ctx);
+        const result = await tokenSearchProvider.search('sol', ctx);
         expect(result).toEqual([]);
     });
 
     it('should return [] when response is not ok', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response('Internal Server Error', { status: 500 }));
 
-        const result = await tokenSearchProvider.search('sol-unique-4', ctx);
+        const result = await tokenSearchProvider.search('sol', ctx);
         expect(result).toEqual([]);
     });
 
     it('should return [] when response shape is invalid', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(new Response(JSON.stringify({ unexpected: true })));
 
-        const result = await tokenSearchProvider.search('sol-unique-5', ctx);
+        const result = await tokenSearchProvider.search('sol', ctx);
         expect(result).toEqual([]);
     });
 
     it('should set icon to undefined when token has no icon', async () => {
         vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(makeApiResponse([makeToken({ icon: null })]));
 
-        const result = await tokenSearchProvider.search('sol-unique-6', ctx);
+        const result = await tokenSearchProvider.search('sol', ctx);
         expect(result[0].options[0].icon).toBeUndefined();
-    });
-
-    it('should cache results and not call fetch again for the same query', async () => {
-        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(makeApiResponse());
-
-        const query = 'cache-test-query-' + Date.now();
-        await tokenSearchProvider.search(query, ctx);
-        await tokenSearchProvider.search(query, ctx);
-
-        expect(fetchSpy).toHaveBeenCalledTimes(1);
-    });
-
-    it('should call fetch independently for different queries', async () => {
-        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(makeApiResponse());
-
-        const ts = Date.now();
-        await tokenSearchProvider.search('query-a-' + ts, ctx);
-        await tokenSearchProvider.search('query-b-' + ts, ctx);
-
-        expect(fetchSpy).toHaveBeenCalledTimes(2);
-    });
-
-    it('should refetch after cache TTL expires', async () => {
-        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(makeApiResponse());
-
-        const query = 'ttl-test-' + Date.now();
-        await tokenSearchProvider.search(query, ctx);
-
-        // Advance past the 30s TTL
-        vi.advanceTimersByTime(31_000);
-
-        await tokenSearchProvider.search(query, ctx);
-
-        expect(fetchSpy).toHaveBeenCalledTimes(2);
     });
 });

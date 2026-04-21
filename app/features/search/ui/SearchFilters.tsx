@@ -1,9 +1,9 @@
 import { cn } from '@shared/utils';
 
-import type { FILTER_TABS, FilterId } from './BaseSearch';
+import type { FilterId, FilterTab } from '../lib/filter-tabs';
 
 type SearchFilterProps = {
-    tabs: (typeof FILTER_TABS)[number][];
+    tabs: FilterTab[];
     activeFilter: FilterId;
     counts: Record<FilterId, number>;
     onFilterChange: (id: FilterId) => void;

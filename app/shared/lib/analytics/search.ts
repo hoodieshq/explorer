@@ -14,7 +14,7 @@ export const searchAnalytics = {
         trackEvent(SearchEvent.Performed, { query_length: queryLength, results_count: resultsCount });
     },
 
-    trackResultSelected(resultType: string, resultVerified: boolean): void {
+    trackResultSelected(resultType: string, resultVerified: boolean | undefined): void {
         trackEvent(SearchEvent.ResultSelected, { result_type: resultType, result_verified: resultVerified });
     },
 };

@@ -2,15 +2,18 @@ import type { Meta, StoryObj } from '@storybook/react';
 import { expect, userEvent, within } from 'storybook/test';
 import { fn } from 'storybook/test';
 
+import { computeFilterArgs } from '../../lib/filter-tabs';
+import type { SearchOptions } from '../../lib/types';
 import { BaseSearch, type BaseSearchProps } from '../BaseSearch';
 
 const defaultArgs: BaseSearchProps = {
+    ...computeFilterArgs([]),
     isLoading: false,
+    onFilterChange: fn(),
     onOpenChange: fn(),
     onSelect: fn(),
     onValueChange: fn(),
     open: false,
-    results: [],
     value: '',
 };
 
@@ -55,18 +58,20 @@ export const TypeAndClear: Story = {
     },
 };
 
+const tokenResults: SearchOptions[] = [
+    {
+        label: 'Tokens',
+        options: [
+            { label: 'Token A', pathname: '/address/tokenA', value: ['token-a'] },
+            { label: 'Token B', pathname: '/address/tokenB', value: ['token-b'] },
+        ],
+    },
+];
+
 export const WithResults: Story = {
     args: {
+        ...computeFilterArgs(tokenResults),
         open: true,
-        results: [
-            {
-                label: 'Tokens',
-                options: [
-                    { label: 'Token A', pathname: '/address/tokenA', value: ['token-a'] },
-                    { label: 'Token B', pathname: '/address/tokenB', value: ['token-b'] },
-                ],
-            },
-        ],
         value: 'token',
     },
     play: async ({ canvasElement }) => {
@@ -96,7 +101,6 @@ export const NoResults: Story = {
     args: {
         isLoading: false,
         open: true,
-        results: [],
         value: 'xyz123',
     },
     play: async ({ canvasElement }) => {
@@ -109,16 +113,8 @@ export const NoResults: Story = {
 
 export const SelectResult: Story = {
     args: {
+        ...computeFilterArgs(tokenResults),
         open: true,
-        results: [
-            {
-                label: 'Tokens',
-                options: [
-                    { label: 'Token A', pathname: '/address/tokenA', value: ['token-a'] },
-                    { label: 'Token B', pathname: '/address/tokenB', value: ['token-b'] },
-                ],
-            },
-        ],
         value: 'token',
     },
     name: 'Select Result',
@@ -146,25 +142,25 @@ export const KeyboardHint: Story = {
     },
 };
 
+const multiGroupResults: SearchOptions[] = [
+    {
+        label: 'Accounts',
+        options: [{ label: 'Solana Foundation', pathname: '/address/solFoundation', value: ['solana-foundation'] }],
+    },
+    {
+        label: 'Programs',
+        options: [{ label: 'Solana Token Program', pathname: '/address/splToken', value: ['spl-token'] }],
+    },
+    {
+        label: 'Tokens',
+        options: [{ label: 'Wrapped SOL', pathname: '/address/wSol', value: ['wsol'] }],
+    },
+];
+
 export const MultipleGroups: Story = {
     args: {
+        ...computeFilterArgs(multiGroupResults),
         open: true,
-        results: [
-            {
-                label: 'Accounts',
-                options: [
-                    { label: 'Solana Foundation', pathname: '/address/solFoundation', value: ['solana-foundation'] },
-                ],
-            },
-            {
-                label: 'Programs',
-                options: [{ label: 'Solana Token Program', pathname: '/address/splToken', value: ['spl-token'] }],
-            },
-            {
-                label: 'Tokens',
-                options: [{ label: 'Wrapped SOL', pathname: '/address/wSol', value: ['wsol'] }],
-            },
-        ],
         value: 'sol',
     },
     name: 'Multiple Groups',
@@ -180,39 +176,41 @@ export const MultipleGroups: Story = {
     },
 };
 
-export const WithIconsAndBadges: Story = {
-    args: {
-        open: true,
-        results: [
+const iconResults: SearchOptions[] = [
+    {
+        label: 'Tokens',
+        options: [
             {
-                label: 'Tokens',
-                options: [
-                    {
-                        icon: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png',
-                        label: 'USDC - USD Coin',
-                        pathname: '/address/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
-                        value: ['usdc', 'USD Coin', 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'],
-                        verified: true,
-                    },
-                    {
-                        label: 'USDT - Tether USD',
-                        pathname: '/address/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
-                        value: ['usdt', 'Tether USD', 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'],
-                        verified: false,
-                    },
-                ],
+                icon: 'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png',
+                label: 'USDC - USD Coin',
+                pathname: '/address/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+                value: ['usdc', 'USD Coin', 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'],
+                verified: true,
             },
             {
-                label: 'Programs',
-                options: [
-                    {
-                        label: 'Token Program',
-                        pathname: '/address/TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
-                        value: ['token'],
-                    },
-                ],
+                label: 'USDT - Tether USD',
+                pathname: '/address/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+                value: ['usdt', 'Tether USD', 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'],
+                verified: false,
             },
         ],
+    },
+    {
+        label: 'Programs',
+        options: [
+            {
+                label: 'Token Program',
+                pathname: '/address/TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
+                value: ['token'],
+            },
+        ],
+    },
+];
+
+export const WithIconsAndBadges: Story = {
+    args: {
+        ...computeFilterArgs(iconResults),
+        open: true,
         value: 'usdc',
     },
     name: 'With Icons and Badges',
