@@ -40,6 +40,9 @@ export interface PdaGenerationResult {
     seeds: { value: string | null; name: string }[];
 }
 
+export type PdaFormArgs = Record<string, string | undefined>;
+export type PdaFormAccounts = Record<string, string | Record<string, string | undefined> | undefined>;
+
 /**
  * Provider for extracting PDA information from different IDL formats
  */
@@ -65,7 +68,7 @@ export type PdaProvider = {
     computePdas: (
         idl: SupportedIdl,
         instructionName: string,
-        args: Record<string, string | undefined>,
-        accounts: Record<string, string | Record<string, string | undefined> | undefined>,
+        args: PdaFormArgs,
+        accounts: PdaFormAccounts,
     ) => Promise<Record<string, PdaGenerationResult>>;
 };
