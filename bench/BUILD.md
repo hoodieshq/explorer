@@ -21,13 +21,13 @@
 | Dynamic | `/address/[address]/nftoken-collection-nfts` | 10 kB | 1.08 MB |
 | Dynamic | `/address/[address]/program-multisig` | 10 kB | 1.08 MB |
 | Dynamic | `/address/[address]/rewards` | 10 kB | 1.02 MB |
-| Dynamic | `/address/[address]/security` | 10 kB | 1.08 MB |
+| Dynamic | `/address/[address]/security` | 10 kB | 1.09 MB |
 | Dynamic | `/address/[address]/slot-hashes` | 10 kB | 1.01 MB |
 | Dynamic | `/address/[address]/stake-history` | 10 kB | 1.02 MB |
-| Dynamic | `/address/[address]/token-extensions` | 10 kB | 1.10 MB |
+| Dynamic | `/address/[address]/token-extensions` | 10 kB | 1.09 MB |
 | Dynamic | `/address/[address]/tokens` | 30 kB | 1.21 MB |
 | Dynamic | `/address/[address]/transfers` | 10 kB | 1.15 MB |
-| Dynamic | `/address/[address]/verified-build` | 10 kB | 1.08 MB |
+| Dynamic | `/address/[address]/verified-build` | 10 kB | 1.09 MB |
 | Dynamic | `/address/[address]/vote-history` | 10 kB | 1.01 MB |
 | Dynamic | `/api/anchor` | 0 B | 0 B |
 | Dynamic | `/api/ans-domains/[address]` | 0 B | 0 B |
