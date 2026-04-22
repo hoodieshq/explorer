@@ -256,11 +256,32 @@ function readFormValue(
  * Returns null for ValueNode kinds that are not primitive scalars.
  */
 function expectedConditionValueAsString(valueNode: NonNullable<ConditionalValueNode['value']>): string | null {
-    if (isNode(valueNode, 'numberValueNode')) return String(valueNode.number);
-    if (isNode(valueNode, 'stringValueNode')) return valueNode.string;
-    if (isNode(valueNode, 'booleanValueNode')) return String(valueNode.boolean);
-    if (isNode(valueNode, 'publicKeyValueNode')) return valueNode.publicKey;
-    return null;
+    switch (valueNode.kind) {
+        case 'numberValueNode':
+            return String(valueNode.number);
+        case 'stringValueNode':
+            return valueNode.string;
+        case 'booleanValueNode':
+            return String(valueNode.boolean);
+        case 'publicKeyValueNode':
+            return valueNode.publicKey;
+        case 'constantValueNode':
+            return expectedConditionValueAsString(valueNode.value);
+        case 'enumValueNode':
+            return valueNode.value ? expectedConditionValueAsString(valueNode.value) : null;
+        case 'arrayValueNode':
+        case 'bytesValueNode':
+        case 'mapValueNode':
+        case 'noneValueNode':
+        case 'setValueNode':
+        case 'someValueNode':
+        case 'structValueNode':
+        case 'tupleValueNode':
+            return null;
+        default:
+            valueNode['kind'] satisfies never;
+            return null;
+    }
 }
 
 function resolvePdaNode(pdaValue: PdaValueNode, pdaMap: Map<string, PdaNode>): PdaNode | undefined {
