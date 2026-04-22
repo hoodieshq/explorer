@@ -22,13 +22,11 @@ import {
     visit,
 } from 'codama';
 
-import { convertValue } from '../codama/convert-value';
-import type { PdaGenerationResult, PdaProvider } from './types';
 import { fromBase64, fromUtf8, toHex } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 
-type FormArgs = Record<string, string | undefined>;
-type FormAccounts = Record<string, string | Record<string, string | undefined> | undefined>;
+import { convertValue } from '../codama/convert-value';
+import type { PdaFormAccounts, PdaFormArgs, PdaGenerationResult, PdaProvider } from './types';
 
 /**
  * PDA provider for Codama IDL format.
@@ -82,8 +80,8 @@ async function deriveInstructionPdas(
     client: ProgramClient,
     root: RootNode,
     instruction: InstructionNode,
-    formArgs: FormArgs,
-    formAccounts: FormAccounts,
+    formArgs: PdaFormArgs,
+    formAccounts: PdaFormAccounts,
 ): Promise<Record<string, PdaGenerationResult>> {
     const pdaMap = new Map<string, PdaNode>(root.program.pdas.map(p => [p.name, p]));
     const results: Record<string, PdaGenerationResult> = {};
@@ -169,8 +167,8 @@ function findRecursivePdaAccounts(instruction: InstructionNode): Set<string> {
 function getAccountPdaInfo(
     acc: InstructionAccountNode,
     pdaMap: Map<string, PdaNode>,
-    formArgs: FormArgs,
-    formAccounts: FormAccounts,
+    formArgs: PdaFormArgs,
+    formAccounts: PdaFormAccounts,
 ): { pdaNode: PdaNode; seedMappings: PdaValueNode['seeds'] } | null {
     const pdaValue = getPdaValueNode(acc, formArgs, formAccounts);
     if (!pdaValue) return null;
@@ -183,8 +181,8 @@ function getAccountPdaInfo(
 
 function getPdaValueNode(
     acc: InstructionAccountNode,
-    formArgs: FormArgs,
-    formAccounts: FormAccounts,
+    formArgs: PdaFormArgs,
+    formAccounts: PdaFormAccounts,
 ): PdaValueNode | undefined {
     if (!acc.defaultValue) return undefined;
 
@@ -193,22 +191,37 @@ function getPdaValueNode(
     }
 
     if (isNode(acc.defaultValue, 'conditionalValueNode')) {
-        const { ifTrue, ifFalse } = acc.defaultValue;
-        const ifTruePda = ifTrue && isNode(ifTrue, 'pdaValueNode') ? ifTrue : undefined;
-        const ifFalsePda = ifFalse && isNode(ifFalse, 'pdaValueNode') ? ifFalse : undefined;
-
-        const result = evaluateCondition(acc.defaultValue, formArgs, formAccounts);
-        if (result === true) return ifTruePda;
-        if (result === false) return ifFalsePda;
-
-        // Condition couldn't be evaluated — best-effort fallback, preferring ifTrue.
-        return ifTruePda ?? ifFalsePda;
+        return getValueNodeFromConditional(acc.defaultValue, formArgs, formAccounts);
     }
 
     return undefined;
 }
 
-function evaluateCondition(node: ConditionalValueNode, formArgs: FormArgs, formAccounts: FormAccounts): boolean | null {
+function getValueNodeFromConditional(
+    node: ConditionalValueNode,
+    formArgs: PdaFormArgs,
+    formAccounts: PdaFormAccounts,
+): PdaValueNode | undefined {
+    const { ifTrue, ifFalse } = node;
+    const ifTruePda = ifTrue && isNode(ifTrue, 'pdaValueNode') ? ifTrue : undefined;
+    const ifFalsePda = ifFalse && isNode(ifFalse, 'pdaValueNode') ? ifFalse : undefined;
+
+    const result = evaluateCondition(node, formArgs, formAccounts);
+    if (result === true) return ifTruePda;
+    if (result === false) return ifFalsePda;
+
+    // Condition couldn't be evaluated — best-effort fallback, preferring ifTrue.
+    Logger.warn('[pda-generator:codama-provider] Could not evaluate conditional PDA. Fallback to ifTrue branch.', {
+        condition: node.condition,
+    });
+    return ifTruePda ?? ifFalsePda;
+}
+
+function evaluateCondition(
+    node: ConditionalValueNode,
+    formArgs: PdaFormArgs,
+    formAccounts: PdaFormAccounts,
+): boolean | null {
     const raw = readFormValue(node.condition, formArgs, formAccounts);
     if (raw === null) return null;
 
@@ -225,8 +238,8 @@ function evaluateCondition(node: ConditionalValueNode, formArgs: FormArgs, formA
 
 function readFormValue(
     condition: ConditionalValueNode['condition'],
-    formArgs: FormArgs,
-    formAccounts: FormAccounts,
+    formArgs: PdaFormArgs,
+    formAccounts: PdaFormAccounts,
 ): string | null {
     if (isNode(condition, 'accountValueNode')) {
         const raw = formAccounts[condition.name];
@@ -266,8 +279,8 @@ function buildSeedInputs(
     pdaNode: PdaNode,
     seedMappings: PdaValueNode['seeds'],
     root: RootNode,
-    formArgs: FormArgs,
-    formAccounts: FormAccounts,
+    formArgs: PdaFormArgs,
+    formAccounts: PdaFormAccounts,
 ): SeedInputResult {
     const seedInputs: Record<string, unknown> = {};
     const seedInfo: PdaGenerationResult['seeds'] = [];
