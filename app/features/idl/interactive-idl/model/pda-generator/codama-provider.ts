@@ -4,6 +4,7 @@ import { PublicKey } from '@solana/web3.js';
 import bs58 from 'bs58';
 import { camelCase } from 'change-case';
 import type {
+    BytesEncoding,
     ConditionalValueNode,
     ConstantPdaSeedNode,
     InstructionAccountNode,
@@ -23,6 +24,7 @@ import {
 
 import { convertValue } from '../codama/convert-value';
 import type { PdaGenerationResult, PdaProvider } from './types';
+import { fromBase64, fromUtf8, toHex } from '@/app/shared/lib/bytes';
 
 type FormArgs = Record<string, string | undefined>;
 type FormAccounts = Record<string, string | Record<string, string | undefined> | undefined>;
@@ -304,20 +306,11 @@ function buildSeedInputs(
     return { allResolved, seedInfo, seedInputs };
 }
 
-/**
- * Convert a constant PDA seed node to a hex string for display.
- */
-function toHex(bytes: Uint8Array): string {
-    return Array.from(bytes)
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('');
-}
-
 function constantSeedToHex(seed: ConstantPdaSeedNode, root: RootNode): string {
     const { value } = seed;
 
     if (isNode(value, 'stringValueNode')) {
-        return toHex(new TextEncoder().encode(value.string));
+        return toHex(fromUtf8(value.string));
     }
     if (isNode(value, 'bytesValueNode')) {
         return decodeBytesValueToHex(value.data, value.encoding);
@@ -332,17 +325,18 @@ function constantSeedToHex(seed: ConstantPdaSeedNode, root: RootNode): string {
     return '';
 }
 
-function decodeBytesValueToHex(data: string, encoding: string): string {
+function decodeBytesValueToHex(data: string, encoding: BytesEncoding): string {
     switch (encoding) {
         case 'base16':
             return data;
         case 'base58':
-            return toHex(Uint8Array.from(bs58.decode(data)));
+            return toHex(bs58.decode(data));
         case 'base64':
-            return toHex(Uint8Array.from(atob(data), c => c.charCodeAt(0)));
+            return toHex(fromBase64(data));
         case 'utf8':
-            return toHex(new TextEncoder().encode(data));
+            return toHex(fromUtf8(data));
         default:
+            encoding satisfies never;
             return '';
     }
 }

@@ -1,5 +1,7 @@
 import type { InstructionArgumentNode, RootNode, TypeNode } from 'codama';
 
+import { fromHex } from '@/app/shared/lib/bytes';
+
 type ConvertCtx = { value: unknown; str: string; root?: RootNode };
 type Handler<T = TypeNode> = (ctx: ConvertCtx, node: T) => unknown;
 
@@ -86,19 +88,8 @@ function convertBytes({ str }: ConvertCtx) {
         if (parts.some(isNaN)) throw new Error(`Invalid bytes values: ${str}`);
         return new Uint8Array(parts);
     }
-    // Hex string
-    if (str.length % 2 !== 0) {
-        throw new Error(`Hex string must have even length, got ${str.length}`);
-    }
-    const bytes = new Uint8Array(str.length / 2);
-    for (let i = 0; i < str.length; i += 2) {
-        const byte = parseInt(str.substring(i, i + 2), 16);
-        if (isNaN(byte)) {
-            throw new Error(`Invalid hex character at position ${i}: "${str.substring(i, i + 2)}"`);
-        }
-        bytes[i / 2] = byte;
-    }
-    return bytes;
+    // Hex string — fromHex handles 0x prefix, odd-length padding, and invalid-char errors.
+    return fromHex(str);
 }
 
 function convertOption({ value, str, root }: ConvertCtx, typeNode: TypeNode) {

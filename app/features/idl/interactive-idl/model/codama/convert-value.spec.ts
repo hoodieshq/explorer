@@ -109,8 +109,16 @@ describe('convertValue', () => {
             expect(convertValue('00', bytesType())).toEqual(new Uint8Array([0]));
         });
 
-        it('should throw for odd-length hex string', () => {
-            expect(() => convertValue('abc', bytesType())).toThrow('Hex string must have even length');
+        it('should accept 0x-prefixed hex', () => {
+            expect(convertValue('0xdeadbeef', bytesType())).toEqual(new Uint8Array([0xde, 0xad, 0xbe, 0xef]));
+        });
+
+        it('should pad odd-length hex (matches fromHex semantics)', () => {
+            expect(convertValue('a', bytesType())).toEqual(new Uint8Array([0x0a]));
+        });
+
+        it('should pad odd-length 0x-prefixed hex', () => {
+            expect(convertValue('0xabc', bytesType())).toEqual(new Uint8Array([0x0a, 0xbc]));
         });
 
         it('should throw for invalid hex characters', () => {

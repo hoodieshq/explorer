@@ -2,6 +2,8 @@ import type { ProgramClient } from '@codama/dynamic-client';
 import type { TransactionInstruction } from '@solana/web3.js';
 import { PublicKey, TransactionInstruction as TransactionInstructionClass } from '@solana/web3.js';
 
+import { toBuffer } from '@/app/shared/lib/bytes';
+
 import type { BaseIdl, UnifiedAccounts, UnifiedArguments, UnifiedProgram } from '../unified-program.d';
 import { convertValue, getUserFacingArguments } from './convert-value';
 
@@ -37,7 +39,7 @@ const WRITABLE = 1;
  */
 function toLocalTransactionInstruction(instruction: KitInstruction): TransactionInstruction {
     return new TransactionInstructionClass({
-        data: Buffer.from(instruction.data ?? []),
+        data: instruction.data ? toBuffer(instruction.data) : undefined,
         keys: (instruction.accounts ?? []).map(account => ({
             isSigner: account.role === WRITABLE_SIGNER || account.role === READONLY_SIGNER,
             isWritable: account.role === WRITABLE_SIGNER || account.role === WRITABLE,
