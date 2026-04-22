@@ -26,7 +26,9 @@ import {
     stringValueNode,
     variablePdaSeedNode,
 } from 'codama';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+import { Logger } from '@/app/shared/lib/logger';
 
 import { createCodamaPdaProvider } from './codama-provider';
 
@@ -119,6 +121,30 @@ describe('createCodamaPdaProvider', () => {
             expect(result.candidate.generated).toBeNull();
             expect(result.candidate.seeds[0]).toEqual({ name: 'pollId', value: null });
             expect(result.candidate.seeds[1]).toEqual({ name: 'candidateName', value: 'Alice' });
+        });
+
+        it('should return generated=null when any variable seed fails to convert and log the failure', async () => {
+            const errorSpy = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
+            const provider = createCodamaPdaProvider();
+            // pollId is u64 — "not-a-number" will fail BigInt conversion.
+            // candidateName (string) converts fine.
+            const result = await provider.computePdas(
+                votingIdl as unknown as SupportedIdl,
+                'initializeCandidate',
+                { candidateName: 'Alice', pollId: 'not-a-number' },
+                {},
+            );
+
+            // Both seeds still appear in the display info (PDA not generated).
+            expect(result.candidate.generated).toBeNull();
+            expect(result.candidate.seeds).toHaveLength(2);
+            expect(result.candidate.seeds[1]).toEqual({ name: 'candidateName', value: 'Alice' });
+
+            expect(errorSpy).toHaveBeenCalled();
+            const [firstArg] = errorSpy.mock.calls[0];
+            expect(firstArg).toBeInstanceOf(Error);
+            expect((firstArg as Error).message).toContain('conversion failed for seed pollId');
+            errorSpy.mockRestore();
         });
 
         it('should return null for generated when argument seed value is empty', async () => {
@@ -708,6 +734,21 @@ describe('createCodamaPdaProvider', () => {
             expect(ifFalseBranch.poll.generated).toBe(expectedFalseAddr.toBase58());
         });
 
+        it('should treat an object-shaped account entry as empty (condition raw value)', async () => {
+            const { idl, expectedFalseAddr } = buildEqualityIdl(accountValueNode('signer'), numberValueNode(1));
+            const provider = createCodamaPdaProvider();
+
+            const result = await provider.computePdas(
+                idl as unknown as SupportedIdl,
+                'initializePoll',
+                {},
+                // treated as empty and ifFalse branch is selected
+                { signer: { nested: 'ignored' } },
+            );
+
+            expect(result.poll.generated).toBe(expectedFalseAddr.toBase58());
+        });
+
         it('should treat a missing arg as empty (ifFalse)', async () => {
             const { idl, expectedFalseAddr } = buildEqualityIdl(argumentValueNode('pollId'), numberValueNode(7));
             const provider = createCodamaPdaProvider();
@@ -749,6 +790,19 @@ describe('createCodamaPdaProvider', () => {
 
             expect(result.poll).toBeDefined();
             expect(result.poll.generated).not.toBeNull();
+        });
+
+        it('should warn when a conditional PDA branch cannot be evaluated', async () => {
+            const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
+            const { idl } = buildEqualityIdl(argumentValueNode('pollId'), noneValueNode());
+            const provider = createCodamaPdaProvider();
+
+            await provider.computePdas(idl as unknown as SupportedIdl, 'initializePoll', { pollId: '7' }, {});
+
+            expect(warnSpy).toHaveBeenCalled();
+            const [msg] = warnSpy.mock.calls[0];
+            expect(msg).toContain('Could not evaluate conditional PDA');
+            warnSpy.mockRestore();
         });
 
         describe('PMP conditional branch', () => {

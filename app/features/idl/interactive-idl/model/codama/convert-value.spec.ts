@@ -313,10 +313,13 @@ describe('convertValue', () => {
             expect(convertValue('test', type)).toBe('test');
         });
 
-        it('should return value as-is when defined type is not found', () => {
+        it('should throw error when definedTypeLinkNode references a missing node in IDL', () => {
             const root = rootWithDefinedType('other', stringType());
-            const type = definedTypeLinkType('nonExistent');
-            expect(convertValue('test', type, root)).toBe('test');
+            const type = definedTypeLinkType('Missing');
+            expect(() => convertValue('x', type, root)).toThrow(
+                // eslint-disable-next-line no-restricted-syntax -- case-insensitive regex matcher for error message
+                /defined type "Missing" not found/i,
+            );
         });
     });
 
@@ -377,7 +380,7 @@ describe('convertValue', () => {
             expect(result).toEqual([1, 2, 3]);
         });
 
-        it('should recursively convert set items', () => {
+        it('should convert set items to BigInt for u64', () => {
             const type = setType(numberType('u64'));
             const result = convertValue('[100, 200]', type);
             expect(result).toEqual([BigInt(100), BigInt(200)]);
@@ -396,7 +399,7 @@ describe('convertValue', () => {
             expect(result).toEqual({ a: 1, b: 2 });
         });
 
-        it('should recursively convert object values', () => {
+        it('should pass through already-parsed object value', () => {
             const type = mapType(stringType(), numberType('u8'));
             const obj = { x: 10 };
             expect(convertValue(obj, type)).toStrictEqual({ x: 10 });
