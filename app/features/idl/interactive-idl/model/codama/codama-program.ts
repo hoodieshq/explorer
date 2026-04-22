@@ -91,8 +91,8 @@ export class CodamaUnifiedProgram implements UnifiedProgram {
 
             try {
                 namedArgs[argDef.name] = convertValue(rawValue, argDef.type, root);
-            } catch {
-                throw new Error(`Could not convert "${argDef.name}" argument for "${instructionName}"`);
+            } catch (e) {
+                throw new Error(`Could not convert "${argDef.name}" argument for "${instructionName}"`, { cause: e });
             }
         }
 

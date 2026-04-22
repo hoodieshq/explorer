@@ -25,6 +25,7 @@ import {
 import { convertValue } from '../codama/convert-value';
 import type { PdaGenerationResult, PdaProvider } from './types';
 import { fromBase64, fromUtf8, toHex } from '@/app/shared/lib/bytes';
+import { Logger } from '@/app/shared/lib/logger';
 
 type FormArgs = Record<string, string | undefined>;
 type FormAccounts = Record<string, string | Record<string, string | undefined> | undefined>;
@@ -121,7 +122,14 @@ async function deriveInstructionPdas(
             }
             const [address] = await pdaFn(seedInputs);
             results[accountName] = { generated: String(address), seeds: seedInfo };
-        } catch {
+        } catch (e) {
+            Logger.error(
+                new Error(
+                    `[pda-generator:codama-provider] Derivation failed for PDA ${pdaNode.name}, program ${root.program.publicKey}`,
+                    { cause: e },
+                ),
+                { sentry: true },
+            );
             results[accountName] = { generated: null, seeds: seedInfo };
         }
     }
@@ -298,7 +306,14 @@ function buildSeedInputs(
 
         try {
             seedInputs[seed.name] = convertValue(formValue, seed.type as TypeNode);
-        } catch {
+        } catch (e) {
+            Logger.error(
+                new Error(
+                    `[pda-generator:codama-provider] FormValue ${formValue} conversion failed for seed ${seed.name} in PDA ${pdaNode.name}`,
+                    { cause: e },
+                ),
+                { sentry: true },
+            );
             allResolved = false;
         }
     }
@@ -322,6 +337,10 @@ function constantSeedToHex(seed: ConstantPdaSeedNode, root: RootNode): string {
         return toHex(new PublicKey(root.program.publicKey).toBytes());
     }
 
+    Logger.warn(
+        `[pda-generator:codama-provider] Unsupported constant PDA seed ${value.kind} for conversion to hex string`,
+        { sentry: true },
+    );
     return '';
 }
 

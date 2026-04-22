@@ -143,7 +143,7 @@ function convertDefinedTypeLink({ value, root }: ConvertCtx, typeNode: TypeNode)
     if (!root) return value;
     const name = (typeNode as { name: string }).name;
     const definedType = root.program.definedTypes.find(t => t.name === name);
-    if (!definedType) return value;
+    if (!definedType) throw new Error(`Defined type "${name}" not found in IDL`);
     return convertValue(value, definedType.type, root);
 }
 
