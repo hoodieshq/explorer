@@ -339,7 +339,7 @@ function buildSeedInputs(
         }
 
         try {
-            seedInputs[seed.name] = convertValue(formValue, seed.type as TypeNode);
+            seedInputs[seed.name] = convertValue(formValue, seed.type as TypeNode, root);
         } catch (e) {
             Logger.error(
                 new Error(
