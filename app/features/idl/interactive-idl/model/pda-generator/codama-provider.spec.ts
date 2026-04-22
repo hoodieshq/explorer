@@ -32,6 +32,14 @@ import { Logger } from '@/app/shared/lib/logger';
 
 import { createCodamaPdaProvider } from './codama-provider';
 
+vi.mock('@codama/dynamic-client', async () => {
+    const actual = await vi.importActual<typeof import('@codama/dynamic-client')>('@codama/dynamic-client');
+    return {
+        ...actual,
+        createProgramClient: vi.fn(actual.createProgramClient),
+    };
+});
+
 function loadCodamaIdl(filename: string): RootNode {
     const idlPath = path.resolve(__dirname, '../__mocks__/codama', filename);
     return JSON.parse(readFileSync(idlPath, 'utf8')) as RootNode;
@@ -123,7 +131,7 @@ describe('createCodamaPdaProvider', () => {
             expect(result.candidate.seeds[1]).toEqual({ name: 'candidateName', value: 'Alice' });
         });
 
-        it('should return generated=null when any variable seed fails to convert and log the failure', async () => {
+        it('should return generated=null and log when a seed fails conversion (raw form value preserved in seed info)', async () => {
             const errorSpy = vi.spyOn(Logger, 'error').mockImplementation(() => undefined);
             const provider = createCodamaPdaProvider();
             // pollId is u64 — "not-a-number" will fail BigInt conversion.
@@ -135,7 +143,10 @@ describe('createCodamaPdaProvider', () => {
                 {},
             );
 
-            // Both seeds still appear in the display info (PDA not generated).
+            // PDA not generated; raw form value preserved on the failing seed,
+            // other seeds still appear in the display info.
+            expect(result.poll.generated).toBeNull();
+            expect(result.poll.seeds[0]).toEqual({ name: 'pollId', value: 'not-a-number' });
             expect(result.candidate.generated).toBeNull();
             expect(result.candidate.seeds).toHaveLength(2);
             expect(result.candidate.seeds[1]).toEqual({ name: 'candidateName', value: 'Alice' });
@@ -256,20 +267,6 @@ describe('createCodamaPdaProvider', () => {
             expect(result1.candidate.generated).toBe(result2.candidate.generated);
         });
 
-        it('should return null for generated when seed value fails conversion', async () => {
-            const provider = createCodamaPdaProvider();
-            // pollId expects u64 but we pass an invalid value
-            const result = await provider.computePdas(
-                votingIdl as unknown as SupportedIdl,
-                'initializeCandidate',
-                { candidateName: 'Alice', pollId: 'not-a-number' },
-                {},
-            );
-
-            expect(result.poll.generated).toBeNull();
-            expect(result.poll.seeds[0]).toEqual({ name: 'pollId', value: 'not-a-number' });
-        });
-
         it('should handle pdaLinkNode by resolving from program pdas map', async () => {
             // Create an IDL with a pdaLinkNode reference instead of inline pdaNode
             const idlWithPdaLink = JSON.parse(JSON.stringify(votingIdl)) as RootNode;
@@ -298,7 +295,11 @@ describe('createCodamaPdaProvider', () => {
             expect(result.poll.seeds[0]).toEqual({ name: 'pollId', value: '99' });
         });
 
-        it('should use cached client for same program key and version', async () => {
+        it('should cache client per program key and version, and rebuild on version change', async () => {
+            const { createProgramClient } = await import('@codama/dynamic-client');
+            const createSpy = vi.mocked(createProgramClient);
+            createSpy.mockClear();
+
             const provider = createCodamaPdaProvider();
 
             // First call creates a client
@@ -308,6 +309,7 @@ describe('createCodamaPdaProvider', () => {
                 { candidateName: 'A', pollId: '1' },
                 {},
             );
+            expect(createSpy).toHaveBeenCalledTimes(1);
 
             // Second call should reuse cached client and produce same results
             const result2 = await provider.computePdas(
@@ -316,12 +318,23 @@ describe('createCodamaPdaProvider', () => {
                 { candidateName: 'A', pollId: '1' },
                 {},
             );
+            expect(createSpy).toHaveBeenCalledTimes(1);
 
             // Both should work (proving the client was usable both times)
             expect(result1.poll.generated).not.toBeNull();
             expect(result2.poll.generated).not.toBeNull();
             // Same seeds should produce same PDA
             expect(result1.poll.generated).toBe(result2.poll.generated);
+
+            // Different version → cache bust, new client created.
+            const bumped = { ...votingIdl, version: `${votingIdl.version}-bumped` };
+            await provider.computePdas(
+                bumped as unknown as SupportedIdl,
+                'vote',
+                { candidateName: 'A', pollId: '1' },
+                {},
+            );
+            expect(createSpy).toHaveBeenCalledTimes(2);
         });
 
         it('should handle constant seed with bytesValueNode (base16)', async () => {
@@ -371,8 +384,8 @@ describe('createCodamaPdaProvider', () => {
             );
 
             expect(result.pdaAccount).toBeDefined();
-            // eslint-disable-next-line no-restricted-syntax -- regex needed to match hex prefix pattern
-            expect(result.pdaAccount.seeds[0].name).toMatch(/^0x/);
+            // base58 "Ldp" decodes to bytes [1, 2, 3] → hex "010203"
+            expect(result.pdaAccount.seeds[0]).toEqual({ name: '0x010203', value: '0x010203' });
         });
 
         it('should handle constant seed with bytesValueNode (base64)', async () => {
@@ -756,7 +769,8 @@ describe('createCodamaPdaProvider', () => {
             expect(result.poll.generated).toBe(expectedFalseAddr.toBase58());
         });
 
-        it('should fallback to ifTrue when expected value-node kind is unsupported', async () => {
+        it('should fallback to ifTrue and warn when expected value-node kind is unsupported', async () => {
+            const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
             const { idl, expectedTrueAddr } = buildEqualityIdl(argumentValueNode('pollId'), noneValueNode());
             const provider = createCodamaPdaProvider();
             const result = await provider.computePdas(
@@ -766,6 +780,10 @@ describe('createCodamaPdaProvider', () => {
                 {},
             );
             expect(result.poll.generated).toBe(expectedTrueAddr.toBase58());
+            expect(warnSpy).toHaveBeenCalled();
+            const [msg] = warnSpy.mock.calls[0];
+            expect(msg).toContain('Could not evaluate conditional PDA');
+            warnSpy.mockRestore();
         });
 
         it('should fallback to the only available branch when condition is unknown', async () => {
@@ -790,19 +808,6 @@ describe('createCodamaPdaProvider', () => {
 
             expect(result.poll).toBeDefined();
             expect(result.poll.generated).not.toBeNull();
-        });
-
-        it('should warn when a conditional PDA branch cannot be evaluated', async () => {
-            const warnSpy = vi.spyOn(Logger, 'warn').mockImplementation(() => undefined);
-            const { idl } = buildEqualityIdl(argumentValueNode('pollId'), noneValueNode());
-            const provider = createCodamaPdaProvider();
-
-            await provider.computePdas(idl as unknown as SupportedIdl, 'initializePoll', { pollId: '7' }, {});
-
-            expect(warnSpy).toHaveBeenCalled();
-            const [msg] = warnSpy.mock.calls[0];
-            expect(msg).toContain('Could not evaluate conditional PDA');
-            warnSpy.mockRestore();
         });
 
         describe('PMP conditional branch', () => {
