@@ -5,6 +5,7 @@ import {
     EnumTypeNode,
     InstructionAccountNode,
     InstructionNode,
+    isNode,
     PdaNode,
     PdaValueNode,
     RegisteredPdaSeedNode,
@@ -181,20 +182,17 @@ function parseTypeNode(data: TypeNode): FieldType | null {
     }
 }
 
-function getUniqPdaNodesFromIxs(ixs: InstructionNode[]): PdaValueNode[] {
+export function getUniqPdaNodesFromIxs(ixs: InstructionNode[]): PdaValueNode[] {
     const uniqPdas = new Map<string, PdaValueNode>();
     ixs.forEach(ix => {
         ix.accounts.forEach(acc => {
             if (!isIxAccountNodePda(acc)) return;
             if (acc.defaultValue?.kind === 'conditionalValueNode') {
-                const conditionalTruePda = acc.defaultValue.ifTrue as PdaValueNode;
-                const conditionalFalsePda = acc.defaultValue.ifFalse as PdaValueNode;
-                if (!uniqPdas.get(conditionalTruePda.pda.name)) {
-                    uniqPdas.set(conditionalTruePda.pda.name, conditionalTruePda);
-                }
-                if (!uniqPdas.get(conditionalFalsePda.pda.name)) {
-                    uniqPdas.set(conditionalFalsePda.pda.name, conditionalFalsePda);
-                }
+                const { ifTrue, ifFalse } = acc.defaultValue;
+                const truePda = ifTrue && isNode(ifTrue, 'pdaValueNode') ? ifTrue : undefined;
+                const falsePda = ifFalse && isNode(ifFalse, 'pdaValueNode') ? ifFalse : undefined;
+                if (truePda && !uniqPdas.has(truePda.pda.name)) uniqPdas.set(truePda.pda.name, truePda);
+                if (falsePda && !uniqPdas.has(falsePda.pda.name)) uniqPdas.set(falsePda.pda.name, falsePda);
                 return;
             }
             if (uniqPdas.get(acc.name)) return;
