@@ -3,10 +3,9 @@ import { Cluster, serverClusterUrl } from '@utils/cluster';
 import { NextResponse } from 'next/server';
 import { SOLANA_ATTESTATION_SERVICE_PROGRAM_ADDRESS as SAS_PROGRAM_ID } from 'sas-lib';
 
-import { NO_STORE_HEADERS } from '@/app/shared/lib/http-utils';
 import { Logger } from '@/app/shared/lib/logger';
 
-import { CACHE_HEADERS } from '../../config';
+import { CACHE_HEADERS, ERROR_CACHE_HEADERS } from '../../config';
 
 const RPC_TIMEOUT_MS = 15_000;
 
@@ -28,7 +27,7 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
     if (!credential) {
         return NextResponse.json(
             { error: 'Bluprynt API is misconfigured' },
-            { headers: NO_STORE_HEADERS, status: 500 },
+            { headers: ERROR_CACHE_HEADERS, status: 500 },
         );
     }
 
@@ -58,14 +57,14 @@ export async function GET(_request: Request, { params: { mintAddress } }: Params
             Logger.warn('[api:bluprynt] RPC request timed out', { mintAddress, sentry: true });
             return NextResponse.json(
                 { error: 'Verification request timed out' },
-                { headers: NO_STORE_HEADERS, status: 504 },
+                { headers: ERROR_CACHE_HEADERS, status: 504 },
             );
         }
 
         Logger.panic(error instanceof Error ? error : new Error('Failed to verify bluprynt data'));
         return NextResponse.json(
             { error: 'Failed to verify bluprynt data' },
-            { headers: NO_STORE_HEADERS, status: 500 },
+            { headers: ERROR_CACHE_HEADERS, status: 500 },
         );
     }
 }
