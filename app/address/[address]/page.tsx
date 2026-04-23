@@ -6,24 +6,28 @@ import { getFeatureGateOpenGraph } from '@/app/features/feature-gate/server';
 import { TransactionsProvider } from '@/app/providers/transactions';
 
 type Props = Readonly<{
-    params: {
+    params: Promise<{
         address: string;
-    };
+    }>;
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
     const title = `Transaction History | ${await getReadableTitleFromAddress(props)} | Solana`;
     return {
-        description: `History of all transactions involving the address ${props.params.address} on Solana`,
+        description: `History of all transactions involving the address ${(await props.params).address} on Solana`,
         // Feature gate OG images are intentionally shown on the main address page too,
         // so shared links to feature gate addresses always display the rich preview.
         // e.g. /address/5xXZc66h4UdB6Yq7FzdBxBiRAFMMScMLwHxk2QZDaNZL?cluster=testnet
-        openGraph: getFeatureGateOpenGraph(props.params.address),
+        openGraph: getFeatureGateOpenGraph((await props.params).address),
         title,
     };
 }
 
-export default function TransactionHistoryPage({ params: { address } }: Props) {
+export default async function TransactionHistoryPage(props: Props) {
+    const params = await props.params;
+
+    const { address } = params;
+
     return (
         <TransactionsProvider>
             <TransactionHistoryCard address={address} />

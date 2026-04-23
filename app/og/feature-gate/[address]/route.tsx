@@ -14,10 +14,11 @@ const CACHE_HEADERS = {
 };
 
 type Props = Readonly<{
-    params: { address: string };
+    params: Promise<{ address: string }>;
 }>;
 
-export async function GET(_request: NextRequest, { params }: Props) {
+export async function GET(_request: NextRequest, props: Props) {
+    const params = await props.params;
     const { address } = params;
 
     if (!isFeatureGateOgEnabled()) return new NextResponse('Not Found', { status: 404 });

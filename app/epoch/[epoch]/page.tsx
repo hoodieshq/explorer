@@ -3,18 +3,23 @@ import { Metadata } from 'next/types';
 import EpochDetailsPageClient from './page-client';
 
 type Props = Readonly<{
-    params: {
+    params: Promise<{
         epoch: string;
-    };
+    }>;
 }>;
 
-export async function generateMetadata({ params: { epoch } }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+    const params = await props.params;
+
+    const { epoch } = params;
+
     return {
         description: `Summary of ${epoch} on Solana`,
         title: `Epoch | ${epoch} | Solana`,
     };
 }
 
-export default function EpochDetailsPage(props: Props) {
-    return <EpochDetailsPageClient {...props} />;
+export default async function EpochDetailsPage(props: Props) {
+    const params = await props.params;
+    return <EpochDetailsPageClient params={params} />;
 }

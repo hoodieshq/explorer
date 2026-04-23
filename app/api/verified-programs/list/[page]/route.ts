@@ -7,12 +7,16 @@ const OSEC_REGISTRY_URL = 'https://verify.osec.io';
 const PROGRAM_LIST_CACHE_SECONDS = 300;
 
 type Params = {
-    params: {
+    params: Promise<{
         page: string;
-    };
+    }>;
 };
 
-export async function GET(_request: Request, { params: { page } }: Params) {
+export async function GET(_request: Request, props: Params) {
+    const params = await props.params;
+
+    const { page } = params;
+
     try {
         const pageNumber = parseInt(page, 10);
 

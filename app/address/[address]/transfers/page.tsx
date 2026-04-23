@@ -3,18 +3,22 @@ import getReadableTitleFromAddress, { AddressPageMetadataProps } from '@utils/ge
 import { Metadata } from 'next/types';
 
 type Props = Readonly<{
-    params: {
+    params: Promise<{
         address: string;
-    };
+    }>;
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
     return {
-        description: `History of all token transfers involving the address ${props.params.address} on Solana`,
+        description: `History of all token transfers involving the address ${(await props.params).address} on Solana`,
         title: `Transfers | ${await getReadableTitleFromAddress(props)} | Solana`,
     };
 }
 
-export default function TokenTransfersPage({ params: { address } }: Props) {
+export default async function TokenTransfersPage(props: Props) {
+    const params = await props.params;
+
+    const { address } = params;
+
     return <TokenTransfersCard address={address} />;
 }

@@ -3,18 +3,22 @@ import getReadableTitleFromAddress, { AddressPageMetadataProps } from '@utils/ge
 import { Metadata } from 'next/types';
 
 type Props = Readonly<{
-    params: {
+    params: Promise<{
         address: string;
-    };
+    }>;
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
     return {
-        description: `Domain names owned by the address ${props.params.address} on Solana`,
+        description: `Domain names owned by the address ${(await props.params).address} on Solana`,
         title: `Domains | ${await getReadableTitleFromAddress(props)} | Solana`,
     };
 }
 
-export default function OwnedDomainsPage({ params: { address } }: Props) {
+export default async function OwnedDomainsPage(props: Props) {
+    const params = await props.params;
+
+    const { address } = params;
+
     return <DomainsCard address={address} />;
 }

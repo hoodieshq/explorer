@@ -4,18 +4,19 @@ import { Metadata } from 'next/types';
 import AnchorAccountPageClient from './page-client';
 
 type Props = Readonly<{
-    params: {
+    params: Promise<{
         address: string;
-    };
+    }>;
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
     return {
-        description: `Contents of the Anchor Account at address ${props.params.address} on Solana`,
+        description: `Contents of the Anchor Account at address ${(await props.params).address} on Solana`,
         title: `Anchor Account Data | ${await getReadableTitleFromAddress(props)} | Solana`,
     };
 }
 
-export default function AnchorAccountPage(props: Props) {
-    return <AnchorAccountPageClient {...props} />;
+export default async function AnchorAccountPage(props: Props) {
+    const params = await props.params;
+    return <AnchorAccountPageClient params={params} />;
 }

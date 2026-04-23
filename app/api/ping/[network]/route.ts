@@ -4,9 +4,9 @@ import fetch from 'node-fetch';
 import { Logger } from '@/app/shared/lib/logger';
 
 type Params = {
-    params: {
-        network: 'mainnet';
-    };
+    params: Promise<{
+        network: string;
+    }>;
 };
 
 export type ValidatorsAppPingStats = {
@@ -25,7 +25,11 @@ const CACHE_HEADERS = { 'Cache-Control': 'public, max-age=60, s-maxage=60, stale
 
 const PING_INTERVALS: number[] = [1, 3, 12];
 
-export async function GET(_request: Request, { params: { network } }: Params) {
+export async function GET(_request: Request, props: Params) {
+    const params = await props.params;
+
+    const { network } = params;
+
     try {
         const responses = await Promise.all(
             PING_INTERVALS.map(interval =>

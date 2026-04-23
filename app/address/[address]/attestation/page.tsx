@@ -4,18 +4,19 @@ import { Metadata } from 'next/types';
 import AttestationPageClient from './page-client';
 
 type Props = Readonly<{
-    params: {
+    params: Promise<{
         address: string;
-    };
+    }>;
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
     return {
-        description: `Attestation Data for the Attestation Account with address ${props.params.address} on Solana`,
+        description: `Attestation Data for the Attestation Account with address ${(await props.params).address} on Solana`,
         title: `Attestation Data | ${await getReadableTitleFromAddress(props)} | Solana`,
     };
 }
 
-export default function AttestationPage(props: Props) {
-    return <AttestationPageClient {...props} />;
+export default async function AttestationPage(props: Props) {
+    const params = await props.params;
+    return <AttestationPageClient params={params} />;
 }

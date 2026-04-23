@@ -20,10 +20,11 @@ const DEFAULT_CACHE_HEADERS = {
 };
 
 type Props = Readonly<{
-    params: { signature: string };
+    params: Promise<{ signature: string }>;
 }>;
 
-export async function GET(request: NextRequest, { params }: Props) {
+export async function GET(request: NextRequest, props: Props) {
+    const params = await props.params;
     const { signature: compositeSignature } = params;
     const { signature, cluster } = parseCompositeSignature(compositeSignature);
 
