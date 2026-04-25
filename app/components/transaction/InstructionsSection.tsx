@@ -5,7 +5,6 @@ import { AssociatedTokenDetailsCard } from '@components/instruction/associated-t
 import { BpfLoaderDetailsCard } from '@components/instruction/bpf-loader/BpfLoaderDetailsCard';
 import { BpfUpgradeableLoaderDetailsCard } from '@components/instruction/bpf-upgradeable-loader/BpfUpgradeableLoaderDetailsCard';
 import { ComputeBudgetDetailsCard } from '@components/instruction/ComputeBudgetDetailsCard';
-import { MangoDetailsCard } from '@components/instruction/MangoDetails';
 import { MemoDetailsCard } from '@components/instruction/MemoDetailsCard';
 import { PythDetailsCard } from '@components/instruction/pyth/PythDetailsCard';
 import { isPythInstruction } from '@components/instruction/pyth/types';
@@ -39,6 +38,7 @@ import {
 import { Cluster } from '@utils/cluster';
 import { INNER_INSTRUCTIONS_START_SLOT, SignatureProps } from '@utils/index';
 import { intoTransactionInstruction } from '@utils/tx';
+import dynamic from 'next/dynamic';
 import React from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -49,12 +49,17 @@ import { Ed25519DetailsCard } from '../instruction/ed25519/Ed25519DetailsCard';
 import { isEd25519Instruction } from '../instruction/ed25519/types';
 import { LighthouseDetailsCard } from '../instruction/lighthouse/LighthouseDetailsCard';
 import { isLighthouseInstruction } from '../instruction/lighthouse/types';
-import { isMangoInstruction } from '../instruction/mango/types';
+import { isMangoInstruction } from '@explorer/decoder-mango';
 import { ProgramMetadataIdlInstructionDetailsCard } from '../instruction/program-metadata-idl/ProgramMetadataIdlInstructionDetailsCard';
 import {
     isSolanaAttestationInstruction,
     SolanaAttestationDetailsCard,
 } from '../instruction/sas/SolanaAttestationDetailsCard';
+
+const MangoDetailsCard = dynamic(
+    () => import('@components/instruction/MangoDetails').then(mod => mod.MangoDetailsCard),
+    { ssr: false }
+);
 
 export type InstructionDetailsProps = {
     tx: ParsedTransaction;

@@ -2,7 +2,7 @@ import { Address } from '@components/common/Address';
 import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
 
 import { InstructionCard } from '../InstructionCard';
-import { getSpotMarketFromInstruction } from './types';
+import { getSpotMarketFromInstruction } from '@explorer/decoder-mango';
 
 export function GenericSpotMngoDetailsCard(props: {
     ix: TransactionInstruction;

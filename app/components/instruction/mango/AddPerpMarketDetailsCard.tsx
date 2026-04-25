@@ -2,7 +2,7 @@ import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
 import moment from 'moment';
 
 import { InstructionCard } from '../InstructionCard';
-import { AddPerpMarket } from './types';
+import { AddPerpMarket } from '@explorer/decoder-mango';
 
 export function AddPerpMarketDetailsCard(props: {
     ix: TransactionInstruction;

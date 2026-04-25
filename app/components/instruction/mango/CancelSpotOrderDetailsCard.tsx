@@ -2,7 +2,7 @@ import { Address } from '@components/common/Address';
 import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
 
 import { InstructionCard } from '../InstructionCard';
-import { CancelSpotOrder, getSpotMarketFromInstruction } from './types';
+import { CancelSpotOrder, getSpotMarketFromInstruction } from '@explorer/decoder-mango';
 
 export function CancelSpotOrderDetailsCard(props: {
     ix: TransactionInstruction;

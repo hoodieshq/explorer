@@ -4,7 +4,7 @@ import moment from 'moment';
 import { useEffect, useState } from 'react';
 
 import { InstructionCard } from '../InstructionCard';
-import { ChangePerpMarketParams, getPerpMarketFromInstruction, getPerpMarketFromPerpMarketConfig } from './types';
+import { ChangePerpMarketParams, getPerpMarketFromInstruction, getPerpMarketFromPerpMarketConfig } from '@explorer/decoder-mango';
 
 export function ChangePerpMarketParamsDetailsCard(props: {
     ix: TransactionInstruction;

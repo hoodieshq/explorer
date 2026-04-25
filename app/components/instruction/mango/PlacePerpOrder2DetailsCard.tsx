@@ -10,7 +10,7 @@ import {
     getPerpMarketFromPerpMarketConfig,
     OrderLotDetails,
     PlacePerpOrder2,
-} from './types';
+} from '@explorer/decoder-mango';
 
 export function PlacePerpOrder2DetailsCard(props: {
     ix: TransactionInstruction;

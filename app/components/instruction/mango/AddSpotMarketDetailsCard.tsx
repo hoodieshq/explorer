@@ -1,7 +1,7 @@
 import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
 
 import { InstructionCard } from '../InstructionCard';
-import { AddSpotMarket, spotMarketFromIndex } from './types';
+import { AddSpotMarket, spotMarketFromIndex } from '@explorer/decoder-mango';
 
 export function AddSpotMarketDetailsCard(props: {
     ix: TransactionInstruction;
