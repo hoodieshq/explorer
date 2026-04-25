@@ -3,7 +3,8 @@
     "version": "0.1.0",
     "private": true,
     "scripts": {
-        "build": "next build",
+        "build": "pnpm run build:packages && next build",
+        "build:packages": "pnpm -r --filter './packages/**' run build",
         "build:info": "node scripts/update-build-info.js",
         "build-sb": "storybook build",
         "coverage": "vitest --coverage",
@@ -16,8 +17,9 @@
         "scan": "next dev & react-scan localhost:3000",
         "start": "next start",
         "types": "tsc --noEmit",
-        "test": "vitest --project specs run",
-        "test:ci": "vitest --project specs run",
+        "test": "pnpm run test:packages && vitest --project specs run",
+        "test:packages": "pnpm -r --filter './packages/**' run test",
+        "test:ci": "pnpm run test:packages && vitest --project specs run",
         "test:e2e": "playwright test",
         "test:e2e:ci": "playwright test",
         "test:e2e:ui": "playwright test --ui",
@@ -26,7 +28,7 @@
         "test:watch": "vitest --project specs --watch"
     },
     "dependencies": {
-        "@blockworks-foundation/mango-client": "3.6.7",
+        "@explorer/decoder-mango": "workspace:*",
         "@bonfida/spl-name-service": "0.1.30",
         "@codama/dynamic-parsers": "1.1.12",
         "@codama/nodes-from-anchor": "1.2.1",
@@ -120,7 +122,6 @@
         "swr": "2.2.0",
         "tailwind-merge": "3.0.2",
         "tweetnacl": "1.0.3",
-        "typescript": "5.7.3",
         "use-async-effect": "2.2.7"
     },
     "devDependencies": {
@@ -176,9 +177,10 @@
         "storybook": "10.1.10",
         "styled-jsx": "5.1.6",
         "tailwindcss": "3.4.17",
+        "typescript": "catalog:",
         "typescript-eslint": "8.57.1",
         "vite-plugin-node-polyfills": "0.23.0",
-        "vitest": "3.2.4"
+        "vitest": "catalog:"
     },
     "packageManager": "pnpm@10.17.1",
     "engines": {
