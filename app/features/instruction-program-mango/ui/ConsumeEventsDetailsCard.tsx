@@ -1,19 +1,19 @@
 import { Address } from '@components/common/Address';
 import { InstructionCard } from '@components/instruction/InstructionCard';
-import { getPerpMarketFromInstruction } from '@explorer/decoder-mango';
+import { ConsumeEvents, getPerpMarketFromInstruction } from '@explorer/decoder-mango';
 import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
 
 export function ConsumeEventsDetailsCard(props: {
     ix: TransactionInstruction;
     index: number;
     result: SignatureResult;
+    info: ConsumeEvents;
     innerCards?: JSX.Element[];
     childIndex?: number;
 }) {
-    const { ix, index, result, innerCards, childIndex } = props;
+    const { ix, index, result, info, innerCards, childIndex } = props;
 
-    const perpMarketAccountMeta = ix.keys[2];
-    const mangoPerpMarketConfig = getPerpMarketFromInstruction(ix, perpMarketAccountMeta);
+    const mangoPerpMarketConfig = getPerpMarketFromInstruction(ix, info.perpMarket);
 
     return (
         <InstructionCard
@@ -34,7 +34,7 @@ export function ConsumeEventsDetailsCard(props: {
             <tr>
                 <td>Perp market address</td>
                 <td>
-                    <Address pubkey={perpMarketAccountMeta.pubkey} alignRight link />
+                    <Address pubkey={info.perpMarket.pubkey} alignRight link />
                 </td>
             </tr>
         </InstructionCard>

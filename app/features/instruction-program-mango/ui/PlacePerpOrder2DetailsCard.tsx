@@ -1,15 +1,11 @@
 import { Address } from '@components/common/Address';
 import { InstructionCard } from '@components/instruction/InstructionCard';
-import {
-    getPerpMarketFromInstruction,
-    getPerpMarketFromPerpMarketConfig,
-    OrderLotDetails,
-    PlacePerpOrder2,
-} from '@explorer/decoder-mango';
-import { useCluster } from '@providers/cluster';
+import { getPerpMarketFromInstruction, OrderLotDetails, PlacePerpOrder2 } from '@explorer/decoder-mango';
 import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
 import BN from 'bn.js';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+
+import { useMangoPerpMarket } from '../model/use-mango-market';
 
 export function PlacePerpOrder2DetailsCard(props: {
     ix: TransactionInstruction;
@@ -20,27 +16,16 @@ export function PlacePerpOrder2DetailsCard(props: {
     childIndex?: number;
 }) {
     const { ix, index, result, info, innerCards, childIndex } = props;
-    const mangoAccount = ix.keys[1];
-    const perpMarketAccountMeta = ix.keys[4];
-    const mangoPerpMarketConfig = getPerpMarketFromInstruction(ix, perpMarketAccountMeta);
+    const mangoPerpMarketConfig = getPerpMarketFromInstruction(ix, info.perpMarket);
+    const perpMarket = useMangoPerpMarket(mangoPerpMarketConfig);
 
-    const cluster = useCluster();
-    const [orderLotDetails, setOrderLotDetails] = useState<OrderLotDetails | null>(null);
-    useEffect(() => {
-        async function getOrderLotDetails() {
-            if (mangoPerpMarketConfig === undefined) {
-                return;
-            }
-            const mangoPerpMarket = await getPerpMarketFromPerpMarketConfig(cluster.url, mangoPerpMarketConfig);
-            const maxBaseQuantity = mangoPerpMarket.baseLotsToNumber(new BN(info.maxBaseQuantity.toString()));
-            const limitPrice = mangoPerpMarket.priceLotsToNumber(new BN(info.price.toString()));
-            setOrderLotDetails({
-                price: limitPrice,
-                size: maxBaseQuantity,
-            } as OrderLotDetails);
-        }
-        getOrderLotDetails();
-    }, [cluster.url, info.maxBaseQuantity, info.price, mangoPerpMarketConfig]);
+    const orderLotDetails = useMemo<OrderLotDetails | null>(() => {
+        if (!perpMarket) return null;
+        return {
+            price: perpMarket.priceLotsToNumber(new BN(info.price.toString())),
+            size: perpMarket.baseLotsToNumber(new BN(info.maxBaseQuantity.toString())),
+        };
+    }, [perpMarket, info.price, info.maxBaseQuantity]);
 
     return (
         <InstructionCard
@@ -55,7 +40,7 @@ export function PlacePerpOrder2DetailsCard(props: {
                 <td>Mango account</td>
                 <td>
                     {' '}
-                    <Address pubkey={mangoAccount.pubkey} alignRight link />
+                    <Address pubkey={info.mangoAccount.pubkey} alignRight link />
                 </td>
             </tr>
             {mangoPerpMarketConfig !== undefined && (
@@ -67,7 +52,7 @@ export function PlacePerpOrder2DetailsCard(props: {
             <tr>
                 <td>Perp market address</td>
                 <td>
-                    <Address pubkey={perpMarketAccountMeta.pubkey} alignRight link />
+                    <Address pubkey={info.perpMarket.pubkey} alignRight link />
                 </td>
             </tr>
             {info.clientOrderId !== '0' && (
