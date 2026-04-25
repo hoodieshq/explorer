@@ -1,8 +1,7 @@
 import { Address } from '@components/common/Address';
-import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
-
-import { InstructionCard } from '../InstructionCard';
+import { InstructionCard } from '@components/instruction/InstructionCard';
 import { CancelPerpOrder, getPerpMarketFromInstruction } from '@explorer/decoder-mango';
+import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
 
 export function CancelPerpOrderDetailsCard(props: {
     ix: TransactionInstruction;

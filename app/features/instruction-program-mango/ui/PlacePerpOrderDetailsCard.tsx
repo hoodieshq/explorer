@@ -1,61 +1,53 @@
 import { Address } from '@components/common/Address';
+import { InstructionCard } from '@components/instruction/InstructionCard';
+import {
+    getPerpMarketFromInstruction,
+    getPerpMarketFromPerpMarketConfig,
+    OrderLotDetails,
+    PlacePerpOrder,
+} from '@explorer/decoder-mango';
 import { useCluster } from '@providers/cluster';
 import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
 import BN from 'bn.js';
 import { useEffect, useState } from 'react';
 
-import { InstructionCard } from '../InstructionCard';
-import {
-    getSpotMarketFromInstruction,
-    getSpotMarketFromSpotMarketConfig,
-    OrderLotDetails,
-    PlaceSpotOrder,
-} from '@explorer/decoder-mango';
-
-export function PlaceSpotOrderDetailsCard(props: {
+export function PlacePerpOrderDetailsCard(props: {
     ix: TransactionInstruction;
     index: number;
     result: SignatureResult;
-    info: PlaceSpotOrder;
+    info: PlacePerpOrder;
     innerCards?: JSX.Element[];
     childIndex?: number;
 }) {
     const { ix, index, result, info, innerCards, childIndex } = props;
     const mangoAccount = ix.keys[1];
-    const spotMarketAccountMeta = ix.keys[5];
-    const mangoSpotMarketConfig = getSpotMarketFromInstruction(ix, spotMarketAccountMeta);
+    const perpMarketAccountMeta = ix.keys[4];
+    const mangoPerpMarketConfig = getPerpMarketFromInstruction(ix, perpMarketAccountMeta);
 
     const cluster = useCluster();
     const [orderLotDetails, setOrderLotDetails] = useState<OrderLotDetails | null>(null);
     useEffect(() => {
         async function getOrderLotDetails() {
-            if (mangoSpotMarketConfig === undefined) {
+            if (mangoPerpMarketConfig === undefined) {
                 return;
             }
-            const mangoSpotMarket = await getSpotMarketFromSpotMarketConfig(
-                ix.programId,
-                cluster.url,
-                mangoSpotMarketConfig,
-            );
-            if (mangoSpotMarket === undefined) {
-                return;
-            }
-            const maxBaseQuantity = mangoSpotMarket.baseSizeLotsToNumber(new BN(info.maxBaseQuantity.toString()));
-            const limitPrice = mangoSpotMarket.priceLotsToNumber(new BN(info.limitPrice.toString()));
+            const mangoPerpMarket = await getPerpMarketFromPerpMarketConfig(cluster.url, mangoPerpMarketConfig);
+            const maxBaseQuantity = mangoPerpMarket.baseLotsToNumber(new BN(info.quantity.toString()));
+            const limitPrice = mangoPerpMarket.priceLotsToNumber(new BN(info.price.toString()));
             setOrderLotDetails({
                 price: limitPrice,
                 size: maxBaseQuantity,
             } as OrderLotDetails);
         }
         getOrderLotDetails();
-    }, [cluster.url, info.maxBaseQuantity, info.limitPrice, ix.programId, mangoSpotMarketConfig]);
+    }, [cluster.url, info.quantity, info.price, mangoPerpMarketConfig]);
 
     return (
         <InstructionCard
             ix={ix}
             index={index}
             result={result}
-            title="Mango Program: PlaceSpotOrder"
+            title="Mango Program: PlacePerpOrder"
             innerCards={innerCards}
             childIndex={childIndex}
         >
@@ -67,51 +59,53 @@ export function PlaceSpotOrderDetailsCard(props: {
                 </td>
             </tr>
 
-            {mangoSpotMarketConfig !== undefined && (
+            {mangoPerpMarketConfig !== undefined && (
                 <tr>
-                    <td>Spot market</td>
-                    <td className="text-lg-end">{mangoSpotMarketConfig.name}</td>
+                    <td>Perp market</td>
+                    <td className="text-lg-end">{mangoPerpMarketConfig.name}</td>
                 </tr>
             )}
 
             <tr>
-                <td>Spot market address</td>
+                <td>Perp market address</td>
                 <td>
-                    <Address pubkey={spotMarketAccountMeta.pubkey} alignRight link />
+                    <Address pubkey={perpMarketAccountMeta.pubkey} alignRight link />
                 </td>
             </tr>
+
+            {info.clientOrderId !== '0' && (
+                <tr>
+                    <td>Client order Id</td>
+                    <td className="text-lg-end">{info.clientOrderId}</td>
+                </tr>
+            )}
 
             <tr>
                 <td>Order type</td>
                 <td className="text-lg-end">{info.orderType}</td>
             </tr>
-
-            {info.clientId !== '0' && (
-                <tr>
-                    <td>Client Id</td>
-                    <td className="text-lg-end">{info.clientId}</td>
-                </tr>
-            )}
-
             <tr>
-                <td>Side</td>
+                <td>side</td>
                 <td className="text-lg-end">{info.side}</td>
             </tr>
 
             {orderLotDetails !== null && (
                 <tr>
-                    <td>Limit price</td>
-                    {/* todo fix price */}
+                    <td>price</td>
                     <td className="text-lg-end">{orderLotDetails?.price} USDC</td>
                 </tr>
             )}
 
             {orderLotDetails !== null && (
                 <tr>
-                    <td>Size</td>
+                    <td>quantity</td>
                     <td className="text-lg-end">{orderLotDetails?.size}</td>
                 </tr>
             )}
+            <tr>
+                <td>Reduce only</td>
+                <td className="text-lg-end">{info.reduceOnly}</td>
+            </tr>
         </InstructionCard>
     );
 }

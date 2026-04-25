@@ -22,6 +22,7 @@ import { VoteDetailsCard } from '@components/instruction/vote/VoteDetailsCard';
 import { isWormholeInstruction } from '@components/instruction/wormhole/types';
 import { WormholeDetailsCard } from '@components/instruction/WormholeDetailsCard';
 import { useAnchorProgram } from '@entities/idl';
+import { isMangoInstruction } from '@explorer/decoder-mango';
 import { isTokenBatchInstruction, TokenBatchCard } from '@features/token-batch';
 import { useCluster } from '@providers/cluster';
 import { useTransactionDetails, useTransactionStatus } from '@providers/transactions';
@@ -49,7 +50,6 @@ import { Ed25519DetailsCard } from '../instruction/ed25519/Ed25519DetailsCard';
 import { isEd25519Instruction } from '../instruction/ed25519/types';
 import { LighthouseDetailsCard } from '../instruction/lighthouse/LighthouseDetailsCard';
 import { isLighthouseInstruction } from '../instruction/lighthouse/types';
-import { isMangoInstruction } from '@explorer/decoder-mango';
 import { ProgramMetadataIdlInstructionDetailsCard } from '../instruction/program-metadata-idl/ProgramMetadataIdlInstructionDetailsCard';
 import {
     isSolanaAttestationInstruction,
@@ -57,8 +57,8 @@ import {
 } from '../instruction/sas/SolanaAttestationDetailsCard';
 
 const MangoDetailsCard = dynamic(
-    () => import('@components/instruction/MangoDetails').then(mod => mod.MangoDetailsCard),
-    { ssr: false }
+    () => import('@features/instruction-program-mango').then(mod => mod.MangoDetailsCard),
+    { ssr: false },
 );
 
 export type InstructionDetailsProps = {
