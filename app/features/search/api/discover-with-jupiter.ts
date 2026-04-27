@@ -4,6 +4,7 @@ import { array, boolean, is, nullable, number, optional, string, type } from 'su
 import { matchAbortError } from '@/app/shared/lib/errors';
 import { Logger } from '@/app/shared/lib/logger';
 
+import { JUPITER_API_KEY } from '../config';
 import type { DiscoveredToken } from './types';
 
 const JupiterTokenSchema = type({
@@ -18,7 +19,7 @@ const JupiterTokenSchema = type({
 const JupiterSearchResponseSchema = array(JupiterTokenSchema);
 
 export async function discoverWithJupiter(query: string, signal: AbortSignal): Promise<DiscoveredToken[] | undefined> {
-    const jupiterApiKey = process.env.JUPITER_API_KEY;
+    const jupiterApiKey = JUPITER_API_KEY;
     if (!jupiterApiKey) {
         Logger.warn('[api:search] JUPITER_API_KEY is not configured — skipping Jupiter discovery');
         return undefined;
