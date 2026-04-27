@@ -1,21 +1,29 @@
 import { Address } from '@components/common/Address';
+import { InstructionCard } from '@components/instruction/InstructionCard';
+import { Prune } from '@explorer/decoder-serum';
 import React from 'react';
 
-import { InstructionCard } from '../InstructionCard';
-import { CancelOrderByClientIdV2, SerumIxDetailsProps } from './types';
+import { SerumIxDetailsProps } from './types';
 
-export function CancelOrderByClientIdV2DetailsCard(props: SerumIxDetailsProps<CancelOrderByClientIdV2>) {
-    const { ix, index, result, info, innerCards, childIndex } = props;
+export function PruneDetailsCard(props: SerumIxDetailsProps<Prune>) {
+    const { ix, index, result, programName, info, innerCards, childIndex } = props;
 
     return (
         <InstructionCard
             ix={ix}
             index={index}
             result={result}
-            title="Serum Program: Cancel Order By Client Id v2"
+            title={`${programName} Program: Prune`}
             innerCards={innerCards}
             childIndex={childIndex}
         >
+            <tr>
+                <td>Program</td>
+                <td className="text-lg-end">
+                    <Address pubkey={info.programId} alignRight link />
+                </td>
+            </tr>
+
             <tr>
                 <td>Market</td>
                 <td className="text-lg-end">
@@ -34,6 +42,13 @@ export function CancelOrderByClientIdV2DetailsCard(props: SerumIxDetailsProps<Ca
                 <td>Asks</td>
                 <td className="text-lg-end">
                     <Address pubkey={info.accounts.asks} alignRight link />
+                </td>
+            </tr>
+
+            <tr>
+                <td>Prune Authority</td>
+                <td className="text-lg-end">
+                    <Address pubkey={info.accounts.pruneAuthority} alignRight link />
                 </td>
             </tr>
 
@@ -59,8 +74,8 @@ export function CancelOrderByClientIdV2DetailsCard(props: SerumIxDetailsProps<Ca
             </tr>
 
             <tr>
-                <td>Client Id</td>
-                <td className="text-lg-end">{info.data.clientId.toString(10)}</td>
+                <td>Iteration Limit</td>
+                <td className="text-lg-end">{info.data.limit}</td>
             </tr>
         </InstructionCard>
     );

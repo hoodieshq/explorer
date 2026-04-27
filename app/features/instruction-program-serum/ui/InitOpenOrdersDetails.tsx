@@ -1,8 +1,9 @@
 import { Address } from '@components/common/Address';
+import { InstructionCard } from '@components/instruction/InstructionCard';
+import { InitOpenOrders } from '@explorer/decoder-serum';
 import React from 'react';
 
-import { InstructionCard } from '../InstructionCard';
-import { InitOpenOrders, SerumIxDetailsProps } from './types';
+import { SerumIxDetailsProps } from './types';
 
 export function InitOpenOrdersDetailsCard(props: SerumIxDetailsProps<InitOpenOrders>) {
     const { ix, index, result, programName, info, innerCards, childIndex } = props;

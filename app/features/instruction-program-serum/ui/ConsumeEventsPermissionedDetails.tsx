@@ -1,10 +1,11 @@
 import { Address } from '@components/common/Address';
+import { InstructionCard } from '@components/instruction/InstructionCard';
+import { ConsumeEventsPermissioned } from '@explorer/decoder-serum';
 import React from 'react';
 
-import { InstructionCard } from '../InstructionCard';
-import { MatchOrders, SerumIxDetailsProps } from './types';
+import { SerumIxDetailsProps } from './types';
 
-export function MatchOrdersDetailsCard(props: SerumIxDetailsProps<MatchOrders>) {
+export function ConsumeEventsPermissionedDetailsCard(props: SerumIxDetailsProps<ConsumeEventsPermissioned>) {
     const { ix, index, result, programName, info, innerCards, childIndex } = props;
 
     return (
@@ -12,7 +13,7 @@ export function MatchOrdersDetailsCard(props: SerumIxDetailsProps<MatchOrders>) 
             ix={ix}
             index={index}
             result={result}
-            title={`${programName} Program: Match Orders`}
+            title={`${programName} Program: Consume Events Permissioned`}
             innerCards={innerCards}
             childIndex={childIndex}
         >
@@ -31,13 +32,6 @@ export function MatchOrdersDetailsCard(props: SerumIxDetailsProps<MatchOrders>) 
             </tr>
 
             <tr>
-                <td>Request Queue</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.requestQueue} alignRight link />
-                </td>
-            </tr>
-
-            <tr>
                 <td>Event Queue</td>
                 <td className="text-lg-end">
                     <Address pubkey={info.accounts.eventQueue} alignRight link />
@@ -45,16 +39,18 @@ export function MatchOrdersDetailsCard(props: SerumIxDetailsProps<MatchOrders>) 
             </tr>
 
             <tr>
-                <td>Bids</td>
+                <td>Crank Authority</td>
                 <td className="text-lg-end">
-                    <Address pubkey={info.accounts.bids} alignRight link />
+                    <Address pubkey={info.accounts.crankAuthority} alignRight link />
                 </td>
             </tr>
 
             <tr>
-                <td>Asks</td>
+                <td>Open Orders Accounts</td>
                 <td className="text-lg-end">
-                    <Address pubkey={info.accounts.asks} alignRight link />
+                    {info.accounts.openOrders.map((account, index) => {
+                        return <Address pubkey={account} key={index} alignRight link />;
+                    })}
                 </td>
             </tr>
 

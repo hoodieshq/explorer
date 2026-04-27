@@ -1,10 +1,11 @@
 import { Address } from '@components/common/Address';
+import { InstructionCard } from '@components/instruction/InstructionCard';
+import { CancelOrder } from '@explorer/decoder-serum';
 import React from 'react';
 
-import { InstructionCard } from '../InstructionCard';
-import { CancelOrderV2, SerumIxDetailsProps } from './types';
+import { SerumIxDetailsProps } from './types';
 
-export function CancelOrderV2DetailsCard(props: SerumIxDetailsProps<CancelOrderV2>) {
+export function CancelOrderDetailsCard(props: SerumIxDetailsProps<CancelOrder>) {
     const { ix, index, result, programName, info, innerCards, childIndex } = props;
 
     return (
@@ -12,7 +13,7 @@ export function CancelOrderV2DetailsCard(props: SerumIxDetailsProps<CancelOrderV
             ix={ix}
             index={index}
             result={result}
-            title={`${programName} Program: Cancel Order v2`}
+            title={`${programName} Program: Cancel Order`}
             innerCards={innerCards}
             childIndex={childIndex}
         >
@@ -31,20 +32,6 @@ export function CancelOrderV2DetailsCard(props: SerumIxDetailsProps<CancelOrderV
             </tr>
 
             <tr>
-                <td>Bids</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.bids} alignRight link />
-                </td>
-            </tr>
-
-            <tr>
-                <td>Asks</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.asks} alignRight link />
-                </td>
-            </tr>
-
-            <tr>
                 <td>Open Orders</td>
                 <td className="text-lg-end">
                     <Address pubkey={info.accounts.openOrders} alignRight link />
@@ -59,15 +46,20 @@ export function CancelOrderV2DetailsCard(props: SerumIxDetailsProps<CancelOrderV
             </tr>
 
             <tr>
-                <td>Event Queue</td>
+                <td>Request Queue</td>
                 <td className="text-lg-end">
-                    <Address pubkey={info.accounts.eventQueue} alignRight link />
+                    <Address pubkey={info.accounts.requestQueue} alignRight link />
                 </td>
             </tr>
 
             <tr>
                 <td>Side</td>
                 <td className="text-lg-end">{info.data.side}</td>
+            </tr>
+
+            <tr>
+                <td>Open Orders Slot</td>
+                <td className="text-lg-end">{info.data.openOrdersSlot}</td>
             </tr>
 
             <tr>

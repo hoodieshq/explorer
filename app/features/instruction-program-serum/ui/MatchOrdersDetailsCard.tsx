@@ -1,10 +1,11 @@
 import { Address } from '@components/common/Address';
+import { InstructionCard } from '@components/instruction/InstructionCard';
+import { MatchOrders } from '@explorer/decoder-serum';
 import React from 'react';
 
-import { InstructionCard } from '../InstructionCard';
-import { SerumIxDetailsProps, SweepFees } from './types';
+import { SerumIxDetailsProps } from './types';
 
-export function SweepFeesDetailsCard(props: SerumIxDetailsProps<SweepFees>) {
+export function MatchOrdersDetailsCard(props: SerumIxDetailsProps<MatchOrders>) {
     const { ix, index, result, programName, info, innerCards, childIndex } = props;
 
     return (
@@ -12,7 +13,7 @@ export function SweepFeesDetailsCard(props: SerumIxDetailsProps<SweepFees>) {
             ix={ix}
             index={index}
             result={result}
-            title={`${programName} Program: Sweep Fees`}
+            title={`${programName} Program: Match Orders`}
             innerCards={innerCards}
             childIndex={childIndex}
         >
@@ -31,31 +32,36 @@ export function SweepFeesDetailsCard(props: SerumIxDetailsProps<SweepFees>) {
             </tr>
 
             <tr>
-                <td>Quote Vault</td>
+                <td>Request Queue</td>
                 <td className="text-lg-end">
-                    <Address pubkey={info.accounts.quoteVault} alignRight link />
+                    <Address pubkey={info.accounts.requestQueue} alignRight link />
                 </td>
             </tr>
 
             <tr>
-                <td>Fee Sweeping Authority</td>
+                <td>Event Queue</td>
                 <td className="text-lg-end">
-                    <Address pubkey={info.accounts.feeSweepingAuthority} alignRight link />
+                    <Address pubkey={info.accounts.eventQueue} alignRight link />
                 </td>
             </tr>
 
             <tr>
-                <td>Fee Receiver</td>
+                <td>Bids</td>
                 <td className="text-lg-end">
-                    <Address pubkey={info.accounts.quoteFeeReceiver} alignRight link />
+                    <Address pubkey={info.accounts.bids} alignRight link />
                 </td>
             </tr>
 
             <tr>
-                <td>Vault Signer</td>
+                <td>Asks</td>
                 <td className="text-lg-end">
-                    <Address pubkey={info.accounts.vaultSigner} alignRight link />
+                    <Address pubkey={info.accounts.asks} alignRight link />
                 </td>
+            </tr>
+
+            <tr>
+                <td>Limit</td>
+                <td className="text-lg-end">{info.data.limit}</td>
             </tr>
         </InstructionCard>
     );

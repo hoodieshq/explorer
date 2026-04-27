@@ -1,8 +1,9 @@
 import { Address } from '@components/common/Address';
+import { InstructionCard } from '@components/instruction/InstructionCard';
+import { DisableMarket } from '@explorer/decoder-serum';
 import React from 'react';
 
-import { InstructionCard } from '../InstructionCard';
-import { DisableMarket, SerumIxDetailsProps } from './types';
+import { SerumIxDetailsProps } from './types';
 
 export function DisableMarketDetailsCard(props: SerumIxDetailsProps<DisableMarket>) {
     const { ix, index, result, programName, info, innerCards, childIndex } = props;

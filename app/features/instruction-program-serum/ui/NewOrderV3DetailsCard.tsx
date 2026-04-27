@@ -1,10 +1,11 @@
 import { Address } from '@components/common/Address';
+import { InstructionCard } from '@components/instruction/InstructionCard';
+import { NewOrderV3 } from '@explorer/decoder-serum';
 import React from 'react';
 
-import { InstructionCard } from '../InstructionCard';
-import { InitializeMarket, SerumIxDetailsProps } from './types';
+import { SerumIxDetailsProps } from './types';
 
-export function InitializeMarketDetailsCard(props: SerumIxDetailsProps<InitializeMarket>) {
+export function NewOrderV3DetailsCard(props: SerumIxDetailsProps<NewOrderV3>) {
     const { ix, index, result, programName, info, innerCards, childIndex } = props;
 
     return (
@@ -12,7 +13,7 @@ export function InitializeMarketDetailsCard(props: SerumIxDetailsProps<Initializ
             ix={ix}
             index={index}
             result={result}
-            title={`${programName} Program: Initialize Market`}
+            title={`${programName} Program: New Order v3`}
             innerCards={innerCards}
             childIndex={childIndex}
         >
@@ -27,6 +28,13 @@ export function InitializeMarketDetailsCard(props: SerumIxDetailsProps<Initializ
                 <td>Market</td>
                 <td className="text-lg-end">
                     <Address pubkey={info.accounts.market} alignRight link />
+                </td>
+            </tr>
+
+            <tr>
+                <td>Open Orders</td>
+                <td className="text-lg-end">
+                    <Address pubkey={info.accounts.openOrders} alignRight link />
                 </td>
             </tr>
 
@@ -59,6 +67,20 @@ export function InitializeMarketDetailsCard(props: SerumIxDetailsProps<Initializ
             </tr>
 
             <tr>
+                <td>Payer</td>
+                <td className="text-lg-end">
+                    <Address pubkey={info.accounts.payer} alignRight link />
+                </td>
+            </tr>
+
+            <tr>
+                <td>Open Orders Owner</td>
+                <td className="text-lg-end">
+                    <Address pubkey={info.accounts.openOrdersOwner} alignRight link />
+                </td>
+            </tr>
+
+            <tr>
                 <td>Base Vault</td>
                 <td className="text-lg-end">
                     <Address pubkey={info.accounts.baseVault} alignRight link />
@@ -72,43 +94,48 @@ export function InitializeMarketDetailsCard(props: SerumIxDetailsProps<Initializ
                 </td>
             </tr>
 
+            {info.accounts.feeDiscountPubkey && (
+                <tr>
+                    <td>Fee Discount</td>
+                    <td className="text-lg-end">
+                        <Address pubkey={info.accounts.feeDiscountPubkey} alignRight link />
+                    </td>
+                </tr>
+            )}
+
             <tr>
-                <td>Base Mint</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.baseMint} alignRight link />
-                </td>
+                <td>Side</td>
+                <td className="text-lg-end">{info.data.side.toUpperCase()}</td>
             </tr>
 
             <tr>
-                <td>Quote Mint</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.quoteMint} alignRight link />
-                </td>
+                <td>Order Type</td>
+                <td className="text-lg-end">{info.data.orderType}</td>
             </tr>
 
             <tr>
-                <td>Base Lot Size</td>
-                <td className="text-lg-end">{info.data.baseLotSize.toString(10)}</td>
+                <td>Limit Price</td>
+                <td className="text-lg-end">{info.data.limitPrice.toString(10)}</td>
             </tr>
 
             <tr>
-                <td>Quote Lot Size</td>
-                <td className="text-lg-end">{info.data.quoteLotSize.toString(10)}</td>
+                <td>Max Base Quantity</td>
+                <td className="text-lg-end">{info.data.maxBaseQuantity.toString(10)}</td>
             </tr>
 
             <tr>
-                <td>Fee Rate Bps</td>
-                <td className="text-lg-end">{info.data.feeRateBps}</td>
+                <td>Max Quote Quantity</td>
+                <td className="text-lg-end">{info.data.maxQuoteQuantity.toString(10)}</td>
             </tr>
 
             <tr>
-                <td>Quote Dust Threshold</td>
-                <td className="text-lg-end">{info.data.quoteDustThreshold.toString(10)}</td>
+                <td>Client Id</td>
+                <td className="text-lg-end">{info.data.clientId.toString(10)}</td>
             </tr>
 
             <tr>
-                <td>Vault Signer Nonce</td>
-                <td className="text-lg-end">{info.data.vaultSignerNonce.toString(10)}</td>
+                <td>Match Iteration Limit</td>
+                <td className="text-lg-end">{info.data.limit}</td>
             </tr>
         </InstructionCard>
     );

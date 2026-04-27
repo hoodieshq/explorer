@@ -1,10 +1,11 @@
 import { Address } from '@components/common/Address';
+import { InstructionCard } from '@components/instruction/InstructionCard';
+import { ConsumeEvents } from '@explorer/decoder-serum';
 import React from 'react';
 
-import { InstructionCard } from '../InstructionCard';
-import { CloseOpenOrders, SerumIxDetailsProps } from './types';
+import { SerumIxDetailsProps } from './types';
 
-export function CloseOpenOrdersDetailsCard(props: SerumIxDetailsProps<CloseOpenOrders>) {
+export function ConsumeEventsDetailsCard(props: SerumIxDetailsProps<ConsumeEvents>) {
     const { ix, index, result, programName, info, innerCards, childIndex } = props;
 
     return (
@@ -12,7 +13,7 @@ export function CloseOpenOrdersDetailsCard(props: SerumIxDetailsProps<CloseOpenO
             ix={ix}
             index={index}
             result={result}
-            title={`${programName} Program: Close Open Orders`}
+            title={`${programName} Program: Consume Events`}
             innerCards={innerCards}
             childIndex={childIndex}
         >
@@ -24,31 +25,31 @@ export function CloseOpenOrdersDetailsCard(props: SerumIxDetailsProps<CloseOpenO
             </tr>
 
             <tr>
-                <td>Open Orders</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.openOrders} alignRight link />
-                </td>
-            </tr>
-
-            <tr>
-                <td>Open Orders Owner</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.openOrdersOwner} alignRight link />
-                </td>
-            </tr>
-
-            <tr>
-                <td>Rent Receiver</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.rentReceiver} alignRight link />
-                </td>
-            </tr>
-
-            <tr>
                 <td>Market</td>
                 <td className="text-lg-end">
                     <Address pubkey={info.accounts.market} alignRight link />
                 </td>
+            </tr>
+
+            <tr>
+                <td>Event Queue</td>
+                <td className="text-lg-end">
+                    <Address pubkey={info.accounts.eventQueue} alignRight link />
+                </td>
+            </tr>
+
+            <tr>
+                <td>Open Orders Accounts</td>
+                <td className="text-lg-end">
+                    {info.accounts.openOrders.map((account, index) => {
+                        return <Address pubkey={account} key={index} alignRight link />;
+                    })}
+                </td>
+            </tr>
+
+            <tr>
+                <td>Limit</td>
+                <td className="text-lg-end">{info.data.limit}</td>
             </tr>
         </InstructionCard>
     );

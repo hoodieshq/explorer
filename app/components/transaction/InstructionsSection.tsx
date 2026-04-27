@@ -8,8 +8,6 @@ import { ComputeBudgetDetailsCard } from '@components/instruction/ComputeBudgetD
 import { MemoDetailsCard } from '@components/instruction/MemoDetailsCard';
 import { PythDetailsCard } from '@components/instruction/pyth/PythDetailsCard';
 import { isPythInstruction } from '@components/instruction/pyth/types';
-import { isSerumInstruction } from '@components/instruction/serum/types';
-import { SerumDetailsCard } from '@components/instruction/SerumDetailsCard';
 import { StakeDetailsCard } from '@components/instruction/stake/StakeDetailsCard';
 import { SystemDetailsCard } from '@components/instruction/system/SystemDetailsCard';
 import { TokenDetailsCard } from '@components/instruction/token/TokenDetailsCard';
@@ -23,6 +21,7 @@ import { isWormholeInstruction } from '@components/instruction/wormhole/types';
 import { WormholeDetailsCard } from '@components/instruction/WormholeDetailsCard';
 import { useAnchorProgram } from '@entities/idl';
 import { isMangoInstruction } from '@explorer/decoder-mango';
+import { isSerumInstruction } from '@explorer/decoder-serum';
 import { isTokenBatchInstruction, TokenBatchCard } from '@features/token-batch';
 import { useCluster } from '@providers/cluster';
 import { useTransactionDetails, useTransactionStatus } from '@providers/transactions';
@@ -58,6 +57,11 @@ import {
 
 const MangoDetailsCard = dynamic(
     () => import('@features/instruction-program-mango').then(mod => mod.MangoDetailsCard),
+    { ssr: false },
+);
+
+const SerumDetailsCard = dynamic(
+    () => import('@features/instruction-program-serum').then(mod => mod.SerumDetailsCard),
     { ssr: false },
 );
 

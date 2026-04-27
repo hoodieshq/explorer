@@ -29,6 +29,7 @@
     },
     "dependencies": {
         "@explorer/decoder-mango": "workspace:*",
+        "@explorer/decoder-serum": "workspace:*",
         "@bonfida/spl-name-service": "0.1.30",
         "@codama/dynamic-parsers": "1.1.12",
         "@codama/nodes-from-anchor": "1.2.1",

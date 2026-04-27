@@ -1,10 +1,11 @@
 import { Address } from '@components/common/Address';
+import { InstructionCard } from '@components/instruction/InstructionCard';
+import { NewOrder } from '@explorer/decoder-serum';
 import React from 'react';
 
-import { InstructionCard } from '../InstructionCard';
-import { SerumIxDetailsProps, SettleFunds } from './types';
+import { SerumIxDetailsProps } from './types';
 
-export function SettleFundsDetailsCard(props: SerumIxDetailsProps<SettleFunds>) {
+export function NewOrderDetailsCard(props: SerumIxDetailsProps<NewOrder>) {
     const { ix, index, result, programName, info, innerCards, childIndex } = props;
 
     return (
@@ -12,7 +13,7 @@ export function SettleFundsDetailsCard(props: SerumIxDetailsProps<SettleFunds>) 
             ix={ix}
             index={index}
             result={result}
-            title={`${programName} Program: Settle Funds`}
+            title={`${programName} Program: New Order`}
             innerCards={innerCards}
             childIndex={childIndex}
         >
@@ -38,6 +39,20 @@ export function SettleFundsDetailsCard(props: SerumIxDetailsProps<SettleFunds>) 
             </tr>
 
             <tr>
+                <td>Request Queue</td>
+                <td className="text-lg-end">
+                    <Address pubkey={info.accounts.requestQueue} alignRight link />
+                </td>
+            </tr>
+
+            <tr>
+                <td>Payer</td>
+                <td className="text-lg-end">
+                    <Address pubkey={info.accounts.payer} alignRight link />
+                </td>
+            </tr>
+
+            <tr>
                 <td>Open Orders Owner</td>
                 <td className="text-lg-end">
                     <Address pubkey={info.accounts.openOrdersOwner} alignRight link />
@@ -59,34 +74,29 @@ export function SettleFundsDetailsCard(props: SerumIxDetailsProps<SettleFunds>) 
             </tr>
 
             <tr>
-                <td>Base Wallet</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.baseWallet} alignRight link />
-                </td>
+                <td>Side</td>
+                <td className="text-lg-end">{info.data.side}</td>
             </tr>
 
             <tr>
-                <td>Quote Wallet</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.quoteWallet} alignRight link />
-                </td>
+                <td>Order Type</td>
+                <td className="text-lg-end">{info.data.orderType}</td>
             </tr>
 
             <tr>
-                <td>Vault Signer</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.vaultSigner} alignRight link />
-                </td>
+                <td>Limit Price</td>
+                <td className="text-lg-end">{info.data.limitPrice.toString(10)}</td>
             </tr>
 
-            {info.accounts.referrerQuoteWallet && (
-                <tr>
-                    <td>Referrer Quote Wallet</td>
-                    <td className="text-lg-end">
-                        <Address pubkey={info.accounts.referrerQuoteWallet} alignRight link />
-                    </td>
-                </tr>
-            )}
+            <tr>
+                <td>Max Quantity</td>
+                <td className="text-lg-end">{info.data.maxQuantity.toString(10)}</td>
+            </tr>
+
+            <tr>
+                <td>Client Id</td>
+                <td className="text-lg-end">{info.data.clientId.toString(10)}</td>
+            </tr>
         </InstructionCard>
     );
 }
