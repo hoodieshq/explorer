@@ -1,22 +1,22 @@
 import { Address } from '@components/common/Address';
 import { InstructionCard } from '@components/instruction/InstructionCard';
-import { getSpotMarketFromInstruction } from '@explorer/decoder-mango';
+import { getPerpMarketFromInstruction } from '@explorer/decoder-mango';
 import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
 
-export function GenericSpotMngoDetailsCard(props: {
+export function GenericPerpMangoDetailsCard(props: {
     ix: TransactionInstruction;
     index: number;
     result: SignatureResult;
-    accountKeyLocation: number;
-    spotMarketkeyLocation: number;
+    mangoAccountKeyLocation: number;
+    perpMarketKeyLocation: number;
     title: string;
     innerCards?: JSX.Element[];
     childIndex?: number;
 }) {
-    const { ix, index, result, accountKeyLocation, spotMarketkeyLocation, title, innerCards, childIndex } = props;
-    const mangoAccount = ix.keys[accountKeyLocation];
-    const spotMarketAccountMeta = ix.keys[spotMarketkeyLocation];
-    const mangoSpotMarketConfig = getSpotMarketFromInstruction(ix, spotMarketAccountMeta);
+    const { ix, index, result, mangoAccountKeyLocation, perpMarketKeyLocation, title, innerCards, childIndex } = props;
+    const mangoAccount = ix.keys[mangoAccountKeyLocation];
+    const perpMarketAccountMeta = ix.keys[perpMarketKeyLocation];
+    const mangoPerpMarketConfig = getPerpMarketFromInstruction(ix, perpMarketAccountMeta);
 
     return (
         <InstructionCard
@@ -34,17 +34,17 @@ export function GenericSpotMngoDetailsCard(props: {
                 </td>
             </tr>
 
-            {mangoSpotMarketConfig !== undefined && (
+            {mangoPerpMarketConfig !== undefined && (
                 <tr>
-                    <td>Spot market</td>
-                    <td className="text-lg-end">{mangoSpotMarketConfig.name}</td>
+                    <td>Perp market</td>
+                    <td className="text-lg-end">{mangoPerpMarketConfig.name}</td>
                 </tr>
             )}
 
             <tr>
-                <td>Spot market address</td>
+                <td>Perp market address</td>
                 <td>
-                    <Address pubkey={spotMarketAccountMeta.pubkey} alignRight link />
+                    <Address pubkey={perpMarketAccountMeta.pubkey} alignRight link />
                 </td>
             </tr>
         </InstructionCard>

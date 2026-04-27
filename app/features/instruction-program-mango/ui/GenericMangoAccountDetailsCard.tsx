@@ -2,7 +2,7 @@ import { Address } from '@components/common/Address';
 import { InstructionCard } from '@components/instruction/InstructionCard';
 import { SignatureResult, TransactionInstruction } from '@solana/web3.js';
 
-export function GenericMngoAccountDetailsCard(props: {
+export function GenericMangoAccountDetailsCard(props: {
     ix: TransactionInstruction;
     index: number;
     result: SignatureResult;
