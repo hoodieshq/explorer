@@ -81,7 +81,9 @@ describe('GET /og/feature-gate/[address]', () => {
         const { GET } = await import('../route');
         const { getFeatureInfo } = await import('@/app/utils/feature-gate/utils');
 
-        const response = await GET(makeRequest('not-valid!!!'), { params: Promise.resolve({ address: 'not-valid!!!' }) });
+        const response = await GET(makeRequest('not-valid!!!'), {
+            params: Promise.resolve({ address: 'not-valid!!!' }),
+        });
 
         expect(response.status).toBe(400);
         expect(await response.text()).toBe('Invalid address');
@@ -93,7 +95,9 @@ describe('GET /og/feature-gate/[address]', () => {
         const { getFeatureInfo } = await import('@/app/utils/feature-gate/utils');
         vi.mocked(getFeatureInfo).mockReturnValue(undefined);
 
-        const response = await GET(makeRequest(unknownAddress), { params: Promise.resolve({ address: unknownAddress }) });
+        const response = await GET(makeRequest(unknownAddress), {
+            params: Promise.resolve({ address: unknownAddress }),
+        });
 
         expect(response.status).toBe(404);
         expect(await response.text()).toBe('Feature not found');
