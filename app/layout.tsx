@@ -54,7 +54,7 @@ export default function RootLayout({ analytics, children }: { analytics: React.R
                 />
             </head>
             <body>
-                <Suspense>
+                <Suspense fallback={null}>
                     <ScrollAnchorProvider>
                         <ClusterProvider>
                             <VisibilityProvider>
