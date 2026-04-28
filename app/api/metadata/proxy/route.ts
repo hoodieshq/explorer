@@ -30,7 +30,9 @@ function respondWithError(status: keyof typeof errors, message?: string) {
     return NextResponse.json({ error: message ?? errors[status].message }, { status });
 }
 
-export async function GET(request: Request) {
+type Params = { params: Promise<object> };
+
+export async function GET(request: Request, { params: _params }: Params) {
     const isProxyEnabled = process.env.NEXT_PUBLIC_METADATA_ENABLED === 'true';
 
     if (!isProxyEnabled) {

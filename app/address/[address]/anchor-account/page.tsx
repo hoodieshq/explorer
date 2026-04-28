@@ -10,8 +10,9 @@ type Props = Readonly<{
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
+    const { address } = await props.params;
     return {
-        description: `Contents of the Anchor Account at address ${(await props.params).address} on Solana`,
+        description: `Contents of the Anchor Account at address ${address} on Solana`,
         title: `Anchor Account Data | ${await getReadableTitleFromAddress(props)} | Solana`,
     };
 }

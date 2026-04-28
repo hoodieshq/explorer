@@ -9,8 +9,9 @@ type Props = Readonly<{
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
+    const { address } = await props.params;
     return {
-        description: `NFToken NFTs belonging to the collection ${(await props.params).address} on Solana`,
+        description: `NFToken NFTs belonging to the collection ${address} on Solana`,
         title: `NFToken Collection NFTs | ${await getReadableTitleFromAddress(props)} | Solana`,
     };
 }

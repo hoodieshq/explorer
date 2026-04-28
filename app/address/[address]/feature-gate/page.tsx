@@ -15,10 +15,11 @@ type Props = Readonly<{
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
+    const { address } = await props.params;
     const title = `Feature Gate | ${await getReadableTitleFromAddress(props)} | Solana`;
     return {
-        description: `Feature information for address ${(await props.params).address} on Solana`,
-        openGraph: getFeatureGateOpenGraph((await props.params).address),
+        description: `Feature information for address ${address} on Solana`,
+        openGraph: getFeatureGateOpenGraph(address),
         title,
     };
 }

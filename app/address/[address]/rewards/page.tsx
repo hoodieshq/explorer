@@ -9,8 +9,9 @@ type Props = Readonly<{
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
+    const { address } = await props.params;
     return {
-        description: `Rewards due to the address ${(await props.params).address} by epoch on Solana`,
+        description: `Rewards due to the address ${address} by epoch on Solana`,
         title: `Address Rewards | ${await getReadableTitleFromAddress(props)} | Solana`,
     };
 }

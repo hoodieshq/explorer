@@ -10,8 +10,9 @@ type Props = Readonly<{
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
+    const { address } = await props.params;
     return {
-        description: `Information about the Compressed NFT with address ${(await props.params).address} on Solana`,
+        description: `Information about the Compressed NFT with address ${address} on Solana`,
         title: `Compression Information | ${await getReadableTitleFromAddress(props)} | Solana`,
     };
 }

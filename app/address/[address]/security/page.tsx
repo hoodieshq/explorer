@@ -6,8 +6,9 @@ import { withTraceData } from '@/app/shared/lib/sentry';
 import SecurityPageClient from './page-client';
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
+    const { address } = await props.params;
     return withTraceData({
-        description: `Contents of the security.txt for the program with address ${(await props.params).address} on Solana`,
+        description: `Contents of the security.txt for the program with address ${address} on Solana`,
         title: `Security | ${await getReadableTitleFromAddress(props)} | Solana`,
     });
 }

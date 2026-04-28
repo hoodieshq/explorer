@@ -5,7 +5,7 @@ import { Logger } from '@/app/shared/lib/logger';
 
 type Params = {
     params: Promise<{
-        network: string;
+        network: 'mainnet';
     }>;
 };
 

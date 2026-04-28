@@ -12,8 +12,9 @@ type Props = Readonly<{
 }>;
 
 export async function generateMetadata(props: AddressPageMetadataProps): Promise<Metadata> {
+    const { address } = await props.params;
     return withTraceData({
-        description: `The Interface Definition Language (IDL) file for the program at address ${(await props.params).address} on Solana`,
+        description: `The Interface Definition Language (IDL) file for the program at address ${address} on Solana`,
         title: `Program IDL | ${await getReadableTitleFromAddress(props)} | Solana`,
     });
 }
