@@ -13,9 +13,7 @@ type Props = Readonly<{
 }>;
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
-    const params = await props.params;
-
-    const { signature } = params;
+    const { signature } = await props.params;
 
     return withTraceData({
         description: `Interactively inspect the transaction with signature ${signature} on Solana`,
@@ -24,9 +22,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
 }
 
 export default async function TransactionInspectionPage(props: Props) {
-    const params = await props.params;
-
-    const { signature } = params;
+    const { signature } = await props.params;
 
     return <InspectPageClient signature={signature} />;
 }

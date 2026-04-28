@@ -17,9 +17,7 @@ export async function generateMetadata(props: AddressPageMetadataProps): Promise
 }
 
 export default async function OwnedDomainsPage(props: Props) {
-    const params = await props.params;
-
-    const { address } = params;
+    const { address } = await props.params;
 
     return <DomainsCard address={address} />;
 }

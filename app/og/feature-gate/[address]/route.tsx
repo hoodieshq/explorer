@@ -18,8 +18,7 @@ type Props = Readonly<{
 }>;
 
 export async function GET(_request: NextRequest, props: Props) {
-    const params = await props.params;
-    const { address } = params;
+    const { address } = await props.params;
 
     if (!isFeatureGateOgEnabled()) return new NextResponse('Not Found', { status: 404 });
     if (!address || !isAddress(address)) return new NextResponse('Invalid address', { status: 400 });

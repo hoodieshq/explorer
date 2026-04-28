@@ -20,9 +20,7 @@ export async function generateMetadata(props: AddressPageMetadataProps): Promise
  * The Anchor program IDL page has been renamed to a more generic one.
  */
 export default async function DeprecatedAnchorProgramIDLPage(props: Props) {
-    const params = await props.params;
-
-    const { address } = params;
+    const { address } = await props.params;
 
     return redirect(`/address/${address}/idl`);
 }

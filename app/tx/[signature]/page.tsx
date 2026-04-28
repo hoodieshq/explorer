@@ -20,9 +20,7 @@ const SHAREABLE_CLUSTERS = CLUSTERS.filter(c => c !== Cluster.Custom);
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
     const searchParams = await props.searchParams;
-    const params = await props.params;
-
-    const { signature } = params;
+    const { signature } = await props.params;
 
     const isReceiptView = searchParams.view === 'receipt' && isReceiptEnabled;
 

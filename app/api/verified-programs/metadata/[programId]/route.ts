@@ -13,9 +13,7 @@ type Params = {
 };
 
 export async function GET(_request: Request, props: Params) {
-    const params = await props.params;
-
-    const { programId } = params;
+    const { programId } = await props.params;
 
     try {
         if (!programId || programId.length < 32 || programId.length > 44) {

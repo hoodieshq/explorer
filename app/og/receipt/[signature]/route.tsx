@@ -24,8 +24,7 @@ type Props = Readonly<{
 }>;
 
 export async function GET(request: NextRequest, props: Props) {
-    const params = await props.params;
-    const { signature: compositeSignature } = params;
+    const { signature: compositeSignature } = await props.params;
     const { signature, cluster } = parseCompositeSignature(compositeSignature);
 
     if (!isReceiptEnabled) return new NextResponse('Not Found', { status: 404 });

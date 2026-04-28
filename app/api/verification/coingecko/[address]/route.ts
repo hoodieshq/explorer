@@ -24,9 +24,7 @@ type Params = {
 };
 
 export async function GET(_request: Request, props: Params) {
-    const params = await props.params;
-
-    const { address } = params;
+    const { address } = await props.params;
 
     try {
         new PublicKey(address);

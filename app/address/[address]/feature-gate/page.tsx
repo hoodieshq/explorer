@@ -25,9 +25,7 @@ export async function generateMetadata(props: AddressPageMetadataProps): Promise
 }
 
 export default async function FeatureGatePage(props: Props) {
-    const params = await props.params;
-
-    const { address } = params;
+    const { address } = await props.params;
 
     const feature = getFeatureInfo(address);
     const data = await fetchFeatureGateInformation(feature);

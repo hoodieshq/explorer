@@ -9,9 +9,7 @@ type Props = Readonly<{
 }>;
 
 export async function generateMetadata(props: Props): Promise<Metadata> {
-    const params = await props.params;
-
-    const { epoch } = params;
+    const { epoch } = await props.params;
 
     return {
         description: `Summary of ${epoch} on Solana`,

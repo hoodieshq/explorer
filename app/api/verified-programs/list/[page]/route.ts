@@ -13,9 +13,7 @@ type Params = {
 };
 
 export async function GET(_request: Request, props: Params) {
-    const params = await props.params;
-
-    const { page } = params;
+    const { page } = await props.params;
 
     try {
         const pageNumber = parseInt(page, 10);

@@ -15,9 +15,7 @@ const CACHE_HEADERS = { 'Cache-Control': 'public, max-age=86400, s-maxage=86400,
 const NO_CACHE_HEADERS = { 'Cache-Control': 'no-store' };
 
 export async function GET(_request: Request, props: Params) {
-    const params = await props.params;
-
-    const { domain } = params;
+    const { domain } = await props.params;
 
     if (!is(domain, Domain)) {
         Logger.warn(`Invalid domain input rejected: ${domain}`);
