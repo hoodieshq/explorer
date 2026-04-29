@@ -3,9 +3,10 @@ import { NextResponse } from 'next/server';
 import { is, number, type } from 'superstruct';
 
 import { CoinGeckoInfoSchema } from '@/app/features/token-verification-badge/server';
+import { NO_STORE_HEADERS } from '@/app/shared/lib/http-utils';
 import { Logger } from '@/app/shared/lib/logger';
 
-import { CACHE_HEADERS, NO_STORE_HEADERS } from '../../config';
+import { CACHE_HEADERS } from '../../config';
 
 const COINGECKO_QUERY = [
     'community_data=false',
