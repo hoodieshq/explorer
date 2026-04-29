@@ -5,28 +5,37 @@
 import {
     type AccountMeta,
     AccountRole,
+    type Address,
     address,
     type Instruction,
     type InstructionWithAccounts,
     type InstructionWithData,
     type ReadonlyUint8Array,
 } from '@solana/kit';
-import type { TransactionInstruction } from '@solana/web3.js';
+import { PublicKey, type TransactionInstruction } from '@solana/web3.js';
 
 type KitInstruction = Instruction<string> &
     InstructionWithAccounts<AccountMeta[]> &
     InstructionWithData<ReadonlyUint8Array>;
 
+export function toAddress(pk: PublicKey): Address {
+    return address(pk.toBase58());
+}
+
+export function toPublicKey(addr: Address | string): PublicKey {
+    return new PublicKey(addr);
+}
+
 export function toKitInstruction(ix: TransactionInstruction): KitInstruction {
     return {
         accounts: ix.keys.map(
             (key): AccountMeta => ({
-                address: address(key.pubkey.toBase58()),
+                address: toAddress(key.pubkey),
                 role: toAccountRole(key.isSigner, key.isWritable),
             }),
         ),
         data: ix.data,
-        programAddress: address(ix.programId.toBase58()),
+        programAddress: toAddress(ix.programId),
     };
 }
 

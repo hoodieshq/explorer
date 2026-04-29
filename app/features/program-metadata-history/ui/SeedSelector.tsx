@@ -17,22 +17,22 @@ interface SeedSelectorProps {
 
 export function SeedSelector({ seed, onSeedChange }: SeedSelectorProps) {
     const [customSeed, setCustomSeed] = useState('');
-    const isPreset = PRESET_SEEDS.some((p) => p.value === seed);
+    const isPreset = PRESET_SEEDS.some(p => p.value === seed);
     const [activeTab, setActiveTab] = useState(isPreset ? seed : 'custom');
 
     return (
         <Tabs
             value={activeTab}
-            onValueChange={(tab) => {
+            onValueChange={tab => {
                 setActiveTab(tab);
-                const preset = PRESET_SEEDS.find((p) => p.value === tab);
+                const preset = PRESET_SEEDS.find(p => p.value === tab);
                 if (preset) {
                     onSeedChange(preset.value);
                 }
             }}
         >
             <TabsList>
-                {PRESET_SEEDS.map((preset) => (
+                {PRESET_SEEDS.map(preset => (
                     <TabsTrigger key={preset.value} value={preset.value}>
                         {preset.label}
                     </TabsTrigger>
@@ -45,8 +45,8 @@ export function SeedSelector({ seed, onSeedChange }: SeedSelectorProps) {
                         placeholder="Enter custom seed..."
                         value={customSeed}
                         variant="dark"
-                        onChange={(e) => setCustomSeed(e.target.value)}
-                        onKeyDown={(e) => {
+                        onChange={e => setCustomSeed(e.target.value)}
+                        onKeyDown={e => {
                             if (e.key === 'Enter' && customSeed.trim()) {
                                 onSeedChange(customSeed.trim());
                             }

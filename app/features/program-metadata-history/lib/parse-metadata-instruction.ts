@@ -1,57 +1,39 @@
-import { type Option, type ReadonlyUint8Array } from '@solana/kit';
+import { type HistoryEventBase, type TransactionResponse, walkInstructions } from '@entities/account-history';
+import { isSome, type Option, type ReadonlyUint8Array } from '@solana/kit';
 import {
     getInitializeInstructionDataDecoder,
     getSetDataInstructionDataDecoder,
     getWriteInstructionDataDecoder,
     identifyProgramMetadataInstruction,
+    PROGRAM_METADATA_PROGRAM_ADDRESS,
     ProgramMetadataInstruction,
 } from '@solana-program/program-metadata';
-import bs58 from 'bs58';
 
-import { PROGRAM_METADATA_PROGRAM_ID } from './constants';
-import { InstructionType, type MetadataEvent } from './types';
-
-interface ParsedTransactionInstruction {
-    programId: string;
-    data: string; // base58-encoded
-    accounts: string[];
-}
-
-interface TransactionInfo {
-    signature: string;
-    slot: number;
-    blockTime: number | undefined;
-    err: unknown;
-    instructions: ParsedTransactionInstruction[];
-}
+import { type MetadataEvent } from './types';
 
 const writeDecoder = getWriteInstructionDataDecoder();
 const initializeDecoder = getInitializeInstructionDataDecoder();
 const setDataDecoder = getSetDataInstructionDataDecoder();
 
 /**
- * Parse a raw transaction (from web3.js getTransaction) into MetadataEvents.
- * Scans both outer and inner instructions for the program-metadata program.
+ * Parse a kit `getTransaction` response into MetadataEvents. Scans both outer
+ * and inner instructions for the program-metadata program.
  */
-export function parseMetadataTransaction(tx: TransactionInfo): MetadataEvent[] {
+export function parseMetadataTransaction(tx: TransactionResponse, base: HistoryEventBase): MetadataEvent[] {
     const events: MetadataEvent[] = [];
-
-    for (const ix of tx.instructions) {
-        if (ix.programId !== PROGRAM_METADATA_PROGRAM_ID) continue;
-
-        const dataBytes = bs58.decode(ix.data);
-        if (dataBytes.length === 0) continue;
-
-        const event = buildEvent(tx, dataBytes, ix.accounts);
-        if (event) {
-            events.push(event);
-        }
+    for (const ix of walkInstructions(tx, PROGRAM_METADATA_PROGRAM_ADDRESS)) {
+        if (ix.data.length === 0) continue;
+        const event = buildEvent(base, ix.data, ix.accounts);
+        if (event) events.push(event);
     }
-
     return events;
 }
 
-function buildEvent(tx: TransactionInfo, dataBytes: Uint8Array, accounts: string[]): MetadataEvent | undefined {
+function buildEvent(
+    base: HistoryEventBase,
+    dataBytes: Uint8Array,
+    accounts: readonly string[],
+): MetadataEvent | undefined {
     let instructionType: ProgramMetadataInstruction;
     try {
         instructionType = identifyProgramMetadataInstruction(dataBytes);
@@ -59,25 +41,19 @@ function buildEvent(tx: TransactionInfo, dataBytes: Uint8Array, accounts: string
         return undefined;
     }
 
-    const base: MetadataEvent = {
-        blockTime: tx.blockTime ?? undefined,
-        failed: tx.err !== undefined && tx.err !== null,
-        instructionType: instructionType satisfies InstructionType,
-        signature: tx.signature,
-        slot: tx.slot,
-    };
+    const event: MetadataEvent = { ...base, instructionType };
 
     switch (instructionType) {
         case ProgramMetadataInstruction.Write:
-            return parseWrite(base, dataBytes);
+            return parseWrite(event, dataBytes);
         case ProgramMetadataInstruction.Initialize:
-            return parseInitialize(base, dataBytes);
+            return parseInitialize(event, dataBytes);
         case ProgramMetadataInstruction.SetData:
-            return parseSetData(base, dataBytes);
+            return parseSetData(event, dataBytes);
         case ProgramMetadataInstruction.SetAuthority:
-            return { ...base, newAuthority: accounts[2] };
+            return { ...event, newAuthority: accounts[2] };
         default:
-            return base;
+            return event;
     }
 }
 
@@ -123,10 +99,6 @@ function parseSetData(base: MetadataEvent, dataBytes: Uint8Array): MetadataEvent
     };
 }
 
-/** Extract bytes from a @solana/kit Option<ReadonlyUint8Array>, returning undefined for None. */
 function unwrapOptionBytes(option: Option<ReadonlyUint8Array>): Uint8Array | undefined {
-    if (option.__option === 'None') return undefined;
-    // Runtime shape is { __option: 'Some', value: ReadonlyUint8Array }
-    const some = option as unknown as { __option: 'Some'; value: ReadonlyUint8Array };
-    return new Uint8Array(some.value);
+    return isSome(option) ? new Uint8Array(option.value) : undefined;
 }

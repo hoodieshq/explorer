@@ -1,50 +1,54 @@
-import { type Compression, decodeData, type Encoding, uncompressData } from '@solana-program/program-metadata';
+import { type HistoryBuilder, tryPrettyJson } from '@entities/account-history';
+import {
+    Compression,
+    DataSource,
+    decodeData,
+    Encoding,
+    Format,
+    uncompressData,
+} from '@solana-program/program-metadata';
 
-import { AccountStatus, InstructionType, type MetadataEvent, type Snapshot, type VirtualState } from './types';
+import { parseMetadataTransaction } from './parse-metadata-instruction';
+import { AccountStatus, InstructionType, type MetadataEvent, type MetadataState } from './types';
 
-export function reconstructHistory(events: MetadataEvent[]): Snapshot[] {
-    let state = createEmptyState();
-    const snapshots: Snapshot[] = [];
-
-    for (const event of events) {
-        if (!event.failed) {
-            state = applyEvent(state, event);
-        }
-        // Snapshot copies state but drops bufferData to save memory in the snapshot list
-        snapshots.push({
-            event,
-            state: { ...state, bufferData: new Uint8Array(0) },
-        });
-    }
-
-    return snapshots;
+export function createMetadataHistoryBuilder(): HistoryBuilder<MetadataEvent, MetadataState> {
+    return {
+        applyEvent,
+        initialState: createEmptyState(),
+        parseTransaction: parseMetadataTransaction,
+        // Drop the live byte buffer from each emitted snapshot to keep the snapshot list small.
+        snapshotState: state => ({ ...state, bufferData: new Uint8Array(0) }),
+    };
 }
 
-function createEmptyState(): VirtualState {
+function createEmptyState(): MetadataState {
     return {
         authority: undefined,
         bufferBytesWritten: 0,
         bufferData: new Uint8Array(0),
         canonical: false,
-        compression: 0,
+        compression: Compression.None,
         content: undefined,
         dataSize: 0,
-        dataSource: 0,
-        encoding: 0,
-        format: 0,
+        dataSource: DataSource.Direct,
+        encoding: Encoding.None,
+        format: Format.None,
         mutable: true,
         status: AccountStatus.NonExistent,
     };
 }
 
-function applyEvent(prev: VirtualState, event: MetadataEvent): VirtualState {
+function applyEvent(prev: MetadataState, event: MetadataEvent): MetadataState {
     switch (event.instructionType) {
+        // Allocate runs against an existing account that may already have an authority/mutable flag,
+        // so we preserve `prev` and only reset buffer fields. Anchor's Create is genesis instead and
+        // wipes everything.
         case InstructionType.Allocate:
             return {
                 ...prev,
                 bufferBytesWritten: 0,
                 bufferData: new Uint8Array(0),
-                status: AccountStatus.Buffer,
+                status: AccountStatus.Pending,
             };
 
         case InstructionType.Write:
@@ -74,16 +78,19 @@ function applyEvent(prev: VirtualState, event: MetadataEvent): VirtualState {
     }
 }
 
-function applyWrite(prev: VirtualState, event: MetadataEvent): VirtualState {
+function applyWrite(prev: MetadataState, event: MetadataEvent): MetadataState {
     const writeOffset = event.writeOffset ?? 0;
     const rawData = event.rawData;
     if (!rawData || rawData.length === 0) {
-        return { ...prev, status: AccountStatus.Buffer };
+        // Empty Write still nudges status to Pending — a Write tx did execute and the account is
+        // mid-flight, even if this particular call carried no bytes. Anchor's equivalent path
+        // returns prev unchanged because Anchor Writes always carry data; an empty one is malformed
+        // and we leave state alone.
+        return { ...prev, status: AccountStatus.Pending };
     }
 
     const requiredSize = writeOffset + rawData.length;
 
-    // Grow buffer if needed
     let bufferData: Uint8Array;
     if (requiredSize > prev.bufferData.length) {
         bufferData = new Uint8Array(requiredSize);
@@ -92,28 +99,26 @@ function applyWrite(prev: VirtualState, event: MetadataEvent): VirtualState {
         bufferData = new Uint8Array(prev.bufferData);
     }
 
-    // Write the data at the offset
     bufferData.set(rawData, writeOffset);
 
     return {
         ...prev,
         bufferBytesWritten: prev.bufferBytesWritten + rawData.length,
         bufferData,
-        status: AccountStatus.Buffer,
+        status: AccountStatus.Pending,
     };
 }
 
-function applyInitializeOrSetData(prev: VirtualState, event: MetadataEvent, isInitialize: boolean): VirtualState {
+function applyInitializeOrSetData(prev: MetadataState, event: MetadataEvent, isInitialize: boolean): MetadataState {
     const encoding = event.encoding ?? prev.encoding;
     const compression = event.compression ?? prev.compression;
     const format = event.format ?? prev.format;
     const dataSource = event.dataSource ?? prev.dataSource;
 
-    // Determine the raw data: inline from the instruction, or from the accumulated buffer
+    // Raw data is either inline on the instruction or accumulated through prior Write calls.
     const rawData = event.rawData ?? (prev.bufferBytesWritten > 0 ? prev.bufferData : undefined);
     const dataSize = rawData?.length ?? event.dataLength ?? prev.bufferBytesWritten;
 
-    // Try to decode the content
     const content = rawData ? tryDecodeContent(rawData, compression, encoding) : prev.content;
 
     return {
@@ -131,17 +136,14 @@ function applyInitializeOrSetData(prev: VirtualState, event: MetadataEvent, isIn
     };
 }
 
-function tryDecodeContent(data: Uint8Array, compression: number, encoding: number): string | undefined {
+function tryDecodeContent(data: Uint8Array, compression: Compression, encoding: Encoding): string | undefined {
     try {
-        const decompressed = uncompressData(data, compression as unknown as Compression);
-        const decoded = decodeData(decompressed, encoding as unknown as Encoding);
-        // Pretty-print JSON if possible
-        try {
-            return JSON.stringify(JSON.parse(decoded), undefined, 2);
-        } catch {
-            return decoded;
-        }
+        const decompressed = uncompressData(data, compression);
+        const decoded = decodeData(decompressed, encoding);
+        return tryPrettyJson(decoded);
     } catch {
+        // Buffer may be partial or use a codec we couldn't apply yet — surface "no content"
+        // rather than throwing, since intermediate snapshots legitimately fail to decode.
         return undefined;
     }
 }

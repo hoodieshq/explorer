@@ -1,20 +1,17 @@
-import { type ProgramMetadataInstruction } from '@solana-program/program-metadata';
+import type { HistoryEventBase, HistorySnapshot, HistoryStateBase } from '@entities/account-history';
+import {
+    type Compression,
+    type DataSource,
+    type Encoding,
+    type Format,
+    type ProgramMetadataInstruction,
+} from '@solana-program/program-metadata';
 
+export { AccountStatus } from '@entities/account-history';
 export { ProgramMetadataInstruction as InstructionType } from '@solana-program/program-metadata';
 
-export enum AccountStatus {
-    NonExistent = 'non-existent',
-    Buffer = 'buffer',
-    Active = 'active',
-    Closed = 'closed',
-}
-
-export interface MetadataEvent {
-    signature: string;
-    slot: number;
-    blockTime: number | undefined;
+export interface MetadataEvent extends HistoryEventBase {
     instructionType: ProgramMetadataInstruction;
-    failed: boolean;
     /** Data written in this instruction (for Write/Initialize/SetData with inline data) */
     dataLength?: number;
     /** Byte offset for Write instructions */
@@ -23,28 +20,17 @@ export interface MetadataEvent {
     rawData?: Uint8Array;
     /** New authority address for SetAuthority */
     newAuthority?: string;
-    /** Encoding value from Initialize/SetData */
-    encoding?: number;
-    /** Compression value from Initialize/SetData */
-    compression?: number;
-    /** Format value from Initialize/SetData */
-    format?: number;
-    /** Data source value from Initialize/SetData */
-    dataSource?: number;
+    encoding?: Encoding;
+    compression?: Compression;
+    format?: Format;
+    dataSource?: DataSource;
 }
 
-export interface Snapshot {
-    event: MetadataEvent;
-    state: VirtualState;
-}
-
-export interface VirtualState {
-    status: AccountStatus;
-    dataSize: number;
-    encoding: number;
-    compression: number;
-    format: number;
-    dataSource: number;
+export interface MetadataState extends HistoryStateBase {
+    encoding: Encoding;
+    compression: Compression;
+    format: Format;
+    dataSource: DataSource;
     authority: string | undefined;
     mutable: boolean;
     canonical: boolean;
@@ -52,6 +38,6 @@ export interface VirtualState {
     bufferBytesWritten: number;
     /** Raw buffer bytes being accumulated via Write instructions */
     bufferData: Uint8Array;
-    /** Decoded content string at this point in time (after Initialize/SetData) */
-    content: string | undefined;
 }
+
+export type Snapshot = HistorySnapshot<MetadataEvent, MetadataState>;

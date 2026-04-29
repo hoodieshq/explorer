@@ -72,8 +72,12 @@ export function IdlCard({ programId }: { programId: string }) {
         }
     }, [tabs, activeTabIndex]);
 
-    const historyParams = useMemo(() => new URLSearchParams({ seed: 'idl' }), []);
-    const historyPath = useClusterPath({ additionalParams: historyParams, pathname: `/program-metadata-history/${programId}` });
+    const pmpHistoryParams = useMemo(() => new URLSearchParams({ seed: 'idl' }), []);
+    const pmpHistoryPath = useClusterPath({
+        additionalParams: pmpHistoryParams,
+        pathname: `/program-metadata-history/${programId}`,
+    });
+    const anchorHistoryPath = useClusterPath({ pathname: `/anchor-idl-history/${programId}` });
 
     if (tabs.length === 0 || activeTabIndex === undefined) {
         return (
@@ -140,7 +144,7 @@ export function IdlCard({ programId }: { programId: string }) {
                         ))}
                 </div>
                 <Link
-                    href={historyPath}
+                    href={activeTab.id === IdlVariant.Anchor ? anchorHistoryPath : pmpHistoryPath}
                     className="e-flex e-items-center e-gap-1 e-text-xs e-text-neutral-400 hover:e-text-teal-400"
                 >
                     <Clock size={12} />

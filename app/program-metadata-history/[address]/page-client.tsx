@@ -1,5 +1,6 @@
 'use client';
 
+import { address as toKitAddress } from '@solana/kit';
 import { useSearchParams } from 'next/navigation';
 import React, { useCallback, useState } from 'react';
 
@@ -25,7 +26,7 @@ export default function ProgramMetadataHistoryPageClient({ address }: Props) {
     return (
         <div className="container mt-4">
             <ProgramMetadataHistoryCard
-                programAddress={address}
+                programAddress={toKitAddress(address)}
                 seed={seed}
                 onSeedChange={handleSeedChange}
             />

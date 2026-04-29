@@ -6,25 +6,21 @@ import React from 'react';
 
 import { useClusterPath } from '@/app/utils/url';
 
-import { useProgramMetadataHistory } from '../model/use-program-metadata-history';
-import { BaseProgramMetadataHistoryCard } from './BaseProgramMetadataHistoryCard';
+import { useAnchorIdlHistory } from '../model/use-anchor-idl-history';
+import { BaseAnchorIdlHistoryCard } from './BaseAnchorIdlHistoryCard';
 
-interface ProgramMetadataHistoryCardProps {
+interface AnchorIdlHistoryCardProps {
     programAddress: Address;
-    seed: string;
-    onSeedChange: (seed: string) => void;
 }
 
-export function ProgramMetadataHistoryCard({ programAddress, seed, onSeedChange }: ProgramMetadataHistoryCardProps) {
-    const { data, error, isLoading } = useProgramMetadataHistory(programAddress, seed);
+export function AnchorIdlHistoryCard({ programAddress }: AnchorIdlHistoryCardProps) {
+    const { data, error, isLoading } = useAnchorIdlHistory(programAddress);
     const addressPath = useClusterPath({ pathname: `/address/${programAddress}` });
     const txPathFor = useTxPathBuilder();
 
     return (
-        <BaseProgramMetadataHistoryCard
+        <BaseAnchorIdlHistoryCard
             programAddress={programAddress}
-            seed={seed}
-            onSeedChange={onSeedChange}
             data={data}
             isLoading={isLoading}
             error={error}
