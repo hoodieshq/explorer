@@ -15,6 +15,7 @@ import {
 } from '@entities/account-history';
 import { truncateAddress } from '@entities/address';
 import { type Address } from '@solana/kit';
+import { SYSTEM_PROGRAM_ADDRESS } from '@solana-program/system';
 import Link from 'next/link';
 import React from 'react';
 
@@ -156,7 +157,16 @@ function DynamicSummary({ snapshot }: { snapshot: Snapshot }) {
             );
 
         case InstructionType.SetAuthority:
-            return <span>→ {event.newAuthority ? truncateAddress(event.newAuthority) : 'removed'}</span>;
+            // Anchor encodes "make immutable" as SetAuthority(SYSTEM_PROGRAM_ADDRESS) — surface
+            // that case as a human-readable label instead of the system-program base58.
+            return (
+                <span>
+                    →{' '}
+                    {event.newAuthority === SYSTEM_PROGRAM_ADDRESS
+                        ? 'made immutable'
+                        : event.newAuthority && truncateAddress(event.newAuthority)}
+                </span>
+            );
 
         default: {
             const summary = getInstructionSummary(event.instructionType);
@@ -238,7 +248,10 @@ function buildSummary(snapshots: Snapshot[]): string {
 }
 
 function renderEmptyMessage(data: { idlAddress: Address; totalSignatures: number } | undefined): React.ReactNode {
-    if (!data) return 'Loading...';
+    // Reaching this path requires `isLoading=false` (HistoryView's Body short-circuits on loading)
+    // *and* `snapshots` to be empty/undefined — so when the SWR fetcher hasn't surfaced data yet
+    // there's nothing meaningful to render and we leave it blank.
+    if (!data) return undefined;
 
     if (data.totalSignatures === 0) {
         return (

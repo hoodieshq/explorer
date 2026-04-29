@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import { Input } from '@/app/components/shared/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/shared/ui/tabs';
@@ -10,15 +10,32 @@ const PRESET_SEEDS = [
     { label: 'Security', value: 'security' },
 ] as const;
 
+function isPresetSeed(seed: string): boolean {
+    return PRESET_SEEDS.some(p => p.value === seed);
+}
+
 interface SeedSelectorProps {
     seed: string;
     onSeedChange: (seed: string) => void;
 }
 
 export function SeedSelector({ seed, onSeedChange }: SeedSelectorProps) {
-    const [customSeed, setCustomSeed] = useState('');
-    const isPreset = PRESET_SEEDS.some(p => p.value === seed);
+    const isPreset = isPresetSeed(seed);
     const [activeTab, setActiveTab] = useState(isPreset ? seed : 'custom');
+    // When activeTab is 'custom', the input echoes the external seed so a shared/bookmarked
+    // `?seed=foo` URL renders with "foo" visible (instead of an empty input).
+    const [customSeed, setCustomSeed] = useState(isPreset ? '' : seed);
+
+    // Sync to external `seed` changes (e.g. URL navigation). Without this, the visual tab and
+    // custom-input drift from the actual seed in use.
+    useEffect(() => {
+        if (isPresetSeed(seed)) {
+            setActiveTab(seed);
+        } else {
+            setActiveTab('custom');
+            setCustomSeed(seed);
+        }
+    }, [seed]);
 
     return (
         <Tabs

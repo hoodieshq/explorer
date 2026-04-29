@@ -1,5 +1,5 @@
 import { type HistoryEventBase, type TransactionResponse, walkInstructions } from '@entities/account-history';
-import { isSome, type Option, type ReadonlyUint8Array } from '@solana/kit';
+import { type Address, isSome, type Option, type ReadonlyUint8Array } from '@solana/kit';
 import {
     getInitializeInstructionDataDecoder,
     getSetDataInstructionDataDecoder,
@@ -32,7 +32,7 @@ export function parseMetadataTransaction(tx: TransactionResponse, base: HistoryE
 function buildEvent(
     base: HistoryEventBase,
     dataBytes: Uint8Array,
-    accounts: readonly string[],
+    accounts: readonly Address[],
 ): MetadataEvent | undefined {
     let instructionType: ProgramMetadataInstruction;
     try {

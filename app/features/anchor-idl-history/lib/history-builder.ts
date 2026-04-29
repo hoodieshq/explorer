@@ -104,7 +104,9 @@ function applyEvent(
             // SetBuffer copies a foreign buffer account's bytes into the IDL account. The fetcher
             // pre-resolves the buffer's bytes by replaying its own Writes; if that succeeded,
             // adopt the bytes here. Otherwise we mark content unknown — the live IDL fetch is the
-            // remaining fallback.
+            // remaining fallback. Status carries from `prev` deliberately: SetBuffer doesn't itself
+            // create the account, so under truncation (no Create observed) we stay NonExistent
+            // rather than claiming Active without evidence — the truncated banner explains why.
             const bytes = bufferContents?.get(event.signature);
             if (bytes) {
                 return {
@@ -112,7 +114,6 @@ function applyEvent(
                     bufferData: bytes,
                     content: tryDecodeContent(bytes),
                     dataSize: bytes.length,
-                    status: AccountStatus.Active,
                 };
             }
             return { ...prev, bufferData: new Uint8Array(0), content: undefined };
@@ -136,12 +137,14 @@ function applyWrite(prev: AnchorIdlState, event: AnchorIdlEvent): AnchorIdlState
     newData.set(prev.bufferData);
     newData.set(event.rawData, prev.bufferData.length);
 
+    // Status carries from `prev` — under a non-truncated history Create has already set Active;
+    // under truncation we deliberately do NOT promote to Active just because we observed a Write,
+    // since the Create event was likely dropped and we have no evidence of the account's true state.
     return {
         ...prev,
         bufferData: newData,
         content: tryDecodeContent(newData),
         dataSize: newData.length,
-        status: AccountStatus.Active,
     };
 }
 

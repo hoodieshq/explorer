@@ -14,9 +14,10 @@ import {
 const HISTORY_LIMIT = 1000;
 // `getSignaturesForAddress` accepts up to 1000 per call.
 const SIG_PAGE_SIZE = 1000;
-// Conservative parallelism for `getTransaction` requests; many public RPCs
-// throttle large bursts.
-const TX_BATCH_SIZE = 100;
+// Parallelism for `getTransaction` requests. 25 is the middle ground that
+// stays under devnet/free-tier burst limits while still saturating the
+// usual paid RPC concurrency budget; 1000 sigs ≈ 40 sequential batches.
+const TX_BATCH_SIZE = 25;
 
 export interface FetchAccountTransactionsResult {
     /** Chronological order (oldest first) so callers can replay events directly. */

@@ -45,9 +45,9 @@ describe('Anchor IDL applyEvent', () => {
             expect(next).toBe(seeded);
         });
 
-        it('should append bytes and decode zlib-compressed JSON content', () => {
+        it('should append bytes and decode zlib-compressed JSON content (status carries from Active prev)', () => {
             const compressed = deflate(new TextEncoder().encode('{"name":"x"}'));
-            const next = builder.applyEvent(builder.initialState, {
+            const next = builder.applyEvent(activeState(), {
                 ...BASE_EVENT,
                 dataLength: compressed.length,
                 instructionType: InstructionType.Write,
@@ -58,9 +58,9 @@ describe('Anchor IDL applyEvent', () => {
             expect(next.content).toContain('"name"');
         });
 
-        it('should accept partial chunks: status flips Active but content stays undefined until decode succeeds', () => {
+        it('should accept partial chunks: dataSize bumps but content stays undefined until decode succeeds', () => {
             const partial = new Uint8Array([0xde, 0xad, 0xbe, 0xef]); // not valid zlib
-            const next = builder.applyEvent(builder.initialState, {
+            const next = builder.applyEvent(activeState(), {
                 ...BASE_EVENT,
                 instructionType: InstructionType.Write,
                 rawData: partial,
@@ -70,10 +70,24 @@ describe('Anchor IDL applyEvent', () => {
             expect(next.content).toBeUndefined();
         });
 
+        it('should not promote NonExistent to Active under truncation (Create dropped) — status carries from prev', () => {
+            const compressed = deflate(new TextEncoder().encode('{"name":"x"}'));
+            const next = builder.applyEvent(builder.initialState, {
+                ...BASE_EVENT,
+                instructionType: InstructionType.Write,
+                rawData: compressed,
+            });
+            // Buffer accumulates and content can decode, but we don't fabricate Active without
+            // evidence of a Create event — the truncated banner is the user-facing signal.
+            expect(next.status).toBe(AccountStatus.NonExistent);
+            expect(next.dataSize).toBe(compressed.length);
+            expect(next.content).toContain('"name"');
+        });
+
         it('should accumulate across multiple Writes', () => {
             const compressed = deflate(new TextEncoder().encode('{"name":"x"}'));
             const half = Math.floor(compressed.length / 2);
-            const a = builder.applyEvent(builder.initialState, {
+            const a = builder.applyEvent(activeState(), {
                 ...BASE_EVENT,
                 instructionType: InstructionType.Write,
                 rawData: compressed.subarray(0, half),
