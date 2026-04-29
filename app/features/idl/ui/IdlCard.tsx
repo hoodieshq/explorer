@@ -4,10 +4,12 @@ import { useProgramMetadataIdl } from '@entities/program-metadata';
 import { useCluster } from '@providers/cluster';
 import { Badge } from '@shared/ui/badge';
 import { cn } from '@shared/utils';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, ExternalLink } from 'react-feather';
+import { AlertTriangle, Clock, ExternalLink } from 'react-feather';
 
 import { clusterSlug } from '@/app/utils/cluster';
+import { useClusterPath } from '@/app/utils/url';
 
 import { BaseWarningCard } from '../interactive-idl/ui/BaseWarningCard';
 import { IdlVariant, useIdlLastTransactionDate } from '../model/use-idl-last-transaction-date';
@@ -70,6 +72,13 @@ export function IdlCard({ programId }: { programId: string }) {
         }
     }, [tabs, activeTabIndex]);
 
+    const pmpHistoryParams = useMemo(() => new URLSearchParams({ seed: 'idl' }), []);
+    const pmpHistoryPath = useClusterPath({
+        additionalParams: pmpHistoryParams,
+        pathname: `/program-metadata-history/${programId}`,
+    });
+    const anchorHistoryPath = useClusterPath({ pathname: `/anchor-idl-history/${programId}` });
+
     if (tabs.length === 0 || activeTabIndex === undefined) {
         return (
             <div className="card">
@@ -115,7 +124,7 @@ export function IdlCard({ programId }: { programId: string }) {
 
     return (
         <div className="card">
-            <div className="card-header">
+            <div className="card-header e-flex e-items-center e-justify-between">
                 <div className="nav nav-tabs e-border-0" role="tablist">
                     {tabs
                         .filter(tab => tab.idl)
@@ -134,6 +143,13 @@ export function IdlCard({ programId }: { programId: string }) {
                             </button>
                         ))}
                 </div>
+                <Link
+                    href={activeTab.id === IdlVariant.Anchor ? anchorHistoryPath : pmpHistoryPath}
+                    className="e-flex e-items-center e-gap-1 e-text-xs e-text-neutral-400 hover:e-text-teal-400"
+                >
+                    <Clock size={12} />
+                    View History
+                </Link>
             </div>
             <div className="card-body">
                 {isMismatch ? (
