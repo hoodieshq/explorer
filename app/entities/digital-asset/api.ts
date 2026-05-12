@@ -5,7 +5,6 @@
  * module fetches them from the cluster's DAS API as a best-effort fallback.
  */
 
-import fetch from 'node-fetch';
 import { array, boolean, is, optional, string, type } from 'superstruct';
 
 import { Logger } from '@/app/shared/lib/logger';
