@@ -7,6 +7,8 @@ export const COLORS = {
     fieldBg: '#f5f5f5',
     light: '#999999',
     mid: '#555555',
+    warningBg: '#111827',
+    warningText: '#FAFAFA',
 } as const;
 
 export const PAGE = {
@@ -15,6 +17,19 @@ export const PAGE = {
     marginX: 20,
     width: 210,
 } as const;
+
+const COL_WIDTH = PAGE.contentWidth / 2;
+const COL_GAP = 4;
+export const GRID = {
+    col: {
+        gap: COL_GAP,
+        innerWidth: COL_WIDTH - COL_GAP,
+        outerWidth: COL_WIDTH,
+    },
+} as const;
+
+// Common border radius for inset rounded-rect elements (editable fields, warning bar)
+export const BORDER_RADIUS = 1.5;
 
 export const HELVETICA = 'helvetica' as const;
 export const COURIER = 'courier' as const;
@@ -36,17 +51,20 @@ export const TEXT_STYLES = {
     logoFallback: { color: COLORS.dark, font: HELVETICA, size: 9, weight: BOLD },
     sectionTitle: { color: COLORS.dark, font: HELVETICA, size: 10, weight: BOLD },
     subtitle: { color: COLORS.light, font: HELVETICA, size: 9, weight: NORMAL },
+    tableHeader: { color: COLORS.mid, font: HELVETICA, size: 8, weight: NORMAL },
     title: { color: COLORS.dark, font: HELVETICA, size: 16, weight: BOLD },
     totalLabel: { color: COLORS.dark, font: HELVETICA, size: 8, weight: BOLD },
     value: { color: COLORS.dark, font: HELVETICA, size: 8, weight: NORMAL },
     valueMono: { color: COLORS.dark, font: COURIER, size: 8, weight: NORMAL },
+    valueUsd: { color: COLORS.light, font: HELVETICA, size: 7, weight: NORMAL },
+    warning: { color: COLORS.warningText, font: HELVETICA, size: 9, weight: NORMAL },
 } as const satisfies Record<string, TextStyle>;
 
 export type LineStyle = { color: string; width: number };
 
 export const LINE_STYLES = {
     border: { color: COLORS.border, width: 0.2 },
-    divider: { color: COLORS.divider, width: 0.3 },
+    divider: { color: COLORS.divider, width: 0.2 },
 } as const satisfies Record<string, LineStyle>;
 
 export function applyTextStyle(doc: jsPDF, style: TextStyle): void {
