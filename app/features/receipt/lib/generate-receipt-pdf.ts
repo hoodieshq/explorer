@@ -52,15 +52,36 @@ async function svgToDataUrl(svg: string, width: number, height: number): Promise
 }
 
 const SECTION_GAP = 6;
+const SECTION_TITLE_HEIGHT = 6;
+const POST_TITLE_PADDING = 2;
+const POST_SECTION_PADDING = 2;
+const LABEL_TO_FIELD_GAP = 1;
+const POST_FIELD_GAP = 4;
+const DEFAULT_FIELD_HEIGHT = 6;
+const POST_TOTAL_ROW_PADDING = 6;
+const PAGE_TOP_Y = 20;
+const PAGE_BOTTOM_PADDING = 20;
 
 function addSectionGap(y: number): number {
     return y + SECTION_GAP;
 }
 
+function labeledFieldHeight(fieldHeight: number): number {
+    return LABEL_TO_FIELD_GAP + POST_FIELD_GAP + fieldHeight;
+}
+
+function ensurePageSpace(doc: jsPDF, y: number, needed: number): number {
+    if (y + needed > PAGE.height - PAGE_BOTTOM_PADDING) {
+        doc.addPage();
+        return PAGE_TOP_Y;
+    }
+    return y;
+}
+
 function drawSectionTitle(doc: jsPDF, title: string, y: number): number {
     applyTextStyle(doc, TEXT_STYLES.sectionTitle);
     doc.text(title, PAGE.marginX, y);
-    return y + 6;
+    return y + SECTION_TITLE_HEIGHT;
 }
 
 function addEditableField(
@@ -108,15 +129,15 @@ function drawLabeledField(
     y: number,
     defaultValue = '',
     multiline = false,
-    height = 6,
+    height = DEFAULT_FIELD_HEIGHT,
 ): number {
     applyTextStyle(doc, TEXT_STYLES.label);
     doc.text(formatText(label, TEXT_STYLES.label), PAGE.marginX, y);
 
-    y += 1;
+    y += LABEL_TO_FIELD_GAP;
 
     addEditableField(doc, fieldName, PAGE.marginX, y, PAGE.contentWidth, height, defaultValue, multiline);
-    return y + 4 + height;
+    return y + POST_FIELD_GAP + height;
 }
 
 const FOOTER_LABEL_X = PAGE.marginX + 90;
@@ -141,7 +162,7 @@ function drawTotalRow(doc: jsPDF, label: string, fieldName: string, value: strin
         true,
         FOOTER_FONT_SIZE,
     );
-    return y + FOOTER_CELL_HEIGHT + 6;
+    return y + FOOTER_CELL_HEIGHT + POST_TOTAL_ROW_PADDING;
 }
 
 // ----- Transaction details (2-column grid) -----
@@ -430,34 +451,46 @@ export async function generateReceiptPdf(
     }
 
     // ----- SUPPLIER / SELLER -----
+    const ADDRESS_HEIGHT = 12;
+    const DESCRIPTION_HEIGHT = 54;
+    const SUPPLIER_SECTION_HEIGHT =
+        SECTION_GAP +
+        SECTION_TITLE_HEIGHT +
+        POST_TITLE_PADDING +
+        labeledFieldHeight(DEFAULT_FIELD_HEIGHT) +
+        labeledFieldHeight(ADDRESS_HEIGHT) +
+        POST_SECTION_PADDING;
+    const ITEMS_SECTION_HEIGHT =
+        SECTION_GAP +
+        SECTION_TITLE_HEIGHT +
+        DESCRIPTION_HEIGHT +
+        POST_TITLE_PADDING +
+        FOOTER_CELL_HEIGHT +
+        POST_TOTAL_ROW_PADDING;
+    // Keep Supplier and Items together: if they won't both fit, break before Supplier
+    y = ensurePageSpace(doc, y, SUPPLIER_SECTION_HEIGHT + ITEMS_SECTION_HEIGHT);
     y = addSectionGap(y);
     y = drawSectionTitle(doc, 'Supplier / Seller Information', y);
-    y += 2;
+    y += POST_TITLE_PADDING;
 
-    const ADDRESS_HEIGHT = 12;
     y = drawLabeledField(doc, 'Full Name', 'supplier_name', y);
     y = drawLabeledField(doc, 'Address', 'supplier_address', y, '', true, ADDRESS_HEIGHT);
-    y += 2;
+    y += POST_SECTION_PADDING;
     // ----- END SUPPLIER / SELLER -----
 
     // ----- ITEMS / SERVICES -----
     y = addSectionGap(y);
     y = drawSectionTitle(doc, 'Items / Services', y);
 
-    const DESCRIPTION_HEIGHT = 54;
     addEditableField(doc, 'items_description', PAGE.marginX, y, PAGE.contentWidth, DESCRIPTION_HEIGHT, '', true);
-    y += DESCRIPTION_HEIGHT + 2;
+    y += DESCRIPTION_HEIGHT + POST_TITLE_PADDING;
 
     y = drawTotalRow(doc, 'TOTAL', 'total', `${receipt.total.formatted} ${receipt.total.unit}`, y);
     // ----- END ITEMS / SERVICES -----
 
     // ----- FOOTER -----
-    // add a new page if the footer won't fit
     const FOOTER_HEIGHT = 55; // divider + disclaimer + logo/QR + caption
-    if (y > PAGE.height - FOOTER_HEIGHT) {
-        doc.addPage();
-        y = 20;
-    }
+    y = ensurePageSpace(doc, y, FOOTER_HEIGHT);
     y = addSectionGap(y);
 
     applyTextStyle(doc, TEXT_STYLES.disclaimer);
