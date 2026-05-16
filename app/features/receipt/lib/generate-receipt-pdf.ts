@@ -314,7 +314,7 @@ const WARNING_TEXT_RIGHT_PADDING = 4;
 async function drawWarningBar(deps: PdfDeps, doc: jsPDF, totalCount: number, y: number): Promise<number> {
     const text =
         `Only the ${MAX_VISIBLE_TRANSFERS} largest transfers are shown here. To view the full list of ` +
-        `${totalCount} transfers, export the CSV. You can also use the QR code at the end of the page to access the full details.`;
+        `${totalCount} transfers, export the CSV. You can also use the QR code at the end of the receipt to access the full details.`;
 
     doc.setFillColor(COLORS.warningBg);
     doc.roundedRect(
