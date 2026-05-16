@@ -378,7 +378,7 @@ export async function generateReceiptPdf(
 
     const transfers =
         receipt.transfers && receipt.transfers.length > 0
-            ? receipt.transfers
+            ? [...receipt.transfers].sort((a, b) => b.amount.raw - a.amount.raw)
             : [
                   {
                       amount: { formatted: receipt.total.formatted, raw: receipt.total.raw, unit: receipt.total.unit },

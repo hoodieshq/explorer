@@ -179,6 +179,38 @@ describe('generateReceiptPdf', () => {
         expect(allText).toContain('full list of 15 transfers');
     });
 
+    it('should pick the 12 largest transfers by amount, regardless of instruction order', async () => {
+        // Build 15 transfers where amount.raw is the inverse of the index: index 0 → smallest, index 14 → largest.
+        // The 12 largest are therefore indices 14..3 (in any order); indices 0..2 must be excluded.
+        const transfers = Array.from({ length: 15 }, (_, i) => ({
+            amount: { formatted: `${i + 1}`, raw: (i + 1) * 1_000_000, unit: 'SOL' },
+            receiver: {
+                address: `Recv${i.toString().padStart(2, '0')}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
+                truncated: `R${i}`,
+            },
+            sender: {
+                address: `Send${i.toString().padStart(2, '0')}xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`,
+                truncated: `S${i}`,
+            },
+        }));
+        const totalRaw = transfers.reduce((sum, t) => sum + t.amount.raw, 0);
+        const multiReceipt: FormattedReceipt = { ...RECEIPT, total: { ...RECEIPT.total, raw: totalRaw }, transfers };
+
+        const deps = await loadPdfDeps();
+        await generateReceiptPdf(deps, multiReceipt, SIGNATURE, RECEIPT_URL);
+
+        const allText = collectText();
+
+        // The 12 largest are indices 3..14 — all must be present
+        for (let i = 3; i < 15; i++) {
+            expect(allText).toContain(transfers[i].sender.address);
+        }
+        // The 3 smallest (indices 0..2) must be excluded
+        for (let i = 0; i < 3; i++) {
+            expect(allText).not.toContain(transfers[i].sender.address);
+        }
+    });
+
     it('should create AcroForm text fields for editable sections', async () => {
         const deps = await loadPdfDeps();
         await generateReceiptPdf(deps, RECEIPT, SIGNATURE, RECEIPT_URL);
