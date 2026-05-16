@@ -170,13 +170,14 @@ function drawDetailCell(
 }
 
 // ----- Transfers table -----
-const TABLE_AMOUNT_WIDTH = 44;
+const TABLE_AMOUNT_WIDTH = 42;
 const TABLE_ADDRESS_WIDTH = (PAGE.contentWidth - TABLE_AMOUNT_WIDTH - GRID.col.gap * 2) / 2;
 const TABLE_SENDER_X = PAGE.marginX;
 const TABLE_RECEIVER_X = TABLE_SENDER_X + TABLE_ADDRESS_WIDTH + GRID.col.gap;
 const TABLE_SENDER_WIDTH = TABLE_ADDRESS_WIDTH;
 const TABLE_RECEIVER_W = TABLE_ADDRESS_WIDTH;
 const TABLE_AMOUNT_RIGHT_X = PAGE.marginX + PAGE.contentWidth;
+const AMOUNT_LINE_HEIGHT = TEXT_STYLES.value.size * 0.45;
 
 function drawTransfersHeader(doc: jsPDF, y: number): number {
     applyTextStyle(doc, TEXT_STYLES.tableHeader);
@@ -201,9 +202,16 @@ function drawTransferRow(
 ): number {
     drawAddressCell(doc, transfer.sender.address, TABLE_SENDER_X, y, TABLE_SENDER_WIDTH);
     drawAddressCell(doc, transfer.receiver.address, TABLE_RECEIVER_X, y, TABLE_RECEIVER_W);
-    drawAmountCell(doc, transfer.amount.formatted, transfer.amount.unit, proratedUsd, TABLE_AMOUNT_RIGHT_X, y);
+    const amountBottom = drawAmountCell(
+        doc,
+        transfer.amount.formatted,
+        transfer.amount.unit,
+        proratedUsd,
+        TABLE_AMOUNT_RIGHT_X,
+        y,
+    );
 
-    const lineY = y + 2;
+    const lineY = Math.max(y, amountBottom) + 2;
     applyLineStyle(doc, LINE_STYLES.divider);
     doc.line(PAGE.marginX, lineY, PAGE.marginX + PAGE.contentWidth, lineY);
 
@@ -240,24 +248,39 @@ function drawAmountCell(
     proratedUsd: string | undefined,
     rightX: number,
     y: number,
-): void {
+): number {
     const suffix = ` ${unit}`;
-    const usdSuffix = proratedUsd ? ` (${proratedUsd})` : '';
+
+    applyTextStyle(doc, TEXT_STYLES.totalLabel);
+    const wFormattedBase = doc.getTextWidth(formatted);
+    applyTextStyle(doc, TEXT_STYLES.value);
+    const wUnitBase = doc.getTextWidth(suffix);
+    const line1Base = wFormattedBase + wUnitBase;
+    const line1Scale = line1Base > TABLE_AMOUNT_WIDTH ? TABLE_AMOUNT_WIDTH / line1Base : 1;
 
     let x = rightX;
-    if (usdSuffix) {
-        applyTextStyle(doc, TEXT_STYLES.valueUsd);
-        x -= doc.getTextWidth(usdSuffix);
-        doc.text(usdSuffix, x, y);
-    }
-
     applyTextStyle(doc, TEXT_STYLES.value);
+    doc.setFontSize(TEXT_STYLES.value.size * line1Scale);
     x -= doc.getTextWidth(suffix);
     doc.text(suffix, x, y);
 
     applyTextStyle(doc, TEXT_STYLES.totalLabel);
+    doc.setFontSize(TEXT_STYLES.totalLabel.size * line1Scale);
     x -= doc.getTextWidth(formatted);
     doc.text(formatted, x, y);
+
+    if (!proratedUsd) {
+        return y;
+    }
+
+    const line2Y = y + AMOUNT_LINE_HEIGHT;
+    applyTextStyle(doc, TEXT_STYLES.valueUsd);
+    const fittedUsdSize = fitFontSize(doc, proratedUsd, TABLE_AMOUNT_WIDTH, TEXT_STYLES.valueUsd.size);
+    doc.setFontSize(fittedUsdSize);
+    const wUsd = doc.getTextWidth(proratedUsd);
+    doc.text(proratedUsd, rightX - wUsd, line2Y);
+
+    return line2Y;
 }
 
 const WARNING_BAR_HEIGHT = 8;
