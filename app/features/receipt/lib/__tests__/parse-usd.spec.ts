@@ -9,9 +9,12 @@ describe('parseUsdNumber', () => {
         expect(parseUsdNumber(input)).toBe(expected);
     });
 
-    it.each<[string]>([['not a price'], ['']])('should parse non-number "%s" as null', input => {
-        expect(parseUsdNumber(input)).toBeNull();
-    });
+    it.each<[string]>([['not a price'], [''], ['Infinity'], ['-Infinity'], ['NaN']])(
+        'should parse non-number "%s" as null',
+        input => {
+            expect(parseUsdNumber(input)).toBeNull();
+        },
+    );
 });
 
 describe('prorateUsd', () => {

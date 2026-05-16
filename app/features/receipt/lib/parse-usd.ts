@@ -9,7 +9,7 @@
 export function parseUsdNumber(usdValue: string): number | null {
     // eslint-disable-next-line no-restricted-syntax -- regex is the clearest way to strip currency formatting chars
     const n = parseFloat(usdValue.replace(/[$,]/g, ''));
-    return isNaN(n) ? null : n;
+    return Number.isFinite(n) ? n : null;
 }
 
 /**
