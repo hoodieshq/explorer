@@ -1,36 +1,27 @@
 'use client';
 
 import { getIdlSpecType, type InstructionData } from '@entities/idl';
-import { useParsedLogs } from '@entities/program-logs';
 import { useWallet } from '@solana/wallet-adapter-react';
-import {
-    type Commitment,
-    Connection,
-    type Finality,
-    PublicKey,
-    type RpcResponseAndContext,
-    SendTransactionError,
-    type SimulatedTransactionResponse,
-    Transaction,
-    type TransactionError,
-    TransactionInstruction,
-    VersionedTransaction,
-} from '@solana/web3.js';
+import { type Commitment, Connection, type Finality, PublicKey, type Transaction } from '@solana/web3.js';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { useCluster } from '@/app/providers/cluster';
-import { toBase64 } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 import { clusterUrl } from '@/app/utils/cluster';
-import { getTransactionInstructionError } from '@/app/utils/program-err';
 
 import { programAtom } from '../model/state-atoms';
 import { AnchorInterpreter } from './anchor/anchor-interpreter';
 import { CodamaInterpreter } from './codama/codama-interpreter';
-import { IdlExecutor, populateAccounts, populateArguments } from './idl-executor';
+import { IdlExecutor } from './idl-executor';
+import { buildTransaction } from './transaction/build-transaction';
+import type { InstructionInvocationResult, SimulationResult } from './transaction/types';
+import { useInvokeTransaction } from './transaction/use-invoke-transaction';
+import { useSimulateTransaction } from './transaction/use-simulate-transaction';
 import type { UnifiedWallet } from './unified-program';
 import { BaseIdl } from './unified-program';
+
+export type { InstructionInvocationResult } from './transaction/types';
 
 interface UseInstructionOptions {
     programId?: string;
@@ -51,10 +42,14 @@ interface UseInstructionReturn {
     invokeInstruction: (
         instructionName: string,
         instruction: InstructionData,
-        params: {
-            accounts: any;
-            arguments: Record<string, string>;
-        },
+        params: { accounts: any; arguments: Record<string, string> },
+    ) => Promise<void>;
+
+    // Simulation (additive — drives the dedicated Simulate UI without sending)
+    simulateInstruction: (
+        instructionName: string,
+        instruction: InstructionData,
+        params: { accounts: any; arguments: Record<string, string> },
     ) => Promise<void>;
 
     // Validation helpers
@@ -65,9 +60,12 @@ interface UseInstructionReturn {
 
     // Status
     isExecuting: boolean;
+    isSimulating: boolean;
     preInvocationError: string | null;
     lastResult: InstructionInvocationResult;
-    parseLogs: ReturnType<typeof useParsedLogs>['parseLogs'];
+    lastSimulation: SimulationResult;
+    parseLogs: ReturnType<typeof useInvokeTransaction>['parseLogs'];
+    simulateParseLogs: ReturnType<typeof useSimulateTransaction>['parseLogs'];
     initializeProgram: () => void;
     isProgramLoading: boolean;
     program: any;
@@ -87,20 +85,9 @@ export function useInstruction({
     onPreInvocationError,
 }: UseInstructionOptions): UseInstructionReturn {
     const interpreterName = interpreterNameOverride ?? detectInterpreterName(idl);
-    const { connected, publicKey, ...wallet } = useWallet();
+    const { publicKey, ...wallet } = useWallet();
     const { cluster: currentCluster, customUrl } = useCluster();
 
-    const [preInvocationError, setPreInvocationError] = useState<string | null>(null);
-    const {
-        isExecuting,
-        lastResult,
-        handleTxStart,
-        handleTxSuccess,
-        handleTxError,
-        handleTxEnd,
-        handleSimulatedTxResult,
-        parseLogs,
-    } = useInvocationState({ idlErrors: idl?.errors, onError, onSuccess });
     const [initializationError, setInitializationError] = useState<string | null>(null);
     const [isProgramLoading, setIsProgramLoading] = useState(false);
     const [program, setProgram] = useAtom(programAtom);
@@ -207,133 +194,99 @@ export function useInstruction({
     // Validation helper to check if an instruction is ready to execute
     const validateInstruction = useCallback((_instructionName: string, _instruction: InstructionData) => {
         const errors: string[] = [];
-
-        return {
-            errors,
-            isValid: errors.length === 0,
-        };
+        return { errors, isValid: errors.length === 0 };
     }, []);
 
-    // Main function to invoke an instruction
+    const invokeTx = useInvokeTransaction({
+        commitment,
+        connection,
+        idlErrors: idl?.errors,
+        onError,
+        onPreInvocationError,
+        onSuccess,
+        simulationCommitment,
+    });
+
+    const simulateTx = useSimulateTransaction({
+        connection,
+        idlErrors: idl?.errors,
+        simulationCommitment,
+    });
+
     const invokeInstruction = useCallback(
         async (
             instructionName: string,
-            instruction: InstructionData,
-            params: {
-                accounts: any;
-                arguments: Record<string, string>;
-            },
+            _instruction: InstructionData,
+            params: { accounts: any; arguments: Record<string, string> },
         ): Promise<void> => {
-            if (!connected || !publicKey || !wallet.signTransaction) {
-                const error = 'Wallet not connected';
-                setPreInvocationError(error);
-                onPreInvocationError?.(error);
+            if (!idl || !program || !publicKey) {
+                invokeTx.reportError(new Error('Program / IDL / wallet not ready'));
                 return;
             }
-            setPreInvocationError(null);
-            handleTxStart();
-
-            let transaction: Transaction | undefined;
-
+            let tx: Transaction;
             try {
-                if (!idl) throw new Error('Idl is absent');
-                if (!program) throw new Error('Program is not initialized');
-                if (!wallet) throw new Error('Wallet is not initialized');
-
-                const ix = await executor.getInstruction(
-                    program,
-                    instructionName,
-                    populateAccounts(params.accounts, instructionName),
-                    populateArguments(params.arguments, instructionName),
+                tx = await buildTransaction({
+                    executor,
+                    feePayer: publicKey,
                     idl,
+                    instructionName,
                     interpreterName,
-                );
-
-                if (ix instanceof TransactionInstruction) {
-                    // Create and sign transaction
-                    transaction = new Transaction().add(ix);
-                } else {
-                    throw new Error('Unsuported instruction format');
-                }
-
-                // Get recent blockhash
-                const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-                transaction.recentBlockhash = blockhash;
-                transaction.feePayer = publicKey;
-
-                // Simulate the transaction
-                const simulatedTx = await connection.simulateTransaction(
-                    new VersionedTransaction(transaction.compileMessage()),
-                    {
-                        commitment: simulationCommitment,
-                    },
-                );
-                handleSimulatedTxResult(simulatedTx);
-
-                // Sign the transaction
-                const signedTransaction = await wallet.signTransaction(transaction);
-
-                const signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
-                    skipPreflight: false,
+                    params,
+                    program,
                 });
-
-                const confirmed = await connection.confirmTransaction(
-                    {
-                        blockhash,
-                        lastValidBlockHeight,
-                        signature,
-                    },
-                    commitment,
-                );
-
-                if (confirmed.value?.err) {
-                    throw new Error('Transaction was not confirmed');
-                }
-
-                const publishedTransaction = await connection.getTransaction(signature, {
-                    commitment,
-                    maxSupportedTransactionVersion: 0,
-                });
-
-                handleTxSuccess(signature, publishedTransaction?.meta?.logMessages);
             } catch (error) {
-                handleTxError(error, transaction);
-            } finally {
-                handleTxEnd();
+                invokeTx.reportError(error);
+                return;
             }
+            await invokeTx.invoke(tx);
         },
-        [
-            connected,
-            publicKey,
-            wallet,
-            connection,
-            idl,
-            executor,
-            program,
-            interpreterName,
-            commitment,
-            simulationCommitment,
-            handleTxStart,
-            handleTxSuccess,
-            handleTxError,
-            handleTxEnd,
-            handleSimulatedTxResult,
-            onPreInvocationError,
-        ],
+        [idl, program, publicKey, executor, interpreterName, invokeTx],
+    );
+
+    const simulateInstruction = useCallback(
+        async (
+            instructionName: string,
+            _instruction: InstructionData,
+            params: { accounts: any; arguments: Record<string, string> },
+        ): Promise<void> => {
+            if (!idl || !program || !publicKey) {
+                simulateTx.reportError(new Error('Program / IDL / wallet not ready'));
+                return;
+            }
+            let tx: Transaction;
+            try {
+                tx = await buildTransaction({
+                    executor,
+                    feePayer: publicKey,
+                    idl,
+                    instructionName,
+                    interpreterName,
+                    params,
+                    program,
+                });
+            } catch (error) {
+                simulateTx.reportError(error);
+                return;
+            }
+            await simulateTx.simulate(tx);
+        },
+        [idl, program, publicKey, executor, interpreterName, simulateTx],
     );
 
     return {
         initializationError,
         initializeProgram,
-        // Instruction
         invokeInstruction,
-        isExecuting,
+        isExecuting: invokeTx.isExecuting,
         isProgramLoading,
-        lastResult,
-        parseLogs,
-        preInvocationError,
-
+        isSimulating: simulateTx.isSimulating,
+        lastResult: invokeTx.lastResult,
+        lastSimulation: simulateTx.lastSimulation,
+        parseLogs: invokeTx.parseLogs,
+        preInvocationError: invokeTx.preInvocationError,
         program,
+        simulateInstruction,
+        simulateParseLogs: simulateTx.parseLogs,
         validateInstruction,
     };
 }
@@ -367,171 +320,6 @@ function handleInitializeError(error: unknown | Error, message = 'Failed to init
         }
     }
     return errorMessage;
-}
-
-/**
- * Result of invoking an instruction.
- * - `{ status: 'success', signature: string, logs: string[], finishedAt: Date }` - Transaction succeeded with signature
- * - `{ status: 'error', message: string | null, logs: string[], serializedTxMessage: string | null, finishedAt: Date }` - Transaction failed; message contains base64-encoded serialized transaction, or null if serialization failed
- * - `null` - No transaction was executed yet
- */
-export type InstructionInvocationResult =
-    | { status: 'success'; signature: string; logs: string[]; finishedAt: Date }
-    | { status: 'error'; message: string; logs: string[]; serializedTxMessage: string | null; finishedAt: Date }
-    | null;
-
-function useInvocationState({
-    onSuccess,
-    onError,
-    idlErrors,
-}: {
-    onSuccess?: (signature: string) => void;
-    onError?: (error: string) => void;
-    idlErrors?: BaseIdl['errors'];
-} = {}) {
-    const [transactionError, setTransactionError] = useState<TransactionError | null>(null);
-    const { parseLogs } = useParsedLogs(transactionError);
-    const [serializedTxMessage, setSerializedTxMessage] = useState<string | null>(null);
-
-    const [logs, setLogs] = useState<string[]>([]);
-    const [isExecuting, setIsExecuting] = useState(false);
-    const [lastError, setLastError] = useState<{ finishedAt: Date; message: string } | null>(null);
-    const [lastSuccess, setLastSuccess] = useState<{ finishedAt: Date; signature: string } | null>(null);
-
-    const handleLogsChange = (logs: string[] | null | undefined) => {
-        if (!logs) return;
-        setLogs(logs);
-    };
-
-    const handleTxStart = () => {
-        setIsExecuting(true);
-        setLastError(null);
-        setLastSuccess(null);
-        setLogs([]);
-        setTransactionError(null);
-        setSerializedTxMessage(null);
-    };
-
-    const handleTxSuccess = (signature: string, logs: string[] | null | undefined) => {
-        setLastSuccess({ finishedAt: new Date(), signature });
-        handleLogsChange(logs);
-        onSuccess?.(signature);
-    };
-
-    const handleTxError = (error: unknown | Error, transaction: Transaction | undefined) => {
-        Logger.error(error, { transaction });
-        const errorMessage = handleInvokeError(error);
-        setLastError({ finishedAt: new Date(), message: errorMessage });
-        if (error instanceof SendTransactionError) {
-            setLogs(error.logs ?? []);
-            setTransactionError(error);
-        }
-        setSerializedTxMessage(serializeTransactionMessage(transaction));
-        onError?.(errorMessage);
-    };
-
-    const handleTxEnd = () => {
-        setIsExecuting(false);
-    };
-
-    const handleSimulatedTxResult = (simulatedTx: RpcResponseAndContext<SimulatedTransactionResponse>) => {
-        if (simulatedTx.value.err !== null) {
-            handleLogsChange(simulatedTx.value.logs);
-            const programError = getTransactionInstructionError(simulatedTx.value.err);
-            if (programError) {
-                const instructionNum = programError.index + 1;
-                const customCode = extractCustomErrorCode(simulatedTx.value.err);
-                const idlError = customCode !== undefined ? resolveIdlError(customCode, idlErrors) : undefined;
-                const errorMessage = idlError ? `"${idlError.name}"\u00A0(code:${customCode})` : programError.message;
-                throw new Error(`Instruction #${instructionNum} got ${errorMessage}. See logs for details`);
-            }
-            const errorDetail = JSON.stringify(simulatedTx.value.err);
-            throw new Error(`Simulated with errors: "${errorDetail}". See logs for details`);
-        }
-    };
-
-    const lastResult: InstructionInvocationResult = (() => {
-        if (lastSuccess) {
-            return {
-                finishedAt: lastSuccess.finishedAt,
-                logs: logs,
-                signature: lastSuccess.signature,
-                status: 'success',
-            };
-        }
-        if (lastError) {
-            return {
-                finishedAt: lastError.finishedAt,
-                logs: logs,
-                message: lastError.message,
-                serializedTxMessage,
-                status: 'error',
-            };
-        }
-        return null;
-    })();
-
-    return {
-        handleSimulatedTxResult,
-        handleTxEnd,
-        handleTxError,
-        handleTxStart,
-        handleTxSuccess,
-        isExecuting,
-        lastResult,
-        parseLogs,
-    };
-}
-
-/**
- * Extracts custom error code from InstructionError variant.
- */
-function extractCustomErrorCode(error: TransactionError | null): number | undefined {
-    if (!error || typeof error !== 'object') {
-        return undefined;
-    }
-
-    if (!('InstructionError' in error)) {
-        return undefined;
-    }
-
-    const innerError = error['InstructionError'];
-    if (!Array.isArray(innerError) || innerError.length < 2) {
-        return undefined;
-    }
-
-    const instructionError = innerError[1];
-    if (typeof instructionError === 'object' && instructionError !== null && 'Custom' in instructionError) {
-        return (instructionError as { Custom: number })['Custom'];
-    }
-
-    return undefined;
-}
-
-function resolveIdlError(code: number, errors: BaseIdl['errors']) {
-    return errors?.find(e => e.code === code);
-}
-
-function handleInvokeError(error: unknown | Error, message = 'Failed to invoke instruction') {
-    let errorMessage = message;
-    if (error instanceof Error) {
-        if (error.message.toLowerCase().includes('simulation failed')) {
-            errorMessage = 'Simulation failed. See logs for details.';
-        } else {
-            errorMessage = error.message;
-        }
-    }
-    return errorMessage;
-}
-
-function serializeTransactionMessage(transaction: Transaction | undefined): string | null {
-    if (!transaction) return null;
-    try {
-        return toBase64(transaction.serializeMessage());
-    } catch (error) {
-        Logger.warn('[idl] Failed to serialize transaction message', { error });
-        return null;
-    }
 }
 
 /**
