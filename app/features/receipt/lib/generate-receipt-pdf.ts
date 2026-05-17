@@ -16,6 +16,7 @@ import {
 } from './generate-receipt-pdf-styles';
 import { LOGO_SVG } from './logo-svg';
 import { parseUsdNumber, prorateUsd } from './parse-usd';
+import { splitAtFirstNonZeroDigit } from './split-at-first-non-zero-digit';
 import { WARNING_SVG } from './warning-svg';
 
 export type PdfDeps = {
@@ -262,6 +263,33 @@ function fitFontSize(doc: jsPDF, text: string, maxWidth: number, baseSize: numbe
     return w > maxWidth ? baseSize * (maxWidth / w) : baseSize;
 }
 
+function drawAmountLine1(doc: jsPDF, formatted: string, unit: string, rightX: number, y: number): void {
+    const { leadingZeros, significantDigits } = splitAtFirstNonZeroDigit(formatted);
+    const suffix = ` ${unit}`;
+
+    applyTextStyle(doc, TEXT_STYLES.value);
+    const scaledSize = fitFontSize(doc, `${formatted}${suffix}`, TABLE_AMOUNT_WIDTH, TEXT_STYLES.value.size);
+
+    let x = rightX;
+
+    applyTextStyle(doc, TEXT_STYLES.value);
+    doc.setFontSize(scaledSize);
+    x -= doc.getTextWidth(suffix);
+    doc.text(suffix, x, y);
+
+    applyTextStyle(doc, TEXT_STYLES.totalLabel);
+    doc.setFontSize(scaledSize);
+    x -= doc.getTextWidth(significantDigits);
+    doc.text(significantDigits, x, y);
+
+    if (leadingZeros) {
+        applyTextStyle(doc, TEXT_STYLES.value);
+        doc.setFontSize(scaledSize);
+        x -= doc.getTextWidth(leadingZeros);
+        doc.text(leadingZeros, x, y);
+    }
+}
+
 function drawAmountCell(
     doc: jsPDF,
     formatted: string,
@@ -270,25 +298,7 @@ function drawAmountCell(
     rightX: number,
     y: number,
 ): number {
-    const suffix = ` ${unit}`;
-
-    applyTextStyle(doc, TEXT_STYLES.totalLabel);
-    const wFormattedBase = doc.getTextWidth(formatted);
-    applyTextStyle(doc, TEXT_STYLES.value);
-    const wUnitBase = doc.getTextWidth(suffix);
-    const line1Base = wFormattedBase + wUnitBase;
-    const line1Scale = line1Base > TABLE_AMOUNT_WIDTH ? TABLE_AMOUNT_WIDTH / line1Base : 1;
-
-    let x = rightX;
-    applyTextStyle(doc, TEXT_STYLES.value);
-    doc.setFontSize(TEXT_STYLES.value.size * line1Scale);
-    x -= doc.getTextWidth(suffix);
-    doc.text(suffix, x, y);
-
-    applyTextStyle(doc, TEXT_STYLES.totalLabel);
-    doc.setFontSize(TEXT_STYLES.totalLabel.size * line1Scale);
-    x -= doc.getTextWidth(formatted);
-    doc.text(formatted, x, y);
+    drawAmountLine1(doc, formatted, unit, rightX, y);
 
     if (!proratedUsd) {
         return y;
