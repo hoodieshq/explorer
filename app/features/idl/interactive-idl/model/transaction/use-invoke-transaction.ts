@@ -3,12 +3,9 @@
 import { useParsedLogs } from '@entities/program-logs';
 import { useWallet } from '@solana/wallet-adapter-react';
 import {
-    type Commitment,
     type Connection,
     type Finality,
-    type RpcResponseAndContext,
     SendTransactionError,
-    type SimulatedTransactionResponse,
     type Transaction,
     type TransactionError,
 } from '@solana/web3.js';
@@ -18,23 +15,21 @@ import { toBase64 } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 
 import type { BaseIdl } from '../unified-program';
-import { assertSimulationOk, simulateTransaction } from './simulate-transaction';
+import { assertSimulationOk } from './simulate-transaction';
 import type { InstructionInvocationResult } from './types';
 
 export function useInvokeTransaction(opts: {
     connection: Connection;
     commitment: Finality;
-    simulationCommitment: Commitment;
     idlErrors?: BaseIdl['errors'];
     onSuccess?: (signature: string) => void;
     onError?: (error: string) => void;
     onPreInvocationError?: (error: string) => void;
 }) {
-    const { connection, commitment, simulationCommitment, idlErrors, onSuccess, onError, onPreInvocationError } = opts;
+    const { connection, commitment, idlErrors, onSuccess, onError, onPreInvocationError } = opts;
     const { connected, publicKey, signTransaction } = useWallet();
     const [preInvocationError, setPreInvocationError] = useState<string | null>(null);
     const {
-        handleSimulatedTxResult,
         handleTxEnd,
         handleTxError,
         handleTxStart,
@@ -42,7 +37,9 @@ export function useInvokeTransaction(opts: {
         isExecuting,
         lastResult,
         parseLogs,
-    } = useInvocationState({ idlErrors, onError, onSuccess });
+        setLogs,
+        setTransactionError,
+    } = useInvocationState({ onError, onSuccess });
 
     const invoke = useCallback(
         async (transaction: Transaction): Promise<void> => {
@@ -58,28 +55,27 @@ export function useInvokeTransaction(opts: {
                 const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
                 transaction.recentBlockhash = blockhash;
 
-                const simulated = await simulateTransaction(connection, transaction, {
-                    commitment: simulationCommitment,
-                });
-                handleSimulatedTxResult(simulated);
-
                 const signed = await signTransaction(transaction);
                 const signature = await connection.sendRawTransaction(signed.serialize(), {
-                    skipPreflight: false,
+                    skipPreflight: true,
                 });
                 const confirmed = await connection.confirmTransaction(
                     { blockhash, lastValidBlockHeight, signature },
                     commitment,
                 );
-                if (confirmed.value?.err) {
-                    throw new Error('Transaction was not confirmed');
-                }
-
                 const published = await connection.getTransaction(signature, {
                     commitment,
                     maxSupportedTransactionVersion: 0,
                 });
-                handleTxSuccess(signature, published?.meta?.logMessages);
+                const finalLogs = published?.meta?.logMessages ?? [];
+
+                if (confirmed.value?.err) {
+                    setLogs(finalLogs);
+                    setTransactionError(confirmed.value.err);
+                    assertSimulationOk(confirmed.value.err, idlErrors);
+                }
+
+                handleTxSuccess(signature, finalLogs);
             } catch (error) {
                 handleTxError(error, transaction);
             } finally {
@@ -92,13 +88,14 @@ export function useInvokeTransaction(opts: {
             signTransaction,
             connection,
             commitment,
-            simulationCommitment,
+            idlErrors,
             handleTxStart,
-            handleSimulatedTxResult,
             handleTxSuccess,
             handleTxError,
             handleTxEnd,
             onPreInvocationError,
+            setLogs,
+            setTransactionError,
         ],
     );
 
@@ -117,11 +114,9 @@ export function useInvokeTransaction(opts: {
 function useInvocationState({
     onSuccess,
     onError,
-    idlErrors,
 }: {
     onSuccess?: (signature: string) => void;
     onError?: (error: string) => void;
-    idlErrors?: BaseIdl['errors'];
 }) {
     const [transactionError, setTransactionError] = useState<TransactionError | null>(null);
     const { parseLogs } = useParsedLogs(transactionError);
@@ -130,11 +125,6 @@ function useInvocationState({
     const [isExecuting, setIsExecuting] = useState(false);
     const [lastError, setLastError] = useState<{ finishedAt: Date; message: string } | null>(null);
     const [lastSuccess, setLastSuccess] = useState<{ finishedAt: Date; signature: string } | null>(null);
-
-    const handleLogsChange = (next: string[] | null | undefined) => {
-        if (!next) return;
-        setLogs(next);
-    };
 
     const handleTxStart = () => {
         setIsExecuting(true);
@@ -147,7 +137,7 @@ function useInvocationState({
 
     const handleTxSuccess = (signature: string, finalLogs: string[] | null | undefined) => {
         setLastSuccess({ finishedAt: new Date(), signature });
-        handleLogsChange(finalLogs);
+        if (finalLogs) setLogs(finalLogs);
         onSuccess?.(signature);
     };
 
@@ -167,12 +157,6 @@ function useInvocationState({
         setIsExecuting(false);
     };
 
-    const handleSimulatedTxResult = (simulated: RpcResponseAndContext<SimulatedTransactionResponse>) => {
-        if (simulated.value.err === null) return;
-        handleLogsChange(simulated.value.logs);
-        assertSimulationOk(simulated.value.err, idlErrors);
-    };
-
     const lastResult: InstructionInvocationResult = lastSuccess
         ? { finishedAt: lastSuccess.finishedAt, logs, signature: lastSuccess.signature, status: 'success' }
         : lastError
@@ -186,7 +170,6 @@ function useInvocationState({
           : null;
 
     return {
-        handleSimulatedTxResult,
         handleTxEnd,
         handleTxError,
         handleTxStart,
@@ -194,6 +177,8 @@ function useInvocationState({
         isExecuting,
         lastResult,
         parseLogs,
+        setLogs,
+        setTransactionError,
     };
 }
 
