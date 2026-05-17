@@ -60,7 +60,6 @@ describe('useInvokeTransaction', () => {
                 commitment: 'confirmed',
                 connection: conn,
                 onSuccess,
-                simulationCommitment: 'processed',
             }),
         );
         await act(async () => {
@@ -72,26 +71,25 @@ describe('useInvokeTransaction', () => {
         expect(onSuccess).toHaveBeenCalledWith('sig123');
     });
 
-    it('should surface simulation logs before throwing on simulation error', async () => {
+    it('should decode IDL error name and surface fetched logs on on-chain failure', async () => {
         const conn = makeConnection({
-            simulateTransaction: vi.fn().mockResolvedValue({
-                context: { slot: 1 },
-                value: { err: { InstructionError: [0, { Custom: 6001 }] }, logs: ['err-log'] },
-            }) as any,
+            confirmTransaction: vi
+                .fn()
+                .mockResolvedValue({ value: { err: { InstructionError: [0, { Custom: 6001 }] } } }) as any,
+            getTransaction: vi.fn().mockResolvedValue({ meta: { logMessages: ['failed-log'] } }) as any,
         });
         const { result } = renderHook(() =>
             useInvokeTransaction({
                 commitment: 'confirmed',
                 connection: conn,
                 idlErrors: [{ code: 6001, name: 'AlreadyInitialized' }] as any,
-                simulationCommitment: 'processed',
             }),
         );
         await act(async () => {
             await result.current.invoke(makeTx());
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
-        expect((result.current.lastResult as any).logs).toEqual(['err-log']);
+        expect((result.current.lastResult as any).logs).toEqual(['failed-log']);
         expect((result.current.lastResult as any).message).toContain('AlreadyInitialized');
     });
 
@@ -104,7 +102,6 @@ describe('useInvokeTransaction', () => {
                 commitment: 'confirmed',
                 connection: conn,
                 onPreInvocationError,
-                simulationCommitment: 'processed',
             }),
         );
         await act(async () => {
@@ -114,15 +111,15 @@ describe('useInvokeTransaction', () => {
         expect(conn.sendRawTransaction).not.toHaveBeenCalled();
     });
 
-    it('should set lastResult.error on confirmation error', async () => {
+    it('should set lastResult.error on confirmation error with unstructured err', async () => {
         const conn = makeConnection({
             confirmTransaction: vi.fn().mockResolvedValue({ value: { err: 'oops' } }) as any,
+            getTransaction: vi.fn().mockResolvedValue({ meta: { logMessages: ['l'] } }) as any,
         });
         const { result } = renderHook(() =>
             useInvokeTransaction({
                 commitment: 'confirmed',
                 connection: conn,
-                simulationCommitment: 'processed',
             }),
         );
         await act(async () => {
@@ -137,7 +134,6 @@ describe('useInvokeTransaction', () => {
             useInvokeTransaction({
                 commitment: 'confirmed',
                 connection: conn,
-                simulationCommitment: 'processed',
             }),
         );
         act(() => result.current.reportError(new Error('boom')));
