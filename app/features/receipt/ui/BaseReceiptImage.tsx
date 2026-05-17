@@ -369,9 +369,7 @@ function AmountDisplay({ amount, unit }: { amount: string; unit: string }) {
     return (
         <span style={{ alignItems: 'center', display: 'flex', gap: '8px' }}>
             <span style={{ display: 'flex' }}>
-                {leadingZeros && (
-                    <span style={{ ...amountTextStyle, color: colors.neutral500 }}>{leadingZeros}</span>
-                )}
+                {leadingZeros && <span style={{ ...amountTextStyle, color: colors.neutral500 }}>{leadingZeros}</span>}
                 <span style={{ ...amountTextStyle, color: colors.neutral950 }}>{significantDigits}</span>
             </span>
             <span style={{ ...amountTextStyle, color: colors.neutral500 }}>{unit}</span>

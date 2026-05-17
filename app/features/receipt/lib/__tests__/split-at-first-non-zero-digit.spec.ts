@@ -20,10 +20,7 @@ describe('splitAtFirstNonZeroDigit', () => {
         ['0.0'],
         [''],
         ['not a number'],
-    ])(
-        'should not split "%s" (no leading 0.0…pattern)',
-        input => {
-            expect(splitAtFirstNonZeroDigit(input)).toEqual({ leadingZeros: '', significantDigits: input });
-        },
-    );
+    ])('should not split "%s" (no leading 0.0…pattern)', input => {
+        expect(splitAtFirstNonZeroDigit(input)).toEqual({ leadingZeros: '', significantDigits: input });
+    });
 });
