@@ -7,7 +7,6 @@ import {
     applyTextStyle,
     BORDER_RADIUS,
     COLORS,
-    formatText,
     GRID,
     LINE_STYLES,
     PAGE,
@@ -133,7 +132,7 @@ function drawLabeledField(
     height = DEFAULT_FIELD_HEIGHT,
 ): number {
     applyTextStyle(doc, TEXT_STYLES.label);
-    doc.text(formatText(label, TEXT_STYLES.label), PAGE.marginX, y);
+    doc.text(label, PAGE.marginX, y);
 
     y += LABEL_TO_FIELD_GAP;
 
@@ -178,7 +177,7 @@ function drawDetailCell(
     y: number,
     valueStyle: TextStyle,
 ): number {
-    applyTextStyle(doc, TEXT_STYLES.tableHeader);
+    applyTextStyle(doc, TEXT_STYLES.label);
     doc.text(label, x, y);
 
     applyTextStyle(doc, valueStyle);
@@ -202,12 +201,12 @@ const TABLE_AMOUNT_RIGHT_X = PAGE.marginX + PAGE.contentWidth;
 const AMOUNT_LINE_HEIGHT = TEXT_STYLES.value.size * 0.45;
 
 function drawTransfersHeader(doc: jsPDF, y: number): number {
-    applyTextStyle(doc, TEXT_STYLES.tableHeader);
+    applyTextStyle(doc, TEXT_STYLES.label);
     doc.text('Sender', TABLE_SENDER_X, y);
     doc.text('Receiver', TABLE_RECEIVER_X, y);
     doc.text('Amount', TABLE_AMOUNT_RIGHT_X, y, { align: 'right' });
     y += 2;
-    applyLineStyle(doc, LINE_STYLES.divider);
+    applyLineStyle(doc, LINE_STYLES.border);
     doc.line(PAGE.marginX, y, PAGE.marginX + PAGE.contentWidth, y);
     return y + 4;
 }
@@ -234,7 +233,7 @@ function drawTransferRow(
     );
 
     const lineY = Math.max(y, amountBottom) + 2;
-    applyLineStyle(doc, LINE_STYLES.divider);
+    applyLineStyle(doc, LINE_STYLES.border);
     doc.line(PAGE.marginX, lineY, PAGE.marginX + PAGE.contentWidth, lineY);
 
     return lineY + 4;
@@ -272,7 +271,7 @@ function drawAmountLine1(doc: jsPDF, formatted: string, unit: string, rightX: nu
 
     let x = rightX;
 
-    applyTextStyle(doc, TEXT_STYLES.value);
+    applyTextStyle(doc, TEXT_STYLES.amountDim);
     doc.setFontSize(scaledSize);
     x -= doc.getTextWidth(suffix);
     doc.text(suffix, x, y);
@@ -283,7 +282,7 @@ function drawAmountLine1(doc: jsPDF, formatted: string, unit: string, rightX: nu
     doc.text(significantDigits, x, y);
 
     if (leadingZeros) {
-        applyTextStyle(doc, TEXT_STYLES.value);
+        applyTextStyle(doc, TEXT_STYLES.amountDim);
         doc.setFontSize(scaledSize);
         x -= doc.getTextWidth(leadingZeros);
         doc.text(leadingZeros, x, y);
@@ -394,14 +393,14 @@ export async function generateReceiptPdf(
     y += 2;
 
     // Row 1: Payment date | Network fee
-    const dateBottom = drawDetailCell(doc, 'Payment date', [receipt.date.utc], COL1_X, y, TEXT_STYLES.value);
+    const dateBottom = drawDetailCell(doc, 'Payment date', [receipt.date.utc], COL1_X, y, TEXT_STYLES.valueMono);
     const feeBottom = drawDetailCell(
         doc,
         'Network fee',
         [`${receipt.fee.formatted} SOL`],
         COL2_X,
         y,
-        TEXT_STYLES.value,
+        TEXT_STYLES.valueMono,
     );
     y = Math.max(dateBottom, feeBottom) + 4;
 
@@ -455,9 +454,10 @@ export async function generateReceiptPdf(
         y = drawTransferRow(doc, t, y, proratedUsd);
     }
 
-    y += 2;
     if (hiddenCount > 0) {
-        y = await drawWarningBar(deps, doc, transfers.length, y);
+        y = await drawWarningBar(deps, doc, transfers.length, y - 1);
+    } else {
+        y += 2;
     }
 
     // ----- SUPPLIER / SELLER -----
