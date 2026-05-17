@@ -94,13 +94,25 @@ export function InteractWithIdl({
         [toast, currentInstruction, onTransactionFailed],
     );
 
-    const { invokeInstruction, initializationError, isExecuting, lastResult, parseLogs } = useInstruction({
+    const {
+        invokeInstruction,
+        simulateInstruction,
+        initializationError,
+        isExecuting,
+        isSimulating,
+        lastResult,
+        lastSimulation,
+        parseLogs,
+        simulateParseLogs,
+    } = useInstruction({
         enabled: isEnabled({ connected, idl, programId: progId, publicKey }),
         idl,
         onError: handleTransactionError,
         onSuccess: handleTransactionSuccess,
         programId: progId?.toString(),
     });
+
+    const [lastAction, setLastAction] = useState<'invoke' | 'simulate' | null>(null);
 
     const { requireConfirmation, confirm, cancel, isOpen, hasPendingAction } = useMainnetConfirmation<{
         data: InstructionData;
@@ -111,6 +123,7 @@ export function InteractWithIdl({
         async (data: InstructionData, params: InstructionCallParams) => {
             const programIdStr = progId?.toString();
 
+            setLastAction('invoke');
             onTransactionSubmitted?.(programIdStr, data.name);
 
             setCurrentInstruction({ name: data.name, programId: programIdStr });
@@ -123,6 +136,14 @@ export function InteractWithIdl({
             );
         },
         [invokeInstruction, requireConfirmation, progId, onTransactionSubmitted],
+    );
+
+    const handleSimulateInstruction = useCallback(
+        async (data: InstructionData, params: InstructionCallParams) => {
+            setLastAction('simulate');
+            await simulateInstruction(data.name, data, params);
+        },
+        [simulateInstruction],
     );
 
     if (initializationError) {
@@ -142,12 +163,17 @@ export function InteractWithIdl({
                 instructions={instructions || []}
                 idl={idl as SupportedIdl}
                 onExecuteInstruction={handleExecuteInstruction}
+                onSimulateInstruction={handleSimulateInstruction}
                 onSectionsExpanded={expandedSections => {
                     onSectionsExpanded?.(progId?.toString(), expandedSections);
                 }}
                 isExecuting={isExecuting}
+                isSimulating={isSimulating}
                 lastResult={lastResult}
+                lastSimulation={lastSimulation}
                 parseLogs={parseLogs}
+                simulateParseLogs={simulateParseLogs}
+                lastAction={lastAction}
             />
             {hasPendingAction && (
                 <MainnetWarningDialog

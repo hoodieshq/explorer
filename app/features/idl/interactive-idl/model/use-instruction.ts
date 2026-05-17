@@ -204,7 +204,6 @@ export function useInstruction({
         onError,
         onPreInvocationError,
         onSuccess,
-        simulationCommitment,
     });
 
     const simulateTx = useSimulateTransaction({

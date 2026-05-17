@@ -30,7 +30,9 @@ describe('InteractInstruction', () => {
                     idl={undefined}
                     instruction={instruction}
                     onExecuteInstruction={vi.fn()}
+                    onSimulateInstruction={vi.fn()}
                     isExecuting={false}
+                    isSimulating={false}
                 />
             </Accordion>,
         );
