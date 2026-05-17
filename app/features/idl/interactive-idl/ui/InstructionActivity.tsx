@@ -6,7 +6,7 @@ import { ReactNode } from 'react';
 
 import type { InstructionLogs } from '@/app/utils/program-logs';
 
-import type { InstructionInvocationResult } from '../model/use-instruction';
+import type { InstructionInvocationResult } from '../model/transaction/types';
 
 type InstructionActivityProps = {
     lastResult?: InstructionInvocationResult;

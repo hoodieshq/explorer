@@ -11,16 +11,20 @@ export function InteractInstructions({
     setExpandedSections,
     instructions,
     onExecuteInstruction,
+    onSimulateInstruction,
     onSectionsExpanded,
     isExecuting = false,
+    isSimulating = false,
 }: {
     idl: SupportedIdl | undefined;
     expandedSections: string[];
     setExpandedSections: Dispatch<SetStateAction<string[]>>;
     instructions: InstructionData[];
     onExecuteInstruction: (data: InstructionData, params: InstructionCallParams) => Promise<void>;
+    onSimulateInstruction: (data: InstructionData, params: InstructionCallParams) => Promise<void>;
     onSectionsExpanded?: (expandedSections: string[], programId?: string) => void;
     isExecuting?: boolean;
+    isSimulating?: boolean;
 }) {
     const handleValueChange = useCallback(
         (value: string[]) => {
@@ -38,7 +42,9 @@ export function InteractInstructions({
                     idl={idl}
                     instruction={instruction}
                     onExecuteInstruction={onExecuteInstruction}
+                    onSimulateInstruction={onSimulateInstruction}
                     isExecuting={isExecuting}
+                    isSimulating={isSimulating}
                 />
             ))}
         </Accordion>

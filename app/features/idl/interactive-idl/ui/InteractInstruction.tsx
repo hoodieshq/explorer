@@ -8,7 +8,7 @@ import { Button } from '@shared/ui/button';
 import { Card } from '@shared/ui/card';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@shared/ui/tooltip';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { Loader, Send } from 'react-feather';
+import { Loader, Play, Send } from 'react-feather';
 import { Control, Controller, FieldPath } from 'react-hook-form';
 
 import { createGetAutocompleteItems } from '../model/account-autocomplete/createGetAutocompleteItems';
@@ -31,17 +31,24 @@ export function InteractInstruction({
     idl,
     instruction,
     onExecuteInstruction,
+    onSimulateInstruction,
     isExecuting,
+    isSimulating,
 }: {
     idl: SupportedIdl | undefined;
     onExecuteInstruction: (data: InstructionData, params: InstructionCallParams) => void;
+    onSimulateInstruction: (data: InstructionData, params: InstructionCallParams) => void;
     instruction: InstructionData;
     isExecuting: boolean;
+    isSimulating: boolean;
 }) {
     const { connected: walletConnected, publicKey } = useWallet();
 
-    const { form, onSubmit, validationRules, fieldNames } = useInstructionForm({
+    const { form, onSubmit, onSimulate, validationRules, fieldNames } = useInstructionForm({
         instruction,
+        onSimulate: params => {
+            onSimulateInstruction(instruction, params);
+        },
         onSubmit: params => {
             onExecuteInstruction(instruction, params);
         },
@@ -60,7 +67,8 @@ export function InteractInstruction({
     });
     usePdaPrefill({ fieldNames, form, instruction, pdas });
 
-    const executeDisabled = !walletConnected || isExecuting;
+    const executeDisabled = !walletConnected || isExecuting || isSimulating;
+    const simulateDisabled = !walletConnected || isExecuting || isSimulating;
 
     return (
         <Card variant="tight">
@@ -138,13 +146,14 @@ export function InteractInstruction({
                             </div>
                         </CardSection>
                     )}
-                    <div className="e-px-6 e-pb-2.5">
+                    <div className="e-flex e-gap-2 e-px-6 e-pb-2.5">
                         <ExecuteButton
                             onClick={onSubmit}
                             disabled={executeDisabled}
                             isExecuting={isExecuting}
                             tooltipText="Connect your wallet to execute the instruction"
                         />
+                        <SimulateButton onClick={onSimulate} disabled={simulateDisabled} isSimulating={isSimulating} />
                     </div>
                 </AccordionContent>
             </AccordionItem>
@@ -264,5 +273,22 @@ function ExecuteButton({
                 <div className="e-min-w-36 e-max-w-16">{tooltipText}</div>
             </TooltipContent>
         </Tooltip>
+    );
+}
+
+function SimulateButton({
+    onClick,
+    disabled,
+    isSimulating,
+}: {
+    onClick: () => void;
+    disabled: boolean;
+    isSimulating: boolean;
+}) {
+    return (
+        <Button variant="outline" size="sm" onClick={onClick} disabled={disabled}>
+            {isSimulating ? <Loader size={16} className="e-animate-spin" /> : <Play size={16} />}
+            Simulate
+        </Button>
     );
 }
