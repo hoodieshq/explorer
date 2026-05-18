@@ -1,4 +1,3 @@
-import fetch from 'node-fetch';
 import { array, boolean, is, nullable, number, optional, string, type } from 'superstruct';
 
 import { matchAbortError } from '@/app/shared/lib/errors';
@@ -17,6 +16,10 @@ const JupiterTokenSchema = type({
 });
 
 const JupiterSearchResponseSchema = array(JupiterTokenSchema);
+
+const JupiterTokenDetailSchema = type({
+    logoURI: optional(nullable(string())),
+});
 
 export async function discoverWithJupiter(query: string, signal: AbortSignal): Promise<DiscoveredToken[]> {
     const jupiterApiKey = getJupiterApiKey();
@@ -63,4 +66,29 @@ export async function discoverWithJupiter(query: string, signal: AbortSignal): P
         }
         return [];
     }
+}
+
+export async function fetchJupiterImages(addresses: string[], signal: AbortSignal): Promise<Map<string, string>> {
+    const results = new Map<string, string>();
+
+    await Promise.allSettled(
+        addresses.map(async address => {
+            try {
+                const response = await fetch(`https://tokens.jup.ag/token/${encodeURIComponent(address)}`, {
+                    headers: { Accept: 'application/json' },
+                    signal,
+                });
+                if (!response.ok) return;
+                const data = await response.json();
+                if (!is(data, JupiterTokenDetailSchema)) return;
+                if (data.logoURI) {
+                    results.set(address, data.logoURI);
+                }
+            } catch {
+                // silently ignore per-token failures (network errors, aborts)
+            }
+        }),
+    );
+
+    return results;
 }

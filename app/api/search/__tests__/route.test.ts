@@ -1,20 +1,15 @@
-import fetch from 'node-fetch';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getAssetBatch } from '@/app/entities/digital-asset/api';
 
 import { GET } from '../route';
 
-vi.mock('node-fetch', async () => {
-    const actual = await vi.importActual('node-fetch');
-    return { ...actual, default: vi.fn() };
-});
-
 vi.mock('@/app/entities/digital-asset/api', () => ({
     getAssetBatch: vi.fn(),
 }));
 
-const fetchMock = vi.mocked(fetch);
+const fetchMock = vi.fn();
+vi.stubGlobal('fetch', fetchMock);
 const getAssetBatchMock = vi.mocked(getAssetBatch);
 
 const VALID_ADDRESS = 'So11111111111111111111111111111111111111112';
