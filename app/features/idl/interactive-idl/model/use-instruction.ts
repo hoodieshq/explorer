@@ -2,7 +2,7 @@
 
 import { getIdlSpecType, type InstructionData } from '@entities/idl';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { type Commitment, Connection, type Finality, PublicKey, type Transaction } from '@solana/web3.js';
+import { type Commitment, Connection, type Finality, PublicKey } from '@solana/web3.js';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -51,12 +51,6 @@ interface UseInstructionReturn {
         instruction: InstructionData,
         params: { accounts: any; arguments: Record<string, string> },
     ) => Promise<void>;
-
-    // Validation helpers
-    validateInstruction: (
-        instructionName: string,
-        instruction: InstructionData,
-    ) => { isValid: boolean; errors: string[] };
 
     // Status
     isExecuting: boolean;
@@ -191,13 +185,7 @@ export function useInstruction({
         }
     }, [idl, programId?.toString()]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Validation helper to check if an instruction is ready to execute
-    const validateInstruction = useCallback((_instructionName: string, _instruction: InstructionData) => {
-        const errors: string[] = [];
-        return { errors, isValid: errors.length === 0 };
-    }, []);
-
-    const invokeTx = useInvokeTransaction({
+    const { invoke, isExecuting, lastResult, parseLogs, preInvocationError } = useInvokeTransaction({
         commitment,
         connection,
         idlErrors: idl?.errors,
@@ -206,87 +194,67 @@ export function useInstruction({
         onSuccess,
     });
 
-    const simulateTx = useSimulateTransaction({
+    const {
+        isSimulating,
+        lastSimulation,
+        parseLogs: simulateParseLogs,
+        simulate,
+    } = useSimulateTransaction({
         connection,
         idlErrors: idl?.errors,
         simulationCommitment,
     });
 
+    const makeTxBuilder = useCallback(
+        (instructionName: string, params: { accounts: any; arguments: Record<string, string> }) => async () => {
+            if (!idl || !program || !publicKey) {
+                throw new Error('Program / IDL / wallet not ready');
+            }
+            return buildTransaction({
+                executor,
+                feePayer: publicKey,
+                idl,
+                instructionName,
+                interpreterName,
+                params,
+                program,
+            });
+        },
+        [idl, program, publicKey, executor, interpreterName],
+    );
+
     const invokeInstruction = useCallback(
-        async (
+        (
             instructionName: string,
             _instruction: InstructionData,
             params: { accounts: any; arguments: Record<string, string> },
-        ): Promise<void> => {
-            if (!idl || !program || !publicKey) {
-                invokeTx.reportError(new Error('Program / IDL / wallet not ready'));
-                return;
-            }
-            let tx: Transaction;
-            try {
-                tx = await buildTransaction({
-                    executor,
-                    feePayer: publicKey,
-                    idl,
-                    instructionName,
-                    interpreterName,
-                    params,
-                    program,
-                });
-            } catch (error) {
-                invokeTx.reportError(error);
-                return;
-            }
-            await invokeTx.invoke(tx);
-        },
-        [idl, program, publicKey, executor, interpreterName, invokeTx],
+        ): Promise<void> => invoke(makeTxBuilder(instructionName, params)),
+        [invoke, makeTxBuilder],
     );
 
     const simulateInstruction = useCallback(
-        async (
+        (
             instructionName: string,
             _instruction: InstructionData,
             params: { accounts: any; arguments: Record<string, string> },
-        ): Promise<void> => {
-            if (!idl || !program || !publicKey) {
-                simulateTx.reportError(new Error('Program / IDL / wallet not ready'));
-                return;
-            }
-            let tx: Transaction;
-            try {
-                tx = await buildTransaction({
-                    executor,
-                    feePayer: publicKey,
-                    idl,
-                    instructionName,
-                    interpreterName,
-                    params,
-                    program,
-                });
-            } catch (error) {
-                simulateTx.reportError(error);
-                return;
-            }
-            await simulateTx.simulate(tx);
-        },
-        [idl, program, publicKey, executor, interpreterName, simulateTx],
+        ): Promise<void> => simulate(makeTxBuilder(instructionName, params)),
+        [simulate, makeTxBuilder],
     );
 
     return {
         initializationError,
         initializeProgram,
         invokeInstruction,
-        isExecuting: invokeTx.isExecuting,
+        isExecuting,
         isProgramLoading,
-        isSimulating: simulateTx.isSimulating,
-        lastResult: invokeTx.lastResult,
-        lastSimulation: simulateTx.lastSimulation,
-        parseLogs: invokeTx.parseLogs,
-        preInvocationError: invokeTx.preInvocationError,
+        isSimulating,
+        lastResult,
+        lastSimulation,
+        parseLogs,
+        preInvocationError,
         program,
         simulateInstruction,
-        simulateParseLogs: simulateTx.parseLogs,
-        validateInstruction,
+        simulateParseLogs,
     };
 }
 
