@@ -40,7 +40,7 @@ describe('useSimulateTransaction', () => {
             useSimulateTransaction({ connection: conn, simulationCommitment: 'processed' }),
         );
         await act(async () => {
-            await result.current.simulate(makeTx());
+            await result.current.simulate(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('success'));
         expect((result.current.lastSimulation as any).logs).toEqual(['l1']);
@@ -59,20 +59,25 @@ describe('useSimulateTransaction', () => {
             }),
         );
         await act(async () => {
-            await result.current.simulate(makeTx());
+            await result.current.simulate(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
         expect((result.current.lastSimulation as any).logs).toEqual(['log-on-err']);
         expect((result.current.lastSimulation as any).message).toContain('AlreadyInitialized');
     });
 
-    it('should set error state via reportError without invoking RPC', async () => {
+    it('should set error state when builder throws without invoking RPC', async () => {
         const conn = makeConn({ context: { slot: 1 }, value: { err: null, logs: [] } });
         const { result } = renderHook(() =>
             useSimulateTransaction({ connection: conn, simulationCommitment: 'processed' }),
         );
-        act(() => result.current.reportError(new Error('build failed')));
+        await act(async () => {
+            await result.current.simulate(async () => {
+                throw new Error('build failed');
+            });
+        });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
+        expect((result.current.lastSimulation as any).message).toBe('build failed');
         expect(conn.simulateTransaction).not.toHaveBeenCalled();
     });
 
@@ -82,7 +87,7 @@ describe('useSimulateTransaction', () => {
             useSimulateTransaction({ connection: conn, simulationCommitment: 'processed' }),
         );
         await act(async () => {
-            await result.current.simulate(makeTx());
+            await result.current.simulate(async () => makeTx());
         });
         act(() => result.current.reset());
         expect(result.current.lastSimulation).toBeNull();
@@ -95,7 +100,7 @@ describe('useSimulateTransaction', () => {
             useSimulateTransaction({ connection: conn, simulationCommitment: 'processed' }),
         );
         await act(async () => {
-            await result.current.simulate(makeTx());
+            await result.current.simulate(async () => makeTx());
         });
         expect(sim).toHaveBeenCalledTimes(1);
         const opts = sim.mock.calls[0][1];

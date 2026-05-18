@@ -63,7 +63,7 @@ describe('useInvokeTransaction', () => {
             }),
         );
         await act(async () => {
-            await result.current.invoke(makeTx());
+            await result.current.invoke(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('success'));
         expect((result.current.lastResult as any).signature).toBe('sig123');
@@ -86,11 +86,11 @@ describe('useInvokeTransaction', () => {
             }),
         );
         await act(async () => {
-            await result.current.invoke(makeTx());
+            await result.current.invoke(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
         expect((result.current.lastResult as any).logs).toEqual(['failed-log']);
-        expect((result.current.lastResult as any).message).toContain('AlreadyInitialized');
+        expect((result.current.lastResult as any).message).toContain('Instruction #1 got "AlreadyInitialized"');
     });
 
     it('should fire onPreInvocationError when wallet is disconnected and not call signTransaction', async () => {
@@ -105,7 +105,7 @@ describe('useInvokeTransaction', () => {
             }),
         );
         await act(async () => {
-            await result.current.invoke(makeTx());
+            await result.current.invoke(async () => makeTx());
         });
         expect(onPreInvocationError).toHaveBeenCalledWith('Wallet not connected');
         expect(conn.sendRawTransaction).not.toHaveBeenCalled();
@@ -123,23 +123,30 @@ describe('useInvokeTransaction', () => {
             }),
         );
         await act(async () => {
-            await result.current.invoke(makeTx());
+            await result.current.invoke(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
     });
 
-    it('should surface caller-side build errors via reportError without calling RPC', async () => {
+    it('should surface builder errors as lastResult.error and fire onError without calling RPC', async () => {
         const conn = makeConnection();
+        const onError = vi.fn();
         const { result } = renderHook(() =>
             useInvokeTransaction({
                 commitment: 'confirmed',
                 connection: conn,
+                onError,
             }),
         );
-        act(() => result.current.reportError(new Error('boom')));
+        await act(async () => {
+            await result.current.invoke(async () => {
+                throw new Error('UnexpectedError');
+            });
+        });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
-        expect((result.current.lastResult as any).message).toBe('boom');
+        expect((result.current.lastResult as any).message).toBe('UnexpectedError');
         expect(result.current.isExecuting).toBe(false);
+        expect(onError).toHaveBeenCalledWith('UnexpectedError');
         expect(conn.sendRawTransaction).not.toHaveBeenCalled();
     });
 });

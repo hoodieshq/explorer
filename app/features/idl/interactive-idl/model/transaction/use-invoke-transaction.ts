@@ -15,7 +15,7 @@ import { toBase64 } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 
 import type { BaseIdl } from '../unified-program';
-import { assertSimulationOk } from './simulate-transaction';
+import { formatTransactionError } from './format-transaction-error';
 import type { InstructionInvocationResult } from './types';
 
 export function useInvokeTransaction(opts: {
@@ -29,20 +29,11 @@ export function useInvokeTransaction(opts: {
     const { connection, commitment, idlErrors, onSuccess, onError, onPreInvocationError } = opts;
     const { connected, publicKey, signTransaction } = useWallet();
     const [preInvocationError, setPreInvocationError] = useState<string | null>(null);
-    const {
-        handleTxEnd,
-        handleTxError,
-        handleTxStart,
-        handleTxSuccess,
-        isExecuting,
-        lastResult,
-        parseLogs,
-        setLogs,
-        setTransactionError,
-    } = useInvocationState({ onError, onSuccess });
+    const { handleTxEnd, handleTxError, handleTxStart, handleTxSuccess, isExecuting, lastResult, parseLogs } =
+        useInvocationState({ onError, onSuccess });
 
     const invoke = useCallback(
-        async (transaction: Transaction): Promise<void> => {
+        async (buildTx: () => Promise<Transaction>): Promise<void> => {
             if (!connected || !publicKey || !signTransaction) {
                 const message = 'Wallet not connected';
                 setPreInvocationError(message);
@@ -51,7 +42,9 @@ export function useInvokeTransaction(opts: {
             }
             setPreInvocationError(null);
             handleTxStart();
+            let transaction: Transaction | undefined;
             try {
+                transaction = await buildTx();
                 const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
                 transaction.recentBlockhash = blockhash;
 
@@ -70,9 +63,11 @@ export function useInvokeTransaction(opts: {
                 const finalLogs = published?.meta?.logMessages ?? [];
 
                 if (confirmed.value?.err) {
-                    setLogs(finalLogs);
-                    setTransactionError(confirmed.value.err);
-                    assertSimulationOk(confirmed.value.err, idlErrors);
+                    handleTxError(confirmed.value.err, transaction, {
+                        idlErrors,
+                        logs: finalLogs,
+                    });
+                    return;
                 }
 
                 handleTxSuccess(signature, finalLogs);
@@ -94,22 +89,16 @@ export function useInvokeTransaction(opts: {
             handleTxError,
             handleTxEnd,
             onPreInvocationError,
-            setLogs,
-            setTransactionError,
         ],
     );
 
-    const reportError = useCallback(
-        (error: unknown) => {
-            handleTxStart();
-            handleTxError(error, undefined);
-            handleTxEnd();
-        },
-        [handleTxStart, handleTxError, handleTxEnd],
-    );
-
-    return { invoke, isExecuting, lastResult, parseLogs, preInvocationError, reportError };
+    return { invoke, isExecuting, lastResult, parseLogs, preInvocationError };
 }
+
+type HandleTxErrorOptions = {
+    idlErrors?: BaseIdl['errors'];
+    logs?: string[];
+};
 
 function useInvocationState({
     onSuccess,
@@ -141,14 +130,31 @@ function useInvocationState({
         onSuccess?.(signature);
     };
 
-    const handleTxError = (error: unknown, transaction: Transaction | undefined) => {
-        Logger.error(error as Error, { transaction });
-        const message = computeErrorMessage(error);
-        setLastError({ finishedAt: new Date(), message });
-        if (error instanceof SendTransactionError) {
-            setLogs(error.logs ?? []);
-            setTransactionError(error);
+    const handleTxError = (
+        error: unknown,
+        transaction: Transaction | undefined,
+        options: HandleTxErrorOptions = {},
+    ) => {
+        if (error instanceof Error) {
+            Logger.error(error, { transaction });
+            const message = error.message || 'Failed to invoke instruction';
+            setLastError({ finishedAt: new Date(), message });
+            // SendTransactionError can still surface from low-level RPC issues even with skipPreflight=true.
+            if (error instanceof SendTransactionError) {
+                setLogs(error.logs ?? []);
+                setTransactionError(error);
+            }
+            setSerializedTxMessage(serializeTransactionMessage(transaction));
+            onError?.(message);
+            return;
         }
+
+        const txError = error as TransactionError;
+        const message = formatTransactionError(txError, options.idlErrors);
+        Logger.error(new Error(message), { transaction });
+        setLastError({ finishedAt: new Date(), message });
+        setLogs(options.logs ?? []);
+        setTransactionError(txError);
         setSerializedTxMessage(serializeTransactionMessage(transaction));
         onError?.(message);
     };
@@ -177,19 +183,7 @@ function useInvocationState({
         isExecuting,
         lastResult,
         parseLogs,
-        setLogs,
-        setTransactionError,
     };
-}
-
-function computeErrorMessage(error: unknown, fallback = 'Failed to invoke instruction'): string {
-    if (error instanceof Error) {
-        if (error.message.toLowerCase().includes('simulation failed')) {
-            return 'Simulation failed. See logs for details.';
-        }
-        return error.message;
-    }
-    return fallback;
 }
 
 function serializeTransactionMessage(transaction: Transaction | undefined): string | null {
