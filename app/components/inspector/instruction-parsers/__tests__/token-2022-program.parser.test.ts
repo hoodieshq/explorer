@@ -8,6 +8,9 @@ import {
     getUpdateGroupMemberPointerInstruction,
     getUpdateGroupPointerInstruction,
     getUpdateMetadataPointerInstruction,
+    getUpdateTokenMetadataFieldInstruction,
+    parseUpdateTokenMetadataFieldInstruction,
+    tokenMetadataField,
 } from '@solana-program/token-2022';
 import { describe, expect, it } from 'vitest';
 
@@ -190,6 +193,39 @@ describe('parseToken2022InstructionData', () => {
             const result = parseToken2022InstructionData(ix);
 
             expect(result).toBeNull();
+        });
+    });
+
+    describe('UpdateTokenMetadataField', () => {
+        const metadata = randomAddress();
+        const updateAuthority = randomAddress();
+        const value = 'My Token';
+        const ix = getUpdateTokenMetadataFieldInstruction({
+            field: tokenMetadataField('Name'),
+            metadata,
+            updateAuthority: createNoopSigner(updateAuthority),
+            value,
+        });
+
+        it('should fail to decode with the upstream parser whose variable-size discriminator consumes the buffer', () => {
+            let upstreamValue: unknown;
+            try {
+                upstreamValue = parseUpdateTokenMetadataFieldInstruction(ix).data.value;
+            } catch {
+                upstreamValue = '__threw__';
+            }
+            expect(upstreamValue).not.toBe(value);
+        });
+
+        it('should parse UpdateTokenMetadataField correctly via the discriminator-fixed decoder', () => {
+            const result = parseToken2022InstructionData(ix as unknown as TInstruction);
+
+            expect(result).not.toBeNull();
+            expect(result?.type).toBe('updateTokenMetadataField');
+            expect(result?.info.field).toBe('name');
+            expect(result?.info.value).toBe(value);
+            expect(result?.info.metadata.toBase58()).toBe(metadata);
+            expect(result?.info.updateAuthority.toBase58()).toBe(updateAuthority);
         });
     });
 

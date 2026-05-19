@@ -15,9 +15,11 @@ import {
     UpdateTokenMetadataFieldInfo,
     UpdateTokenMetadataUpdateAuthorityInfo,
 } from '@components/instruction/token/types';
+import { addDecoderSizePrefix, getStructDecoder, getU32Decoder, getUtf8Decoder } from '@solana/kit';
 import { type Option, unwrapOption } from '@solana/options';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
+    getTokenMetadataFieldDecoder,
     identifyToken2022Instruction,
     parseEmitTokenMetadataInstruction,
     parseInitializeGroupMemberPointerInstruction,
@@ -32,10 +34,11 @@ import {
     parseUpdateMetadataPointerInstruction,
     parseUpdateTokenGroupMaxSizeInstruction,
     parseUpdateTokenGroupUpdateAuthorityInstruction,
-    parseUpdateTokenMetadataFieldInstruction,
     Token2022Instruction,
 } from '@solana-program/token-2022';
 import bs58 from 'bs58';
+
+import { getDiscriminatorBytesDecoder } from '@/app/shared/get-bytes-decoder';
 
 import { intoInstructionData, TInstruction } from '../into-parsed-data';
 
@@ -160,6 +163,27 @@ function parseUpdateTokenMetadataUpdateAuthorityInstructionCustom(instruction: T
         data: {
             newUpdateAuthority,
         },
+    };
+}
+
+// Composed decoder bypassing the upstream getBytesDecoder()-without-fixed-size bug for the discriminator.
+const updateTokenMetadataFieldInstructionDataDecoder = getStructDecoder([
+    ['discriminator', getDiscriminatorBytesDecoder()],
+    ['field', getTokenMetadataFieldDecoder()],
+    ['value', addDecoderSizePrefix(getUtf8Decoder(), getU32Decoder())],
+]);
+
+function parseUpdateTokenMetadataFieldInstructionCustom(instruction: TInstruction) {
+    if (instruction.accounts.length < 2) {
+        throw new Error('Not enough accounts for UpdateTokenMetadataField');
+    }
+    return {
+        accounts: {
+            metadata: instruction.accounts[0],
+            updateAuthority: instruction.accounts[1],
+        },
+        data: updateTokenMetadataFieldInstructionDataDecoder.decode(instruction.data),
+        programAddress: instruction.programAddress,
     };
 }
 
@@ -441,7 +465,8 @@ export function parseToken2022InstructionData(idata: TInstruction): { type: stri
                 return { info: convertInitializeTokenMetadataInfo(parsed), type: 'initializeTokenMetadata' };
             }
             case Token2022Instruction.UpdateTokenMetadataField: {
-                const parsed = parseUpdateTokenMetadataFieldInstruction(idata);
+                // Use custom parser due to bug in library's decoder (getBytesDecoder without fixed size)
+                const parsed = parseUpdateTokenMetadataFieldInstructionCustom(idata);
                 return { info: convertUpdateTokenMetadataFieldInfo(parsed), type: 'updateTokenMetadataField' };
             }
             case Token2022Instruction.RemoveTokenMetadataKey: {
