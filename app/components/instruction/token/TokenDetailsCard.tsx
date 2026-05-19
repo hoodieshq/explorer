@@ -99,6 +99,15 @@ function TokenInstruction(props: InfoProps) {
         decimals = props.info.tokenAmount.decimals;
     }
 
+    attributes.push(
+        <tr key="program">
+            <td>Program</td>
+            <td className="text-lg-end">
+                <Address pubkey={props.ix.programId} alignRight link />
+            </td>
+        </tr>
+    );
+
     if (mintAddress) {
         if (tokenDetails) {
             tokenSymbol = tokenDetails.symbol;
@@ -143,7 +152,9 @@ function TokenInstruction(props: InfoProps) {
 
         let tag;
         let labelSuffix = '';
-        if (value instanceof PublicKey) {
+        if (value === null) {
+            tag = <span className="text-muted">Not set</span>;
+        } else if (value instanceof PublicKey) {
             tag = <Address pubkey={value} alignRight link />;
         } else if (key === 'amount') {
             let amount;
