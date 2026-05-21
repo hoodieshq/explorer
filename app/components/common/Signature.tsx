@@ -12,9 +12,10 @@ type Props = {
     link?: boolean;
     truncate?: boolean;
     truncateChars?: number;
+    className?: string;
 };
 
-export function Signature({ signature, alignRight, link, truncate, truncateChars }: Props) {
+export function Signature({ signature, alignRight, link, truncate, truncateChars, className }: Props) {
     let signatureLabel = signature;
 
     if (truncateChars) {
@@ -22,7 +23,7 @@ export function Signature({ signature, alignRight, link, truncate, truncateChars
     }
     const transactionPath = useClusterPath({ pathname: `/tx/${signature}` });
     return (
-        <div className={cn('d-flex align-items-center', alignRight && 'justify-content-end')}>
+        <div className={cn('d-flex align-items-center', alignRight && 'justify-content-end', className)}>
             <Copyable text={signature}>
                 <span className="font-monospace">
                     {link ? (
