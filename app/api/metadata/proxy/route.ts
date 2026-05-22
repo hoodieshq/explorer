@@ -56,6 +56,9 @@ export async function GET(request: Request) {
         if (e instanceof StatusError && isKnownStatus(e.status)) {
             return respondWithError(e.status);
         }
+        // Defensive: fetchResource is expected to only throw StatusError. Log
+        // anything else so we notice if that invariant breaks.
+        Logger.error(e);
         return respondWithError(500);
     }
 }

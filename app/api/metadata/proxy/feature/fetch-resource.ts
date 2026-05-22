@@ -125,8 +125,10 @@ async function doFetch(url: URL, headers: Headers, timeout: number): Promise<Res
 
 async function processResponse(response: Response, size: number): Promise<FetchResourceResult> {
     // Pre-check Content-Length when present so oversize bodies fail fast.
-    const contentLength = response.headers.get('content-length');
-    if (contentLength && Number(contentLength) > size) {
+    // A malformed header (e.g. "abc") parses to NaN; ignore it and fall through
+    // to readBodyWithLimit, which enforces the limit on the actual byte count.
+    const contentLength = Number(response.headers.get('content-length'));
+    if (Number.isFinite(contentLength) && contentLength > size) {
         await response.body?.cancel();
         throw errors[413];
     }

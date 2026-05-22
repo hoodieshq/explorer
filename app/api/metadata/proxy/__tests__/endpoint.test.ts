@@ -106,6 +106,56 @@ describe('Metadata Proxy Route', () => {
         );
     });
 
+    // Locks in the original passthrough contract: when fetchResource throws a
+    // StatusError with one of these statuses, the route must surface it as-is
+    // rather than collapsing to 500.
+    describe('upstream status passthrough', () => {
+        const TEN_MB = 10 * 1024 * 1024;
+
+        it.each([
+            {
+                description: '413 when upstream Content-Length exceeds MAX_SIZE',
+                mock: () =>
+                    fetchMock.mockResolvedValueOnce(
+                        new Response('{}', {
+                            headers: { 'Content-Length': String(TEN_MB), 'Content-Type': 'application/json' },
+                        }),
+                    ),
+                status: 413,
+            },
+            {
+                description: '415 when upstream returns unsupported content-type',
+                mock: () =>
+                    fetchMock.mockResolvedValueOnce(
+                        new Response('<html></html>', { headers: { 'Content-Type': 'text/html' } }),
+                    ),
+                status: 415,
+            },
+            {
+                description: '504 when upstream fetch times out',
+                mock: () => {
+                    const timeoutError = new Error('Upstream timed out');
+                    timeoutError.name = 'TimeoutError';
+                    fetchMock.mockRejectedValueOnce(timeoutError);
+                },
+                status: 504,
+            },
+            {
+                description: '500 on unclassified upstream failure',
+                mock: () => fetchMock.mockRejectedValueOnce(new Error('boom')),
+                status: 500,
+            },
+        ])('should return $description', async ({ mock, status }) => {
+            vi.stubEnv('NEXT_PUBLIC_METADATA_ENABLED', 'true');
+            dnsLookupMock.mockResolvedValueOnce([{ address: '8.8.8.8' }]);
+            mock();
+
+            const request = new Request(`${ORIGIN}${getProxiedUri('http://external.resource/file.json')}`);
+            const response = await GET(request);
+            expect(response.status).toBe(status);
+        });
+    });
+
     describe('successful response', () => {
         it('should return 200 and forward upstream headers', async () => {
             const { response } = await setup('http://external.resource/file.json', {
