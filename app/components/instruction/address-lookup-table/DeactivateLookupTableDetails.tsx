@@ -19,20 +19,20 @@ export function DeactivateLookupTableDetailsCard(props: InstructionDetailsProps 
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={AddressLookupTableProgram.programId} alignRight link />
+                <td>
+                    <Address pubkey={AddressLookupTableProgram.programId} link />
                 </td>
             </tr>
             <tr>
                 <td>Lookup Table</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.lookupTableAccount} alignRight link />
+                <td>
+                    <Address pubkey={info.lookupTableAccount} link />
                 </td>
             </tr>
             <tr>
                 <td>Lookup Table Authority</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.lookupTableAuthority} alignRight link />
+                <td>
+                    <Address pubkey={info.lookupTableAuthority} link />
                 </td>
             </tr>
         </InstructionCard>

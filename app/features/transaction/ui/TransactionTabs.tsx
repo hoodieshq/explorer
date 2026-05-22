@@ -69,7 +69,7 @@ export function TransactionTabs() {
                     key={t.href}
                     href={t.href}
                     className={cn(
-                        activeTab === t.href && 'e-border-b-accent !e-text-accent',
+                        activeTab === t.href && '!e-border-b-accent !e-text-accent',
                         'e-inline-flex e-items-center e-px-1 e-py-4 e-text-sm',
                         'e-whitespace-nowrap e-text-gray-400 e-no-underline',
                         'e-border-b-2 e-border-b-transparent [border-bottom-style:solid]',

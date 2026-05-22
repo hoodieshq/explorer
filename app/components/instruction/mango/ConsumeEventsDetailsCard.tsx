@@ -28,14 +28,14 @@ export function ConsumeEventsDetailsCard(props: {
             {mangoPerpMarketConfig !== undefined && (
                 <tr>
                     <td>Perp market</td>
-                    <td className="text-lg-end">{mangoPerpMarketConfig.name}</td>
+                    <td>{mangoPerpMarketConfig.name}</td>
                 </tr>
             )}
 
             <tr>
                 <td>Perp market address</td>
                 <td>
-                    <Address pubkey={perpMarketAccountMeta.pubkey} alignRight link />
+                    <Address pubkey={perpMarketAccountMeta.pubkey} link />
                 </td>
             </tr>
         </InstructionCard>

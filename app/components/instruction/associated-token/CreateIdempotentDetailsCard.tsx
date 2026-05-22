@@ -29,43 +29,43 @@ export function CreateIdempotentDetailsCard(props: {
             <ProgramField programId={ix.programId} />
             <tr>
                 <td>Source</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.source} alignRight link />
+                <td>
+                    <Address pubkey={info.source} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Account</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.account} alignRight link />
+                <td>
+                    <Address pubkey={info.account} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Wallet</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.wallet} alignRight link />
+                <td>
+                    <Address pubkey={info.wallet} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Mint</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.mint} alignRight link />
+                <td>
+                    <Address pubkey={info.mint} link />
                 </td>
             </tr>
 
             <tr>
                 <td>System Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.systemProgram} alignRight link />
+                <td>
+                    <Address pubkey={info.systemProgram} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Token Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.tokenProgram} alignRight link />
+                <td>
+                    <Address pubkey={info.tokenProgram} link />
                 </td>
             </tr>
         </InstructionCardComponent>

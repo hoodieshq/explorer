@@ -29,50 +29,50 @@ export function RecoverNestedDetailsCard(props: {
             <ProgramField programId={ix.programId} />
             <tr>
                 <td>Destination</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.destination} alignRight link />
+                <td>
+                    <Address pubkey={info.destination} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Nested Mint</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.nestedMint} alignRight link />
+                <td>
+                    <Address pubkey={info.nestedMint} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Nested Owner</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.nestedOwner} alignRight link />
+                <td>
+                    <Address pubkey={info.nestedOwner} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Nested Source</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.nestedSource} alignRight link />
+                <td>
+                    <Address pubkey={info.nestedSource} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Owner Mint</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.ownerMint} alignRight link />
+                <td>
+                    <Address pubkey={info.ownerMint} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Owner</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.wallet} alignRight link />
+                <td>
+                    <Address pubkey={info.wallet} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Token Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.tokenProgram} alignRight link />
+                <td>
+                    <Address pubkey={info.tokenProgram} link />
                 </td>
             </tr>
         </InstructionCardComponent>

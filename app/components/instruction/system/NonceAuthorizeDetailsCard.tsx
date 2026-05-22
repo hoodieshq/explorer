@@ -26,29 +26,29 @@ export function NonceAuthorizeDetailsCard(props: {
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={SystemProgram.programId} alignRight link />
+                <td>
+                    <Address pubkey={SystemProgram.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Nonce Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.nonceAccount} alignRight link />
+                <td>
+                    <Address pubkey={info.nonceAccount} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Old Authority Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.nonceAuthority} alignRight link />
+                <td>
+                    <Address pubkey={info.nonceAuthority} link />
                 </td>
             </tr>
 
             <tr>
                 <td>New Authority Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.newAuthorized} alignRight link />
+                <td>
+                    <Address pubkey={info.newAuthorized} link />
                 </td>
             </tr>
         </InstructionCard>

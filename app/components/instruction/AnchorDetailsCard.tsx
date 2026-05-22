@@ -171,15 +171,13 @@ function AnchorDetails({ ix, anchorProgram }: { ix: TransactionInstruction; anch
         <>
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end" colSpan={2}>
-                    <Address pubkey={ix.programId} alignRight link raw overrideText={programName} />
+                <td colSpan={2}>
+                    <Address pubkey={ix.programId} link raw overrideText={programName} />
                 </td>
             </tr>
             <tr className="table-sep">
                 <td>Account Name</td>
-                <td className="text-lg-end" colSpan={2}>
-                    Address
-                </td>
+                <td colSpan={2}>Address</td>
             </tr>
             {(() => {
                 const rows: JSX.Element[] = [];
@@ -217,7 +215,7 @@ function AnchorDetails({ ix, anchorProgram }: { ix: TransactionInstruction; anch
                                 rows.push(
                                     <tr key={`group-${groupHeaderIndex}`} className="table-group-header">
                                         <td colSpan={2}>{camelToTitleCase(currentInfo.name)}</td>
-                                        <td className="text-lg-end" onClick={() => toggleGroup(groupHeaderIndex)}>
+                                        <td onClick={() => toggleGroup(groupHeaderIndex)}>
                                             <div className="c-pointer">
                                                 {isExpanded ? (
                                                     <>
@@ -285,8 +283,8 @@ function AnchorDetails({ ix, anchorProgram }: { ix: TransactionInstruction; anch
                                     {isSigner && <span className="badge bg-info-soft me-1">Signer</span>}
                                 </div>
                             </td>
-                            <td className="text-lg-end" colSpan={2}>
-                                <Address pubkey={pubkey} alignRight link />
+                            <td colSpan={2}>
+                                <Address pubkey={pubkey} link />
                             </td>
                         </tr>,
                     );
@@ -302,7 +300,7 @@ function AnchorDetails({ ix, anchorProgram }: { ix: TransactionInstruction; anch
                     <tr className="table-sep">
                         <td>Argument Name</td>
                         <td>Type</td>
-                        <td className="text-lg-end">Value</td>
+                        <td>Value</td>
                     </tr>
                     {mapIxArgsToRows(decodedIxData.data, ixDef, anchorProgram.idl)}
                 </>

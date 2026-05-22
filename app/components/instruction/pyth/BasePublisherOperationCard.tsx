@@ -33,22 +33,22 @@ export default function BasePublisherOperationCard({
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={ix.programId} alignRight link />
+                <td>
+                    <Address pubkey={ix.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Price Account</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.pricePubkey} alignRight link />
+                <td>
+                    <Address pubkey={info.pricePubkey} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Publisher</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.publisherPubkey} alignRight link />
+                <td>
+                    <Address pubkey={info.publisherPubkey} link />
                 </td>
             </tr>
         </InstructionCard>

@@ -63,53 +63,53 @@ export function PlaceSpotOrderDetailsCard(props: {
                 <td>Mango account</td>
                 <td>
                     {' '}
-                    <Address pubkey={mangoAccount.pubkey} alignRight link />
+                    <Address pubkey={mangoAccount.pubkey} link />
                 </td>
             </tr>
 
             {mangoSpotMarketConfig !== undefined && (
                 <tr>
                     <td>Spot market</td>
-                    <td className="text-lg-end">{mangoSpotMarketConfig.name}</td>
+                    <td>{mangoSpotMarketConfig.name}</td>
                 </tr>
             )}
 
             <tr>
                 <td>Spot market address</td>
                 <td>
-                    <Address pubkey={spotMarketAccountMeta.pubkey} alignRight link />
+                    <Address pubkey={spotMarketAccountMeta.pubkey} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Order type</td>
-                <td className="text-lg-end">{info.orderType}</td>
+                <td>{info.orderType}</td>
             </tr>
 
             {info.clientId !== '0' && (
                 <tr>
                     <td>Client Id</td>
-                    <td className="text-lg-end">{info.clientId}</td>
+                    <td>{info.clientId}</td>
                 </tr>
             )}
 
             <tr>
                 <td>Side</td>
-                <td className="text-lg-end">{info.side}</td>
+                <td>{info.side}</td>
             </tr>
 
             {orderLotDetails !== null && (
                 <tr>
                     <td>Limit price</td>
                     {/* todo fix price */}
-                    <td className="text-lg-end">{orderLotDetails?.price} USDC</td>
+                    <td>{orderLotDetails?.price} USDC</td>
                 </tr>
             )}
 
             {orderLotDetails !== null && (
                 <tr>
                     <td>Size</td>
-                    <td className="text-lg-end">{orderLotDetails?.size}</td>
+                    <td>{orderLotDetails?.size}</td>
                 </tr>
             )}
         </InstructionCard>

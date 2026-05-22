@@ -18,35 +18,35 @@ export function CancelOrderByClientIdDetailsCard(props: SerumIxDetailsProps<Canc
         >
             <tr>
                 <td>Market</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.market} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.market} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Open Orders</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.openOrders} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.openOrders} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Request Queue</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.requestQueue} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.requestQueue} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Open Orders Owner</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.openOrdersOwner} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.openOrdersOwner} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Client Id</td>
-                <td className="text-lg-end">{info.data.clientId.toString(10)}</td>
+                <td>{info.data.clientId.toString(10)}</td>
             </tr>
         </InstructionCard>
     );

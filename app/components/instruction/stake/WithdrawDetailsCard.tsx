@@ -27,35 +27,35 @@ export function WithdrawDetailsCard(props: {
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={StakeProgram.programId} alignRight link />
+                <td>
+                    <Address pubkey={StakeProgram.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Stake Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.stakeAccount} alignRight link />
+                <td>
+                    <Address pubkey={info.stakeAccount} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Authority Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.withdrawAuthority} alignRight link />
+                <td>
+                    <Address pubkey={info.withdrawAuthority} link />
                 </td>
             </tr>
 
             <tr>
                 <td>To Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.destination} alignRight link />
+                <td>
+                    <Address pubkey={info.destination} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Withdraw Amount (SOL)</td>
-                <td className="text-lg-end">
+                <td>
                     <SolBalance lamports={info.lamports} />
                 </td>
             </tr>

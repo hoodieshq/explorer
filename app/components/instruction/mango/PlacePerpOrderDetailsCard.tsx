@@ -56,56 +56,56 @@ export function PlacePerpOrderDetailsCard(props: {
                 <td>Mango account</td>
                 <td>
                     {' '}
-                    <Address pubkey={mangoAccount.pubkey} alignRight link />
+                    <Address pubkey={mangoAccount.pubkey} link />
                 </td>
             </tr>
 
             {mangoPerpMarketConfig !== undefined && (
                 <tr>
                     <td>Perp market</td>
-                    <td className="text-lg-end">{mangoPerpMarketConfig.name}</td>
+                    <td>{mangoPerpMarketConfig.name}</td>
                 </tr>
             )}
 
             <tr>
                 <td>Perp market address</td>
                 <td>
-                    <Address pubkey={perpMarketAccountMeta.pubkey} alignRight link />
+                    <Address pubkey={perpMarketAccountMeta.pubkey} link />
                 </td>
             </tr>
 
             {info.clientOrderId !== '0' && (
                 <tr>
                     <td>Client order Id</td>
-                    <td className="text-lg-end">{info.clientOrderId}</td>
+                    <td>{info.clientOrderId}</td>
                 </tr>
             )}
 
             <tr>
                 <td>Order type</td>
-                <td className="text-lg-end">{info.orderType}</td>
+                <td>{info.orderType}</td>
             </tr>
             <tr>
                 <td>side</td>
-                <td className="text-lg-end">{info.side}</td>
+                <td>{info.side}</td>
             </tr>
 
             {orderLotDetails !== null && (
                 <tr>
                     <td>price</td>
-                    <td className="text-lg-end">{orderLotDetails?.price} USDC</td>
+                    <td>{orderLotDetails?.price} USDC</td>
                 </tr>
             )}
 
             {orderLotDetails !== null && (
                 <tr>
                     <td>quantity</td>
-                    <td className="text-lg-end">{orderLotDetails?.size}</td>
+                    <td>{orderLotDetails?.size}</td>
                 </tr>
             )}
             <tr>
                 <td>Reduce only</td>
-                <td className="text-lg-end">{info.reduceOnly}</td>
+                <td>{info.reduceOnly}</td>
             </tr>
         </InstructionCard>
     );

@@ -18,43 +18,43 @@ export function SweepFeesDetailsCard(props: SerumIxDetailsProps<SweepFees>) {
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.programId} alignRight link />
+                <td>
+                    <Address pubkey={info.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Market</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.market} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.market} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Quote Vault</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.quoteVault} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.quoteVault} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Fee Sweeping Authority</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.feeSweepingAuthority} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.feeSweepingAuthority} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Fee Receiver</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.quoteFeeReceiver} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.quoteFeeReceiver} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Vault Signer</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.vaultSigner} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.vaultSigner} link />
                 </td>
             </tr>
         </InstructionCard>

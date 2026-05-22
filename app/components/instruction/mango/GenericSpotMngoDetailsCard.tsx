@@ -31,21 +31,21 @@ export function GenericSpotMngoDetailsCard(props: {
             <tr>
                 <td>Mango account</td>
                 <td>
-                    <Address pubkey={mangoAccount.pubkey} alignRight link />
+                    <Address pubkey={mangoAccount.pubkey} link />
                 </td>
             </tr>
 
             {mangoSpotMarketConfig !== undefined && (
                 <tr>
                     <td>Spot market</td>
-                    <td className="text-lg-end">{mangoSpotMarketConfig.name}</td>
+                    <td>{mangoSpotMarketConfig.name}</td>
                 </tr>
             )}
 
             <tr>
                 <td>Spot market address</td>
                 <td>
-                    <Address pubkey={spotMarketAccountMeta.pubkey} alignRight link />
+                    <Address pubkey={spotMarketAccountMeta.pubkey} link />
                 </td>
             </tr>
         </InstructionCard>

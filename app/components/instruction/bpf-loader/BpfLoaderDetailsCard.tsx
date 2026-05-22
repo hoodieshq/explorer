@@ -67,15 +67,15 @@ export function BpfLoaderWriteDetailsCard(props: Props<WriteInfo>) {
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={BPF_LOADER_PROGRAM_ID} alignRight link />
+                <td>
+                    <Address pubkey={BPF_LOADER_PROGRAM_ID} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Account</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.account} alignRight link />
+                <td>
+                    <Address pubkey={info.account} link />
                 </td>
             </tr>
 
@@ -83,14 +83,14 @@ export function BpfLoaderWriteDetailsCard(props: Props<WriteInfo>) {
                 <td>
                     Bytes <span className="text-muted">(Base 64)</span>
                 </td>
-                <td className="text-lg-end">
+                <td>
                     <pre className="d-inline-block text-start mb-0">{bytes}</pre>
                 </td>
             </tr>
 
             <tr>
                 <td>Offset</td>
-                <td className="text-lg-end">{info.offset}</td>
+                <td>{info.offset}</td>
             </tr>
         </InstructionCard>
     );
@@ -110,15 +110,15 @@ export function BpfLoaderFinalizeDetailsCard(props: Props<FinalizeInfo>) {
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={BPF_LOADER_PROGRAM_ID} alignRight link />
+                <td>
+                    <Address pubkey={BPF_LOADER_PROGRAM_ID} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Account</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.account} alignRight link />
+                <td>
+                    <Address pubkey={info.account} link />
                 </td>
             </tr>
         </InstructionCard>

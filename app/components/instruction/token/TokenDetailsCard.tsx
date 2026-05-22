@@ -121,8 +121,8 @@ function TokenInstruction({
         attributes.push(
             <tr key={mintAddress}>
                 <td>Token</td>
-                <td className="text-lg-end">
-                    <Address pubkey={new PublicKey(mintAddress)} alignRight link fetchTokenLabelInfo />
+                <td>
+                    <Address pubkey={new PublicKey(mintAddress)} link fetchTokenLabelInfo />
                 </td>
             </tr>,
         );
@@ -141,8 +141,8 @@ function TokenInstruction({
                 attributes.push(
                     <tr key={key + i}>
                         <td>{label}</td>
-                        <td className="text-lg-end">
-                            <Address pubkey={publicKey} alignRight link />
+                        <td>
+                            <Address pubkey={publicKey} link />
                         </td>
                     </tr>,
                 );
@@ -158,7 +158,7 @@ function TokenInstruction({
         let tag;
         let labelSuffix = '';
         if (value instanceof PublicKey) {
-            tag = <Address pubkey={value} alignRight link />;
+            tag = <Address pubkey={value} link />;
         } else if (key === 'amount') {
             let amount;
             if (decimals === undefined) {
@@ -184,7 +184,7 @@ function TokenInstruction({
         attributes.push(
             <tr key={key}>
                 <td>{label}</td>
-                <td className="text-lg-end">{tag}</td>
+                <td>{tag}</td>
             </tr>,
         );
     }

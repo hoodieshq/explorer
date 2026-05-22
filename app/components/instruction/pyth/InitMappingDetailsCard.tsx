@@ -31,22 +31,22 @@ export default function InitMappingDetailsCard({
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={ix.programId} alignRight link />
+                <td>
+                    <Address pubkey={ix.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Funding Account</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.fundingPubkey} alignRight link />
+                <td>
+                    <Address pubkey={info.fundingPubkey} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Mapping Account</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.mappingPubkey} alignRight link />
+                <td>
+                    <Address pubkey={info.mappingPubkey} link />
                 </td>
             </tr>
         </InstructionCard>

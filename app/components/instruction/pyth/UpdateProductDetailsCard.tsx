@@ -42,22 +42,22 @@ export default function UpdateProductDetailsCard({
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={ix.programId} alignRight link />
+                <td>
+                    <Address pubkey={ix.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Funding Account</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.fundingPubkey} alignRight link />
+                <td>
+                    <Address pubkey={info.fundingPubkey} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Product Account</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.productPubkey} alignRight link />
+                <td>
+                    <Address pubkey={info.productPubkey} link />
                 </td>
             </tr>
 
@@ -65,7 +65,7 @@ export default function UpdateProductDetailsCard({
                 <td>
                     Attributes <span className="text-muted">(JSON)</span>
                 </td>
-                <td className="text-lg-end">
+                <td>
                     <div className="d-none d-lg-flex align-items-center justify-content-end">
                         <Content />
                     </div>

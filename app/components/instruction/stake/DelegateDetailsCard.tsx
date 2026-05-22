@@ -26,29 +26,29 @@ export function DelegateDetailsCard(props: {
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={StakeProgram.programId} alignRight link />
+                <td>
+                    <Address pubkey={StakeProgram.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Stake Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.stakeAccount} alignRight link />
+                <td>
+                    <Address pubkey={info.stakeAccount} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Delegated Vote Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.voteAccount} alignRight link />
+                <td>
+                    <Address pubkey={info.voteAccount} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Authority Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.stakeAuthority} alignRight link />
+                <td>
+                    <Address pubkey={info.stakeAuthority} link />
                 </td>
             </tr>
         </InstructionCard>

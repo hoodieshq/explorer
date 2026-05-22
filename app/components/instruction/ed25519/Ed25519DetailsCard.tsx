@@ -95,8 +95,8 @@ export function Ed25519DetailsCard(props: DetailsProps) {
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={ED25519_PROGRAM_ID} alignRight link />
+                <td>
+                    <Address pubkey={ED25519_PROGRAM_ID} link />
                 </td>
             </tr>
 
@@ -128,7 +128,7 @@ export function Ed25519DetailsCard(props: DetailsProps) {
                         </tr>
                         <tr>
                             <td>Signature Reference</td>
-                            <td className="text-lg-end">
+                            <td>
                                 {offset.signatureInstructionIndex === ED25519_SELF_REFERENCE_INSTRUCTION_INDEX
                                     ? 'This instruction'
                                     : `Instruction ${offset.signatureInstructionIndex}`}
@@ -138,7 +138,7 @@ export function Ed25519DetailsCard(props: DetailsProps) {
                         </tr>
                         <tr>
                             <td>Signature</td>
-                            <td className="text-lg-end">
+                            <td>
                                 {signature ? (
                                     <Copyable text={toBase64(signature)}>
                                         <span className="font-monospace">{toBase64(signature)}</span>
@@ -150,7 +150,7 @@ export function Ed25519DetailsCard(props: DetailsProps) {
                         </tr>
                         <tr>
                             <td>Public Key Reference</td>
-                            <td className="text-lg-end">
+                            <td>
                                 {offset.publicKeyInstructionIndex === ED25519_SELF_REFERENCE_INSTRUCTION_INDEX
                                     ? 'This instruction'
                                     : `Instruction ${offset.publicKeyInstructionIndex}`}
@@ -160,17 +160,11 @@ export function Ed25519DetailsCard(props: DetailsProps) {
                         </tr>
                         <tr>
                             <td>Public Key</td>
-                            <td className="text-lg-end">
-                                {pubkey ? (
-                                    <Address pubkey={new PublicKey(pubkey)} alignRight link />
-                                ) : (
-                                    'Invalid reference'
-                                )}
-                            </td>
+                            <td>{pubkey ? <Address pubkey={new PublicKey(pubkey)} link /> : 'Invalid reference'}</td>
                         </tr>
                         <tr>
                             <td>Message Reference</td>
-                            <td className="text-lg-end">
+                            <td>
                                 {offset.messageInstructionIndex === ED25519_SELF_REFERENCE_INSTRUCTION_INDEX
                                     ? 'This instruction'
                                     : `Instruction ${offset.messageInstructionIndex}`}
@@ -181,7 +175,6 @@ export function Ed25519DetailsCard(props: DetailsProps) {
                         <tr>
                             <td>Message</td>
                             <td
-                                className="text-lg-end"
                                 style={{
                                     fontSize: '0.85rem',
                                     lineHeight: '1.2',

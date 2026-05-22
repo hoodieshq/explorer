@@ -18,72 +18,72 @@ export function SettleFundsDetailsCard(props: SerumIxDetailsProps<SettleFunds>) 
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.programId} alignRight link />
+                <td>
+                    <Address pubkey={info.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Market</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.market} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.market} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Open Orders</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.openOrders} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.openOrders} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Open Orders Owner</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.openOrdersOwner} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.openOrdersOwner} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Base Vault</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.baseVault} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.baseVault} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Quote Vault</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.quoteVault} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.quoteVault} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Base Wallet</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.baseWallet} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.baseWallet} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Quote Wallet</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.quoteWallet} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.quoteWallet} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Vault Signer</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.vaultSigner} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.vaultSigner} link />
                 </td>
             </tr>
 
             {info.accounts.referrerQuoteWallet && (
                 <tr>
                     <td>Referrer Quote Wallet</td>
-                    <td className="text-lg-end">
-                        <Address pubkey={info.accounts.referrerQuoteWallet} alignRight link />
+                    <td>
+                        <Address pubkey={info.accounts.referrerQuoteWallet} link />
                     </td>
                 </tr>
             )}

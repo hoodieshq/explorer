@@ -58,11 +58,10 @@ export function mapCodamaIxArgsToRows(data: any, nestingLevel = 0) {
 
         let displayValue;
         if (type === 'pubkey') {
-            displayValue = <Address pubkey={new PublicKey(value as string)} alignRight link />;
+            displayValue = <Address pubkey={new PublicKey(value as string)} link />;
         } else if (type === 'string') {
             displayValue = (
                 <td
-                    className="text-lg-end"
                     style={{
                         fontSize: '0.85rem',
                         lineHeight: '1.2',
@@ -96,7 +95,6 @@ export function mapCodamaIxArgsToRows(data: any, nestingLevel = 0) {
                 <td>{type}</td>
                 {type === 'string' ? (
                     <td
-                        className="text-lg-end"
                         style={{
                             fontSize: '0.85rem',
                             lineHeight: '1.2',
@@ -111,7 +109,7 @@ export function mapCodamaIxArgsToRows(data: any, nestingLevel = 0) {
                         </Copyable>
                     </td>
                 ) : (
-                    <td className="text-lg-end">{displayValue}</td>
+                    <td>{displayValue}</td>
                 )}
             </tr>
         );

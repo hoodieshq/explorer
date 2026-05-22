@@ -31,28 +31,28 @@ export default function SetMinPublishersDetailsCard({
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={ix.programId} alignRight link />
+                <td>
+                    <Address pubkey={ix.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Funding Account</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.fundingPubkey} alignRight link />
+                <td>
+                    <Address pubkey={info.fundingPubkey} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Price Account</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.pricePubkey} alignRight link />
+                <td>
+                    <Address pubkey={info.pricePubkey} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Min Publishers</td>
-                <td className="text-lg-end">{info.minPublishers}</td>
+                <td>{info.minPublishers}</td>
             </tr>
         </InstructionCard>
     );

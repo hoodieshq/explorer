@@ -26,35 +26,35 @@ export function AuthorizeDetailsCard(props: {
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={StakeProgram.programId} alignRight link />
+                <td>
+                    <Address pubkey={StakeProgram.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Stake Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.stakeAccount} alignRight link />
+                <td>
+                    <Address pubkey={info.stakeAccount} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Old Authority Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.authority} alignRight link />
+                <td>
+                    <Address pubkey={info.authority} link />
                 </td>
             </tr>
 
             <tr>
                 <td>New Authority Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.newAuthority} alignRight link />
+                <td>
+                    <Address pubkey={info.newAuthority} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Authority Type</td>
-                <td className="text-lg-end">{info.authorityType}</td>
+                <td>{info.authorityType}</td>
             </tr>
         </InstructionCard>
     );

@@ -72,7 +72,7 @@ function renderDetails<T extends object>(props: DetailsProps, parsed: ParsedInfo
         const key = entry[0];
         let value = entry[1];
         if (value instanceof PublicKey) {
-            value = <Address pubkey={value} alignRight link />;
+            value = <Address pubkey={value} link />;
         } else if (key === 'bytes') {
             value = <pre className="d-inline-block text-start mb-0 data-wrap">{value}</pre>;
         } else if (value === null) {
@@ -84,7 +84,7 @@ function renderDetails<T extends object>(props: DetailsProps, parsed: ParsedInfo
                 <td>
                     {camelToTitleCase(key)} {key === 'bytes' && <span className="text-muted">(Base 64)</span>}
                 </td>
-                <td className="text-lg-end">{value}</td>
+                <td>{value}</td>
             </tr>,
         );
     }
@@ -93,8 +93,8 @@ function renderDetails<T extends object>(props: DetailsProps, parsed: ParsedInfo
         <InstructionCard {...props} title={`BPF Upgradeable Loader: ${camelToTitleCase(parsed.type)}`}>
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={props.ix.programId} alignRight link />
+                <td>
+                    <Address pubkey={props.ix.programId} link />
                 </td>
             </tr>
             {attributes}

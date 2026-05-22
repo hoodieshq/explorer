@@ -43,7 +43,6 @@ export function BaseInstructionCard({
     raw,
     onRequestRaw,
     headerButtons,
-    collapsible = false,
 }: InstructionProps) {
     const [resultClass] = ixResult(result, index);
     const [showRaw, setShowRaw] = React.useState(defaultRaw || false);
@@ -61,7 +60,6 @@ export function BaseInstructionCard({
     return (
         <CollapsibleCard
             ref={scrollAnchorRef}
-            collapsible={collapsible}
             title={
                 <>
                     <span className={`badge bg-${resultClass}-soft me-2`}>
@@ -88,15 +86,21 @@ export function BaseInstructionCard({
                 </div>
             }
         >
-            <div className="table-responsive mb-0">
-                <table className="table table-sm table-nowrap card-table">
-                    <tbody className="list">
+            <div className="mb-0">
+                <table
+                    className={cn(
+                        'e-mb-0 e-w-full e-border-collapse [&_th]:e-whitespace-nowrap',
+                        '[&_tr]:e-border-b [&_tr]:e-border-white/10 [&_tr]:[border-bottom-style:solid] [&_tr:last-child]:e-border-b-0',
+                        '[&_td]:e-px-3 [&_td]:e-py-1.5 [&_td]:e-text-sm md:[&_td]:e-px-4 [&_td]:e-whitespace-nowrap [&_td:first-child]:e-text-muted'
+                    )}
+                >
+                    <tbody>
                         {showRaw ? (
                             <>
                                 <tr>
                                     <td>Program</td>
-                                    <td className="text-lg-end">
-                                        <Address pubkey={ix.programId} alignRight link />
+                                    <td>
+                                        <Address pubkey={ix.programId} link />
                                     </td>
                                 </tr>
                                 {'parsed' in ix ? (

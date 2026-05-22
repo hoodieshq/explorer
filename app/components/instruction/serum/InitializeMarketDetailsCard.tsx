@@ -18,97 +18,97 @@ export function InitializeMarketDetailsCard(props: SerumIxDetailsProps<Initializ
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.programId} alignRight link />
+                <td>
+                    <Address pubkey={info.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Market</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.market} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.market} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Request Queue</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.requestQueue} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.requestQueue} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Event Queue</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.eventQueue} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.eventQueue} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Bids</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.bids} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.bids} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Asks</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.asks} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.asks} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Base Vault</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.baseVault} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.baseVault} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Quote Vault</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.quoteVault} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.quoteVault} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Base Mint</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.baseMint} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.baseMint} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Quote Mint</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.quoteMint} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.quoteMint} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Base Lot Size</td>
-                <td className="text-lg-end">{info.data.baseLotSize.toString(10)}</td>
+                <td>{info.data.baseLotSize.toString(10)}</td>
             </tr>
 
             <tr>
                 <td>Quote Lot Size</td>
-                <td className="text-lg-end">{info.data.quoteLotSize.toString(10)}</td>
+                <td>{info.data.quoteLotSize.toString(10)}</td>
             </tr>
 
             <tr>
                 <td>Fee Rate Bps</td>
-                <td className="text-lg-end">{info.data.feeRateBps}</td>
+                <td>{info.data.feeRateBps}</td>
             </tr>
 
             <tr>
                 <td>Quote Dust Threshold</td>
-                <td className="text-lg-end">{info.data.quoteDustThreshold.toString(10)}</td>
+                <td>{info.data.quoteDustThreshold.toString(10)}</td>
             </tr>
 
             <tr>
                 <td>Vault Signer Nonce</td>
-                <td className="text-lg-end">{info.data.vaultSignerNonce.toString(10)}</td>
+                <td>{info.data.vaultSignerNonce.toString(10)}</td>
             </tr>
         </InstructionCard>
     );

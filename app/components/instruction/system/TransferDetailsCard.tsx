@@ -27,28 +27,28 @@ export function TransferDetailsCard(props: {
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={SystemProgram.programId} alignRight link />
+                <td>
+                    <Address pubkey={SystemProgram.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>From Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.source} alignRight link />
+                <td>
+                    <Address pubkey={info.source} link />
                 </td>
             </tr>
 
             <tr>
                 <td>To Address</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.destination} alignRight link />
+                <td>
+                    <Address pubkey={info.destination} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Transfer Amount (SOL)</td>
-                <td className="text-lg-end">
+                <td>
                     <SolBalance lamports={info.lamports} />
                 </td>
             </tr>

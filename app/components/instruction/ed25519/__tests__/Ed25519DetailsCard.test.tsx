@@ -7,8 +7,8 @@ import { Ed25519DetailsCard } from '../Ed25519DetailsCard';
 
 // Mock the dependencies
 vi.mock('../../../common/Address', () => ({
-    Address: ({ pubkey, alignRight, link }: { pubkey: PublicKey; alignRight?: boolean; link?: boolean }) => (
-        <div data-testid="address" className={`${alignRight ? 'text-end' : ''} ${link ? 'text-link' : ''}`}>
+    Address: ({ pubkey, link }: { pubkey: PublicKey; link?: boolean }) => (
+        <div data-testid="address" className={`${link ? 'text-link' : ''}`}>
             {pubkey.toBase58()}
         </div>
     ),

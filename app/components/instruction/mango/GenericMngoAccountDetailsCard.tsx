@@ -27,7 +27,7 @@ export function GenericMngoAccountDetailsCard(props: {
             <tr>
                 <td>Mango account</td>
                 <td>
-                    <Address pubkey={mangoAccount.pubkey} alignRight link />
+                    <Address pubkey={mangoAccount.pubkey} link />
                 </td>
             </tr>
         </InstructionCard>

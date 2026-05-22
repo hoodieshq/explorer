@@ -18,22 +18,22 @@ export function DisableMarketDetailsCard(props: SerumIxDetailsProps<DisableMarke
         >
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.programId} alignRight link />
+                <td>
+                    <Address pubkey={info.programId} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Market</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.market} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.market} link />
                 </td>
             </tr>
 
             <tr>
                 <td>Disable Authority</td>
-                <td className="text-lg-end">
-                    <Address pubkey={info.accounts.disableAuthority} alignRight link />
+                <td>
+                    <Address pubkey={info.accounts.disableAuthority} link />
                 </td>
             </tr>
         </InstructionCard>

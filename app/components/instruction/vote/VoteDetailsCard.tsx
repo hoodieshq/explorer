@@ -58,14 +58,14 @@ function renderDetails<T extends object>(props: InstructionDetailsProps, parsed:
         const key = entry[0];
         let value = entry[1];
         if (value instanceof PublicKey) {
-            value = <Address pubkey={value} alignRight link />;
+            value = <Address pubkey={value} link />;
         }
 
         if (key === 'vote') {
             attributes.push(
                 <tr key="vote-hash">
                     <td>Vote Hash</td>
-                    <td className="text-lg-end">
+                    <td>
                         <pre className="d-inline-block text-start mb-0">{value.hash}</pre>
                     </td>
                 </tr>,
@@ -75,7 +75,7 @@ function renderDetails<T extends object>(props: InstructionDetailsProps, parsed:
                 attributes.push(
                     <tr key="timestamp">
                         <td>Timestamp</td>
-                        <td className="text-lg-end font-monospace">{displayTimestamp(value.timestamp * 1000)}</td>
+                        <td className="font-monospace">{displayTimestamp(value.timestamp * 1000)}</td>
                     </tr>,
                 );
             }
@@ -83,7 +83,7 @@ function renderDetails<T extends object>(props: InstructionDetailsProps, parsed:
             attributes.push(
                 <tr key="vote-slots">
                     <td>Slots</td>
-                    <td className="text-lg-end font-monospace">
+                    <td className="font-monospace">
                         <pre className="d-inline-block text-start mb-0">{value.slots.join('\n')}</pre>
                     </td>
                 </tr>,
@@ -92,7 +92,7 @@ function renderDetails<T extends object>(props: InstructionDetailsProps, parsed:
             attributes.push(
                 <tr key={key}>
                     <td>{camelToTitleCase(key)} </td>
-                    <td className="text-lg-end">{value}</td>
+                    <td>{value}</td>
                 </tr>,
             );
         }
@@ -102,8 +102,8 @@ function renderDetails<T extends object>(props: InstructionDetailsProps, parsed:
         <InstructionCard {...props} title={`Vote: ${camelToTitleCase(parsed.type)}`}>
             <tr>
                 <td>Program</td>
-                <td className="text-lg-end">
-                    <Address pubkey={props.ix.programId} alignRight link />
+                <td>
+                    <Address pubkey={props.ix.programId} link />
                 </td>
             </tr>
             {attributes}
