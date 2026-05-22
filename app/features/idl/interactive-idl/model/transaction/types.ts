@@ -5,7 +5,7 @@ export type InstructionInvocationResult =
     | { status: 'error'; message: string; logs: string[]; serializedTxMessage: string | null; finishedAt: Date }
     | null;
 
-export type SimulationResult =
+export type InstructionSimulationResult =
     | {
           status: 'success';
           logs: string[];

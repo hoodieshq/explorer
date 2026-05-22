@@ -8,7 +8,7 @@ import { Logger } from '@/app/shared/lib/logger';
 
 import type { BaseIdl } from '../unified-program';
 import { formatTransactionError } from './format-transaction-error';
-import type { SimulationResult } from './types';
+import type { InstructionSimulationResult } from './types';
 
 // Any base58 32-byte value works as a placeholder when replaceRecentBlockhash=true.
 const PLACEHOLDER_BLOCKHASH = PublicKey.default.toBase58();
@@ -21,14 +21,15 @@ export function useSimulateTransaction(opts: {
     const { connection, simulationCommitment, idlErrors } = opts;
     const { parseLogs } = useParsedLogs(null);
     const [isSimulating, setIsSimulating] = useState(false);
-    const [lastSimulation, setLastSimulation] = useState<SimulationResult>(null);
+    const [lastSimulation, setLastSimulation] = useState<InstructionSimulationResult>(null);
 
     const simulate = useCallback(
         async (buildTx: () => Promise<Transaction>): Promise<void> => {
             setIsSimulating(true);
             setLastSimulation(null);
+            let transaction: Transaction | undefined;
             try {
-                const transaction = await buildTx();
+                transaction = await buildTx();
                 if (!transaction.recentBlockhash) {
                     transaction.recentBlockhash = PLACEHOLDER_BLOCKHASH;
                 }
@@ -58,11 +59,11 @@ export function useSimulateTransaction(opts: {
                     unitsConsumed: result.value.unitsConsumed,
                 });
             } catch (e) {
-                Logger.error(e as Error);
+                Logger.error(e, { transaction });
                 setLastSimulation({
                     finishedAt: new Date(),
                     logs: [],
-                    message: (e as Error).message ?? 'Simulation failed',
+                    message: e instanceof Error ? e.message : 'Simulation failed',
                     status: 'error',
                 });
             } finally {

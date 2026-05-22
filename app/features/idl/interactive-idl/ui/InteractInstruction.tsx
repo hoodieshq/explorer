@@ -69,8 +69,7 @@ export function InteractInstruction({
     });
     usePdaPrefill({ fieldNames, form, instruction, pdas });
 
-    const executeDisabled = !walletConnected || isExecuting || isSimulating;
-    const simulateDisabled = !walletConnected || isExecuting || isSimulating;
+    const interactionDisabled = !walletConnected || isExecuting || isSimulating;
 
     return (
         <Card variant="tight">
@@ -151,11 +150,15 @@ export function InteractInstruction({
                     <div className="e-flex e-gap-2 e-px-6 e-pb-2.5">
                         <ExecuteButton
                             onClick={onSubmit}
-                            disabled={executeDisabled}
+                            disabled={interactionDisabled}
                             isExecuting={isExecuting}
                             tooltipText="Connect your wallet to execute the instruction"
                         />
-                        <SimulateButton onClick={onSimulate} disabled={simulateDisabled} isSimulating={isSimulating} />
+                        <SimulateButton
+                            onClick={onSimulate}
+                            disabled={interactionDisabled}
+                            isSimulating={isSimulating}
+                        />
                     </div>
                 </AccordionContent>
             </AccordionItem>

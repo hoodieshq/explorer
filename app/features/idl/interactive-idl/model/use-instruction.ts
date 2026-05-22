@@ -15,7 +15,7 @@ import { AnchorInterpreter } from './anchor/anchor-interpreter';
 import { CodamaInterpreter } from './codama/codama-interpreter';
 import { IdlExecutor } from './idl-executor';
 import { buildTransaction } from './transaction/build-transaction';
-import type { InstructionInvocationResult, SimulationResult } from './transaction/types';
+import type { InstructionInvocationResult, InstructionSimulationResult } from './transaction/types';
 import { useInvokeTransaction } from './transaction/use-invoke-transaction';
 import { useSimulateTransaction } from './transaction/use-simulate-transaction';
 import type { UnifiedWallet } from './unified-program';
@@ -57,7 +57,7 @@ interface UseInstructionReturn {
     isSimulating: boolean;
     preInvocationError: string | null;
     lastResult: InstructionInvocationResult;
-    lastSimulation: SimulationResult;
+    lastSimulation: InstructionSimulationResult;
     parseLogs: ReturnType<typeof useInvokeTransaction>['parseLogs'];
     simulateParseLogs: ReturnType<typeof useSimulateTransaction>['parseLogs'];
     initializeProgram: () => void;
@@ -135,10 +135,12 @@ export function useInstruction({
             setProgram(p);
             setInitializationError(null);
         } catch (error) {
-            const errorMessage = handleInitializeError(error);
-
-            Logger.error(new Error(errorMessage));
-            setInitializationError(errorMessage);
+            Logger.error(error, {
+                context: 'initializeProgram',
+                interpreterName,
+                programId: programId.toString(),
+            });
+            setInitializationError(handleInitializeError(error));
             setProgram(undefined);
         } finally {
             setIsProgramLoading(false);
@@ -238,7 +240,7 @@ export function useInstruction({
             _instruction: InstructionData,
             params: { accounts: any; arguments: Record<string, string> },
         ): Promise<void> => simulate(makeTxBuilder(instructionName, params)),
-        [simulate, makeTxBuilder],
+        [simulate, makeTxBuilder, programId],
     );
 
     return {
