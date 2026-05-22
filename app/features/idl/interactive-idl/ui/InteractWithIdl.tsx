@@ -20,7 +20,8 @@ export interface InteractWithIdlAnalyticsCallbacks {
     onTabOpened?: (programId?: string) => void;
     onTransactionConfirmed?: (programId?: string, instructionName?: string, signature?: string) => void;
     onTransactionFailed?: (programId?: string, instructionName?: string, error?: string) => void;
-    onTransactionSubmitted?: (programId?: string, instructionName?: string) => void;
+    onTransactionSimulationStart?: (programId?: string, instructionName?: string) => void;
+    onTransactionInvocationStart?: (programId?: string, instructionName?: string) => void;
     onWalletConnected?: (programId?: string, walletType?: string) => void;
 }
 
@@ -31,7 +32,8 @@ export function InteractWithIdl({
     onTabOpened,
     onTransactionConfirmed,
     onTransactionFailed,
-    onTransactionSubmitted,
+    onTransactionSimulationStart,
+    onTransactionInvocationStart,
     onWalletConnected,
 }: {
     data?: InstructionData[];
@@ -124,7 +126,7 @@ export function InteractWithIdl({
             const programIdStr = progId?.toString();
 
             setLastAction('invoke');
-            onTransactionSubmitted?.(programIdStr, data.name);
+            onTransactionInvocationStart?.(programIdStr, data.name);
 
             setCurrentInstruction({ name: data.name, programId: programIdStr });
 
@@ -135,15 +137,17 @@ export function InteractWithIdl({
                 { data, params },
             );
         },
-        [invokeInstruction, requireConfirmation, progId, onTransactionSubmitted],
+        [invokeInstruction, requireConfirmation, progId, onTransactionInvocationStart],
     );
 
     const handleSimulateInstruction = useCallback(
         async (data: InstructionData, params: InstructionCallParams) => {
+            const programIdStr = progId?.toString();
             setLastAction('simulate');
+            onTransactionSimulationStart?.(programIdStr, data.name);
             await simulateInstruction(data.name, data, params);
         },
-        [simulateInstruction],
+        [simulateInstruction, progId, onTransactionSimulationStart],
     );
 
     if (initializationError) {

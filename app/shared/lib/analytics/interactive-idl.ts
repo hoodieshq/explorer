@@ -5,6 +5,7 @@ export enum AnchorInteractiveIdlEvent {
     TabOpened = 'iidl_anchor_tab_opened',
     TransactionConfirmed = 'iidl_anchor_transaction_confirmed',
     TransactionFailed = 'iidl_anchor_transaction_failed',
+    TransactionSimulated = 'iidl_anchor_transaction_simulated',
     TransactionSubmitted = 'iidl_anchor_transaction_submitted',
     WalletConnected = 'iidl_anchor_wallet_connected',
 }
@@ -42,6 +43,13 @@ export const idlAnalytics = {
     trackTransactionFailed(programId?: string, instructionName?: string, error?: string): void {
         trackEvent(AnchorInteractiveIdlEvent.TransactionFailed, {
             error_message: error,
+            instruction_name: instructionName,
+            program_id: programId,
+        });
+    },
+
+    trackTransactionSimulated(programId?: string, instructionName?: string): void {
+        trackEvent(AnchorInteractiveIdlEvent.TransactionSimulated, {
             instruction_name: instructionName,
             program_id: programId,
         });
