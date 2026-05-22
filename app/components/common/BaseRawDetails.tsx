@@ -45,7 +45,7 @@ function BaseTransactionInstructionRawDetails({ ix }: { ix: TransactionInstructi
 
             <tr>
                 <td>
-                    Instruction Data <span className="text-muted">(Hex)</span>
+                    Instruction Data <span className="e-text-muted">(Hex)</span>
                 </td>
                 <td>
                     <HexData raw={ix.data} align="start" />

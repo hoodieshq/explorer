@@ -39,7 +39,7 @@ export function AddressFromLookupTableWithContext({
     const lookupTable = lookupTableInfo && lookupTableInfo[0];
     if (!lookupTable) {
         return (
-            <span className="text-muted">
+            <span className="e-text-muted">
                 <span className="spinner-grow spinner-grow-sm me-2"></span>
                 Loading
             </span>
@@ -51,7 +51,7 @@ export function AddressFromLookupTableWithContext({
     } else {
         const pubkey = lookupTable.state.addresses[lookupTableIndex];
         return (
-            <div className="d-flex align-items-lg-end flex-column">
+            <div className="d-flex flex-column">
                 <Address pubkey={pubkey} link />
                 {hideInfo ? null : <AccountInfo pubkey={pubkey} />}
             </div>
@@ -69,7 +69,7 @@ export function AddressWithContext({
     hideInfo?: boolean;
 }) {
     return (
-        <div className="d-flex align-items-lg-end flex-column">
+        <div className="d-flex flex-column">
             <Address pubkey={pubkey} link />
             {hideInfo ? null : <AccountInfo pubkey={pubkey} validator={validator} />}
         </div>
@@ -92,7 +92,7 @@ function AccountInfo({ pubkey, validator }: { pubkey: PublicKey; validator?: Acc
     const account = info?.data;
     if (!account)
         return (
-            <span className="text-muted">
+            <span className="e-text-muted">
                 <span className="spinner-grow spinner-grow-sm me-2"></span>
                 Loading
             </span>
@@ -102,14 +102,14 @@ function AccountInfo({ pubkey, validator }: { pubkey: PublicKey; validator?: Acc
     if (errorMessage) return <span className="text-warning">{errorMessage}</span>;
 
     if (account.lamports === 0) {
-        return <span className="text-muted">Account doesn&apos;t exist</span>;
+        return <span className="e-text-muted">Account doesn&apos;t exist</span>;
     }
 
     const ownerAddress = account.owner.toBase58();
     const ownerLabel = addressLabel(ownerAddress, cluster);
 
     return (
-        <span className="text-muted">
+        <span className="e-text-muted">
             {`Owned by ${ownerLabel || ownerAddress}.`}
             {` Balance is ${lamportsToSolString(account.lamports)} SOL.`}
             {account.space !== undefined && ` Size is ${new Intl.NumberFormat('en-US').format(account.space)} byte(s).`}

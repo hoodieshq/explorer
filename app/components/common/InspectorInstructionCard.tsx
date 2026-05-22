@@ -80,9 +80,15 @@ export function InspectorInstructionCard({
                 </button>
             }
         >
-            <div className="table-responsive mb-0">
-                <table className="table table-sm table-nowrap card-table">
-                    <tbody className="list">
+            <div className="mb-0">
+                <table
+                    className={cn(
+                        'e-mb-0 e-w-full e-border-collapse [&_th]:e-whitespace-nowrap',
+                        '[&_tr]:e-border-b [&_tr]:e-border-white/10 [&_tr]:[border-bottom-style:solid] [&_tr:last-child]:e-border-b-0',
+                        '[&_td]:e-px-3 [&_td]:e-py-1.5 [&_td]:e-text-sm md:[&_td]:e-px-4 [&_td]:e-whitespace-nowrap [&_td:first-child]:e-text-muted'
+                    )}
+                >
+                    <tbody>
                         <ProgramField programId={ix.programId} showExtendedInfo={showRaw} />
                         {showRaw ? (
                             'parsed' in ix ? (

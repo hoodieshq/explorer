@@ -117,8 +117,8 @@ export function AccountsCard({ message }: { message: VersionedMessage }) {
             {!loading && totalAccountSize > 0 && (
                 <div className="card-footer">
                     <div className="e-flex e-items-baseline e-justify-end">
-                        <span className="text-muted e-me-2 e-text-[0.625rem] e-uppercase">Total Account Size:</span>
-                        <span className="text-white">{totalAccountSize.toLocaleString('en-US')} bytes</span>
+                        <span className="e-text-muted e-me-2 e-text-[0.625rem] e-uppercase">Total Account Size:</span>
+                        <span className="e-text-white">{totalAccountSize.toLocaleString('en-US')} bytes</span>
                     </div>
                 </div>
             )}
@@ -140,19 +140,17 @@ function AccountFromLookupTableRow({
     return (
         <tr>
             <td>
-                <div className="d-flex align-items-start flex-column">
-                    Account #{accountIndex + 1}
-                    <span className="mt-1">
-                        {!readOnly && <span className="badge bg-danger-soft me-1">Writable</span>}
-                        <span className="badge bg-gray-soft">Address Table Lookup</span>
-                    </span>
-                </div>
+                Account #{accountIndex + 1}
             </td>
-            <td className="text-lg-end">
+            <td>
                 <AddressFromLookupTableWithContext
                     lookupTableKey={lookupTableKey}
                     lookupTableIndex={lookupTableIndex}
                 />
+                <span className="mt-1">
+                    {!readOnly && <span className="badge bg-danger-soft me-1">Writable</span>}
+                    <span className="badge bg-gray-soft">Address Table Lookup</span>
+                </span>
             </td>
         </tr>
     );
@@ -184,16 +182,16 @@ function AccountRow({
                         {signer && <span className="badge bg-info-soft me-1">Signer</span>}
                         {!readOnly && <span className="badge bg-danger-soft me-1">Writable</span>}
                         {loading ? (
-                            <span className="text-muted">Loading...</span>
+                            <span className="e-text-muted">Loading...</span>
                         ) : accountInfo ? (
                             <Copyable text={hexData}>
-                                <span className="text-muted">{accountInfo.size.toLocaleString('en-US')} bytes</span>
+                                <span className="e-text-muted">{accountInfo.size.toLocaleString('en-US')} bytes</span>
                             </Copyable>
                         ) : null}
                     </span>
                 </div>
             </td>
-            <td className="text-lg-end">
+            <td>
                 <AddressWithContext pubkey={publicKey} />
             </td>
         </tr>

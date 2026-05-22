@@ -8,9 +8,9 @@ export function BaseRawParsedDetails({ ix, children }: { ix: ParsedInstruction; 
 
             <tr>
                 <td>
-                    Instruction Data <span className="text-muted">(JSON)</span>
+                    Instruction Data <span className="e-text-muted">(JSON)</span>
                 </td>
-                <td className="text-lg-end">
+                <td>
                     <pre className="d-inline-block text-start json-wrap">{JSON.stringify(ix.parsed, null, 2)}</pre>
                 </td>
             </tr>
