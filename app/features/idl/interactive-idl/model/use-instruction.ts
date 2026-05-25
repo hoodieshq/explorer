@@ -2,7 +2,7 @@
 
 import { getIdlSpecType, type InstructionData } from '@entities/idl';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { type Commitment, Connection, type Finality, PublicKey } from '@solana/web3.js';
+import { type Commitment, Connection, type Finality, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -13,8 +13,7 @@ import { clusterUrl } from '@/app/utils/cluster';
 import { programAtom } from '../model/state-atoms';
 import { AnchorInterpreter } from './anchor/anchor-interpreter';
 import { CodamaInterpreter } from './codama/codama-interpreter';
-import { IdlExecutor } from './idl-executor';
-import { buildTransaction } from './transaction/build-transaction';
+import { IdlExecutor, populateAccounts, populateArguments } from './idl-executor';
 import type { InstructionInvocationResult, InstructionSimulationResult } from './transaction/types';
 import { useInvokeTransaction } from './transaction/use-invoke-transaction';
 import { useSimulateTransaction } from './transaction/use-simulate-transaction';
@@ -212,15 +211,20 @@ export function useInstruction({
             if (!idl || !program || !publicKey) {
                 throw new Error('Program / IDL / wallet not ready');
             }
-            return buildTransaction({
-                executor,
-                feePayer: publicKey,
-                idl,
-                instructionName,
-                interpreterName,
-                params,
+            const ix = await executor.getInstruction(
                 program,
-            });
+                instructionName,
+                populateAccounts(params.accounts, instructionName),
+                populateArguments(params.arguments, instructionName),
+                idl,
+                interpreterName,
+            );
+            if (!(ix instanceof TransactionInstruction)) {
+                throw new Error('Unsupported instruction format');
+            }
+            const tx = new Transaction().add(ix);
+            tx.feePayer = publicKey;
+            return tx;
         },
         [idl, program, publicKey, executor, interpreterName],
     );
@@ -240,7 +244,7 @@ export function useInstruction({
             _instruction: InstructionData,
             params: { accounts: any; arguments: Record<string, string> },
         ): Promise<void> => simulate(makeTxBuilder(instructionName, params)),
-        [simulate, makeTxBuilder, programId],
+        [simulate, makeTxBuilder],
     );
 
     return {

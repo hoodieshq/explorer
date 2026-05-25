@@ -106,17 +106,6 @@ function SimulationStatusHeader({ lastSimulation }: { lastSimulation: NonNullabl
     );
 }
 
-function formatTimestamp(date: Date): string {
-    const time = date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        hour12: false,
-        minute: '2-digit',
-        second: '2-digit',
-        timeZone: 'UTC',
-    });
-    return `${time} UTC`;
-}
-
 function SimulationSuccessStatus({ unitsConsumed, date }: { unitsConsumed: number | undefined; date: Date }) {
     return (
         <div className="e-flex e-items-center e-gap-2 e-rounded e-border e-border-solid e-border-neutral-600 e-px-4 e-py-2">
@@ -159,4 +148,15 @@ function SimulationErrorStatus({ message, date }: { message: string; date: Date 
             </Badge>
         </div>
     );
+}
+
+function formatTimestamp(date: Date): string {
+    const time = date.toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        hour12: false,
+        minute: '2-digit',
+        second: '2-digit',
+        timeZone: 'UTC',
+    });
+    return `${time} UTC`;
 }
