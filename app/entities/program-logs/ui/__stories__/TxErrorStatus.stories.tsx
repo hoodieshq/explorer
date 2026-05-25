@@ -43,3 +43,12 @@ export const NullMessage: Story = {
         message: null,
     },
 };
+
+export const CustomLabel: Story = {
+    args: {
+        date: new Date('2024-01-15T10:30:00Z'),
+        label: 'Simulation Error',
+        link: null,
+        message: 'AccountNotFound: account does not exist or has no data',
+    },
+};

@@ -2,7 +2,14 @@
 
 import { getIdlSpecType, type InstructionData } from '@entities/idl';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { type Commitment, Connection, type Finality, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
+import {
+    type Commitment,
+    Connection,
+    type Finality,
+    PublicKey,
+    Transaction,
+    TransactionInstruction,
+} from '@solana/web3.js';
 import { useAtom } from 'jotai';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 

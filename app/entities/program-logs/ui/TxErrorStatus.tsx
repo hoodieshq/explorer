@@ -3,15 +3,20 @@ import { ExternalLink } from 'react-feather';
 
 import { Copyable } from '@/app/components/common/Copyable';
 
-export function TxErrorStatus({ message, date, link }: { message: string | null; date: Date; link: string | null }) {
-    const time = date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        hour12: false,
-        minute: '2-digit',
-        second: '2-digit',
-        timeZone: 'UTC',
-    });
-    const timestamp = `${time} UTC`;
+import { formatLogTimestamp } from '../model/formatLogTimestamp';
+
+export function TxErrorStatus({
+    message,
+    date,
+    link,
+    label = 'Error',
+}: {
+    message: string | null;
+    date: Date;
+    link: string | null;
+    label?: string;
+}) {
+    const timestamp = formatLogTimestamp(date);
 
     return (
         <div className="e-border-1 e-flex e-items-center e-gap-2 e-rounded e-border e-border-solid e-border-neutral-600 e-px-4 e-py-2">
@@ -31,12 +36,12 @@ export function TxErrorStatus({ message, date, link }: { message: string | null;
             {link ? (
                 <a href={link} target="_blank" rel="noopener noreferrer" className="e-ml-auto">
                     <Badge variant="destructive" size="xs" className="e-ml-auto">
-                        Error <ExternalLink size={12} />
+                        {label} <ExternalLink size={12} />
                     </Badge>
                 </a>
             ) : (
                 <Badge variant="destructive" size="xs" className="e-ml-auto">
-                    Error
+                    {label}
                 </Badge>
             )}
         </div>

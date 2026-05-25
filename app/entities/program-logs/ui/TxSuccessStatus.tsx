@@ -3,15 +3,10 @@ import { ExternalLink } from 'react-feather';
 
 import { Copyable } from '@/app/components/common/Copyable';
 
+import { formatLogTimestamp } from '../model/formatLogTimestamp';
+
 export function TxSuccessStatus({ signature, date, link }: { signature: string; date: Date; link: string }) {
-    const time = date.toLocaleTimeString('en-US', {
-        hour: '2-digit',
-        hour12: false,
-        minute: '2-digit',
-        second: '2-digit',
-        timeZone: 'UTC',
-    });
-    const timestamp = `${time} UTC`;
+    const timestamp = formatLogTimestamp(date);
 
     return (
         <div className="e-border-1 e-flex e-items-center e-gap-2 e-rounded e-border e-border-solid e-border-neutral-600 e-px-4 e-py-2">
