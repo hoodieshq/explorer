@@ -64,13 +64,11 @@ Recommended: check whether the PR's changed files overlap with the per-file igno
 
 ## Adoption
 
-Tools that read `AGENTS.md` natively (no extra config):
+Tools wired up to read these rules:
 - **Claude Code** — reads `AGENTS.md` at project root alongside `CLAUDE.md`
 - **Greptile** — auto-indexes `AGENTS.md` for PR reviews
 - **Codex (OpenAI)** — reads `AGENTS.md` at project root
 - **Cursor** — reads `AGENTS.md` at project root
-
-Tools that require configuration:
-- **GitHub Copilot** — reads `.github/copilot-instructions.md` only; symlink or copy `AGENTS.md` there
-- **Zed** — reads `.zed/rules`; symlink or copy `AGENTS.md` there
-- **opencode** — supports custom instruction file paths; point to `AGENTS.md` in config
+- **Zed** — reads `AGENTS.md` at project root
+- **opencode** — reads `AGENTS.md` at project root
+- **GitHub Copilot** — reads `.github/copilot-instructions.md`, symlinked to `AGENTS.md`
