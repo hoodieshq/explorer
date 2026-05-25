@@ -52,7 +52,7 @@
   - `pre-push` — runs the full pipeline (format, lint, build, test).
 
   The hooks are a developer convenience; the checks themselves are not optional.
-- Recommended: use [`act`](https://github.com/nektos/act) to run GitHub Actions workflows locally as an alternative way to validate changes before pushing.
+- Optionally, use [`act`](https://github.com/nektos/act) to run GitHub Actions workflows locally before pushing.
 
 ## PR Review
 
