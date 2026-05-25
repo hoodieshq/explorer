@@ -1,4 +1,6 @@
-# Code Standards
+# Project Conventions
+
+*Bullets without a prefix are mandatory; `Recommended:` / `Preferred:` mark soft guidance.*
 
 ## Principles
 
@@ -7,8 +9,7 @@
 ## Architecture
 **Applies to:** `app/**`
 
-- Follow Feature-Sliced Design (FSD) for existing and new functionality.
-  - Directory structure: features in `app/features/`, entities in `app/entities/`, shared code in `app/shared/`. Each slice uses `api/`, `lib/`, `model/`, `ui/` layers as needed.
+- Follow Feature-Sliced Design (FSD): features in `app/features/`, entities in `app/entities/`, shared code in `app/shared/`.
   - Server-only code within a slice lives in a dedicated `server.ts` file at the slice root, separate from client code.
 - Prefer functional style. Use classes only to scope domain-specific logic (e.g., IDL interpreters, program executors).
 
@@ -29,7 +30,7 @@
 **Applies to:** `app/**/*.tsx`
 
 - Use `class-variance-authority` (CVA) for component variants — not conditional class logic or CSS overrides.
-- Recommended: name stateless, hook-free UI components with a `Base` prefix (e.g., `BaseSearch`, `BaseTransactionCard`).
+- Recommended: name stateless, hook-free UI components with a `Base` prefix (e.g., `BaseSearch`, `BaseTransactionCard`). When using the `Base` prefix, pair the component with a Storybook story.
 
 ## Storybook
 **Applies to:** `**/*.stories.{ts,tsx}`
@@ -45,20 +46,23 @@
 - Use the `Logger` abstraction (`Logger.error`, `Logger.warn`, `Logger.info`) instead of direct Sentry imports. Import Sentry utilities from `@/app/shared/lib/sentry`, not from `@sentry/nextjs`.
 - Preferred: use `@solana/kit` for new functionality and when refactoring existing code.
 
+## Testing
+**Applies to:** `app/features/**`, `app/entities/**`, `app/shared/**`
+
+- Cover features, entities, and shared modules with unit tests when adding or modifying code.
+
 ## CI
 
-- The CI pipeline runs `pnpm format:ci` → `pnpm lint` → `pnpm build` → `pnpm test:ci`. These checks are mandatory — fix violations, never bypass them (no `--no-verify`, no skipping, no disabling rules to silence output). Local hooks in `.githooks/` mirror CI to surface failures before push; enable with `git config core.hooksPath .githooks`:
+- The CI pipeline runs `pnpm format:ci` → `pnpm lint` → `pnpm build` → `pnpm test:ci`. These checks are mandatory — fix violations, never bypass them (no `--no-verify`, no skipping, no disabling rules to silence output). The local hooks below are a developer convenience to surface failures before push; the checks themselves are not optional. Enable with `git config core.hooksPath .githooks`:
   - `pre-commit` — runs `pretty:format`, `eslint:lint`, and `test:changed` scoped to staged files.
   - `pre-push` — runs the full pipeline (format, lint, build, test).
-
-  The hooks are a developer convenience; the checks themselves are not optional.
 - Optionally, use [`act`](https://github.com/nektos/act) to run GitHub Actions workflows locally before pushing.
 
 ## PR Review
 
-When reviewing a pull request, agents are encouraged to launch their available review tools (e.g. Greptile checks, Claude Code `/review`, Codex review mode) and surface findings to the contributor. Scope reviews to the PR's changed files unless instructed otherwise. Findings are advisory — the contributor decides whether and how to act on them. We do suggest addressing the most destructive findings (bugs, security issues, data-loss risks) before merging.
+When reviewing a pull request, agents are encouraged to launch their available review tooling and surface findings to the contributor. Scope reviews to the PR's changed files unless instructed otherwise. Findings are advisory — the contributor decides whether and how to act on them. We do suggest addressing the most destructive findings (bugs, security issues, data-loss risks) before merging.
 
-Recommended: check whether the PR's changed files overlap with the per-file ignore blocks in `eslint.config.mjs` (e.g. `no-explicit-any`, `consistent-type-assertions`, `unicorn/no-null`, `import/no-default-export`, `boundaries/dependencies`). For overlapping files, suggest fixing existing violations and removing the file from the ignore list — opportunistic cleanup, not a blocker. Flag any *new* violations added in the same file: the ignore list grandfathers existing code, not new additions.
+Recommended: check whether the PR's changed files appear in any per-file ignore block (like `eslint.config.mjs`). For overlapping files, suggest fixing existing violations and removing the file from the ignore list — opportunistic cleanup, not a blocker. Flag any *new* violations added in the same file: the ignore list exempts existing code, not new additions.
 
 ---
 
