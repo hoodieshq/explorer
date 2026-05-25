@@ -47,7 +47,11 @@
 
 ## CI
 
-- The CI pipeline runs: `pnpm format:ci` → `pnpm lint` → `pnpm build` → `pnpm test:ci`. A local pre-push hook mirrors this — opt in with `git config core.hooksPath .githooks`.
+- The CI pipeline runs `pnpm format:ci` → `pnpm lint` → `pnpm build` → `pnpm test:ci`. These checks are mandatory — fix violations, never bypass them (no `--no-verify`, no skipping, no disabling rules to silence output). Local hooks in `.githooks/` mirror CI to surface failures before push; enable with `git config core.hooksPath .githooks`:
+  - `pre-commit` — runs `pretty:format`, `eslint:lint`, and `test:changed` scoped to staged files.
+  - `pre-push` — runs the full pipeline (format, lint, build, test).
+
+  The hooks are a developer convenience; the checks themselves are not optional.
 - Recommended: use [`act`](https://github.com/nektos/act) to run GitHub Actions workflows locally as an alternative way to validate changes before pushing.
 
 ## PR Review
