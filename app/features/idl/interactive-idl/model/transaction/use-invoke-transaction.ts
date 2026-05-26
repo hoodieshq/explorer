@@ -9,13 +9,14 @@ import {
     type Transaction,
     type TransactionError,
 } from '@solana/web3.js';
+import bs58 from 'bs58';
 import { useCallback, useState } from 'react';
 
-import { toBase64 } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 
 import type { BaseIdl } from '../unified-program';
 import { formatTransactionError } from './format-transaction-error';
+import { serializeTransactionMessage } from './serialize-transaction-message';
 import type { InstructionInvocationResult } from './types';
 
 export function useInvokeTransaction(opts: {
@@ -72,6 +73,7 @@ export function useInvokeTransaction(opts: {
 
                 handleTxSuccess(signature, finalLogs);
             } catch (error) {
+                console.log('Invocation error', { error, transaction });
                 handleTxError(error, transaction);
             } finally {
                 handleTxEnd();
@@ -105,14 +107,14 @@ function useInvocationState({
     onError,
 }: {
     onSuccess?: (signature: string) => void;
-    onError?: (error: string) => void;
+    onError?: (error: string, signature?: string) => void;
 }) {
     const [transactionError, setTransactionError] = useState<TransactionError | null>(null);
     const { parseLogs } = useParsedLogs(transactionError);
     const [serializedTxMessage, setSerializedTxMessage] = useState<string | null>(null);
     const [logs, setLogs] = useState<string[]>([]);
     const [isExecuting, setIsExecuting] = useState(false);
-    const [lastError, setLastError] = useState<{ finishedAt: Date; message: string } | null>(null);
+    const [lastError, setLastError] = useState<{ finishedAt: Date; message: string; signature?: string } | null>(null);
     const [lastSuccess, setLastSuccess] = useState<{ finishedAt: Date; signature: string } | null>(null);
 
     const handleTxStart = () => {
@@ -135,28 +137,32 @@ function useInvocationState({
         transaction: Transaction | undefined,
         options: HandleTxErrorOptions = {},
     ) => {
+        const txSignature = transaction?.signature ? bs58.encode(transaction.signature) : undefined;
         if (error instanceof Error) {
-            Logger.error(error, { transaction });
+            Logger.error(error, { signature: transaction?.signature, transaction });
             const message = error.message || 'Failed to invoke instruction';
-            setLastError({ finishedAt: new Date(), message });
+            setLastError({ finishedAt: new Date(), message, signature: txSignature });
             // SendTransactionError can still surface from low-level RPC issues even with skipPreflight=true.
+            // NOTE: when preflight is added, treat SendTransactionError as no-signature
+            // (set signature: undefined) so the UI uses the inspector fallback instead
+            // of /tx/{sig} which would 404 for a never-broadcast tx.
             if (error instanceof SendTransactionError) {
                 setLogs(error.logs ?? []);
                 setTransactionError(error);
             }
             setSerializedTxMessage(serializeTransactionMessage(transaction));
-            onError?.(message);
+            onError?.(message, txSignature);
             return;
         }
 
         const txError = error as TransactionError;
         const message = formatTransactionError(txError, options.idlErrors);
         Logger.error(new Error(message), { transaction });
-        setLastError({ finishedAt: new Date(), message });
+        setLastError({ finishedAt: new Date(), message, signature: txSignature });
         setLogs(options.logs ?? []);
         setTransactionError(txError);
         setSerializedTxMessage(serializeTransactionMessage(transaction));
-        onError?.(message);
+        onError?.(message, txSignature);
     };
 
     const handleTxEnd = () => {
@@ -171,6 +177,7 @@ function useInvocationState({
                 logs,
                 message: lastError.message,
                 serializedTxMessage,
+                signature: lastError.signature ?? null,
                 status: 'error',
             }
           : null;
@@ -184,14 +191,4 @@ function useInvocationState({
         lastResult,
         parseLogs,
     };
-}
-
-function serializeTransactionMessage(transaction: Transaction | undefined): string | null {
-    if (!transaction) return null;
-    try {
-        return toBase64(transaction.serializeMessage());
-    } catch (error) {
-        Logger.warn('[idl] Failed to serialize transaction message', { error });
-        return null;
-    }
 }

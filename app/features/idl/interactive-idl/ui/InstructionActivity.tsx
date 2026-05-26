@@ -1,5 +1,5 @@
 import { useExplorerLink } from '@entities/cluster';
-import { ProgramLogs, SimulationSuccessStatus, TxErrorStatus, TxSuccessStatus } from '@entities/program-logs';
+import { ProgramLogs, TxErrorStatus, TxInvocationStatus, TxSimulationStatus } from '@entities/program-logs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared/ui/tabs';
 import { ReactNode } from 'react';
 
@@ -80,31 +80,64 @@ function CardWithTabs({ tabs }: { tabs: { id: string; title: string; component: 
 }
 
 function TxStatusHeader({ lastResult }: { lastResult: NonNullable<InstructionInvocationResult> }) {
-    const { link } = useExplorerLink(
-        lastResult.status === 'success'
-            ? `/tx/${lastResult.signature}`
-            : `/tx/inspector?message=${encodeURIComponent(lastResult.serializedTxMessage ?? '')}`,
+    const signature = lastResult.status === 'success' ? lastResult.signature : lastResult.signature;
+    const serializedTxMessage = lastResult.status === 'success' ? null : lastResult.serializedTxMessage;
+    const { link: txLink } = useExplorerLink(`/tx/${signature ?? ''}`);
+    const { link: inspectorLink } = useExplorerLink(
+        `/tx/inspector?message=${encodeURIComponent(serializedTxMessage ?? '')}`,
     );
-    return lastResult.status === 'success' ? (
-        <TxSuccessStatus signature={lastResult.signature} date={lastResult.finishedAt} link={link} />
-    ) : (
+
+    if (lastResult.status === 'success') {
+        return (
+            <TxInvocationStatus
+                status="success"
+                signature={lastResult.signature}
+                date={lastResult.finishedAt}
+                link={txLink}
+            />
+        );
+    }
+    if (lastResult.status === 'error' && lastResult.signature) {
+        return (
+            <TxInvocationStatus
+                status="error"
+                signature={lastResult.signature}
+                date={lastResult.finishedAt}
+                link={txLink}
+            />
+        );
+    }
+    return (
         <TxErrorStatus
-            message={lastResult.serializedTxMessage}
+            message={lastResult.serializedTxMessage ?? lastResult.message}
             date={lastResult.finishedAt}
-            link={lastResult.serializedTxMessage ? link : null}
+            link={lastResult.serializedTxMessage ? inspectorLink : null}
         />
     );
 }
 
 function SimulationStatusHeader({ lastSimulation }: { lastSimulation: NonNullable<InstructionSimulationResult> }) {
-    return lastSimulation.status === 'success' ? (
-        <SimulationSuccessStatus unitsConsumed={lastSimulation.unitsConsumed} date={lastSimulation.finishedAt} />
-    ) : (
-        <TxErrorStatus
+    const { link: inspectorLink } = useExplorerLink(
+        `/tx/inspector?message=${encodeURIComponent(lastSimulation.serializedTxMessage ?? '')}`,
+    );
+    const link = lastSimulation.serializedTxMessage ? inspectorLink : undefined;
+
+    if (lastSimulation.status === 'success') {
+        return (
+            <TxSimulationStatus
+                status="success"
+                unitsConsumed={lastSimulation.unitsConsumed}
+                date={lastSimulation.finishedAt}
+                link={link}
+            />
+        );
+    }
+    return (
+        <TxSimulationStatus
+            status="error"
             message={lastSimulation.message}
             date={lastSimulation.finishedAt}
-            link={null}
-            label="Simulation Error"
+            link={link}
         />
     );
 }

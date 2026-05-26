@@ -8,6 +8,7 @@ import { Logger } from '@/app/shared/lib/logger';
 
 import type { BaseIdl } from '../unified-program';
 import { formatTransactionError } from './format-transaction-error';
+import { serializeTransactionMessage } from './serialize-transaction-message';
 import type { InstructionSimulationResult } from './types';
 
 // Any base58 32-byte value works as a placeholder when replaceRecentBlockhash=true.
@@ -34,6 +35,7 @@ export function useSimulateTransaction(opts: {
                     const { blockhash } = await connection.getLatestBlockhash();
                     transaction.recentBlockhash = blockhash;
                 }
+                const serializedTxMessage = serializeTransactionMessage(transaction);
                 const result = await connection.simulateTransaction(
                     new VersionedTransaction(transaction.compileMessage()),
                     {
@@ -46,6 +48,7 @@ export function useSimulateTransaction(opts: {
                         finishedAt: new Date(),
                         logs,
                         message: formatTransactionError(result.value.err, idlErrors),
+                        serializedTxMessage,
                         status: 'error',
                     });
                     return;
@@ -54,6 +57,7 @@ export function useSimulateTransaction(opts: {
                     finishedAt: new Date(),
                     logs,
                     returnData: result.value.returnData ?? null,
+                    serializedTxMessage,
                     status: 'success',
                     unitsConsumed: result.value.unitsConsumed,
                 });
@@ -63,6 +67,7 @@ export function useSimulateTransaction(opts: {
                     finishedAt: new Date(),
                     logs: [],
                     message: e instanceof Error ? e.message : 'Simulation failed',
+                    serializedTxMessage: serializeTransactionMessage(transaction),
                     status: 'error',
                 });
             } finally {

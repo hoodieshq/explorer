@@ -1,0 +1,42 @@
+import { CopyableMonoText, StatusBar } from './StatusBar';
+
+type TxSimulationStatusProps =
+    | { status: 'success'; unitsConsumed: number | undefined; date: Date; link?: string }
+    | { status: 'error'; message: string; date: Date; link?: string };
+
+export function TxSimulationStatus(props: TxSimulationStatusProps) {
+    if (props.status === 'success') {
+        return (
+            <StatusBar
+                primary={
+                    props.unitsConsumed !== undefined ? (
+                        <ComputeUnitsBadge unitsConsumed={props.unitsConsumed} />
+                    ) : undefined
+                }
+                date={props.date}
+                theme="accent"
+                badge={{ label: 'Simulated', variant: 'success' }}
+                link={props.link}
+            />
+        );
+    }
+    return (
+        <StatusBar
+            primary={<CopyableMonoText text={props.message} theme="destructive" />}
+            date={props.date}
+            theme="destructive"
+            badge={{ label: 'Simulation Error', variant: 'destructive' }}
+            link={props.link}
+        />
+    );
+}
+
+function ComputeUnitsBadge({ unitsConsumed }: { unitsConsumed: number }) {
+    return (
+        <div className="e-flex e-items-center e-gap-1">
+            <span className="e-text-xs e-tracking-tight e-text-accent-700">
+                {unitsConsumed.toLocaleString('en-US')} CU
+            </span>
+        </div>
+    );
+}

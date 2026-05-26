@@ -90,7 +90,9 @@ describe('useInvokeTransaction', () => {
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
         expect(result.current.lastResult?.logs).toEqual(['failed-log']);
-        expect((result.current.lastResult as unknown as { message: string }).message).toContain('Instruction #1 got "AlreadyInitialized"');
+        expect((result.current.lastResult as unknown as { message: string }).message).toContain(
+            'Instruction #1 got "AlreadyInitialized"',
+        );
     });
 
     it('should fire onPreInvocationError when wallet is disconnected and not call signTransaction', async () => {
@@ -146,7 +148,7 @@ describe('useInvokeTransaction', () => {
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
         expect((result.current.lastResult as unknown as { message: string }).message).toBe('UnexpectedError');
         expect(result.current.isExecuting).toBe(false);
-        expect(onError).toHaveBeenCalledWith('UnexpectedError');
+        expect(onError).toHaveBeenCalledWith('UnexpectedError', undefined);
         expect(conn.sendRawTransaction).not.toHaveBeenCalled();
     });
 });

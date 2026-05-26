@@ -1,5 +1,5 @@
 export { ProgramLogs } from './ui/ProgramLogs';
-export { TxSuccessStatus } from './ui/TxSuccessStatus';
+export { TxInvocationStatus } from './ui/TxInvocationStatus';
+export { TxSimulationStatus } from './ui/TxSimulationStatus';
 export { TxErrorStatus } from './ui/TxErrorStatus';
-export { SimulationSuccessStatus } from './ui/SimulationSuccessStatus';
 export { useParsedLogs } from './model/useParsedLogs';

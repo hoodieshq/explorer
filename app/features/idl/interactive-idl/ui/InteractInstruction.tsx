@@ -152,7 +152,11 @@ export function InteractInstruction({
                             onClick={onSubmit}
                             disabled={interactionDisabled}
                             isExecuting={isExecuting}
-                            tooltipText="Connect your wallet to execute the instruction"
+                            tooltipText={
+                                !walletConnected
+                                    ? 'Connect your wallet to execute this instruction'
+                                    : 'Instruction simulation is skipped when executing!'
+                            }
                         />
                         <SimulateButton
                             onClick={onSimulate}
@@ -253,10 +257,6 @@ function ExecuteButton({
             Execute
         </Button>
     );
-
-    if (!disabled || !tooltipText) {
-        return button;
-    }
 
     return (
         <Tooltip>

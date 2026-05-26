@@ -11,6 +11,10 @@ vi.mock('@/app/providers/cluster', () => ({
 
 function mockConnection(simReturn: Record<string, unknown>) {
     return {
+        getLatestBlockhash: vi.fn().mockResolvedValue({
+            blockhash: PublicKey.default.toBase58(),
+            lastValidBlockHeight: 1,
+        }),
         simulateTransaction: vi.fn().mockResolvedValue(simReturn),
     };
 }
@@ -63,7 +67,9 @@ describe('useSimulateTransaction', () => {
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
         expect(result.current.lastSimulation?.logs).toEqual(['log-on-err']);
-        expect((result.current.lastSimulation as unknown as { message: string }).message).toContain('AlreadyInitialized');
+        expect((result.current.lastSimulation as unknown as { message: string }).message).toContain(
+            'AlreadyInitialized',
+        );
     });
 
     it('should set error state when builder throws without invoking RPC', async () => {
@@ -93,17 +99,48 @@ describe('useSimulateTransaction', () => {
         expect(result.current.lastSimulation).toBeNull();
     });
 
-    it('should pass sigVerify=false and replaceRecentBlockhash=true to the RPC', async () => {
-        const conn = mockConnection({ context: { slot: 1 }, value: { err: null, logs: [] } });
+    it('should populate serializedTxMessage on the success result', async () => {
+        const conn = mockConnection({
+            context: { slot: 1 },
+            value: { err: null, logs: [], returnData: null, unitsConsumed: 0 },
+        });
         const { result } = renderHook(() =>
             useSimulateTransaction({ connection: conn as unknown as Connection, simulationCommitment: 'processed' }),
         );
         await act(async () => {
             await result.current.simulate(async () => makeTx());
         });
-        expect(conn.simulateTransaction).toHaveBeenCalledTimes(1);
-        const opts = conn.simulateTransaction.mock.calls[0][1];
-        expect(opts.sigVerify).toBe(false);
-        expect(opts.replaceRecentBlockhash).toBe(true);
+        await waitFor(() => expect(result.current.lastSimulation?.status).toBe('success'));
+        expect(result.current.lastSimulation?.serializedTxMessage).toEqual(expect.any(String));
+        expect(result.current.lastSimulation?.serializedTxMessage?.length).toBeGreaterThan(0);
+    });
+
+    it('should populate serializedTxMessage on the RPC-error result', async () => {
+        const conn = mockConnection({
+            context: { slot: 1 },
+            value: { err: { InstructionError: [0, 'Custom'] }, logs: [] },
+        });
+        const { result } = renderHook(() =>
+            useSimulateTransaction({ connection: conn as unknown as Connection, simulationCommitment: 'processed' }),
+        );
+        await act(async () => {
+            await result.current.simulate(async () => makeTx());
+        });
+        await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
+        expect(result.current.lastSimulation?.serializedTxMessage).toEqual(expect.any(String));
+    });
+
+    it('should set serializedTxMessage to null when the builder throws before serialization', async () => {
+        const conn = mockConnection({ context: { slot: 1 }, value: { err: null, logs: [] } });
+        const { result } = renderHook(() =>
+            useSimulateTransaction({ connection: conn as unknown as Connection, simulationCommitment: 'processed' }),
+        );
+        await act(async () => {
+            await result.current.simulate(async () => {
+                throw new Error('build failed');
+            });
+        });
+        await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
+        expect(result.current.lastSimulation?.serializedTxMessage).toBeNull();
     });
 });

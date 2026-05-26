@@ -1,9 +1,4 @@
-import { Badge } from '@shared/ui/badge';
-import { ExternalLink } from 'react-feather';
-
-import { Copyable } from '@/app/components/common/Copyable';
-
-import { formatLogTimestamp } from '../model/formatLogTimestamp';
+import { CopyableMonoText, StatusBar } from './StatusBar';
 
 export function TxErrorStatus({
     message,
@@ -16,34 +11,13 @@ export function TxErrorStatus({
     link: string | null;
     label?: string;
 }) {
-    const timestamp = formatLogTimestamp(date);
-
     return (
-        <div className="e-border-1 e-flex e-items-center e-gap-2 e-rounded e-border e-border-solid e-border-neutral-600 e-px-4 e-py-2">
-            {message && (
-                <div className="e-flex e-w-1/2 e-items-center e-gap-1">
-                    <Copyable text={message}>
-                        <span className="e-overflow-hidden e-text-ellipsis e-whitespace-nowrap e-font-mono e-text-sm e-tracking-tight e-text-destructive">
-                            {message}
-                        </span>
-                    </Copyable>
-                </div>
-            )}
-
-            <div className="e-flex e-items-center">
-                <span className="e-whitespace-nowrap e-text-xs e-tracking-tight e-text-destructive">{timestamp}</span>
-            </div>
-            {link ? (
-                <a href={link} target="_blank" rel="noopener noreferrer" className="e-ml-auto">
-                    <Badge variant="destructive" size="xs" className="e-ml-auto">
-                        {label} <ExternalLink size={12} />
-                    </Badge>
-                </a>
-            ) : (
-                <Badge variant="destructive" size="xs" className="e-ml-auto">
-                    {label}
-                </Badge>
-            )}
-        </div>
+        <StatusBar
+            primary={message ? <CopyableMonoText text={message} theme="destructive" /> : undefined}
+            date={date}
+            theme="destructive"
+            badge={{ label, variant: 'destructive' }}
+            link={link}
+        />
     );
 }
