@@ -1,3 +1,5 @@
+# Proposal: Pick OpenSpec for tracking design decisions
+
 ## Context
 
 - **Brownfield project.** Large codebase, established practices, partially outdated tools. Any process we adopt must coexist with what already exists, not assume a greenfield setting.
