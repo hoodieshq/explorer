@@ -9,10 +9,10 @@ vi.mock('@/app/providers/cluster', () => ({
     useCluster: () => ({ cluster: 'devnet' }),
 }));
 
-function makeConn(simReturn: any): Connection {
+function mockConnection(simReturn: Record<string, unknown>) {
     return {
         simulateTransaction: vi.fn().mockResolvedValue(simReturn),
-    } as unknown as Connection;
+    };
 }
 
 function makeTx(): Transaction {
@@ -32,29 +32,29 @@ describe('useSimulateTransaction', () => {
     beforeEach(() => vi.clearAllMocks());
 
     it('should set lastSimulation.status === "success" with logs on happy path', async () => {
-        const conn = makeConn({
+        const conn = mockConnection({
             context: { slot: 1 },
             value: { err: null, logs: ['l1'], returnData: null, unitsConsumed: 100 },
         });
         const { result } = renderHook(() =>
-            useSimulateTransaction({ connection: conn, simulationCommitment: 'processed' }),
+            useSimulateTransaction({ connection: conn as unknown as Connection, simulationCommitment: 'processed' }),
         );
         await act(async () => {
             await result.current.simulate(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('success'));
-        expect((result.current.lastSimulation as any).logs).toEqual(['l1']);
+        expect(result.current.lastSimulation?.logs).toEqual(['l1']);
     });
 
     it('should surface simulation logs before throwing on error path', async () => {
-        const conn = makeConn({
+        const conn = mockConnection({
             context: { slot: 1 },
             value: { err: { InstructionError: [0, { Custom: 6001 }] }, logs: ['log-on-err'] },
         });
         const { result } = renderHook(() =>
             useSimulateTransaction({
-                connection: conn,
-                idlErrors: [{ code: 6001, name: 'AlreadyInitialized' }] as any,
+                connection: conn as unknown as Connection,
+                idlErrors: [{ code: 6001, name: 'AlreadyInitialized' }],
                 simulationCommitment: 'processed',
             }),
         );
@@ -62,14 +62,14 @@ describe('useSimulateTransaction', () => {
             await result.current.simulate(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
-        expect((result.current.lastSimulation as any).logs).toEqual(['log-on-err']);
-        expect((result.current.lastSimulation as any).message).toContain('AlreadyInitialized');
+        expect(result.current.lastSimulation?.logs).toEqual(['log-on-err']);
+        expect((result.current.lastSimulation as unknown as { message: string }).message).toContain('AlreadyInitialized');
     });
 
     it('should set error state when builder throws without invoking RPC', async () => {
-        const conn = makeConn({ context: { slot: 1 }, value: { err: null, logs: [] } });
+        const conn = mockConnection({ context: { slot: 1 }, value: { err: null, logs: [] } });
         const { result } = renderHook(() =>
-            useSimulateTransaction({ connection: conn, simulationCommitment: 'processed' }),
+            useSimulateTransaction({ connection: conn as unknown as Connection, simulationCommitment: 'processed' }),
         );
         await act(async () => {
             await result.current.simulate(async () => {
@@ -77,14 +77,14 @@ describe('useSimulateTransaction', () => {
             });
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
-        expect((result.current.lastSimulation as any).message).toBe('build failed');
+        expect((result.current.lastSimulation as unknown as { message: string }).message).toBe('build failed');
         expect(conn.simulateTransaction).not.toHaveBeenCalled();
     });
 
     it('should clear lastSimulation on reset', async () => {
-        const conn = makeConn({ context: { slot: 1 }, value: { err: null, logs: [] } });
+        const conn = mockConnection({ context: { slot: 1 }, value: { err: null, logs: [] } });
         const { result } = renderHook(() =>
-            useSimulateTransaction({ connection: conn, simulationCommitment: 'processed' }),
+            useSimulateTransaction({ connection: conn as unknown as Connection, simulationCommitment: 'processed' }),
         );
         await act(async () => {
             await result.current.simulate(async () => makeTx());
@@ -94,16 +94,15 @@ describe('useSimulateTransaction', () => {
     });
 
     it('should pass sigVerify=false and replaceRecentBlockhash=true to the RPC', async () => {
-        const sim = vi.fn().mockResolvedValue({ context: { slot: 1 }, value: { err: null, logs: [] } });
-        const conn = { simulateTransaction: sim } as unknown as Connection;
+        const conn = mockConnection({ context: { slot: 1 }, value: { err: null, logs: [] } });
         const { result } = renderHook(() =>
-            useSimulateTransaction({ connection: conn, simulationCommitment: 'processed' }),
+            useSimulateTransaction({ connection: conn as unknown as Connection, simulationCommitment: 'processed' }),
         );
         await act(async () => {
             await result.current.simulate(async () => makeTx());
         });
-        expect(sim).toHaveBeenCalledTimes(1);
-        const opts = sim.mock.calls[0][1];
+        expect(conn.simulateTransaction).toHaveBeenCalledTimes(1);
+        const opts = conn.simulateTransaction.mock.calls[0][1];
         expect(opts.sigVerify).toBe(false);
         expect(opts.replaceRecentBlockhash).toBe(true);
     });

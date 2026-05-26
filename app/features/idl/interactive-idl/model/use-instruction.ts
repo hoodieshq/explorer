@@ -51,7 +51,7 @@ interface UseInstructionReturn {
         params: { accounts: any; arguments: Record<string, string> },
     ) => Promise<void>;
 
-    // Simulation (additive — drives the dedicated Simulate UI without sending)
+    // Simulation
     simulateInstruction: (
         instructionName: string,
         instruction: InstructionData,

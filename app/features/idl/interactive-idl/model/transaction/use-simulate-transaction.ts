@@ -31,14 +31,13 @@ export function useSimulateTransaction(opts: {
             try {
                 transaction = await buildTx();
                 if (!transaction.recentBlockhash) {
-                    transaction.recentBlockhash = PLACEHOLDER_BLOCKHASH;
+                    const { blockhash } = await connection.getLatestBlockhash();
+                    transaction.recentBlockhash = blockhash;
                 }
                 const result = await connection.simulateTransaction(
                     new VersionedTransaction(transaction.compileMessage()),
                     {
                         commitment: simulationCommitment,
-                        replaceRecentBlockhash: true,
-                        sigVerify: false,
                     },
                 );
                 const logs = result.value.logs ?? [];
