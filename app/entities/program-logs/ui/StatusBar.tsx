@@ -29,19 +29,19 @@ type StatusBarProps = {
     date: Date;
     theme: StatusTheme;
     badge: { label: string; variant: 'success' | 'destructive' };
-    link?: string | null;
+    link: string | undefined;
 };
 
 export function StatusBar({ primary, date, theme, badge, link }: StatusBarProps) {
     const badgeNode = (
         <Badge variant={badge.variant} size="xs" className={cn(!link && 'e-ml-auto')}>
             {badge.label}
-            {link ? (
+            {Boolean(link) && (
                 <>
                     {' '}
                     <ExternalLink size={12} />
                 </>
-            ) : null}
+            )}
         </Badge>
     );
     return (

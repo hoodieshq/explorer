@@ -1,18 +1,15 @@
 'use client';
 
 import { useParsedLogs } from '@entities/program-logs';
-import { type Commitment, type Connection, PublicKey, type Transaction, VersionedTransaction } from '@solana/web3.js';
+import { type Commitment, type Connection, type Transaction, VersionedTransaction } from '@solana/web3.js';
 import { useCallback, useState } from 'react';
 
 import { Logger } from '@/app/shared/lib/logger';
 
 import type { BaseIdl } from '../unified-program';
 import { formatTransactionError } from './format-transaction-error';
-import { serializeTransactionMessage, toBase64TransactionMessage } from './serialize-transaction-message';
+import { toBase64TransactionMessage } from './serialize-transaction-message';
 import type { InstructionSimulationResult } from './types';
-
-// Any base58 32-byte value works as a placeholder when replaceRecentBlockhash=true.
-const PLACEHOLDER_BLOCKHASH = PublicKey.default.toBase58();
 
 export function useSimulateTransaction(opts: {
     connection: Connection;
@@ -20,16 +17,16 @@ export function useSimulateTransaction(opts: {
     idlErrors?: BaseIdl['errors'];
 }) {
     const { connection, simulationCommitment, idlErrors } = opts;
-    const { parseLogs } = useParsedLogs(null);
+    const { parseLogs } = useParsedLogs(undefined);
     const [isSimulating, setIsSimulating] = useState(false);
-    const [lastSimulation, setLastSimulation] = useState<InstructionSimulationResult | null>(null);
+    const [lastSimulation, setLastSimulation] = useState<InstructionSimulationResult>();
 
     const simulate = useCallback(
         async (buildTx: () => Promise<Transaction>): Promise<void> => {
             setIsSimulating(true);
-            setLastSimulation(null);
+            setLastSimulation(undefined);
             let transaction: Transaction | undefined;
-            let serializedTxMessage: string | null = null;
+            let serializedTxMessage: string | undefined = undefined;
             try {
                 transaction = await buildTx();
                 if (!transaction.recentBlockhash) {
@@ -49,6 +46,7 @@ export function useSimulateTransaction(opts: {
                         finishedAt: new Date(),
                         logs,
                         message: formatTransactionError(result.value.err, idlErrors),
+                        phase: 'rpc_simulation_failed',
                         serializedTxMessage,
                         status: 'error',
                     });
@@ -57,7 +55,7 @@ export function useSimulateTransaction(opts: {
                 setLastSimulation({
                     finishedAt: new Date(),
                     logs,
-                    returnData: result.value.returnData ?? null,
+                    returnData: result.value.returnData ?? undefined,
                     serializedTxMessage,
                     status: 'success',
                     unitsConsumed: result.value.unitsConsumed,
@@ -78,7 +76,7 @@ export function useSimulateTransaction(opts: {
         [connection, simulationCommitment, idlErrors],
     );
 
-    const reset = useCallback(() => setLastSimulation(null), []);
+    const reset = useCallback(() => setLastSimulation(undefined), []);
 
     return { isSimulating, lastSimulation, parseLogs, reset, simulate };
 }

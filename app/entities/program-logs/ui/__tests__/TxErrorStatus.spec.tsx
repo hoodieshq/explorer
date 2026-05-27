@@ -16,14 +16,14 @@ describe('TxErrorStatus', () => {
         expect(anchor).toHaveAttribute('href', '/tx/inspector?message=foo');
     });
 
-    it('should render a plain badge with no anchor when link is null', () => {
-        render(<TxErrorStatus message="error message" date={date} link={null} />);
+    it('should render a plain badge with no anchor when link is undefined', () => {
+        render(<TxErrorStatus message="error message" date={date} link={undefined} />);
 
         expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
 
     it('should render the custom label when label prop is passed', () => {
-        render(<TxErrorStatus message={null} date={date} link={null} label="Simulation Error" />);
+        render(<TxErrorStatus message={undefined} date={date} link={undefined} label="Simulation Error" />);
 
         expect(screen.getByText('Simulation Error')).toBeInTheDocument();
     });

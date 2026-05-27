@@ -31,7 +31,7 @@ export type BroadcastFailedResult = {
 export type ExecutionFailedResult = {
     status: 'error';
     phase: 'execution_failed';
-    serializedTxMessage: string | null;
+    serializedTxMessage: string | undefined;
     message: string;
     logs: string[];
     finishedAt: Date;
@@ -45,8 +45,8 @@ export type SimulationOkResult = {
     status: 'success';
     serializedTxMessage: string;
     unitsConsumed: number | undefined;
-    // Producer assigns `result.value.returnData ?? null`, so include `| null` explicitly
-    returnData: SimulatedTransactionResponse['returnData'] | null;
+    // Producer assigns `result.value.returnData ?? undefined`, so include `| undefined` explicitly
+    returnData: SimulatedTransactionResponse['returnData'] | undefined;
     logs: string[];
     finishedAt: Date;
 };
@@ -67,7 +67,7 @@ export type RpcSimulationFailedResult = {
 export type SimulationExecutionFailedResult = {
     status: 'error';
     phase: 'simulation_execution_failed';
-    serializedTxMessage: string | null;
+    serializedTxMessage: string | undefined;
     message: string;
     finishedAt: Date;
 };

@@ -9,7 +9,7 @@ import type { InstructionLogs } from '@/app/utils/program-logs';
 import type { InstructionInvocationResult, InstructionSimulationResult } from '../model/transaction/types';
 
 type InstructionInvocationActivityProps = {
-    lastResult?: InstructionInvocationResult | null;
+    lastResult?: InstructionInvocationResult;
     parseLogs: (logs: string[]) => InstructionLogs[];
 };
 // FIXME: missing Storybook story — pure props, but uses useExplorerLink internally so needs withCluster decorator.
@@ -31,7 +31,7 @@ export function InstructionInvocationActivity({ lastResult, parseLogs }: Instruc
 }
 
 type InstructionSimulationActivityProps = {
-    lastSimulation?: InstructionSimulationResult | null;
+    lastSimulation?: InstructionSimulationResult;
     parseLogs: (logs: string[]) => InstructionLogs[];
 };
 
@@ -109,7 +109,7 @@ function TxStatusHeader({ lastResult }: { lastResult: InstructionInvocationResul
         <TxErrorStatus
             message={lastResult.message}
             date={lastResult.finishedAt}
-            link={lastResult.serializedTxMessage ? inspectorLink : null}
+            link={lastResult.serializedTxMessage ? inspectorLink : undefined}
         />
     );
 }
@@ -140,16 +140,15 @@ function SimulationStatusHeader({ lastSimulation }: { lastSimulation: Instructio
     );
 }
 
-
 // Signature exists on a successful tx and on a broadcast that later failed; never on a local error.
-function getTxSignature(result: InstructionInvocationResult): string | null {
+function getTxSignature(result: InstructionInvocationResult): string | undefined {
     if (result.status === 'success') return result.signature;
     if (result.phase === 'broadcast_failed') return result.signature;
-    return null;
+    return undefined;
 }
 
 // Only execution_failed carries a serialized message worth an inspector link.
-function getInspectorMessage(result: InstructionInvocationResult): string | null {
+function getInspectorMessage(result: InstructionInvocationResult): string | undefined {
     if (result.status === 'error' && result.phase === 'execution_failed') return result.serializedTxMessage;
-    return null;
+    return undefined;
 }

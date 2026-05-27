@@ -28,7 +28,7 @@ export function useInvokeTransaction(opts: {
 }) {
     const { connection, commitment, idlErrors, onSuccess, onError, onPreInvocationError } = opts;
     const { connected, publicKey, signTransaction } = useWallet();
-    const [preInvocationError, setPreInvocationError] = useState<string | null>(null);
+    const [preInvocationError, setPreInvocationError] = useState<string>();
     const {
         handleBroadcastError,
         handleExecutionError,
@@ -48,7 +48,7 @@ export function useInvokeTransaction(opts: {
                 onPreInvocationError?.(message);
                 return;
             }
-            setPreInvocationError(null);
+            setPreInvocationError(undefined);
             handleTxStart();
             let transaction: Transaction | undefined;
             let signature: string | undefined;
@@ -78,7 +78,6 @@ export function useInvokeTransaction(opts: {
 
                 handleTxSuccess(signature, finalLogs);
             } catch (error) {
-                console.log('Invocation error', { error, transaction });
                 if (signature) {
                     handleBroadcastError(error, transaction, { signature });
                 } else {
@@ -114,15 +113,15 @@ function useInvocationState({
     onSuccess?: (signature: string) => void;
     onError?: (error: string, signature?: string) => void;
 }) {
-    const [transactionError, setTransactionError] = useState<TransactionError | null>(null);
+    const [transactionError, setTransactionError] = useState<TransactionError>();
     const { parseLogs } = useParsedLogs(transactionError);
     const [isExecuting, setIsExecuting] = useState(false);
-    const [lastResult, setLastResult] = useState<InstructionInvocationResult | null>(null);
+    const [lastResult, setLastResult] = useState<InstructionInvocationResult>();
 
     const handleTxStart = () => {
         setIsExecuting(true);
-        setLastResult(null);
-        setTransactionError(null);
+        setLastResult(undefined);
+        setTransactionError(undefined);
     };
 
     const handleTxEnd = () => {
@@ -147,7 +146,7 @@ function useInvocationState({
         const logs = options.logs ?? [];
         const message = getMessageFromBroadcastedError(error, options.idlErrors);
         Logger.error(error, { signature: options.signature, transaction });
-        setTransactionError(error instanceof Error ? null : (error as TransactionError));
+        setTransactionError(error instanceof Error ? undefined : (error as TransactionError));
 
         setLastResult({
             finishedAt: new Date(),
@@ -162,12 +161,9 @@ function useInvocationState({
     };
 
     // Local error before broadcast: buildTx threw, wallet rejected sign, or sendRawTransaction threw.
-    const handleExecutionError = (
-        error: unknown,
-        transaction: Transaction | undefined,
-    ) => {
+    const handleExecutionError = (error: unknown, transaction: Transaction | undefined) => {
         const signature = undefined;
-        const logs = error instanceof SendTransactionError ? error.logs ?? [] : [];
+        const logs = error instanceof SendTransactionError ? (error.logs ?? []) : [];
         const message = error instanceof Error ? error.message : 'Failed to execute instruction';
         Logger.error(error, { transaction });
         if (error instanceof SendTransactionError) {

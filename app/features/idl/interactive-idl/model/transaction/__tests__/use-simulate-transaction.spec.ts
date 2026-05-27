@@ -97,7 +97,7 @@ describe('useSimulateTransaction', () => {
             await result.current.simulate(async () => makeTx());
         });
         act(() => result.current.reset());
-        expect(result.current.lastSimulation).toBeNull();
+        expect(result.current.lastSimulation).toBeUndefined();
     });
 
     it('should populate serializedTxMessage on the success result', async () => {
@@ -143,7 +143,7 @@ describe('useSimulateTransaction', () => {
             });
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
-        expect(result.current.lastSimulation?.serializedTxMessage).toBeNull();
+        expect(result.current.lastSimulation?.serializedTxMessage).toBeUndefined();
         expect((result.current.lastSimulation as unknown as { phase: string }).phase).toBe(
             'simulation_execution_failed',
         );

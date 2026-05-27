@@ -24,10 +24,15 @@ import { IdlExecutor, populateAccounts, populateArguments } from './idl-executor
 import type { InstructionInvocationResult, InstructionSimulationResult } from './transaction/types';
 import { useInvokeTransaction } from './transaction/use-invoke-transaction';
 import { useSimulateTransaction } from './transaction/use-simulate-transaction';
-import type { UnifiedWallet } from './unified-program';
+import type { UnifiedProgram, UnifiedWallet } from './unified-program';
 import { BaseIdl } from './unified-program';
 
 export type { InstructionInvocationResult } from './transaction/types';
+
+type InstructionParams = {
+    accounts: Record<string, string>;
+    arguments: Record<string, string>;
+};
 
 interface UseInstructionOptions {
     programId?: string;
@@ -48,28 +53,28 @@ interface UseInstructionReturn {
     invokeInstruction: (
         instructionName: string,
         instruction: InstructionData,
-        params: { accounts: any; arguments: Record<string, string> },
+        params: InstructionParams,
     ) => Promise<void>;
 
     // Simulation
     simulateInstruction: (
         instructionName: string,
         instruction: InstructionData,
-        params: { accounts: any; arguments: Record<string, string> },
+        params: InstructionParams,
     ) => Promise<void>;
 
     // Status
     isExecuting: boolean;
     isSimulating: boolean;
-    preInvocationError: string | null;
-    lastResult: InstructionInvocationResult | null;
-    lastSimulation: InstructionSimulationResult | null;
+    preInvocationError: string | undefined;
+    lastResult: InstructionInvocationResult | undefined;
+    lastSimulation: InstructionSimulationResult | undefined;
     parseLogs: ReturnType<typeof useInvokeTransaction>['parseLogs'];
     simulateParseLogs: ReturnType<typeof useSimulateTransaction>['parseLogs'];
     initializeProgram: () => void;
     isProgramLoading: boolean;
-    program: any;
-    initializationError: string | null;
+    program: UnifiedProgram | undefined;
+    initializationError: string | undefined;
 }
 
 export function useInstruction({
@@ -88,7 +93,7 @@ export function useInstruction({
     const { publicKey, ...wallet } = useWallet();
     const { cluster: currentCluster, customUrl } = useCluster();
 
-    const [initializationError, setInitializationError] = useState<string | null>(null);
+    const [initializationError, setInitializationError] = useState<string>();
     const [isProgramLoading, setIsProgramLoading] = useState(false);
     const [program, setProgram] = useAtom(programAtom);
 
@@ -134,12 +139,12 @@ export function useInstruction({
         }
 
         setIsProgramLoading(true);
-        setInitializationError(null);
+        setInitializationError(undefined);
 
         try {
             const p = await executor.initializeProgram(idl, programId, unifiedWallet, interpreterName);
             setProgram(p);
-            setInitializationError(null);
+            setInitializationError(undefined);
         } catch (error) {
             Logger.error(error, {
                 context: 'initializeProgram',
@@ -163,7 +168,7 @@ export function useInstruction({
             // Clear when disabled
             if (program) {
                 setProgram(undefined);
-                setInitializationError(null);
+                setInitializationError(undefined);
                 setIsProgramLoading(false);
             }
             initKeyRef.current = '';
@@ -188,7 +193,7 @@ export function useInstruction({
     useEffect(() => {
         if (program) {
             setProgram(undefined);
-            setInitializationError(null);
+            setInitializationError(undefined);
             initKeyRef.current = '';
         }
     }, [idl, programId?.toString()]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -214,7 +219,7 @@ export function useInstruction({
     });
 
     const makeTxBuilder = useCallback(
-        (instructionName: string, params: { accounts: any; arguments: Record<string, string> }) => async () => {
+        (instructionName: string, params: InstructionParams) => async () => {
             if (!idl || !program || !publicKey) {
                 throw new Error('Program / IDL / wallet not ready');
             }
@@ -240,7 +245,7 @@ export function useInstruction({
         (
             instructionName: string,
             _instruction: InstructionData,
-            params: { accounts: any; arguments: Record<string, string> },
+            params: InstructionParams,
         ): Promise<void> => invoke(makeTxBuilder(instructionName, params)),
         [invoke, makeTxBuilder],
     );
@@ -249,7 +254,7 @@ export function useInstruction({
         (
             instructionName: string,
             _instruction: InstructionData,
-            params: { accounts: any; arguments: Record<string, string> },
+            params: InstructionParams,
         ): Promise<void> => simulate(makeTxBuilder(instructionName, params)),
         [simulate, makeTxBuilder],
     );
@@ -277,7 +282,7 @@ export const isEnabled = ({
     publicKey,
     connected,
 }: {
-    idl: any;
+    idl: unknown;
     programId?: PublicKey | string | null;
     publicKey: PublicKey | null;
     connected: boolean;

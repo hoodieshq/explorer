@@ -6,9 +6,9 @@ export function TxErrorStatus({
     link,
     label = 'Error',
 }: {
-    message: string | null;
+    message: string | undefined;
     date: Date;
-    link: string | null;
+    link: string | undefined;
     label?: string;
 }) {
     return (

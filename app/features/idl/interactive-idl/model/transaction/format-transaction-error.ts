@@ -19,7 +19,7 @@ export function formatTransactionError(err: TransactionError, idlErrors: BaseIdl
 function extractCustomErrorCode(error: TransactionError | null): number | undefined {
     if (!error || typeof error !== 'object') return undefined;
     if (!('InstructionError' in error)) return undefined;
-    const innerError = (error as any)['InstructionError'];
+    const innerError = error['InstructionError'];
     if (!Array.isArray(innerError) || innerError.length < 2) return undefined;
     const instructionError = innerError[1];
     if (typeof instructionError === 'object' && instructionError !== null && 'Custom' in instructionError) {
@@ -29,5 +29,5 @@ function extractCustomErrorCode(error: TransactionError | null): number | undefi
 }
 
 function resolveIdlError(code: number, errors: BaseIdl['errors']) {
-    return errors?.find((e: any) => e.code === code);
+    return errors?.find(e => e.code === code);
 }

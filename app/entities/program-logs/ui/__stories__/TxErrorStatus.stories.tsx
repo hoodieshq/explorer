@@ -39,8 +39,8 @@ export const Default: Story = {
 export const NullMessage: Story = {
     args: {
         date: new Date('2024-01-15T10:30:00Z'),
-        link: null,
-        message: null,
+        link: undefined,
+        message: undefined,
     },
 };
 
@@ -48,7 +48,7 @@ export const CustomLabel: Story = {
     args: {
         date: new Date('2024-01-15T10:30:00Z'),
         label: 'Simulation Error',
-        link: null,
+        link: undefined,
         message: 'AccountNotFound: account does not exist or has no data',
     },
 };
