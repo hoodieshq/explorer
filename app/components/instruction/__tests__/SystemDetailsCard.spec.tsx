@@ -1,5 +1,9 @@
 /* eslint-disable no-restricted-syntax -- test assertions use RegExp for pattern matching */
-import { createInstructionParserDispatcher, isParsedInstruction, toParsedTransaction } from '@entities/instruction-parser';
+import {
+    createInstructionParserDispatcher,
+    isParsedInstruction,
+    toParsedTransaction,
+} from '@entities/instruction-parser';
 import { systemInstructionParser } from '@features/instruction-system';
 import { SystemProgram, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -38,13 +42,7 @@ describe('instruction::SystemDetailsCard', () => {
                 <ClusterProvider>
                     <TransactionsProvider>
                         <AccountsProvider>
-                            <SystemDetailsCard
-                                index={index}
-                                ix={parsedIx}
-                                raw={ti}
-                                result={{ err: null }}
-                                tx={tx}
-                            />
+                            <SystemDetailsCard index={index} ix={parsedIx} raw={ti} result={{ err: null }} tx={tx} />
                         </AccountsProvider>
                     </TransactionsProvider>
                 </ClusterProvider>
@@ -71,13 +69,7 @@ describe('instruction::SystemDetailsCard', () => {
                 <ClusterProvider>
                     <TransactionsProvider>
                         <AccountsProvider>
-                            <SystemDetailsCard
-                                index={index}
-                                ix={parsedIx}
-                                raw={ti}
-                                result={{ err: null }}
-                                tx={tx}
-                            />
+                            <SystemDetailsCard index={index} ix={parsedIx} raw={ti} result={{ err: null }} tx={tx} />
                         </AccountsProvider>
                     </TransactionsProvider>
                 </ClusterProvider>

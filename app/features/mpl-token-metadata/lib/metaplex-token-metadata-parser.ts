@@ -114,11 +114,11 @@ const INSTRUCTIONS: Record<number, Entry> = {
             const newUpdateAuthorityKey = unwrapOption(newUpdateAuthority);
             return {
                 isMutable: unwrapOption(isMutable),
-                name: dataV2?.name ?? null,
-                newUpdateAuthority: newUpdateAuthorityKey ? new PublicKey(newUpdateAuthorityKey) : null,
+                name: dataV2?.name ?? undefined,
+                newUpdateAuthority: newUpdateAuthorityKey ? new PublicKey(newUpdateAuthorityKey) : undefined,
                 primarySaleHappened: unwrapOption(primarySaleHappened),
-                symbol: dataV2?.symbol ?? null,
-                uri: dataV2?.uri ?? null,
+                symbol: dataV2?.symbol ?? undefined,
+                uri: dataV2?.uri ?? undefined,
             };
         },
         getSerializer: getUpdateMetadataAccountV2InstructionDataSerializer,
@@ -129,7 +129,7 @@ const INSTRUCTIONS: Record<number, Entry> = {
         extractData: raw => {
             const { maxSupply } = raw as CreateMasterEditionV3InstructionData;
             const maxSupplyRaw = unwrapOption(maxSupply);
-            return { maxSupply: maxSupplyRaw !== null ? Number(maxSupplyRaw) : null };
+            return { maxSupply: maxSupplyRaw !== null ? Number(maxSupplyRaw) : undefined };
         },
         getSerializer: getCreateMasterEditionV3InstructionDataSerializer,
         name: 'createMasterEditionV3',

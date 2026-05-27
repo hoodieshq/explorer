@@ -1,11 +1,9 @@
 import { TransferInfo } from '@components/instruction/system/types';
+import { createInstructionParserDispatcher, isParsedInstruction } from '@entities/instruction-parser';
 import { systemInstructionParser } from '@features/instruction-system';
 import { Keypair, type ParsedInstruction, SystemProgram, TransactionInstruction } from '@solana/web3.js';
 import { create } from 'superstruct';
 import { describe, expect, test } from 'vitest';
-
-import { createInstructionParserDispatcher } from '../model/dispatcher';
-import { isParsedInstruction } from '../model/types';
 
 /**
  * Contract test: both pipelines (inspector via `fromTransactionInstruction`
@@ -15,7 +13,7 @@ import { isParsedInstruction } from '../model/types';
  * assertion per migrated program as new slices land.
  */
 describe('instruction-parser contract', () => {
-    test('System Transfer: byte-parsed and RPC-parsed paths produce equivalent info', () => {
+    test('should produce equivalent info for byte-parsed and RPC-parsed System Transfer paths', () => {
         const dispatcher = createInstructionParserDispatcher([systemInstructionParser]);
 
         const source = Keypair.generate().publicKey;
@@ -69,7 +67,7 @@ describe('instruction-parser contract', () => {
         expect(byteInfo.destination.equals(destination)).toBe(true);
     });
 
-    test('fromParsedInstruction passes through unchanged when no slice is registered', () => {
+    test('should pass through unchanged when no slice is registered', () => {
         const dispatcher = createInstructionParserDispatcher([]);
         const unknownProgram = Keypair.generate().publicKey;
         const rpcInput: ParsedInstruction = {
@@ -83,7 +81,7 @@ describe('instruction-parser contract', () => {
         expect(result).toBe(rpcInput);
     });
 
-    test('fromParsedInstruction falls back to RPC value when slice rejects the type', () => {
+    test('should fall back to RPC value when slice rejects the type', () => {
         const dispatcher = createInstructionParserDispatcher([systemInstructionParser]);
         const rpcInput: ParsedInstruction = {
             parsed: { info: {}, type: 'someUnknownSystemInstructionType' },
@@ -95,7 +93,7 @@ describe('instruction-parser contract', () => {
         expect(result).toBe(rpcInput);
     });
 
-    test('dispatcher returns undefined for fromTransactionInstruction when no parser registered', () => {
+    test('should return undefined for fromTransactionInstruction when no parser registered', () => {
         const dispatcher = createInstructionParserDispatcher([]);
         const unknownProgram = Keypair.generate().publicKey;
         const ix = new TransactionInstruction({
@@ -108,7 +106,7 @@ describe('instruction-parser contract', () => {
         expect(result).toBeUndefined();
     });
 
-    test('dispatcher returns DispatchUnknown when parser exists but decode fails', () => {
+    test('should return DispatchUnknown when parser exists but decode fails', () => {
         const dispatcher = createInstructionParserDispatcher([systemInstructionParser]);
         const ix = new TransactionInstruction({
             // Invalid System instruction data — slice's fromTransaction returns undefined.
@@ -124,7 +122,7 @@ describe('instruction-parser contract', () => {
         expect(result.programId.equals(SystemProgram.programId)).toBe(true);
     });
 
-    test('createInstructionParserDispatcher throws on duplicate programId', () => {
+    test('should throw on duplicate programId', () => {
         expect(() => createInstructionParserDispatcher([systemInstructionParser, systemInstructionParser])).toThrow(
             'duplicate parser',
         );

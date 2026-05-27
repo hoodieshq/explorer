@@ -1,6 +1,10 @@
 /* eslint-disable no-restricted-syntax -- test assertions use RegExp for pattern matching */
 import { BaseInstructionCard } from '@components/common/BaseInstructionCard';
-import { createInstructionParserDispatcher, isParsedInstruction, toParsedTransaction } from '@entities/instruction-parser';
+import {
+    createInstructionParserDispatcher,
+    isParsedInstruction,
+    toParsedTransaction,
+} from '@entities/instruction-parser';
 import { associatedTokenInstructionParser } from '@features/instruction-associated-token';
 import * as spl from '@solana/spl-token';
 import { ParsedInstruction, PublicKey, TransactionMessage } from '@solana/web3.js';

@@ -116,7 +116,7 @@ describe('parseAssociatedTokenInstruction', () => {
         ]);
     });
 
-    test('does not mutate the input instruction.data when reconstructing the create discriminator', () => {
+    test('should not mutate the input instruction.data when reconstructing the create discriminator', () => {
         const index = 2;
         const message = mock.deserializeMessage(stubs.aTokenCreateMsgWithInnerCards);
         const instruction = intoTransactionInstructionFromVersionedMessage(
