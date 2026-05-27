@@ -16,39 +16,39 @@ import { Logger } from '@/app/shared/lib/logger';
 import type { BaseIdl } from '../unified-program';
 import { formatTransactionError } from './format-transaction-error';
 import { serializeTransactionMessage, toBase64TransactionMessage } from './serialize-transaction-message';
-import type { InstructionInvocationResult } from './types';
+import type { InstructionExecutionResult } from './types';
 
-export function useInvokeTransaction(opts: {
+export function useExecuteTransaction(opts: {
     connection: Connection;
     commitment: Finality;
     idlErrors?: BaseIdl['errors'];
     onSuccess?: (signature: string) => void;
     onError?: (error: string) => void;
-    onPreInvocationError?: (error: string) => void;
+    onPreExecutionError?: (error: string) => void;
 }) {
-    const { connection, commitment, idlErrors, onSuccess, onError, onPreInvocationError } = opts;
+    const { connection, commitment, idlErrors, onSuccess, onError, onPreExecutionError } = opts;
     const { connected, publicKey, signTransaction } = useWallet();
-    const [preInvocationError, setPreInvocationError] = useState<string>();
+    const [preExecutionError, setPreExecutionError] = useState<string>();
     const {
         handleBroadcastError,
-        handleExecutionError,
+        handlePreBroadcastError,
         handleTxEnd,
         handleTxStart,
         handleTxSuccess,
         isExecuting,
         lastResult,
         parseLogs,
-    } = useInvocationState({ onError, onSuccess });
+    } = useExecutionState({ onError, onSuccess });
 
-    const invoke = useCallback(
+    const executeTx = useCallback(
         async (buildTx: () => Promise<Transaction>): Promise<void> => {
             if (!connected || !publicKey || !signTransaction) {
                 const message = 'Wallet not connected';
-                setPreInvocationError(message);
-                onPreInvocationError?.(message);
+                setPreExecutionError(message);
+                onPreExecutionError?.(message);
                 return;
             }
-            setPreInvocationError(undefined);
+            setPreExecutionError(undefined);
             handleTxStart();
             let transaction: Transaction | undefined;
             let signature: string | undefined;
@@ -88,7 +88,7 @@ export function useInvokeTransaction(opts: {
                 if (signature && transaction) {
                     handleBroadcastError(error, transaction, { signature });
                 } else {
-                    handleExecutionError(error, transaction);
+                    handlePreBroadcastError(error, transaction);
                 }
             } finally {
                 handleTxEnd();
@@ -104,16 +104,16 @@ export function useInvokeTransaction(opts: {
             handleTxStart,
             handleTxSuccess,
             handleBroadcastError,
-            handleExecutionError,
+            handlePreBroadcastError,
             handleTxEnd,
-            onPreInvocationError,
+            onPreExecutionError,
         ],
     );
 
-    return { invoke, isExecuting, lastResult, parseLogs, preInvocationError };
+    return { executeTx, isExecuting, lastResult, parseLogs, preExecutionError };
 }
 
-function useInvocationState({
+function useExecutionState({
     onSuccess,
     onError,
 }: {
@@ -123,7 +123,7 @@ function useInvocationState({
     const [transactionError, setTransactionError] = useState<TransactionError>();
     const { parseLogs } = useParsedLogs(transactionError);
     const [isExecuting, setIsExecuting] = useState(false);
-    const [lastResult, setLastResult] = useState<InstructionInvocationResult>();
+    const [lastResult, setLastResult] = useState<InstructionExecutionResult>();
 
     const handleTxStart = () => {
         setIsExecuting(true);
@@ -168,7 +168,7 @@ function useInvocationState({
     };
 
     // Local error before broadcast: buildTx threw, wallet rejected sign, or sendRawTransaction threw.
-    const handleExecutionError = (error: unknown, transaction: Transaction | undefined) => {
+    const handlePreBroadcastError = (error: unknown, transaction: Transaction | undefined) => {
         const signature = undefined;
         const logs = error instanceof SendTransactionError ? (error.logs ?? []) : [];
         const message = error instanceof Error ? error.message : 'Failed to execute instruction';
@@ -180,7 +180,7 @@ function useInvocationState({
             finishedAt: new Date(),
             logs,
             message,
-            phase: 'execution_failed',
+            phase: 'pre_broadcast_failed',
             serializedTxMessage: serializeTransactionMessage(transaction),
             status: 'error',
         });
@@ -190,7 +190,7 @@ function useInvocationState({
 
     return {
         handleBroadcastError,
-        handleExecutionError,
+        handlePreBroadcastError,
         handleTxEnd,
         handleTxStart,
         handleTxSuccess,

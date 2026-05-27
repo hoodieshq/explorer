@@ -124,7 +124,7 @@ export function useTabs(idl: FormattedIdl | null, originalIdl: SupportedIdl, pro
                             onTransactionConfirmed={idlAnalytics.trackTransactionConfirmed}
                             onTransactionFailed={idlAnalytics.trackTransactionFailed}
                             onTransactionSimulationStart={idlAnalytics.trackTransactionSimulated}
-                            onTransactionInvocationStart={idlAnalytics.trackTransactionSubmitted}
+                            onTransactionExecutionStart={idlAnalytics.trackTransactionSubmitted}
                             onWalletConnected={idlAnalytics.trackWalletConnected}
                         />
                     ),

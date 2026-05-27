@@ -1,24 +1,24 @@
 import { useExplorerLink } from '@entities/cluster';
-import { ProgramLogs, TxErrorStatus, TxInvocationStatus, TxSimulationStatus } from '@entities/program-logs';
+import { ProgramLogs, TxErrorStatus, TxExecutionStatus, TxSimulationStatus } from '@entities/program-logs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@shared/ui/tabs';
 import { ReactNode } from 'react';
 
 import { Card } from '@/app/shared/ui/Card';
 import type { InstructionLogs } from '@/app/utils/program-logs';
 
-import type { InstructionInvocationResult, InstructionSimulationResult } from '../model/transaction/types';
+import type { InstructionExecutionResult, InstructionSimulationResult } from '../model/transaction/types';
 
-type InstructionInvocationActivityProps = {
-    lastResult?: InstructionInvocationResult;
+type InstructionExecutionActivityProps = {
+    lastResult?: InstructionExecutionResult;
     parseLogs: (logs: string[]) => InstructionLogs[];
 };
 // FIXME: missing Storybook story — pure props, but uses useExplorerLink internally so needs withCluster decorator.
-export function InstructionInvocationActivity({ lastResult, parseLogs }: InstructionInvocationActivityProps) {
+export function InstructionExecutionActivity({ lastResult, parseLogs }: InstructionExecutionActivityProps) {
     const tabs = [
         {
             component: (
                 <ProgramLogs
-                    header={lastResult && <InstructionInvocationStatusHeader lastResult={lastResult} />}
+                    header={lastResult && <InstructionExecutionStatusHeader lastResult={lastResult} />}
                     logs={lastResult?.logs ?? []}
                     parseLogs={parseLogs}
                 />
@@ -79,7 +79,7 @@ function CardWithTabs({ tabs }: { tabs: { id: string; title: string; component: 
     );
 }
 
-function InstructionInvocationStatusHeader({ lastResult }: { lastResult: InstructionInvocationResult }) {
+function InstructionExecutionStatusHeader({ lastResult }: { lastResult: InstructionExecutionResult }) {
     const { link: txLink } = useExplorerLink(`/tx/${getTxSignature(lastResult) ?? ''}`);
     const { link: inspectorLink } = useExplorerLink(
         `/tx/inspector?message=${encodeURIComponent(getInspectorMessage(lastResult) ?? '')}`,
@@ -87,7 +87,7 @@ function InstructionInvocationStatusHeader({ lastResult }: { lastResult: Instruc
 
     if (lastResult.status === 'success') {
         return (
-            <TxInvocationStatus
+            <TxExecutionStatus
                 status="success"
                 signature={lastResult.signature}
                 date={lastResult.finishedAt}
@@ -98,7 +98,7 @@ function InstructionInvocationStatusHeader({ lastResult }: { lastResult: Instruc
     // Tx was sent to the network but an error occurred.
     if (lastResult.phase === 'broadcast_failed') {
         return (
-            <TxInvocationStatus
+            <TxExecutionStatus
                 status="error"
                 signature={lastResult.signature}
                 date={lastResult.finishedAt}
@@ -143,14 +143,14 @@ function SimulationStatusHeader({ lastSimulation }: { lastSimulation: Instructio
 }
 
 // Signature exists on a successful tx and on a broadcast that later failed; never on a local error.
-function getTxSignature(result: InstructionInvocationResult): string | undefined {
+function getTxSignature(result: InstructionExecutionResult): string | undefined {
     if (result.status === 'success') return result.signature;
     if (result.phase === 'broadcast_failed') return result.signature;
     return undefined;
 }
 
-// Only execution_failed carries a serialized message worth an inspector link.
-function getInspectorMessage(result: InstructionInvocationResult): string | undefined {
-    if (result.status === 'error' && result.phase === 'execution_failed') return result.serializedTxMessage;
+// Only pre_broadcast_failed carries a serialized message worth an inspector link.
+function getInspectorMessage(result: InstructionExecutionResult): string | undefined {
+    if (result.status === 'error' && result.phase === 'pre_broadcast_failed') return result.serializedTxMessage;
     return undefined;
 }

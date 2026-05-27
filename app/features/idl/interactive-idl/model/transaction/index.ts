@@ -1,4 +1,4 @@
 export { formatTransactionError } from './format-transaction-error';
-export type { InstructionInvocationResult, InstructionSimulationResult } from './types';
-export { useInvokeTransaction } from './use-invoke-transaction';
+export type { InstructionExecutionResult, InstructionSimulationResult } from './types';
+export { useExecuteTransaction } from './use-execute-transaction';
 export { useSimulateTransaction } from './use-simulate-transaction';

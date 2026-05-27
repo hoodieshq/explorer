@@ -2,10 +2,10 @@ import type { SimulatedTransactionResponse } from '@solana/web3.js';
 
 // Instruction Execution
 
-export type InstructionInvocationResult = InvocationOkResult | InvocationErrResult;
-export type InvocationErrResult = BroadcastFailedResult | ExecutionFailedResult;
+export type InstructionExecutionResult = ExecutionOkResult | ExecutionErrResult;
+export type ExecutionErrResult = BroadcastFailedResult | PreBroadcastFailedResult;
 
-export type InvocationOkResult = {
+export type ExecutionOkResult = {
     status: 'success';
     signature: string;
     logs: string[];
@@ -28,9 +28,9 @@ export type BroadcastFailedResult = {
 // Local error before the tx was broadcast (buildTx threw, wallet rejected sign, sendRawTransaction threw).
 // Inspector link available only when a tx was built and serialized without errors.
 // No signature.
-export type ExecutionFailedResult = {
+export type PreBroadcastFailedResult = {
     status: 'error';
-    phase: 'execution_failed';
+    phase: 'pre_broadcast_failed';
     serializedTxMessage: string | undefined;
     message: string;
     logs: string[];

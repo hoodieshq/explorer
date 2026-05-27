@@ -21,7 +21,7 @@ export interface InteractWithIdlAnalyticsCallbacks {
     onTransactionConfirmed?: (programId?: string, instructionName?: string, signature?: string) => void;
     onTransactionFailed?: (programId?: string, instructionName?: string, error?: string) => void;
     onTransactionSimulationStart?: (programId?: string, instructionName?: string) => void;
-    onTransactionInvocationStart?: (programId?: string, instructionName?: string) => void;
+    onTransactionExecutionStart?: (programId?: string, instructionName?: string) => void;
     onWalletConnected?: (programId?: string, walletType?: string) => void;
 }
 
@@ -33,7 +33,7 @@ export function InteractWithIdl({
     onTransactionConfirmed,
     onTransactionFailed,
     onTransactionSimulationStart,
-    onTransactionInvocationStart,
+    onTransactionExecutionStart,
     onWalletConnected,
 }: {
     data?: InstructionData[];
@@ -97,7 +97,7 @@ export function InteractWithIdl({
     );
 
     const {
-        invokeInstruction,
+        executeInstruction,
         simulateInstruction,
         initializationError,
         isExecuting,
@@ -114,7 +114,7 @@ export function InteractWithIdl({
         programId: progId?.toString(),
     });
 
-    const [lastAction, setLastAction] = useState<'invoke' | 'simulate' | null>(null);
+    const [lastAction, setLastAction] = useState<'execute' | 'simulate' | null>(null);
 
     const { requireConfirmation, confirm, cancel, isOpen, hasPendingAction } = useMainnetConfirmation<{
         data: InstructionData;
@@ -125,19 +125,19 @@ export function InteractWithIdl({
         async (data: InstructionData, params: InstructionCallParams) => {
             const programIdStr = progId?.toString();
 
-            setLastAction('invoke');
-            onTransactionInvocationStart?.(programIdStr, data.name);
+            setLastAction('execute');
+            onTransactionExecutionStart?.(programIdStr, data.name);
 
             setCurrentInstruction({ name: data.name, programId: programIdStr });
 
             await requireConfirmation(
                 async () => {
-                    await invokeInstruction(data.name, data, params);
+                    await executeInstruction(data.name, data, params);
                 },
                 { data, params },
             );
         },
-        [invokeInstruction, requireConfirmation, progId, onTransactionInvocationStart],
+        [executeInstruction, requireConfirmation, progId, onTransactionExecutionStart],
     );
 
     const handleSimulateInstruction = useCallback(

@@ -21,13 +21,13 @@ import { programAtom } from '../model/state-atoms';
 import { AnchorInterpreter } from './anchor/anchor-interpreter';
 import { CodamaInterpreter } from './codama/codama-interpreter';
 import { IdlExecutor, populateAccounts, populateArguments } from './idl-executor';
-import type { InstructionInvocationResult, InstructionSimulationResult } from './transaction/types';
-import { useInvokeTransaction } from './transaction/use-invoke-transaction';
+import type { InstructionExecutionResult, InstructionSimulationResult } from './transaction/types';
+import { useExecuteTransaction } from './transaction/use-execute-transaction';
 import { useSimulateTransaction } from './transaction/use-simulate-transaction';
 import type { UnifiedProgram, UnifiedWallet } from './unified-program';
 import { BaseIdl } from './unified-program';
 
-export type { InstructionInvocationResult } from './transaction/types';
+export type { InstructionExecutionResult } from './transaction/types';
 
 type InstructionParams = {
     accounts: Record<string, string>;
@@ -45,12 +45,12 @@ interface UseInstructionOptions {
     simulationCommitment?: Commitment;
     onSuccess?: (signature: string) => void;
     onError?: (error: string) => void;
-    onPreInvocationError?: (error: string) => void;
+    onPreExecutionError?: (error: string) => void;
 }
 
 interface UseInstructionReturn {
     // Execution
-    invokeInstruction: (
+    executeInstruction: (
         instructionName: string,
         instruction: InstructionData,
         params: InstructionParams,
@@ -66,10 +66,10 @@ interface UseInstructionReturn {
     // Status
     isExecuting: boolean;
     isSimulating: boolean;
-    preInvocationError: string | undefined;
-    lastResult: InstructionInvocationResult | undefined;
+    preExecutionError: string | undefined;
+    lastResult: InstructionExecutionResult | undefined;
     lastSimulation: InstructionSimulationResult | undefined;
-    parseLogs: ReturnType<typeof useInvokeTransaction>['parseLogs'];
+    parseLogs: ReturnType<typeof useExecuteTransaction>['parseLogs'];
     parseSimulationLogs: ReturnType<typeof useSimulateTransaction>['parseLogs'];
     initializeProgram: () => void;
     isProgramLoading: boolean;
@@ -87,7 +87,7 @@ export function useInstruction({
     simulationCommitment = 'processed',
     onSuccess,
     onError,
-    onPreInvocationError,
+    onPreExecutionError,
 }: UseInstructionOptions): UseInstructionReturn {
     const interpreterName = interpreterNameOverride ?? detectInterpreterName(idl);
     const { publicKey, ...wallet } = useWallet();
@@ -198,12 +198,12 @@ export function useInstruction({
         }
     }, [idl, programId?.toString()]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const { invoke, isExecuting, lastResult, parseLogs, preInvocationError } = useInvokeTransaction({
+    const { executeTx, isExecuting, lastResult, parseLogs, preExecutionError } = useExecuteTransaction({
         commitment,
         connection,
         idlErrors: idl?.errors,
         onError,
-        onPreInvocationError,
+        onPreExecutionError,
         onSuccess,
     });
 
@@ -242,10 +242,10 @@ export function useInstruction({
         [idl, program, publicKey, executor, interpreterName],
     );
 
-    const invokeInstruction = useCallback(
+    const executeInstruction = useCallback(
         (instructionName: string, _instruction: InstructionData, params: InstructionParams): Promise<void> =>
-            invoke(makeTxBuilder(instructionName, params)),
-        [invoke, makeTxBuilder],
+            executeTx(makeTxBuilder(instructionName, params)),
+        [executeTx, makeTxBuilder],
     );
 
     const simulateInstruction = useCallback(
@@ -255,9 +255,9 @@ export function useInstruction({
     );
 
     return {
+        executeInstruction,
         initializationError,
         initializeProgram,
-        invokeInstruction,
         isExecuting,
         isProgramLoading,
         isSimulating,
@@ -265,7 +265,7 @@ export function useInstruction({
         lastSimulation,
         parseLogs,
         parseSimulationLogs,
-        preInvocationError,
+        preExecutionError,
         program,
         simulateInstruction,
     };

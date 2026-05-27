@@ -4,8 +4,8 @@ import { Keypair, PublicKey, Transaction, TransactionInstruction } from '@solana
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { BroadcastFailedResult, ExecutionFailedResult, InvocationOkResult } from '../types';
-import { useInvokeTransaction } from '../use-invoke-transaction';
+import type { BroadcastFailedResult, ExecutionOkResult, PreBroadcastFailedResult } from '../types';
+import { useExecuteTransaction } from '../use-execute-transaction';
 
 vi.mock('@solana/wallet-adapter-react');
 vi.mock('@/app/providers/cluster', () => ({
@@ -17,7 +17,9 @@ const PK = Keypair.generate().publicKey;
 function mockConnection(overrides: Partial<Connection> = {}) {
     return {
         confirmTransaction: vi.fn().mockResolvedValue({ value: { err: null } }),
-        getLatestBlockhash: vi.fn().mockResolvedValue({ blockhash: 'abc', lastValidBlockHeight: 100 }),
+        getLatestBlockhash: vi
+            .fn()
+            .mockResolvedValue({ blockhash: PublicKey.default.toBase58(), lastValidBlockHeight: 100 }),
         getTransaction: vi.fn().mockResolvedValue({ meta: { logMessages: ['final-log'] } }),
         sendRawTransaction: vi.fn().mockResolvedValue('sig123'),
         simulateTransaction: vi.fn().mockResolvedValue({ context: { slot: 1 }, value: { err: null, logs: ['s'] } }),
@@ -47,7 +49,7 @@ function mockWallet(connected = true) {
     } as unknown as ReturnType<typeof useWallet>);
 }
 
-describe('useInvokeTransaction', () => {
+describe('useExecuteTransaction', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockWallet(true);
@@ -57,17 +59,17 @@ describe('useInvokeTransaction', () => {
         const connection = mockConnection();
         const onSuccess = vi.fn();
         const { result } = renderHook(() =>
-            useInvokeTransaction({
+            useExecuteTransaction({
                 commitment: 'confirmed',
                 connection: connection,
                 onSuccess,
             }),
         );
         await act(async () => {
-            await result.current.invoke(async () => makeTx());
+            await result.current.executeTx(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('success'));
-        expect((result.current.lastResult as InvocationOkResult).signature).toBe('sig123');
+        expect((result.current.lastResult as ExecutionOkResult).signature).toBe('sig123');
         expect(result.current.lastResult?.logs).toEqual(['final-log']);
         expect(onSuccess).toHaveBeenCalledWith('sig123');
     });
@@ -80,14 +82,14 @@ describe('useInvokeTransaction', () => {
             getTransaction: vi.fn().mockResolvedValue({ meta: { logMessages: ['failed-log'] } }),
         });
         const { result } = renderHook(() =>
-            useInvokeTransaction({
+            useExecuteTransaction({
                 commitment: 'confirmed',
                 connection: connection,
                 idlErrors: [{ code: 6001, name: 'AlreadyInitialized' }],
             }),
         );
         await act(async () => {
-            await result.current.invoke(async () => makeTx());
+            await result.current.executeTx(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
         expect(result.current.lastResult?.logs).toEqual(['failed-log']);
@@ -96,21 +98,21 @@ describe('useInvokeTransaction', () => {
         );
     });
 
-    it('should fire onPreInvocationError when wallet is disconnected and not call signTransaction', async () => {
+    it('should fire onPreExecutionError when wallet is disconnected and not call signTransaction', async () => {
         mockWallet(false);
         const connection = mockConnection();
-        const onPreInvocationError = vi.fn();
+        const onPreExecutionError = vi.fn();
         const { result } = renderHook(() =>
-            useInvokeTransaction({
+            useExecuteTransaction({
                 commitment: 'confirmed',
                 connection: connection,
-                onPreInvocationError,
+                onPreExecutionError,
             }),
         );
         await act(async () => {
-            await result.current.invoke(async () => makeTx());
+            await result.current.executeTx(async () => makeTx());
         });
-        expect(onPreInvocationError).toHaveBeenCalledWith('Wallet not connected');
+        expect(onPreExecutionError).toHaveBeenCalledWith('Wallet not connected');
         expect(connection.sendRawTransaction).not.toHaveBeenCalled();
     });
 
@@ -120,13 +122,13 @@ describe('useInvokeTransaction', () => {
             getTransaction: vi.fn().mockResolvedValue({ meta: { logMessages: ['l'] } }),
         });
         const { result } = renderHook(() =>
-            useInvokeTransaction({
+            useExecuteTransaction({
                 commitment: 'confirmed',
                 connection: connection,
             }),
         );
         await act(async () => {
-            await result.current.invoke(async () => makeTx());
+            await result.current.executeTx(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
         const r = result.current.lastResult as BroadcastFailedResult;
@@ -138,42 +140,39 @@ describe('useInvokeTransaction', () => {
         const connection = mockConnection();
         const onError = vi.fn();
         const { result } = renderHook(() =>
-            useInvokeTransaction({
+            useExecuteTransaction({
                 commitment: 'confirmed',
                 connection: connection,
                 onError,
             }),
         );
         await act(async () => {
-            await result.current.invoke(async () => {
+            await result.current.executeTx(async () => {
                 throw new Error('UnexpectedError');
             });
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
-        expect((result.current.lastResult as ExecutionFailedResult).message).toBe('UnexpectedError');
+        expect((result.current.lastResult as PreBroadcastFailedResult).message).toBe('UnexpectedError');
         expect(result.current.isExecuting).toBe(false);
         expect(onError).toHaveBeenCalledWith('UnexpectedError', undefined);
         expect(connection.sendRawTransaction).not.toHaveBeenCalled();
-        const r = result.current.lastResult as ExecutionFailedResult;
-        expect(r.phase).toBe('execution_failed');
+        const r = result.current.lastResult as PreBroadcastFailedResult;
+        expect(r.phase).toBe('pre_broadcast_failed');
         expect(r.serializedTxMessage).toBeUndefined();
     });
 
     it('should set phase broadcast_failed when getTransaction rejects after the tx was broadcast', async () => {
         const connection = mockConnection({
-            getLatestBlockhash: vi
-                .fn()
-                .mockResolvedValue({ blockhash: PublicKey.default.toBase58(), lastValidBlockHeight: 100 }),
             getTransaction: vi.fn().mockRejectedValue(new Error('rpc timeout')),
         });
         const { result } = renderHook(() =>
-            useInvokeTransaction({
+            useExecuteTransaction({
                 commitment: 'confirmed',
                 connection: connection,
             }),
         );
         await act(async () => {
-            await result.current.invoke(async () => makeTx());
+            await result.current.executeTx(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
         const r = result.current.lastResult as BroadcastFailedResult;

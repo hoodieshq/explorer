@@ -1,13 +1,13 @@
 import { CopyableMonoText, StatusBar } from './StatusBar';
 
-type TxInvocationStatusProps = {
+type TxExecutionStatusProps = {
     status: 'success' | 'error';
     signature: string;
     date: Date;
     link: string;
 };
 
-export function TxInvocationStatus({ status, signature, date, link }: TxInvocationStatusProps) {
+export function TxExecutionStatus({ status, signature, date, link }: TxExecutionStatusProps) {
     const isSuccess = status === 'success';
     return (
         <StatusBar

@@ -5,11 +5,11 @@ import { Label } from '@/app/components/shared/ui/label';
 import { Switch } from '@/app/components/shared/ui/switch';
 import type { InstructionLogs } from '@/app/utils/program-logs';
 
-import type { InstructionInvocationResult, InstructionSimulationResult } from '../model/transaction/types';
+import type { InstructionExecutionResult, InstructionSimulationResult } from '../model/transaction/types';
 import type { InstructionCallParams } from '../model/use-instruction-form';
 import { ClusterSelector } from './ClusterSelector';
 import { ConnectWallet } from './ConnectWallet';
-import { InstructionInvocationActivity, InstructionSimulationActivity } from './InstructionActivity';
+import { InstructionExecutionActivity, InstructionSimulationActivity } from './InstructionActivity';
 import { InteractInstructions } from './InteractInstructions';
 
 // FIXME: missing Storybook story — composes ConnectWallet + ClusterSelector + InteractInstructions; inherits wallet/cluster provider need.
@@ -36,9 +36,9 @@ export function InteractWithIdlView({
     parseSimulationLogs: (logs: string[]) => InstructionLogs[];
     isExecuting?: boolean;
     isSimulating?: boolean;
-    lastResult: InstructionInvocationResult | undefined;
+    lastResult: InstructionExecutionResult | undefined;
     lastSimulation: InstructionSimulationResult | undefined;
-    lastAction: 'invoke' | 'simulate' | null;
+    lastAction: 'execute' | 'simulate' | null;
 }) {
     const [expandedSections, setExpandedSections] = useState<string[]>([]);
 
@@ -103,7 +103,7 @@ export function InteractWithIdlView({
                                     parseLogs={parseSimulationLogs}
                                 />
                             ) : (
-                                <InstructionInvocationActivity lastResult={lastResult} parseLogs={parseLogs} />
+                                <InstructionExecutionActivity lastResult={lastResult} parseLogs={parseLogs} />
                             )}
                         </div>
                     </div>
