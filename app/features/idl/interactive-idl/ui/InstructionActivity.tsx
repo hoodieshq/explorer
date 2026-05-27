@@ -18,7 +18,7 @@ export function InstructionInvocationActivity({ lastResult, parseLogs }: Instruc
         {
             component: (
                 <ProgramLogs
-                    header={lastResult && <TxStatusHeader lastResult={lastResult} />}
+                    header={lastResult && <InstructionInvocationStatusHeader lastResult={lastResult} />}
                     logs={lastResult?.logs ?? []}
                     parseLogs={parseLogs}
                 />
@@ -79,7 +79,7 @@ function CardWithTabs({ tabs }: { tabs: { id: string; title: string; component: 
     );
 }
 
-function TxStatusHeader({ lastResult }: { lastResult: InstructionInvocationResult }) {
+function InstructionInvocationStatusHeader({ lastResult }: { lastResult: InstructionInvocationResult }) {
     const { link: txLink } = useExplorerLink(`/tx/${getTxSignature(lastResult) ?? ''}`);
     const { link: inspectorLink } = useExplorerLink(
         `/tx/inspector?message=${encodeURIComponent(getInspectorMessage(lastResult) ?? '')}`,
@@ -95,6 +95,7 @@ function TxStatusHeader({ lastResult }: { lastResult: InstructionInvocationResul
             />
         );
     }
+    // Tx was sent to the network but an error occurred.
     if (lastResult.phase === 'broadcast_failed') {
         return (
             <TxInvocationStatus
@@ -105,6 +106,7 @@ function TxStatusHeader({ lastResult }: { lastResult: InstructionInvocationResul
             />
         );
     }
+    // Tx failed before it could be sent to the network, so no signature.
     return (
         <TxErrorStatus
             message={lastResult.message}

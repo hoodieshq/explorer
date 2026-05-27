@@ -38,17 +38,17 @@ export function useInstructionForm({
         defaultValues: createDefaultValues(instruction),
     });
 
-    const toCallParams = (data: InstructionFormData): InstructionCallParams => ({
+    const toInstructionCallParams = (data: InstructionFormData): InstructionCallParams => ({
         accounts: flattenNestedRecord(data.accounts),
         arguments: flattenNestedRecord(data.arguments),
     });
 
     const onInstructionSubmit: SubmitHandler<InstructionFormData> = data => {
-        onSubmit(toCallParams(data));
+        onSubmit(toInstructionCallParams(data));
     };
 
     const onInstructionSimulate: SubmitHandler<InstructionFormData> = data => {
-        onSimulate?.(toCallParams(data));
+        onSimulate?.(toInstructionCallParams(data));
     };
 
     return {

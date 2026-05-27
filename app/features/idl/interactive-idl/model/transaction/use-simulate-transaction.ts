@@ -28,18 +28,25 @@ export function useSimulateTransaction(opts: {
             let transaction: Transaction | undefined;
             let serializedTxMessage: string | undefined = undefined;
             try {
+                // Build transaction
                 transaction = await buildTx();
                 if (!transaction.recentBlockhash) {
                     const { blockhash } = await connection.getLatestBlockhash();
                     transaction.recentBlockhash = blockhash;
                 }
+
+                // Serialize to Base64 for rendering and inspector url
                 serializedTxMessage = toBase64TransactionMessage(transaction);
+
+                // Simulate
                 const result = await connection.simulateTransaction(
                     new VersionedTransaction(transaction.compileMessage()),
                     {
                         commitment: simulationCommitment,
                     },
                 );
+
+                // Handle simulation result
                 const logs = result.value.logs ?? [];
                 if (result.value.err !== null) {
                     setLastSimulation({

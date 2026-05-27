@@ -20,7 +20,7 @@ export function InteractWithIdlView({
     onSimulateInstruction,
     onSectionsExpanded,
     parseLogs,
-    simulateParseLogs,
+    parseSimulationLogs,
     isExecuting,
     isSimulating,
     lastResult,
@@ -33,7 +33,7 @@ export function InteractWithIdlView({
     onSimulateInstruction: (data: InstructionData, params: InstructionCallParams) => Promise<void>;
     onSectionsExpanded?: (expandedSections: string[], programId?: string) => void;
     parseLogs: (logs: string[]) => InstructionLogs[];
-    simulateParseLogs: (logs: string[]) => InstructionLogs[];
+    parseSimulationLogs: (logs: string[]) => InstructionLogs[];
     isExecuting?: boolean;
     isSimulating?: boolean;
     lastResult: InstructionInvocationResult | undefined;
@@ -100,7 +100,7 @@ export function InteractWithIdlView({
                             {lastAction === 'simulate' ? (
                                 <InstructionSimulationActivity
                                     lastSimulation={lastSimulation}
-                                    parseLogs={simulateParseLogs}
+                                    parseLogs={parseSimulationLogs}
                                 />
                             ) : (
                                 <InstructionInvocationActivity lastResult={lastResult} parseLogs={parseLogs} />

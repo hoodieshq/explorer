@@ -3,6 +3,7 @@ import { Keypair, PublicKey, Transaction, TransactionInstruction } from '@solana
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { RpcSimulationFailedResult, SimulationExecutionFailedResult, SimulationOkResult } from '../types';
 import { useSimulateTransaction } from '../use-simulate-transaction';
 
 vi.mock('@/app/providers/cluster', () => ({
@@ -47,7 +48,7 @@ describe('useSimulateTransaction', () => {
             await result.current.simulate(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('success'));
-        expect((result.current.lastSimulation as unknown as { logs: string[] }).logs).toEqual(['l1']);
+        expect((result.current.lastSimulation as SimulationOkResult).logs).toEqual(['l1']);
     });
 
     it('should surface simulation logs before throwing on error path', async () => {
@@ -66,11 +67,9 @@ describe('useSimulateTransaction', () => {
             await result.current.simulate(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
-        expect((result.current.lastSimulation as unknown as { logs: string[] }).logs).toEqual(['log-on-err']);
-        expect((result.current.lastSimulation as unknown as { message: string }).message).toContain(
-            'AlreadyInitialized',
-        );
-        expect((result.current.lastSimulation as unknown as { phase: string }).phase).toBe('rpc_simulation_failed');
+        expect((result.current.lastSimulation as RpcSimulationFailedResult).logs).toEqual(['log-on-err']);
+        expect((result.current.lastSimulation as RpcSimulationFailedResult).message).toContain('AlreadyInitialized');
+        expect((result.current.lastSimulation as RpcSimulationFailedResult).phase).toBe('rpc_simulation_failed');
     });
 
     it('should set error state when builder throws without invoking RPC', async () => {
@@ -84,7 +83,7 @@ describe('useSimulateTransaction', () => {
             });
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
-        expect((result.current.lastSimulation as unknown as { message: string }).message).toBe('build failed');
+        expect((result.current.lastSimulation as SimulationExecutionFailedResult).message).toBe('build failed');
         expect(conn.simulateTransaction).not.toHaveBeenCalled();
     });
 
@@ -129,7 +128,7 @@ describe('useSimulateTransaction', () => {
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
         expect(result.current.lastSimulation?.serializedTxMessage).toEqual(expect.any(String));
-        expect((result.current.lastSimulation as unknown as { phase: string }).phase).toBe('rpc_simulation_failed');
+        expect((result.current.lastSimulation as RpcSimulationFailedResult).phase).toBe('rpc_simulation_failed');
     });
 
     it('should set serializedTxMessage to null when the builder throws before serialization', async () => {
@@ -144,7 +143,7 @@ describe('useSimulateTransaction', () => {
         });
         await waitFor(() => expect(result.current.lastSimulation?.status).toBe('error'));
         expect(result.current.lastSimulation?.serializedTxMessage).toBeUndefined();
-        expect((result.current.lastSimulation as unknown as { phase: string }).phase).toBe(
+        expect((result.current.lastSimulation as SimulationExecutionFailedResult).phase).toBe(
             'simulation_execution_failed',
         );
     });

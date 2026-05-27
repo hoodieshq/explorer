@@ -53,14 +53,20 @@ export function useInvokeTransaction(opts: {
             let transaction: Transaction | undefined;
             let signature: string | undefined;
             try {
+                // Build transaction
                 transaction = await buildTx();
                 const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
                 transaction.recentBlockhash = blockhash;
 
+                // Sign with wallet
                 const signed = await signTransaction(transaction);
+
+                // Broadcast to chain
                 signature = await connection.sendRawTransaction(signed.serialize(), {
                     skipPreflight: true,
                 });
+
+                // Confirm and fetch
                 const confirmed = await connection.confirmTransaction(
                     { blockhash, lastValidBlockHeight, signature },
                     commitment,
@@ -71,6 +77,7 @@ export function useInvokeTransaction(opts: {
                 });
                 const finalLogs = published?.meta?.logMessages ?? [];
 
+                // Handle errors from rpc
                 if (confirmed.value?.err) {
                     handleBroadcastError(confirmed.value.err, transaction, { idlErrors, logs: finalLogs, signature });
                     return;
@@ -144,7 +151,7 @@ function useInvocationState({
         },
     ) => {
         const logs = options.logs ?? [];
-        const message = getMessageFromBroadcastedError(error, options.idlErrors);
+        const message = getMessageFromBroadcastError(error, options.idlErrors);
         Logger.error(error, { signature: options.signature, transaction });
         setTransactionError(error instanceof Error ? undefined : (error as TransactionError));
 
@@ -194,7 +201,7 @@ function useInvocationState({
 }
 
 const DEFAULT_BROADCASTED_ERROR_MESSAGE = 'Failed to invoke instruction';
-function getMessageFromBroadcastedError(error: unknown, idlErrors: BaseIdl['errors'] | undefined): string {
+function getMessageFromBroadcastError(error: unknown, idlErrors: BaseIdl['errors'] | undefined): string {
     if (error instanceof Error) {
         return error.message || DEFAULT_BROADCASTED_ERROR_MESSAGE;
     }

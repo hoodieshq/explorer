@@ -105,7 +105,7 @@ export function InteractWithIdl({
         lastResult,
         lastSimulation,
         parseLogs,
-        simulateParseLogs,
+        parseSimulationLogs,
     } = useInstruction({
         enabled: isEnabled({ connected, idl, programId: progId, publicKey }),
         idl,
@@ -176,7 +176,7 @@ export function InteractWithIdl({
                 lastResult={lastResult}
                 lastSimulation={lastSimulation}
                 parseLogs={parseLogs}
-                simulateParseLogs={simulateParseLogs}
+                parseSimulationLogs={parseSimulationLogs}
                 lastAction={lastAction}
             />
             {hasPendingAction && (

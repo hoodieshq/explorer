@@ -70,7 +70,7 @@ interface UseInstructionReturn {
     lastResult: InstructionInvocationResult | undefined;
     lastSimulation: InstructionSimulationResult | undefined;
     parseLogs: ReturnType<typeof useInvokeTransaction>['parseLogs'];
-    simulateParseLogs: ReturnType<typeof useSimulateTransaction>['parseLogs'];
+    parseSimulationLogs: ReturnType<typeof useSimulateTransaction>['parseLogs'];
     initializeProgram: () => void;
     isProgramLoading: boolean;
     program: UnifiedProgram | undefined;
@@ -210,7 +210,7 @@ export function useInstruction({
     const {
         isSimulating,
         lastSimulation,
-        parseLogs: simulateParseLogs,
+        parseLogs: parseSimulationLogs,
         simulate,
     } = useSimulateTransaction({
         connection,
@@ -218,6 +218,7 @@ export function useInstruction({
         simulationCommitment,
     });
 
+    // Transaction builder for instruction execution and simulation.
     const makeTxBuilder = useCallback(
         (instructionName: string, params: InstructionParams) => async () => {
             if (!idl || !program || !publicKey) {
@@ -242,20 +243,14 @@ export function useInstruction({
     );
 
     const invokeInstruction = useCallback(
-        (
-            instructionName: string,
-            _instruction: InstructionData,
-            params: InstructionParams,
-        ): Promise<void> => invoke(makeTxBuilder(instructionName, params)),
+        (instructionName: string, _instruction: InstructionData, params: InstructionParams): Promise<void> =>
+            invoke(makeTxBuilder(instructionName, params)),
         [invoke, makeTxBuilder],
     );
 
     const simulateInstruction = useCallback(
-        (
-            instructionName: string,
-            _instruction: InstructionData,
-            params: InstructionParams,
-        ): Promise<void> => simulate(makeTxBuilder(instructionName, params)),
+        (instructionName: string, _instruction: InstructionData, params: InstructionParams): Promise<void> =>
+            simulate(makeTxBuilder(instructionName, params)),
         [simulate, makeTxBuilder],
     );
 
@@ -269,10 +264,10 @@ export function useInstruction({
         lastResult,
         lastSimulation,
         parseLogs,
+        parseSimulationLogs,
         preInvocationError,
         program,
         simulateInstruction,
-        simulateParseLogs,
     };
 }
 
