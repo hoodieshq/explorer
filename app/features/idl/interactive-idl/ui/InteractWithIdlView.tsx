@@ -36,8 +36,8 @@ export function InteractWithIdlView({
     simulateParseLogs: (logs: string[]) => InstructionLogs[];
     isExecuting?: boolean;
     isSimulating?: boolean;
-    lastResult: InstructionInvocationResult;
-    lastSimulation: InstructionSimulationResult;
+    lastResult: InstructionInvocationResult | null;
+    lastSimulation: InstructionSimulationResult | null;
     lastAction: 'invoke' | 'simulate' | null;
 }) {
     const [expandedSections, setExpandedSections] = useState<string[]>([]);

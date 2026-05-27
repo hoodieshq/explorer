@@ -8,7 +8,7 @@ import { Logger } from '@/app/shared/lib/logger';
 
 import type { BaseIdl } from '../unified-program';
 import { formatTransactionError } from './format-transaction-error';
-import { serializeTransactionMessage } from './serialize-transaction-message';
+import { serializeTransactionMessage, toBase64TransactionMessage } from './serialize-transaction-message';
 import type { InstructionSimulationResult } from './types';
 
 // Any base58 32-byte value works as a placeholder when replaceRecentBlockhash=true.
@@ -22,20 +22,21 @@ export function useSimulateTransaction(opts: {
     const { connection, simulationCommitment, idlErrors } = opts;
     const { parseLogs } = useParsedLogs(null);
     const [isSimulating, setIsSimulating] = useState(false);
-    const [lastSimulation, setLastSimulation] = useState<InstructionSimulationResult>(null);
+    const [lastSimulation, setLastSimulation] = useState<InstructionSimulationResult | null>(null);
 
     const simulate = useCallback(
         async (buildTx: () => Promise<Transaction>): Promise<void> => {
             setIsSimulating(true);
             setLastSimulation(null);
             let transaction: Transaction | undefined;
+            let serializedTxMessage: string | null = null;
             try {
                 transaction = await buildTx();
                 if (!transaction.recentBlockhash) {
                     const { blockhash } = await connection.getLatestBlockhash();
                     transaction.recentBlockhash = blockhash;
                 }
-                const serializedTxMessage = serializeTransactionMessage(transaction);
+                serializedTxMessage = toBase64TransactionMessage(transaction);
                 const result = await connection.simulateTransaction(
                     new VersionedTransaction(transaction.compileMessage()),
                     {
@@ -65,9 +66,9 @@ export function useSimulateTransaction(opts: {
                 Logger.error(e, { transaction });
                 setLastSimulation({
                     finishedAt: new Date(),
-                    logs: [],
                     message: e instanceof Error ? e.message : 'Simulation failed',
-                    serializedTxMessage: serializeTransactionMessage(transaction),
+                    phase: 'simulation_execution_failed',
+                    serializedTxMessage,
                     status: 'error',
                 });
             } finally {

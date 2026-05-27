@@ -62,8 +62,8 @@ interface UseInstructionReturn {
     isExecuting: boolean;
     isSimulating: boolean;
     preInvocationError: string | null;
-    lastResult: InstructionInvocationResult;
-    lastSimulation: InstructionSimulationResult;
+    lastResult: InstructionInvocationResult | null;
+    lastSimulation: InstructionSimulationResult | null;
     parseLogs: ReturnType<typeof useInvokeTransaction>['parseLogs'];
     simulateParseLogs: ReturnType<typeof useSimulateTransaction>['parseLogs'];
     initializeProgram: () => void;

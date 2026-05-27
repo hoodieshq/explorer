@@ -9,7 +9,7 @@ import type { InstructionLogs } from '@/app/utils/program-logs';
 import type { InstructionInvocationResult, InstructionSimulationResult } from '../model/transaction/types';
 
 type InstructionInvocationActivityProps = {
-    lastResult?: InstructionInvocationResult;
+    lastResult?: InstructionInvocationResult | null;
     parseLogs: (logs: string[]) => InstructionLogs[];
 };
 // FIXME: missing Storybook story — pure props, but uses useExplorerLink internally so needs withCluster decorator.
@@ -31,7 +31,7 @@ export function InstructionInvocationActivity({ lastResult, parseLogs }: Instruc
 }
 
 type InstructionSimulationActivityProps = {
-    lastSimulation?: InstructionSimulationResult;
+    lastSimulation?: InstructionSimulationResult | null;
     parseLogs: (logs: string[]) => InstructionLogs[];
 };
 
@@ -41,7 +41,7 @@ export function InstructionSimulationActivity({ lastSimulation, parseLogs }: Ins
             component: (
                 <ProgramLogs
                     header={lastSimulation && <SimulationStatusHeader lastSimulation={lastSimulation} />}
-                    logs={lastSimulation?.logs ?? []}
+                    logs={lastSimulation && 'logs' in lastSimulation ? lastSimulation.logs : []}
                     parseLogs={parseLogs}
                 />
             ),
@@ -79,12 +79,10 @@ function CardWithTabs({ tabs }: { tabs: { id: string; title: string; component: 
     );
 }
 
-function TxStatusHeader({ lastResult }: { lastResult: NonNullable<InstructionInvocationResult> }) {
-    const signature = lastResult.status === 'success' ? lastResult.signature : lastResult.signature;
-    const serializedTxMessage = lastResult.status === 'success' ? null : lastResult.serializedTxMessage;
-    const { link: txLink } = useExplorerLink(`/tx/${signature ?? ''}`);
+function TxStatusHeader({ lastResult }: { lastResult: InstructionInvocationResult }) {
+    const { link: txLink } = useExplorerLink(`/tx/${getTxSignature(lastResult) ?? ''}`);
     const { link: inspectorLink } = useExplorerLink(
-        `/tx/inspector?message=${encodeURIComponent(serializedTxMessage ?? '')}`,
+        `/tx/inspector?message=${encodeURIComponent(getInspectorMessage(lastResult) ?? '')}`,
     );
 
     if (lastResult.status === 'success') {
@@ -97,7 +95,7 @@ function TxStatusHeader({ lastResult }: { lastResult: NonNullable<InstructionInv
             />
         );
     }
-    if (lastResult.status === 'error' && lastResult.signature) {
+    if (lastResult.phase === 'broadcast_failed') {
         return (
             <TxInvocationStatus
                 status="error"
@@ -109,14 +107,14 @@ function TxStatusHeader({ lastResult }: { lastResult: NonNullable<InstructionInv
     }
     return (
         <TxErrorStatus
-            message={lastResult.serializedTxMessage ?? lastResult.message}
+            message={lastResult.message}
             date={lastResult.finishedAt}
             link={lastResult.serializedTxMessage ? inspectorLink : null}
         />
     );
 }
 
-function SimulationStatusHeader({ lastSimulation }: { lastSimulation: NonNullable<InstructionSimulationResult> }) {
+function SimulationStatusHeader({ lastSimulation }: { lastSimulation: InstructionSimulationResult }) {
     const { link: inspectorLink } = useExplorerLink(
         `/tx/inspector?message=${encodeURIComponent(lastSimulation.serializedTxMessage ?? '')}`,
     );
@@ -140,4 +138,18 @@ function SimulationStatusHeader({ lastSimulation }: { lastSimulation: NonNullabl
             link={link}
         />
     );
+}
+
+
+// Signature exists on a successful tx and on a broadcast that later failed; never on a local error.
+function getTxSignature(result: InstructionInvocationResult): string | null {
+    if (result.status === 'success') return result.signature;
+    if (result.phase === 'broadcast_failed') return result.signature;
+    return null;
+}
+
+// Only execution_failed carries a serialized message worth an inspector link.
+function getInspectorMessage(result: InstructionInvocationResult): string | null {
+    if (result.status === 'error' && result.phase === 'execution_failed') return result.serializedTxMessage;
+    return null;
 }

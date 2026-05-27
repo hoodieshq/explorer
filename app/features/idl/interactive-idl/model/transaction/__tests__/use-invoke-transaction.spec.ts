@@ -128,6 +128,9 @@ describe('useInvokeTransaction', () => {
             await result.current.invoke(async () => makeTx());
         });
         await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
+        const r = result.current.lastResult as unknown as { phase: string; signature: string };
+        expect(r.phase).toBe('broadcast_failed');
+        expect(r.signature).toBe('sig123');
     });
 
     it('should surface builder errors as lastResult.error and fire onError without calling RPC', async () => {
@@ -150,5 +153,37 @@ describe('useInvokeTransaction', () => {
         expect(result.current.isExecuting).toBe(false);
         expect(onError).toHaveBeenCalledWith('UnexpectedError', undefined);
         expect(conn.sendRawTransaction).not.toHaveBeenCalled();
+        const r = result.current.lastResult as unknown as { phase: string; serializedTxMessage: string | null };
+        expect(r.phase).toBe('execution_failed');
+        expect(r.serializedTxMessage).toBeNull();
+    });
+
+    it('should set phase broadcast_failed when getTransaction rejects after the tx was broadcast', async () => {
+        const conn = makeConnection({
+            getLatestBlockhash: vi
+                .fn()
+                .mockResolvedValue({ blockhash: PublicKey.default.toBase58(), lastValidBlockHeight: 100 }),
+            getTransaction: vi.fn().mockRejectedValue(new Error('rpc timeout')),
+        });
+        const { result } = renderHook(() =>
+            useInvokeTransaction({
+                commitment: 'confirmed',
+                connection: conn,
+            }),
+        );
+        await act(async () => {
+            await result.current.invoke(async () => makeTx());
+        });
+        await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
+        const r = result.current.lastResult as unknown as {
+            message: string;
+            phase: string;
+            serializedTxMessage: string;
+            signature: string;
+        };
+        expect(r.phase).toBe('broadcast_failed');
+        expect(r.signature).toBe('sig123');
+        expect(r.message).toBe('rpc timeout');
+        expect(r.serializedTxMessage.length).toBeGreaterThan(0);
     });
 });

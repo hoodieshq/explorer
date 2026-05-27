@@ -9,7 +9,6 @@ import {
     type Transaction,
     type TransactionError,
 } from '@solana/web3.js';
-import bs58 from 'bs58';
 import { useCallback, useState } from 'react';
 
 import { Logger } from '@/app/shared/lib/logger';
@@ -30,8 +29,16 @@ export function useInvokeTransaction(opts: {
     const { connection, commitment, idlErrors, onSuccess, onError, onPreInvocationError } = opts;
     const { connected, publicKey, signTransaction } = useWallet();
     const [preInvocationError, setPreInvocationError] = useState<string | null>(null);
-    const { handleTxEnd, handleTxError, handleTxStart, handleTxSuccess, isExecuting, lastResult, parseLogs } =
-        useInvocationState({ onError, onSuccess });
+    const {
+        handleBroadcastError,
+        handleExecutionError,
+        handleTxEnd,
+        handleTxStart,
+        handleTxSuccess,
+        isExecuting,
+        lastResult,
+        parseLogs,
+    } = useInvocationState({ onError, onSuccess });
 
     const invoke = useCallback(
         async (buildTx: () => Promise<Transaction>): Promise<void> => {
@@ -44,13 +51,14 @@ export function useInvokeTransaction(opts: {
             setPreInvocationError(null);
             handleTxStart();
             let transaction: Transaction | undefined;
+            let signature: string | undefined;
             try {
                 transaction = await buildTx();
                 const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
                 transaction.recentBlockhash = blockhash;
 
                 const signed = await signTransaction(transaction);
-                const signature = await connection.sendRawTransaction(signed.serialize(), {
+                signature = await connection.sendRawTransaction(signed.serialize(), {
                     skipPreflight: true,
                 });
                 const confirmed = await connection.confirmTransaction(
@@ -64,17 +72,18 @@ export function useInvokeTransaction(opts: {
                 const finalLogs = published?.meta?.logMessages ?? [];
 
                 if (confirmed.value?.err) {
-                    handleTxError(confirmed.value.err, transaction, {
-                        idlErrors,
-                        logs: finalLogs,
-                    });
+                    handleBroadcastError(confirmed.value.err, transaction, { idlErrors, logs: finalLogs, signature });
                     return;
                 }
 
                 handleTxSuccess(signature, finalLogs);
             } catch (error) {
                 console.log('Invocation error', { error, transaction });
-                handleTxError(error, transaction);
+                if (signature) {
+                    handleBroadcastError(error, transaction, { signature });
+                } else {
+                    handleExecutionError(error, transaction);
+                }
             } finally {
                 handleTxEnd();
             }
@@ -88,7 +97,8 @@ export function useInvokeTransaction(opts: {
             idlErrors,
             handleTxStart,
             handleTxSuccess,
-            handleTxError,
+            handleBroadcastError,
+            handleExecutionError,
             handleTxEnd,
             onPreInvocationError,
         ],
@@ -96,11 +106,6 @@ export function useInvokeTransaction(opts: {
 
     return { invoke, isExecuting, lastResult, parseLogs, preInvocationError };
 }
-
-type HandleTxErrorOptions = {
-    idlErrors?: BaseIdl['errors'];
-    logs?: string[];
-};
 
 function useInvocationState({
     onSuccess,
@@ -111,84 +116,96 @@ function useInvocationState({
 }) {
     const [transactionError, setTransactionError] = useState<TransactionError | null>(null);
     const { parseLogs } = useParsedLogs(transactionError);
-    const [serializedTxMessage, setSerializedTxMessage] = useState<string | null>(null);
-    const [logs, setLogs] = useState<string[]>([]);
     const [isExecuting, setIsExecuting] = useState(false);
-    const [lastError, setLastError] = useState<{ finishedAt: Date; message: string; signature?: string } | null>(null);
-    const [lastSuccess, setLastSuccess] = useState<{ finishedAt: Date; signature: string } | null>(null);
+    const [lastResult, setLastResult] = useState<InstructionInvocationResult | null>(null);
 
     const handleTxStart = () => {
         setIsExecuting(true);
-        setLastError(null);
-        setLastSuccess(null);
-        setLogs([]);
+        setLastResult(null);
         setTransactionError(null);
-        setSerializedTxMessage(null);
-    };
-
-    const handleTxSuccess = (signature: string, finalLogs: string[] | null | undefined) => {
-        setLastSuccess({ finishedAt: new Date(), signature });
-        if (finalLogs) setLogs(finalLogs);
-        onSuccess?.(signature);
-    };
-
-    const handleTxError = (
-        error: unknown,
-        transaction: Transaction | undefined,
-        options: HandleTxErrorOptions = {},
-    ) => {
-        const txSignature = transaction?.signature ? bs58.encode(transaction.signature) : undefined;
-        if (error instanceof Error) {
-            Logger.error(error, { signature: transaction?.signature, transaction });
-            const message = error.message || 'Failed to invoke instruction';
-            setLastError({ finishedAt: new Date(), message, signature: txSignature });
-            // SendTransactionError can still surface from low-level RPC issues even with skipPreflight=true.
-            // NOTE: when preflight is added, treat SendTransactionError as no-signature
-            // (set signature: undefined) so the UI uses the inspector fallback instead
-            // of /tx/{sig} which would 404 for a never-broadcast tx.
-            if (error instanceof SendTransactionError) {
-                setLogs(error.logs ?? []);
-                setTransactionError(error);
-            }
-            setSerializedTxMessage(serializeTransactionMessage(transaction));
-            onError?.(message, txSignature);
-            return;
-        }
-
-        const txError = error as TransactionError;
-        const message = formatTransactionError(txError, options.idlErrors);
-        Logger.error(new Error(message), { transaction });
-        setLastError({ finishedAt: new Date(), message, signature: txSignature });
-        setLogs(options.logs ?? []);
-        setTransactionError(txError);
-        setSerializedTxMessage(serializeTransactionMessage(transaction));
-        onError?.(message, txSignature);
     };
 
     const handleTxEnd = () => {
         setIsExecuting(false);
     };
 
-    const lastResult: InstructionInvocationResult = lastSuccess
-        ? { finishedAt: lastSuccess.finishedAt, logs, signature: lastSuccess.signature, status: 'success' }
-        : lastError
-          ? {
-                finishedAt: lastError.finishedAt,
-                logs,
-                message: lastError.message,
-                serializedTxMessage,
-                signature: lastError.signature ?? null,
-                status: 'error',
-            }
-          : null;
+    const handleTxSuccess = (signature: string, finalLogs: string[] | null | undefined) => {
+        setLastResult({ finishedAt: new Date(), logs: finalLogs ?? [], signature, status: 'success' });
+        onSuccess?.(signature);
+    };
+
+    // Tx was broadcast: on-chain confirmation returned err, or confirm/getTransaction threw afterward.
+    const handleBroadcastError = (
+        error: unknown,
+        transaction: Transaction | undefined,
+        options: {
+            idlErrors?: BaseIdl['errors'];
+            logs?: string[];
+            signature: string;
+        },
+    ) => {
+        const logs = options.logs ?? [];
+        const message = getMessageFromBroadcastedError(error, options.idlErrors);
+        Logger.error(error, { signature: options.signature, transaction });
+        setTransactionError(error instanceof Error ? null : (error as TransactionError));
+
+        setLastResult({
+            finishedAt: new Date(),
+            logs,
+            message,
+            phase: 'broadcast_failed',
+            serializedTxMessage: serializeTransactionMessage(transaction) ?? '',
+            signature: options.signature,
+            status: 'error',
+        });
+        onError?.(message, options.signature);
+    };
+
+    // Local error before broadcast: buildTx threw, wallet rejected sign, or sendRawTransaction threw.
+    const handleExecutionError = (
+        error: unknown,
+        transaction: Transaction | undefined,
+    ) => {
+        const signature = undefined;
+        const logs = error instanceof SendTransactionError ? error.logs ?? [] : [];
+        const message = error instanceof Error ? error.message : 'Failed to execute instruction';
+        Logger.error(error, { transaction });
+        if (error instanceof SendTransactionError) {
+            setTransactionError(error);
+        }
+        setLastResult({
+            finishedAt: new Date(),
+            logs,
+            message,
+            phase: 'execution_failed',
+            serializedTxMessage: serializeTransactionMessage(transaction),
+            status: 'error',
+        });
+
+        onError?.(message, signature);
+    };
 
     return {
+        handleBroadcastError,
+        handleExecutionError,
         handleTxEnd,
-        handleTxError,
         handleTxStart,
         handleTxSuccess,
         isExecuting,
         lastResult,
         parseLogs,
     };
+}
+
+const DEFAULT_BROADCASTED_ERROR_MESSAGE = 'Failed to invoke instruction';
+function getMessageFromBroadcastedError(error: unknown, idlErrors: BaseIdl['errors'] | undefined): string {
+    if (error instanceof Error) {
+        return error.message || DEFAULT_BROADCASTED_ERROR_MESSAGE;
+    }
+    try {
+        return formatTransactionError(error as TransactionError, idlErrors);
+    } catch (e) {
+        Logger.error(e, { error });
+        return DEFAULT_BROADCASTED_ERROR_MESSAGE;
+    }
 }
