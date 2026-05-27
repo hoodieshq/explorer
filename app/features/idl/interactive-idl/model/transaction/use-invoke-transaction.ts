@@ -15,7 +15,7 @@ import { Logger } from '@/app/shared/lib/logger';
 
 import type { BaseIdl } from '../unified-program';
 import { formatTransactionError } from './format-transaction-error';
-import { serializeTransactionMessage } from './serialize-transaction-message';
+import { serializeTransactionMessage, toBase64TransactionMessage } from './serialize-transaction-message';
 import type { InstructionInvocationResult } from './types';
 
 export function useInvokeTransaction(opts: {
@@ -85,7 +85,7 @@ export function useInvokeTransaction(opts: {
 
                 handleTxSuccess(signature, finalLogs);
             } catch (error) {
-                if (signature) {
+                if (signature && transaction) {
                     handleBroadcastError(error, transaction, { signature });
                 } else {
                     handleExecutionError(error, transaction);
@@ -143,7 +143,7 @@ function useInvocationState({
     // Tx was broadcast: on-chain confirmation returned err, or confirm/getTransaction threw afterward.
     const handleBroadcastError = (
         error: unknown,
-        transaction: Transaction | undefined,
+        transaction: Transaction,
         options: {
             idlErrors?: BaseIdl['errors'];
             logs?: string[];
@@ -160,7 +160,7 @@ function useInvocationState({
             logs,
             message,
             phase: 'broadcast_failed',
-            serializedTxMessage: serializeTransactionMessage(transaction) ?? '',
+            serializedTxMessage: toBase64TransactionMessage(transaction),
             signature: options.signature,
             status: 'error',
         });
@@ -200,7 +200,7 @@ function useInvocationState({
     };
 }
 
-const DEFAULT_BROADCASTED_ERROR_MESSAGE = 'Failed to invoke instruction';
+const DEFAULT_BROADCASTED_ERROR_MESSAGE = 'Failed to send transaction';
 function getMessageFromBroadcastError(error: unknown, idlErrors: BaseIdl['errors'] | undefined): string {
     if (error instanceof Error) {
         return error.message || DEFAULT_BROADCASTED_ERROR_MESSAGE;
