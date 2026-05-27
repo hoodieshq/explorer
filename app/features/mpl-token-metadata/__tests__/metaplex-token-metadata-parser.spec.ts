@@ -8,7 +8,9 @@ import { none, publicKey as umiPublicKey, some } from '@metaplex-foundation/umi'
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { describe, expect, test } from 'vitest';
 
-import { identifyInstructionType, parseMetaplexTokenMetadataInstruction } from '../lib/metaplex-token-metadata.parser';
+import { type KitInstruction, toKitInstruction } from '@/app/shared/lib/web3js-compat';
+
+import { identifyInstructionType, parseMetaplexTokenMetadataInstruction } from '../lib/metaplex-token-metadata-parser';
 
 const PROGRAM_ID = new PublicKey(MPL_TOKEN_METADATA_PROGRAM_ID);
 
@@ -24,12 +26,14 @@ const createMetadataV3Serializer = getCreateMetadataAccountV3InstructionDataSeri
 const updateMetadataV2Serializer = getUpdateMetadataAccountV2InstructionDataSerializer();
 const createMasterEditionV3Serializer = getCreateMasterEditionV3InstructionDataSerializer();
 
-function makeIx(data: Uint8Array | Buffer, keys: PublicKey[] = []): TransactionInstruction {
-    return new TransactionInstruction({
-        data: Buffer.from(data),
-        keys: keys.map(pubkey => ({ isSigner: false, isWritable: false, pubkey })),
-        programId: PROGRAM_ID,
-    });
+function makeIx(data: Uint8Array | Buffer, keys: PublicKey[] = []): KitInstruction {
+    return toKitInstruction(
+        new TransactionInstruction({
+            data: Buffer.from(data),
+            keys: keys.map(pubkey => ({ isSigner: false, isWritable: false, pubkey })),
+            programId: PROGRAM_ID,
+        }),
+    );
 }
 
 function assertParsed<T>(val: T | null | undefined): T {

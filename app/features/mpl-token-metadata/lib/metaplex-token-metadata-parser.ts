@@ -12,9 +12,10 @@ import {
     type UpdateMetadataAccountV2InstructionData,
 } from '@metaplex-foundation/mpl-token-metadata';
 import { unwrapOption } from '@metaplex-foundation/umi';
-import { PublicKey, TransactionInstruction } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 
 import { Logger } from '@/app/shared/lib/logger';
+import type { KitInstruction } from '@/app/shared/lib/web3js-compat';
 
 export type MetaplexInstructionType =
     | 'burnEditionNft'
@@ -345,10 +346,11 @@ export function identifyInstructionType(data: Uint8Array): MetaplexInstructionTy
     return lookupDef(data)?.name;
 }
 
-function buildInfo(def: InstructionDef, instruction: TransactionInstruction): Record<string, unknown> {
+function buildInfo(def: InstructionDef, instruction: KitInstruction): Record<string, unknown> {
     const info: Record<string, unknown> = {};
     def.accounts.forEach((name, i) => {
-        if (name) info[name] = instruction.keys[i]?.pubkey;
+        const account = instruction.accounts[i];
+        if (name && account) info[name] = new PublicKey(account.address);
     });
     if (def.getSerializer) {
         const [raw] = def.getSerializer().deserialize(instruction.data);
@@ -358,7 +360,7 @@ function buildInfo(def: InstructionDef, instruction: TransactionInstruction): Re
 }
 
 export function parseMetaplexTokenMetadataInstruction(
-    instruction: TransactionInstruction,
+    instruction: KitInstruction,
 ): { type: MetaplexInstructionType; info: Record<string, unknown> } | undefined {
     const def = lookupDef(instruction.data);
     if (!def) return undefined;
