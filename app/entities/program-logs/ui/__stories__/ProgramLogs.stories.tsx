@@ -8,15 +8,7 @@ const meta = {
     component: ProgramLogs,
     decorators: [
         Story => (
-            <div
-                style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    maxHeight: '600px',
-                    maxWidth: '100%',
-                    width: '800px',
-                }}
-            >
+            <div className="e-flex e-max-h-[600px] e-w-[800px] e-max-w-full e-flex-col">
                 <Story />
             </div>
         ),

@@ -8,7 +8,7 @@ export function TxSimulationStatus(props: TxSimulationStatusProps) {
     if (props.status === 'success') {
         return (
             <StatusBar
-                primary={
+                message={
                     props.unitsConsumed !== undefined ? (
                         <ComputeUnitsBadge unitsConsumed={props.unitsConsumed} />
                     ) : undefined
@@ -22,7 +22,7 @@ export function TxSimulationStatus(props: TxSimulationStatusProps) {
     }
     return (
         <StatusBar
-            primary={<CopyableMonoText text={props.message} theme="destructive" />}
+            message={<CopyableMonoText text={props.message} theme="destructive" />}
             date={props.date}
             theme="destructive"
             badge={{ label: 'Simulation Error', variant: 'destructive' }}

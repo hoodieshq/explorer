@@ -25,14 +25,14 @@ const monoTextVariants = cva(
 );
 
 type StatusBarProps = {
-    primary?: ReactNode;
+    message?: ReactNode;
     date: Date;
     theme: StatusTheme;
     badge: { label: string; variant: 'success' | 'destructive' };
     link: string | undefined;
 };
 
-export function StatusBar({ primary, date, theme, badge, link }: StatusBarProps) {
+export function StatusBar({ message, date, theme, badge, link }: StatusBarProps) {
     const badgeNode = (
         <Badge variant={badge.variant} size="xs" className={cn(!link && 'e-ml-auto')}>
             {badge.label}
@@ -46,7 +46,7 @@ export function StatusBar({ primary, date, theme, badge, link }: StatusBarProps)
     );
     return (
         <div className="e-flex e-items-center e-gap-2 e-rounded e-border e-border-solid e-border-neutral-600 e-px-4 e-py-2">
-            {primary}
+            {message}
             <div className="e-flex e-items-center">
                 <span className={timestampVariants({ theme })}>{formatLogTimestamp(date)}</span>
             </div>

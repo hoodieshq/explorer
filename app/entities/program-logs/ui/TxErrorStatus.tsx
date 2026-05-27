@@ -13,7 +13,7 @@ export function TxErrorStatus({
 }) {
     return (
         <StatusBar
-            primary={message ? <CopyableMonoText text={message} theme="destructive" /> : undefined}
+            message={message ? <CopyableMonoText text={message} theme="destructive" /> : undefined}
             date={date}
             theme="destructive"
             badge={{ label, variant: 'destructive' }}
