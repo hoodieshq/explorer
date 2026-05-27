@@ -29,7 +29,7 @@ One normalisation layer for Solana instruction data, shared by `/tx/[signature]`
 
 `SliceParsed` is the slice-owned canonical shape (typically a discriminated union). The compat layer at `app/entities/instruction-parser/model/compat.ts` holds every shim that lets inspector input flow through tx-page-designed cards: `toParsedInstruction` wraps `SliceParsed` back to `ParsedInstruction`, and `toParsedTransaction` builds a synthetic `ParsedTransaction` around a single instruction for cards that take a `tx` prop. Both disappear in one deletion when cards consume `SliceParsed` directly.
 
-## Requirements
+## ADDED Requirements
 
 ### Requirement: Per-program parser slices
 
@@ -120,7 +120,7 @@ The dispatcher and every slice parser MUST NOT mutate the input `TransactionInst
 
 ### Requirement: Cross-pipeline equivalence
 
-A contract test SHALL assert, for every program with both `fromTransaction` and `fromParsed`, that the two paths produce `parsed.info` satisfying the same superstruct validator AND yielding equivalent field values for the same logical instruction. The test lives at `app/entities/instruction-parser/__tests__/contract.spec.ts` and MUST extend for every new slice.
+A contract test SHALL assert, for every program with both `fromTransaction` and `fromParsed`, that the two paths produce `parsed.info` satisfying the same superstruct validator AND yielding equivalent field values for the same logical instruction. The test lives at `app/tx/__tests__/instruction-parser-contract.spec.ts` (the composition layer, so it may import feature slices without crossing the FSD entity→feature boundary) and MUST extend for every new slice.
 
 #### Scenario: System Transfer parity
 
