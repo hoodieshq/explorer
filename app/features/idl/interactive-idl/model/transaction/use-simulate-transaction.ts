@@ -1,7 +1,13 @@
 'use client';
 
 import { useParsedLogs } from '@entities/program-logs';
-import { type Commitment, type Connection, type Transaction, VersionedTransaction } from '@solana/web3.js';
+import {
+    type Commitment,
+    type Connection,
+    type Transaction,
+    type TransactionError,
+    VersionedTransaction,
+} from '@solana/web3.js';
 import { useCallback, useState } from 'react';
 
 import { Logger } from '@/app/shared/lib/logger';
@@ -17,7 +23,8 @@ export function useSimulateTransaction(opts: {
     idlErrors?: BaseIdl['errors'];
 }) {
     const { connection, simulationCommitment, idlErrors } = opts;
-    const { parseLogs } = useParsedLogs(undefined);
+    const [transactionError, setTransactionError] = useState<TransactionError>();
+    const { parseLogs } = useParsedLogs(transactionError);
     const [isSimulating, setIsSimulating] = useState(false);
     const [lastSimulation, setLastSimulation] = useState<InstructionSimulationResult>();
 
@@ -25,6 +32,7 @@ export function useSimulateTransaction(opts: {
         async (buildTx: () => Promise<Transaction>): Promise<void> => {
             setIsSimulating(true);
             setLastSimulation(undefined);
+            setTransactionError(undefined);
             let transaction: Transaction | undefined;
             let serializedTxMessage: string | undefined = undefined;
             try {
@@ -49,6 +57,7 @@ export function useSimulateTransaction(opts: {
                 // Handle simulation result
                 const logs = result.value.logs ?? [];
                 if (result.value.err !== null) {
+                    setTransactionError(result.value.err);
                     setLastSimulation({
                         finishedAt: new Date(),
                         logs,
@@ -83,7 +92,10 @@ export function useSimulateTransaction(opts: {
         [connection, simulationCommitment, idlErrors],
     );
 
-    const reset = useCallback(() => setLastSimulation(undefined), []);
+    const reset = useCallback(() => {
+        setLastSimulation(undefined);
+        setTransactionError(undefined);
+    }, []);
 
     return { isSimulating, lastSimulation, parseLogs, reset, simulate };
 }

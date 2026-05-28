@@ -61,7 +61,9 @@ export function useExecuteTransaction(opts: {
                 // Sign with wallet
                 const signed = await signTransaction(transaction);
 
-                // Broadcast to chain
+                // Broadcast to chain.
+                // skipPreflight: false because the UI exposes an explicit Simulate action.
+                // Additional tooltip in ui highlights this.
                 signature = await connection.sendRawTransaction(signed.serialize(), {
                     skipPreflight: true,
                 });
