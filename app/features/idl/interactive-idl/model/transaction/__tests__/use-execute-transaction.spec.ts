@@ -1,6 +1,6 @@
 import { useWallet } from '@solana/wallet-adapter-react';
 import type { Connection } from '@solana/web3.js';
-import { Keypair, PublicKey, Transaction, TransactionInstruction } from '@solana/web3.js';
+import { Keypair, PublicKey, SendTransactionError, Transaction, TransactionInstruction } from '@solana/web3.js';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -159,6 +159,42 @@ describe('useExecuteTransaction', () => {
         const r = result.current.lastResult as PreBroadcastFailedResult;
         expect(r.phase).toBe('pre_broadcast_failed');
         expect(r.serializedTxMessage).toBeUndefined();
+    });
+
+    it('should capture logs from SendTransactionError when sendRawTransaction rejects', async () => {
+        const preflightLogs = [
+            'Program 11111111111111111111111111111111 invoke [1]',
+            'Program failed to complete: custom program error: 0x1',
+        ];
+        const sendError = new SendTransactionError({
+            action: 'send',
+            logs: preflightLogs,
+            signature: '',
+            transactionMessage: 'preflight failure',
+        });
+        const connection = mockConnection({
+            sendRawTransaction: vi.fn().mockRejectedValue(sendError),
+        });
+        const onError = vi.fn();
+        const { result } = renderHook(() =>
+            useExecuteTransaction({
+                commitment: 'confirmed',
+                connection: connection,
+                onError,
+            }),
+        );
+
+        await act(async () => {
+            await result.current.executeTx(async () => makeTx());
+        });
+
+        await waitFor(() => expect(result.current.lastResult?.status).toBe('error'));
+        const r = result.current.lastResult as PreBroadcastFailedResult;
+        expect(r.phase).toBe('pre_broadcast_failed');
+        expect(r.logs).toEqual(preflightLogs);
+        expect(r.message).toBe(sendError.message);
+        expect(connection.confirmTransaction).not.toHaveBeenCalled();
+        expect(onError).toHaveBeenCalledWith(sendError.message, undefined);
     });
 
     it('should set phase broadcast_failed when getTransaction rejects after the tx was broadcast', async () => {

@@ -62,7 +62,7 @@ export function useExecuteTransaction(opts: {
                 const signed = await signTransaction(transaction);
 
                 // Broadcast to chain.
-                // skipPreflight: false because the UI exposes an explicit Simulate action.
+                // skipPreflight: true because the UI exposes an explicit Simulate action.
                 // Additional tooltip in ui highlights this.
                 signature = await connection.sendRawTransaction(signed.serialize(), {
                     skipPreflight: true,
@@ -172,6 +172,8 @@ function useExecutionState({
     // Local error before broadcast: buildTx threw, wallet rejected sign, or sendRawTransaction threw.
     const handlePreBroadcastError = (error: unknown, transaction: Transaction | undefined) => {
         const signature = undefined;
+        // SendTransactionError.logs is only populated by the preflight path;
+        // With skipPreflight: true today these branches are irrelevant but kept as a safety net.
         const logs = error instanceof SendTransactionError ? (error.logs ?? []) : [];
         const message = error instanceof Error ? error.message : 'Failed to execute instruction';
         Logger.error(error, { transaction });
