@@ -497,7 +497,6 @@ export default tseslint.config(
             'app/components/ClusterModalDeveloperSettings.tsx',
             'app/components/LiveTransactionStatsCard.tsx',
             'app/components/MessageBanner.tsx',
-            'app/components/TopAccountsCard.tsx',
             'app/components/account/AnchorAccountCard.tsx',
             'app/components/account/CompressedNftCard.tsx',
             'app/components/account/FeatureAccountSection.tsx',
