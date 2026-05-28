@@ -56,4 +56,4 @@
 | Static | `/tos` | 180 B | 190 kB |
 | Dynamic | `/tx/[signature]` | 70 kB | 1.66 MB |
 | Dynamic | `/tx/[signature]/inspect` | 430 B | 1.44 MB |
-| Static | `/tx/inspector` | 410 B | 1.44 MB |
+| Static | `/tx/inspector` | 420 B | 1.44 MB |
