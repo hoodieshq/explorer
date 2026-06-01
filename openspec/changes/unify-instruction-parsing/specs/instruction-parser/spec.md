@@ -54,6 +54,8 @@ Each supported Solana program SHALL be implemented as a feature slice at `app/fe
 
 The parser SHALL set `programId` (base58) and `programLabel` matching the RPC `program` field. It SHALL implement `fromTransaction(ix: KitInstruction): P | undefined` and MAY implement `fromParsed(ix: ParsedInstruction): P | undefined`. Slice internals MUST NOT import `@solana/web3.js` types — the bridge is `KitInstruction` from `@/app/shared/lib/web3js-compat`.
 
+Because `fromTransaction` takes a `KitInstruction` — a single decoded instruction — a slice is **agnostic to the enclosing message variant**. Whether the source was a `LegacyMessage` or a `VersionedMessage`, and whether the inspector obtained it by signature or as a wire-format message, the message is decompiled to per-instruction `TransactionInstruction`s and normalised to `KitInstruction` *before* any slice runs. No slice sees, or needs to branch on, the legacy/versioned distinction. This change therefore does **not** require migrating message decoding to `@solana/kit` wholesale — legacy and versioned messages both reduce to the same per-instruction input, so the two can be migrated independently of (and after) this change.
+
 #### Scenario: RPC-parsed program publishes both paths
 
 - **WHEN** a slice handles a program the RPC pre-parses (System, SPL Token, Token-2022, Associated Token)
