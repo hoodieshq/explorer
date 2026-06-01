@@ -9,8 +9,9 @@ One normalisation layer for Solana instruction data, shared by `/tx/[signature]`
 ```mermaid
 flowchart TD
     A[Inspector<br/>TransactionInstruction] --> B[dispatcher.fromTransactionInstruction]
-    C[TX page<br/>ParsedInstruction] --> D[dispatcher.fromParsedInstruction]
-    P[TX page<br/>PartiallyDecodedInstruction] --> D
+    C[TX page input<br/>ParsedInstruction or PartiallyDecodedInstruction] --> Q{has a 'parsed' field?}
+    Q -- ParsedInstruction --> D[dispatcher.fromParsedInstruction]
+    Q -- PartiallyDecodedInstruction --> K[predicate-based card routing<br/>dispatcher bypassed]
 
     B --> E[slice.fromTransaction]
     D --> F[slice.fromParsed]
@@ -24,14 +25,26 @@ flowchart TD
     B -. no slice .-> U[/undefined → UnknownDetailsCard/]
     B -. slice, bad discriminator .-> N[/UnparsedInstruction → program-aware fallback/]
     D -. no slice / fromParsed undefined .-> R[/input passed through unchanged/]
+    K -. MPL, Lighthouse, Stake, … .-> KK[card self-parses from raw bytes<br/>e.g. parseMetaplexTokenMetadataInstruction]
+    K -. no predicate matches .-> U
 
     I --> J[&lt;DetailsCard ix=… /&gt;]
     R --> J
+    KK --> J
 ```
 
 `SliceParsed` is the slice-owned canonical shape (typically a discriminated union). The compat layer at `app/entities/instruction-parser/model/compat.ts` holds every shim that lets inspector input flow through tx-page-designed cards: `toParsedInstruction` wraps `SliceParsed` back to `ParsedInstruction`, and `toParsedTransaction` builds a synthetic `ParsedTransaction` around a single instruction for cards that take a `tx` prop. Both disappear in one deletion when cards consume `SliceParsed` directly.
 
-Both surfaces start from a union: the tx page receives `ParsedInstruction | PartiallyDecodedInstruction` (the RPC leaves any program it cannot pre-parse as a `PartiallyDecodedInstruction` carrying raw `accounts` + `data`); the inspector always starts from raw `TransactionInstruction`. `fromParsedInstruction` passes `PartiallyDecodedInstruction` through untouched — slices read it only via the byte path (`fromTransaction`), never by reaching into a half-parsed RPC shape.
+### Handling `ParsedInstruction | PartiallyDecodedInstruction`
+
+The tx page's input is the union `ParsedInstruction | PartiallyDecodedInstruction` — the RPC pre-parses the programs on its allowlist into `ParsedInstruction` (with a `parsed.{type,info}`) and returns everything else as a `PartiallyDecodedInstruction` (raw `accounts` + base58 `data`, no `parsed`). The inspector has no such union; it always starts from a raw `TransactionInstruction`.
+
+The discriminant is the presence of a `parsed` field, and the tx page branches on it **before** the dispatcher (`'parsed' in ix ? dispatcher.fromParsedInstruction(ix) : undefined`):
+
+- A **`ParsedInstruction`** goes through `dispatcher.fromParsedInstruction`, which either normalises it via a slice's `fromParsed` or passes it through unchanged.
+- A **`PartiallyDecodedInstruction`** never enters the dispatcher. It falls through to the tx page's existing predicate chain (`isLighthouseInstruction`, the MPL `programId` check, Anchor/IDL, … else `UnknownDetailsCard`), and the matched card decodes it from raw bytes via the **byte path** (e.g. MPL's card calls `parseMetaplexTokenMetadataInstruction(toKitInstruction(ix))`).
+
+So `fromParsedInstruction` is typed `(ix: ParsedInstruction)` and only ever receives a `ParsedInstruction`; it MUST NOT be called with a `PartiallyDecodedInstruction`. Programs that surface as `PartiallyDecodedInstruction` are reached only through `fromTransaction`, never by a slice reaching into a half-parsed RPC shape.
 
 ## ADDED Requirements
 
