@@ -8,7 +8,7 @@ import { resolveAddressLookupTables } from '@/app/__tests__/mock-resolvers';
 import * as stubs from '@/app/__tests__/mock-stubs';
 import * as mock from '@/app/__tests__/mocks';
 import { createInstructionParserDispatcher, isParsedInstruction } from '@/app/entities/instruction-parser';
-import { associatedTokenInstructionParser } from '@/app/features/instruction-associated-token';
+import { associatedTokenInstructionParser } from '@/app/features/decode-instruction-associated-token';
 import { AccountsProvider } from '@/app/providers/accounts';
 import { ClusterProvider } from '@/app/providers/cluster';
 import { ScrollAnchorProvider } from '@/app/providers/scroll-anchor';

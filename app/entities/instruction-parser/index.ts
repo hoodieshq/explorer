@@ -4,8 +4,8 @@ export { InstructionParserProvider, useInstructionParser } from './model/provide
 export { isParsedInstruction } from './model/types';
 export type {
     DispatchResult,
-    DispatchUnknown,
     InstructionParser,
     InstructionParserDispatcher,
     ParsedInstructionInfo,
+    UnparsedInstruction,
 } from './model/types';

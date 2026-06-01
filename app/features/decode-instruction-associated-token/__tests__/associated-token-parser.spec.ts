@@ -116,6 +116,24 @@ describe('parseAssociatedTokenInstruction', () => {
         ]);
     });
 
+    test('should parse an empty-data instruction as "create"', () => {
+        // Some clients send the AT Create instruction with empty data instead
+        // of the single-byte discriminator. The parser reconstructs the
+        // canonical discriminator and MUST treat it as create, not Unknown.
+        const index = 2;
+        const message = mock.deserializeMessage(stubs.aTokenCreateMsgWithInnerCards);
+        const instruction = intoTransactionInstructionFromVersionedMessage(
+            message.compiledInstructions[index],
+            message,
+        );
+        const emptyDataIx = { ...toKitInstruction(instruction), data: new Uint8Array(0) };
+
+        const result = parseAssociatedTokenInstruction(emptyDataIx);
+        invariant(result, 'expected parser to return a result for empty-data AT create');
+
+        expect(result.type).toBe('create');
+    });
+
     test('should not mutate the input instruction.data when reconstructing the create discriminator', () => {
         const index = 2;
         const message = mock.deserializeMessage(stubs.aTokenCreateMsgWithInnerCards);

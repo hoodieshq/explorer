@@ -5,7 +5,7 @@ import {
     isParsedInstruction,
     toParsedTransaction,
 } from '@entities/instruction-parser';
-import { associatedTokenInstructionParser } from '@features/instruction-associated-token';
+import { associatedTokenInstructionParser } from '@features/decode-instruction-associated-token';
 import * as spl from '@solana/spl-token';
 import { ParsedInstruction, PublicKey, TransactionMessage } from '@solana/web3.js';
 import { render, screen, waitFor } from '@testing-library/react';

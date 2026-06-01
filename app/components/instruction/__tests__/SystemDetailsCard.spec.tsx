@@ -4,7 +4,7 @@ import {
     isParsedInstruction,
     toParsedTransaction,
 } from '@entities/instruction-parser';
-import { systemInstructionParser } from '@features/instruction-system';
+import { systemInstructionParser } from '@features/decode-instruction-system';
 import { SystemProgram, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
 import { render, screen, waitFor } from '@testing-library/react';
 import { vi } from 'vitest';

@@ -11,14 +11,17 @@ export interface ParsedInstructionInfo<T extends string = string, I = unknown> {
  * Parser is registered for the program but couldn't decode the discriminator.
  * Callers can branch on `programLabel` to render a program-aware fallback
  * (e.g. MPL's "Unknown Instruction" card) instead of the generic Unknown.
+ *
+ * Named as a sibling of `ParsedInstruction` so `DispatchResult` reads as two
+ * parallel outcomes of the same decode attempt, not two unrelated shapes.
  */
-export interface DispatchUnknown {
+export interface UnparsedInstruction {
     unknown: true;
     programLabel: string;
     programId: PublicKey;
 }
 
-export type DispatchResult = ParsedInstruction | DispatchUnknown;
+export type DispatchResult = ParsedInstruction | UnparsedInstruction;
 
 export function isParsedInstruction(result: DispatchResult | undefined): result is ParsedInstruction {
     return result !== undefined && !('unknown' in result);
@@ -40,7 +43,7 @@ export interface InstructionParser<P extends ParsedInstructionInfo = ParsedInstr
 }
 
 export interface InstructionParserDispatcher {
-    /** `undefined` → no parser registered. `DispatchUnknown` → registered but discriminator failed. */
+    /** `undefined` → no parser registered. `UnparsedInstruction` → registered but discriminator failed. */
     fromTransactionInstruction(ix: TransactionInstruction): DispatchResult | undefined;
     /** Passes through unchanged when no slice handles the program. */
     fromParsedInstruction(ix: ParsedInstruction): ParsedInstruction;

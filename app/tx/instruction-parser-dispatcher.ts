@@ -1,8 +1,8 @@
 import { createInstructionParserDispatcher } from '@entities/instruction-parser';
-import { associatedTokenInstructionParser } from '@features/instruction-associated-token';
-import { systemInstructionParser } from '@features/instruction-system';
-import { tokenInstructionParser } from '@features/instruction-token';
-import { token2022InstructionParser } from '@features/instruction-token-2022';
+import { associatedTokenInstructionParser } from '@features/decode-instruction-associated-token';
+import { systemInstructionParser } from '@features/decode-instruction-system';
+import { tokenInstructionParser } from '@features/decode-instruction-token';
+import { token2022InstructionParser } from '@features/decode-instruction-token-2022';
 import { metaplexTokenMetadataInstructionParser } from '@features/mpl-token-metadata';
 
 export const instructionParserDispatcher = createInstructionParserDispatcher([
