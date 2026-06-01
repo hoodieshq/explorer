@@ -342,6 +342,12 @@ describe('instruction-parser contract', () => {
         expect(result.programId.equals(SystemProgram.programId)).toBe(true);
     });
 
+    test('should report slice registration via canHandle without running the parser', () => {
+        const dispatcher = createInstructionParserDispatcher([systemInstructionParser]);
+        expect(dispatcher.canHandle(SystemProgram.programId.toBase58())).toBe(true);
+        expect(dispatcher.canHandle(Keypair.generate().publicKey.toBase58())).toBe(false);
+    });
+
     test('should throw on duplicate programId', () => {
         expect(() => createInstructionParserDispatcher([systemInstructionParser, systemInstructionParser])).toThrow(
             'duplicate parser',

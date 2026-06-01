@@ -68,13 +68,22 @@ The parser SHALL set `programId` (base58) and `programLabel` matching the RPC `p
 
 ### Requirement: Dispatcher contract
 
-The entity at `app/entities/instruction-parser/` SHALL expose a factory `createInstructionParserDispatcher(parsers)` that throws on duplicate `programId`. The returned dispatcher SHALL expose three methods:
+The entity at `app/entities/instruction-parser/` SHALL expose a factory `createInstructionParserDispatcher(parsers)` that throws on duplicate `programId`. The returned dispatcher SHALL expose:
 
+- `canHandle(programId): boolean`
 - `fromTransactionInstruction(ix): DispatchResult | undefined`
 - `fromParsedInstruction(ix): ParsedInstruction`
 - `getInstructionParser(programId): InstructionParser | undefined`
 
+`canHandle` is a cheap, parse-free predicate that lets a caller decide whether to route an instruction through a slice **before** attempting a decode. It MUST be a pure registration lookup (`true` iff a slice is registered for `programId`) and MUST NOT run the parser — so it cannot become a second source of truth that drifts from what `fromTransaction`/`fromParsed` actually accept. Because every slice implements `fromTransaction` (only `fromParsed` is optional), `canHandle === true` means the byte path can decode that program; to test the RPC path specifically, inspect `getInstructionParser(programId)?.fromParsed`.
+
 `DispatchResult` is `ParsedInstruction | UnparsedInstruction` where `UnparsedInstruction = { unknown: true; programLabel: string; programId: PublicKey }` — named as a sibling of `ParsedInstruction` so the union reads as two parallel outcomes of one decode attempt (a successfully parsed instruction, or one whose program is known but whose discriminator the slice could not decode), not two unrelated shapes. The dispatcher MUST be pure and MUST NOT hold module-level state. It is delivered to consumers via `InstructionParserProvider` / `useInstructionParser`; the hook MUST throw when used outside the provider.
+
+#### Scenario: canHandle reflects registration only
+
+- **WHEN** `canHandle(programId)` is called
+- **THEN** it MUST return `true` iff a slice is registered for that `programId`
+- **AND** it MUST NOT invoke `fromTransaction` or `fromParsed` (no allocation, no superstruct validation)
 
 #### Scenario: No parser registered
 

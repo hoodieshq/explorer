@@ -49,6 +49,16 @@ export interface InstructionParser<P extends ParsedInstructionInfo = ParsedInstr
 }
 
 export interface InstructionParserDispatcher {
+    /**
+     * Cheap, parse-free check: is a slice registered for this `programId`?
+     * Because every slice implements `fromTransaction` (only `fromParsed` is
+     * optional), `true` means the byte path can decode this program. This is a
+     * pure registration lookup — it does NOT run the parser, so it cannot
+     * disagree with what `fromTransaction`/`fromParsed` actually accept (no
+     * second source of truth to drift). To test the RPC path specifically,
+     * inspect `getInstructionParser(programId)?.fromParsed`.
+     */
+    canHandle(programId: string): boolean;
     /** `undefined` → no parser registered. `UnparsedInstruction` → registered but discriminator failed. */
     fromTransactionInstruction(ix: TransactionInstruction): DispatchResult | undefined;
     /** Passes through unchanged when no slice handles the program. */

@@ -29,6 +29,9 @@ export function createInstructionParserDispatcher(parsers: readonly InstructionP
     }
 
     return {
+        canHandle(programId) {
+            return byProgramId.has(programId);
+        },
         fromParsedInstruction(ix) {
             const parser = byProgramId.get(ix.programId.toBase58());
             // No slice registered, or slice doesn't implement fromParsed (RPC
