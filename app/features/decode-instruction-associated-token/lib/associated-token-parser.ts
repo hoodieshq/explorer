@@ -12,6 +12,10 @@ import { create } from 'superstruct';
 
 import { alloc, bytes, equals } from '@/app/shared/lib/bytes';
 import type { KitInstruction } from '@/app/shared/lib/web3js-compat';
+import type { ParserProgramLabel } from '@/app/utils/programs';
+
+/** RPC `parsed.program` discriminator for the Associated Token program; also the slice's `programLabel`. */
+export const ASSOCIATED_TOKEN_PROGRAM_LABEL = 'spl-associated-token-account' satisfies ParserProgramLabel;
 
 /**
  * Canonical shape for a parsed Associated Token instruction. `info` is left
@@ -54,7 +58,7 @@ export function parseAssociatedTokenInstruction(ix: KitInstruction): AssociatedT
  * and recover-nested branches validate.
  */
 export function parseAssociatedTokenRpcInstruction(ix: ParsedInstruction): AssociatedTokenParsed | undefined {
-    if (ix.program !== 'spl-associated-token-account') return undefined;
+    if (ix.program !== ASSOCIATED_TOKEN_PROGRAM_LABEL) return undefined;
     try {
         switch (ix.parsed.type) {
             case 'create':

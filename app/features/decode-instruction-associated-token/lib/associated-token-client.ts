@@ -2,6 +2,7 @@ import type { InstructionParser } from '@entities/instruction-parser';
 import { ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
 
 import {
+    ASSOCIATED_TOKEN_PROGRAM_LABEL,
     type AssociatedTokenParsed,
     parseAssociatedTokenInstruction,
     parseAssociatedTokenRpcInstruction,
@@ -11,5 +12,5 @@ export const associatedTokenInstructionParser: InstructionParser<AssociatedToken
     fromParsed: parseAssociatedTokenRpcInstruction,
     fromTransaction: parseAssociatedTokenInstruction,
     programId: ASSOCIATED_TOKEN_PROGRAM_ID.toBase58(),
-    programLabel: 'spl-associated-token-account',
+    programLabel: ASSOCIATED_TOKEN_PROGRAM_LABEL,
 };

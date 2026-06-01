@@ -140,7 +140,13 @@ A contract test SHALL assert, for every program with both `fromTransaction` and 
 
 Routing is keyed on `programId` (base58), which MUST be the canonical on-chain program address. `programLabel` is a *different* identifier: it is the RPC `parsed.program` discriminator string (e.g. `'system'`, `'spl-token'`, `'spl-token-2022'`, `'spl-associated-token-account'`), used by `fromParsed` to guard against mismatched RPC input (`if (ix.program !== 'spl-token') return undefined`). `programLabel` is therefore **not** the human-readable display name in `app/utils/programs.ts` (`PROGRAM_INFO_BY_ID`) or returned by `getProgramName()` in `app/utils/tx.ts` — those are titles like `System Program` / `Token Program`, which the slice never sets.
 
-> Hardening note: `programLabel` is currently a bare `string`. A follow-up SHOULD type it against the RPC program-name set (e.g. a `PROGRAM_NAMES`-style enum) so a slice and the RPC guard cannot silently disagree on the discriminator spelling.
+`programLabel` MUST be typed against the `ParserProgramLabel` union (`app/utils/programs.ts`), not bare `string`, so a slice declaring an unlisted label fails to compile. Each RPC-pre-parsed slice MUST single-source its label: the client's `programLabel` and the parser's `fromParsed` guard (`if (ix.program !== <LABEL>)`) MUST reference one exported constant, so the declared label and the guarded value cannot drift. `ParserProgramLabel` is deliberately distinct from `PROGRAM_NAMES` (those are display titles like `'Token Program'`); for programs the RPC does not pre-parse it carries a stable synthetic label.
+
+#### Scenario: Slice label is compile-checked and single-sourced
+
+- **WHEN** a slice declares `programLabel`
+- **THEN** the value MUST be a member of `ParserProgramLabel` (a non-member is a type error)
+- **AND** for RPC-pre-parsed slices the same exported constant MUST back both the `programLabel` field and the `fromParsed` program guard
 
 #### Scenario: Slice guards fromParsed on the RPC program field
 

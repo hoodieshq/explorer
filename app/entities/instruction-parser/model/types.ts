@@ -1,6 +1,7 @@
 import type { ParsedInstruction, PublicKey, TransactionInstruction } from '@solana/web3.js';
 
 import type { KitInstruction } from '@/app/shared/lib/web3js-compat';
+import type { ParserProgramLabel } from '@/app/utils/programs';
 
 export interface ParsedInstructionInfo<T extends string = string, I = unknown> {
     type: T;
@@ -17,7 +18,7 @@ export interface ParsedInstructionInfo<T extends string = string, I = unknown> {
  */
 export interface UnparsedInstruction {
     unknown: true;
-    programLabel: string;
+    programLabel: ParserProgramLabel;
     programId: PublicKey;
 }
 
@@ -34,8 +35,13 @@ export function isParsedInstruction(result: DispatchResult | undefined): result 
  */
 export interface InstructionParser<P extends ParsedInstructionInfo = ParsedInstructionInfo> {
     programId: string;
-    /** Matches the RPC `program` field, e.g. 'system', 'spl-token'. */
-    programLabel: string;
+    /**
+     * For RPC-pre-parsed programs, the RPC `parsed.program` discriminator used
+     * to guard `fromParsed` (e.g. 'system', 'spl-token'). For programs the RPC
+     * does not pre-parse, a stable synthetic label. Typed against
+     * `ParserProgramLabel` so a slice and its RPC guard cannot silently drift.
+     */
+    programLabel: ParserProgramLabel;
     /** Takes KitInstruction (not TransactionInstruction) — dispatcher converts once at its entry. */
     fromTransaction(ix: KitInstruction): P | undefined;
     /** Omit for programs RPC does not pre-parse. */

@@ -23,6 +23,10 @@ import {
 import { create } from 'superstruct';
 
 import type { KitInstruction } from '@/app/shared/lib/web3js-compat';
+import type { ParserProgramLabel } from '@/app/utils/programs';
+
+/** RPC `parsed.program` discriminator for the Token-2022 program; also the slice's `programLabel`. */
+export const TOKEN_2022_PROGRAM_LABEL = 'spl-token-2022' satisfies ParserProgramLabel;
 
 /**
  * Canonical shape of a parsed Token-2022 instruction. Same shape as the SPL
@@ -244,7 +248,7 @@ function tokenMetadataFieldToString(field: { __kind: string; fields?: readonly [
  * Token-2022 share `IX_STRUCTS` for validation; only the program label differs.
  */
 export function parseToken2022RpcInstruction(ix: ParsedInstruction): Token2022Parsed | undefined {
-    if (ix.program !== 'spl-token-2022') return undefined;
+    if (ix.program !== TOKEN_2022_PROGRAM_LABEL) return undefined;
     const validator = getTokenIxValidator(ix.parsed.type);
     if (!validator) return undefined;
     try {

@@ -47,6 +47,10 @@ import {
 import { create } from 'superstruct';
 
 import type { KitInstruction } from '@/app/shared/lib/web3js-compat';
+import type { ParserProgramLabel } from '@/app/utils/programs';
+
+/** RPC `parsed.program` discriminator for the System program; also the slice's `programLabel`. */
+export const SYSTEM_PROGRAM_LABEL = 'system' satisfies ParserProgramLabel;
 
 /**
  * Canonical shape of a parsed System Program instruction. Both the inspector
@@ -155,7 +159,7 @@ export function parseSystemInstruction(ix: KitInstruction): SystemParsed | undef
  * unchanged so the tx-page render is preserved.
  */
 export function parseSystemRpcInstruction(ix: ParsedInstruction): SystemParsed | undefined {
-    if (ix.program !== 'system') return undefined;
+    if (ix.program !== SYSTEM_PROGRAM_LABEL) return undefined;
     try {
         switch (ix.parsed.type) {
             case 'createAccount':

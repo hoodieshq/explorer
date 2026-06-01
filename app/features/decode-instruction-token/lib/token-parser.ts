@@ -13,6 +13,10 @@ import { normalizeTokenAmount } from '@utils/index';
 import { create } from 'superstruct';
 
 import type { KitInstruction } from '@/app/shared/lib/web3js-compat';
+import type { ParserProgramLabel } from '@/app/utils/programs';
+
+/** RPC `parsed.program` discriminator for the SPL Token program; also the slice's `programLabel`. */
+export const TOKEN_PROGRAM_LABEL = 'spl-token' satisfies ParserProgramLabel;
 
 /**
  * Canonical shape of a parsed SPL Token / Token-2022 instruction.
@@ -104,7 +108,7 @@ export function parseTokenInstruction(ix: KitInstruction): TokenParsed | undefin
  * and keeps slices independent (no feature-to-feature import).
  */
 export function parseTokenRpcInstruction(ix: ParsedInstruction): TokenParsed | undefined {
-    if (ix.program !== 'spl-token') return undefined;
+    if (ix.program !== TOKEN_PROGRAM_LABEL) return undefined;
     const validator = getTokenIxValidator(ix.parsed.type);
     if (!validator) return undefined;
     try {
