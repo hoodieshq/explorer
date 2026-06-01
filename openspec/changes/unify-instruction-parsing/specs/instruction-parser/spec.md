@@ -126,15 +126,28 @@ The dispatcher and every slice parser MUST NOT mutate the input `TransactionInst
 
 ### Requirement: Cross-pipeline equivalence
 
-A contract test SHALL assert, for every program with both `fromTransaction` and `fromParsed`, that the two paths produce `parsed.info` satisfying the same superstruct validator AND yielding equivalent field values for the same logical instruction. The test lives at `app/tx/__tests__/instruction-parser-contract.spec.ts` (the composition layer, so it may import feature slices without crossing the FSD entity→feature boundary) and MUST extend for every new slice.
+A contract test SHALL assert, for every program with both `fromTransaction` and `fromParsed`, that the two paths produce equivalent field values for the same logical instruction. The test lives at `app/tx/__tests__/instruction-parser-contract.spec.ts` (the composition layer, so it may import feature slices without crossing the FSD entity→feature boundary) and MUST extend for every new slice that publishes both paths.
 
-> Caveat — known divergences. The two representations do not always carry the same information. The RPC `parsed.info` can differ from a local byte decode in cases such as multisig instructions (the RPC may surface resolved signer sets the wire bytes only reference by index) and any instruction whose RPC shape includes data the raw bytes do not. Where a field genuinely cannot agree across the two paths, the contract test SHALL assert equivalence only on the fields that *can* agree and MUST document the divergent field with a comment, rather than forcing both shapes into a single validator. "Same superstruct validator" is the goal for the common case, not an invariant claimed for every instruction.
+The assertion takes one of two shapes depending on whether the two paths share an output shape:
 
-#### Scenario: System Transfer parity
+- **Same-validator parity** — when the byte path normalises into the RPC-info shape (System, SPL Token, the Token-2022 metadata/pointer/group extensions), both payloads are validated by the *same* superstruct and compared field-for-field.
+- **Mapped parity** — when the byte path emits a structurally different shape (Associated Token's byte path returns `@solana-program/token` kit objects with a named `accounts` map, while the RPC path emits a flat `*Info` struct), the test maps between the two field namings (e.g. `accounts.payer` ↔ `source`) and asserts the addresses agree. This still guards account ordering and field mapping — the class of latent bug the migration fixed.
+
+The only slice with no parity test is MPL Token Metadata, by necessity: the RPC never pre-parses it, so it has no `fromParsed` path to compare against.
+
+> Caveat — known divergences. The two representations do not always carry the same information. The RPC `parsed.info` can differ from a local byte decode in cases such as multisig instructions (the RPC may surface resolved signer sets the wire bytes only reference by index) and any instruction whose RPC shape includes data the raw bytes do not. Where a field genuinely cannot agree across the two paths, the contract test SHALL assert equivalence only on the fields that *can* agree and MUST document the divergent field with a comment, rather than forcing both shapes into a single validator.
+
+#### Scenario: System Transfer parity (same-validator)
 
 - **WHEN** the same `SystemProgram.transfer(...)` is dispatched via `fromTransactionInstruction(rawIx)` and `fromParsedInstruction(rpcIx)`
 - **THEN** both `parsed.info` payloads MUST satisfy `TransferInfo`
 - **AND** the validated `source`, `destination`, and `lamports` MUST be equal across the two paths
+
+#### Scenario: Associated Token createIdempotent parity (mapped)
+
+- **WHEN** the same createIdempotent instruction is dispatched via both paths
+- **THEN** the byte path's `accounts.{payer,ata,owner,mint}` MUST map to the RPC path's `{source,account,wallet,mint}`
+- **AND** the mapped addresses MUST be equal across the two paths
 
 ### Requirement: Program identifiers
 

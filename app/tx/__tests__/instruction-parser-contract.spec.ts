@@ -1,33 +1,41 @@
+import { CreateIdempotentInfo } from '@components/instruction/associated-token/types';
 import { TransferInfo } from '@components/instruction/system/types';
-import { TransferChecked } from '@components/instruction/token/types';
-import { createInstructionParserDispatcher, isParsedInstruction } from '@entities/instruction-parser';
+import { getTokenIxValidator, TransferChecked } from '@components/instruction/token/types';
+import {
+    createInstructionParserDispatcher,
+    type DispatchResult,
+    isParsedInstruction,
+} from '@entities/instruction-parser';
+import { associatedTokenInstructionParser } from '@features/decode-instruction-associated-token';
 import { systemInstructionParser } from '@features/decode-instruction-system';
 import { tokenInstructionParser } from '@features/decode-instruction-token';
+import { token2022InstructionParser } from '@features/decode-instruction-token-2022';
+import { address } from '@solana/kit';
 import { Keypair, type ParsedInstruction, PublicKey, SystemProgram, TransactionInstruction } from '@solana/web3.js';
-import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
+import { ASSOCIATED_TOKEN_PROGRAM_ADDRESS, TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
+import { getInitializeMetadataPointerInstruction, TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import { create } from 'superstruct';
 import { describe, expect, test } from 'vitest';
 
 /**
  * Contract test: both pipelines (inspector via `fromTransactionInstruction`
  * and tx-page via `fromParsedInstruction`) must produce `parsed.info` payloads
- * that satisfy the same superstruct validator AND yield equivalent values.
+ * that yield equivalent values for the same logical instruction.
  *
- * Parity is asserted per program *where both paths produce the same shape*:
- * - System Transfer and SPL Token TransferChecked are covered below — the byte
- *   path normalises into the same RPC-info shape the validator expects.
+ * Two shapes of assertion appear here:
+ * - **Same-validator parity** (System Transfer, SPL Token TransferChecked,
+ *   Token-2022 InitializeMetadataPointer): the byte path normalises into the
+ *   same RPC-info shape the superstruct validator expects, so both paths are
+ *   validated by the same struct and compared field-for-field.
+ * - **Mapped parity** (Associated Token createIdempotent): the byte path emits
+ *   `@solana-program/token` kit-shaped objects (`accounts.{payer,ata,owner,…}`)
+ *   while the RPC path emits the `CreateIdempotentInfo` shape
+ *   (`{source,account,wallet,…}`). The two don't share a validator, so we map
+ *   between them and assert the addresses agree. This guards the account
+ *   ordering — exactly the class of latent bug the migration fixed.
  *
- * Not all slices admit a symmetric parity assertion, and that is by design (see
- * the "known divergences" caveat in the capability spec):
- * - **Token-2022**: its byte path decodes only the metadata/pointer/group
- *   extensions (kit-shaped output); its RPC path covers the standard token ops.
- *   The two paths cover different instruction sets, so there is no single
- *   logical instruction to compare field-for-field.
- * - **Associated Token**: the byte path returns `@solana-program/token`
- *   kit-shaped objects while the RPC path passes RPC `info` through; the shapes
- *   differ structurally, so equality is asserted at the card level, not here.
- * - **MPL Token Metadata**: the RPC never pre-parses it (no `fromParsed`), so
- *   there is no RPC path to compare against.
+ * MPL Token Metadata has no parity test by necessity: the RPC never pre-parses
+ * it, so there is no `fromParsed` path to compare against.
  */
 describe('instruction-parser contract', () => {
     test('should produce equivalent info for byte-parsed and RPC-parsed System Transfer paths', () => {
@@ -159,6 +167,126 @@ describe('instruction-parser contract', () => {
         expect(byteInfo.authority.equals(authority)).toBe(true);
     });
 
+    test('should produce equivalent info for byte-parsed and RPC-parsed Token-2022 InitializeMetadataPointer paths', () => {
+        const dispatcher = createInstructionParserDispatcher([token2022InstructionParser]);
+
+        const mint = Keypair.generate().publicKey;
+        const authority = Keypair.generate().publicKey;
+        const metadataAddress = Keypair.generate().publicKey;
+        const programId = new PublicKey(TOKEN_2022_PROGRAM_ADDRESS);
+
+        // Build the raw instruction bytes with the kit builder, then wrap as a
+        // web3.js TransactionInstruction for the byte path. (Extension
+        // discriminators are multi-byte; let the encoder produce them.)
+        const kitIx = getInitializeMetadataPointerInstruction({
+            authority: address(authority.toBase58()),
+            metadataAddress: address(metadataAddress.toBase58()),
+            mint: address(mint.toBase58()),
+        });
+        const rawIx = new TransactionInstruction({
+            data: Buffer.from(kitIx.data),
+            keys: kitIx.accounts.map(a => ({ isSigner: false, isWritable: false, pubkey: new PublicKey(a.address) })),
+            programId,
+        });
+
+        const byteParsed = dispatcher.fromTransactionInstruction(rawIx);
+
+        const rpcInput: ParsedInstruction = {
+            parsed: {
+                info: {
+                    authority: authority.toBase58(),
+                    metadataAddress: metadataAddress.toBase58(),
+                    mint: mint.toBase58(),
+                },
+                type: 'initializeMetadataPointer',
+            },
+            program: 'spl-token-2022',
+            programId,
+        };
+        const rpcParsed = dispatcher.fromParsedInstruction(rpcInput);
+
+        if (!isParsedInstruction(byteParsed)) {
+            throw new Error('byte-parsed Token-2022 InitializeMetadataPointer should be recognised');
+        }
+        expect(byteParsed.parsed.type).toBe('initializeMetadataPointer');
+        expect(rpcParsed.parsed.type).toBe('initializeMetadataPointer');
+
+        const validator = getTokenIxValidator('initializeMetadataPointer');
+        if (!validator) throw new Error('expected a validator for initializeMetadataPointer');
+        const byteInfo = create(byteParsed.parsed.info, validator) as {
+            authority: PublicKey;
+            metadataAddress: PublicKey;
+            mint: PublicKey;
+        };
+        const rpcInfo = create(rpcParsed.parsed.info, validator) as {
+            authority: PublicKey;
+            metadataAddress: PublicKey;
+            mint: PublicKey;
+        };
+
+        expect(byteInfo.mint.equals(rpcInfo.mint)).toBe(true);
+        expect(byteInfo.authority.equals(rpcInfo.authority)).toBe(true);
+        expect(byteInfo.metadataAddress.equals(rpcInfo.metadataAddress)).toBe(true);
+        expect(byteInfo.mint.equals(mint)).toBe(true);
+    });
+
+    test('should produce equivalent addresses for byte-parsed and RPC-parsed Associated Token createIdempotent paths', () => {
+        const dispatcher = createInstructionParserDispatcher([associatedTokenInstructionParser]);
+
+        const payer = Keypair.generate().publicKey;
+        const ata = Keypair.generate().publicKey;
+        const owner = Keypair.generate().publicKey;
+        const mint = Keypair.generate().publicKey;
+        const systemProgram = SystemProgram.programId;
+        const tokenProgram = new PublicKey(TOKEN_PROGRAM_ADDRESS);
+        const atProgramId = new PublicKey(ASSOCIATED_TOKEN_PROGRAM_ADDRESS);
+
+        // createIdempotent wire layout is a single discriminator byte (1); the
+        // accounts are positional: [payer, ata, owner, mint, systemProgram, tokenProgram].
+        const rawIx = new TransactionInstruction({
+            data: Buffer.from([1]),
+            keys: [payer, ata, owner, mint, systemProgram, tokenProgram].map(pubkey => ({
+                isSigner: false,
+                isWritable: false,
+                pubkey,
+            })),
+            programId: atProgramId,
+        });
+
+        // Byte path: kit-shaped output with named `accounts`.
+        const byteParsed = parseByteAtIdempotent(dispatcher.fromTransactionInstruction(rawIx));
+
+        // RPC path: CreateIdempotentInfo shape.
+        const rpcInput: ParsedInstruction = {
+            parsed: {
+                info: {
+                    account: ata.toBase58(),
+                    mint: mint.toBase58(),
+                    source: payer.toBase58(),
+                    systemProgram: systemProgram.toBase58(),
+                    tokenProgram: tokenProgram.toBase58(),
+                    wallet: owner.toBase58(),
+                },
+                type: 'createIdempotent',
+            },
+            program: 'spl-associated-token-account',
+            programId: atProgramId,
+        };
+        const rpcParsed = dispatcher.fromParsedInstruction(rpcInput);
+        const rpcInfo = create(rpcParsed.parsed.info, CreateIdempotentInfo);
+
+        // Map byte `accounts.*` -> RPC info field names and assert agreement.
+        expect(new PublicKey(byteParsed.accounts.payer.address).equals(rpcInfo.source)).toBe(true);
+        expect(new PublicKey(byteParsed.accounts.ata.address).equals(rpcInfo.account)).toBe(true);
+        expect(new PublicKey(byteParsed.accounts.owner.address).equals(rpcInfo.wallet)).toBe(true);
+        expect(new PublicKey(byteParsed.accounts.mint.address).equals(rpcInfo.mint)).toBe(true);
+
+        // And both describe the instruction we built.
+        expect(rpcInfo.source.equals(payer)).toBe(true);
+        expect(rpcInfo.account.equals(ata)).toBe(true);
+        expect(rpcInfo.wallet.equals(owner)).toBe(true);
+    });
+
     test('should pass through unchanged when no slice is registered', () => {
         const dispatcher = createInstructionParserDispatcher([]);
         const unknownProgram = Keypair.generate().publicKey;
@@ -220,3 +348,15 @@ describe('instruction-parser contract', () => {
         );
     });
 });
+
+type AtAccount = { address: string };
+type ByteAtIdempotentInfo = {
+    accounts: { ata: AtAccount; mint: AtAccount; owner: AtAccount; payer: AtAccount };
+};
+
+function parseByteAtIdempotent(result: DispatchResult | undefined): ByteAtIdempotentInfo {
+    if (!result || !isParsedInstruction(result)) {
+        throw new Error('byte-parsed AT createIdempotent should be recognised');
+    }
+    return result.parsed.info as ByteAtIdempotentInfo;
+}
