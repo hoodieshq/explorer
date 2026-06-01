@@ -39,6 +39,8 @@ flowchart TD
 
 The tx page's input is the union `ParsedInstruction | PartiallyDecodedInstruction` — the RPC pre-parses the programs on its allowlist into `ParsedInstruction` (with a `parsed.{type,info}`) and returns everything else as a `PartiallyDecodedInstruction` (raw `accounts` + base58 `data`, no `parsed`). The inspector has no such union; it always starts from a raw `TransactionInstruction`.
 
+The `Inspector` node in the diagram is the convergence point for **both** of the inspector's entry modes: loading a transaction by signature (`/tx/[signature]/inspect`) and decoding a wire-format `VersionedMessage` (`/tx/inspector?message=…`). Both deserialise/decompile down to the same `TransactionInstruction`s before reaching `dispatcher.fromTransactionInstruction`, so the parsing pipeline is identical regardless of how the inspector was fed — adding or changing an inspector entry mode does not touch any slice.
+
 The discriminant is the presence of a `parsed` field, and the tx page branches on it **before** the dispatcher (`'parsed' in ix ? dispatcher.fromParsedInstruction(ix) : undefined`):
 
 - A **`ParsedInstruction`** goes through `dispatcher.fromParsedInstruction`, which either normalises it via a slice's `fromParsed` or passes it through unchanged.
