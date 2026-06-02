@@ -115,7 +115,7 @@ export function useTabs(idl: FormattedIdl | null, originalIdl: SupportedIdl, pro
         // Show interactive tab for modern Anchor IDLs and Codama IDLs
         if (originalIdl && isInteractiveIdlSupported(originalIdl) && IS_INTERACTIVE_IDL_ENABLED) {
             const isProgramIdMismatch = programId ? isIdlProgramIdMismatch(originalIdl, programId) : false;
-            // GA events are scoped to the IDL standard (Anchor | Codama).
+            // Analytics is created during runtime because GA events are scoped to the IDL standard (Anchor | Codama).
             const idlAnalytics = createIdlAnalytics(getIdlStandard(originalIdl));
 
             tabItems.push({

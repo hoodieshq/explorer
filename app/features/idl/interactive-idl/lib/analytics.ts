@@ -9,8 +9,8 @@ const IDL_TYPE_LABELS: Record<IdlStandard, IdlTypeLabel> = {
     Codama: 'codama',
 };
 
-// Interactive Idl actions are the same for IdlStandards.
-// This will generates both the `iidl_anchor_*` and `iidl_codama_*` variants.
+// Interactive IDL actions are the same for IdlStandards.
+// This generates both the `iidl_anchor_*` and `iidl_codama_*` variants.
 const IIDL_ACTIONS = {
     SectionsExpanded: 'sections_expanded',
     TabOpened: 'tab_opened',
