@@ -27,6 +27,7 @@ import { usePdas } from '../model/use-pdas';
 import { AccordionContent, AccordionItem, AccordionTrigger } from './Accordion';
 import { AccountInput } from './AccountInput';
 import { ArgumentInput } from './ArgumentInput';
+import { WarningNote } from './WarningNote';
 
 // FIXME: missing Storybook story — uses useWallet + react-hook-form Controllers + nested IDL fixtures.
 export function InteractInstruction({
@@ -147,22 +148,21 @@ export function InteractInstruction({
                             </div>
                         </CardSection>
                     )}
-                    <div className="e-flex e-gap-2 e-px-6 e-pb-2.5">
-                        <ExecuteButton
-                            onClick={onSubmit}
-                            disabled={interactionDisabled}
-                            isExecuting={isExecuting}
-                            tooltipText={
-                                !walletConnected
-                                    ? 'Connect your wallet to execute this instruction'
-                                    : 'Instruction simulation is skipped when executing!'
-                            }
-                        />
-                        <SimulateButton
-                            onClick={onSimulate}
-                            disabled={interactionDisabled}
-                            isSimulating={isSimulating}
-                        />
+                    <div className="e-px-6 e-pb-2.5">
+                        <div className="e-flex e-gap-2">
+                            <ExecuteButton
+                                onClick={onSubmit}
+                                disabled={interactionDisabled}
+                                isExecuting={isExecuting}
+                                tooltipText={!walletConnected ? 'Connect your wallet to execute this instruction' : ''}
+                            />
+                            <SimulateButton
+                                onClick={onSimulate}
+                                disabled={interactionDisabled}
+                                isSimulating={isSimulating}
+                            />
+                        </div>
+                        <WarningNote className="e-mt-2" label="Instruction simulation is skipped during execution" />
                     </div>
                 </AccordionContent>
             </AccordionItem>
@@ -257,6 +257,10 @@ function ExecuteButton({
             Execute
         </Button>
     );
+
+    if (!tooltipText) {
+        return button;
+    }
 
     return (
         <Tooltip>

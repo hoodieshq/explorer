@@ -3,7 +3,9 @@ import { Button } from '@shared/ui/button';
 import { cn } from '@shared/utils';
 import { cva } from 'class-variance-authority';
 import { ReactNode } from 'react';
-import { AlertCircle, Check, Globe } from 'react-feather';
+import { Check, Globe } from 'react-feather';
+
+import { WarningNote } from './WarningNote';
 
 import { Card } from '@/app/shared/ui/Card';
 
@@ -40,12 +42,7 @@ export function BaseClusterSelector({
                         Use Devnet with test tokens to avoid real costs
                     </div>
                     {showMainnetWarning && (
-                        <div className="e-mt-1 e-flex e-items-center e-gap-1.5 e-rounded">
-                            <AlertCircle className="e-text-destructive" size={14} />
-                            <div className="e-mt-0.5 e-text-xs e-tracking-tight e-text-destructive">
-                                You are connected to Mainnet, which uses real funds
-                            </div>
-                        </div>
+                        <WarningNote className="e-mt-1" label="You are connected to Mainnet, which uses real funds" />
                     )}
                 </div>
 
