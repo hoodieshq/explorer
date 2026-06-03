@@ -379,6 +379,8 @@ export default tseslint.config(
             'app/features/idl/formatted-idl/model/__tests__/search.test.ts',
             'app/features/idl/formatted-idl/ui/__stories__/AnchorFormattedIdl.stories.tsx',
             'app/features/idl/formatted-idl/ui/__stories__/CodamaFormattedIdl.stories.tsx',
+            'app/features/idl/interactive-idl/ui/__stories__/InstructionExecutionActivity.stories.tsx',
+            'app/features/idl/interactive-idl/ui/__stories__/InstructionSimulationActivity.stories.tsx',
             'app/features/idl/ui/__stories__/IdlRenderer.stories.tsx',
             'app/features/idl/interactive-idl/model/codama/codama-interpreter.ts',
             'app/features/idl/model/use-idl-last-transaction-date.tsx',

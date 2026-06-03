@@ -12,7 +12,7 @@ type InstructionExecutionActivityProps = {
     lastResult?: InstructionExecutionResult;
     parseLogs: (logs: string[]) => InstructionLogs[];
 };
-// FIXME: missing Storybook story — pure props, but uses useExplorerLink internally so needs withCluster decorator.
+
 export function InstructionExecutionActivity({ lastResult, parseLogs }: InstructionExecutionActivityProps) {
     const tabs = [
         {
