@@ -5,9 +5,9 @@ import { cva } from 'class-variance-authority';
 import { ReactNode } from 'react';
 import { Check, Globe } from 'react-feather';
 
-import { WarningNote } from './WarningNote';
-
 import { Card } from '@/app/shared/ui/Card';
+
+import { WarningNote } from './WarningNote';
 
 type BaseClusterSelectorProps = {
     currentCluster: string;
