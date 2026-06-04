@@ -9,16 +9,7 @@ const link = `/tx/${signature}`;
 
 const meta = {
     component: TxExecutionStatus,
-    decorators: [
-        Story => (
-            <div className="e-flex e-w-[800px] e-max-w-full e-flex-col">
-                <Story />
-            </div>
-        ),
-    ],
-    parameters: {
-        layout: 'centered',
-    },
+    globals: { viewport: { value: 'responsive' } },
     tags: ['autodocs'],
     title: 'Entities/Program Logs/UI/TxExecutionStatus',
 } satisfies Meta<typeof TxExecutionStatus>;

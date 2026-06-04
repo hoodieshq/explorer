@@ -11,17 +11,8 @@ const SERIALIZED = 'AQABAgIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAh';
 
 const meta = {
     component: InstructionExecutionActivity,
-    decorators: [
-        withCluster,
-        Story => (
-            <div className="e-flex e-h-[500px] e-w-[800px] e-flex-col">
-                <Story />
-            </div>
-        ),
-    ],
-    parameters: {
-        layout: 'padded',
-    },
+    decorators: [withCluster],
+    globals: { viewport: { value: 'responsive' } },
     tags: ['autodocs'],
     title: 'Features/IDL/Interactive IDL/UI/InstructionExecutionActivity',
 } satisfies Meta<typeof InstructionExecutionActivity>;

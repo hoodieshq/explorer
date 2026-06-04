@@ -10,13 +10,7 @@ const inspectorLink = `/tx/inspector?message=${serializedMessage}`;
 
 const meta = {
     component: TxErrorStatus,
-    decorators: [
-        Story => (
-            <div className="e-flex e-w-[800px] e-max-w-full e-flex-col">
-                <Story />
-            </div>
-        ),
-    ],
+    globals: { viewport: { value: 'responsive' } },
     tags: ['autodocs'],
     title: 'Entities/Program Logs/UI/TxErrorStatus',
 } satisfies Meta<typeof TxErrorStatus>;

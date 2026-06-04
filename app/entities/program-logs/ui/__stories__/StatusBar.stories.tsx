@@ -5,16 +5,7 @@ import { CopyableMonoText, StatusBar } from '../StatusBar';
 
 const meta = {
     component: StatusBar,
-    decorators: [
-        Story => (
-            <div className="e-flex e-w-[800px] e-max-w-full e-flex-col">
-                <Story />
-            </div>
-        ),
-    ],
-    parameters: {
-        layout: 'centered',
-    },
+    globals: { viewport: { value: 'responsive' } },
     tags: ['autodocs'],
     title: 'Entities/Program Logs/UI/StatusBar',
 } satisfies Meta<typeof StatusBar>;

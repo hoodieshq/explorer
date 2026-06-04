@@ -10,16 +10,7 @@ const inspectorLink = `/tx/inspector?message=${serializedMessage}`;
 
 const meta: Meta<typeof TxSimulationStatus> = {
     component: TxSimulationStatus,
-    decorators: [
-        Story => (
-            <div className="e-flex e-w-[800px] e-max-w-full e-flex-col">
-                <Story />
-            </div>
-        ),
-    ],
-    parameters: {
-        layout: 'centered',
-    },
+    globals: { viewport: { value: 'responsive' } },
     tags: ['autodocs'],
     title: 'Entities/Program Logs/UI/TxSimulationStatus',
 };

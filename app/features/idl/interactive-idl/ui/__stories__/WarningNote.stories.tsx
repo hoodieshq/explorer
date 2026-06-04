@@ -4,16 +4,7 @@ import { WarningNote } from '../WarningNote';
 
 const meta: Meta<typeof WarningNote> = {
     component: WarningNote,
-    decorators: [
-        Story => (
-            <div className="e-w-[500px]">
-                <Story />
-            </div>
-        ),
-    ],
-    parameters: {
-        layout: 'padded',
-    },
+    globals: { viewport: { value: 'responsive' } },
     title: 'Features/IDL/Interactive IDL/UI/WarningNote',
 };
 
