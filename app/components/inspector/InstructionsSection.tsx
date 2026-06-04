@@ -12,7 +12,7 @@ import {
     type VersionedMessage,
 } from '@solana/web3.js';
 import { getProgramName } from '@utils/tx';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import { isTokenBatchInstruction, resolveInnerBatchInstructions, TokenBatchCard } from '@/app/features/token-batch';
@@ -115,8 +115,8 @@ function InspectorInstructionCard({
     const programId = ix.programId;
     const programName = getProgramName(programId.toBase58(), cluster);
     const anchorProgram = useAnchorProgram(programId.toString(), url, cluster);
-    const parsedIx = React.useMemo(() => dispatcher.fromTransactionInstruction(ix), [dispatcher, ix]);
-    const parsedTx = React.useMemo(
+    const parsedIx = useMemo(() => dispatcher.fromTransactionInstruction(ix), [dispatcher, ix]);
+    const parsedTx = useMemo(
         () => (isParsedInstruction(parsedIx) ? toParsedTransaction(ix, message, [parsedIx]) : undefined),
         [ix, message, parsedIx],
     );
