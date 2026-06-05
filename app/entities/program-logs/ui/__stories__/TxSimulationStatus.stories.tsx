@@ -63,6 +63,21 @@ export const Error: Story = {
     },
 };
 
+export const SerializedMessage: Story = {
+    args: {
+        date,
+        link: inspectorLink,
+        message: serializedMessage,
+        status: 'error',
+    },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        expect(canvas.getByText(serializedMessage)).toBeInTheDocument();
+        expect(canvas.getByText('Simulation Error', { exact: false })).toBeInTheDocument();
+        expect(canvas.getByRole('link')).toHaveAttribute('href', inspectorLink);
+    },
+};
+
 export const ErrorNoLink: Story = {
     args: {
         date,

@@ -50,7 +50,8 @@ export const RpcSimulationFailed: Story = {
         lastSimulation: {
             finishedAt: FINISHED_AT,
             logs: errorLogs,
-            message: 'Error Message: A has one constraint was violated. The provided account does not match the expected owner.',
+            message:
+                'Error Message: A has one constraint was violated. The provided account does not match the expected owner.',
             phase: 'rpc_simulation_failed',
             serializedTxMessage: SERIALIZED,
             status: 'error',
@@ -64,7 +65,7 @@ export const RpcSimulationFailedEmptyMessage: Story = {
         lastSimulation: {
             finishedAt: FINISHED_AT,
             logs: errorLogs,
-            message: "",
+            message: '',
             phase: 'rpc_simulation_failed',
             serializedTxMessage: SERIALIZED,
             status: 'error',

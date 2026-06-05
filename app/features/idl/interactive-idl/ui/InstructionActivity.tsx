@@ -140,7 +140,7 @@ function SimulationStatusHeader({ lastSimulation }: { lastSimulation: Instructio
         <StatusWithError errMessage={lastSimulation.message}>
             <TxSimulationStatus
                 status="error"
-                txIdentifier={lastSimulation.serializedTxMessage}
+                message={lastSimulation.serializedTxMessage}
                 date={lastSimulation.finishedAt}
                 link={link}
             />

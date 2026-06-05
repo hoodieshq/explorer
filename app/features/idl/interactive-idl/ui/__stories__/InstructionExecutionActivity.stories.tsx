@@ -60,7 +60,6 @@ export const BroadcastFailed: Story = {
     },
 };
 
-
 export const BroadcastFailedEmptyMessage: Story = {
     args: {
         lastResult: {
