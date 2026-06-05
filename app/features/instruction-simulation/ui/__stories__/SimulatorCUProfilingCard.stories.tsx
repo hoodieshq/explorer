@@ -21,7 +21,7 @@ const meta: Meta<typeof SimulatorCUProfilingCard> = {
     component: SimulatorCUProfilingCard,
     parameters: { ...nextjsParameters, layout: 'padded' },
     tags: ['autodocs'],
-    title: 'Features/InstructionSimulation/SimulatorCUProfilingCard',
+    title: 'Features/InstructionSimulation/UI/SimulatorCUProfilingCard',
 };
 
 export default meta;

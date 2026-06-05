@@ -15,7 +15,7 @@ const meta = {
     decorators: [withCluster],
     parameters: nextjsParameters,
     tags: ['autodocs'],
-    title: 'Features/InstructionSimulation/SimulationCard',
+    title: 'Features/InstructionSimulation/UI/SimulationCard',
 } satisfies Meta<typeof SimulatorCard>;
 
 export default meta;
