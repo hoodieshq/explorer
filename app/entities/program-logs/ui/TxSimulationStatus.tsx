@@ -1,8 +1,9 @@
 import { CopyableMonoText, StatusBar } from './StatusBar';
 
+// txIdentifier is either the signature (if the error occurred after the transaction was sent to the network) or the serialized message (if the error occurred before the transaction could be sent).
 type TxSimulationStatusProps =
     | { status: 'success'; unitsConsumed: number | undefined; date: Date; link?: string }
-    | { status: 'error'; message: string; date: Date; link?: string };
+    | { status: 'error'; txIdentifier?: string; date: Date; link?: string };
 
 export function TxSimulationStatus(props: TxSimulationStatusProps) {
     if (props.status === 'success') {
@@ -22,7 +23,9 @@ export function TxSimulationStatus(props: TxSimulationStatusProps) {
     }
     return (
         <StatusBar
-            message={<CopyableMonoText text={props.message} theme="destructive" />}
+            message={
+                props.txIdentifier ? <CopyableMonoText text={props.txIdentifier} theme="destructive" /> : undefined
+            }
             date={props.date}
             theme="destructive"
             badge={{ label: 'Simulation Error', variant: 'destructive' }}

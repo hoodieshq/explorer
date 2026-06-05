@@ -7,6 +7,10 @@ import { InstructionSimulationActivity } from '../InstructionActivity';
 
 const FINISHED_AT = new Date('2026-01-01T00:00:00Z');
 const SERIALIZED = 'AQABAgIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAh';
+const LONG_ERROR =
+    'Transaction simulation failed: Error processing Instruction 0: custom program error: 0x1771. ' +
+    'Program log: AnchorError occurred. Error Code: ConstraintHasOne. Error Number: 2001. ' +
+    'Error Message: A has one constraint was violated. The provided account does not match the expected owner.';
 
 const meta = {
     component: InstructionSimulationActivity,
@@ -41,13 +45,40 @@ export const Success: Story = {
     },
 };
 
-/** RPC simulation returned an error — Simulation Error header with inspector link. */
 export const RpcSimulationFailed: Story = {
     args: {
         lastSimulation: {
             finishedAt: FINISHED_AT,
             logs: errorLogs,
-            message: 'custom program error: 0x0',
+            message: 'Error Message: A has one constraint was violated. The provided account does not match the expected owner.',
+            phase: 'rpc_simulation_failed',
+            serializedTxMessage: SERIALIZED,
+            status: 'error',
+        },
+        parseLogs: () => parsedErrorLogs,
+    },
+};
+
+export const RpcSimulationFailedEmptyMessage: Story = {
+    args: {
+        lastSimulation: {
+            finishedAt: FINISHED_AT,
+            logs: errorLogs,
+            message: "",
+            phase: 'rpc_simulation_failed',
+            serializedTxMessage: SERIALIZED,
+            status: 'error',
+        },
+        parseLogs: () => parsedErrorLogs,
+    },
+};
+
+export const RpcSimulationFailedLongError: Story = {
+    args: {
+        lastSimulation: {
+            finishedAt: FINISHED_AT,
+            logs: errorLogs,
+            message: LONG_ERROR,
             phase: 'rpc_simulation_failed',
             serializedTxMessage: SERIALIZED,
             status: 'error',

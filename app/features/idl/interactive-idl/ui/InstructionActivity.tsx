@@ -98,21 +98,25 @@ function InstructionExecutionStatusHeader({ lastResult }: { lastResult: Instruct
     // Tx was sent to the network but an error occurred.
     if (lastResult.phase === 'broadcast_failed') {
         return (
-            <TxExecutionStatus
-                status="error"
-                signature={lastResult.signature}
-                date={lastResult.finishedAt}
-                link={txLink}
-            />
+            <StatusWithError errMessage={lastResult.message}>
+                <TxExecutionStatus
+                    status="error"
+                    signature={lastResult.signature}
+                    date={lastResult.finishedAt}
+                    link={txLink}
+                />
+            </StatusWithError>
         );
     }
     // Tx failed before it could be sent to the network, so no signature.
     return (
-        <TxErrorStatus
-            message={lastResult.message}
-            date={lastResult.finishedAt}
-            link={lastResult.serializedTxMessage ? inspectorLink : undefined}
-        />
+        <StatusWithError errMessage={lastResult.message}>
+            <TxErrorStatus
+                message={lastResult.serializedTxMessage}
+                date={lastResult.finishedAt}
+                link={lastResult.serializedTxMessage ? inspectorLink : undefined}
+            />
+        </StatusWithError>
     );
 }
 
@@ -133,12 +137,14 @@ function SimulationStatusHeader({ lastSimulation }: { lastSimulation: Instructio
         );
     }
     return (
-        <TxSimulationStatus
-            status="error"
-            message={lastSimulation.message}
-            date={lastSimulation.finishedAt}
-            link={link}
-        />
+        <StatusWithError errMessage={lastSimulation.message}>
+            <TxSimulationStatus
+                status="error"
+                txIdentifier={lastSimulation.serializedTxMessage}
+                date={lastSimulation.finishedAt}
+                link={link}
+            />
+        </StatusWithError>
     );
 }
 
@@ -153,4 +159,15 @@ function getTxSignature(result: InstructionExecutionResult): string | undefined 
 function getInspectorMessage(result: InstructionExecutionResult): string | undefined {
     if (result.status === 'error' && result.phase === 'pre_broadcast_failed') return result.serializedTxMessage;
     return undefined;
+}
+
+function StatusWithError({ children, errMessage }: { children: ReactNode; errMessage?: string }) {
+    if (!errMessage) return <>{children}</>;
+
+    return (
+        <div className="e-flex e-flex-col e-gap-2">
+            {children}
+            <div className="e-text-sm e-tracking-tight e-text-destructive">{errMessage}</div>
+        </div>
+    );
 }
