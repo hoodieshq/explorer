@@ -54,7 +54,11 @@ describe('useFetchRawTransaction', () => {
             }),
         );
         // FetchFailed dispatch carries no data field — consumers read defensively via optional chaining.
-        expect(dispatch.mock.calls[0][0]).not.toHaveProperty('data');
+        const failedAction = dispatch.mock.calls
+            .map(([action]) => action)
+            .find(action => action.status === FetchStatus.FetchFailed);
+        expect(failedAction).toBeDefined();
+        expect(failedAction).not.toHaveProperty('data');
     });
 
     it('should thread the commitment through to getTransaction', async () => {
