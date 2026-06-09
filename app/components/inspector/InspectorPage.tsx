@@ -19,6 +19,7 @@ import {
 } from '@solana/web3.js';
 import { generated, PROGRAM_ADDRESS as SQUADS_V4_PROGRAM_ADDRESS } from '@sqds/multisig';
 import { useClusterPath } from '@utils/url';
+import { useAutoRefreshInterval, useAutoRefreshState } from '@utils/use-auto-refresh';
 import bs58 from 'bs58';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
@@ -376,7 +377,9 @@ export function TransactionInspectorPage({
     );
 }
 
-function PermalinkView({
+const NOT_FOUND_BAILOUT = 5; // ~10s at the 2s interval
+
+export function PermalinkView({
     signature,
     showTokenBalanceChanges,
 }: {
@@ -386,7 +389,6 @@ function PermalinkView({
 }) {
     const details = useRawTransactionDetails(signature);
     const fetchTransaction = useFetchRawTransaction();
-    const refreshTransaction = () => fetchTransaction(signature);
     const transaction = details?.data?.raw;
     const inspectorPath = useClusterPath({ pathname: '/tx/inspector' });
     const router = useRouter();
@@ -394,15 +396,40 @@ function PermalinkView({
         router.push(inspectorPath);
     }, [inspectorPath, router]);
 
-    // Fetch details on load
+    // Fetch on load at 'confirmed' (matches parsed.tsx) so freshly-confirmed txs resolve fast.
+    const fetchConfirmedTx = React.useCallback(() => {
+        fetchTransaction(signature, 'confirmed');
+    }, [fetchTransaction, signature]);
+
+    const [retries, setRetries] = React.useState(0);
+
+    const refreshTransaction = React.useCallback(() => {
+        fetchConfirmedTx();
+        setRetries(r => r + 1);
+    }, [fetchConfirmedTx]);
+
+    // Reset the retry counter if the signature changes without a remount.
     React.useEffect(() => {
-        if (!details) fetchTransaction(signature);
-    }, [signature, details, fetchTransaction]);
+        setRetries(0);
+    }, [signature]);
+
+    React.useEffect(() => {
+        if (!details) fetchConfirmedTx();
+    }, [details, fetchConfirmedTx]);
+
+    // Poll while the fetch succeeded but returned no tx yet, until we bail out.
+    const autoRefresh = useAutoRefreshState({
+        bailedOut: retries >= NOT_FOUND_BAILOUT,
+        enabled: details?.status === FetchStatus.Fetched && !transaction,
+    });
+    useAutoRefreshInterval(autoRefresh, refreshTransaction);
 
     if (!details || details.status === FetchStatus.Fetching) {
         return <LoadingCard />;
     } else if (details.status === FetchStatus.FetchFailed) {
-        return <ErrorCard retry={refreshTransaction} text="Failed to fetch transaction" />;
+        return <ErrorCard retry={() => fetchTransaction(signature, 'confirmed')} text="Failed to fetch transaction" />;
+    } else if (!transaction && retries < NOT_FOUND_BAILOUT) {
+        return <LoadingCard message="Waiting for transaction to be confirmed..." />;
     } else if (!transaction) {
         return <ErrorCard text="Transaction was not found" retry={reset} retryText="Reset" />;
     }

@@ -7,6 +7,7 @@ import {
     type CompiledInnerInstruction,
     Connection,
     type DecompileArgs,
+    type Finality,
     TransactionMessage,
     type TransactionSignature,
     type VersionedMessage,
@@ -61,10 +62,17 @@ export function useRawTransactionDetails(signature: TransactionSignature): Cache
     return context.entries[signature];
 }
 
-async function fetchRawTransaction(dispatch: Dispatch, signature: TransactionSignature, cluster: Cluster, url: string) {
+async function fetchRawTransaction(
+    dispatch: Dispatch,
+    signature: TransactionSignature,
+    cluster: Cluster,
+    url: string,
+    commitment?: Finality,
+) {
     let fetchStatus;
     try {
         const response = await new Connection(url).getTransaction(signature, {
+            commitment,
             maxSupportedTransactionVersion: 0,
         });
         fetchStatus = FetchStatus.Fetched;
@@ -112,8 +120,8 @@ export function useFetchRawTransaction() {
 
     const { cluster, url } = useCluster();
     return React.useCallback(
-        (signature: TransactionSignature) => {
-            url && fetchRawTransaction(dispatch, signature, cluster, url);
+        (signature: TransactionSignature, commitment?: Finality) => {
+            url && fetchRawTransaction(dispatch, signature, cluster, url, commitment);
         },
         [dispatch, cluster, url],
     );
