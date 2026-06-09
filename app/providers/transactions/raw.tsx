@@ -109,6 +109,12 @@ async function fetchRawTransaction(
         if (cluster !== Cluster.Custom) {
             Logger.error(error, { url });
         }
+        dispatch({
+            key: signature,
+            status: FetchStatus.FetchFailed,
+            type: ActionType.Update,
+            url,
+        });
     }
 }
 
