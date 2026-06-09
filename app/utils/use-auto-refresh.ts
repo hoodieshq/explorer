@@ -19,7 +19,8 @@ type UseAutoRefreshStateArgs = {
     bailedOut?: boolean; // hard stop even if enabled
 };
 
-// Derives the AutoRefresh value from domain flags + tab visibility. No side effects.
+// Derives the AutoRefresh value from domain flags + tab visibility.
+// Subscribes to tab visibility (visibilitychange) via useTabVisibility.
 export function useAutoRefreshState({ enabled, bailedOut = false }: UseAutoRefreshStateArgs): AutoRefresh {
     const { visible: isTabVisible } = useTabVisibility();
 

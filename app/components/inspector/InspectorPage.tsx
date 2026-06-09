@@ -376,7 +376,7 @@ export function TransactionInspectorPage({
     );
 }
 
-const NOT_FOUND_BAILOUT = 5; // ~10s at the 2s interval
+export const NOT_FOUND_BAILOUT = 5; // ~10s at the 2s interval
 
 export function PermalinkView({
     signature,
@@ -391,7 +391,7 @@ export function PermalinkView({
     const fetchTransaction = useFetchRawTransaction();
     const transaction = details?.data?.raw;
 
-    // Fetch on load at 'confirmed' (matches parsed.tsx) so freshly-confirmed txs resolve fast.
+    // Fetch on load at 'confirmed' (matches providers/transactions/parsed.tsx) so freshly-confirmed txs resolve fast.
     const fetchConfirmedTx = React.useCallback(() => {
         fetchTransaction(signature, 'confirmed');
     }, [fetchTransaction, signature]);
@@ -422,7 +422,15 @@ export function PermalinkView({
     if (!details || details.status === FetchStatus.Fetching) {
         return <LoadingCard />;
     } else if (details.status === FetchStatus.FetchFailed) {
-        return <ErrorCard retry={() => fetchTransaction(signature, 'confirmed')} text="Failed to fetch transaction" />;
+        return (
+            <ErrorCard
+                retry={() => {
+                    setRetries(0);
+                    fetchTransaction(signature, 'confirmed');
+                }}
+                text="Failed to fetch transaction"
+            />
+        );
     } else if (!transaction && retries < NOT_FOUND_BAILOUT) {
         return <LoadingCard message="Waiting for transaction to be confirmed..." />;
     } else if (!transaction) {
