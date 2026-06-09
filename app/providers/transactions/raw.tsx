@@ -69,6 +69,13 @@ async function fetchRawTransaction(
     url: string,
     commitment?: Finality,
 ) {
+    dispatch({
+        key: signature,
+        status: FetchStatus.Fetching,
+        type: ActionType.Update,
+        url,
+    });
+
     let fetchStatus;
     try {
         const response = await new Connection(url).getTransaction(signature, {
