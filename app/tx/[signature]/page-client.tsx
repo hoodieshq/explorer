@@ -61,7 +61,7 @@ export function TransactionDetailsPageClient({ params: { signature: raw } }: Pro
 
     const autoRefresh = useAutoRefreshState({
         bailedOut: zeroConfirmationRetries >= ZERO_CONFIRMATION_BAILOUT,
-        enabled: Boolean(status?.data?.info) && status.data.info.confirmations !== 'max',
+        enabled: Boolean(status?.data?.info && status.data.info.confirmations !== 'max'),
     });
 
     useEffect(() => {
