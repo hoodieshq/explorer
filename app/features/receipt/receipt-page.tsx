@@ -12,7 +12,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import { TransactionSignature } from '@solana/web3.js';
 import { Cluster, clusterName, ClusterStatus } from '@utils/cluster';
 import { useClusterPath } from '@utils/url';
-import { AUTO_REFRESH_INTERVAL, AutoRefresh, type AutoRefreshProps } from '@utils/use-auto-refresh';
+import { AutoRefresh, type AutoRefreshProps, useAutoRefreshInterval } from '@utils/use-auto-refresh';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect } from 'react';
 import useSWR from 'swr';
@@ -64,15 +64,8 @@ export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshPr
         }
     }, [signature, clusterStatus, status, fetchDetails, details]); // eslint-disable-line react-hooks/exhaustive-deps -- fetchStatus is intentionally omitted to prevent re-fetch loops
 
-    useEffect(() => {
-        if (autoRefresh === AutoRefresh.Active) {
-            const intervalHandle: NodeJS.Timeout = setInterval(() => fetchStatus(signature), AUTO_REFRESH_INTERVAL);
-
-            return () => {
-                clearInterval(intervalHandle);
-            };
-        }
-    }, [autoRefresh, fetchStatus, signature]);
+    const onRefresh = useCallback(() => fetchStatus(signature), [fetchStatus, signature]);
+    useAutoRefreshInterval(autoRefresh, onRefresh);
 
     const isStatusLoading = !status || (status.status === FetchStatus.Fetching && autoRefresh === AutoRefresh.Inactive);
     const isStatusFailed = status?.status === FetchStatus.FetchFailed;
