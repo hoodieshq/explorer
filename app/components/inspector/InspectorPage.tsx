@@ -18,7 +18,6 @@ import {
     VersionedMessage,
 } from '@solana/web3.js';
 import { generated, PROGRAM_ADDRESS as SQUADS_V4_PROGRAM_ADDRESS } from '@sqds/multisig';
-import { useClusterPath } from '@utils/url';
 import { useAutoRefreshInterval, useAutoRefreshState } from '@utils/use-auto-refresh';
 import bs58 from 'bs58';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -381,6 +380,7 @@ const NOT_FOUND_BAILOUT = 5; // ~10s at the 2s interval
 
 export function PermalinkView({
     signature,
+    reset,
     showTokenBalanceChanges,
 }: {
     signature: string;
@@ -390,11 +390,6 @@ export function PermalinkView({
     const details = useRawTransactionDetails(signature);
     const fetchTransaction = useFetchRawTransaction();
     const transaction = details?.data?.raw;
-    const inspectorPath = useClusterPath({ pathname: '/tx/inspector' });
-    const router = useRouter();
-    const reset = React.useCallback(() => {
-        router.push(inspectorPath);
-    }, [inspectorPath, router]);
 
     // Fetch on load at 'confirmed' (matches parsed.tsx) so freshly-confirmed txs resolve fast.
     const fetchConfirmedTx = React.useCallback(() => {
