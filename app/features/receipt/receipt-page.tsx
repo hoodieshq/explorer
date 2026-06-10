@@ -12,7 +12,7 @@ import { NATIVE_MINT } from '@solana/spl-token';
 import { TransactionSignature } from '@solana/web3.js';
 import { Cluster, clusterName, ClusterStatus } from '@utils/cluster';
 import { useClusterPath } from '@utils/url';
-import { AutoRefresh, type AutoRefreshProps, useAutoRefreshInterval } from '@utils/use-auto-refresh';
+import { AutoRefresh, useAutoRefreshInterval,type WithAutoRefreshProp } from '@utils/use-auto-refresh';
 import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect } from 'react';
 import useSWR from 'swr';
@@ -36,7 +36,7 @@ interface ReceiptProps {
     signature: TransactionSignature;
 }
 
-export function Receipt({ signature, autoRefresh }: ReceiptProps & AutoRefreshProps) {
+export function Receipt({ signature, autoRefresh }: ReceiptProps & WithAutoRefreshProp) {
     const fetchStatus = useFetchTransactionStatus();
     const fetchDetails = useFetchTransactionDetails();
     const status = useTransactionStatus(signature);

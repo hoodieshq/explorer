@@ -10,7 +10,7 @@ export enum AutoRefresh {
     BailedOut,
 }
 
-export type AutoRefreshProps = {
+export type WithAutoRefreshProp = {
     autoRefresh: AutoRefresh;
 };
 
