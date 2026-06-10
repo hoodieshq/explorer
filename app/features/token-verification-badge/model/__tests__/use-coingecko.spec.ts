@@ -13,17 +13,6 @@ vi.mock('@/app/utils/use-tab-visibility', () => ({ default: vi.fn() }));
 import { useCluster } from '@/app/providers/cluster';
 import useTabVisibility from '@/app/utils/use-tab-visibility';
 
-const VALID_RESPONSE = {
-    last_updated: '2025-01-01T00:00:00Z',
-    market_cap_rank: 5,
-    market_data: {
-        current_price: { usd: 1.23 },
-        market_cap: { usd: 1_000_000 },
-        price_change_percentage_24h_in_currency: { usd: 0.67 },
-        total_volume: { usd: 500_000 },
-    },
-};
-
 let fetchSpy: MockInstance;
 
 function mockResponse(status: number, body: unknown = {}) {
@@ -43,30 +32,28 @@ describe('fetchCoinGeckoVerification', () => {
         vi.restoreAllMocks();
     });
 
-    it('should return Success with parsed coin info', async () => {
-        mockResponse(200, VALID_RESPONSE);
+    it('should return Success with verified true', async () => {
+        mockResponse(200, { verified: true });
         const result = await fetchCoinGeckoVerification(['coingecko', 'address']);
-        expect(result.status).toBe(CoingeckoStatus.Success);
-        expect(result.coinInfo).toEqual({
-            last_updated: new Date('2025-01-01T00:00:00Z'),
-            market_cap: 1_000_000,
-            market_cap_rank: 5,
-            price: 1.23,
-            price_change_percentage_24h: 0.67,
-            volume_24: 500_000,
-        });
+        expect(result).toEqual({ status: CoingeckoStatus.Success, verified: true });
     });
 
-    it('should convert null market_cap_rank to undefined', async () => {
-        mockResponse(200, { ...VALID_RESPONSE, market_cap_rank: null });
+    it('should return Success with verified false', async () => {
+        mockResponse(200, { verified: false });
         const result = await fetchCoinGeckoVerification(['coingecko', 'address']);
-        expect(result.coinInfo?.market_cap_rank).toBeUndefined();
+        expect(result).toEqual({ status: CoingeckoStatus.Success, verified: false });
+    });
+
+    it('should return the coinGeckoId when present', async () => {
+        mockResponse(200, { coinGeckoId: 'usd-coin', verified: true });
+        const result = await fetchCoinGeckoVerification(['coingecko', 'address']);
+        expect(result).toEqual({ coinGeckoId: 'usd-coin', status: CoingeckoStatus.Success, verified: true });
     });
 
     it('should return FetchFailed for 404 (permanent, cacheable)', async () => {
         mockResponse(404);
         const result = await fetchCoinGeckoVerification(['coingecko', 'address']);
-        expect(result.status).toBe(CoingeckoStatus.FetchFailed);
+        expect(result).toEqual({ status: CoingeckoStatus.FetchFailed, verified: false });
     });
 
     it.each([
@@ -118,10 +105,10 @@ describe('useCoinGeckoVerification', () => {
     }
 
     it('should return Success when fetch succeeds', async () => {
-        mockResponse(200, VALID_RESPONSE);
+        mockResponse(200, { verified: true });
         const { result } = renderHook(() => useCoinGeckoVerification('address'), { wrapper });
         await waitFor(() => expect(result.current?.status).toBe(CoingeckoStatus.Success));
-        expect(result.current?.coinInfo?.price).toBe(1.23);
+        expect(result.current?.verified).toBe(true);
     });
 
     it('should return FetchFailed for 404 without retrying', async () => {
@@ -137,7 +124,7 @@ describe('useCoinGeckoVerification', () => {
         [502, CoingeckoStatus.FetchFailed],
     ])('should recover after transient %i on retry', async status => {
         mockResponse(status);
-        mockResponse(200, VALID_RESPONSE);
+        mockResponse(200, { verified: true });
         const { result } = renderHook(() => useCoinGeckoVerification('address'), { wrapper });
 
         await waitFor(() => expect(result.current?.status).toBe(CoingeckoStatus.Success), { timeout: 3000 });

@@ -1,13 +1,15 @@
-import { nullable, number, optional, string, type } from 'superstruct';
+import { boolean, nullable, optional, string, type } from 'superstruct';
 
-// https://docs.coingecko.com/reference/coins-contract-address
-export const CoinGeckoInfoSchema = type({
-    last_updated: string(),
-    market_cap_rank: nullable(number()),
-    market_data: type({
-        current_price: type({ usd: number() }),
-        market_cap: type({ usd: number() }),
-        price_change_percentage_24h_in_currency: optional(type({ usd: optional(number()) })),
-        total_volume: type({ usd: number() }),
+// On-chain token-info response (gt_verified). Same shape from both hosts:
+//   CoinGecko Pro:  https://docs.coingecko.com/reference/token-info-contract-address
+//   GeckoTerminal:  https://apiguide.geckoterminal.com/ (keyless)
+// `coingecko_coin_id` is the canonical CoinGecko slug (e.g. 'usd-coin') used to
+// build the web coin page link; null when the token isn't listed on coingecko.com.
+export const CoinGeckoVerificationSchema = type({
+    data: type({
+        attributes: type({
+            coingecko_coin_id: optional(nullable(string())),
+            gt_verified: optional(boolean()),
+        }),
     }),
 });

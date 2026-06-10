@@ -1,1 +1,1 @@
-export { CoinGeckoInfoSchema } from './lib/coingecko-schema';
+export { CoinGeckoVerificationSchema } from './lib/coingecko-schema';
