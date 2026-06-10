@@ -4,9 +4,9 @@ import { Cluster, serverClusterUrl } from '@utils/cluster';
 import { NextResponse } from 'next/server';
 import { deriveAttestationPda, deriveSchemaPda } from 'sas-lib';
 
+import { CACHE_HEADERS, ERROR_CACHE_HEADERS } from '@/app/shared/lib/http-utils';
 import { Logger } from '@/app/shared/lib/logger';
 
-import { CACHE_HEADERS, ERROR_CACHE_HEADERS } from '../../config';
 import { BLUPRYNT_CONFIG } from '../config';
 
 const RPC_TIMEOUT_MS = 15_000;
