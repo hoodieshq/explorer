@@ -17,7 +17,7 @@ const dynamicVariant = cva('text-[10px] ml-[3px] flex items-center gap-[0.1rem] 
     },
 });
 
-type MarketDataProps = {
+export type MarketDataProps = {
     label: string;
     lastUpdatedAt?: Date;
     rank?: number;
