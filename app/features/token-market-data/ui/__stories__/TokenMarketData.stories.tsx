@@ -28,3 +28,19 @@ export const Loading: Story = {
         expect(within(canvasElement).getByText('Loading token price data')).toBeInTheDocument();
     },
 };
+
+export const SubDollarPrice: Story = {
+    args: { marketData: { stats: createTokenMarketStats({ price: 0.5 }), status: TokenMarketDataStatus.Success } },
+    async play({ canvasElement }) {
+        expect.assertions(1);
+        expect(within(canvasElement).getByText('$0.500000')).toBeInTheDocument();
+    },
+};
+
+export const NoData: Story = {
+    args: { marketData: { status: TokenMarketDataStatus.FetchFailed } },
+    async play({ canvasElement }) {
+        expect.assertions(1);
+        expect(within(canvasElement).queryAllByLabelText('market-data')).toHaveLength(0);
+    },
+};

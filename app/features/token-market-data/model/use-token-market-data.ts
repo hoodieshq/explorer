@@ -10,8 +10,9 @@ import { MARKET_DATA_SWR_CONFIG } from './market-data-cache';
 
 type SwrKey = ['token-market-data', string];
 
-function getSwrKey(cluster: Cluster, address: string, isTabVisible: boolean, isTokenMint: boolean): SwrKey | undefined {
-    if (!isTokenMint || !isTabVisible || cluster !== Cluster.MainnetBeta) return undefined;
+function getSwrKey(cluster: Cluster, address: string, isTabVisible: boolean, isTokenMint: boolean): SwrKey | null {
+    // eslint-disable-next-line unicorn/no-null
+    if (!isTokenMint || !isTabVisible || cluster !== Cluster.MainnetBeta) return null;
     return ['token-market-data', address];
 }
 

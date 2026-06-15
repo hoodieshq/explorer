@@ -1,43 +1,38 @@
 import { LoadingCard } from '@components/shared/LoadingCard';
-import { useRef } from 'react';
 
 import { cn } from '@/app/components/shared/utils';
 
-import { type TokenMarketDataResult, TokenMarketDataStatus, type TokenMarketStats } from '../lib/types';
+import { type TokenMarketDataResult, TokenMarketDataStatus } from '../lib/types';
 import { MarketData, type MarketDataProps } from './MarketData';
 
-export function TokenMarketData({ marketData }: { marketData?: TokenMarketDataResult }) {
-    const stats = useRef<TokenMarketStats | undefined>(undefined);
-    const priceDecimals = useRef<number>(2);
+const DEFAULT_PRICE_DECIMALS = 2;
+const SUB_DOLLAR_PRICE_DECIMALS = 6;
 
-    if (marketData?.status === TokenMarketDataStatus.Success) {
-        stats.current = marketData.stats;
-        if (stats.current && stats.current.price < 1) {
-            priceDecimals.current = 6;
-        }
-    }
+export function TokenMarketData({ marketData }: { marketData?: TokenMarketDataResult }) {
+    const stats = marketData?.status === TokenMarketDataStatus.Success ? marketData.stats : undefined;
+    const priceDecimals = stats && stats.price < 1 ? SUB_DOLLAR_PRICE_DECIMALS : DEFAULT_PRICE_DECIMALS;
 
     const isLoading = marketData?.status === TokenMarketDataStatus.Loading;
 
     const tiles: MarketDataProps[] = [];
-    if (stats.current) {
+    if (stats) {
         tiles.push({
             label: 'Price',
-            rank: stats.current.marketCapRank,
+            rank: stats.marketCapRank,
             value: {
-                precision: priceDecimals.current,
-                price: stats.current.price,
-                trend: stats.current.priceChange24h,
+                precision: priceDecimals,
+                price: stats.price,
+                trend: stats.priceChange24h,
             },
         });
-        if (stats.current.volume24h !== undefined) {
-            tiles.push({ label: '24 Hour Volume', value: { volume: stats.current.volume24h } });
+        if (stats.volume24h !== undefined) {
+            tiles.push({ label: '24 Hour Volume', value: { volume: stats.volume24h } });
         }
-        if (stats.current.marketCap !== undefined) {
+        if (stats.marketCap !== undefined) {
             tiles.push({
                 label: 'Market Cap',
-                lastUpdatedAt: stats.current.lastUpdated,
-                value: { volume: stats.current.marketCap },
+                lastUpdatedAt: stats.lastUpdated,
+                value: { volume: stats.marketCap },
             });
         }
     }

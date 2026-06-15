@@ -38,14 +38,19 @@ The route SHALL return `404 { error: 'No market data' }` when upstream returns n
 - **THEN** the route SHALL respond `404 { error: 'No market data' }`
 - **AND** verification of the same token SHALL be unaffected
 
-### Requirement: Market-data upstream failures SHALL map to stable status codes
+### Requirement: Market-data upstream failures SHALL map to predictable status codes
 
-The route SHALL map upstream conditions as: `429` upstream → `429` (reported to Sentry as a warning); `404` upstream → `404`; a request timeout → `504` with `ERROR_CACHE_HEADERS`; an unparseable success body → `502`; any other failure → `500`. Successful responses SHALL carry `CACHE_HEADERS`.
+The route SHALL handle upstream conditions as: `429` upstream → `429` (reported to Sentry as a warning); `404` upstream → `404` (logged as a warning); any other non-OK upstream response → forwarded with its upstream status code (reported to Sentry as an error); a request timeout → `504` with `ERROR_CACHE_HEADERS`; an unparseable success body → `502`; an unexpected (non-HTTP) error → `500`. Successful responses SHALL carry `CACHE_HEADERS`.
 
 #### Scenario: Rate limited
 
 - **WHEN** upstream responds `429`
 - **THEN** the route SHALL respond `429` and emit a Sentry warning
+
+#### Scenario: Other upstream failure forwarded
+
+- **WHEN** upstream responds with a non-OK status other than `429` or `404` (e.g. `503`)
+- **THEN** the route SHALL respond with that same status and report the failure to Sentry
 
 #### Scenario: Upstream timeout
 

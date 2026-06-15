@@ -25,8 +25,9 @@ function getCoinGeckoSwrKey(
     address: string,
     isTabVisible: boolean,
     enabled: boolean,
-): CoinGeckoSwrKey | undefined {
-    if (!enabled || !isTabVisible || cluster !== Cluster.MainnetBeta) return undefined;
+): CoinGeckoSwrKey | null {
+    // eslint-disable-next-line unicorn/no-null
+    if (!enabled || !isTabVisible || cluster !== Cluster.MainnetBeta) return null;
     return ['coingecko', address];
 }
 

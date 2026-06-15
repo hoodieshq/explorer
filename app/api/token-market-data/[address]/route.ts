@@ -57,7 +57,7 @@ export async function GET(_request: Request, props: Params) {
 
         if (!is(data, HasUsdMarketDataSchema)) {
             Logger.warn('[api:token-market-data] No market data', { address });
-            return NextResponse.json({ error: 'No market data' }, { headers: NO_STORE_HEADERS, status: 404 });
+            return NextResponse.json({ error: 'No market data' }, { headers: CACHE_HEADERS, status: 404 });
         }
 
         if (!is(data, CoinGeckoMarketDataSchema)) {
