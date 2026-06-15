@@ -2,6 +2,7 @@ import { boolean, is, optional, string, type } from 'superstruct';
 import useSWR from 'swr';
 
 import { useCluster } from '@/app/providers/cluster';
+import { Logger } from '@/app/shared/lib/logger';
 import { Cluster } from '@/app/utils/cluster';
 import useTabVisibility from '@/app/utils/use-tab-visibility';
 
@@ -26,6 +27,7 @@ function getCoinGeckoSwrKey(
     isTabVisible: boolean,
     enabled: boolean,
 ): CoinGeckoSwrKey | null {
+    // SWR treats a null key as "skip fetch" — only fetch for a visible mainnet token mint.
     // eslint-disable-next-line unicorn/no-null
     if (!enabled || !isTabVisible || cluster !== Cluster.MainnetBeta) return null;
     return ['coingecko', address];
@@ -45,7 +47,12 @@ export async function fetchCoinGeckoVerification([, address]: CoinGeckoSwrKey): 
     }
 
     const data = await response.json();
-    if (!is(data, CoinGeckoResultSchema)) throw new Error('CoinGecko schema validation failed');
+    if (!is(data, CoinGeckoResultSchema)) {
+        // Client/server schema drift — capture it; otherwise it silently renders unverified.
+        const error = new Error('CoinGecko schema validation failed');
+        Logger.error(error, { address, sentry: true });
+        throw error;
+    }
 
     return { coinGeckoId: data.coinGeckoId, status: CoingeckoStatus.Success, verified: data.verified };
 }

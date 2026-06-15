@@ -42,7 +42,19 @@ export async function GET(_request: Request, props: Params) {
             );
         }
 
-        const data = await response.json();
+        let data: unknown;
+        try {
+            data = await response.json();
+        } catch {
+            // A malformed 200 body is a bad-gateway condition, not an internal crash.
+            // 502 + warn, mirroring the schema-validation branch below.
+            Logger.warn('[api:coingecko] Failed to parse upstream JSON', { address, sentry: true });
+            return NextResponse.json(
+                { error: 'Invalid response from coingecko API' },
+                { headers: ERROR_CACHE_HEADERS, status: 502 },
+            );
+        }
+
         if (!is(data, CoinGeckoVerificationSchema)) {
             Logger.warn('[api:coingecko] Invalid response schema', { address, sentry: true });
             return NextResponse.json(
@@ -80,7 +92,7 @@ export async function GET(_request: Request, props: Params) {
 //   - CoinGecko Pro (keyed, higher rate limit):
 //       docs: https://docs.coingecko.com/reference/token-info-contract-address
 //       GET https://pro-api.coingecko.com/api/v3/onchain/networks/{network}/tokens/{address}/info
-//   - GeckoTerminal public (keyless, ~30 req/min):
+//   - GeckoTerminal public (keyless, lower rate limit — see docs):
 //       docs: https://apiguide.geckoterminal.com/  (reference: https://api.geckoterminal.com/docs/index.html)
 //       GET https://api.geckoterminal.com/api/v2/networks/{network}/tokens/{address}/info
 function getCoinGeckoOnchainConfig(address: string): { headers: Record<string, string>; url: string } {

@@ -117,6 +117,22 @@ describe('Token Market Data API Route', () => {
         expect((await callRoute(VALID_ADDRESS)).status).toBe(502);
     });
 
+    it('should return 502 and log when the upstream body is not valid JSON', async () => {
+        fetchMock.mockResolvedValueOnce({
+            json: async () => {
+                throw new SyntaxError('Unexpected token < in JSON');
+            },
+            ok: true,
+            status: 200,
+        } as unknown as Response);
+        const r = await callRoute(VALID_ADDRESS);
+        expect(r.status).toBe(502);
+        expect(Logger.warn).toHaveBeenCalledWith('[api:token-market-data] Failed to parse upstream JSON', {
+            address: VALID_ADDRESS,
+            sentry: true,
+        });
+    });
+
     it('should return 504 with ERROR_CACHE_HEADERS on timeout', async () => {
         fetchMock.mockRejectedValueOnce(new DOMException('Signal timed out.', 'TimeoutError'));
         const r = await callRoute(VALID_ADDRESS);

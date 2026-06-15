@@ -70,6 +70,7 @@ export async function GET(_request: Request, props: Params) {
         const data = await response.json();
 
         if (!is(data, RugCheckResponseSchema)) {
+            Logger.warn('[api:rugcheck] Invalid response schema', { mintAddress, sentry: true });
             return NextResponse.json(
                 { error: 'Invalid response from rugcheck API' },
                 { headers: NO_STORE_HEADERS, status: 502 },

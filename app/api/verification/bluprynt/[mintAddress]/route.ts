@@ -4,7 +4,7 @@ import { Cluster, serverClusterUrl } from '@utils/cluster';
 import { NextResponse } from 'next/server';
 import { deriveAttestationPda, deriveSchemaPda } from 'sas-lib';
 
-import { CACHE_HEADERS, ERROR_CACHE_HEADERS } from '@/app/shared/lib/http-utils';
+import { CACHE_HEADERS, ERROR_CACHE_HEADERS, isTimeoutError } from '@/app/shared/lib/http-utils';
 import { Logger } from '@/app/shared/lib/logger';
 
 import { BLUPRYNT_CONFIG } from '../config';
@@ -85,9 +85,4 @@ export async function GET(_request: Request, props: Params) {
             { headers: ERROR_CACHE_HEADERS, status: 500 },
         );
     }
-}
-
-// https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal/timeout_static#exceptions
-function isTimeoutError(error: unknown): boolean {
-    return error instanceof DOMException && error.name === 'TimeoutError';
 }

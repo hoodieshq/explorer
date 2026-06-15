@@ -3,11 +3,13 @@ import { createElement, type ReactNode } from 'react';
 import { SWRConfig } from 'swr';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 
+import { Logger } from '@/app/shared/lib/logger';
 import { Cluster } from '@/app/utils/cluster';
 
 import { CoingeckoStatus, fetchCoinGeckoVerification, RATE_LIMITED, useCoinGeckoVerification } from '../use-coingecko';
 
 vi.mock('@/app/providers/cluster', () => ({ useCluster: vi.fn() }));
+vi.mock('@/app/shared/lib/logger', () => ({ Logger: { error: vi.fn(), panic: vi.fn(), warn: vi.fn() } }));
 vi.mock('@/app/utils/use-tab-visibility', () => ({ default: vi.fn() }));
 
 import { useCluster } from '@/app/providers/cluster';
@@ -25,6 +27,7 @@ function mockResponse(status: number, body: unknown = {}) {
 
 describe('fetchCoinGeckoVerification', () => {
     beforeEach(() => {
+        vi.clearAllMocks();
         fetchSpy = vi.spyOn(globalThis, 'fetch');
     });
 
@@ -75,6 +78,14 @@ describe('fetchCoinGeckoVerification', () => {
     it('should let network errors propagate for SWR retry', async () => {
         fetchSpy.mockRejectedValueOnce(new TypeError('Failed to fetch'));
         await expect(fetchCoinGeckoVerification(['coingecko', 'address'])).rejects.toThrow('Failed to fetch');
+    });
+
+    it('should report a schema mismatch to Sentry', async () => {
+        mockResponse(200, { unexpected: 'shape' });
+        await expect(fetchCoinGeckoVerification(['coingecko', 'address'])).rejects.toThrow(
+            'CoinGecko schema validation failed',
+        );
+        expect(Logger.error).toHaveBeenCalledTimes(1);
     });
 });
 

@@ -9,7 +9,9 @@ export const CoinGeckoVerificationSchema = type({
     data: type({
         attributes: type({
             coingecko_coin_id: optional(nullable(string())),
-            gt_verified: optional(boolean()),
+            // optional(nullable(...)): absent, present-null, and false all mean "not
+            // verified" — the route reads `=== true`, so a present null must not 502.
+            gt_verified: optional(nullable(boolean())),
         }),
     }),
 });

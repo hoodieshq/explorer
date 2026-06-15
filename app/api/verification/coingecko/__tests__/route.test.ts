@@ -58,9 +58,23 @@ describe('CoinGecko verification route (gt_verified)', () => {
         expect(await r.json()).toEqual({ verified: true });
     });
 
-    it('should return verified:false when gt_verified is false or absent', async () => {
+    it('should return verified:false when gt_verified is false', async () => {
         mockFetch(200, { data: { attributes: { gt_verified: false } } });
         expect(await (await callRoute(VALID_ADDRESS)).json()).toEqual({ verified: false });
+    });
+
+    it('should return verified:false when gt_verified is absent', async () => {
+        mockFetch(200, { data: { attributes: {} } });
+        const r = await callRoute(VALID_ADDRESS);
+        expect(r.status).toBe(200);
+        expect(await r.json()).toEqual({ verified: false });
+    });
+
+    it('should return verified:false when gt_verified is null without a 502', async () => {
+        mockFetch(200, { data: { attributes: { gt_verified: null } } });
+        const r = await callRoute(VALID_ADDRESS);
+        expect(r.status).toBe(200);
+        expect(await r.json()).toEqual({ verified: false });
     });
 
     it('should pass through coingecko_coin_id as coinGeckoId', async () => {
@@ -88,6 +102,22 @@ describe('CoinGecko verification route (gt_verified)', () => {
     it('should return 502 on a schema mismatch', async () => {
         mockFetch(200, { unexpected: 'shape' });
         expect((await callRoute(VALID_ADDRESS)).status).toBe(502);
+    });
+
+    it('should return 502 and log when the upstream body is not valid JSON', async () => {
+        fetchMock.mockResolvedValueOnce({
+            json: async () => {
+                throw new SyntaxError('Unexpected token < in JSON');
+            },
+            ok: true,
+            status: 200,
+        } as unknown as Response);
+        const r = await callRoute(VALID_ADDRESS);
+        expect(r.status).toBe(502);
+        expect(Logger.warn).toHaveBeenCalledWith('[api:coingecko] Failed to parse upstream JSON', {
+            address: VALID_ADDRESS,
+            sentry: true,
+        });
     });
 
     it('should return 504 with ERROR_CACHE_HEADERS on timeout', async () => {

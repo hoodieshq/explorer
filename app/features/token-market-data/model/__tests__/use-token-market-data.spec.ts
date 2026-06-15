@@ -3,6 +3,7 @@ import { createElement, type ReactNode } from 'react';
 import { SWRConfig } from 'swr';
 import { afterEach, beforeEach, describe, expect, it, type MockInstance, vi } from 'vitest';
 
+import { Logger } from '@/app/shared/lib/logger';
 import { Cluster } from '@/app/utils/cluster';
 
 import { createTokenMarketData, createTokenMarketStats } from '../../__tests__/__fixtures__/market-data';
@@ -14,6 +15,7 @@ import {
 } from '../use-token-market-data';
 
 vi.mock('@/app/providers/cluster', () => ({ useCluster: vi.fn() }));
+vi.mock('@/app/shared/lib/logger', () => ({ Logger: { error: vi.fn(), panic: vi.fn(), warn: vi.fn() } }));
 vi.mock('@/app/utils/use-tab-visibility', () => ({ default: vi.fn() }));
 
 import { useCluster } from '@/app/providers/cluster';
@@ -26,6 +28,7 @@ function mockResponse(status: number, body: unknown = {}) {
 
 describe('fetchTokenMarketData', () => {
     beforeEach(() => {
+        vi.clearAllMocks();
         fetchSpy = vi.spyOn(globalThis, 'fetch');
     });
     afterEach(() => vi.restoreAllMocks());
@@ -77,6 +80,14 @@ describe('fetchTokenMarketData', () => {
         await expect(fetchTokenMarketData(['token-market-data', 'addr'])).rejects.toThrow(
             'Market data schema validation failed',
         );
+    });
+
+    it('should report a schema mismatch to Sentry', async () => {
+        mockResponse(200, { unexpected: 'shape' });
+        await expect(fetchTokenMarketData(['token-market-data', 'addr'])).rejects.toThrow(
+            'Market data schema validation failed',
+        );
+        expect(Logger.error).toHaveBeenCalledTimes(1);
     });
 });
 

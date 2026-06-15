@@ -1,1 +1,1 @@
-export { CoinGeckoMarketDataSchema, HasUsdMarketDataSchema } from './lib/coingecko-schema';
+export { CoinGeckoMarketDataSchema, HasUsdMarketDataSchema } from './lib/coingecko-coins-schema';

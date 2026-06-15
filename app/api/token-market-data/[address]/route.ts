@@ -53,7 +53,18 @@ export async function GET(_request: Request, props: Params) {
             );
         }
 
-        const data = await response.json();
+        let data: unknown;
+        try {
+            data = await response.json();
+        } catch {
+            // A malformed 200 body is a bad-gateway condition, not an internal crash:
+            // 502 + warn, mirroring the schema-validation branch below (never panic).
+            Logger.warn('[api:token-market-data] Failed to parse upstream JSON', { address, sentry: true });
+            return NextResponse.json(
+                { error: 'Invalid response from market data provider' },
+                { headers: NO_STORE_HEADERS, status: 502 },
+            );
+        }
 
         if (!is(data, HasUsdMarketDataSchema)) {
             Logger.warn('[api:token-market-data] No market data', { address });

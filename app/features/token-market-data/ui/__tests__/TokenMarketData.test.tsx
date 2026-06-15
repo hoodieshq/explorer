@@ -39,4 +39,57 @@ describe('TokenMarketData', () => {
         expect(screen.getByText('$5.00')).toBeInTheDocument();
         expect(screen.queryByText('$5.000000')).not.toBeInTheDocument();
     });
+
+    it('should render the volume and market-cap tiles with abbreviated dollar amounts', () => {
+        render(
+            <TokenMarketData marketData={{ stats: createTokenMarketStats(), status: TokenMarketDataStatus.Success }} />,
+        );
+        expect(screen.getByText('24 Hour Volume')).toBeInTheDocument();
+        expect(screen.getByText('$500K')).toBeInTheDocument(); // abbreviatedNumber(500_000)
+        expect(screen.getByText('Market Cap')).toBeInTheDocument();
+        expect(screen.getByText('$1M')).toBeInTheDocument(); // abbreviatedNumber(1_000_000)
+    });
+
+    it('should render the market-cap rank badge on the price tile', () => {
+        render(
+            <TokenMarketData marketData={{ stats: createTokenMarketStats(), status: TokenMarketDataStatus.Success }} />,
+        );
+        expect(screen.getByText('Rank #5')).toBeInTheDocument();
+    });
+
+    it('should omit the rank badge when there is no rank', () => {
+        render(
+            <TokenMarketData
+                marketData={{
+                    stats: createTokenMarketStats({ marketCapRank: undefined }),
+                    status: TokenMarketDataStatus.Success,
+                }}
+            />,
+        );
+        expect(screen.queryByText('Rank #1')).not.toBeInTheDocument();
+    });
+
+    it('should render an up trend for a positive 24h change', () => {
+        render(
+            <TokenMarketData
+                marketData={{
+                    stats: createTokenMarketStats({ priceChange24h: 0.67 }),
+                    status: TokenMarketDataStatus.Success,
+                }}
+            />,
+        );
+        expect(screen.getByText('0.67%')).toBeInTheDocument();
+    });
+
+    it('should render a down trend for a negative 24h change', () => {
+        render(
+            <TokenMarketData
+                marketData={{
+                    stats: createTokenMarketStats({ priceChange24h: -3.5 }),
+                    status: TokenMarketDataStatus.Success,
+                }}
+            />,
+        );
+        expect(screen.getByText('-3.50%')).toBeInTheDocument();
+    });
 });
