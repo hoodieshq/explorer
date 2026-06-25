@@ -1,8 +1,9 @@
 import { LoadingCard } from '@components/shared/LoadingCard';
+import { useMemo } from 'react';
 
 import { cn } from '@/app/components/shared/utils';
 
-import { type TokenMarketDataResult, TokenMarketDataStatus } from '../lib/types';
+import { type TokenMarketDataResult, TokenMarketDataStatus } from '../model/types';
 import { MarketData, type MarketDataProps } from './MarketData';
 
 const DEFAULT_PRICE_DECIMALS = 2;
@@ -14,28 +15,32 @@ export function TokenMarketData({ marketData }: { marketData?: TokenMarketDataRe
 
     const isLoading = marketData?.status === TokenMarketDataStatus.Loading;
 
-    const tiles: MarketDataProps[] = [];
-    if (stats) {
-        tiles.push({
-            label: 'Price',
-            rank: stats.marketCapRank,
-            value: {
-                precision: priceDecimals,
-                price: stats.price,
-                trend: stats.priceChange24h,
+    const tiles = useMemo<MarketDataProps[]>(() => {
+        if (!stats) return [];
+
+        const result: MarketDataProps[] = [
+            {
+                label: 'Price',
+                rank: stats.marketCapRank,
+                value: {
+                    precision: priceDecimals,
+                    price: stats.price,
+                    trend: stats.priceChange24h,
+                },
             },
-        });
+        ];
         if (stats.volume24h !== undefined) {
-            tiles.push({ label: '24 Hour Volume', value: { volume: stats.volume24h } });
+            result.push({ label: '24 Hour Volume', value: { volume: stats.volume24h } });
         }
         if (stats.marketCap !== undefined) {
-            tiles.push({
+            result.push({
                 label: 'Market Cap',
                 lastUpdatedAt: stats.lastUpdated,
                 value: { volume: stats.marketCap },
             });
         }
-    }
+        return result;
+    }, [stats, priceDecimals]);
 
     return (
         <>

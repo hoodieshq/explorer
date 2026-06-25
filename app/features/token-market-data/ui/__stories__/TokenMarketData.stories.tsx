@@ -2,13 +2,13 @@ import type { Meta, StoryObj } from '@storybook-config/types';
 import { expect, within } from 'storybook/test';
 
 import { createTokenMarketStats } from '../../__tests__/__fixtures__/market-data';
-import { TokenMarketDataStatus } from '../../lib/types';
+import { TokenMarketDataStatus } from '../../model/types';
 import { TokenMarketData } from '../TokenMarketData';
 
 const meta = {
     component: TokenMarketData,
     tags: ['autodocs', 'test'],
-    title: 'Features/TokenMarketData/UI/TokenMarketData',
+    title: 'Features/TokenMarketData/TokenMarketData',
 } satisfies Meta<typeof TokenMarketData>;
 export default meta;
 type Story = StoryObj<typeof meta>;

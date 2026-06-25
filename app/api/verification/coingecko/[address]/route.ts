@@ -2,7 +2,7 @@ import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
 import { is } from 'superstruct';
 
-import { CoinGeckoVerificationSchema } from '@/app/features/token-verification-badge/server';
+import { CoinGeckoVerificationSchema } from '@/app/entities/coingeko';
 import {
     CACHE_HEADERS,
     ERROR_CACHE_HEADERS,
@@ -46,8 +46,6 @@ export async function GET(_request: Request, props: Params) {
         try {
             data = await response.json();
         } catch {
-            // A malformed 200 body is a bad-gateway condition, not an internal crash.
-            // 502 + warn, mirroring the schema-validation branch below.
             Logger.warn('[api:coingecko] Failed to parse upstream JSON', { address, sentry: true });
             return NextResponse.json(
                 { error: 'Invalid response from coingecko API' },
@@ -87,14 +85,13 @@ export async function GET(_request: Request, props: Params) {
 }
 
 // Verification reads the on-chain token-info endpoint's `data.attributes.gt_verified`.
-// Two equivalent hosts return an identical { data: { attributes: { gt_verified } } } shape;
-// only the host, path prefix (/api/v3/onchain vs /api/v2), and auth header differ:
-//   - CoinGecko Pro (keyed, higher rate limit):
-//       docs: https://docs.coingecko.com/reference/token-info-contract-address
-//       GET https://pro-api.coingecko.com/api/v3/onchain/networks/{network}/tokens/{address}/info
-//   - GeckoTerminal public (keyless, lower rate limit — see docs):
-//       docs: https://apiguide.geckoterminal.com/  (reference: https://api.geckoterminal.com/docs/index.html)
-//       GET https://api.geckoterminal.com/api/v2/networks/{network}/tokens/{address}/info
+// Two APIs return an identical { data: { attributes: { gt_verified } } } shape.
+// - CoinGecko Pro (keyed, higher rate limit):
+//    Docs: https://docs.coingecko.com/reference/token-info-contract-address
+//    GET /api/v3/onchain/networks/{network}/tokens/{address}/info
+// - GeckoTerminal public (fallback):
+//    Docs: https://apiguide.geckoterminal.com/  (reference: https://api.geckoterminal.com/docs/index.html)
+//    GET /api/v2/networks/{network}/tokens/{address}/info
 function getCoinGeckoOnchainConfig(address: string): { headers: Record<string, string>; url: string } {
     const apiKey = process.env.COINGECKO_API_KEY;
     if (apiKey) {
@@ -103,6 +100,7 @@ function getCoinGeckoOnchainConfig(address: string): { headers: Record<string, s
             url: `https://pro-api.coingecko.com/api/v3/onchain/networks/solana/tokens/${address}/info`,
         };
     }
+
     return {
         headers: { 'Content-Type': 'application/json' },
         url: `https://api.geckoterminal.com/api/v2/networks/solana/tokens/${address}/info`,

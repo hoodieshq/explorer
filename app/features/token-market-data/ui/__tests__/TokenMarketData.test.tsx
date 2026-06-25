@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { createTokenMarketStats } from '../../__tests__/__fixtures__/market-data';
-import { TokenMarketDataStatus } from '../../lib/types';
+import { TokenMarketDataStatus } from '../../model/types';
 import { TokenMarketData } from '../TokenMarketData';
 
 describe('TokenMarketData', () => {

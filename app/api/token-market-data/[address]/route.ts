@@ -2,7 +2,7 @@ import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
 import { is } from 'superstruct';
 
-import { CoinGeckoMarketDataSchema, HasUsdMarketDataSchema } from '@/app/features/token-market-data/server';
+import { CoinGeckoMarketDataSchema, HasUsdMarketDataSchema } from '@/app/entities/coingeko/coingecko-coins-schema';
 import {
     CACHE_HEADERS,
     ERROR_CACHE_HEADERS,
@@ -57,8 +57,6 @@ export async function GET(_request: Request, props: Params) {
         try {
             data = await response.json();
         } catch {
-            // A malformed 200 body is a bad-gateway condition, not an internal crash:
-            // 502 + warn, mirroring the schema-validation branch below (never panic).
             Logger.warn('[api:token-market-data] Failed to parse upstream JSON', { address, sentry: true });
             return NextResponse.json(
                 { error: 'Invalid response from market data provider' },
@@ -103,10 +101,10 @@ export async function GET(_request: Request, props: Params) {
     }
 }
 
-// Market data: CoinGecko "Coins" endpoint by contract address (market_data=true).
-//   docs: https://docs.coingecko.com/reference/coins-contract-address
-//   GET {baseUrl}/coins/solana/contract/{address}?market_data=true
-// Keyless-capable: public host (api.coingecko.com) when no key, Pro host + key when set.
+// Market data: CoinGecko "Coins" endpoint by contract address.
+// - Docs: https://docs.coingecko.com/reference/coins-contract-address
+// - GET {baseUrl}/coins/solana/contract/{address}?market_data=true
+// Public host (api.coingecko.com) when no key as fallback.
 function getCoingeckoConfig() {
     const apiKey = process.env.COINGECKO_API_KEY;
     const baseUrl = apiKey ? 'https://pro-api.coingecko.com/api/v3' : 'https://api.coingecko.com/api/v3';

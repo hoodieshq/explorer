@@ -7,12 +7,7 @@ import { Logger } from '@/app/shared/lib/logger';
 import { Cluster } from '@/app/utils/cluster';
 
 import { createTokenMarketData, createTokenMarketStats } from '../../__tests__/__fixtures__/market-data';
-import {
-    fetchTokenMarketData,
-    RATE_LIMITED,
-    TokenMarketDataStatus,
-    useTokenMarketData,
-} from '../use-token-market-data';
+import { fetchTokenMarketData, TokenMarketDataStatus, useTokenMarketData } from '../use-token-market-data';
 
 vi.mock('@/app/providers/cluster', () => ({ useCluster: vi.fn() }));
 vi.mock('@/app/shared/lib/logger', () => ({ Logger: { error: vi.fn(), panic: vi.fn(), warn: vi.fn() } }));
@@ -59,34 +54,37 @@ describe('fetchTokenMarketData', () => {
         expect((await fetchTokenMarketData(['token-market-data', 'addr'])).stats?.marketCapRank).toBeUndefined();
     });
 
-    it('should return FetchFailed for 404', async () => {
-        mockResponse(404);
+    it('should return RateLimited for 429', async () => {
+        mockResponse(429);
+        expect((await fetchTokenMarketData(['token-market-data', 'addr'])).status).toBe(
+            TokenMarketDataStatus.RateLimited,
+        );
+    });
+
+    it.each([404, 500, 502])('should return FetchFailed for %i', async status => {
+        mockResponse(status);
         expect((await fetchTokenMarketData(['token-market-data', 'addr'])).status).toBe(
             TokenMarketDataStatus.FetchFailed,
         );
     });
 
-    it.each([
-        [429, RATE_LIMITED],
-        [500, 'Market data API error: 500'],
-        [502, 'Market data API error: 502'],
-    ])('should throw for %i so SWR retries', async (status, msg) => {
-        mockResponse(status as number);
-        await expect(fetchTokenMarketData(['token-market-data', 'addr'])).rejects.toThrow(msg as string);
+    it('should return FetchFailed on schema mismatch', async () => {
+        mockResponse(200, { unexpected: 'shape' });
+        expect((await fetchTokenMarketData(['token-market-data', 'addr'])).status).toBe(
+            TokenMarketDataStatus.FetchFailed,
+        );
     });
 
-    it('should throw on schema mismatch', async () => {
-        mockResponse(200, { unexpected: 'shape' });
-        await expect(fetchTokenMarketData(['token-market-data', 'addr'])).rejects.toThrow(
-            'Market data schema validation failed',
+    it('should return FetchFailed when the network request throws', async () => {
+        fetchSpy.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+        expect((await fetchTokenMarketData(['token-market-data', 'addr'])).status).toBe(
+            TokenMarketDataStatus.FetchFailed,
         );
     });
 
     it('should report a schema mismatch to Sentry', async () => {
         mockResponse(200, { unexpected: 'shape' });
-        await expect(fetchTokenMarketData(['token-market-data', 'addr'])).rejects.toThrow(
-            'Market data schema validation failed',
-        );
+        await fetchTokenMarketData(['token-market-data', 'addr']);
         expect(Logger.error).toHaveBeenCalledTimes(1);
     });
 });
