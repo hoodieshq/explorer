@@ -1,8 +1,8 @@
+import { CoinGeckoVerificationSchema } from '@entities/coingecko/server';
 import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
 import { is } from 'superstruct';
 
-import { CoinGeckoVerificationSchema } from '@/app/entities/coingeko';
 import {
     CACHE_HEADERS,
     ERROR_CACHE_HEADERS,

@@ -1,8 +1,8 @@
+import { CoinGeckoMarketDataSchema, HasUsdMarketDataSchema } from '@entities/coingecko/server';
 import { PublicKey } from '@solana/web3.js';
 import { NextResponse } from 'next/server';
 import { is } from 'superstruct';
 
-import { CoinGeckoMarketDataSchema, HasUsdMarketDataSchema } from '@/app/entities/coingeko/coingecko-coins-schema';
 import {
     CACHE_HEADERS,
     ERROR_CACHE_HEADERS,
