@@ -10,6 +10,16 @@ import { MARKET_DATA_SWR_CONFIG } from './market-data-cache';
 import { TokenMarketDataSchema } from './market-data-schema';
 import { type TokenMarketDataResult, TokenMarketDataStatus } from './types';
 
+export function useTokenMarketData(address: string, enabled = true): TokenMarketDataResult | undefined {
+    const { cluster } = useCluster();
+    const { visible: isTabVisible } = useTabVisibility();
+    const swrKey = getSwrKey(cluster, address, enabled && isTabVisible);
+    const { data, isLoading } = useSWR(swrKey, fetchTokenMarketData, MARKET_DATA_SWR_CONFIG);
+
+    if (isLoading && !data) return { status: TokenMarketDataStatus.Loading };
+    return data || { status: TokenMarketDataStatus.FetchFailed };
+}
+
 type SwrKey = ['token-market-data', string];
 
 function getSwrKey(cluster: Cluster, address: string, enabled: boolean): SwrKey | null {
@@ -51,15 +61,3 @@ export async function fetchTokenMarketData([, address]: SwrKey): Promise<TokenMa
         return { status: TokenMarketDataStatus.FetchFailed };
     }
 }
-
-export function useTokenMarketData(address: string, enabled = true): TokenMarketDataResult | undefined {
-    const { cluster } = useCluster();
-    const { visible: isTabVisible } = useTabVisibility();
-    const swrKey = getSwrKey(cluster, address, enabled && isTabVisible);
-    const { data, isLoading } = useSWR(swrKey, fetchTokenMarketData, MARKET_DATA_SWR_CONFIG);
-
-    if (isLoading && !data) return { status: TokenMarketDataStatus.Loading };
-    return data || { status: TokenMarketDataStatus.FetchFailed };
-}
-
-export { TokenMarketDataStatus } from './types';

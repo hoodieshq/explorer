@@ -7,7 +7,8 @@ import { Logger } from '@/app/shared/lib/logger';
 import { Cluster } from '@/app/utils/cluster';
 
 import { createTokenMarketData, createTokenMarketStats } from '../../__tests__/__fixtures__/market-data';
-import { fetchTokenMarketData, TokenMarketDataStatus, useTokenMarketData } from '../use-token-market-data';
+import { TokenMarketDataStatus } from '../types';
+import { fetchTokenMarketData, useTokenMarketData } from '../use-token-market-data';
 
 vi.mock('@/app/providers/cluster', () => ({ useCluster: vi.fn() }));
 vi.mock('@/app/shared/lib/logger', () => ({ Logger: { error: vi.fn(), panic: vi.fn(), warn: vi.fn() } }));
