@@ -60,7 +60,7 @@ export async function GET(_request: Request, props: Params) {
             Logger.warn('[api:token-market-data] Failed to parse upstream JSON', { address, sentry: true });
             return NextResponse.json(
                 { error: 'Invalid response from market data provider' },
-                { headers: NO_STORE_HEADERS, status: 502 },
+                { headers: ERROR_CACHE_HEADERS, status: 502 },
             );
         }
 
@@ -73,7 +73,7 @@ export async function GET(_request: Request, props: Params) {
             Logger.warn('[api:token-market-data] Invalid response schema', { address, sentry: true });
             return NextResponse.json(
                 { error: 'Invalid response from market data provider' },
-                { headers: NO_STORE_HEADERS, status: 502 },
+                { headers: ERROR_CACHE_HEADERS, status: 502 },
             );
         }
 
