@@ -1,5 +1,4 @@
 import { LoadingCard } from '@components/shared/LoadingCard';
-import { useMemo } from 'react';
 
 import { cn } from '@/app/components/shared/utils';
 
@@ -15,32 +14,28 @@ export function TokenMarketData({ marketData }: { marketData?: TokenMarketDataRe
 
     const isLoading = marketData?.status === TokenMarketDataStatus.Loading;
 
-    const tiles = useMemo<MarketDataProps[]>(() => {
-        if (!stats) return [];
-
-        const result: MarketDataProps[] = [
-            {
-                label: 'Price',
-                rank: stats.marketCapRank,
-                value: {
-                    precision: priceDecimals,
-                    price: stats.price,
-                    trend: stats.priceChange24h,
-                },
+    const tiles: MarketDataProps[] = [];
+    if (stats) {
+        tiles.push({
+            label: 'Price',
+            rank: stats.marketCapRank,
+            value: {
+                precision: priceDecimals,
+                price: stats.price,
+                trend: stats.priceChange24h,
             },
-        ];
+        });
         if (stats.volume24h !== undefined) {
-            result.push({ label: '24 Hour Volume', value: { volume: stats.volume24h } });
+            tiles.push({ label: '24 Hour Volume', value: { volume: stats.volume24h } });
         }
         if (stats.marketCap !== undefined) {
-            result.push({
+            tiles.push({
                 label: 'Market Cap',
                 lastUpdatedAt: stats.lastUpdated,
                 value: { volume: stats.marketCap },
             });
         }
-        return result;
-    }, [stats, priceDecimals]);
+    }
 
     return (
         <>
