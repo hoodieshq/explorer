@@ -1,0 +1,192 @@
+'use client';
+
+import { cva } from 'class-variance-authority';
+import Link from 'next/link';
+import React, { useRef, useState } from 'react';
+
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
+import { cn } from '@/app/components/shared/utils';
+import { useMidTruncation } from '@/app/components/common/useMidTruncation';
+import { EditIcon, useNickname } from '@/app/features/nicknames';
+import { useVisibility } from '@/app/shared/lib/visibility';
+import { useTokenMetadata } from '@/app/entities/nft';
+import { useTokenInfo } from '@/app/entities/token-info';
+import { useCluster } from '@/app/providers/cluster';
+import type { PublicKey } from '@solana/web3.js';
+import { displayAddress, type TokenLabelInfo } from '@/app/utils/tx';
+import { useClusterPath } from '@/app/utils/url';
+
+import { Copyable } from './Copyable';
+import { NicknameEditor } from './NicknameEditor';
+
+const rowVariants = cva('relative flex w-full min-w-0 items-baseline', {
+    defaultVariants: {
+        alignRight: false,
+    },
+    variants: {
+        alignRight: {
+            false: '',
+            true: 'md:justify-end',
+        },
+    },
+});
+
+type Props = {
+    pubkey: PublicKey;
+    alignRight?: boolean;
+    link?: boolean;
+    raw?: boolean;
+    noTruncate?: boolean;
+    useMetadata?: boolean;
+    overrideText?: string;
+    tokenLabelInfo?: TokenLabelInfo;
+    fetchTokenLabelInfo?: boolean;
+    'aria-label'?: string;
+};
+
+export function Address({
+    pubkey,
+    alignRight,
+    link,
+    raw,
+    noTruncate,
+    useMetadata,
+    overrideText,
+    tokenLabelInfo,
+    fetchTokenLabelInfo,
+    'aria-label': ariaLabel,
+}: Props) {
+    const address = pubkey.toBase58();
+    const { cluster, clusterInfo } = useCluster();
+    const addressPath = useClusterPath({ pathname: `/address/${address}` });
+    const [showNicknameEditor, setShowNicknameEditor] = useState(false);
+    const nickname = useNickname(address);
+    const { ref: visibilityRef, isVisible } = useVisibility(fetchTokenLabelInfo);
+
+    const display = displayAddress(address, cluster, tokenLabelInfo);
+
+    let addressLabel = raw ? address : display;
+
+    const metaplexData = useTokenMetadata(useMetadata, address);
+    if (metaplexData && metaplexData.data) {
+        addressLabel = metaplexData.data.name;
+    }
+
+    const shouldFetchTokenInfo = fetchTokenLabelInfo && isVisible;
+    const tokenInfo = useTokenInfo(shouldFetchTokenInfo, address, cluster, clusterInfo?.genesisHash);
+    if (tokenInfo) {
+        addressLabel = displayAddress(address, cluster, tokenInfo);
+    }
+
+    if (overrideText) {
+        addressLabel = overrideText;
+    }
+
+    const displayText = nickname ? `"${nickname}" (${addressLabel})` : addressLabel;
+
+    // Mid-truncation applies to raw 44-char addresses. When a nickname is shown the address
+    // line always truncates regardless of the noTruncate prop (the nickname makes it necessary).
+    const isMidTruncateCandidate = (!noTruncate || !!nickname) && !overrideText && addressLabel === address;
+
+    const editBtnRef = useRef<HTMLButtonElement>(null);
+    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation(
+        isMidTruncateCandidate,
+        address,
+        editBtnRef,
+    );
+
+    const handleMouseEnter = (text: string) => {
+        const elements = document.querySelectorAll(`[data-address="${text}"]`);
+        elements.forEach(el => {
+            (el as HTMLElement).classList.add('address-highlight');
+        });
+    };
+
+    const handleMouseLeave = (text: string) => {
+        const elements = document.querySelectorAll(`[data-address="${text}"]`);
+        elements.forEach(el => {
+            (el as HTMLElement).classList.remove('address-highlight');
+        });
+    };
+
+    const visibleText = isMidTruncated ? midTruncatedText : displayText;
+
+    const innerTextClassName = cn('font-mono', !nickname && 'truncate', nickname && 'block min-w-0');
+
+    // When a nickname is set, render it and the address label as two stacked lines
+    // so neither overflows on narrow (mobile) viewports.
+    const nicknameDisplay = nickname ? (
+        <span className="flex min-w-0 flex-col">
+            <span className="truncate font-mono">&quot;{nickname}&quot;</span>
+            <span className="truncate font-mono text-muted">{isMidTruncated ? midTruncatedText : addressLabel}</span>
+        </span>
+    ) : undefined;
+
+    const innerContent = link ? (
+        <Link href={addressPath} className={innerTextClassName}>
+            {nickname ? nicknameDisplay : visibleText}
+        </Link>
+    ) : (
+        <span className={innerTextClassName}>{nickname ? nicknameDisplay : visibleText}</span>
+    );
+
+    return (
+        <span ref={visibilityRef} className="block w-full">
+            <div ref={rowRef} className={rowVariants({ alignRight: Boolean(alignRight) })} aria-label={ariaLabel}>
+                {/* Hidden span for measuring the natural text width — absolutely positioned so it doesn't affect layout */}
+                {isMidTruncateCandidate && (
+                    <span
+                        ref={hiddenTextRef}
+                        className="pointer-events-none invisible absolute whitespace-nowrap font-mono"
+                        aria-hidden
+                    >
+                        {addressLabel}
+                    </span>
+                )}
+                <Copyable text={address}>
+                    {isMidTruncateCandidate ? (
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <span
+                                    data-address={address}
+                                    className="relative min-w-0 overflow-hidden font-mono"
+                                    onMouseEnter={() => handleMouseEnter(address)}
+                                    onMouseLeave={() => handleMouseLeave(address)}
+                                >
+                                    {innerContent}
+                                </span>
+                            </TooltipTrigger>
+                            {isMidTruncated && (
+                                <TooltipContent>
+                                    <span className="font-mono">{address}</span>
+                                </TooltipContent>
+                            )}
+                        </Tooltip>
+                    ) : (
+                        <span
+                            data-address={address}
+                            className="relative min-w-0 overflow-hidden font-mono"
+                            onMouseEnter={() => handleMouseEnter(address)}
+                            onMouseLeave={() => handleMouseLeave(address)}
+                            title={nickname ? displayText : undefined}
+                        >
+                            {innerContent}
+                        </span>
+                    )}
+                </Copyable>
+                <button
+                    ref={editBtnRef}
+                    className="ms-1.5 flex-none shrink-0 cursor-pointer border-0 bg-transparent p-0 text-muted"
+                    onClick={() => setShowNicknameEditor(true)}
+                    title="Edit nickname"
+                    style={{ fontSize: '0.875rem', lineHeight: 1 }}
+                >
+                    <EditIcon />
+                </button>
+                {showNicknameEditor && (
+                    <NicknameEditor address={address} onClose={() => setShowNicknameEditor(false)} />
+                )}
+            </div>
+        </span>
+    );
+}

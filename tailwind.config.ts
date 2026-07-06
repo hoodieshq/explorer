@@ -58,7 +58,10 @@ export const dkColors = {
 };
 
 const config: Config = {
-    content: ['./app/**/*.{ts,tsx}'],
+    // storybook-design/ holds the design-prototype slices; they share this Tailwind build
+    // (via app/styles/styles.css), so their classes must be scanned or utilities used only
+    // in a slice (e.g. arbitrary widths) never generate.
+    content: ['./app/**/*.{ts,tsx}', './storybook-design/**/*.{ts,tsx}'],
     plugins: [
         tailwindcssAnimate,
         plugin(({ addUtilities }) => {
