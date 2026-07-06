@@ -2,10 +2,13 @@
 // Every document is real: SPL Token's PMP codama root, the let_me_buy mainnet Anchor IDL, and the
 // workspace simple program.
 import {
+    type CodamaIdl,
     createIdlClient,
     getDecodedData,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     IdlStandard,
+    type InstructionDecode,
+    type InstructionDecodeFor,
     isAnchorStandard,
     isCodamaStandard,
     isIdlError,
@@ -13,7 +16,7 @@ import {
     tryCreateIdlClient,
 } from '@explorer/idl';
 import { address } from '@solana/kit';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
     legacyAnchorIdl,
@@ -70,9 +73,13 @@ describe('integration: receive instruction data', () => {
             data: new Uint8Array([3, ...u64le(42n)]),
             programAddress: address(tokenkeg.program.publicKey),
         });
-
         // the generic accessor returns the parsed args without per-standard digging
-        expect(getDecodedData(decode)).toMatchObject({ amount: 42n });
+        const result = getDecodedData(decode);
+
+        // the codama client statically excludes the anchor arm
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
+        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(result).toMatchObject({ amount: 42n });
     });
 
     it('should decode the workspace simple program through the same accessor', () => {
@@ -86,8 +93,12 @@ describe('integration: receive instruction data', () => {
             data: new Uint8Array([...increment.discriminator, ...u64le(42n)]),
             programAddress: address(simple.address),
         });
+        const result = getDecodedData(decode);
 
-        expect(getDecodedData(decode)).toMatchObject({ amount: 42n });
+        // the anchor client keeps every arm (codama engine + injected-decoder anchor arm)
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
+        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(result).toMatchObject({ amount: 42n });
     });
 
     it('should compose the accessor with handler-map dispatch when flows differ per outcome', () => {
@@ -109,6 +120,7 @@ describe('integration: receive instruction data', () => {
             },
         );
 
+        expectTypeOf(outcome).toEqualTypeOf<{ data: unknown; source: string }>();
         expect(outcome.source).toBe('codama');
         expect(outcome.data).toMatchObject({ amount: 42n });
     });
@@ -138,8 +150,12 @@ describe('integration: injected legacyAnchorDecoder', () => {
             programAddress: address(simple.address),
         });
 
+        const result = getDecodedData(decode);
+
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
+        expectTypeOf(result).toEqualTypeOf<unknown>();
         expect(decode.kind).toBe(IdlStandard.Anchor);
-        expect(getDecodedData(decode)).toEqual({ amount: 7n, name: 'airdrop' });
+        expect(result).toEqual({ amount: 7n, name: 'airdrop' });
     });
 
     it('should stay on the unknown arm when the injected decoder also misses', () => {

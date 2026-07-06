@@ -9,6 +9,7 @@
 //   letMeBuy  — real mainnet Anchor program (Anchor-PDA snapshot)
 import { rootNodeFromAnchor } from '@codama/nodes-from-anchor';
 import {
+    type AccountDecode,
     type AnchorIdl,
     type CodamaIdl,
     createIdlClient,
@@ -18,7 +19,7 @@ import {
     tryCreateIdlClient,
 } from '@explorer/idl';
 import { address, type Instruction } from '@solana/kit';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
     CODAMA_PROGRAM_ADDRESS,
@@ -216,32 +217,50 @@ describe('capability: instruction naming (discriminator table)', () => {
 
 describe('capability: instruction decoding', () => {
     it('should decode a Codama-native instruction', () => {
-        expect(decodeInstructionArgs(codamaIdl, codamaTransferIx)).toMatchObject({ amount: 42n });
+        const result = decodeInstructionArgs(codamaIdl, codamaTransferIx);
+
+        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(result).toMatchObject({ amount: 42n });
     });
 
     it('should decode through the converted Anchor document', () => {
         const simple = loadSimpleIdl();
-        expect(decodeInstructionArgs(convertToCodama(simple), incrementIx(simple))).toMatchObject({ amount: 42n });
+        const result = decodeInstructionArgs(convertToCodama(simple), incrementIx(simple));
+
+        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(result).toMatchObject({ amount: 42n });
     });
 
     it('should decode the modern Anchor program instruction', () => {
         const simple = loadSimpleIdl();
-        expect(decodeInstructionArgs(simple, incrementIx(simple))).toMatchObject({ amount: 42n });
+        const result = decodeInstructionArgs(simple, incrementIx(simple));
+
+        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(result).toMatchObject({ amount: 42n });
     });
 
     it('should decode the Anchor 0.31 program instruction', () => {
         const simple031 = loadSimple031Idl();
-        expect(decodeInstructionArgs(simple031, incrementIx(simple031))).toMatchObject({ amount: 42n });
+        const result = decodeInstructionArgs(simple031, incrementIx(simple031));
+
+        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(result).toMatchObject({ amount: 42n });
     });
 
     it("should decode SPL Token's transfer through the real codama root", () => {
         const tokenkeg = loadTokenkegIdl();
-        expect(decodeInstructionArgs(tokenkeg, tokenkegTransferIx(tokenkeg))).toMatchObject({ amount: 42n });
+        const result = decodeInstructionArgs(tokenkeg, tokenkegTransferIx(tokenkeg));
+
+        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(result).toMatchObject({ amount: 42n });
     });
 
     it('should decode the real mainnet Anchor program instruction', () => {
         const letMeBuy = loadLetMeBuyIdl();
-        expect(decodeInstructionArgs(letMeBuy, addProductIx(letMeBuy))).toMatchObject({
+        const result = decodeInstructionArgs(letMeBuy, addProductIx(letMeBuy));
+
+        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(result).toMatchObject({
             name: 'thing',
             price: 42n,
             storeName: 'store',
@@ -255,9 +274,12 @@ describe('capability: account decoding', () => {
         const client = createIdlClient(simple);
 
         const decode = client.decodeAccount(counterAccountData(simple));
+        const result = getDecodedData(decode);
 
+        expectTypeOf(decode).toEqualTypeOf<AccountDecode>();
+        expectTypeOf(result).toEqualTypeOf<unknown>();
         expect(decode.kind).toBe(IdlStandard.Codama);
-        expect(getDecodedData(decode)).toMatchObject({
+        expect(result).toMatchObject({
             authority: '11111111111111111111111111111111',
             count: 7n,
         });
@@ -268,9 +290,12 @@ describe('capability: account decoding', () => {
         const client = createIdlClient(simple031);
 
         const decode = client.decodeAccount(counterAccountData(simple031));
+        const result = getDecodedData(decode);
 
+        expectTypeOf(decode).toEqualTypeOf<AccountDecode>();
+        expectTypeOf(result).toEqualTypeOf<unknown>();
         expect(decode.kind).toBe(IdlStandard.Codama);
-        expect(getDecodedData(decode)).toMatchObject({
+        expect(result).toMatchObject({
             authority: '11111111111111111111111111111111',
             count: 7n,
         });
