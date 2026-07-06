@@ -11,10 +11,10 @@ Alternatives considered:
 ## What Changes
 
 - New private pnpm package `@explorer/idl` (`packages/idl`): standard detection, typed client, codama-primary decode pipeline, discriminator-based instruction naming, coded error family (`@codama/errors` pattern, error-first `Result` tuples).
-- Client API: `createIdlClient<T>` (throws on lying types) / `tryCreateIdlClient` (error-first for untrusted input); decode methods return discriminated unions that narrow statically per standard — a Codama client cannot even express an anchor-arm handler.
+- Client API: `createIdlClient<T>` (throws on lying types) / `tryCreateIdlClient` (error-first for untrusted input); decode methods return discriminated unions that narrow statically per standard — a Codama client cannot even express an anchor-arm handler. A standalone `getDecodedData(decode)` returns the payload regardless of which arm produced it (undefined for the unknown arm).
 - Escape hatch: an injectable `legacyAnchorDecoder` option for modern Anchor documents the conversion route cannot handle — never bundled into the package.
 - Legacy pre-0.30 documents: `isLegacyAnchorIdl` recognizes them; the client rejects them at compile time and runtime — consumers decode them with their own decoder.
-- Two real Anchor fixture programs (`programs/simple` anchor-lang 1.1.2, `programs/simple-031` anchor-lang 0.31.1) build genuine IDLs consumed by the test suites via workspace package exports.
+- Two real Anchor fixture programs (`programs/simple` anchor-lang 1.1.2, `programs/simple-031` anchor-lang 0.31.1) build genuine IDLs consumed by the test suites via workspace package exports; tracked real-world snapshots (`let-me-buy` in both Anchor and PMP form, `tokenkeg` PMP) exercise the dual-standard story against mainnet documents.
 - App extraction is NOT part of this change: `app/entities/idl` keeps its copy until the extraction pieces reconcile the app onto the package (mcp-endpoint plan, Pieces A/B).
 
 ## Capabilities
@@ -32,7 +32,8 @@ Alternatives considered:
 
 ## Impact
 
-- New code: `packages/idl/src/**` (8 modules), unit/type suites in `src/__tests__`, integration suite in `tests/integration` running against the built `dist`.
+- New code: `packages/idl/src/**` (8 implementation modules + the `index.ts` barrel), unit/type suites in `src/__tests__`, integration suite in `tests/integration` running against the built `dist`.
 - Workspace: `pnpm-workspace.yaml` gains `packages/idl/programs/*`; program packages are devDependencies of `@explorer/idl`; building them requires the Rust/Anchor toolchain (avm-managed, pinned per program workspace).
 - Dependencies: `@codama/dynamic-parsers` + `@codama/nodes-from-anchor` (runtime), `@coral-xyz/anchor` / `codama` / `@solana/kit` (peers). `@solana/web3.js` stays out of the public API (kit-first).
+- Tooling diverges from the repo: oxlint replaces eslint for this package (root eslint config ignores it) and `dist` is emitted with `oxc-transform` under isolated declarations (`tsc --noEmit` still enforces types).
 - Not affected yet: `app/entities/idl` and `app/features/decode-instruction-with-idl` continue to run their own copies until the extraction change lands.
