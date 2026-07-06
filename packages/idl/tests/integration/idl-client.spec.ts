@@ -26,7 +26,9 @@ import {
 } from '@explorer/idl';
 // the engine lives behind its own entry; codamaProvider is the DEFAULT and never needs passing
 import { codamaProvider, convertToCodama } from '@explorer/idl/codama';
+import { Program, type Provider } from '@coral-xyz/anchor';
 import { address, type Instruction } from '@solana/kit';
+import { deflateSync } from 'node:zlib';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
@@ -35,9 +37,12 @@ import {
     loadLetMeBuyPmpIdl,
     loadSimple031Idl,
     loadSimpleIdl,
+    loadSimpleIdlTyped,
     loadTokenkegIdl,
     pre030AnchorIdl,
     pre030WithdrawIx,
+    type Simple,
+    type SimpleIdl,
     transferIx,
     u64le,
 } from '../../src/__tests__/fixtures';
@@ -99,6 +104,14 @@ function addProductIx(idl: AnchorIdl): Instruction {
         ]),
         programAddress: address(idl.address),
     };
+}
+
+/** The on-chain anchor IDL account: 8-byte discriminator + authority pubkey + vecU8 of zlib-deflated JSON. */
+function idlAccountInfo(idl: AnchorIdl): { data: Buffer } {
+    const deflated = deflateSync(Buffer.from(JSON.stringify(idl)));
+    const length = Buffer.alloc(4);
+    length.writeUInt32LE(deflated.length, 0);
+    return { data: Buffer.concat([Buffer.alloc(8), Buffer.alloc(32), length, deflated]) };
 }
 
 describe('capability: client creation from untrusted IDLs', () => {
@@ -341,6 +354,81 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
         const result = client.getDecodedData<{ amount: bigint }>(decode);
 
         expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
+        expect(result).toMatchObject({ amount: 42n });
+    });
+
+    it('should infer the instruction payload when the loader declares the literal type', () => {
+        // same wide-JSON read as loadSimpleIdl — only the loader's return annotation differs; the
+        // compiler reads arg names/types straight from the document (generate-idl-literal.mjs)
+        const simple = loadSimpleIdlTyped();
+        const client = createIdlClient(simple);
+
+        const decode = client.decodeInstruction(incrementIx(simple));
+        const result = client.getDecodedData(decode);
+
+        expectTypeOf(simple).toEqualTypeOf<SimpleIdl>();
+        // the union covers every declared instruction: increment({amount}) | initialize (no args → {})
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
+        expect(result).toMatchObject({ amount: 42n });
+    });
+
+    it('should infer the account payload when the loader declares the literal type', () => {
+        const simple = loadSimpleIdlTyped();
+        const client = createIdlClient(simple);
+
+        const decode = client.decodeAccount(counterAccountData(simple));
+        const result = client.getDecodedData(decode);
+
+        expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
+        expect(result).toMatchObject({
+            authority: '11111111111111111111111111111111',
+            count: 7n,
+        });
+    });
+
+    it("should infer the instruction payload from anchor's generated Program<> companion type", () => {
+        // the anchor idiom: pair the runtime JSON with the target/types literal — the same cast
+        // consumers already write for `new Program<Simple>(idl as Simple, …)`
+        const simple = loadSimpleIdl() as Simple;
+        const client = createIdlClient(simple);
+
+        const decode = client.decodeInstruction(incrementIx(simple));
+        const result = client.getDecodedData(decode);
+
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
+        expect(result).toMatchObject({ amount: 42n });
+    });
+
+    it("should infer the account payload from anchor's generated Program<> companion type", () => {
+        const simple = loadSimpleIdl() as Simple;
+        const client = createIdlClient(simple);
+
+        // caveat of the idiom: the generated type camelCases names ('counter') while the runtime
+        // JSON keeps Rust casing ('Counter') — payload FIELD types are unaffected, name reads lie
+        const decode = client.decodeAccount(counterAccountData(simple));
+        const result = client.getDecodedData(decode);
+
+        expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
+        expect(result).toMatchObject({
+            authority: '11111111111111111111111111111111',
+            count: 7n,
+        });
+    });
+
+    it("should infer payloads for an IDL fetched with anchor's Program.fetchIdl (mocked transport)", async () => {
+        const raw = loadSimpleIdl();
+        // no HTTP: the connection serves the anchor IDL PDA account straight from the fixture
+        const provider = {
+            connection: { getAccountInfo: async () => idlAccountInfo(raw) },
+        } as unknown as Provider;
+
+        const fetched = await Program.fetchIdl<Simple>(raw.address, provider);
+        if (!fetched) throw new Error('mocked IDL account must resolve');
+
+        const client = createIdlClient(fetched);
+        const result = client.getDecodedData(client.decodeInstruction(incrementIx(fetched)));
+
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
         expect(result).toMatchObject({ amount: 42n });
     });
 
