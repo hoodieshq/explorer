@@ -6,6 +6,7 @@ The package wraps one IDL document into a client whose decode results are discri
 
 - *Errors are values, not throws* — fallible operations return the error-first `Result` tuple (`[IdlError, undefined] | [undefined, value]`), and decode failures ride the `unknown` arm as coded `IdlError`s; the consumer decides severity, the package never logs.
 - *Legacy variants are the consumer's decoder, not ours* — the client accepts a custom decoder via options (`legacyAnchorDecoder`) for documents the built-in conversion route cannot handle; the package ships no Borsh fallback of its own.
+- *User-facing client, easy configuration* — one document in, working client out: no standard flags, no engine choices, no required options. Static inference and runtime detection do the configuring; the single optional knob is the legacy decoder above.
 
 ### Client flow
 
