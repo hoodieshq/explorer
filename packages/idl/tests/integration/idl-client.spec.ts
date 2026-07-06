@@ -49,24 +49,6 @@ import {
 
 const TOKENKEG_ADDRESS = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 
-/** What the app renders for a program once its IDL is known. */
-type ProgramSummary = {
-    address: string | undefined;
-    name: string | undefined;
-    standard: IdlStandard;
-};
-
-/** App flow: wrap the incoming document once, then read parsed data. */
-function summarizeProgram(rawIdl: unknown): ProgramSummary {
-    const [error, client] = tryCreateIdlClient(rawIdl);
-    if (error) throw error; // app-side this feeds an ErrorBoundary / MCP error payload
-    return {
-        address: client.programAddress(),
-        name: client.programName(),
-        standard: getIdlStandard(client.idl),
-    };
-}
-
 /** App flow: label an instruction from a transaction using the program's IDL. */
 function labelInstruction(rawIdl: unknown, ix: Instruction): string {
     const [error, client] = tryCreateIdlClient(rawIdl);
@@ -167,78 +149,72 @@ describe('capability: client creation from untrusted IDLs', () => {
 describe('capability: program summary (address, name, standard)', () => {
     /** Case: address/name/standard read from SPL Token's PMP-stored codama root. */
     it('should summarize SPL Token from its real PMP codama root', () => {
-        const result = summarizeProgram(loadTokenkegIdl());
+        const [error, client] = tryCreateIdlClient(loadTokenkegIdl());
+        expect(error).toBeUndefined();
+        if (!client) throw new Error('unreachable');
 
-        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
-        expect(result).toEqual({
-            address: TOKENKEG_ADDRESS,
-            name: 'Token',
-            standard: IdlStandard.Codama,
-        });
+        expect(client.programAddress()).toBe(TOKENKEG_ADDRESS);
+        expect(client.programName()).toBe('Token');
+        expect(getIdlStandard(client.idl)).toBe(IdlStandard.Codama);
     });
 
     /** Case: a nodes-from-anchor conversion result summarizes as a Codama program. */
     it('should summarize the converted Anchor document as a Codama program', () => {
         const simple = loadSimpleIdl();
         const [conversionError, converted] = convertToCodama(simple);
-
         expect(conversionError).toBeUndefined();
-        const result = summarizeProgram(converted);
 
-        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
-        expect(result).toEqual({
-            address: simple.address,
-            name: 'Simple',
-            standard: IdlStandard.Codama,
-        });
+        const [error, client] = tryCreateIdlClient(converted);
+        expect(error).toBeUndefined();
+        if (!client) throw new Error('unreachable');
+
+        expect(client.programAddress()).toBe(simple.address);
+        expect(client.programName()).toBe('Simple');
+        expect(getIdlStandard(client.idl)).toBe(IdlStandard.Codama);
     });
 
     /** Case: the workspace anchor-lang 1.1.2 program summarizes as Anchor. */
     it('should summarize the modern Anchor program', () => {
-        const result = summarizeProgram(loadSimpleIdl());
+        const [error, client] = tryCreateIdlClient(loadSimpleIdl());
+        expect(error).toBeUndefined();
+        if (!client) throw new Error('unreachable');
 
-        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
-        expect(result).toEqual({
-            address: '7u9qtZPjJcQ1jZsZxAGyRM4aGLNXqK5pzawpULopWFqB',
-            name: 'Simple',
-            standard: IdlStandard.Anchor,
-        });
+        expect(client.programAddress()).toBe('7u9qtZPjJcQ1jZsZxAGyRM4aGLNXqK5pzawpULopWFqB');
+        expect(client.programName()).toBe('Simple');
+        expect(getIdlStandard(client.idl)).toBe(IdlStandard.Anchor);
     });
 
     /** Case: the workspace Anchor 0.31 program, fetched through anchor's client, summarizes as Anchor. */
     it('should summarize the Anchor 0.31 program', async () => {
-        const result = summarizeProgram(await fetchSimple031Idl());
+        const [error, client] = tryCreateIdlClient(await fetchSimple031Idl());
+        expect(error).toBeUndefined();
+        if (!client) throw new Error('unreachable');
 
-        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
-        expect(result).toEqual({
-            address: '391y4fKGKUEt7n6HuKrkfGYLdkvnk6rvneR7snKe6wzy',
-            name: 'Simple 031',
-            standard: IdlStandard.Anchor,
-        });
+        expect(client.programAddress()).toBe('391y4fKGKUEt7n6HuKrkfGYLdkvnk6rvneR7snKe6wzy');
+        expect(client.programName()).toBe('Simple 031');
+        expect(getIdlStandard(client.idl)).toBe(IdlStandard.Anchor);
     });
 
     /** Case: a mainnet program's IDL from its Anchor PDA leg. */
     it('should summarize the real mainnet Anchor program (let_me_buy, Anchor PDA leg)', () => {
-        const result = summarizeProgram(loadLetMeBuyIdl());
+        const [error, client] = tryCreateIdlClient(loadLetMeBuyIdl());
+        expect(error).toBeUndefined();
+        if (!client) throw new Error('unreachable');
 
-        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
-        expect(result).toEqual({
-            address: 'BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya',
-            name: 'Let Me Buy',
-            standard: IdlStandard.Anchor,
-        });
+        expect(client.programAddress()).toBe('BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya');
+        expect(client.programName()).toBe('Let Me Buy');
+        expect(getIdlStandard(client.idl)).toBe(IdlStandard.Anchor);
     });
 
     /** Case: the same program's PMP leg carries the same Anchor-format document. */
     it('should summarize the same program from its PMP leg — Anchor-format there too (PMP is storage, not a format)', () => {
-        const result = summarizeProgram(loadLetMeBuyPmpIdl());
+        const [error, client] = tryCreateIdlClient(loadLetMeBuyPmpIdl());
+        expect(error).toBeUndefined();
+        if (!client) throw new Error('unreachable');
 
-        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
-        expect(result).toEqual({
-            address: 'BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya',
-            name: 'Let Me Buy',
-            standard: IdlStandard.Anchor,
-        });
+        expect(client.programAddress()).toBe('BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya');
+        expect(client.programName()).toBe('Let Me Buy');
+        expect(getIdlStandard(client.idl)).toBe(IdlStandard.Anchor);
     });
 });
 
