@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- every cast sits behind a runtime IDL guard TS cannot relate to the unresolved conditional return type */
 import { parseInstruction } from '@codama/dynamic-parsers';
-import { rootNodeFromAnchor } from '@codama/nodes-from-anchor';
 import type { Instruction } from '@solana/kit';
 
 import type { IdlClientOptions } from './client';
-import { getIdlProgramAddress, isAnchorIdl, isCodamaIdl } from './detect';
+import { convertToCodama } from './convert';
+import { getIdlProgramAddress, isAnchorIdl } from './detect';
 import { IDL_ERROR__IDL_ADDRESS_MISMATCH, IDL_ERROR__IDL_PARSE_FAILED, IdlError } from './errors';
-import { type CodamaIdl, IdlStandard, type InstructionDecodeFor, type SupportedIdl } from './types';
+import { IdlStandard, type InstructionDecodeFor, type SupportedIdl } from './types';
 
 // Single Codama pipeline (Anchor IDLs convert via nodes-from-anchor); the anchor arm only comes from the injected legacy decoder until the Anchor-rich path lands (mcp-endpoint Step 6).
 export function decodeInstructionWithIdl<T extends SupportedIdl>(
@@ -24,7 +24,8 @@ export function decodeInstructionWithIdl<T extends SupportedIdl>(
     }
 
     const errors: IdlError[] = [];
-    const root = toRootNode(idl, errors);
+    const [convertError, root] = convertToCodama(idl);
+    if (convertError) errors.push(convertError);
     if (root) {
         try {
             const parsed = parseInstruction(root, {
@@ -46,15 +47,4 @@ export function decodeInstructionWithIdl<T extends SupportedIdl>(
     }
 
     return { errors, kind: 'unknown' } as InstructionDecodeFor<T>;
-}
-
-export function toRootNode(idl: SupportedIdl, errors: IdlError[]): CodamaIdl | undefined {
-    if (isCodamaIdl(idl)) return idl;
-    try {
-        // nodes-from-anchor ships its own (narrower) Anchor IDL + RootNode types
-        return rootNodeFromAnchor(idl as Parameters<typeof rootNodeFromAnchor>[0]) as unknown as CodamaIdl;
-    } catch (cause) {
-        errors.push(new IdlError(IDL_ERROR__IDL_PARSE_FAILED, { cause, operation: 'rootNodeFromAnchor' }));
-        return undefined;
-    }
 }

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- every cast sits behind a runtime IDL guard TS cannot relate to the unresolved conditional return type */
 import { parseAccountData } from '@codama/dynamic-parsers';
 
-import { toRootNode } from './decode-instruction';
+import { convertToCodama } from './convert';
 import { getIdlStandard } from './detect';
 import { IDL_ERROR__ACCOUNT_DECODE_FAILED, IdlError } from './errors';
 import { type AccountDecodeFor, IdlStandard, type SupportedIdl } from './types';
@@ -9,7 +9,8 @@ import { type AccountDecodeFor, IdlStandard, type SupportedIdl } from './types';
 // Same Codama pipeline as the instruction decode — account struct layouts travel with the nodes-from-anchor conversion.
 export function decodeAccountWithIdl<T extends SupportedIdl>(idl: T, data: Uint8Array): AccountDecodeFor<T> {
     const errors: IdlError[] = [];
-    const root = toRootNode(idl, errors);
+    const [convertError, root] = convertToCodama(idl);
+    if (convertError) errors.push(convertError);
     if (root) {
         try {
             const parsed = parseAccountData(root, data);

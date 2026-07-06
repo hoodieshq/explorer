@@ -10,11 +10,13 @@ import {
     isCodamaStandard,
     tryCreateIdlClient,
 } from '../client';
+import { convertToCodama } from '../convert';
 import { decodeAccountWithIdl } from '../decode-account';
 import { decodeInstructionWithIdl } from '../decode-instruction';
 import { getIdlStandard, getIdlVersion, isAnchorIdl, isCodamaIdl, isSupportedIdl } from '../detect';
 import {
     IDL_ERROR__ACCOUNT_DECODE_FAILED,
+    IDL_ERROR__IDL_PARSE_FAILED,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     IdlError,
@@ -107,6 +109,10 @@ describe('decode result inference', () => {
             InstructionDecodeFor<CodamaIdl>
         >();
         expectTypeOf(decodeAccountWithIdl(anchorIdl, new Uint8Array())).toEqualTypeOf<AccountDecodeFor<AnchorIdl>>();
+    });
+
+    it('should type the conversion as an error-first result declaring its only failure code', () => {
+        expectTypeOf(convertToCodama(anchorIdl)).toEqualTypeOf<Result<CodamaIdl, typeof IDL_ERROR__IDL_PARSE_FAILED>>();
     });
 });
 

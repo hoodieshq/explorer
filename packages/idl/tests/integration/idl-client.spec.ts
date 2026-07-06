@@ -7,11 +7,11 @@
 //   simple    — modern Anchor program (anchor-lang 1.1.2, programs/simple)
 //   simple031 — Anchor 0.31 program (programs/simple-031)
 //   letMeBuy  — real mainnet Anchor program (Anchor-PDA + PMP snapshots)
-import { rootNodeFromAnchor } from '@codama/nodes-from-anchor';
 import {
     type AccountDecode,
     type AnchorIdl,
     type CodamaIdl,
+    convertToCodama,
     createIdlClient,
     getDecodedData,
     getIdlStandard,
@@ -96,8 +96,11 @@ function incrementIx(idl: AnchorIdl): Instruction {
     };
 }
 
-function convertToCodama(idl: AnchorIdl): CodamaIdl {
-    return rootNodeFromAnchor(idl as Parameters<typeof rootNodeFromAnchor>[0]) as unknown as CodamaIdl;
+// The library's recommended conversion, unwrapped for test brevity.
+function convertedToCodama(idl: AnchorIdl): CodamaIdl {
+    const [error, converted] = convertToCodama(idl);
+    if (error) throw error;
+    return converted;
 }
 
 const borshString = (value: string): number[] => {
@@ -179,7 +182,7 @@ describe('capability: program summary (address, name, standard)', () => {
 
     it('should summarize the converted Anchor document as a Codama program', () => {
         const simple = loadSimpleIdl();
-        expect(summarizeProgram(convertToCodama(simple))).toEqual({
+        expect(summarizeProgram(convertedToCodama(simple))).toEqual({
             address: simple.address,
             name: 'Simple',
             standard: IdlStandard.Codama,
@@ -236,7 +239,7 @@ describe('capability: instruction naming (discriminator table)', () => {
         // the codama name table only resolves PMP-style int fields, not anchor byte arrays — the
         // native Anchor routes below resolve the same instruction
         const simple = loadSimpleIdl();
-        expect(labelInstruction(convertToCodama(simple), incrementIx(simple))).toBe('Unknown');
+        expect(labelInstruction(convertedToCodama(simple), incrementIx(simple))).toBe('Unknown');
     });
 
     it('should label the modern Anchor program instruction', () => {
@@ -270,7 +273,7 @@ describe('capability: instruction decoding', () => {
 
     it('should decode through the converted Anchor document', () => {
         const simple = loadSimpleIdl();
-        const result = decodeInstructionArgs(convertToCodama(simple), incrementIx(simple));
+        const result = decodeInstructionArgs(convertedToCodama(simple), incrementIx(simple));
 
         expectTypeOf(result).toEqualTypeOf<unknown>();
         expect(result).toMatchObject({ amount: 42n });

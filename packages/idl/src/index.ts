@@ -7,6 +7,7 @@ export {
     isCodamaStandard,
     tryCreateIdlClient,
 } from './client';
+export { convertToCodama } from './convert';
 export { decodeAccountWithIdl } from './decode-account';
 export { decodeInstructionWithIdl } from './decode-instruction';
 export {
