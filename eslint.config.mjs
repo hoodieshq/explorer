@@ -22,9 +22,11 @@ const TEST_AND_STORY_FILES = [
 export default tseslint.config(
     // Global ignores.
     // packages/* are intentionally not ignored: root `eslint .` (like prettier's `**/*.ts` glob) lints their source with this shared config — only built output is excluded.
+    // Exception: packages/idl lints itself with oxlint (see its .oxlintrc.json), wired into root `pnpm lint`.
     {
         ignores: [
             '**/dist/**',
+            'packages/idl/**',
             'lib/**',
             '.next/**',
             '.next-dev/**',
