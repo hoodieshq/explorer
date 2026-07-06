@@ -115,6 +115,7 @@ function idlAccountInfo(idl: AnchorIdl): { data: Buffer } {
 }
 
 describe('capability: client creation from untrusted IDLs', () => {
+    /** Case: untrusted JSON → error-first wrap → guard narrowing → parsed names, on the real codama root. */
     it('should go error-first tuple → guards → parsed data (real codama document)', () => {
         // 1. an IDL arrives as unknown JSON (resolve-program-idls, PMP fetch, user upload)
         const fetched: unknown = loadTokenkegIdl();
@@ -133,6 +134,7 @@ describe('capability: client creation from untrusted IDLs', () => {
         expect(client.instructionName(Uint8Array.from([3, ...u64le(42n)]))).toBe('Transfer');
     });
 
+    /** Case: the identical untrusted flow accepts a real mainnet Anchor document. */
     it('should handle a real anchor document through the same flow', () => {
         const [error, client] = tryCreateIdlClient(loadLetMeBuyIdl());
         expect(error).toBeUndefined();
@@ -142,6 +144,7 @@ describe('capability: client creation from untrusted IDLs', () => {
         expect(client.programName()).toBe('Let Me Buy');
     });
 
+    /** Case: garbage input never throws — it returns a code-discriminated IdlError. */
     it('should report unsupported documents with a typed, code-discriminated error', () => {
         const [error, client] = tryCreateIdlClient({ some: 'garbage' });
         expect(client).toBeUndefined();
@@ -151,6 +154,7 @@ describe('capability: client creation from untrusted IDLs', () => {
 });
 
 describe('capability: program summary (address, name, standard)', () => {
+    /** Case: address/name/standard read from SPL Token's PMP-stored codama root. */
     it('should summarize SPL Token from its real PMP codama root', () => {
         const result = summarizeProgram(loadTokenkegIdl());
 
@@ -162,6 +166,7 @@ describe('capability: program summary (address, name, standard)', () => {
         });
     });
 
+    /** Case: a nodes-from-anchor conversion result summarizes as a Codama program. */
     it('should summarize the converted Anchor document as a Codama program', () => {
         const simple = loadSimpleIdl();
         const [conversionError, converted] = convertToCodama(simple);
@@ -177,6 +182,7 @@ describe('capability: program summary (address, name, standard)', () => {
         });
     });
 
+    /** Case: the workspace anchor-lang 1.1.2 program summarizes as Anchor. */
     it('should summarize the modern Anchor program', () => {
         const result = summarizeProgram(loadSimpleIdl());
 
@@ -188,6 +194,7 @@ describe('capability: program summary (address, name, standard)', () => {
         });
     });
 
+    /** Case: the workspace Anchor 0.31 program summarizes as Anchor (name titleCases). */
     it('should summarize the Anchor 0.31 program', () => {
         const result = summarizeProgram(loadSimple031Idl());
 
@@ -199,6 +206,7 @@ describe('capability: program summary (address, name, standard)', () => {
         });
     });
 
+    /** Case: a mainnet program's IDL from its Anchor PDA leg. */
     it('should summarize the real mainnet Anchor program (let_me_buy, Anchor PDA leg)', () => {
         const result = summarizeProgram(loadLetMeBuyIdl());
 
@@ -210,6 +218,7 @@ describe('capability: program summary (address, name, standard)', () => {
         });
     });
 
+    /** Case: the same program's PMP leg carries the same Anchor-format document. */
     it('should summarize the same program from its PMP leg — Anchor-format there too (PMP is storage, not a format)', () => {
         const result = summarizeProgram(loadLetMeBuyPmpIdl());
 
@@ -223,6 +232,7 @@ describe('capability: program summary (address, name, standard)', () => {
 });
 
 describe('capability: instruction naming (discriminator table)', () => {
+    /** Case: a PMP-style constant-u8 discriminator resolves through the codama name table. */
     it("should label SPL Token's transfer through the real codama root", () => {
         const tokenkeg = loadTokenkegIdl();
         const result = labelInstruction(tokenkeg, transferIx(tokenkeg));
@@ -231,6 +241,7 @@ describe('capability: instruction naming (discriminator table)', () => {
         expect(result).toBe('Transfer');
     });
 
+    /** Case: converted documents lose byte-array discriminator resolution — the known conversion trade-off. */
     it('should NOT label instructions through the converted document (conversion trade-off)', () => {
         // the codama name table only resolves PMP-style int fields, not anchor byte arrays — the
         // native Anchor routes below resolve the same instruction
@@ -242,6 +253,7 @@ describe('capability: instruction naming (discriminator table)', () => {
         expect(result).toBe('Unknown');
     });
 
+    /** Case: a real sha256 byte-array discriminator resolves through the native Anchor route. */
     it('should label the modern Anchor program instruction', () => {
         const simple = loadSimpleIdl();
         const result = labelInstruction(simple, incrementIx(simple));
@@ -250,6 +262,7 @@ describe('capability: instruction naming (discriminator table)', () => {
         expect(result).toBe('Increment');
     });
 
+    /** Case: the same resolution works on the Anchor 0.31 document. */
     it('should label the Anchor 0.31 program instruction', () => {
         const simple031 = loadSimple031Idl();
         const result = labelInstruction(simple031, incrementIx(simple031));
@@ -258,6 +271,7 @@ describe('capability: instruction naming (discriminator table)', () => {
         expect(result).toBe('Increment');
     });
 
+    /** Case: snake_case instruction names titleCase for display ('add_product' → 'Add Product'). */
     it('should label the real mainnet Anchor program instruction', () => {
         const letMeBuy = loadLetMeBuyIdl();
         const result = labelInstruction(letMeBuy, addProductIx(letMeBuy));
@@ -268,6 +282,7 @@ describe('capability: instruction naming (discriminator table)', () => {
 });
 
 describe('capability: instruction decoding', () => {
+    /** Case: a codama root decodes a kit instruction; the anchor arm is statically excluded. */
     it("should decode SPL Token's transfer through the real codama root", () => {
         const tokenkeg = loadTokenkegIdl();
         const client = createIdlClient(tokenkeg);
@@ -282,6 +297,7 @@ describe('capability: instruction decoding', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
+    /** Case: an Anchor document converted with the library conversion decodes like a native root. */
     it('should decode through the converted Anchor document', () => {
         const simple = loadSimpleIdl();
         const [conversionError, converted] = convertToCodama(simple);
@@ -299,6 +315,7 @@ describe('capability: instruction decoding', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
+    /** Case: a modern Anchor document decodes through the default codama engine. */
     it('should decode the modern Anchor program instruction', () => {
         const simple = loadSimpleIdl();
         const client = createIdlClient(simple);
@@ -313,6 +330,7 @@ describe('capability: instruction decoding', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
+    /** Case: the Anchor 0.31 document decodes the same way. */
     it('should decode the Anchor 0.31 program instruction', () => {
         const simple031 = loadSimple031Idl();
         const client = createIdlClient(simple031);
@@ -325,6 +343,7 @@ describe('capability: instruction decoding', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
+    /** Case: a mainnet document decodes borsh strings + u64 into camelCased args. */
     it('should decode the real mainnet Anchor program instruction', () => {
         const letMeBuy = loadLetMeBuyIdl();
         const client = createIdlClient(letMeBuy);
@@ -343,6 +362,7 @@ describe('capability: instruction decoding', () => {
 });
 
 describe('capability: receive instruction data (IDL-typed accessor)', () => {
+    /** Case: a WIDE runtime document — no compile-time type exists, so the shape is declared per call. */
     it("should decode SPL Token's transfer and hand back the args generically", () => {
         const tokenkeg = loadTokenkegIdl();
         // picking the default engine explicitly — heavier engines (anchor) plug in the same way
@@ -357,6 +377,7 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
+    /** Case: a loader-declared literal type (SimpleIdl) — zero-generic instruction-args inference. */
     it('should infer the instruction payload when the loader declares the literal type', () => {
         // same wide-JSON read as loadSimpleIdl — only the loader's return annotation differs; the
         // compiler reads arg names/types straight from the document (generate-idl-literal.mjs)
@@ -372,6 +393,7 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
+    /** Case: the same literal-typed loader — zero-generic account-fields inference. */
     it('should infer the account payload when the loader declares the literal type', () => {
         const simple = loadSimpleIdlTyped();
         const client = createIdlClient(simple);
@@ -386,6 +408,7 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
         });
     });
 
+    /** Case: anchor's Program<> companion type as the literal source — same zero-generic inference. */
     it("should infer the instruction payload from anchor's generated Program<> companion type", () => {
         // the anchor idiom: pair the runtime JSON with the target/types literal — the same cast
         // consumers already write for `new Program<Simple>(idl as Simple, …)`
@@ -399,6 +422,7 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
+    /** Case: companion-type account inference — field types survive the type's camelCase naming lie. */
     it("should infer the account payload from anchor's generated Program<> companion type", () => {
         const simple = loadSimpleIdl() as Simple;
         const client = createIdlClient(simple);
@@ -415,6 +439,7 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
         });
     });
 
+    /** Case: the document arrives via anchor's own Program.fetchIdl<Simple> — fetched value infers too. */
     it("should infer payloads for an IDL fetched with anchor's Program.fetchIdl (mocked transport)", async () => {
         const raw = loadSimpleIdl();
         // no HTTP: the connection serves the anchor IDL PDA account straight from the fixture
@@ -432,6 +457,7 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
+    /** Case: the accessor composes with handler-map dispatch when each outcome needs its own flow. */
     it('should compose the accessor with handler-map dispatch when flows differ per outcome', () => {
         const simple = loadSimpleIdl();
         const client = createIdlClient(simple);
@@ -449,6 +475,7 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
 });
 
 describe('capability: account decoding', () => {
+    /** Case: raw account bytes decode via the document's declared account discriminator (modern Anchor). */
     it('should decode raw counter account bytes of the modern Anchor program', () => {
         const simple = loadSimpleIdl();
         const client = createIdlClient(simple);
@@ -465,6 +492,7 @@ describe('capability: account decoding', () => {
         });
     });
 
+    /** Case: the same account decode works on the Anchor 0.31 document. */
     it('should decode raw counter account bytes of the Anchor 0.31 program', () => {
         const simple031 = loadSimple031Idl();
         const client = createIdlClient(simple031);
@@ -498,6 +526,7 @@ describe('capability: injected legacyAnchorDecoder', () => {
         });
     }
 
+    /** Case: an instruction the published IDL misses is rescued by the injected decoder → anchor arm. */
     it('should produce the anchor arm through the injected decoder when the document misses', () => {
         const simple = loadSimpleIdl();
         const client = clientWithLegacyDecoder();
@@ -515,6 +544,7 @@ describe('capability: injected legacyAnchorDecoder', () => {
         expect(result).toEqual({ amount: 7n, name: 'airdrop' });
     });
 
+    /** Case: both the document and the injected decoder miss — the unknown arm, not an error. */
     it('should stay on the unknown arm when the injected decoder also misses', () => {
         const simple = loadSimpleIdl();
         const decode = clientWithLegacyDecoder().decodeInstruction({
@@ -528,6 +558,7 @@ describe('capability: injected legacyAnchorDecoder', () => {
 });
 
 describe('capability: legacy Anchor fallback', () => {
+    /** Case: a pre-0.30 document gets a typed refusal, and the guard routes it to consumer-owned decoding. */
     it('should refuse legacy documents and route them to consumer-owned decoding', () => {
         // the client refuses with a typed error...
         const [error] = tryCreateIdlClient(pre030AnchorIdl);
@@ -541,6 +572,7 @@ describe('capability: legacy Anchor fallback', () => {
 });
 
 describe('built declarations type probe', () => {
+    /** Case: dist/*.d.ts must keep the Result tuple precise — toEqualTypeOf fails on `any` degradation. */
     it('should keep the convertToCodama result tuple precisely typed', () => {
         const [conversionError, converted] = convertToCodama(loadSimpleIdl());
 
