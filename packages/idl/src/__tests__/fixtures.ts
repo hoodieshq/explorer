@@ -4,7 +4,9 @@ import type { AnchorIdl, CodamaIdl, LegacyAnchorIdl } from '../types';
 
 export { loadLetMeBuyIdl, loadLetMeBuyPmpIdl } from './generated/let-me-buy';
 export { loadSimple031Idl } from './generated/simple-031';
-export { loadSimpleIdl } from './generated/simple';
+export { loadSimpleIdl, loadSimpleIdlTyped } from './generated/simple';
+export { type SimpleIdl } from './generated/simple.literal';
+export { type Simple } from './generated/simple.types';
 export { loadTokenkegIdl } from './generated/tokenkeg';
 
 export const u64le = (value: bigint): number[] => {
