@@ -9,9 +9,12 @@
 import {
     type AccountDecode,
     type AnchorIdl,
+    type CodamaIdl,
     createIdlClient,
     getIdlStandard,
+    IDL_ERROR__IDL_PARSE_FAILED,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
+    type IdlError,
     IdlStandard,
     type InstructionDecode,
     type InstructionDecodeFor,
@@ -446,5 +449,16 @@ describe('capability: legacy Anchor fallback', () => {
         // (see legacy-anchor/custom-decoder.spec.ts for a working Borsh-style legacy decoder)
         expect(isLegacyAnchorIdl(pre030AnchorIdl)).toBe(true);
         expect(pre030WithdrawIx.data.length).toBeGreaterThan(8);
+    });
+});
+
+describe('built declarations type probe', () => {
+    it('should keep the convertToCodama result tuple precisely typed', () => {
+        const [conversionError, converted] = convertToCodama(loadSimpleIdl());
+
+        expectTypeOf(converted).toEqualTypeOf<CodamaIdl | undefined>();
+        expectTypeOf(conversionError).toEqualTypeOf<IdlError<typeof IDL_ERROR__IDL_PARSE_FAILED> | undefined>();
+        expect(conversionError).toBeUndefined();
+        expect(converted).toBeDefined();
     });
 });
