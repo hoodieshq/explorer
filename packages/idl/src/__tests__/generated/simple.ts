@@ -1,8 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
+import type { Simple } from '@explorer/idl-program-simple/types';
+
 import type { AnchorIdl } from '../../types';
-import type { SimpleIdl } from './simple.literal';
 
 const readSimpleJson = (): unknown =>
     JSON.parse(
@@ -12,5 +13,9 @@ const readSimpleJson = (): unknown =>
 /** IDL emitted by `anchor build` (anchor-lang 1.1.2) for `programs/simple`; fresh via the pretest hook. */
 export const loadSimpleIdl = (): AnchorIdl => readSimpleJson() as AnchorIdl;
 
-/** Same document, loader-declared literal type — payload inference works without per-call shapes. */
-export const loadSimpleIdlTyped = (): SimpleIdl => readSimpleJson() as SimpleIdl;
+/**
+ * Same document typed with anchor's generated companion type (the `Program<Simple>` idiom). Its
+ * camelCase view matches the codama-DECODED payload keys, so payload inference is exact; only
+ * document name reads differ at runtime (the JSON keeps Rust casing, e.g. 'Counter').
+ */
+export const loadSimpleIdlTyped = (): Simple => readSimpleJson() as Simple;

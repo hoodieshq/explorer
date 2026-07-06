@@ -3,7 +3,8 @@
     "version": "0.0.0",
     "private": true,
     "exports": {
-        ".": "./target/idl/simple_031.json"
+        ".": "./target/idl/simple_031.json",
+        "./types": "./target/types/simple_031.ts"
     },
     "scripts": {
         "build": "anchor build"

@@ -4,7 +4,7 @@
 //   tokenkeg  — SPL Token's PMP-stored Codama root (mainnet snapshot)
 //   converted — the generated Anchor document normalized with nodes-from-anchor
 //   simple    — modern Anchor program (anchor-lang 1.1.2, programs/simple)
-//   simple031 — Anchor 0.31 program (programs/simple-031)
+//   simple031 — Anchor 0.31 program (programs/simple-031), fetched through anchor's client (mocked Program.fetchIdl)
 //   letMeBuy  — real mainnet Anchor program (Anchor-PDA + PMP snapshots)
 import {
     type AccountDecode,
@@ -42,7 +42,7 @@ import {
     pre030AnchorIdl,
     pre030WithdrawIx,
     type Simple,
-    type SimpleIdl,
+    type Simple031,
     transferIx,
     u64le,
 } from '../../src/__tests__/fixtures';
@@ -112,6 +112,17 @@ function idlAccountInfo(idl: AnchorIdl): { data: Buffer } {
     const length = Buffer.alloc(4);
     length.writeUInt32LE(deflated.length, 0);
     return { data: Buffer.concat([Buffer.alloc(8), Buffer.alloc(32), length, deflated]) };
+}
+
+/** The simple-031 document arrives through anchor's client: Program.fetchIdl over a mocked connection (no HTTP). */
+async function fetchSimple031Idl(): Promise<Simple031> {
+    const raw = loadSimple031Idl();
+    const provider = {
+        connection: { getAccountInfo: async () => idlAccountInfo(raw) },
+    } as unknown as Provider;
+    const fetched = await Program.fetchIdl<Simple031>(raw.address, provider);
+    if (!fetched) throw new Error('mocked IDL account must resolve');
+    return fetched;
 }
 
 describe('capability: client creation from untrusted IDLs', () => {
@@ -194,9 +205,9 @@ describe('capability: program summary (address, name, standard)', () => {
         });
     });
 
-    /** Case: the workspace Anchor 0.31 program summarizes as Anchor (name titleCases). */
-    it('should summarize the Anchor 0.31 program', () => {
-        const result = summarizeProgram(loadSimple031Idl());
+    /** Case: the workspace Anchor 0.31 program, fetched through anchor's client, summarizes as Anchor. */
+    it('should summarize the Anchor 0.31 program', async () => {
+        const result = summarizeProgram(await fetchSimple031Idl());
 
         expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
         expect(result).toEqual({
@@ -262,9 +273,9 @@ describe('capability: instruction naming (discriminator table)', () => {
         expect(result).toBe('Increment');
     });
 
-    /** Case: the same resolution works on the Anchor 0.31 document. */
-    it('should label the Anchor 0.31 program instruction', () => {
-        const simple031 = loadSimple031Idl();
+    /** Case: the same resolution works on the Anchor 0.31 document fetched through anchor's client. */
+    it('should label the Anchor 0.31 program instruction', async () => {
+        const simple031 = await fetchSimple031Idl();
         const result = labelInstruction(simple031, incrementIx(simple031));
 
         expectTypeOf(result).toEqualTypeOf<string>();
@@ -304,7 +315,8 @@ describe('capability: instruction decoding', () => {
         expect(conversionError).toBeUndefined();
         if (!converted) throw new Error('unreachable');
 
-        // the conversion result is a Codama root, so the client narrows like a native one
+        // the conversion result is the WIDE CodamaIdl (literal types do not survive a runtime
+        // conversion), so the client narrows like a native root and the shape stays per-call
         const client = createIdlClient(converted);
 
         const decode = client.decodeInstruction(incrementIx(simple));
@@ -315,30 +327,30 @@ describe('capability: instruction decoding', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
-    /** Case: a modern Anchor document decodes through the default codama engine. */
+    /** Case: a modern Anchor document decodes through the default codama engine, args inferred. */
     it('should decode the modern Anchor program instruction', () => {
-        const simple = loadSimpleIdl();
+        const simple = loadSimpleIdlTyped();
         const client = createIdlClient(simple);
 
         const decode = client.decodeInstruction(incrementIx(simple));
-        const result = client.getDecodedData<{ amount: bigint }>(decode);
+        const result = client.getDecodedData(decode);
 
         // the anchor client keeps every arm (codama engine + injected-decoder anchor arm)
         expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
 
-    /** Case: the Anchor 0.31 document decodes the same way. */
-    it('should decode the Anchor 0.31 program instruction', () => {
-        const simple031 = loadSimple031Idl();
+    /** Case: the Anchor 0.31 document fetched through anchor's client decodes with args inferred. */
+    it('should decode the Anchor 0.31 program instruction', async () => {
+        const simple031 = await fetchSimple031Idl();
         const client = createIdlClient(simple031);
 
         const decode = client.decodeInstruction(incrementIx(simple031));
-        const result = client.getDecodedData<{ amount: bigint }>(decode);
+        const result = client.getDecodedData(decode);
 
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
@@ -377,27 +389,29 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
-    /** Case: a loader-declared literal type (SimpleIdl) — zero-generic instruction-args inference. */
-    it('should infer the instruction payload when the loader declares the literal type', () => {
-        // same wide-JSON read as loadSimpleIdl — only the loader's return annotation differs; the
-        // compiler reads arg names/types straight from the document (generate-idl-literal.mjs)
+    /** Case: the anchor-generated type shipped with the program repo — zero-generic instruction-args inference. */
+    it('should infer the instruction payload from the generated program type', () => {
+        // the loader pairs the built IDL JSON with target/types (`Program<Simple>` idiom) — the
+        // compiler reads arg names/types straight from the anchor build output, no copies
         const simple = loadSimpleIdlTyped();
         const client = createIdlClient(simple);
 
         const decode = client.decodeInstruction(incrementIx(simple));
         const result = client.getDecodedData(decode);
 
-        expectTypeOf(simple).toEqualTypeOf<SimpleIdl>();
+        expectTypeOf(simple).toEqualTypeOf<Simple>();
         // the union covers every declared instruction: increment({amount}) | initialize (no args → {})
         expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
         expect(result).toMatchObject({ amount: 42n });
     });
 
-    /** Case: the same literal-typed loader — zero-generic account-fields inference. */
-    it('should infer the account payload when the loader declares the literal type', () => {
+    /** Case: the same generated type — zero-generic account-fields inference. */
+    it('should infer the account payload from the generated program type', () => {
         const simple = loadSimpleIdlTyped();
         const client = createIdlClient(simple);
 
+        // the type's camelCase view matches the codama-DECODED payload keys; only document name
+        // reads differ at runtime (the JSON keeps Rust casing, e.g. 'Counter')
         const decode = client.decodeAccount(counterAccountData(simple));
         const result = client.getDecodedData(decode);
 
@@ -408,46 +422,15 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
         });
     });
 
-    /** Case: anchor's Program<> companion type as the literal source — same zero-generic inference. */
-    it("should infer the instruction payload from anchor's generated Program<> companion type", () => {
-        // the anchor idiom: pair the runtime JSON with the target/types literal — the same cast
-        // consumers already write for `new Program<Simple>(idl as Simple, …)`
-        const simple = loadSimpleIdl() as Simple;
-        const client = createIdlClient(simple);
-
-        const decode = client.decodeInstruction(incrementIx(simple));
-        const result = client.getDecodedData(decode);
-
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
-        expect(result).toMatchObject({ amount: 42n });
-    });
-
-    /** Case: companion-type account inference — field types survive the type's camelCase naming lie. */
-    it("should infer the account payload from anchor's generated Program<> companion type", () => {
-        const simple = loadSimpleIdl() as Simple;
-        const client = createIdlClient(simple);
-
-        // caveat of the idiom: the generated type camelCases names ('counter') while the runtime
-        // JSON keeps Rust casing ('Counter') — payload FIELD types are unaffected, name reads lie
-        const decode = client.decodeAccount(counterAccountData(simple));
-        const result = client.getDecodedData(decode);
-
-        expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
-        expect(result).toMatchObject({
-            authority: '11111111111111111111111111111111',
-            count: 7n,
-        });
-    });
-
-    /** Case: the document arrives via anchor's own Program.fetchIdl<Simple> — fetched value infers too. */
+    /** Case: the document arrives through anchor's client (Program.fetchIdl<Simple031>) — the fetched value infers too. */
     it("should infer payloads for an IDL fetched with anchor's Program.fetchIdl (mocked transport)", async () => {
-        const raw = loadSimpleIdl();
+        const raw = loadSimple031Idl();
         // no HTTP: the connection serves the anchor IDL PDA account straight from the fixture
         const provider = {
             connection: { getAccountInfo: async () => idlAccountInfo(raw) },
         } as unknown as Provider;
 
-        const fetched = await Program.fetchIdl<Simple>(raw.address, provider);
+        const fetched = await Program.fetchIdl<Simple031>(raw.address, provider);
         if (!fetched) throw new Error('mocked IDL account must resolve');
 
         const client = createIdlClient(fetched);
@@ -475,13 +458,13 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
 });
 
 describe('capability: account decoding', () => {
-    /** Case: raw account bytes decode via the document's declared account discriminator (modern Anchor). */
+    /** Case: raw account bytes decode via the document's declared discriminator, fields inferred (modern Anchor). */
     it('should decode raw counter account bytes of the modern Anchor program', () => {
-        const simple = loadSimpleIdl();
+        const simple = loadSimpleIdlTyped();
         const client = createIdlClient(simple);
 
         const decode = client.decodeAccount(counterAccountData(simple));
-        const result = client.getDecodedData<{ authority: string; count: bigint }>(decode);
+        const result = client.getDecodedData(decode);
 
         expectTypeOf(decode).toEqualTypeOf<AccountDecode>();
         expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
@@ -492,12 +475,14 @@ describe('capability: account decoding', () => {
         });
     });
 
-    /** Case: the same account decode works on the Anchor 0.31 document. */
-    it('should decode raw counter account bytes of the Anchor 0.31 program', () => {
-        const simple031 = loadSimple031Idl();
+    /** Case: the same account decode on the Anchor 0.31 document, held wide — the field shape is passed per call. */
+    it('should decode raw counter account bytes of the Anchor 0.31 program', async () => {
+        // annotating wide models the fetch-without-a-type situation (Program.fetchIdl with no generic)
+        const simple031: AnchorIdl = await fetchSimple031Idl();
         const client = createIdlClient(simple031);
 
         const decode = client.decodeAccount(counterAccountData(simple031));
+        // the deliberate per-call variant: the declared shape types the result exactly
         const result = client.getDecodedData<{ authority: string; count: bigint }>(decode);
 
         expectTypeOf(decode).toEqualTypeOf<AccountDecode>();

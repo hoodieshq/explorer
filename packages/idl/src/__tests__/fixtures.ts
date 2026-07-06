@@ -3,10 +3,11 @@ import { address, type Instruction } from '@solana/kit';
 import type { AnchorIdl, CodamaIdl, LegacyAnchorIdl } from '../types';
 
 export { loadLetMeBuyIdl, loadLetMeBuyPmpIdl } from './generated/let-me-buy';
+// companion types come straight from the program packages — anchor build output, no copies
+export { type Simple } from '@explorer/idl-program-simple/types';
+export { type Simple031 } from '@explorer/idl-program-simple-031/types';
 export { loadSimple031Idl } from './generated/simple-031';
 export { loadSimpleIdl, loadSimpleIdlTyped } from './generated/simple';
-export { type SimpleIdl } from './generated/simple.literal';
-export { type Simple } from './generated/simple.types';
 export { loadTokenkegIdl } from './generated/tokenkeg';
 
 export const u64le = (value: bigint): number[] => {

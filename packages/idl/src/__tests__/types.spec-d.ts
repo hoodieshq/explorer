@@ -8,6 +8,7 @@ import { convertToCodama } from '../convert';
 import { decodeAccountWithIdl } from '../decode-account';
 import { decodeInstructionWithIdl } from '../decode-instruction';
 import { getIdlStandard, getIdlVersion, isAnchorIdl, isCodamaIdl, isSupportedIdl } from '../detect';
+import type { AccountDataOf, InstructionDataOf } from '../infer';
 import {
     IDL_ERROR__ACCOUNT_DECODE_FAILED,
     IDL_ERROR__IDL_PARSE_FAILED,
@@ -32,7 +33,7 @@ import {
     type InstructionHandlers,
     type SupportedIdl,
 } from '../types';
-import { incrementIx, loadSimpleIdl, loadTokenkegIdl } from './fixtures';
+import { incrementIx, loadSimpleIdl, loadTokenkegIdl, type Simple, type Simple031 } from './fixtures';
 
 // Wide runtime documents (this file is typecheck-only — nothing executes).
 const anchorIdl = loadSimpleIdl();
@@ -163,6 +164,15 @@ describe('decoder payload inference', () => {
         if (decode.kind === IdlStandard.Codama) {
             expectTypeOf(client.getDecodedData(decode)).toEqualTypeOf<{ amount: bigint }>();
         }
+    });
+
+    it('should infer arguments and accounts from the anchor-generated companion types', () => {
+        // anchor's target/types view — args union covers every instruction (increment({amount}) |
+        // initialize (no args → {})), accounts map to their struct fields
+        expectTypeOf<InstructionDataOf<Simple>>().toEqualTypeOf<{ amount: bigint } | NonNullable<unknown>>();
+        expectTypeOf<AccountDataOf<Simple>>().toEqualTypeOf<{ authority: string; count: bigint }>();
+        expectTypeOf<InstructionDataOf<Simple031>>().toEqualTypeOf<{ amount: bigint } | NonNullable<unknown>>();
+        expectTypeOf<AccountDataOf<Simple031>>().toEqualTypeOf<{ authority: string; count: bigint }>();
     });
 
     it('should degrade to unknown for wide runtime documents and accept a per-call override', () => {
