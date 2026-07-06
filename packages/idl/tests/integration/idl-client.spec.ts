@@ -96,13 +96,6 @@ function incrementIx(idl: AnchorIdl): Instruction {
     };
 }
 
-// The library's recommended conversion, unwrapped for test brevity.
-function convertedToCodama(idl: AnchorIdl): CodamaIdl {
-    const [error, converted] = convertToCodama(idl);
-    if (error) throw error;
-    return converted;
-}
-
 const borshString = (value: string): number[] => {
     const bytes = new TextEncoder().encode(value);
     const length = new Uint8Array(4);
@@ -173,7 +166,10 @@ describe('capability: client creation from untrusted IDLs', () => {
 
 describe('capability: program summary (address, name, standard)', () => {
     it('should summarize a Codama-native program', () => {
-        expect(summarizeProgram(codamaIdl)).toEqual({
+        const result = summarizeProgram(codamaIdl);
+
+        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
+        expect(result).toEqual({
             address: CODAMA_PROGRAM_ADDRESS,
             name: 'Token Vault',
             standard: IdlStandard.Codama,
@@ -182,7 +178,13 @@ describe('capability: program summary (address, name, standard)', () => {
 
     it('should summarize the converted Anchor document as a Codama program', () => {
         const simple = loadSimpleIdl();
-        expect(summarizeProgram(convertedToCodama(simple))).toEqual({
+        const [conversionError, converted] = convertToCodama(simple);
+
+        expect(conversionError).toBeUndefined();
+        const result = summarizeProgram(converted);
+
+        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
+        expect(result).toEqual({
             address: simple.address,
             name: 'Simple',
             standard: IdlStandard.Codama,
@@ -190,7 +192,10 @@ describe('capability: program summary (address, name, standard)', () => {
     });
 
     it('should summarize the modern Anchor program', () => {
-        expect(summarizeProgram(loadSimpleIdl())).toEqual({
+        const result = summarizeProgram(loadSimpleIdl());
+
+        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
+        expect(result).toEqual({
             address: '7u9qtZPjJcQ1jZsZxAGyRM4aGLNXqK5pzawpULopWFqB',
             name: 'Simple',
             standard: IdlStandard.Anchor,
@@ -198,7 +203,10 @@ describe('capability: program summary (address, name, standard)', () => {
     });
 
     it('should summarize the Anchor 0.31 program', () => {
-        expect(summarizeProgram(loadSimple031Idl())).toEqual({
+        const result = summarizeProgram(loadSimple031Idl());
+
+        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
+        expect(result).toEqual({
             address: '391y4fKGKUEt7n6HuKrkfGYLdkvnk6rvneR7snKe6wzy',
             name: 'Simple 031',
             standard: IdlStandard.Anchor,
@@ -206,7 +214,10 @@ describe('capability: program summary (address, name, standard)', () => {
     });
 
     it('should summarize SPL Token from its real PMP codama root', () => {
-        expect(summarizeProgram(loadTokenkegIdl())).toEqual({
+        const result = summarizeProgram(loadTokenkegIdl());
+
+        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
+        expect(result).toEqual({
             address: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
             name: 'Token',
             standard: IdlStandard.Codama,
@@ -214,7 +225,10 @@ describe('capability: program summary (address, name, standard)', () => {
     });
 
     it('should summarize the real mainnet Anchor program (let_me_buy, Anchor PDA leg)', () => {
-        expect(summarizeProgram(loadLetMeBuyIdl())).toEqual({
+        const result = summarizeProgram(loadLetMeBuyIdl());
+
+        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
+        expect(result).toEqual({
             address: 'BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya',
             name: 'Let Me Buy',
             standard: IdlStandard.Anchor,
@@ -222,7 +236,10 @@ describe('capability: program summary (address, name, standard)', () => {
     });
 
     it('should summarize the same program from its PMP leg — Anchor-format there too (PMP is storage, not a format)', () => {
-        expect(summarizeProgram(loadLetMeBuyPmpIdl())).toEqual({
+        const result = summarizeProgram(loadLetMeBuyPmpIdl());
+
+        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
+        expect(result).toEqual({
             address: 'BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya',
             name: 'Let Me Buy',
             standard: IdlStandard.Anchor,
@@ -232,34 +249,53 @@ describe('capability: program summary (address, name, standard)', () => {
 
 describe('capability: instruction naming (discriminator table)', () => {
     it('should label a Codama-native instruction', () => {
-        expect(labelInstruction(codamaIdl, codamaTransferIx)).toBe('Transfer');
+        const result = labelInstruction(codamaIdl, codamaTransferIx);
+
+        expectTypeOf(result).toEqualTypeOf<string>();
+        expect(result).toBe('Transfer');
     });
 
     it('should NOT label instructions through the converted document (conversion trade-off)', () => {
         // the codama name table only resolves PMP-style int fields, not anchor byte arrays — the
         // native Anchor routes below resolve the same instruction
         const simple = loadSimpleIdl();
-        expect(labelInstruction(convertedToCodama(simple), incrementIx(simple))).toBe('Unknown');
+        const [, converted] = convertToCodama(simple);
+        const result = labelInstruction(converted, incrementIx(simple));
+
+        expectTypeOf(result).toEqualTypeOf<string>();
+        expect(result).toBe('Unknown');
     });
 
     it('should label the modern Anchor program instruction', () => {
         const simple = loadSimpleIdl();
-        expect(labelInstruction(simple, incrementIx(simple))).toBe('Increment');
+        const result = labelInstruction(simple, incrementIx(simple));
+
+        expectTypeOf(result).toEqualTypeOf<string>();
+        expect(result).toBe('Increment');
     });
 
     it('should label the Anchor 0.31 program instruction', () => {
         const simple031 = loadSimple031Idl();
-        expect(labelInstruction(simple031, incrementIx(simple031))).toBe('Increment');
+        const result = labelInstruction(simple031, incrementIx(simple031));
+
+        expectTypeOf(result).toEqualTypeOf<string>();
+        expect(result).toBe('Increment');
     });
 
     it("should label SPL Token's transfer through the real codama root", () => {
         const tokenkeg = loadTokenkegIdl();
-        expect(labelInstruction(tokenkeg, tokenkegTransferIx(tokenkeg))).toBe('Transfer');
+        const result = labelInstruction(tokenkeg, tokenkegTransferIx(tokenkeg));
+
+        expectTypeOf(result).toEqualTypeOf<string>();
+        expect(result).toBe('Transfer');
     });
 
     it('should label the real mainnet Anchor program instruction', () => {
         const letMeBuy = loadLetMeBuyIdl();
-        expect(labelInstruction(letMeBuy, addProductIx(letMeBuy))).toBe('Add Product');
+        const result = labelInstruction(letMeBuy, addProductIx(letMeBuy));
+
+        expectTypeOf(result).toEqualTypeOf<string>();
+        expect(result).toBe('Add Product');
     });
 });
 
@@ -273,7 +309,8 @@ describe('capability: instruction decoding', () => {
 
     it('should decode through the converted Anchor document', () => {
         const simple = loadSimpleIdl();
-        const result = decodeInstructionArgs(convertedToCodama(simple), incrementIx(simple));
+        const [, converted] = convertToCodama(simple);
+        const result = decodeInstructionArgs(converted, incrementIx(simple));
 
         expectTypeOf(result).toEqualTypeOf<unknown>();
         expect(result).toMatchObject({ amount: 42n });
