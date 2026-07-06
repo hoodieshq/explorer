@@ -1,0 +1,11 @@
+{
+    "name": "@explorer/idl-program-simple",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": "./target/idl/simple.json"
+    },
+    "scripts": {
+        "build": "anchor build"
+    }
+}
