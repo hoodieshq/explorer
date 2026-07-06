@@ -4,9 +4,9 @@ import type { Instruction } from '@solana/kit';
 
 import type { IdlClientOptions } from './client';
 import { convertToCodama } from './convert';
-import { getIdlProgramAddress, isAnchorIdl } from './detect';
-import { IDL_ERROR__IDL_ADDRESS_MISMATCH, IDL_ERROR__IDL_PARSE_FAILED, IdlError } from './errors';
-import { IdlStandard, type InstructionDecodeFor, type SupportedIdl } from './types';
+import { getIdlProgramAddress, isAnchorIdl, isCodamaIdl } from './detect';
+import { IDL_ERROR__IDL_ADDRESS_MISMATCH, IDL_ERROR__IDL_PARSE_FAILED, IdlError, ok } from './errors';
+import { type AnchorIdl, type CodamaIdl, IdlStandard, type InstructionDecodeFor, type SupportedIdl } from './types';
 
 // Single Codama pipeline (Anchor IDLs convert via nodes-from-anchor); the anchor arm only comes from the injected legacy decoder until the Anchor-rich path lands (mcp-endpoint Step 6).
 export function decodeInstructionWithIdl<T extends SupportedIdl>(
@@ -24,7 +24,7 @@ export function decodeInstructionWithIdl<T extends SupportedIdl>(
     }
 
     const errors: IdlError[] = [];
-    const [convertError, root] = convertToCodama(idl);
+    const [convertError, root] = isCodamaIdl(idl) ? ok<CodamaIdl>(idl) : convertToCodama(idl as AnchorIdl);
     if (convertError) errors.push(convertError);
     if (root) {
         try {

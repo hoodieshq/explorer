@@ -2,14 +2,14 @@
 import { parseAccountData } from '@codama/dynamic-parsers';
 
 import { convertToCodama } from './convert';
-import { getIdlStandard } from './detect';
-import { IDL_ERROR__ACCOUNT_DECODE_FAILED, IdlError } from './errors';
-import { type AccountDecodeFor, IdlStandard, type SupportedIdl } from './types';
+import { getIdlStandard, isCodamaIdl } from './detect';
+import { IDL_ERROR__ACCOUNT_DECODE_FAILED, IdlError, ok } from './errors';
+import { type AccountDecodeFor, type AnchorIdl, type CodamaIdl, IdlStandard, type SupportedIdl } from './types';
 
 // Same Codama pipeline as the instruction decode — account struct layouts travel with the nodes-from-anchor conversion.
 export function decodeAccountWithIdl<T extends SupportedIdl>(idl: T, data: Uint8Array): AccountDecodeFor<T> {
     const errors: IdlError[] = [];
-    const [convertError, root] = convertToCodama(idl);
+    const [convertError, root] = isCodamaIdl(idl) ? ok<CodamaIdl>(idl) : convertToCodama(idl as AnchorIdl);
     if (convertError) errors.push(convertError);
     if (root) {
         try {

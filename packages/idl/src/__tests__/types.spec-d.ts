@@ -113,6 +113,8 @@ describe('decode result inference', () => {
 
     it('should type the conversion as an error-first result declaring its only failure code', () => {
         expectTypeOf(convertToCodama(anchorIdl)).toEqualTypeOf<Result<CodamaIdl, typeof IDL_ERROR__IDL_PARSE_FAILED>>();
+        // @ts-expect-error the conversion takes Anchor documents only — Codama roots need no conversion
+        convertToCodama(codamaIdl);
     });
 });
 
