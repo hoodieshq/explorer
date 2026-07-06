@@ -11,9 +11,7 @@ import {
     type AccountDecode,
     type AnchorIdl,
     type CodamaIdl,
-    convertToCodama,
     createIdlClient,
-    getDecodedData,
     getIdlStandard,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     IdlStandard,
@@ -25,6 +23,8 @@ import {
     isLegacyAnchorIdl,
     tryCreateIdlClient,
 } from '@explorer/idl';
+// the engine lives behind its own entry; codamaProvider is the DEFAULT and never needs passing
+import { codamaProvider, convertToCodama } from '@explorer/idl/codama';
 import { address, type Instruction } from '@solana/kit';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
@@ -32,8 +32,8 @@ import {
     CODAMA_PROGRAM_ADDRESS,
     codamaIdl,
     codamaTransferIx,
-    legacyAnchorIdl,
-    legacyWithdrawIx,
+    pre030AnchorIdl,
+    pre030WithdrawIx,
     loadLetMeBuyIdl,
     loadLetMeBuyPmpIdl,
     loadSimple031Idl,
@@ -295,11 +295,11 @@ describe('capability: instruction decoding', () => {
         const client = createIdlClient(codamaIdl);
 
         const decode = client.decodeInstruction(codamaTransferIx);
-        const result = getDecodedData(decode);
+        const result = client.getDecodedData<{ amount: bigint }>(decode);
 
         // the codama client statically excludes the anchor arm
         expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
@@ -314,10 +314,10 @@ describe('capability: instruction decoding', () => {
         const client = createIdlClient(converted);
 
         const decode = client.decodeInstruction(incrementIx(simple));
-        const result = getDecodedData(decode);
+        const result = client.getDecodedData<{ amount: bigint }>(decode);
 
         expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
@@ -327,11 +327,11 @@ describe('capability: instruction decoding', () => {
         const client = createIdlClient(simple);
 
         const decode = client.decodeInstruction(incrementIx(simple));
-        const result = getDecodedData(decode);
+        const result = client.getDecodedData<{ amount: bigint }>(decode);
 
         // the anchor client keeps every arm (codama engine + injected-decoder anchor arm)
         expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
@@ -341,10 +341,10 @@ describe('capability: instruction decoding', () => {
         const client = createIdlClient(simple031);
 
         const decode = client.decodeInstruction(incrementIx(simple031));
-        const result = getDecodedData(decode);
+        const result = client.getDecodedData<{ amount: bigint }>(decode);
 
         expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
@@ -354,10 +354,10 @@ describe('capability: instruction decoding', () => {
         const client = createIdlClient(tokenkeg);
 
         const decode = client.decodeInstruction(tokenkegTransferIx(tokenkeg));
-        const result = getDecodedData(decode);
+        const result = client.getDecodedData<{ amount: bigint }>(decode);
 
         expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
@@ -367,10 +367,10 @@ describe('capability: instruction decoding', () => {
         const client = createIdlClient(letMeBuy);
 
         const decode = client.decodeInstruction(addProductIx(letMeBuy));
-        const result = getDecodedData(decode);
+        const result = client.getDecodedData<{ name: string; price: bigint; storeName: string }>(decode);
 
         expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ name: string; price: bigint; storeName: string } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({
             name: 'thing',
@@ -380,18 +380,19 @@ describe('capability: instruction decoding', () => {
     });
 });
 
-describe('capability: receive instruction data (generic accessor)', () => {
+describe('capability: receive instruction data (IDL-typed accessor)', () => {
     it("should decode SPL Token's transfer and hand back the args generically", () => {
         const tokenkeg = loadTokenkegIdl();
-        const client = createIdlClient(tokenkeg);
+        // picking the default engine explicitly — heavier engines (anchor) plug in the same way
+        const client = createIdlClient(tokenkeg, { provider: codamaProvider() });
 
         const decode = client.decodeInstruction(tokenkegTransferIx(tokenkeg));
-        // the generic accessor returns the parsed args without per-standard digging
-        const result = getDecodedData(decode);
+        // the accessor returns the parsed args without per-standard digging, typed by the provider
+        const result = client.getDecodedData<{ amount: bigint }>(decode);
 
         // the codama client statically excludes the anchor arm
         expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(result).toMatchObject({ amount: 42n });
     });
 
@@ -400,11 +401,11 @@ describe('capability: receive instruction data (generic accessor)', () => {
         const client = createIdlClient(simple);
 
         const decode = client.decodeInstruction(incrementIx(simple));
-        const result = getDecodedData(decode);
+        const result = client.getDecodedData<{ amount: bigint }>(decode);
 
         // the anchor client keeps every arm (codama engine + injected-decoder anchor arm)
         expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(result).toMatchObject({ amount: 42n });
     });
 
@@ -413,12 +414,12 @@ describe('capability: receive instruction data (generic accessor)', () => {
         const client = createIdlClient(simple);
 
         const outcome = client.decodeInstruction(incrementIx(simple), {
-            anchor: decode => ({ data: getDecodedData(decode), source: 'anchor' }),
-            codama: decode => ({ data: getDecodedData(decode), source: 'codama' }),
-            unknown: decode => ({ data: getDecodedData(decode), source: 'raw' }),
+            anchor: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'anchor' }),
+            codama: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'codama' }),
+            unknown: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'raw' }),
         });
 
-        expectTypeOf(outcome).toEqualTypeOf<{ data: unknown; source: string }>();
+        expectTypeOf(outcome).toEqualTypeOf<{ data: { amount: bigint } | undefined; source: string }>();
         expect(outcome.source).toBe('codama');
         expect(outcome.data).toMatchObject({ amount: 42n });
     });
@@ -430,10 +431,10 @@ describe('capability: account decoding', () => {
         const client = createIdlClient(simple);
 
         const decode = client.decodeAccount(counterAccountData(simple));
-        const result = getDecodedData(decode);
+        const result = client.getDecodedData<{ authority: string; count: bigint }>(decode);
 
         expectTypeOf(decode).toEqualTypeOf<AccountDecode>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({
             authority: '11111111111111111111111111111111',
@@ -446,10 +447,10 @@ describe('capability: account decoding', () => {
         const client = createIdlClient(simple031);
 
         const decode = client.decodeAccount(counterAccountData(simple031));
-        const result = getDecodedData(decode);
+        const result = client.getDecodedData<{ authority: string; count: bigint }>(decode);
 
         expectTypeOf(decode).toEqualTypeOf<AccountDecode>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({
             authority: '11111111111111111111111111111111',
@@ -476,16 +477,17 @@ describe('capability: injected legacyAnchorDecoder', () => {
 
     it('should produce the anchor arm through the injected decoder when the document misses', () => {
         const simple = loadSimpleIdl();
-        const decode = clientWithLegacyDecoder().decodeInstruction({
+        const client = clientWithLegacyDecoder();
+        const decode = client.decodeInstruction({
             accounts: [],
             data: new Uint8Array([...AIRDROP_DISCRIMINATOR, ...u64le(7n)]),
             programAddress: address(simple.address),
         });
 
-        const result = getDecodedData(decode);
+        const result = client.getDecodedData<{ amount: bigint; name: string }>(decode);
 
         expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
-        expectTypeOf(result).toEqualTypeOf<unknown>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint; name: string } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Anchor);
         expect(result).toEqual({ amount: 7n, name: 'airdrop' });
     });
@@ -505,12 +507,12 @@ describe('capability: injected legacyAnchorDecoder', () => {
 describe('capability: legacy Anchor fallback', () => {
     it('should refuse legacy documents and route them to consumer-owned decoding', () => {
         // the client refuses with a typed error...
-        const [error] = tryCreateIdlClient(legacyAnchorIdl);
+        const [error] = tryCreateIdlClient(pre030AnchorIdl);
         expect(error?.code).toBe(IDL_ERROR__UNSUPPORTED_IDL_FORMAT);
 
         // ...the guard identifies the document, and the consumer decodes it themselves
         // (see legacy-anchor/custom-decoder.spec.ts for a working Borsh-style legacy decoder)
-        expect(isLegacyAnchorIdl(legacyAnchorIdl)).toBe(true);
-        expect(legacyWithdrawIx.data.length).toBeGreaterThan(8);
+        expect(isLegacyAnchorIdl(pre030AnchorIdl)).toBe(true);
+        expect(pre030WithdrawIx.data.length).toBeGreaterThan(8);
     });
 });

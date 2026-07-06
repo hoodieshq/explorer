@@ -10,7 +10,7 @@ import {
     MODERN_ANCHOR_IDL_WILDCARD,
 } from '../../detect';
 import { IdlStandard } from '../../types';
-import { anchorIdl, codamaIdl, legacyAnchorIdl } from '../fixtures';
+import { anchorIdl, codamaIdl, pre030AnchorIdl } from '../fixtures';
 
 describe('isAnchorIdl', () => {
     it('should accept a modern Anchor IDL', () => {
@@ -19,7 +19,7 @@ describe('isAnchorIdl', () => {
     });
 
     it('should reject a legacy Anchor IDL', () => {
-        expect(isAnchorIdl(legacyAnchorIdl)).toBe(false);
+        expect(isAnchorIdl(pre030AnchorIdl)).toBe(false);
     });
 
     it('should reject a Codama root node', () => {

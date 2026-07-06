@@ -6,23 +6,23 @@ import { createIdlClient, type IdlClient, tryCreateIdlClient } from '../../clien
 import { isLegacyAnchorIdl } from '../../detect';
 import { IDL_ERROR__UNSUPPORTED_IDL_FORMAT, type IdlError } from '../../errors';
 import type { LegacyAnchorIdl } from '../../types';
-import { legacyAnchorIdl, legacyGeneratedIdl, legacyWithdrawIx } from '../fixtures';
+import { pre030AnchorIdl, pre030GeneratedAnchorIdl, pre030WithdrawIx } from '../fixtures';
 
 describe('sample: legacy Anchor (< 0.30) IDL — custom decoder outside the client', () => {
     it('should reject a legacy IDL at compile time in the typed constructor', () => {
         // @ts-expect-error legacy Anchor IDLs are not SupportedIdl — the compiler blocks the client route
-        createIdlClient(legacyAnchorIdl);
+        createIdlClient(pre030AnchorIdl);
     });
 
     it('should force the developer through error handling for untrusted input', () => {
-        const [error, client] = tryCreateIdlClient(legacyAnchorIdl);
+        const [error, client] = tryCreateIdlClient(pre030AnchorIdl);
 
         expectTypeOf(error).toEqualTypeOf<IdlError<typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> | undefined>();
         expectTypeOf(client).toEqualTypeOf<IdlClient | undefined>();
     });
 
     it('should narrow the legacy document with the guard so a custom decoder receives a typed IDL', () => {
-        const value: unknown = legacyAnchorIdl;
+        const value: unknown = pre030AnchorIdl;
         if (isLegacyAnchorIdl(value)) {
             expectTypeOf(value).toEqualTypeOf<LegacyAnchorIdl>();
             expectTypeOf(value.instructions[0].name).toEqualTypeOf<string>();
@@ -39,16 +39,16 @@ declare function decodeLegacy<T extends LegacyAnchorIdl>(
 
 describe('sample: legacy Anchor with generated types', () => {
     it('should satisfy the LegacyAnchorIdl contract with a const-asserted generated document', () => {
-        expectTypeOf(legacyGeneratedIdl).toExtend<LegacyAnchorIdl>();
+        expectTypeOf(pre030GeneratedAnchorIdl).toExtend<LegacyAnchorIdl>();
     });
 
     it('should give the custom decoder literal instruction-name guidance from the generated type', () => {
-        const decoded = decodeLegacy(legacyGeneratedIdl, legacyWithdrawIx);
+        const decoded = decodeLegacy(pre030GeneratedAnchorIdl, pre030WithdrawIx);
         expectTypeOf(decoded).toEqualTypeOf<{ args: unknown; name: 'close' | 'withdraw' } | undefined>();
     });
 
     it('should still reject the generated legacy document in the client at compile time', () => {
         // @ts-expect-error generated or not, a legacy IDL is not SupportedIdl
-        createIdlClient(legacyGeneratedIdl);
+        createIdlClient(pre030GeneratedAnchorIdl);
     });
 });

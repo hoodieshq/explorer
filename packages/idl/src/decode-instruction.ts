@@ -2,17 +2,23 @@
 import { parseInstruction } from '@codama/dynamic-parsers';
 import type { Instruction } from '@solana/kit';
 
-import type { IdlClientOptions } from './client';
 import { convertToCodama } from './convert';
 import { getIdlProgramAddress, isAnchorIdl, isCodamaIdl } from './detect';
 import { IDL_ERROR__IDL_ADDRESS_MISMATCH, IDL_ERROR__IDL_PARSE_FAILED, IdlError, ok } from './errors';
-import { type AnchorIdl, type CodamaIdl, IdlStandard, type InstructionDecodeFor, type SupportedIdl } from './types';
+import {
+    type AnchorIdl,
+    type CodamaIdl,
+    IdlStandard,
+    type InstructionDecodeFor,
+    type LegacyDecoderOptions,
+    type SupportedIdl,
+} from './types';
 
 // Single Codama pipeline (Anchor IDLs convert via nodes-from-anchor); the anchor arm only comes from the injected legacy decoder until the Anchor-rich path lands (mcp-endpoint Step 6).
 export function decodeInstructionWithIdl<T extends SupportedIdl>(
     idl: T,
     ix: Instruction,
-    options: IdlClientOptions = {},
+    options: LegacyDecoderOptions = {},
 ): InstructionDecodeFor<T> {
     // A declared-program mismatch is a wiring bug — fail loud rather than mis-decode against the wrong interface.
     const declaredAddress = getIdlProgramAddress(idl);

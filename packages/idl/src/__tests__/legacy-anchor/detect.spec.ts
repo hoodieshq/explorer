@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
 import { isLegacyAnchorIdl, isSupportedIdl } from '../../detect';
-import { anchorIdl, codamaIdl, legacyAnchorIdl } from '../fixtures';
+import { anchorIdl, codamaIdl, pre030AnchorIdl } from '../fixtures';
 
 describe('isLegacyAnchorIdl', () => {
     it('should recognize a legacy Anchor IDL', () => {
-        expect(isLegacyAnchorIdl(legacyAnchorIdl)).toBe(true);
+        expect(isLegacyAnchorIdl(pre030AnchorIdl)).toBe(true);
     });
 
     it('should stay outside the supported set', () => {
-        expect(isSupportedIdl(legacyAnchorIdl)).toBe(false);
+        expect(isSupportedIdl(pre030AnchorIdl)).toBe(false);
     });
 
     it('should reject both supported standards', () => {

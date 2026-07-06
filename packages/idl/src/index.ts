@@ -1,15 +1,14 @@
 export {
     createIdlClient,
-    getDecodedData,
     type IdlClient,
     type IdlClientOptions,
     isAnchorStandard,
     isCodamaStandard,
     tryCreateIdlClient,
 } from './client';
-export { convertToCodama } from './convert';
-export { decodeAccountWithIdl } from './decode-account';
-export { decodeInstructionWithIdl } from './decode-instruction';
+// the default engine's provider factory; the engine internals live behind the './codama' entry
+export { codamaProvider } from './codama';
+export type { AccountDataOf, InstructionDataOf } from './infer';
 export {
     getIdlFormatVersion,
     getIdlProgramVersion,
@@ -60,9 +59,11 @@ export {
     type CodamaIdl,
     IdlStandard,
     type IdlVersion,
+    type IdlDecodeProvider,
     type InstructionDecode,
     type InstructionDecodeFor,
     type InstructionHandlers,
     type LegacyAnchorIdl,
+    type LegacyDecoderOptions,
     type SupportedIdl,
 } from './types';

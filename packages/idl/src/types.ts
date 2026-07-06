@@ -1,5 +1,6 @@
 import type { parseAccountData, parseInstruction } from '@codama/dynamic-parsers';
 import type { Idl } from '@coral-xyz/anchor';
+import type { Instruction } from '@solana/kit';
 import type { RootNode } from 'codama';
 
 import type { IdlError } from './errors';
@@ -62,4 +63,20 @@ export type InstructionHandlers<T extends SupportedIdl, R> = {
 /** Handler map keyed by the decode arms possible for the client's IDL standard. */
 export type AccountHandlers<T extends SupportedIdl, R> = {
     [K in AccountDecodeFor<T>['kind']]: (decode: Extract<AccountDecodeFor<T>, { kind: K }>) => R;
+};
+
+/** The legacy-Anchor escape hatch — always injected, never bundled. */
+export type LegacyDecoderOptions = {
+    legacyAnchorDecoder?: (idl: AnchorIdl, ix: Instruction) => AnchorDecodedInstruction | undefined;
+};
+
+/**
+ * A decode engine bound to the client — it receives the client's IDL per call and decodes against
+ * it. The codama provider is the DEFAULT and covers both standards via the codama pipeline; heavier
+ * engines (the Anchor-rich path) ship as separate subpath providers and are used only when specified.
+ * Payload TYPES are not the provider's concern: they derive from the IDL type itself (see infer.ts).
+ */
+export type IdlDecodeProvider = {
+    decodeAccount(idl: SupportedIdl, data: Uint8Array): AccountDecode;
+    decodeInstruction(idl: SupportedIdl, ix: Instruction, options?: LegacyDecoderOptions): InstructionDecode;
 };

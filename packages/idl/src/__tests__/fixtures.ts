@@ -13,11 +13,11 @@ import type { AnchorIdl, CodamaIdl, LegacyAnchorIdl } from '../types';
 
 export const ANCHOR_PROGRAM_ADDRESS = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 export const CODAMA_PROGRAM_ADDRESS = 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr';
-export const LEGACY_PROGRAM_ADDRESS = '11111111111111111111111111111111';
+export const PRE030_PROGRAM_ADDRESS = '11111111111111111111111111111111';
 
 export const ANCHOR_INCREMENT_DISCRIMINATOR = [11, 18, 104, 9, 104, 174, 59, 33];
 // sha256('global:<name>')[0..8] derivation; exact bytes are irrelevant — the custom decoder just has to know them.
-export const LEGACY_WITHDRAW_DISCRIMINATOR = [183, 18, 70, 156, 148, 109, 161, 34];
+export const PRE030_WITHDRAW_DISCRIMINATOR = [183, 18, 70, 156, 148, 109, 161, 34];
 
 /** A minimal modern (spec 0.1.0) Anchor IDL: `increment(amount: u64)`. */
 export const anchorIdl: AnchorIdl = {
@@ -58,14 +58,14 @@ export const codamaIdl: CodamaIdl = rootNode(
 );
 
 /** A pre-0.30 Anchor IDL: top-level name/version, no `metadata.spec` — rejected by the client. */
-export const legacyAnchorIdl: LegacyAnchorIdl = {
+export const pre030AnchorIdl: LegacyAnchorIdl = {
     instructions: [{ name: 'withdraw' }],
     name: 'legacy_vault',
     version: '0.0.1',
 };
 
 /** The same legacy document as a compile-time literal — what pre-0.30 `anchor build` codegen shipped. */
-export const legacyGeneratedIdl = {
+export const pre030GeneratedAnchorIdl = {
     instructions: [
         { args: [{ name: 'amount', type: 'u64' }], name: 'withdraw' },
         { args: [], name: 'close' },
@@ -99,11 +99,11 @@ export const codamaTransferIx: Instruction & { accounts: []; data: Uint8Array } 
     programAddress: address(CODAMA_PROGRAM_ADDRESS),
 };
 
-/** `withdraw(amount: 42)` against {@link legacyAnchorIdl}, as a kit instruction. */
-export const legacyWithdrawIx: Instruction & { accounts: []; data: Uint8Array } = {
+/** `withdraw(amount: 42)` against {@link pre030AnchorIdl}, as a kit instruction. */
+export const pre030WithdrawIx: Instruction & { accounts: []; data: Uint8Array } = {
     accounts: [],
-    data: new Uint8Array([...LEGACY_WITHDRAW_DISCRIMINATOR, ...u64le(42n)]),
-    programAddress: address(LEGACY_PROGRAM_ADDRESS),
+    data: new Uint8Array([...PRE030_WITHDRAW_DISCRIMINATOR, ...u64le(42n)]),
+    programAddress: address(PRE030_PROGRAM_ADDRESS),
 };
 
 export const VAULT_PROGRAM_ADDRESS = 'So11111111111111111111111111111111111111112';
