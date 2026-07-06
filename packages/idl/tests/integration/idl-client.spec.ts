@@ -68,15 +68,6 @@ function labelInstruction(rawIdl: unknown, ix: Instruction): string {
     return name ?? 'Unknown';
 }
 
-/** App flow: decode an instruction from a transaction and hand its args to the renderer. */
-function decodeInstructionArgs(rawIdl: unknown, ix: Instruction): unknown {
-    const [error, client] = tryCreateIdlClient(rawIdl);
-    if (error) throw error;
-    const decode = client.decodeInstruction(ix);
-    if (decode.kind === 'unknown') throw decode.errors[0] ?? new Error('instruction did not match the IDL');
-    return getDecodedData(decode);
-}
-
 // Stand-in for fetched account bytes — assembled from the program's own declared discriminator.
 function counterAccountData(idl: AnchorIdl): Uint8Array {
     // the IDL JSON keeps the Rust name ("Counter"); only the generated TS type camelCases it
@@ -301,50 +292,86 @@ describe('capability: instruction naming (discriminator table)', () => {
 
 describe('capability: instruction decoding', () => {
     it('should decode a Codama-native instruction', () => {
-        const result = decodeInstructionArgs(codamaIdl, codamaTransferIx);
+        const client = createIdlClient(codamaIdl);
 
+        const decode = client.decodeInstruction(codamaTransferIx);
+        const result = getDecodedData(decode);
+
+        // the codama client statically excludes the anchor arm
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
         expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
 
     it('should decode through the converted Anchor document', () => {
         const simple = loadSimpleIdl();
-        const [, converted] = convertToCodama(simple);
-        const result = decodeInstructionArgs(converted, incrementIx(simple));
+        const [conversionError, converted] = convertToCodama(simple);
+        expect(conversionError).toBeUndefined();
+        if (!converted) throw new Error('unreachable');
 
+        // the conversion result is a Codama root, so the client narrows like a native one
+        const client = createIdlClient(converted);
+
+        const decode = client.decodeInstruction(incrementIx(simple));
+        const result = getDecodedData(decode);
+
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
         expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
 
     it('should decode the modern Anchor program instruction', () => {
         const simple = loadSimpleIdl();
-        const result = decodeInstructionArgs(simple, incrementIx(simple));
+        const client = createIdlClient(simple);
 
+        const decode = client.decodeInstruction(incrementIx(simple));
+        const result = getDecodedData(decode);
+
+        // the anchor client keeps every arm (codama engine + injected-decoder anchor arm)
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
         expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
 
     it('should decode the Anchor 0.31 program instruction', () => {
         const simple031 = loadSimple031Idl();
-        const result = decodeInstructionArgs(simple031, incrementIx(simple031));
+        const client = createIdlClient(simple031);
 
+        const decode = client.decodeInstruction(incrementIx(simple031));
+        const result = getDecodedData(decode);
+
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
         expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
 
     it("should decode SPL Token's transfer through the real codama root", () => {
         const tokenkeg = loadTokenkegIdl();
-        const result = decodeInstructionArgs(tokenkeg, tokenkegTransferIx(tokenkeg));
+        const client = createIdlClient(tokenkeg);
 
+        const decode = client.decodeInstruction(tokenkegTransferIx(tokenkeg));
+        const result = getDecodedData(decode);
+
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
         expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
 
     it('should decode the real mainnet Anchor program instruction', () => {
         const letMeBuy = loadLetMeBuyIdl();
-        const result = decodeInstructionArgs(letMeBuy, addProductIx(letMeBuy));
+        const client = createIdlClient(letMeBuy);
 
+        const decode = client.decodeInstruction(addProductIx(letMeBuy));
+        const result = getDecodedData(decode);
+
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
         expectTypeOf(result).toEqualTypeOf<unknown>();
+        expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({
             name: 'thing',
             price: 42n,
