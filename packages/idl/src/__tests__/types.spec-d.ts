@@ -2,7 +2,14 @@
 import type { Instruction } from '@solana/kit';
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { createIdlClient, type IdlClient, isAnchorStandard, isCodamaStandard, tryCreateIdlClient } from '../client';
+import {
+    createIdlClient,
+    getDecodedData,
+    type IdlClient,
+    isAnchorStandard,
+    isCodamaStandard,
+    tryCreateIdlClient,
+} from '../client';
 import { decodeAccountWithIdl } from '../decode-account';
 import { decodeInstructionWithIdl } from '../decode-instruction';
 import { getIdlStandard, getIdlVersion, isAnchorIdl, isCodamaIdl, isSupportedIdl } from '../detect';
@@ -19,6 +26,7 @@ import {
     type AccountDecode,
     type AccountDecodeFor,
     type AnchorIdl,
+    type CodamaDecodedAccount,
     type CodamaDecodedInstruction,
     type CodamaIdl,
     IdlStandard,
@@ -99,6 +107,41 @@ describe('decode result inference', () => {
             InstructionDecodeFor<CodamaIdl>
         >();
         expectTypeOf(decodeAccountWithIdl(anchorIdl, new Uint8Array())).toEqualTypeOf<AccountDecodeFor<AnchorIdl>>();
+    });
+});
+
+describe('decoder payload inference', () => {
+    it('should type the codama arms with the engine payloads and the anchor arms as opaque', () => {
+        expectTypeOf<
+            Extract<InstructionDecode, { kind: IdlStandard.Codama }>['decoded']
+        >().toEqualTypeOf<CodamaDecodedInstruction>();
+        expectTypeOf<
+            Extract<AccountDecode, { kind: IdlStandard.Codama }>['decoded']
+        >().toEqualTypeOf<CodamaDecodedAccount>();
+        expectTypeOf<Extract<InstructionDecode, { kind: IdlStandard.Anchor }>['decoded']>().toEqualTypeOf<unknown>();
+        expectTypeOf<Extract<AccountDecode, { kind: IdlStandard.Anchor }>['decoded']>().toEqualTypeOf<unknown>();
+    });
+
+    it('should pass account handlers their narrowed decode arms', () => {
+        const client = createIdlClient(anchorIdl);
+        client.decodeAccount(new Uint8Array(), {
+            anchor: decode => expectTypeOf(decode).toEqualTypeOf<{ decoded: unknown; kind: IdlStandard.Anchor }>(),
+            codama: decode =>
+                expectTypeOf(decode).toEqualTypeOf<{ decoded: CodamaDecodedAccount; kind: IdlStandard.Codama }>(),
+            unknown: decode => expectTypeOf(decode).toEqualTypeOf<{ errors: IdlError[]; kind: 'unknown' }>(),
+        });
+    });
+
+    it('should type getDecodedData as the generic payload accessor over every decoder result', () => {
+        const codamaClient = createIdlClient(codamaIdl);
+        const anchorClient = createIdlClient(anchorIdl);
+
+        expectTypeOf(getDecodedData(codamaClient.decodeInstruction(anchorIncrementIx))).toEqualTypeOf<unknown>();
+        expectTypeOf(getDecodedData(codamaClient.decodeAccount(new Uint8Array()))).toEqualTypeOf<unknown>();
+        expectTypeOf(getDecodedData(anchorClient.decodeInstruction(anchorIncrementIx))).toEqualTypeOf<unknown>();
+        expectTypeOf(getDecodedData(anchorClient.decodeAccount(new Uint8Array()))).toEqualTypeOf<unknown>();
+        expectTypeOf(getDecodedData(decodeInstructionWithIdl(codamaIdl, anchorIncrementIx))).toEqualTypeOf<unknown>();
+        expectTypeOf(getDecodedData(decodeAccountWithIdl(anchorIdl, new Uint8Array()))).toEqualTypeOf<unknown>();
     });
 });
 
