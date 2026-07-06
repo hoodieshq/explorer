@@ -1,11 +1,17 @@
 // Compile-time guidance for the Anchor >= 0.30 routes — vitest typecheck only, nothing executes.
 import { rootNodeFromAnchor } from '@codama/nodes-from-anchor';
-import type { BN, IdlAccounts, IdlEvents } from '@coral-xyz/anchor';
+import type { BN, IdlAccounts, IdlEvents, web3 } from '@coral-xyz/anchor';
 import { describe, expectTypeOf, it } from 'vitest';
 
 import { createIdlClient, type IdlClient, isAnchorStandard } from '../../client';
 import { type AnchorIdl, type CodamaIdl, IdlStandard, type InstructionDecode } from '../../types';
-import { anchorIdl, anchorIncrementIx, vaultDepositIx, type VaultIdl, vaultIdl } from '../fixtures';
+import { incrementIx, loadSimpleIdl } from '../fixtures';
+import type { Simple } from '../generated/simple.types';
+
+const anchorIdl = loadSimpleIdl();
+const anchorIncrementIx = incrementIx(anchorIdl);
+// the generated literal type ships separately from the runtime JSON (camelCase view vs original casing)
+declare const simpleGeneratedIdl: Simple;
 
 describe('sample: Anchor >= 0.30 IDL — native vs nodes-from-anchor', () => {
     it('should keep the Anchor IDL type accessible on the native Anchor client', () => {
@@ -34,35 +40,37 @@ describe('sample: Anchor >= 0.30 IDL — native vs nodes-from-anchor', () => {
     });
 });
 
-describe('sample: Anchor >= 0.30 with generated types (vault program)', () => {
+describe('sample: Anchor >= 0.30 with generated types (simple program)', () => {
     it('should preserve the generated literal type through the client', () => {
-        const client = createIdlClient(vaultIdl);
+        const client = createIdlClient(simpleGeneratedIdl);
 
-        expectTypeOf(client).toEqualTypeOf<IdlClient<VaultIdl>>();
+        expectTypeOf(client).toEqualTypeOf<IdlClient<Simple>>();
         // literal guidance survives: the compiler knows the exact instruction and argument
-        expectTypeOf(client.idl.instructions[0].name).toEqualTypeOf<'deposit'>();
+        expectTypeOf(client.idl.instructions[0].name).toEqualTypeOf<'increment'>();
         expectTypeOf(client.idl.instructions[0].args[0].type).toEqualTypeOf<'u64'>();
-        expectTypeOf(client.idl.instructions[0].accounts[0].name).toEqualTypeOf<'vault'>();
+        expectTypeOf(client.idl.instructions[0].accounts[0].name).toEqualTypeOf<'counter'>();
         // all decode arms stay open on the Anchor route
-        expectTypeOf(client.decodeInstruction(vaultDepositIx)).toEqualTypeOf<InstructionDecode>();
+        expectTypeOf(client.decodeInstruction(incrementIx(simpleGeneratedIdl))).toEqualTypeOf<InstructionDecode>();
     });
 
     it("should keep anchor's own type machinery usable on the client's idl", () => {
-        type Vault = IdlClient<VaultIdl>['idl'];
+        type SimpleIdl = IdlClient<Simple>['idl'];
 
-        // account struct decoded type: one account, one u64 field
-        expectTypeOf<IdlAccounts<Vault>['vault']>().toEqualTypeOf<{ balance: BN }>();
+        // account struct decoded type: pubkey field maps to web3 PublicKey, u64 to BN
+        type CounterAccount = IdlAccounts<SimpleIdl>['counter'];
+        expectTypeOf<CounterAccount['authority']>().toEqualTypeOf<web3.PublicKey>();
+        expectTypeOf<CounterAccount['count']>().toEqualTypeOf<BN>();
         // event payload type: one event, one u64 field
-        expectTypeOf<IdlEvents<Vault>['depositMade']>().toEqualTypeOf<{ amount: BN }>();
-        // error table: one literal-typed error entry (anchor 0.30.1 does not export IdlErrors — index directly)
-        type VaultError = Vault['errors'][number];
-        expectTypeOf<VaultError['code']>().toEqualTypeOf<6000>();
-        expectTypeOf<VaultError['name']>().toEqualTypeOf<'insufficientFunds'>();
+        expectTypeOf<IdlEvents<SimpleIdl>['counterIncremented']>().toEqualTypeOf<{ count: BN }>();
+        // error table: one literal-typed error entry (anchor does not export IdlErrors — index directly)
+        type SimpleError = SimpleIdl['errors'][number];
+        expectTypeOf<SimpleError['code']>().toEqualTypeOf<6000>();
+        expectTypeOf<SimpleError['name']>().toEqualTypeOf<'overflow'>();
     });
 
     it('should degrade the same document to non-guidance once widened to the runtime Idl type', () => {
         // this is the runtime-fetched situation: same value, wide type — literal guidance is gone
-        const widened: AnchorIdl = vaultIdl;
+        const widened: AnchorIdl = simpleGeneratedIdl;
         const client = createIdlClient(widened);
 
         expectTypeOf(client).toEqualTypeOf<IdlClient<AnchorIdl>>();

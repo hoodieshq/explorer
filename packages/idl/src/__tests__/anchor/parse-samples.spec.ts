@@ -1,4 +1,4 @@
-// Executable documentation of the Anchor decode wiring Piece B will productize (mcp-endpoint Step 6).
+// Executable documentation of the Anchor decode wiring the extraction pieces will productize.
 import { parseInstruction } from '@codama/dynamic-parsers';
 import { rootNodeFromAnchor } from '@codama/nodes-from-anchor';
 import { BorshInstructionCoder } from '@coral-xyz/anchor';
@@ -6,12 +6,13 @@ import { getLastNodeFromPath } from 'codama';
 import { describe, expect, it } from 'vitest';
 
 import type { CodamaIdl } from '../../types';
-import { anchorIdl, anchorIncrementIx } from '../fixtures';
+import { incrementIx, loadSimpleIdl } from '../fixtures';
 
 describe('Anchor parse samples', () => {
     it('should decode a modern Anchor instruction via BorshInstructionCoder', () => {
-        const coder = new BorshInstructionCoder(anchorIdl);
-        const decoded = coder.decode(Buffer.from(anchorIncrementIx.data));
+        const simple = loadSimpleIdl();
+        const coder = new BorshInstructionCoder(simple);
+        const decoded = coder.decode(Buffer.from(incrementIx(simple).data));
 
         expect(decoded?.name).toBe('increment');
         const args = decoded?.data as { amount: unknown } | undefined;
@@ -20,8 +21,9 @@ describe('Anchor parse samples', () => {
 
     it('should parse the same instruction through the Codama conversion route', () => {
         // nodes-from-anchor ships its own (narrower) Anchor IDL type — same cast the app uses.
-        const root = rootNodeFromAnchor(anchorIdl as Parameters<typeof rootNodeFromAnchor>[0]) as unknown as CodamaIdl;
-        const parsed = parseInstruction(root, anchorIncrementIx);
+        const simple = loadSimpleIdl();
+        const root = rootNodeFromAnchor(simple as Parameters<typeof rootNodeFromAnchor>[0]) as unknown as CodamaIdl;
+        const parsed = parseInstruction(root, incrementIx(simple));
 
         expect(parsed).toBeDefined();
         expect(parsed && getLastNodeFromPath(parsed.path).name).toBe('increment');

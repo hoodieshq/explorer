@@ -1,23 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
 import { buildInstructionNameResolver, buildInstructionNameTable, buildProgramName } from '../../names';
-import { codamaIdl, codamaTransferIx } from '../fixtures';
+import { loadTokenkegIdl, transferIx } from '../fixtures';
 
 describe('buildProgramName (Codama)', () => {
     it('should title-case the program node name', () => {
-        expect(buildProgramName(codamaIdl)).toBe('Token Vault');
+        expect(buildProgramName(loadTokenkegIdl())).toBe('Token');
     });
 });
 
 describe('instruction names (Codama)', () => {
     it('should build entries from constant field discriminators', () => {
-        expect(buildInstructionNameTable(codamaIdl)).toEqual([
-            { discriminator: Uint8Array.from([3]), name: 'Transfer' },
-        ]);
+        const table = buildInstructionNameTable(loadTokenkegIdl());
+        expect(table.length).toBeGreaterThan(1);
+        expect(table).toContainEqual({ discriminator: Uint8Array.from([3]), name: 'Transfer' });
     });
 
     it('should resolve an instruction name from instruction data', () => {
-        const resolve = buildInstructionNameResolver(codamaIdl);
-        expect(resolve?.(codamaTransferIx.data)).toBe('Transfer');
+        const tokenkeg = loadTokenkegIdl();
+        const resolve = buildInstructionNameResolver(tokenkeg);
+        expect(resolve?.(transferIx(tokenkeg).data)).toBe('Transfer');
     });
 });

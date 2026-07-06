@@ -9,16 +9,17 @@ import {
     isSupportedIdl,
 } from '../../detect';
 import { IdlStandard } from '../../types';
-import { anchorIdl, codamaIdl } from '../fixtures';
+import { loadSimpleIdl, loadTokenkegIdl } from '../fixtures';
 
 describe('isCodamaIdl', () => {
     it('should accept a Codama root node', () => {
-        expect(isCodamaIdl(codamaIdl)).toBe(true);
-        expect(isSupportedIdl(codamaIdl)).toBe(true);
+        const tokenkeg = loadTokenkegIdl();
+        expect(isCodamaIdl(tokenkeg)).toBe(true);
+        expect(isSupportedIdl(tokenkeg)).toBe(true);
     });
 
     it('should reject an Anchor IDL', () => {
-        expect(isCodamaIdl(anchorIdl)).toBe(false);
+        expect(isCodamaIdl(loadSimpleIdl())).toBe(false);
     });
 
     it('should reject a rootNode-shaped value without a program node', () => {
@@ -32,18 +33,20 @@ describe('isCodamaIdl', () => {
 
 describe('Codama version helpers', () => {
     it('should identify the Codama standard', () => {
-        expect(getIdlStandard(codamaIdl)).toBe(IdlStandard.Codama);
+        expect(getIdlStandard(loadTokenkegIdl())).toBe(IdlStandard.Codama);
     });
 
     it('should return the root version as the standard-era label', () => {
-        expect(getIdlVersion(codamaIdl)).toBe(codamaIdl.version);
+        const tokenkeg = loadTokenkegIdl();
+        expect(getIdlVersion(tokenkeg)).toBe(tokenkeg.version);
     });
 
     it('should return the format version from the root version', () => {
-        expect(getIdlFormatVersion(codamaIdl)).toBe(codamaIdl.version);
+        const tokenkeg = loadTokenkegIdl();
+        expect(getIdlFormatVersion(tokenkeg)).toBe(tokenkeg.version);
     });
 
     it('should return the program version from program.version', () => {
-        expect(getIdlProgramVersion(codamaIdl)).toBe('1.0.0');
+        expect(getIdlProgramVersion(loadTokenkegIdl())).toBe('3.3.0');
     });
 });

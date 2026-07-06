@@ -32,7 +32,23 @@ import {
     type InstructionHandlers,
     type SupportedIdl,
 } from '../types';
-import { anchorIdl, anchorIncrementIx, codamaIdl, vaultDepositIx, vaultIdl } from './fixtures';
+import { incrementIx, loadSimpleIdl, loadTokenkegIdl } from './fixtures';
+
+// Wide runtime documents (this file is typecheck-only — nothing executes).
+const anchorIdl = loadSimpleIdl();
+const codamaIdl = loadTokenkegIdl();
+const anchorIncrementIx = incrementIx(anchorIdl);
+
+// A literal document (the shape anchor-generated types have) for pinning IDL-derived inference.
+type ProbeIdl = {
+    address: 'Probe111111111111111111111111111111111111111';
+    accounts: [{ discriminator: [2]; name: 'vault' }];
+    instructions: [{ accounts: []; args: [{ name: 'amount'; type: 'u64' }]; discriminator: [1]; name: 'deposit' }];
+    metadata: { name: 'probe'; spec: '0.1.0'; version: '0.1.0' };
+    types: [{ name: 'vault'; type: { fields: [{ name: 'balance'; type: 'u64' }]; kind: 'struct' } }];
+};
+declare const probeIdl: ProbeIdl;
+declare const probeDepositIx: Instruction;
 
 describe('createIdlClient inference', () => {
     it('should infer the client type parameter from a typed IDL argument', () => {
@@ -135,8 +151,8 @@ describe('decoder payload inference', () => {
     });
 
     it('should infer getDecodedData payloads from a literal IDL document', () => {
-        const client = createIdlClient(vaultIdl);
-        const decode = client.decodeInstruction(vaultDepositIx);
+        const client = createIdlClient(probeIdl);
+        const decode = client.decodeInstruction(probeDepositIx);
 
         expectTypeOf(client.getDecodedData(decode)).toEqualTypeOf<{ amount: bigint } | undefined>();
         expectTypeOf(client.getDecodedData(client.decodeAccount(new Uint8Array()))).toEqualTypeOf<

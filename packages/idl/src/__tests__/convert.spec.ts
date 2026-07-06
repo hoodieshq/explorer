@@ -4,14 +4,14 @@ import { convertToCodama } from '../convert';
 import { isCodamaIdl } from '../detect';
 import { IDL_ERROR__IDL_PARSE_FAILED } from '../errors';
 import type { AnchorIdl } from '../types';
-import { anchorIdl } from './fixtures';
+import { loadSimpleIdl } from './fixtures';
 
 describe('convertToCodama', () => {
     it('should normalize a modern Anchor document into a Codama root', () => {
-        const [error, converted] = convertToCodama(anchorIdl);
+        const [error, converted] = convertToCodama(loadSimpleIdl());
         expect(error).toBeUndefined();
         expect(converted && isCodamaIdl(converted)).toBe(true);
-        expect(converted?.program.name).toBe('counter');
+        expect(converted?.program.name).toBe('simple');
     });
 
     it('should return the parse-failed error for a document the converter cannot handle', () => {

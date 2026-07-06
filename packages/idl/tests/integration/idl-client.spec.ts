@@ -1,8 +1,7 @@
 // The @explorer/idl client in action — consumer-style flows over the BUILT package ('@explorer/idl'
 // resolves to dist/ — build first). Sections group by client capability, and each section runs the
-// SAME consumer code over every program flavor:
-//   codama    — Codama-native root node (PMP style, fixture)
-//   tokenkeg  — SPL Token's real PMP-stored Codama root (mainnet snapshot)
+// SAME consumer code over every program flavor (all real documents):
+//   tokenkeg  — SPL Token's PMP-stored Codama root (mainnet snapshot)
 //   converted — the generated Anchor document normalized with nodes-from-anchor
 //   simple    — modern Anchor program (anchor-lang 1.1.2, programs/simple)
 //   simple031 — Anchor 0.31 program (programs/simple-031)
@@ -10,7 +9,6 @@
 import {
     type AccountDecode,
     type AnchorIdl,
-    type CodamaIdl,
     createIdlClient,
     getIdlStandard,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
@@ -29,18 +27,19 @@ import { address, type Instruction } from '@solana/kit';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
-    CODAMA_PROGRAM_ADDRESS,
-    codamaIdl,
-    codamaTransferIx,
-    pre030AnchorIdl,
-    pre030WithdrawIx,
+    incrementIx,
     loadLetMeBuyIdl,
     loadLetMeBuyPmpIdl,
     loadSimple031Idl,
     loadSimpleIdl,
     loadTokenkegIdl,
+    pre030AnchorIdl,
+    pre030WithdrawIx,
+    transferIx,
     u64le,
 } from '../../src/__tests__/fixtures';
+
+const TOKENKEG_ADDRESS = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 
 /** What the app renders for a program once its IDL is known. */
 type ProgramSummary = {
@@ -76,32 +75,12 @@ function counterAccountData(idl: AnchorIdl): Uint8Array {
     return new Uint8Array([...counter.discriminator, ...new Uint8Array(32), ...u64le(7n)]);
 }
 
-// Stand-in for a real transaction — an `increment(amount: 42)` call built from the program's own declared discriminator.
-function incrementIx(idl: AnchorIdl): Instruction {
-    const increment = idl.instructions.find(item => item.name === 'increment');
-    if (!increment) throw new Error('generated program must declare increment');
-    return {
-        accounts: [],
-        data: new Uint8Array([...increment.discriminator, ...u64le(42n)]),
-        programAddress: address(idl.address),
-    };
-}
-
 const borshString = (value: string): number[] => {
     const bytes = new TextEncoder().encode(value);
     const length = new Uint8Array(4);
     new DataView(length.buffer).setUint32(0, bytes.length, true);
     return [...length, ...bytes];
 };
-
-/** SPL Token `transfer(amount: 42)` against the real Tokenkeg codama root (u8 discriminator 3). */
-function tokenkegTransferIx(idl: CodamaIdl): Instruction {
-    return {
-        accounts: [],
-        data: new Uint8Array([3, ...u64le(42n)]),
-        programAddress: address(idl.program.publicKey),
-    };
-}
 
 /** `add_product('store', 'thing', 42)` against the real let_me_buy document, from its own discriminator. */
 function addProductIx(idl: AnchorIdl): Instruction {
@@ -156,13 +135,13 @@ describe('capability: client creation from untrusted IDLs', () => {
 });
 
 describe('capability: program summary (address, name, standard)', () => {
-    it('should summarize a Codama-native program', () => {
-        const result = summarizeProgram(codamaIdl);
+    it('should summarize SPL Token from its real PMP codama root', () => {
+        const result = summarizeProgram(loadTokenkegIdl());
 
         expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
         expect(result).toEqual({
-            address: CODAMA_PROGRAM_ADDRESS,
-            name: 'Token Vault',
+            address: TOKENKEG_ADDRESS,
+            name: 'Token',
             standard: IdlStandard.Codama,
         });
     });
@@ -204,17 +183,6 @@ describe('capability: program summary (address, name, standard)', () => {
         });
     });
 
-    it('should summarize SPL Token from its real PMP codama root', () => {
-        const result = summarizeProgram(loadTokenkegIdl());
-
-        expectTypeOf(result).toEqualTypeOf<ProgramSummary>();
-        expect(result).toEqual({
-            address: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
-            name: 'Token',
-            standard: IdlStandard.Codama,
-        });
-    });
-
     it('should summarize the real mainnet Anchor program (let_me_buy, Anchor PDA leg)', () => {
         const result = summarizeProgram(loadLetMeBuyIdl());
 
@@ -239,8 +207,9 @@ describe('capability: program summary (address, name, standard)', () => {
 });
 
 describe('capability: instruction naming (discriminator table)', () => {
-    it('should label a Codama-native instruction', () => {
-        const result = labelInstruction(codamaIdl, codamaTransferIx);
+    it("should label SPL Token's transfer through the real codama root", () => {
+        const tokenkeg = loadTokenkegIdl();
+        const result = labelInstruction(tokenkeg, transferIx(tokenkeg));
 
         expectTypeOf(result).toEqualTypeOf<string>();
         expect(result).toBe('Transfer');
@@ -273,14 +242,6 @@ describe('capability: instruction naming (discriminator table)', () => {
         expect(result).toBe('Increment');
     });
 
-    it("should label SPL Token's transfer through the real codama root", () => {
-        const tokenkeg = loadTokenkegIdl();
-        const result = labelInstruction(tokenkeg, tokenkegTransferIx(tokenkeg));
-
-        expectTypeOf(result).toEqualTypeOf<string>();
-        expect(result).toBe('Transfer');
-    });
-
     it('should label the real mainnet Anchor program instruction', () => {
         const letMeBuy = loadLetMeBuyIdl();
         const result = labelInstruction(letMeBuy, addProductIx(letMeBuy));
@@ -291,14 +252,15 @@ describe('capability: instruction naming (discriminator table)', () => {
 });
 
 describe('capability: instruction decoding', () => {
-    it('should decode a Codama-native instruction', () => {
-        const client = createIdlClient(codamaIdl);
+    it("should decode SPL Token's transfer through the real codama root", () => {
+        const tokenkeg = loadTokenkegIdl();
+        const client = createIdlClient(tokenkeg);
 
-        const decode = client.decodeInstruction(codamaTransferIx);
+        const decode = client.decodeInstruction(transferIx(tokenkeg));
         const result = client.getDecodedData<{ amount: bigint }>(decode);
 
         // the codama client statically excludes the anchor arm
-        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<typeof tokenkeg>>();
         expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
@@ -316,7 +278,6 @@ describe('capability: instruction decoding', () => {
         const decode = client.decodeInstruction(incrementIx(simple));
         const result = client.getDecodedData<{ amount: bigint }>(decode);
 
-        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
         expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
@@ -343,20 +304,6 @@ describe('capability: instruction decoding', () => {
         const decode = client.decodeInstruction(incrementIx(simple031));
         const result = client.getDecodedData<{ amount: bigint }>(decode);
 
-        expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
-        expect(decode.kind).toBe(IdlStandard.Codama);
-        expect(result).toMatchObject({ amount: 42n });
-    });
-
-    it("should decode SPL Token's transfer through the real codama root", () => {
-        const tokenkeg = loadTokenkegIdl();
-        const client = createIdlClient(tokenkeg);
-
-        const decode = client.decodeInstruction(tokenkegTransferIx(tokenkeg));
-        const result = client.getDecodedData<{ amount: bigint }>(decode);
-
-        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
         expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
@@ -369,7 +316,6 @@ describe('capability: instruction decoding', () => {
         const decode = client.decodeInstruction(addProductIx(letMeBuy));
         const result = client.getDecodedData<{ name: string; price: bigint; storeName: string }>(decode);
 
-        expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
         expectTypeOf(result).toEqualTypeOf<{ name: string; price: bigint; storeName: string } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({
@@ -386,25 +332,11 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
         // picking the default engine explicitly — heavier engines (anchor) plug in the same way
         const client = createIdlClient(tokenkeg, { provider: codamaProvider() });
 
-        const decode = client.decodeInstruction(tokenkegTransferIx(tokenkeg));
-        // the accessor returns the parsed args without per-standard digging, typed by the provider
+        const decode = client.decodeInstruction(transferIx(tokenkeg));
+        // the accessor returns the parsed args without per-standard digging; the runtime document is
+        // wide, so the shape is declared per call
         const result = client.getDecodedData<{ amount: bigint }>(decode);
 
-        // the codama client statically excludes the anchor arm
-        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<CodamaIdl>>();
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
-        expect(result).toMatchObject({ amount: 42n });
-    });
-
-    it('should decode the workspace simple program through the same accessor', () => {
-        const simple = loadSimpleIdl();
-        const client = createIdlClient(simple);
-
-        const decode = client.decodeInstruction(incrementIx(simple));
-        const result = client.getDecodedData<{ amount: bigint }>(decode);
-
-        // the anchor client keeps every arm (codama engine + injected-decoder anchor arm)
-        expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
         expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
         expect(result).toMatchObject({ amount: 42n });
     });

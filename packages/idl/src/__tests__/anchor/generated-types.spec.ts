@@ -1,59 +1,56 @@
-// Runtime half of the anchor-generated-types samples — the vault program through OUR client and anchor's own coders (decode wiring Pieces A/B will productize).
+// Runtime half of the anchor-generated-types samples — the real generated program through OUR client and anchor's own coders.
 import { BN, BorshAccountsCoder, BorshEventCoder, BorshInstructionCoder } from '@coral-xyz/anchor';
 import { describe, expect, it } from 'vitest';
 
 import { createIdlClient, isAnchorStandard } from '../../client';
 import { getIdlProgramVersion, getIdlStandard, isAnchorIdl } from '../../detect';
 import { IdlStandard } from '../../types';
-import {
-    u64le,
-    VAULT_ACCOUNT_DISCRIMINATOR,
-    VAULT_EVENT_DISCRIMINATOR,
-    VAULT_PROGRAM_ADDRESS,
-    vaultDepositIx,
-    vaultIdl,
-} from '../fixtures';
+import { incrementIx, loadSimpleIdl, u64le } from '../fixtures';
 
-describe('anchor-generated vault program — package integration', () => {
+describe('anchor-generated simple program — detection and names', () => {
     it('should detect the generated IDL as a modern Anchor document', () => {
-        expect(isAnchorIdl(vaultIdl)).toBe(true);
-        expect(getIdlStandard(vaultIdl)).toBe(IdlStandard.Anchor);
-        expect(getIdlProgramVersion(vaultIdl)).toBe('0.1.0');
+        const simple = loadSimpleIdl();
+        expect(isAnchorIdl(simple)).toBe(true);
+        expect(getIdlStandard(simple)).toBe(IdlStandard.Anchor);
+        expect(getIdlProgramVersion(simple)).toBe('0.1.0');
     });
 
     it('should serve names and metadata from the generated IDL through the client', () => {
-        const client = createIdlClient(vaultIdl);
+        const simple = loadSimpleIdl();
+        const client = createIdlClient(simple);
         expect(isAnchorStandard(client)).toBe(true);
-        expect(client.programAddress()).toBe(VAULT_PROGRAM_ADDRESS);
-        expect(client.programName()).toBe('Vault');
-        expect(client.instructionName(vaultDepositIx.data)).toBe('Deposit');
+        expect(client.programAddress()).toBe(simple.address);
+        expect(client.programName()).toBe('Simple');
+        expect(client.instructionName(incrementIx(simple).data)).toBe('Increment');
     });
 });
 
-describe('anchor-generated vault program — anchor coder round-trips', () => {
-    it('should decode the deposit instruction with BorshInstructionCoder', () => {
-        const decoded = new BorshInstructionCoder(vaultIdl).decode(Buffer.from(vaultDepositIx.data));
-        expect(decoded?.name).toBe('deposit');
+describe('anchor-generated simple program — anchor coder round-trips', () => {
+    it('should decode the increment instruction with BorshInstructionCoder', () => {
+        const simple = loadSimpleIdl();
+        const decoded = new BorshInstructionCoder(simple).decode(Buffer.from(incrementIx(simple).data));
+        expect(decoded?.name).toBe('increment');
         // BN internals pad differently after decode — compare by value, not structure
         const args = decoded?.data as { amount: BN } | undefined;
         expect(args?.amount.eq(new BN(42))).toBe(true);
     });
 
-    it('should decode the vault account with BorshAccountsCoder', () => {
-        const data = Buffer.from([...VAULT_ACCOUNT_DISCRIMINATOR, ...u64le(1000n)]);
-        const account = new BorshAccountsCoder(vaultIdl).decode<{ balance: BN }>('vault', data);
-        expect(account.balance.eq(new BN(1000))).toBe(true);
+    it('should decode the counter account with BorshAccountsCoder', () => {
+        const simple = loadSimpleIdl();
+        const counter = simple.accounts?.[0];
+        // Counter = authority pubkey (32 bytes) + count u64 behind the 8-byte account discriminator
+        const data = Buffer.from([...(counter?.discriminator ?? []), ...new Uint8Array(32), ...u64le(1000n)]);
+        const account = new BorshAccountsCoder(simple).decode<{ count: BN }>(counter?.name ?? '', data);
+        expect(account.count.eq(new BN(1000))).toBe(true);
     });
 
-    it('should decode the depositMade event with BorshEventCoder', () => {
-        const log = Buffer.from([...VAULT_EVENT_DISCRIMINATOR, ...u64le(42n)]).toString('base64');
-        const event = new BorshEventCoder(vaultIdl).decode(log);
-        expect(event?.name).toBe('depositMade');
-        const payload = event?.data as { amount: BN } | undefined;
-        expect(payload?.amount.eq(new BN(42))).toBe(true);
-    });
-
-    it('should expose the error table for consumer-side error mapping', () => {
-        expect(vaultIdl.errors[0]).toEqual({ code: 6000, msg: 'Insufficient funds', name: 'insufficientFunds' });
+    it('should decode the counterIncremented event with BorshEventCoder', () => {
+        const simple = loadSimpleIdl();
+        const event = simple.events?.[0];
+        const log = Buffer.from([...(event?.discriminator ?? []), ...u64le(42n)]).toString('base64');
+        const decoded = new BorshEventCoder(simple).decode(log);
+        expect(decoded?.name).toBe(event?.name);
+        const payload = decoded?.data as { count: BN } | undefined;
+        expect(payload?.count.eq(new BN(42))).toBe(true);
     });
 });

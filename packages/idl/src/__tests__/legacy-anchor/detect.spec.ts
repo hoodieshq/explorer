@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { isLegacyAnchorIdl, isSupportedIdl } from '../../detect';
-import { anchorIdl, codamaIdl, pre030AnchorIdl } from '../fixtures';
+import { loadSimpleIdl, loadTokenkegIdl, pre030AnchorIdl } from '../fixtures';
 
 describe('isLegacyAnchorIdl', () => {
     it('should recognize a legacy Anchor IDL', () => {
@@ -13,8 +13,8 @@ describe('isLegacyAnchorIdl', () => {
     });
 
     it('should reject both supported standards', () => {
-        expect(isLegacyAnchorIdl(anchorIdl)).toBe(false);
-        expect(isLegacyAnchorIdl(codamaIdl)).toBe(false);
+        expect(isLegacyAnchorIdl(loadSimpleIdl())).toBe(false);
+        expect(isLegacyAnchorIdl(loadTokenkegIdl())).toBe(false);
     });
 
     it.each([null, undefined, 42, 'idl', {}, []])('should reject non-IDL input %#', value => {

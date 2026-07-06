@@ -3,7 +3,10 @@ import { describe, expectTypeOf, it } from 'vitest';
 
 import { createIdlClient, type IdlClient } from '../../client';
 import { type CodamaIdl, IdlStandard, type InstructionDecode } from '../../types';
-import { codamaIdl, codamaTransferIx } from '../fixtures';
+import { loadTokenkegIdl, transferIx } from '../fixtures';
+
+const codamaIdl = loadTokenkegIdl();
+const codamaTransferIx = transferIx(codamaIdl);
 
 describe('sample: Codama IDL', () => {
     it('should guide the developer into the codama-only surface', () => {
