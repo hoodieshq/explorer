@@ -16,15 +16,6 @@ Detection, parsing, and decoding for Solana program IDLs. Supports three IDL sta
 - `errors` — `Result`-style `ok`/`err` helpers and `IDL_ERROR__*` codes
 - `types` — `AnchorIdl`, `LegacyAnchorIdl`, `CodamaIdl`, `SupportedIdl`, decode handler types
 
-## Fixture programs
-
-`programs/` contains two real Anchor workspaces whose generated IDLs feed the test suite:
-
-- `programs/simple` — anchor-lang 1.1.2
-- `programs/simple-031` — anchor-lang 0.31.1
-
-Both implement the same minimal program (one account, one instruction argument, one error, one event), so their IDLs are directly comparable across Anchor versions.
-
 ## Development
 
 ```sh
@@ -32,3 +23,8 @@ pnpm --filter @explorer/idl test
 ```
 
 See [DEVELOPMENT.md](./DEVELOPMENT.md) for running tests and building the fixture programs.
+
+## OpenSpec
+
+- [Proposal](./openspec/changes/idl-decode-client/proposal.md)
+- [Design](./openspec/changes/idl-decode-client/design.md)

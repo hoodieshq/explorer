@@ -14,6 +14,15 @@ pnpm --filter @explorer/idl typecheck   # tsc --noEmit
 
 ## Building the fixture programs
 
+`test-anchor-programs/` contains two real Anchor workspaces whose generated IDLs feed the test suite:
+
+- `test-anchor-programs/simple` — anchor-lang 1.1.2
+- `test-anchor-programs/simple-031` — anchor-lang 0.31.1
+
+Both implement the same minimal program (one account, one instruction argument, one error, one event), so their IDLs are directly comparable across Anchor versions.
+
+Ready-made IDLs come from the `codama-fixtures` devDependency (a pinned tarball of the codama repo): functional specs import its `dynamic-client` test IDLs as-is, and `scripts/generate-codama-types.mjs` renders typed clients from them into `__tests__/functional/generated/`.
+
 Prerequisites:
 
 - Rust toolchain
@@ -37,5 +46,5 @@ Generated IDLs land in each workspace's `target/idl/` (gitignored) and reach the
 
 ### Gotchas
 
-- `programs/simple-031/Cargo.lock` carries deliberate downgrades (`blake3`, `proc-macro-crate`, `indexmap`, `jobserver`, `unicode-segmentation`, `zeroize_derive`, `syn`): the cargo bundled with Solana platform tools (1.84) cannot parse `edition2024` manifests. A bare `cargo update` in that workspace will re-break the build.
+- `test-anchor-programs/simple-031/Cargo.lock` carries deliberate downgrades (`blake3`, `proc-macro-crate`, `indexmap`, `jobserver`, `unicode-segmentation`, `zeroize_derive`, `syn`): the cargo bundled with Solana platform tools (1.84) cannot parse `edition2024` manifests. A bare `cargo update` in that workspace will re-break the build.
 - Program keypairs live in gitignored `target/deploy/`. A fresh clone regenerates them, so `anchor build` will report a program ID mismatch — run `anchor keys sync` in the affected workspace (via `pnpm --filter <pkg> exec anchor keys sync`) and rebuild.
