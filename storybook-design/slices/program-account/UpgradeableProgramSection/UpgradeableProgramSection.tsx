@@ -56,42 +56,42 @@ export function UpgradeableProgramSection({
             refresh={() => refresh(account.pubkey, 'parsed')}
             analyticsSection="program_section"
         >
-            <KeyValue label="Address" labelWidth={LABEL_WIDTH}>
+            <KeyValue label="Address" labelWidth={LABEL_WIDTH} row>
                 <Address pubkey={account.pubkey} raw />
             </KeyValue>
             {label && (
-                <KeyValue label="Address Label" labelWidth={LABEL_WIDTH}>
+                <KeyValue label="Address Label" labelWidth={LABEL_WIDTH} row>
                     {label}
                 </KeyValue>
             )}
-            <KeyValue label="Balance (SOL)" labelWidth={LABEL_WIDTH}>
+            <KeyValue label="Balance (SOL)" labelWidth={LABEL_WIDTH} row>
                 <SolBalance lamports={account.lamports} />
             </KeyValue>
-            <KeyValue label="Executable" labelWidth={LABEL_WIDTH}>
+            <KeyValue label="Executable" labelWidth={LABEL_WIDTH} row>
                 {programData !== undefined ? 'Yes' : 'No'}
             </KeyValue>
             <KeyValue
                 label={`Executable Data${programData === undefined ? ' (Closed)' : ''}`}
-                labelWidth={LABEL_WIDTH}
+                labelWidth={LABEL_WIDTH} row
             >
                 <Address pubkey={programAccount.programData} link />
             </KeyValue>
             {programData !== undefined && (
                 <>
-                    <KeyValue label="Upgradeable" labelWidth={LABEL_WIDTH}>
+                    <KeyValue label="Upgradeable" labelWidth={LABEL_WIDTH} row>
                         {programData.authority !== null ? 'Yes' : 'No'}
                     </KeyValue>
-                    <KeyValue label={<VerifiedLabel />} labelWidth={LABEL_WIDTH}>
+                    <KeyValue label={<VerifiedLabel />} labelWidth={LABEL_WIDTH} row>
                         <VerifiedProgramBadge programData={programData} pubkey={account.pubkey} />
                     </KeyValue>
-                    <KeyValue label={<ProgramSecurityTXTLabel programPubkey={account.pubkey} />} labelWidth={LABEL_WIDTH}>
+                    <KeyValue label={<ProgramSecurityTXTLabel />} labelWidth={LABEL_WIDTH} row>
                         <ProgramSecurityTXTBadge programData={programData} programPubkey={account.pubkey} />
                     </KeyValue>
-                    <KeyValue label="Last Deployed Slot" labelWidth={LABEL_WIDTH}>
+                    <KeyValue label="Last Deployed Slot" labelWidth={LABEL_WIDTH} row>
                         <Slot slot={programData.slot} link />
                     </KeyValue>
                     {programData.authority !== null && (
-                        <KeyValue label="Upgrade Authority" labelWidth={LABEL_WIDTH}>
+                        <KeyValue label="Upgrade Authority" labelWidth={LABEL_WIDTH} row>
                             <div className="flex min-w-0 items-center gap-2">
                                 <span className="min-w-0">
                                     <Address pubkey={programData.authority} link />
@@ -120,13 +120,7 @@ function MultisigBadge({ pubkey }: { pubkey: PublicKey }) {
 function VerifiedLabel() {
     return (
         <InfoTooltip text="Verified builds allow users to ensure that the hash of the on-chain program matches the hash of the program of the given codebase (registry hosted by osec.io).">
-            <Link
-                rel="noopener noreferrer"
-                target="_blank"
-                href="https://github.com/Ellipsis-Labs/solana-verifiable-build"
-            >
-                <span>Verified Build</span>
-            </Link>
+            Verified Build
         </InfoTooltip>
     );
 }

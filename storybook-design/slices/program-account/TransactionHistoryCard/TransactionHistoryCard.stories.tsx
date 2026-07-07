@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { TransactionHistoryCard } from '@/app/features/transaction-history';
-
+import { TransactionHistoryCard } from './TransactionHistoryCard';
 import {
     MOCK_PROGRAM_ADDRESS,
     nextjsParameters,
@@ -22,16 +21,15 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Data rendered: VisibilityProvider enables the fetch and getParsedTransaction is stubbed
-// to return mock parsed txs, so instruction names resolve. withInstructionData runs after
-// the meta-level withMockRpc, overriding its undefined getParsedTransaction stub.
+// Programs resolve: VisibilityProvider enables the per-row fetch and getParsedTransaction
+// is stubbed to return mock parsed txs. withInstructionData runs after the meta-level
+// withMockRpc, overriding its undefined getParsedTransaction stub.
 export const Default: Story = {
     args: { address: MOCK_PROGRAM_ADDRESS },
     decorators: [withInstructionData],
 };
 
-// Loading state: no VisibilityProvider, so each row's instruction list
-// ("transaction parameters") stays on its skeleton.
+// Loading state: no VisibilityProvider, so each row's Programs list stays on its skeleton.
 export const ParametersLoading: Story = {
     args: { address: MOCK_PROGRAM_ADDRESS },
     decorators: [withMockProviders],

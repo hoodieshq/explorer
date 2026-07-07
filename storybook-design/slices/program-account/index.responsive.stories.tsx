@@ -10,7 +10,7 @@ import { Navbar } from '@/app/components/Navbar';
 import { LoadingCard } from '@/app/components/common/LoadingCard';
 import { SearchBar } from '@/app/features/search';
 import { SecurityNotification } from '@/app/features/security-txt';
-import { TransactionHistoryCard } from '@/app/features/transaction-history';
+import { TransactionHistoryCard } from './TransactionHistoryCard/TransactionHistoryCard';
 import { type NavigationTab, NavigationTabs } from '@/app/shared/ui/navigation-tabs';
 import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
 import { StickyHeader } from '@/app/shared/ui/sticky-header/StickyHeader';
@@ -41,10 +41,14 @@ function PageShell({ children }: { children: React.ReactNode }) {
                 </Navbar>
                 <MessageBanner />
                 <PageContainer className="my-3 xl:hidden">
-                    <SearchBar />
+                    <div className="mx-auto w-full max-w-[960px]">
+                        <SearchBar />
+                    </div>
                 </PageContainer>
                 <PageContainer className="my-3 lg:hidden">
-                    <ClusterStatusButton />
+                    <div className="mx-auto w-full max-w-[960px]">
+                        <ClusterStatusButton />
+                    </div>
                 </PageContainer>
                 {children}
             </div>
@@ -68,16 +72,20 @@ function PageContent({ address }: { address: string }) {
     return (
         <PageContainer variant="pulled-up">
             <Suspense fallback={<LoadingCard />}>
-                <Header address={address} account={MOCK_PROGRAM_ACCOUNT} isTokenInfoLoading={false} />
-                <UpgradeableProgramSection
-                    account={MOCK_SECTION_ARGS.account}
-                    programAccount={programAccountInfo}
-                    programData={MOCK_SECTION_ARGS.programData}
-                />
+                <div className="mx-auto w-full max-w-[960px]">
+                    <Header address={address} account={MOCK_PROGRAM_ACCOUNT} isTokenInfoLoading={false} />
+                    <UpgradeableProgramSection
+                        account={MOCK_SECTION_ARGS.account}
+                        programAccount={programAccountInfo}
+                        programData={MOCK_SECTION_ARGS.programData}
+                    />
+                </div>
                 <SecurityNotification parsedData={MOCK_PARSED_DATA} address={address} />
                 <StickyHeader>
                     <PageContainer>
-                        <NavigationTabs buildHref={buildHref} tabs={PROGRAM_TABS} />
+                        <div className="mx-auto w-full max-w-[960px]">
+                            <NavigationTabs buildHref={buildHref} tabs={PROGRAM_TABS} />
+                        </div>
                     </PageContainer>
                 </StickyHeader>
                 <TransactionHistoryCard address={address} />

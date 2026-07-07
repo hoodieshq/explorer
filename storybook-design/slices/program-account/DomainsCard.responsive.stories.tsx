@@ -1,21 +1,22 @@
 import { withViewportFromGlobal } from '@storybook-config/responsive-decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { TransactionHistoryCard } from '@/app/features/transaction-history';
+import { BaseDomainsCard } from '@/app/entities/domain/ui/BaseDomainsCard';
 
-import { MOCK_PROGRAM_ADDRESS, nextjsParameters, withMockProviders, withMockRpc } from './mocks';
+import { MOCK_DOMAINS, withMockProviders } from './mocks';
 
 const meta = {
-    component: TransactionHistoryCard,
-    decorators: [withMockRpc, withMockProviders, withViewportFromGlobal],
-    parameters: nextjsParameters,
-    title: 'Design Slices/program-account/TransactionHistoryCard@Media',
-} satisfies Meta<typeof TransactionHistoryCard>;
+    component: BaseDomainsCard,
+    decorators: [withMockProviders, withViewportFromGlobal],
+    title: 'Design Slices/program-account/DomainsCard@Media',
+} satisfies Meta<typeof BaseDomainsCard>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const args = { address: MOCK_PROGRAM_ADDRESS };
+const args = {
+    domains: MOCK_DOMAINS,
+};
 
 export const Mobile: Story = {
     args,

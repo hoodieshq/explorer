@@ -4,7 +4,7 @@ import { HelpCircle } from 'react-feather';
 
 import { Icon } from './Icon';
 import { Label } from './Label';
-import { ICON_SHIM } from './tokens';
+import { ICON_SHIM, LABEL_FONT } from './tokens';
 
 const meta = {
     component: Icon,
@@ -48,6 +48,25 @@ export const SizesAndLineBoxes: Story = {
                         ),
                     )}
                 </React.Fragment>
+            ))}
+        </div>
+    ),
+};
+
+// Inline mode: the icon flows within body text and should sit optically centered on the text,
+// right after the last word. Tune ICON_INLINE_ALIGN in tokens.ts (per size) until the icon's
+// center lines up with the x-height of the surrounding text at every size.
+export const Inline: Story = {
+    args: { children: <HelpCircle /> },
+    render: () => (
+        <div className="flex flex-col gap-4 text-dk-white">
+            {(['s', 'm', 'l', 'xl'] as const).map(size => (
+                <div key={size} style={{ fontSize: LABEL_FONT[size].fontSize }}>
+                    The quick brown fox
+                    <Icon inline size={size} className="ml-1.5">
+                        <HelpCircle />
+                    </Icon>
+                </div>
             ))}
         </div>
     ),

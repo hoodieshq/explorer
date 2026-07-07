@@ -61,3 +61,16 @@ export const ICON_SHIM: Record<LabelSize, Partial<Record<LineBox, [number, numbe
     m: { 16: [0, 2], 20: [3, 3], 24: [5, 5], 32: [9, 9], 36: [11, 11], 40: [13, 13] },
     s: { 16: [3, 1], 20: [5, 3], 24: [7, 5], 32: [11, 9], 36: [13, 11], 40: [15, 13] },
 };
+
+// `vertical-align` offset (px, positive = raised) for an icon flowing *inline* after the label
+// text — e.g. a trailing help/question glyph that must sit after the last word and wrap with it.
+// Here there is no line-box to fill; the icon aligns to the text itself. An inline-block's
+// baseline is its bottom edge, so this raises the icon's bottom above the text baseline until
+// the icon's optical center lands on the text's (≈ capHeight/2 above baseline):
+//   raise = capHeight/2 − ICON_SIZE/2  (capHeight≈0.7·fontSize). Tune in the `Icon` inline story.
+export const ICON_INLINE_ALIGN: Record<LabelSize, number> = {
+    s: -2.5,
+    m: -2.5,
+    l: -2.5,
+    xl: -3,
+};

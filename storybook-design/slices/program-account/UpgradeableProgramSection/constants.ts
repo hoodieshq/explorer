@@ -1,4 +1,5 @@
-// Label column for the Program Account card: 25% of the card width, clamped to [100px, 240px].
+// Label column for the Program Account card: 20% of the card width, clamped to [84px, 240px].
 // Shared across every row (the section rows and the Raw-view rows) so their values line up in
-// one column. `sm:` — applied only once the row flips to the horizontal label/value layout.
-export const LABEL_WIDTH = 'sm:w-[clamp(100px,25%,240px)]';
+// one column. Unprefixed so it holds at every width — the card keeps its horizontal label/value
+// layout on mobile too (rows pass `row` to KeyValue rather than stacking below `sm`).
+export const LABEL_WIDTH = 'w-[clamp(84px,20%,240px)]';

@@ -1,0 +1,189 @@
+/*
+ * Scoped styling for the ported TransactionHistoryCard slice. Every selector is
+ * nested under `.transaction-history-card`, so importing this file cannot affect
+ * any other slice. Ported from the pre-storybook app/styles.css `tx-*` rules,
+ * adapted to the BaseTable DOM (plain <table>/<thead>/<tbody>/<tr>/<td>).
+ *
+ * outer-space-300 = oklch(70.297% 0.0218 185.24); row divider #282d2b.
+ */
+
+/* ---- External header (title sits above the card) ------------------------- */
+.transaction-history-card .thc-external-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    min-height: 1.75rem;
+    margin-bottom: 0.75rem;
+    padding: 0;
+}
+.transaction-history-card .thc-external-header > *:first-child {
+    flex: 1;
+}
+/* Size comes from the `text-dk-h3` utility on the element (project font scale). */
+.transaction-history-card .thc-title {
+    margin: 0;
+    font-weight: 500;
+    line-height: 1.5;
+    color: #fff;
+}
+
+/* ---- Footer -------------------------------------------------------------- */
+.transaction-history-card .thc-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #282d2b;
+}
+
+/* ---- Desktop table tweaks ------------------------------------------------ */
+/* Top-align cells so a multi-line Programs list keeps the signature, block and
+ * size on the first line (BaseTable defaults to vertical-align: middle). */
+.transaction-history-card tbody td {
+    vertical-align: top;
+}
+
+/* The Programs list gets a small top margin so it lines up with the other
+ * top-aligned cells' text baseline. */
+.transaction-history-card .tx-instr-inline {
+    min-width: 0;
+}
+
+/* Font scale bumped one dk-step up, overriding the BaseTable / Button primitive
+ * defaults purely by selector specificity — no primitive edits. Header dk-xs→dk-sm,
+ * body (Signature / Block, inherited) dk-sm→dk-base, and the Size (bytes) Button
+ * (primitive text-xs) →dk-base. Explicit dk classes on the Timestamp and Programs
+ * spans are bumped at their call sites. */
+.transaction-history-card table {
+    font-size: 0.9375rem; /* dk-base (was dk-sm inherited from the table) */
+}
+.transaction-history-card table thead th {
+    font-size: 0.8125rem; /* dk-sm (was dk-xs) */
+}
+.transaction-history-card .tx-raw-data-cell button {
+    font-size: 0.9375rem; /* dk-base (was the Button primitive's text-xs) */
+}
+
+/* Programs render in exactly one place, switching at 992px (Bootstrap lg / the
+ * bsLg preset width). Below 992 the trailing Programs column collapses and the
+ * programs show under the signature; at 992+ the column shows and the under-sig
+ * block hides. Both use the same 992 boundary (max 991.98 / min 992, Bootstrap's
+ * complementary pair) so they never overlap — this is intentionally NOT tied to
+ * Tailwind `lg`, which is 993px here and desynced from the column. */
+@media (max-width: 991.98px) {
+    .transaction-history-card .thc-progs-col {
+        display: none;
+    }
+}
+@media (min-width: 992px) {
+    .transaction-history-card .tx-instr-under-sig {
+        display: none;
+    }
+}
+
+/* Small gap between the signature line and the under-sig programs block. */
+.transaction-history-card .tx-instr-under-sig {
+    margin-top: 0.25rem;
+}
+
+/* ---- Mobile: stack the table into cards (< 768px) ------------------------ */
+@media (max-width: 767.98px) {
+    /* Contain the Signature component's invisible mid-truncation measurement span
+     * so it can't extend the page and force a horizontal scroll. */
+    .transaction-history-card {
+        overflow-x: clip;
+    }
+
+    /* BaseTable variant="card" wraps the <table> in a `overflow-x-auto` div — a
+     * scroll container we want on desktop but not in the stacked mobile layout,
+     * where it would scroll over the empty space the measurement span leaves.
+     * `clip` (not `hidden`) avoids forcing overflow-y to auto. */
+    .transaction-history-card .overflow-x-auto {
+        overflow-x: clip;
+    }
+
+    .transaction-history-card thead {
+        display: none;
+    }
+
+    .transaction-history-card table,
+    .transaction-history-card tbody,
+    .transaction-history-card tr,
+    .transaction-history-card td {
+        display: block;
+        width: auto;
+    }
+
+    /* Each row becomes a card-like block separated by a divider. */
+    .transaction-history-card tbody tr {
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #282d2b;
+        cursor: pointer;
+    }
+    .transaction-history-card tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    /* One value per line; wrap freely (override table-nowrap), strip cell borders. */
+    .transaction-history-card tbody td {
+        padding-top: 0.125rem !important;
+        padding-bottom: 0.125rem !important;
+        white-space: normal;
+        border: 0 !important;
+        vertical-align: top;
+    }
+
+    /* Label-value layout: label on the left, value flowing right. */
+    .transaction-history-card tbody td[data-label] {
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+    /* Let each cell's value column shrink inside the flex row so the Signature
+     * measures/truncates within the viewport instead of forcing the row wide. */
+    .transaction-history-card tbody td[data-label] > * {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+    /* The Signature value column holds the signature line + the under-signature
+     * programs block. As a flex column its baseline resolves to the first line
+     * (the signature), so the baseline-aligned "Signature" label sits on the
+     * signature — not on the trailing programs line. */
+    .transaction-history-card tbody td[data-label='Signature'] > .tx-sig-cell {
+        display: flex;
+        flex-direction: column;
+    }
+    .transaction-history-card tbody td[data-label]::before {
+        content: attr(data-label);
+        min-width: 4.5rem;
+        flex-shrink: 0;
+        white-space: nowrap; /* keep "Size (bytes)" on one line */
+        font-size: 0.8125rem; /* = dk-sm (one step below the values); ::before can't take a utility class */
+        line-height: 1.5;
+        color: oklch(70.297% 0.0218 185.24);
+        text-transform: none;
+        letter-spacing: normal;
+    }
+
+    /* The programs block lives inside the Signature cell's value column, which is
+     * already inset by the Signature label width + gap. Pull it back so its own
+     * "Programs" label lines up with the row-level labels. */
+    .transaction-history-card .tx-instr-under-sig {
+        display: flex;
+        align-items: baseline;
+        gap: 0.75rem;
+        margin-top: 0.25rem;
+        margin-left: calc(-1 * (4.5rem + 0.75rem));
+    }
+    .transaction-history-card .tx-instr-under-sig::before {
+        content: 'Programs';
+        min-width: 4.5rem;
+        flex-shrink: 0;
+        font-size: 0.8125rem; /* = dk-sm (one step below the values); ::before can't take a utility class */
+        line-height: 1.5;
+        color: oklch(70.297% 0.0218 185.24);
+    }
+    .transaction-history-card .tx-instr-under-sig > * {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+}

@@ -12,11 +12,15 @@ import { nextjsParameters } from '@storybook-config/decorators';
 import type { Decorator } from '@storybook-config/types';
 import { Connection, type ParsedTransactionWithMeta, PublicKey } from '@solana/web3.js';
 import React from 'react';
+import { SWRConfig, unstable_serialize } from 'swr';
 
 import { LoadingCard } from '@/app/components/common/LoadingCard';
+import type { DomainInfo } from '@/app/entities/domain';
+import type { NeodymeSecurityTXT } from '@/app/features/security-txt/lib/types';
 import { Account, UpgradeableLoaderAccountData } from '@/app/providers/accounts';
 import type { ClusterState } from '@/app/providers/cluster';
 import { VisibilityProvider } from '@/app/shared/lib/visibility';
+import { type OsecRegistryInfo, VerificationStatus } from '@/app/utils/verified-builds';
 import { Cluster, ClusterStatus, DEVNET_URL } from '@/app/utils/cluster';
 
 export { nextjsParameters };
@@ -253,3 +257,95 @@ export const withSuspense: Decorator = Story => (
 
 // Re-export so stories that render TransactionHistoryCard can stub Connection RPC.
 export { withMockRpc } from '@storybook-config/responsive-decorators';
+
+// =============================================================================
+// Tab-content mock data — Security / Verified Build / Domains / Program Multisig
+// Each is a card rendered under one of the address-page navigation tabs. The
+// per-component stories render the exported presentational variant so the data
+// is deterministic (no on-chain binary parsing / registry fetches).
+// =============================================================================
+
+// --- Security tab (ProgramSecurityTxtCard) -------------------------------------
+// Neodyme security.txt embedded in program data. Shape: NeodymeSecurityTXT.
+export const MOCK_SECURITY_TXT: NeodymeSecurityTXT = {
+    acknowledgements: 'https://example-protocol.io/security/acknowledgements',
+    auditors: 'OtterSec, Neodyme',
+    contacts: 'email:security@example-protocol.io,telegram:exampleprotocol_security',
+    encryption: 'https://example-protocol.io/pgp-key.txt',
+    expiry: '2026-12-31',
+    name: 'Example Protocol',
+    policy: 'https://example-protocol.io/security-policy',
+    preferred_languages: 'en',
+    project_url: 'https://example-protocol.io',
+    source_code: 'https://github.com/example-protocol/program',
+    source_release: 'v1.4.2',
+    source_revision: '9f2c1ab',
+};
+
+// --- Verified Build tab (BaseVerifiedBuildCard) --------------------------------
+// Registry payload for a verified program (VerificationStatus.Verified).
+export const MOCK_VERIFIED_BUILD: OsecRegistryInfo = {
+    executable_hash: '7c9f2a1e5b8d4c3f6a0e9d2b1c4f8a7e3d6b5c9f2a1e5b8d4c3f6a0e9d2b1c4f',
+    is_verified: true,
+    last_verified_at: '2026-05-14T09:32:00Z',
+    message: 'Successfully verified',
+    on_chain_hash: '7c9f2a1e5b8d4c3f6a0e9d2b1c4f8a7e3d6b5c9f2a1e5b8d4c3f6a0e9d2b1c4f',
+    onchain_repo_url: 'https://github.com/example-protocol/program/tree/9f2c1ab',
+    repo_url: 'https://github.com/example-protocol/program',
+    signer: '9VWiUUhgNoRwTH5NVehYJEDwcotwYX3VgW4MChiHPAqU',
+    verification_status: VerificationStatus.Verified,
+    verify_command:
+        'solana-verify verify-from-repo -um --program-id TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA https://github.com/example-protocol/program',
+};
+
+// --- Domains tab (BaseDomainsCard) ---------------------------------------------
+// Owned SNS + ANS domain names. Shape: DomainInfo[] (name + name-service account).
+export const MOCK_DOMAINS: DomainInfo[] = [
+    { address: 'Cg7kkVEUb4h6Qc5J9y5nJ6jJ8g2Yz7q1vX3m2nQ9pRk', name: 'example.sol' },
+    { address: 'BmVo7dExtjBRnhkY2VUt5RJ8aB1sZ9hVn3kQpL4mNc2X', name: 'protocol.sol' },
+    { address: 'D9kY3nQ8vRt2mJ7pXcZ1aB5sN6hVwL4qKfEgU2dTr8Y', name: 'treasury.abc' },
+];
+
+// --- Program Multisig tab (ProgramMultisigCard) --------------------------------
+// The card reads two `useSWRImmutable` caches (squads reverse-map lookup + the
+// multisig account). We seed both via SWRConfig `fallback` so the fetchers never
+// run and the card renders a fully-populated Squads V4 multisig. Keys must match
+// the component's cluster (Devnet, from MockClusterProvider) and the program
+// authority (MOCK_PROGRAM_DATA.authority = AUTHORITY_PUBKEY).
+const MULTISIG_ACCOUNT = new PublicKey('Vote111111111111111111111111111111111111111');
+const MULTISIG_MEMBERS = [
+    new PublicKey('SysvarC1ock11111111111111111111111111111111'),
+    new PublicKey('SysvarS1otHashes111111111111111111111111111'),
+    new PublicKey('Stake11111111111111111111111111111111111111'),
+];
+
+const squadsLookupKey = unstable_serialize(['squadsReverseMap', AUTHORITY_PUBKEY.toString(), Cluster.Devnet]);
+const squadsMultisigKey = unstable_serialize(['squadsMultisig', MULTISIG_ACCOUNT.toString(), Cluster.Devnet]);
+
+const MULTISIG_SWR_FALLBACK = {
+    [squadsLookupKey]: { isSquad: true, multisig: MULTISIG_ACCOUNT.toString(), version: 'v4' },
+    [squadsMultisigKey]: {
+        multisig: { members: MULTISIG_MEMBERS.map(key => ({ key })), threshold: 2 },
+        version: 'v4',
+    },
+};
+
+// Args for ProgramMultisigCard — it reads `data.programData?.authority`.
+export const MOCK_MULTISIG_ARGS = { data: MOCK_PARSED_DATA };
+
+/**
+ * Renders ProgramMultisigCard with a fully-populated Squads V4 multisig by seeding
+ * the two squads SWR caches. Includes the standard page providers (Address needs
+ * MockTokenInfoBatchProvider + cluster) and stubs Connection RPC so the incidental
+ * anchor-IDL fetch resolves to nothing instead of hitting a real RPC.
+ */
+export const withMultisigData: Decorator = Story => {
+    Object.assign(Connection.prototype, { getAccountInfo: async () => undefined });
+    return (
+        <SWRConfig value={{ fallback: MULTISIG_SWR_FALLBACK }}>
+            <MockProgramAccountProviders>
+                <Story />
+            </MockProgramAccountProviders>
+        </SWRConfig>
+    );
+};

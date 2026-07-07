@@ -19,7 +19,7 @@ import { useClusterPath } from '@/app/utils/url';
 import { Copyable } from './Copyable';
 import { NicknameEditor } from './NicknameEditor';
 
-const rowVariants = cva('relative flex w-full min-w-0 items-baseline', {
+const rowVariants = cva('relative flex w-full min-w-0 items-baseline overflow-x-clip', {
     defaultVariants: {
         alignRight: false,
     },

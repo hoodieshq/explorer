@@ -3,11 +3,12 @@ import * as React from 'react';
 
 import { cn } from '@/app/components/shared/utils';
 
-// Drop-in replacement for Bootstrap's `.container`. Max-widths and padding
-// mirror dashkit's `$container-max-widths` (sm 540 / md 720 / lg 960 / xl 1140)
-// and `$container-padding-x` (0.75rem = px-3).
+// Fluid container: fills 100% of the available width (minus `px-3` padding, mirroring dashkit's
+// `$container-padding-x` = 0.75rem) up to a single `max-width` cap, then `mx-auto` centers it.
+// Cap matches dashkit's largest `$container-max-widths` step (xl 1140); unlike Bootstrap's `.container`
+// we don't step the max-width down at sm/md/lg, so the content keeps stretching until it hits the cap.
 const pageContainerVariants = cva(
-    'mx-auto w-full px-3 sm:max-w-[540px] md:max-w-[720px] lg:max-w-[960px] xl:max-w-[1140px]',
+    'mx-auto w-full max-w-[1140px] px-3',
     {
         defaultVariants: { variant: 'default' },
         variants: {

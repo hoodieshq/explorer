@@ -1,15 +1,17 @@
 import type { PublicKey } from '@solana/web3.js';
 import Link from 'next/link';
+import { ExternalLink } from 'react-feather';
 
 import { Badge } from '@/app/components/shared/ui/badge';
 import { useCluster } from '@/app/providers/cluster';
 import { CardTitle } from '@/app/shared/ui/Card';
 import { Cluster } from '@/app/utils/cluster';
-import { useClusterPath } from '@/app/utils/url';
 import { useIsProgramVerified } from '@/app/utils/verified-builds';
 import type { ProgramDataAccountInfo } from '@/app/validators/accounts/upgradeable-program';
 
 type BadgeVariant = NonNullable<Parameters<typeof Badge>[0]['variant']>;
+
+const VERIFIED_BUILD_DOC_LINK = 'https://github.com/Ellipsis-Labs/solana-verifiable-build';
 
 export function VerifiedProgramBadge({
     programData,
@@ -27,7 +29,6 @@ export function VerifiedProgramBadge({
         programData,
         programId: pubkey,
     });
-    const verifiedBuildTabPath = useClusterPath({ pathname: `/address/${pubkey.toBase58()}/verified-build` });
 
     if (cluster !== Cluster.MainnetBeta) {
         return (
@@ -58,7 +59,10 @@ export function VerifiedProgramBadge({
         return (
             <CardTitle as="h3" ui="dashkit">
                 <Badge ui="dashkit" variant={badgeVariant} className="cursor-pointer" asChild>
-                    <Link href={verifiedBuildTabPath}>{badgeText}</Link>
+                    <Link href={VERIFIED_BUILD_DOC_LINK} rel="noopener noreferrer" target="_blank">
+                        {badgeText}
+                        <ExternalLink className="ml-1.5" size={13} />
+                    </Link>
                 </Badge>
             </CardTitle>
         );

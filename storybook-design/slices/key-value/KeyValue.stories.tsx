@@ -20,13 +20,13 @@ export const Single: Story = {
     },
 };
 
-// A label with a leading icon. The icon rides in its own wrapper (Icon), so it's positioned
-// once against the label's line-box — no per-row alignment tweaks.
+// A label with an icon after the last word. The icon flows inline (see `trailingIcon`), so it
+// rides the label's last word and wraps with it rather than floating after the text block.
 export const WithIcon: Story = {
     args: {
         children: <span className="font-mono">TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</span>,
-        icon: <Key />,
         label: 'Address',
+        trailingIcon: <Key />,
     },
 };
 
@@ -55,25 +55,42 @@ export const Stack: Story = {
     ),
 };
 
-// A stack where every row's label carries an icon. Icons and label text stay on one grid, and
-// because every row uses the same `labelWidth`, the label columns are equal-length and the
-// values line up in a single column.
+// A trailing help icon rendered inline — it sits right after the last word of the label. The
+// narrow label column forces the text to wrap, showing the icon hugs the last word (and wraps
+// with it) rather than floating after the whole text block.
+export const TrailingIcon: Story = {
+    args: { children: null, label: '' },
+    render: () => (
+        <div className="max-w-3xl rounded-lg border border-solid border-dk-card-outline-dark bg-dk-gray-800-dark">
+            <KeyValue label="Address" trailingIcon={<HelpCircle />}>
+                <span className="font-mono">TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</span>
+            </KeyValue>
+            <KeyValue label="Program Upgrade Authority" labelWidth="sm:w-40" trailingIcon={<HelpCircle />}>
+                <span className="font-mono">2wmVCSfPxGPjrnMMn7rchp4uaeoTqN39mXFC2zhPdri9</span>
+            </KeyValue>
+        </div>
+    ),
+};
+
+// A stack where every row's label carries a trailing icon after its last word. Because every
+// row uses the same `labelWidth`, the label columns are equal-length and the values line up in
+// a single column; each icon rides the label's last word and wraps with it.
 export const IconsAndEqualWidth: Story = {
     args: { children: null, label: '' },
     render: () => (
         <div className="max-w-3xl rounded-lg border border-solid border-dk-card-outline-dark bg-dk-gray-800-dark">
-            <KeyValue label="Address" icon={<Key />}>
+            <KeyValue label="Address" trailingIcon={<Key />}>
                 <span className="font-mono">TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</span>
             </KeyValue>
-            <KeyValue label="Verified Build" icon={<CheckCircle />}>
+            <KeyValue label="Verified Build" trailingIcon={<CheckCircle />}>
                 <span className="rounded bg-dk-warning-on-dark/20 px-2 py-0.5 text-dk-warning-on-dark">
                     Program Not Verified
                 </span>
             </KeyValue>
-            <KeyValue label="Upgrade Authority" icon={<HelpCircle />}>
+            <KeyValue label="Upgrade Authority" trailingIcon={<HelpCircle />}>
                 <span className="font-mono">2wmVCSfPxGPjrnMMn7rchp4uaeoTqN39mXFC2zhPdri9</span>
             </KeyValue>
-            <KeyValue label="Last Deployed Slot" icon={<Clock />}>
+            <KeyValue label="Last Deployed Slot" trailingIcon={<Clock />}>
                 <span className="font-mono">312,456,789</span>
             </KeyValue>
         </div>
