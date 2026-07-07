@@ -80,25 +80,32 @@ function buildAnchorTable(idl: AnchorIdl): InstructionNameEntry[] {
 }
 
 // kit encoders carry their own width + endianness, so there's no format→size lookup to keep in sync.
-const DISCRIMINATOR_ENCODERS: Record<string, Encoder<bigint | number>> = {
-    i16: getI16Encoder(),
-    i32: getI32Encoder(),
-    i64: getI64Encoder(),
-    i128: getI128Encoder(),
-    i8: getI8Encoder(),
-    u16: getU16Encoder(),
-    u32: getU32Encoder(),
-    u64: getU64Encoder(),
-    u128: getU128Encoder(),
-    u8: getU8Encoder(),
-};
+// Built lazily — module-scope encoder construction would defeat consumer tree-shaking.
+let discriminatorEncoders: Record<string, Encoder<bigint | number>> | undefined;
+function getDiscriminatorEncoders(): Record<string, Encoder<bigint | number>> {
+    return (discriminatorEncoders ??= {
+        i16: getI16Encoder(),
+        i32: getI32Encoder(),
+        i64: getI64Encoder(),
+        i128: getI128Encoder(),
+        i8: getI8Encoder(),
+        u16: getU16Encoder(),
+        u32: getU32Encoder(),
+        u64: getU64Encoder(),
+        u128: getU128Encoder(),
+        u8: getU8Encoder(),
+    });
+}
 
-const BYTES_ENCODERS: Record<string, Encoder<string>> = {
-    base16: getBase16Encoder(),
-    base58: getBase58Encoder(),
-    base64: getBase64Encoder(),
-    utf8: getUtf8Encoder(),
-};
+let bytesEncoders: Record<string, Encoder<string>> | undefined;
+function getBytesEncoders(): Record<string, Encoder<string>> {
+    return (bytesEncoders ??= {
+        base16: getBase16Encoder(),
+        base58: getBase58Encoder(),
+        base64: getBase64Encoder(),
+        utf8: getUtf8Encoder(),
+    });
+}
 
 function buildCodamaTable(idl: CodamaIdl): InstructionNameEntry[] {
     return (idl.program?.instructions ?? []).flatMap(ix => {
@@ -123,11 +130,11 @@ function codamaDiscriminator(ix: InstructionNode): Uint8Array | undefined {
 function valueBytes(type: Node, value: Node | undefined): Uint8Array | undefined {
     if (isNode(type, 'fixedSizeTypeNode')) return valueBytes(type.type, value);
     if (isNode(type, 'numberTypeNode') && isNode(value, 'numberValueNode')) {
-        const bytes = DISCRIMINATOR_ENCODERS[type.format]?.encode(value.number);
+        const bytes = getDiscriminatorEncoders()[type.format]?.encode(value.number);
         return bytes && Uint8Array.from(bytes);
     }
     if (isNode(type, 'bytesTypeNode') && isNode(value, 'bytesValueNode')) {
-        const bytes = BYTES_ENCODERS[value.encoding]?.encode(value.data);
+        const bytes = getBytesEncoders()[value.encoding]?.encode(value.data);
         return bytes && Uint8Array.from(bytes);
     }
     return undefined;
