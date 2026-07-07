@@ -6,8 +6,10 @@ export {
     isCodamaStandard,
     tryCreateIdlClient,
 } from './client';
-// the default engine's provider factory; the engine internals live behind the './codama' entry
-export { codamaProvider } from './codama';
+export { convertToCodama } from './anchor/convert';
+export { decodeAccountWithIdl } from './codama/decode-account';
+export { decodeInstructionWithIdl } from './codama/decode-instruction';
+export { codamaProvider } from './codama/index';
 export type { AccountDataOf, InstructionDataOf } from './infer';
 export {
     getIdlFormatVersion,

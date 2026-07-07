@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- nodes-from-anchor ships its own (narrower) Anchor IDL + RootNode types */
 import { rootNodeFromAnchor } from '@codama/nodes-from-anchor';
 
-import { err, IDL_ERROR__IDL_PARSE_FAILED, IdlError, ok, type Result } from './errors';
-import type { AnchorIdl, CodamaIdl } from './types';
+import { err, IDL_ERROR__IDL_PARSE_FAILED, IdlError, ok, type Result } from '../errors';
+import type { AnchorIdl, CodamaIdl } from '../types';
 
 /**
  * The recommended conversion of a modern Anchor document into the Codama model (nodes-from-anchor).

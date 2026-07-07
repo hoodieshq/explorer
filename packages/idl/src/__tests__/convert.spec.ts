@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { convertToCodama } from '../convert';
+import { convertToCodama } from '../anchor/convert';
 import { isCodamaIdl } from '../detect';
 import { IDL_ERROR__IDL_PARSE_FAILED } from '../errors';
 import type { AnchorIdl } from '../types';

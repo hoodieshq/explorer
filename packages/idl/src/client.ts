@@ -1,6 +1,6 @@
 import type { Instruction } from '@solana/kit';
 
-import { codamaProvider } from './codama';
+import { codamaProvider } from './codama/index';
 import { getIdlProgramAddress, isAnchorIdl, isCodamaIdl, isSupportedIdl } from './detect';
 import type { AccountDataOf, InstructionDataOf } from './infer';
 import {

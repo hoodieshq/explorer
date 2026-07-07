@@ -8,11 +8,6 @@
             "types": "./dist/index.d.ts",
             "import": "./dist/index.js",
             "default": "./dist/index.js"
-        },
-        "./codama": {
-            "types": "./dist/codama.d.ts",
-            "import": "./dist/codama.js",
-            "default": "./dist/codama.js"
         }
     },
     "files": [

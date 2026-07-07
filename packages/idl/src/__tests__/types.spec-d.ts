@@ -3,10 +3,10 @@ import type { Instruction } from '@solana/kit';
 import { describe, expectTypeOf, it } from 'vitest';
 
 import { createIdlClient, type IdlClient, isAnchorStandard, isCodamaStandard, tryCreateIdlClient } from '../client';
-import { codamaProvider } from '../codama';
-import { convertToCodama } from '../convert';
-import { decodeAccountWithIdl } from '../decode-account';
-import { decodeInstructionWithIdl } from '../decode-instruction';
+import { codamaProvider } from '../codama/index';
+import { convertToCodama } from '../anchor/convert';
+import { decodeAccountWithIdl } from '../codama/decode-account';
+import { decodeInstructionWithIdl } from '../codama/decode-instruction';
 import { getIdlStandard, getIdlVersion, isAnchorIdl, isCodamaIdl, isSupportedIdl } from '../detect';
 import type { AccountDataOf, InstructionDataOf } from '../infer';
 import {
