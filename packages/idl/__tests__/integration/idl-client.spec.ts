@@ -4,8 +4,8 @@
 // All documents are real:
 //   tokenkeg  — SPL Token's PMP-stored Codama root (mainnet snapshot)
 //   converted — the generated Anchor document normalized with nodes-from-anchor
-//   simple    — modern Anchor program (anchor-lang 1.1.2, programs/simple)
-//   simple031 — Anchor 0.31 program (programs/simple-031), fetched through anchor's client (mocked Program.fetchIdl)
+//   simple    — modern Anchor program (anchor-lang 1.1.2, test-anchor-programs/simple)
+//   simple031 — Anchor 0.31 program (test-anchor-programs/simple-031), fetched through anchor's client (mocked Program.fetchIdl)
 //   letMeBuy  — real mainnet Anchor program (Anchor-PDA + PMP snapshots)
 import {
     type AccountDecode,

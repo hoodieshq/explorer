@@ -3,3 +3,5 @@ node_modules
 .anchor/
 target/
 test-ledger/
+# emitted from the codama-fixtures pin by scripts/generate-codama-types.mjs
+/__tests__/functional/generated/

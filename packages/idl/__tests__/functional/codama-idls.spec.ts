@@ -3,13 +3,17 @@
 import { createProgramClient, type ProgramClient } from '@codama/dynamic-client';
 import { getNodeCodec } from '@codama/dynamic-codecs';
 import {
+    type AsDecoded,
     type CodamaIdl,
+    type CodamaIdlLike,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
     IdlStandard,
     isCodamaStandard,
     tryCreateIdlClient,
 } from '@explorer/idl';
 import { createCodamaIdlClient } from '@explorer/idl/codama';
+// real-world interop: a PUBLISHED renderers-js-generated client (type-only import, erased at runtime)
+import type { Multisig as PublishedMultisig } from '@solana-program/token-2022';
 import type { Instruction } from '@solana/kit';
 import { getLastNodeFromPath } from 'codama';
 import associatedTokenAccountIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/associated-token-account-idl.json';
@@ -26,6 +30,12 @@ import token2022Idl from 'codama-fixtures/packages/dynamic-client/test/programs/
 import tokenIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/token-idl.json';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
+// generated literal type (codama ships no target/types equivalent) — see scripts/generate-codama-types.mjs
+import { blogIdl as blogIdlTyped } from './generated/blog-idl';
+// renderers-js-rendered clients — codama's own codegen; type-only imports, erased at runtime
+import type { Multisig } from './generated/token-client/accounts/multisig';
+import type { SyncNativeInstructionData } from './generated/token-client/instructions/syncNative';
+
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON documents are known codama roots (detection is re-proven per test); NodePath/Instruction casts bridge codama tooling with the client */
 
 const DEFAULT_ADDRESS = '11111111111111111111111111111111';
@@ -35,24 +45,26 @@ const base16 = (hex: string): [string, string] => ['base16', hex];
 const base64 = (data: string): [string, string] => ['base64', data];
 
 /** The PMP-fetch acquisition route for codama roots: plain untrusted JSON, no anchor client involved. */
-function fetchedJson(document: CodamaIdl): unknown {
+function fetchedJson(document: CodamaIdlLike): unknown {
     return JSON.parse(JSON.stringify(document));
 }
 
 /** Build the named zero-argument instruction with codama's OWN dynamic client (every account defaulted). */
-async function buildInstruction(document: CodamaIdl, name: string): Promise<Instruction> {
-    const node = document.program.instructions.find(item => item.name === name);
+async function buildInstruction(document: CodamaIdlLike, name: string): Promise<Instruction> {
+    const root = document as unknown as CodamaIdl;
+    const node = root.program.instructions.find(item => item.name === name);
     if (!node) throw new Error(`${name} must be declared by the document`);
     const accounts = Object.fromEntries(node.accounts.map(item => [item.name, DEFAULT_ADDRESS]));
-    const built = await createProgramClient<ProgramClient>(document).methods[name]().accounts(accounts).instruction();
+    const built = await createProgramClient<ProgramClient>(root).methods[name]().accounts(accounts).instruction();
     return built as Instruction;
 }
 
 /** Encode the named account's full field values (incl. discriminator defaults) with codama's OWN codec. */
-function encodeAccount(document: CodamaIdl, name: string, data: object): Uint8Array {
-    const node = document.program.accounts.find(item => item.name === name);
+function encodeAccount(document: CodamaIdlLike, name: string, data: object): Uint8Array {
+    const root = document as unknown as CodamaIdl;
+    const node = root.program.accounts.find(item => item.name === name);
     if (!node) throw new Error(`${name} must be declared by the document`);
-    const codec = getNodeCodec([document, document.program, node] as Parameters<typeof getNodeCodec>[0]);
+    const codec = getNodeCodec([root, root.program, node] as Parameters<typeof getNodeCodec>[0]);
     return Uint8Array.from(codec.encode(data));
 }
 
@@ -116,7 +128,8 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
                 permissions: [string, string];
                 profile: string;
             };
-            const client = createCodamaIdlClient(document);
+            // the GENERATED literal type drives inference — no per-call shape below
+            const client = createCodamaIdlClient(blogIdlTyped);
             const bytes = encodeAccount(document, 'accessGrant', {
                 bump: 255,
                 discriminator: base16('a737b8ed4af2006d'),
@@ -129,9 +142,10 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
             if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
 
             const result = decode.decoded;
-            const data = client.getDecodedData<AccessGrantData>(decode);
+            // inferred as the union of every blog account struct — which account matched is runtime knowledge
+            const data = client.getDecodedData(decode);
 
-            expectTypeOf(data).toEqualTypeOf<AccessGrantData>();
+            expectTypeOf<AccessGrantData>().toExtend<typeof data>();
             expect(getLastNodeFromPath(result.path).name).toBe('accessGrant');
             expect(data).toEqual({
                 bump: 255,
@@ -247,7 +261,8 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
         });
 
         it('should decode the dataAccount1 account from codec-encoded bytes', () => {
-            // the IDL signature of dataAccount1: u64 → bigint, option → kit Option object
+            // hand-written signature: renderers-js rejects this document (circular account defaults)
+            // u64 → bigint, option → kit Option object
             type DataAccount1Data = {
                 bump: number;
                 discriminator: [string, string];
@@ -305,7 +320,8 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
         });
 
         it('should decode the editionMarker account from codec-encoded bytes', () => {
-            // the IDL signature of editionMarker: scalar enums ENCODE by variant name but DECODE to the index
+            // hand-written signature: renderers-js emits self-inconsistent PDA helpers for this document
+            // scalar enums ENCODE by variant name but DECODE to the index
             type EditionMarkerData = { key: number; ledger: [string, string] };
             const client = createCodamaIdlClient(document);
             // key is a scalar enum discriminator — encoded by variant name
@@ -429,10 +445,9 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
 
         /** Case: no codama tooling on the encode side — the raw document alone is enough to decode hand-built bytes. */
         it('should decode the syncNative instruction from raw hand-built bytes', () => {
-            // the IDL signature of syncNative: a single u8 discriminator (17), no other data
-            type SyncNativeData = { discriminator: number };
             const client = createCodamaIdlClient(document);
 
+            // the document declares syncNative as a single u8 discriminator (17) with no other data
             const decode = client.decodeInstruction({
                 accounts: [],
                 data: Uint8Array.from([17]),
@@ -442,16 +457,15 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
             if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
 
             const result = decode.decoded;
-            const data = client.getDecodedData<SyncNativeData>(decode);
+            // the payload type comes from the rendered token client, bridged to parser output
+            const data = client.getDecodedData<AsDecoded<SyncNativeInstructionData>>(decode);
 
-            expectTypeOf(data).toEqualTypeOf<SyncNativeData>();
+            expectTypeOf(data).toEqualTypeOf<{ discriminator: number }>();
             expect(getLastNodeFromPath(result.path).name).toBe('syncNative');
             expect(data).toEqual({ discriminator: 17 });
         });
 
         it('should decode the multisig account from codec-encoded bytes', () => {
-            // the IDL signature of multisig: pubkeys decode as base58 strings
-            type MultisigData = { isInitialized: boolean; m: number; n: number; signers: string[] };
             const client = createCodamaIdlClient(document);
             // multisig carries no discriminator field — it is identified by its exact size
             const bytes = encodeAccount(document, 'multisig', {
@@ -466,9 +480,10 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
             if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
 
             const result = decode.decoded;
-            const data = client.getDecodedData<MultisigData>(decode);
+            // the payload type comes from the rendered token client, bridged to parser output
+            const data = client.getDecodedData<AsDecoded<Multisig>>(decode);
 
-            expectTypeOf(data).toEqualTypeOf<MultisigData>();
+            expectTypeOf(data).toEqualTypeOf<{ isInitialized: boolean; m: number; n: number; signers: string[] }>();
             expect(getLastNodeFromPath(result.path).name).toBe('multisig');
             expect(data).toEqual({
                 isInitialized: true,
@@ -479,7 +494,6 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
         });
 
         it('should decode the multisig account from raw hand-built bytes', () => {
-            type MultisigData = { isInitialized: boolean; m: number; n: number; signers: string[] };
             const client = createCodamaIdlClient(document);
 
             // m=1, n=1, initialized, 11 zeroed signer pubkeys — the exact 355 bytes that identify multisig
@@ -488,9 +502,9 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
             if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
 
             const result = decode.decoded;
-            const data = client.getDecodedData<MultisigData>(decode);
+            const data = client.getDecodedData<AsDecoded<Multisig>>(decode);
 
-            expectTypeOf(data).toEqualTypeOf<MultisigData>();
+            expectTypeOf(data).toEqualTypeOf<{ isInitialized: boolean; m: number; n: number; signers: string[] }>();
             expect(getLastNodeFromPath(result.path).name).toBe('multisig');
             expect(data).toEqual({
                 isInitialized: true,
@@ -526,7 +540,6 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
         });
 
         it('should decode the multisig account from codec-encoded bytes', () => {
-            type MultisigData = { isInitialized: boolean; m: number; n: number; signers: string[] };
             const client = createCodamaIdlClient(document);
             const bytes = encodeAccount(document, 'multisig', {
                 isInitialized: true,
@@ -540,9 +553,10 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
             if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
 
             const result = decode.decoded;
-            const data = client.getDecodedData<MultisigData>(decode);
+            // the payload type comes from the PUBLISHED @solana-program/token-2022 client
+            const data = client.getDecodedData<AsDecoded<PublishedMultisig>>(decode);
 
-            expectTypeOf(data).toEqualTypeOf<MultisigData>();
+            expectTypeOf(data).toEqualTypeOf<{ isInitialized: boolean; m: number; n: number; signers: string[] }>();
             expect(getLastNodeFromPath(result.path).name).toBe('multisig');
             expect(data).toEqual({
                 isInitialized: true,

@@ -4,6 +4,6 @@ import { defineConfig } from 'vitest/config';
 // program IDLs. Lives outside src/ on purpose. Run: `pnpm --filter @explorer/idl test:integration`.
 export default defineConfig({
     test: {
-        include: ['tests/**/*.spec.ts'],
+        include: ['__tests__/**/*.spec.ts'],
     },
 });

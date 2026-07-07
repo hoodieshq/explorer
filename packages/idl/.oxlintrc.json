@@ -12,12 +12,12 @@
     },
     "overrides": [
         {
-            "files": ["src/__tests__/**/*.ts", "tests/**/*.ts"],
+            "files": ["**/__tests__/**/*.ts"],
             "rules": {
                 "no-new": "off",
                 "typescript/consistent-type-assertions": "off"
             }
         }
     ],
-    "ignorePatterns": ["dist/**", "node_modules/**", "programs/**"]
+    "ignorePatterns": ["dist/**", "node_modules/**", "test-anchor-programs/**"]
 }
