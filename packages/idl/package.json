@@ -30,10 +30,10 @@
         "build:programs": "pnpm --filter \"@explorer/idl-program-*\" build",
         "lint": "oxlint",
         "lint:fix": "oxlint --fix",
-        "pretest": "pnpm run build:programs",
-        "test": "vitest run && pnpm run test:integration",
-        "pretest:integration": "pnpm run build",
+        "pretest": "pnpm run build:programs && pnpm run build",
+        "test": "vitest run && pnpm run test:integration && pnpm run test:treeshakability",
         "test:integration": "vitest run --config vitest.integration.config.ts",
+        "test:treeshakability": "for file in dist/index.js dist/*/index.js; do agadoo $file || exit 1; done",
         "test:watch": "vitest",
         "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json --noEmit"
     },
@@ -44,6 +44,7 @@
     "devDependencies": {
         "@explorer/idl-program-simple": "workspace:*",
         "@explorer/idl-program-simple-031": "workspace:*",
+        "agadoo": "^3.0.0",
         "oxc-transform": "^0.137.0",
         "oxlint": "^1.71.0",
         "typescript": "catalog:tooling",

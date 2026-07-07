@@ -616,6 +616,9 @@ importers:
       '@explorer/idl-program-simple-031':
         specifier: workspace:*
         version: link:programs/simple-031
+      agadoo:
+        specifier: ^3.0.0
+        version: 3.0.0
       oxc-transform:
         specifier: ^0.137.0
         version: 0.137.0
@@ -3840,6 +3843,15 @@ packages:
       rollup:
         optional: true
 
+  '@rollup/plugin-virtual@3.0.2':
+    resolution: {integrity: sha512-10monEYsBp3scM4/ND4LNH5Rxvh3e/cVeL3jWTgZ2SrQ+BmUoQcopVQvnaMcOnykb1VkxUFuDAN+0FnpTFRy2A==}
+    engines: {node: '>=14.0.0'}
+    peerDependencies:
+      rollup: ^1.20.0||^2.0.0||^3.0.0||^4.0.0
+    peerDependenciesMeta:
+      rollup:
+        optional: true
+
   '@rollup/pluginutils@5.3.0':
     resolution: {integrity: sha512-5EdhGZtnu3V88ces7s53hhfK5KSASnJZv8Lulpc04cWO3REESroJXg73DFsOmgbU2BhwV0E20bu2IDZb3VKW4Q==}
     engines: {node: '>=14.0.0'}
@@ -6011,6 +6023,10 @@ packages:
 
   aes-js@3.0.0:
     resolution: {integrity: sha512-H7wUZRn8WpTq9jocdxQ2c8x2sKo9ZVmzfRE13GiNJXfp7NcKYEdvl3vspKjXox6RIG2VtaRe4JFvxG4rqp2Zuw==}
+
+  agadoo@3.0.0:
+    resolution: {integrity: sha512-gq+fjT3Ilrhb88Jf+vYMjdO/+3znYfa7vJ4IMLPFsBPUxglnr40Ed3yCLrW6IABdJAedB94b2BkqR6I04lh3dg==}
+    hasBin: true
 
   agent-base@6.0.2:
     resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
@@ -10009,6 +10025,11 @@ packages:
 
   ripemd160@2.0.2:
     resolution: {integrity: sha512-ii4iagi25WusVoiC4B4lq7pbXfAp3D9v5CwfkY33vffw2+pkDjY1D8GaN7spsxvCSx8dkPqOZCEZyfxcmJG2IA==}
+
+  rollup@3.30.0:
+    resolution: {integrity: sha512-kQvGasUgN+AlWGliFn2POSajRQEsULVYFGTvOZmK06d7vCD+YhZztt70kGk3qaeAXeWYL5eO7zx+rAubBc55eA==}
+    engines: {node: '>=14.18.0', npm: '>=8.0.0'}
+    hasBin: true
 
   rollup@4.50.1:
     resolution: {integrity: sha512-78E9voJHwnXQMiQdiqswVLZwJIzdBKJ1GdI5Zx6XwoFKUIk09/sSrr+05QFzvYb8q6Y9pPV45zzDuYa3907TZA==}
@@ -15066,6 +15087,10 @@ snapshots:
     optionalDependencies:
       rollup: 4.50.1
 
+  '@rollup/plugin-virtual@3.0.2(rollup@3.30.0)':
+    optionalDependencies:
+      rollup: 3.30.0
+
   '@rollup/pluginutils@5.3.0(rollup@4.50.1)':
     dependencies:
       '@types/estree': 1.0.9
@@ -17958,7 +17983,7 @@ snapshots:
 
   acorn-globals@7.0.1:
     dependencies:
-      acorn: 8.15.0
+      acorn: 8.16.0
       acorn-walk: 8.2.0
 
   acorn-import-attributes@1.9.5(acorn@8.16.0):
@@ -17984,6 +18009,12 @@ snapshots:
   acorn@8.8.2: {}
 
   aes-js@3.0.0: {}
+
+  agadoo@3.0.0:
+    dependencies:
+      '@rollup/plugin-virtual': 3.0.2(rollup@3.30.0)
+      acorn: 8.16.0
+      rollup: 3.30.0
 
   agent-base@6.0.2:
     dependencies:
@@ -23090,6 +23121,10 @@ snapshots:
       hash-base: 3.1.0
       inherits: 2.0.4
 
+  rollup@3.30.0:
+    optionalDependencies:
+      fsevents: 2.3.3
+
   rollup@4.50.1:
     dependencies:
       '@types/estree': 1.0.8
@@ -24075,7 +24110,7 @@ snapshots:
 
   unplugin@1.0.1:
     dependencies:
-      acorn: 8.15.0
+      acorn: 8.16.0
       chokidar: 3.6.0
       webpack-sources: 3.3.3
       webpack-virtual-modules: 0.5.0
