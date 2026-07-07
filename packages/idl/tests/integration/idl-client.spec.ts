@@ -1,6 +1,7 @@
 // The @explorer/idl client in action — consumer-style flows over the BUILT package ('@explorer/idl'
-// resolves to dist/ — build first). Sections group by client capability, and each section runs the
-// SAME consumer code over every program flavor (all real documents):
+// resolves to dist/ — build first). Creation/summary/naming sections group by client capability;
+// decoding sections group by document flavor (modern Anchor / legacy Anchor / converted / Codama).
+// All documents are real:
 //   tokenkeg  — SPL Token's PMP-stored Codama root (mainnet snapshot)
 //   converted — the generated Anchor document normalized with nodes-from-anchor
 //   simple    — modern Anchor program (anchor-lang 1.1.2, programs/simple)
@@ -10,6 +11,9 @@ import {
     type AccountDecode,
     type AnchorIdl,
     type CodamaIdl,
+    // codamaProvider is the DEFAULT and never needs passing
+    codamaProvider,
+    convertToCodama,
     createIdlClient,
     getIdlStandard,
     IDL_ERROR__IDL_PARSE_FAILED,
@@ -24,8 +28,6 @@ import {
     isLegacyAnchorIdl,
     tryCreateIdlClient,
 } from '@explorer/idl';
-// the engine lives behind its own entry; codamaProvider is the DEFAULT and never needs passing
-import { codamaProvider, convertToCodama } from '@explorer/idl/codama';
 import { Program, type Provider } from '@coral-xyz/anchor';
 import { address, type Instruction } from '@solana/kit';
 import { deflateSync } from 'node:zlib';
@@ -268,58 +270,43 @@ describe('capability: instruction naming (discriminator table)', () => {
     });
 });
 
-describe('capability: instruction decoding', () => {
-    /** Case: a codama root decodes a kit instruction; the anchor arm is statically excluded. */
-    it("should decode SPL Token's transfer through the real codama root", () => {
-        const tokenkeg = loadTokenkegIdl();
-        const client = createIdlClient(tokenkeg);
-
-        const decode = client.decodeInstruction(transferIx(tokenkeg));
-        const result = client.getDecodedData<{ amount: bigint }>(decode);
-
-        // the codama client statically excludes the anchor arm
-        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<typeof tokenkeg>>();
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
-        expect(decode.kind).toBe(IdlStandard.Codama);
-        expect(result).toMatchObject({ amount: 42n });
-    });
-
-    /** Case: an Anchor document converted with the library conversion decodes like a native root. */
-    it('should decode through the converted Anchor document', () => {
-        const simple = loadSimpleIdl();
-        const [conversionError, converted] = convertToCodama(simple);
-        expect(conversionError).toBeUndefined();
-        if (!converted) throw new Error('unreachable');
-
-        // the conversion result is the WIDE CodamaIdl (literal types do not survive a runtime
-        // conversion), so the client narrows like a native root and the shape stays per-call
-        const client = createIdlClient(converted);
-
-        const decode = client.decodeInstruction(incrementIx(simple));
-        const result = client.getDecodedData<{ amount: bigint }>(decode);
-
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
-        expect(decode.kind).toBe(IdlStandard.Codama);
-        expect(result).toMatchObject({ amount: 42n });
-    });
-
-    /** Case: a modern Anchor document decodes through the default codama engine, args inferred. */
-    it('should decode the modern Anchor program instruction', () => {
+describe('decoding: modern Anchor documents', () => {
+    /** Case: repo-bundled document paired with the anchor-generated companion type — args infer, no generics. */
+    it('should decode the increment instruction with args inferred from the generated type', () => {
         const simple = loadSimpleIdlTyped();
         const client = createIdlClient(simple);
 
         const decode = client.decodeInstruction(incrementIx(simple));
         const result = client.getDecodedData(decode);
 
+        expectTypeOf(simple).toEqualTypeOf<Simple>();
         // the anchor client keeps every arm (codama engine + injected-decoder anchor arm)
         expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
+        // the union covers every declared instruction: increment({amount}) | initialize (no args → {})
         expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
         expect(decode.kind).toBe(IdlStandard.Codama);
         expect(result).toMatchObject({ amount: 42n });
     });
 
-    /** Case: the Anchor 0.31 document fetched through anchor's client decodes with args inferred. */
-    it('should decode the Anchor 0.31 program instruction', async () => {
+    /** Case: the same generated type infers account struct fields (its camelCase view matches codama-decoded keys). */
+    it('should decode counter account bytes with fields inferred from the generated type', () => {
+        const simple = loadSimpleIdlTyped();
+        const client = createIdlClient(simple);
+
+        const decode = client.decodeAccount(counterAccountData(simple));
+        const result = client.getDecodedData(decode);
+
+        expectTypeOf(decode).toEqualTypeOf<AccountDecode>();
+        expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
+        expect(decode.kind).toBe(IdlStandard.Codama);
+        expect(result).toMatchObject({
+            authority: '11111111111111111111111111111111',
+            count: 7n,
+        });
+    });
+
+    /** Case: the 0.31 document arrives through anchor's client (Program.fetchIdl<Simple031>) — inference flows the same. */
+    it("should decode the 0.31 increment instruction for an IDL fetched with anchor's client", async () => {
         const simple031 = await fetchSimple031Idl();
         const client = createIdlClient(simple031);
 
@@ -331,8 +318,26 @@ describe('capability: instruction decoding', () => {
         expect(result).toMatchObject({ amount: 42n });
     });
 
-    /** Case: a mainnet document decodes borsh strings + u64 into camelCased args. */
-    it('should decode the real mainnet Anchor program instruction', () => {
+    /** Case: the same fetched document held wide (fetchIdl without a generic) — the field shape is passed per call. */
+    it('should decode 0.31 counter account bytes with a per-call shape', async () => {
+        const simple031: AnchorIdl = await fetchSimple031Idl();
+        const client = createIdlClient(simple031);
+
+        const decode = client.decodeAccount(counterAccountData(simple031));
+        // the deliberate per-call variant: the declared shape types the result exactly
+        const result = client.getDecodedData<{ authority: string; count: bigint }>(decode);
+
+        expectTypeOf(decode).toEqualTypeOf<AccountDecode>();
+        expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
+        expect(decode.kind).toBe(IdlStandard.Codama);
+        expect(result).toMatchObject({
+            authority: '11111111111111111111111111111111',
+            count: 7n,
+        });
+    });
+
+    /** Case: a mainnet document (runtime snapshot, wide) decodes borsh strings + u64 into camelCased args. */
+    it('should decode the real mainnet add_product instruction', () => {
         const letMeBuy = loadLetMeBuyIdl();
         const client = createIdlClient(letMeBuy);
 
@@ -346,74 +351,6 @@ describe('capability: instruction decoding', () => {
             price: 42n,
             storeName: 'store',
         });
-    });
-});
-
-describe('capability: receive instruction data (IDL-typed accessor)', () => {
-    /** Case: a WIDE runtime document — no compile-time type exists, so the shape is declared per call. */
-    it("should decode SPL Token's transfer and hand back the args generically", () => {
-        const tokenkeg = loadTokenkegIdl();
-        // picking the default engine explicitly — heavier engines (anchor) plug in the same way
-        const client = createIdlClient(tokenkeg, { provider: codamaProvider() });
-
-        const decode = client.decodeInstruction(transferIx(tokenkeg));
-        // the accessor returns the parsed args without per-standard digging; the runtime document is
-        // wide, so the shape is declared per call
-        const result = client.getDecodedData<{ amount: bigint }>(decode);
-
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
-        expect(result).toMatchObject({ amount: 42n });
-    });
-
-    /** Case: the anchor-generated type shipped with the program repo — zero-generic instruction-args inference. */
-    it('should infer the instruction payload from the generated program type', () => {
-        // the loader pairs the built IDL JSON with target/types (`Program<Simple>` idiom) — the
-        // compiler reads arg names/types straight from the anchor build output, no copies
-        const simple = loadSimpleIdlTyped();
-        const client = createIdlClient(simple);
-
-        const decode = client.decodeInstruction(incrementIx(simple));
-        const result = client.getDecodedData(decode);
-
-        expectTypeOf(simple).toEqualTypeOf<Simple>();
-        // the union covers every declared instruction: increment({amount}) | initialize (no args → {})
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
-        expect(result).toMatchObject({ amount: 42n });
-    });
-
-    /** Case: the same generated type — zero-generic account-fields inference. */
-    it('should infer the account payload from the generated program type', () => {
-        const simple = loadSimpleIdlTyped();
-        const client = createIdlClient(simple);
-
-        // the type's camelCase view matches the codama-DECODED payload keys; only document name
-        // reads differ at runtime (the JSON keeps Rust casing, e.g. 'Counter')
-        const decode = client.decodeAccount(counterAccountData(simple));
-        const result = client.getDecodedData(decode);
-
-        expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
-        expect(result).toMatchObject({
-            authority: '11111111111111111111111111111111',
-            count: 7n,
-        });
-    });
-
-    /** Case: the document arrives through anchor's client (Program.fetchIdl<Simple031>) — the fetched value infers too. */
-    it("should infer payloads for an IDL fetched with anchor's Program.fetchIdl (mocked transport)", async () => {
-        const raw = loadSimple031Idl();
-        // no HTTP: the connection serves the anchor IDL PDA account straight from the fixture
-        const provider = {
-            connection: { getAccountInfo: async () => idlAccountInfo(raw) },
-        } as unknown as Provider;
-
-        const fetched = await Program.fetchIdl<Simple031>(raw.address, provider);
-        if (!fetched) throw new Error('mocked IDL account must resolve');
-
-        const client = createIdlClient(fetched);
-        const result = client.getDecodedData(client.decodeInstruction(incrementIx(fetched)));
-
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
-        expect(result).toMatchObject({ amount: 42n });
     });
 
     /** Case: the accessor composes with handler-map dispatch when each outcome needs its own flow. */
@@ -433,45 +370,7 @@ describe('capability: receive instruction data (IDL-typed accessor)', () => {
     });
 });
 
-describe('capability: account decoding', () => {
-    /** Case: raw account bytes decode via the document's declared discriminator, fields inferred (modern Anchor). */
-    it('should decode raw counter account bytes of the modern Anchor program', () => {
-        const simple = loadSimpleIdlTyped();
-        const client = createIdlClient(simple);
-
-        const decode = client.decodeAccount(counterAccountData(simple));
-        const result = client.getDecodedData(decode);
-
-        expectTypeOf(decode).toEqualTypeOf<AccountDecode>();
-        expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
-        expect(decode.kind).toBe(IdlStandard.Codama);
-        expect(result).toMatchObject({
-            authority: '11111111111111111111111111111111',
-            count: 7n,
-        });
-    });
-
-    /** Case: the same account decode on the Anchor 0.31 document, held wide — the field shape is passed per call. */
-    it('should decode raw counter account bytes of the Anchor 0.31 program', async () => {
-        // annotating wide models the fetch-without-a-type situation (Program.fetchIdl with no generic)
-        const simple031: AnchorIdl = await fetchSimple031Idl();
-        const client = createIdlClient(simple031);
-
-        const decode = client.decodeAccount(counterAccountData(simple031));
-        // the deliberate per-call variant: the declared shape types the result exactly
-        const result = client.getDecodedData<{ authority: string; count: bigint }>(decode);
-
-        expectTypeOf(decode).toEqualTypeOf<AccountDecode>();
-        expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
-        expect(decode.kind).toBe(IdlStandard.Codama);
-        expect(result).toMatchObject({
-            authority: '11111111111111111111111111111111',
-            count: 7n,
-        });
-    });
-});
-
-describe('capability: injected legacyAnchorDecoder', () => {
+describe('decoding: legacy Anchor documents', () => {
     // A realistic gap: the program executes an instruction its published IDL does not declare (an
     // upgrade outran the document). The consumer injects a decoder that knows the missing layout.
     const AIRDROP_DISCRIMINATOR = [9, 9, 9, 9, 9, 9, 9, 9];
@@ -516,9 +415,7 @@ describe('capability: injected legacyAnchorDecoder', () => {
 
         expect(decode.kind).toBe('unknown');
     });
-});
 
-describe('capability: legacy Anchor fallback', () => {
     /** Case: a pre-0.30 document gets a typed refusal, and the guard routes it to consumer-owned decoding. */
     it('should refuse legacy documents and route them to consumer-owned decoding', () => {
         // the client refuses with a typed error...
@@ -529,6 +426,57 @@ describe('capability: legacy Anchor fallback', () => {
         // (see legacy-anchor/custom-decoder.spec.ts for a working Borsh-style legacy decoder)
         expect(isLegacyAnchorIdl(pre030AnchorIdl)).toBe(true);
         expect(pre030WithdrawIx.data.length).toBeGreaterThan(8);
+    });
+});
+
+describe('decoding: converted Anchor documents (nodes-from-anchor)', () => {
+    /** Case: an Anchor document converted with the library conversion decodes like a native root. */
+    it('should decode through the converted Anchor document', () => {
+        const simple = loadSimpleIdl();
+        const [conversionError, converted] = convertToCodama(simple);
+        expect(conversionError).toBeUndefined();
+        if (!converted) throw new Error('unreachable');
+
+        // the conversion result is the WIDE CodamaIdl (literal types do not survive a runtime
+        // conversion), so the client narrows like a native root and the shape stays per-call
+        const client = createIdlClient(converted);
+
+        const decode = client.decodeInstruction(incrementIx(simple));
+        const result = client.getDecodedData<{ amount: bigint }>(decode);
+
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
+        expect(decode.kind).toBe(IdlStandard.Codama);
+        expect(result).toMatchObject({ amount: 42n });
+    });
+});
+
+describe('decoding: Codama documents', () => {
+    /** Case: a codama root decodes a kit instruction; the anchor arm is statically excluded. */
+    it("should decode SPL Token's transfer through the real codama root", () => {
+        const tokenkeg = loadTokenkegIdl();
+        const client = createIdlClient(tokenkeg);
+
+        const decode = client.decodeInstruction(transferIx(tokenkeg));
+        const result = client.getDecodedData<{ amount: bigint }>(decode);
+
+        // the codama client statically excludes the anchor arm
+        expectTypeOf(decode).toEqualTypeOf<InstructionDecodeFor<typeof tokenkeg>>();
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
+        expect(decode.kind).toBe(IdlStandard.Codama);
+        expect(result).toMatchObject({ amount: 42n });
+    });
+
+    /** Case: the per-call shape is the SUPPORTED form for codama documents — codama's own parsers type decoded data as `unknown` (ParsedData), and runtime-fetched roots carry no literal type to infer from. */
+    it('should hand back the transfer args with a per-call shape', () => {
+        const tokenkeg = loadTokenkegIdl();
+        // picking the default engine explicitly — heavier engines (anchor) plug in the same way
+        const client = createIdlClient(tokenkeg, { provider: codamaProvider() });
+
+        const decode = client.decodeInstruction(transferIx(tokenkeg));
+        const result = client.getDecodedData<{ amount: bigint }>(decode);
+
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | undefined>();
+        expect(result).toMatchObject({ amount: 42n });
     });
 });
 
