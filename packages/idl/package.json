@@ -2,8 +2,11 @@
     "name": "@explorer/idl",
     "version": "0.0.0",
     "private": true,
-    "sideEffects": false,
+    "files": [
+        "dist"
+    ],
     "type": "module",
+    "sideEffects": false,
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
@@ -21,14 +24,13 @@
             "default": "./dist/codama/index.js"
         }
     },
-    "files": [
-        "dist"
-    ],
     "scripts": {
         "prebuild": "rm -rf dist",
         "build": "node scripts/build.mjs",
         "build:programs": "pnpm --filter \"@explorer/idl-program-*\" build",
-        "lint": "oxlint",
+        "format": "oxfmt --check .",
+        "format:fix": "oxfmt .",
+        "lint": "oxlint && oxfmt --check .",
         "lint:fix": "oxlint --fix",
         "pretest": "pnpm run build:programs && pnpm run build",
         "test": "vitest run && pnpm run test:integration && pnpm run test:treeshakability",
@@ -49,6 +51,7 @@
         "agadoo": "^3.0.0",
         "codama-fixtures": "https://codeload.github.com/codama-idl/codama/tar.gz/008849ce88472dc1080ed9a71a897b631de82b98",
         "oxc-transform": "^0.137.0",
+        "oxfmt": "^0.56.0",
         "oxlint": "^1.71.0",
         "typescript": "catalog:tooling",
         "vitest": "catalog:vitest"

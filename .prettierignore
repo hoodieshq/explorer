@@ -12,4 +12,4 @@ build/
 storybook-static/
 storybook-static-*/
 public/mockServiceWorker.js
-packages/idl/src/__tests__/generated/
+packages/idl/
