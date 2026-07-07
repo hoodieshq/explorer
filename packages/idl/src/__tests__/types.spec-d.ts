@@ -121,10 +121,15 @@ describe('decode result inference', () => {
     it('should pass each handler its narrowed decode arm', () => {
         const client = createIdlClient(anchorIdl, { provider: codamaProvider() });
         client.decodeInstruction(anchorIncrementIx, {
-            anchor: decode => expectTypeOf(decode).toEqualTypeOf<{ decoded: unknown; kind: IdlStandard.Anchor }>(),
+            anchor: decode =>
+                expectTypeOf(decode).toEqualTypeOf<{
+                    decoded: unknown;
+                    kind: IdlStandard.Anchor;
+                    recoveredFrom?: readonly IdlError[];
+                }>(),
             codama: decode =>
                 expectTypeOf(decode).toEqualTypeOf<{ decoded: CodamaDecodedInstruction; kind: IdlStandard.Codama }>(),
-            unknown: decode => expectTypeOf(decode).toEqualTypeOf<{ errors: IdlError[]; kind: 'unknown' }>(),
+            unknown: decode => expectTypeOf(decode).toEqualTypeOf<{ errors: readonly IdlError[]; kind: 'unknown' }>(),
         });
     });
 
@@ -165,7 +170,7 @@ describe('decoder payload inference', () => {
             anchor: decode => expectTypeOf(decode).toEqualTypeOf<{ decoded: unknown; kind: IdlStandard.Anchor }>(),
             codama: decode =>
                 expectTypeOf(decode).toEqualTypeOf<{ decoded: CodamaDecodedAccount; kind: IdlStandard.Codama }>(),
-            unknown: decode => expectTypeOf(decode).toEqualTypeOf<{ errors: IdlError[]; kind: 'unknown' }>(),
+            unknown: decode => expectTypeOf(decode).toEqualTypeOf<{ errors: readonly IdlError[]; kind: 'unknown' }>(),
         });
     });
 

@@ -24,8 +24,11 @@ export enum IdlStandard {
     Codama = 'codama',
 }
 
+/** Wildcard label for all modern Anchor IDL versions (>= 0.30.1) — a standard-era label, not a specific version. */
+export const MODERN_ANCHOR_IDL_WILDCARD = '0.30.1';
+
 /** Standard-era label: the Codama root format version, or the modern-Anchor wildcard (see `getIdlVersion`). */
-export type IdlVersion = '0.30.1' | RootNode['version'];
+export type IdlVersion = typeof MODERN_ANCHOR_IDL_WILDCARD | RootNode['version'];
 
 // Codama payloads carry the real engine output; Anchor payloads stay opaque until the Anchor-rich
 // path lands (mcp-endpoint Step 6) — today they only come from the injected legacy decoder.
@@ -34,17 +37,21 @@ export type CodamaDecodedAccount = NonNullable<ReturnType<typeof parseAccountDat
 export type AnchorDecodedInstruction = unknown;
 export type AnchorDecodedAccount = unknown;
 
-/** A decoded instruction — discriminated by the standard that produced the decode. */
+/**
+ * A decoded instruction — discriminated by the standard that produced the decode.
+ * Unknown-arm contract: `errors: []` is a plain miss (no discriminator match); non-empty means the
+ * pipeline failed on the way. A legacy-decoder rescue keeps the bypassed errors in `recoveredFrom`.
+ */
 export type InstructionDecode =
-    | { kind: IdlStandard.Anchor; decoded: AnchorDecodedInstruction }
+    | { kind: IdlStandard.Anchor; decoded: AnchorDecodedInstruction; recoveredFrom?: readonly IdlError[] }
     | { kind: IdlStandard.Codama; decoded: CodamaDecodedInstruction }
-    | { kind: 'unknown'; errors: IdlError[] };
+    | { kind: 'unknown'; errors: readonly IdlError[] };
 
-/** A decoded account — discriminated by the standard that produced the decode. */
+/** A decoded account — same discrimination and unknown-arm `errors` contract as {@link InstructionDecode}. */
 export type AccountDecode =
     | { kind: IdlStandard.Anchor; decoded: AnchorDecodedAccount }
     | { kind: IdlStandard.Codama; decoded: CodamaDecodedAccount }
-    | { kind: 'unknown'; errors: IdlError[] };
+    | { kind: 'unknown'; errors: readonly IdlError[] };
 
 // An Anchor client may still fall back to Codama, so only the Codama client narrows an arm away.
 export type InstructionDecodeFor<T extends SupportedIdl> = T extends CodamaIdl
@@ -72,9 +79,9 @@ export type LegacyDecoderOptions = {
 
 /**
  * A decode engine bound to the client — it receives the client's IDL per call and decodes against
- * it. The codama provider is the DEFAULT and covers both standards via the codama pipeline; heavier
- * engines (the Anchor-rich path) ship as separate subpath providers and are used only when specified.
- * Payload TYPES are not the provider's concern: they derive from the IDL type itself (see infer.ts).
+ * it. Providers live behind subpath entries ('@explorer/idl/codama' ships the standard engine) so
+ * processes that never decode never load one. Payload TYPES are not the provider's concern: they
+ * derive from the IDL type itself (see infer.ts).
  */
 export type IdlDecodeProvider = {
     decodeAccount(idl: SupportedIdl, data: Uint8Array): AccountDecode;

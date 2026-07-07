@@ -3,8 +3,8 @@ import { parseInstruction } from '@codama/dynamic-parsers';
 import type { Instruction } from '@solana/kit';
 
 import { convertToCodama } from '../anchor/convert';
-import { getIdlProgramAddress, isAnchorIdl, isCodamaIdl } from '../detect';
-import { IDL_ERROR__IDL_ADDRESS_MISMATCH, IDL_ERROR__IDL_PARSE_FAILED, IdlError, ok } from '../errors';
+import { getIdlProgramAddress, getIdlStandard, isAnchorIdl, isCodamaIdl } from '../detect';
+import { IDL_ERROR__IDL_ADDRESS_MISMATCH, IDL_ERROR__INSTRUCTION_DECODE_FAILED, IdlError, ok } from '../errors';
 import {
     type AnchorIdl,
     type CodamaIdl,
@@ -42,14 +42,28 @@ export function decodeInstructionWithIdl<T extends SupportedIdl>(
             // a miss (no discriminator match) is a plain miss, not an error
             if (parsed) return { decoded: parsed, kind: IdlStandard.Codama } as InstructionDecodeFor<T>;
         } catch (cause) {
-            errors.push(new IdlError(IDL_ERROR__IDL_PARSE_FAILED, { cause, operation: 'parseInstruction' }));
+            // the document already converted — this is a decode failure, not a document-parse failure
+            errors.push(
+                new IdlError(IDL_ERROR__INSTRUCTION_DECODE_FAILED, {
+                    cause,
+                    programAddress: ix.programAddress,
+                    standard: getIdlStandard(idl),
+                }),
+            );
         }
     }
 
     // escape hatch for Anchor IDLs the conversion route cannot handle — injected, never bundled
     if (isAnchorIdl(idl) && options.legacyAnchorDecoder) {
         const decoded = options.legacyAnchorDecoder(idl, ix);
-        if (decoded !== undefined) return { decoded, kind: IdlStandard.Anchor } as InstructionDecodeFor<T>;
+        if (decoded !== undefined) {
+            // keep the bypassed pipeline errors observable — a rescue must not hide a broken conversion
+            return (
+                errors.length
+                    ? { decoded, kind: IdlStandard.Anchor, recoveredFrom: errors }
+                    : { decoded, kind: IdlStandard.Anchor }
+            ) as InstructionDecodeFor<T>;
+        }
     }
 
     return { errors, kind: 'unknown' } as InstructionDecodeFor<T>;

@@ -4,11 +4,11 @@ import {
     IdlStandard,
     type IdlVersion,
     type LegacyAnchorIdl,
+    MODERN_ANCHOR_IDL_WILDCARD,
     type SupportedIdl,
 } from './types';
 
-/** Wildcard label for all modern Anchor IDL versions (>= 0.30.1) — a standard-era label, not a specific version. */
-export const MODERN_ANCHOR_IDL_WILDCARD = '0.30.1';
+export { MODERN_ANCHOR_IDL_WILDCARD };
 
 /** Modern Anchor (>= 0.30) declares `metadata.spec`; legacy Anchor has none and is not supported here. */
 export function isAnchorIdl(value: unknown): value is AnchorIdl {
