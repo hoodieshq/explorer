@@ -6,7 +6,8 @@ The package wraps one IDL document into a client whose decode results are discri
 
 - *Errors are values, not throws* — fallible operations return the error-first `Result` tuple (`[IdlError, undefined] | [undefined, value]`), and decode failures ride the `unknown` arm as coded `IdlError`s; the consumer decides severity, the package never logs.
 - *Legacy variants are the consumer's decoder, not ours* — the client accepts a custom decoder via options (`legacyAnchorDecoder`) for documents the built-in conversion route cannot handle; the package ships no Borsh fallback of its own.
-- *User-facing client, easy configuration* — one document in, working client out: no standard flags, no engine choices, no required options. Static inference and runtime detection do the configuring; the single optional knob is the legacy decoder above.
+- *User-facing client, easy configuration* — one document in, working metadata client out (names, address, detection): no flags, no options. Decoding is an explicit engine choice (`{ provider }`), so processes that never decode — name-only MCP tools — never load an engine; `createCodamaIdlClient` from `@explorer/idl/codama` is the one-import path for default-engine users.
+- *Engines live behind subpath entries* — the main entry is engine-free; `./codama` ships the default engine, `./anchor` the conversion (and the future Anchor-rich provider). Subpath threshold: an entry earns its keep only when it guards a runtime dependency subtree not acceptable in every consumer (size or policy — web3.js) AND a real consumer profile never calls it; tree-shaking alone does not protect plain-Node consumers (MCP), whose ESM loader executes the whole import graph.
 
 ### Client flow
 
@@ -19,8 +20,9 @@ flowchart TD
     TRY -->|"isSupportedIdl fails"| ERR["[IdlError(UNSUPPORTED_IDL_FORMAT), undefined]"]
     TRY -->|ok| CREATE
     CREATE -->|"isSupportedIdl fails (lying type)"| THROW["throw IdlError(UNSUPPORTED_IDL_FORMAT)"]
-    CREATE --> CLIENT["IdlClient&lt;T&gt;<br/>readonly idl (guards narrow on it)<br/>name table precomputed from idl"]
-    CLIENT --> META["programAddress() / programName() /<br/>instructionName(data) — longest-prefix match"]
+    CREATE -->|"no options (engine-free)"| METACLIENT["IdlMetaClient&lt;T&gt;<br/>readonly idl (guards narrow on it)<br/>name table precomputed from idl"]
+    CREATE -->|"{ provider } (or createCodamaIdlClient)"| CLIENT["IdlClient&lt;T&gt; = IdlMetaClient + decode surface"]
+    METACLIENT --> META["programAddress() / programName() /<br/>instructionName(data) — longest-prefix match"]
     CLIENT --> DI["decodeInstruction(ix)"]
     CLIENT --> DA["decodeAccount(data)"]
     LEGACY["LegacyAnchorIdl (pre-0.30)"] -. "isLegacyAnchorIdl recognizes;<br/>client rejects at compile + runtime" .-> TRY
