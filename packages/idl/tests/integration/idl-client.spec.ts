@@ -271,17 +271,14 @@ describe('capability: instruction naming (discriminator table)', () => {
         expect(result).toBe('Transfer');
     });
 
-    // IMPROVE READING INSTRUCTION NAME FOR ANCHOR
-    /** Case: converted documents lose byte-array discriminator resolution — the known conversion trade-off. */
-    it('should NOT label instructions through the converted document (conversion trade-off)', () => {
-        // the codama name table only resolves PMP-style int fields, not anchor byte arrays — the
-        // native Anchor routes below resolve the same instruction
+    /** Case: converted documents keep byte-array discriminator resolution (fieldDiscriminatorNode with a bytes default). */
+    it('should label instructions through the converted document', () => {
         const simple = loadSimpleIdl();
         const [, converted] = convertToCodama(simple);
         const result = labelInstruction(converted, incrementIx(simple));
 
         expectTypeOf(result).toEqualTypeOf<string>();
-        expect(result).toBe('Unknown');
+        expect(result).toBe('Increment');
     });
 
     /** Case: a real sha256 byte-array discriminator resolves through the native Anchor route. */

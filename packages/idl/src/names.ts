@@ -1,13 +1,21 @@
 import {
     type Encoder,
+    getBase16Encoder,
+    getBase58Encoder,
+    getBase64Encoder,
     getI8Encoder,
     getI16Encoder,
     getI32Encoder,
+    getI64Encoder,
+    getI128Encoder,
     getU8Encoder,
     getU16Encoder,
     getU32Encoder,
+    getU64Encoder,
+    getU128Encoder,
+    getUtf8Encoder,
 } from '@solana/kit';
-import { type InstructionNode, isNode, titleCase } from 'codama';
+import { type InstructionNode, isNode, type Node, titleCase } from 'codama';
 
 import { isCodamaIdl } from './detect';
 import { type AnchorIdl, type CodamaIdl, type SupportedIdl } from './types';
@@ -75,10 +83,21 @@ function buildAnchorTable(idl: AnchorIdl): InstructionNameEntry[] {
 const DISCRIMINATOR_ENCODERS: Record<string, Encoder<bigint | number>> = {
     i16: getI16Encoder(),
     i32: getI32Encoder(),
+    i64: getI64Encoder(),
+    i128: getI128Encoder(),
     i8: getI8Encoder(),
     u16: getU16Encoder(),
     u32: getU32Encoder(),
+    u64: getU64Encoder(),
+    u128: getU128Encoder(),
     u8: getU8Encoder(),
+};
+
+const BYTES_ENCODERS: Record<string, Encoder<string>> = {
+    base16: getBase16Encoder(),
+    base58: getBase58Encoder(),
+    base64: getBase64Encoder(),
+    utf8: getUtf8Encoder(),
 };
 
 function buildCodamaTable(idl: CodamaIdl): InstructionNameEntry[] {
@@ -88,16 +107,28 @@ function buildCodamaTable(idl: CodamaIdl): InstructionNameEntry[] {
     });
 }
 
-// Only the common PMP case — one constant int field discriminator at offset 0; Anchor byte arrays go through the Anchor table.
+// Single discriminator at offset 0, as a field default or a constant node — covers PMP int fields
+// and the byte defaults rootNodeFromAnchor emits for Anchor discriminators.
 function codamaDiscriminator(ix: InstructionNode): Uint8Array | undefined {
-    const [field, ...rest] = ix.discriminators ?? [];
-    if (!field || rest.length > 0 || !isNode(field, 'fieldDiscriminatorNode') || field.offset !== 0) {
-        return undefined;
+    const [node, ...rest] = ix.discriminators ?? [];
+    if (!node || rest.length > 0) return undefined;
+    if (isNode(node, 'constantDiscriminatorNode')) {
+        return node.offset === 0 ? valueBytes(node.constant.type, node.constant.value) : undefined;
     }
-    const arg = ix.arguments.find(item => item.name === field.name);
-    if (!arg || !isNode(arg.type, 'numberTypeNode') || !isNode(arg.defaultValue, 'numberValueNode')) {
-        return undefined;
+    if (!isNode(node, 'fieldDiscriminatorNode') || node.offset !== 0) return undefined;
+    const arg = ix.arguments.find(item => item.name === node.name);
+    return arg && valueBytes(arg.type, arg.defaultValue);
+}
+
+function valueBytes(type: Node, value: Node | undefined): Uint8Array | undefined {
+    if (isNode(type, 'fixedSizeTypeNode')) return valueBytes(type.type, value);
+    if (isNode(type, 'numberTypeNode') && isNode(value, 'numberValueNode')) {
+        const bytes = DISCRIMINATOR_ENCODERS[type.format]?.encode(value.number);
+        return bytes && Uint8Array.from(bytes);
     }
-    const bytes = DISCRIMINATOR_ENCODERS[arg.type.format]?.encode(arg.defaultValue.number);
-    return bytes && Uint8Array.from(bytes);
+    if (isNode(type, 'bytesTypeNode') && isNode(value, 'bytesValueNode')) {
+        const bytes = BYTES_ENCODERS[value.encoding]?.encode(value.data);
+        return bytes && Uint8Array.from(bytes);
+    }
+    return undefined;
 }
