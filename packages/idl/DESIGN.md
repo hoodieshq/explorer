@@ -1,15 +1,33 @@
-## Context
+# @explorer/idl — Design
 
-The package wraps one IDL document into a client whose decode results are discriminated unions narrowed statically per standard. Everything below is shipped code (`src/`), not a plan — this design records the architecture and the reasoning so the extraction pieces (app façade, MCP endpoint) build on a documented contract.
+The package wraps one IDL document into a client whose decode results are discriminated unions narrowed statically per standard. This document records the architecture and the reasoning behind it so consumers build on a documented contract. Everything below is shipped code (`src/`), not a plan.
 
-### Core ideas
+## Why
+
+Decoding a program's instruction and account data by its IDL is the core problem, and IDLs arrive in more than one standard: modern Anchor (>= 0.30, `metadata.spec`) and Codama root nodes (as the program-metadata program stores them), plus a third pre-0.30 legacy Anchor shape that must be recognized but not decoded. Each standard has to be handled on its own terms. This package is one typed, standard-aware core that turns any supported IDL into decoded data, with compile-time guarantees about which decode outcomes each standard can produce.
+
+## What the package delivers
+
+- Standard detection, typed client, codama-primary decode pipeline, discriminator-based instruction naming, coded error family (`@codama/errors` pattern, error-first `Result` tuples).
+- Client API: `createIdlClient<T>` (throws on lying types) / `tryCreateIdlClient` (error-first for untrusted input); decode methods return discriminated unions that narrow statically per standard — a Codama client cannot even express an anchor-arm handler. A standalone `getDecodedData(decode)` returns the payload regardless of which arm produced it (undefined for the unknown arm).
+- Escape hatch: an injectable `legacyAnchorDecoder` option for modern Anchor documents the conversion route cannot handle — never bundled into the package.
+- Legacy pre-0.30 documents: `isLegacyAnchorIdl` recognizes them; the client rejects them at compile time and runtime — consumers decode them with their own decoder.
+
+Capabilities:
+
+- `idl-detection`: recognize and narrow unknown documents into modern Anchor, Codama, or legacy Anchor; expose standard/version metadata helpers.
+- `idl-client`: typed client construction over one IDL — program metadata reads, handler-map decode dispatch, static narrowing per standard, injectable legacy decoder seam.
+- `idl-decoding`: single codama-normalized decode pipeline for instructions and accounts — address-mismatch fail-loud, conversion + parse error collection, miss-vs-failure semantics of the `unknown` arm.
+- `instruction-naming`: discriminator-prefix name resolution (Anchor byte arrays, Codama constant int fields) with longest-prefix matching.
+
+## Core ideas
 
 - *Errors are values, not throws* — fallible operations return the error-first `Result` tuple (`[IdlError, undefined] | [undefined, value]`), and decode failures ride the `unknown` arm as coded `IdlError`s; the consumer decides severity, the package never logs.
 - *Legacy variants are the consumer's decoder, not ours* — the client accepts a custom decoder via options (`legacyAnchorDecoder`) for documents the built-in conversion route cannot handle; the package ships no Borsh fallback of its own.
 - *User-facing client, easy configuration* — one document in, working metadata client out (names, address, detection): no flags, no options. Decoding is an explicit engine choice (`{ provider }`), so processes that never decode — name-only MCP tools — never load an engine; `createCodamaIdlClient` from `@explorer/idl/codama` is the one-import path for default-engine users.
 - *Engines live behind subpath entries* — the main entry is engine-free; `./codama` ships the default engine, `./anchor` the conversion (and the future Anchor-rich provider). Subpath threshold: an entry earns its keep only when it guards a runtime dependency subtree not acceptable in every consumer (size or policy — web3.js) AND a real consumer profile never calls it; tree-shaking alone does not protect plain-Node consumers (MCP), whose ESM loader executes the whole import graph.
 
-### Client flow
+## Client flow
 
 Construction — untrusted input goes through the error-first route, typed input through the throwing route; both land on the same client:
 
@@ -56,28 +74,36 @@ The client is not the only surface: `convertToCodama`, the standalone `decodeIns
 **Goals:**
 
 - One decode engine for both standards; typed results that make impossible arms unwritable per standard.
-- Parsed-data only — the package returns data; rendering, hooks, ErrorBoundaries are app-side layers.
+- Parsed-data only — the package returns data; rendering, hooks, ErrorBoundaries are consumer-side layers.
 - Error-as-data: decode failures ride the `unknown` arm as coded `IdlError`s; consumers map codes to their own severities/UI.
 - Real-artifact tests: fixture Anchor programs build genuine IDLs so discriminators and shapes are sha256-true, not invented; tracked mainnet snapshots (`let-me-buy` Anchor + PMP, `tokenkeg` PMP) pin the dual-standard behavior on real documents.
 
 **Non-Goals:**
 
-- IDL fetching/resolution (mcp-endpoint Piece A) and the Anchor-rich decode path — events, nested account groups via anchor `Program` (Piece B).
+- IDL fetching/resolution — the package decodes a document it is handed; discovering or fetching it is the consumer's job.
+- The Anchor-rich decode path — events, nested account groups via anchor `Program` — is a future seam, not part of this core.
 - Legacy pre-0.30 decoding — consumers own it; the package only recognizes the shape.
-- Rendering/React composition of decoded data.
 
 ## Decisions
 
 - **Codama-normalized single pipeline** — Anchor documents convert via `@codama/nodes-from-anchor`, then one engine (`@codama/dynamic-parsers`) decodes everything. Alternative (two engines, anchor-first) rejected: double maintenance for the same bytes. Trade-off: the conversion loses Anchor byte-array discriminator naming in the Codama name table (asserted in the integration suite as a known limitation).
-- **Anchor arm = escape hatch only** — `legacyAnchorDecoder` is injected via options, never bundled, and is the sole producer of `{ kind: anchor }` until Piece B. Keeps the package free of app-specific Borsh fallbacks.
-- **`unknown` arm carries `errors: IdlError[]`** — a discriminator miss is a plain miss (`errors: []`), a pipeline failure carries coded errors. Known review finding: the length convention is undocumented and the fallback can mask collected errors — tracked as follow-ups in `.claude/plans/idl-client-package.md`.
+- **Anchor arm = escape hatch only** — `legacyAnchorDecoder` is injected via options, never bundled, and is the sole producer of `{ kind: anchor }`. Keeps the package free of consumer-specific Borsh fallbacks.
+- **`unknown` arm carries `errors: IdlError[]`** — a discriminator miss is a plain miss (`errors: []`), a pipeline failure carries coded errors. Known review finding: the length convention is undocumented and the fallback can mask collected errors — tracked as review follow-ups.
 - **Guards over a `standard` field** — `isAnchorStandard`/`isCodamaStandard` narrow `IdlClient<T>`; a string field would invite untyped branching.
-- **Codama payloads typed from the engine** (`NonNullable<ReturnType<typeof parseInstruction>>`); Anchor payloads stay opaque `unknown` until Piece B defines the real shape — consumers cannot couple to a guess.
-- **Errors follow `@codama/errors`** — stable numeric codes (never renumbered), context required exactly when a code declares one, error-first `Result` tuples (deliberate deviation from mcp-endpoint D6 order, recorded there). Codes 2/5/8 (`IDL_FETCH_FAILED`, `INSTRUCTION_DECODE_FAILED`, `DECODE_UNIMPLEMENTED`) are exported but reserved for the extraction pieces — today instruction-pipeline throws map to `IDL_PARSE_FAILED` while account throws map to `ACCOUNT_DECODE_FAILED`.
+- **Codama payloads typed from the engine** (`NonNullable<ReturnType<typeof parseInstruction>>`); Anchor payloads stay opaque `unknown` until a future Anchor-rich provider defines the real shape — consumers cannot couple to a guess.
+- **Errors follow `@codama/errors`** — stable numeric codes (never renumbered), context required exactly when a code declares one, error-first `Result` tuples. Codes 2/5/8 (`IDL_FETCH_FAILED`, `INSTRUCTION_DECODE_FAILED`, `DECODE_UNIMPLEMENTED`) are exported but reserved for future fetching/decoding work — today instruction-pipeline throws map to `IDL_PARSE_FAILED` while account throws map to `ACCOUNT_DECODE_FAILED`.
 
 ## Risks / Trade-offs
 
 - [Converted Codama docs lose byte-array discriminator names → whole name table can be empty] → native-Anchor route resolves the same instructions; extending `codamaDiscriminator` (constant nodes, u64+ formats) is a recorded follow-up.
-- [Fallback success discards collected pipeline errors — silent failure] → review follow-up: surface them (`recoveredFrom` or `onPipelineError`) before Piece B removes the escape hatch.
+- [Fallback success discards collected pipeline errors — silent failure] → review follow-up: surface them (`recoveredFrom` or `onPipelineError`) before a future Anchor-rich provider removes the escape hatch.
 - [Tests require the Rust/Anchor toolchain (pretest builds fixture programs)] → accepted deliberately; loaders resolve program packages so the failure mode is a named module, and DEVELOPMENT.md documents the toolchain.
 - [`IdlVersion` wildcard `'0.30.1'` collapses into the semver template type] → decorative type member; single-sourcing from the constant is a recorded follow-up.
+
+## Footprint
+
+- Code: `packages/idl/src/**` — an engine-free main entry (`index.ts`) over the core modules (`detect`, `client`, `names`, `infer`, `errors`, `types`), plus two engine subpaths: `./codama` (`src/codama/**`, the decode pipeline) and `./anchor` (`src/anchor/**`, Anchor→Codama conversion). Tests: unit + type suites in `src/__tests__` (`*.spec.ts` / `*.spec-d.ts`), and a demonstration suite in `__tests__/**` running consumer flows over the built `dist` — integration (`__tests__/integration`) plus functional decode of the codama-fixtures IDLs (`__tests__/functional`).
+- Fixtures: two real Anchor programs (`test-anchor-programs/simple` anchor-lang 1.1.2, `test-anchor-programs/simple-031` anchor-lang 0.31.1) build genuine IDLs consumed by the test suites via workspace package exports; tracked real-world snapshots (`let-me-buy` in both Anchor and PMP form, `tokenkeg` PMP) exercise the dual-standard story against mainnet documents.
+- Workspace: `pnpm-workspace.yaml` includes `packages/idl/test-anchor-programs/*`; program packages are devDependencies of `@explorer/idl`; building them requires the Rust/Anchor toolchain (avm-managed, pinned per program workspace).
+- Dependencies: `@codama/dynamic-parsers` + `@codama/nodes-from-anchor` (runtime), `@coral-xyz/anchor` / `codama` / `@solana/kit` (peers). `@solana/web3.js` stays out of the public API (kit-first).
+- Tooling diverges from the repo: oxlint replaces eslint for this package (root eslint config ignores it) and `dist` is emitted with `oxc-transform` under isolated declarations (`tsc --noEmit` still enforces types).

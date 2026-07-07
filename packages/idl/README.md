@@ -24,7 +24,6 @@ pnpm --filter @explorer/idl test
 
 See [DEVELOPMENT.md](./DEVELOPMENT.md) for running tests and building the fixture programs.
 
-## OpenSpec
+## Design
 
-- [Proposal](./openspec/changes/idl-decode-client/proposal.md)
-- [Design](./openspec/changes/idl-decode-client/design.md)
+See [DESIGN.md](./DESIGN.md) for the architecture, decode pipeline, and design decisions.
