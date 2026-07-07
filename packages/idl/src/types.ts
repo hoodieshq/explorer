@@ -12,6 +12,23 @@ export type CodamaIdl = RootNode;
 /** Either supported IDL standard. */
 export type SupportedIdl = AnchorIdl | CodamaIdl;
 
+// Codama's node types brand every name (CamelCaseString), so literal documents (as-const/generated)
+// never extend RootNode — the structural shape below lets them in WITHOUT erasing their literals.
+export type CodamaIdlLike = {
+    kind: 'rootNode';
+    program: {
+        accounts: readonly unknown[];
+        definedTypes: readonly unknown[];
+        instructions: readonly unknown[];
+        name: string;
+        publicKey: string;
+        version: string;
+    };
+};
+
+/** What the client accepts statically: brands are not required, only the structure (runtime detection still applies). */
+export type SupportedIdlInput = CodamaIdlLike | SupportedIdl;
+
 /** A pre-0.30 Anchor IDL — deliberately NOT in `SupportedIdl`; the client rejects it, consumers decode it themselves. */
 export type LegacyAnchorIdl = {
     instructions: readonly { name: string }[];
@@ -54,21 +71,22 @@ export type AccountDecode =
     | { kind: 'unknown'; errors: readonly IdlError[] };
 
 // An Anchor client may still fall back to Codama, so only the Codama client narrows an arm away.
-export type InstructionDecodeFor<T extends SupportedIdl> = T extends CodamaIdl
+// The check is structural (kind: 'rootNode') so literal documents narrow like branded ones.
+export type InstructionDecodeFor<T extends SupportedIdlInput> = T extends { kind: 'rootNode' }
     ? Exclude<InstructionDecode, { kind: IdlStandard.Anchor }>
     : InstructionDecode;
 
-export type AccountDecodeFor<T extends SupportedIdl> = T extends CodamaIdl
+export type AccountDecodeFor<T extends SupportedIdlInput> = T extends { kind: 'rootNode' }
     ? Exclude<AccountDecode, { kind: IdlStandard.Anchor }>
     : AccountDecode;
 
 /** Handler map keyed by the decode arms possible for the client's IDL standard. */
-export type InstructionHandlers<T extends SupportedIdl, R> = {
+export type InstructionHandlers<T extends SupportedIdlInput, R> = {
     [K in InstructionDecodeFor<T>['kind']]: (decode: Extract<InstructionDecodeFor<T>, { kind: K }>) => R;
 };
 
 /** Handler map keyed by the decode arms possible for the client's IDL standard. */
-export type AccountHandlers<T extends SupportedIdl, R> = {
+export type AccountHandlers<T extends SupportedIdlInput, R> = {
     [K in AccountDecodeFor<T>['kind']]: (decode: Extract<AccountDecodeFor<T>, { kind: K }>) => R;
 };
 

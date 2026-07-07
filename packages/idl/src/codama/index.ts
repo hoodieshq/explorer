@@ -2,7 +2,7 @@
 // decode (name-only MCP tools) never load it; the main entry stays engine-free.
 import { createIdlClient, type IdlClient, tryCreateIdlClient } from '../client';
 import type { IDL_ERROR__UNSUPPORTED_IDL_FORMAT, Result } from '../errors';
-import type { IdlDecodeProvider, LegacyDecoderOptions, SupportedIdl } from '../types';
+import type { IdlDecodeProvider, LegacyDecoderOptions, SupportedIdlInput } from '../types';
 
 import { decodeAccountWithIdl } from './decode-account';
 import { decodeInstructionWithIdl } from './decode-instruction';
@@ -19,7 +19,7 @@ export function codamaProvider(): IdlDecodeProvider {
 }
 
 /** `createIdlClient` pre-wired with the codama provider — the one-import path for default-engine users. */
-export function createCodamaIdlClient<T extends SupportedIdl>(
+export function createCodamaIdlClient<T extends SupportedIdlInput>(
     idl: T,
     options: LegacyDecoderOptions = {},
 ): IdlClient<T> {

@@ -9,7 +9,7 @@ export {
     isCodamaStandard,
     tryCreateIdlClient,
 } from './client';
-export type { AccountDataOf, InstructionDataOf } from './infer';
+export type { AccountDataOf, AsDecoded, InstructionDataOf } from './infer';
 export {
     getIdlFormatVersion,
     getIdlProgramVersion,
@@ -58,6 +58,7 @@ export {
     type CodamaDecodedAccount,
     type CodamaDecodedInstruction,
     type CodamaIdl,
+    type CodamaIdlLike,
     IdlStandard,
     type IdlVersion,
     type IdlDecodeProvider,
@@ -67,4 +68,5 @@ export {
     type LegacyAnchorIdl,
     type LegacyDecoderOptions,
     type SupportedIdl,
+    type SupportedIdlInput,
 } from './types';

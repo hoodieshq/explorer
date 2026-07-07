@@ -24,6 +24,7 @@ import {
     type InstructionHandlers,
     type LegacyDecoderOptions,
     type SupportedIdl,
+    type SupportedIdlInput,
 } from './types';
 
 export type IdlClientOptions = LegacyDecoderOptions & {
@@ -32,7 +33,7 @@ export type IdlClientOptions = LegacyDecoderOptions & {
 };
 
 /** Engine-free client over one IDL — names and metadata only; decoding requires a provider (see `IdlClient`). */
-export type IdlMetaClient<T extends SupportedIdl = SupportedIdl> = {
+export type IdlMetaClient<T extends SupportedIdlInput = SupportedIdl> = {
     readonly idl: T;
     programAddress(): string | undefined;
     programName(): string | undefined;
@@ -45,7 +46,7 @@ export type IdlMetaClient<T extends SupportedIdl = SupportedIdl> = {
  * payload types derive from the IDL type (literal documents infer, wide runtime documents degrade
  * to `unknown` — declare the shape per call in that case).
  */
-export type IdlClient<T extends SupportedIdl = SupportedIdl> = IdlMetaClient<T> & {
+export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClient<T> & {
     decodeInstruction: {
         (ix: Instruction): InstructionDecodeFor<T>;
         <R>(ix: Instruction, handlers: InstructionHandlers<T, R>): R;
@@ -68,15 +69,17 @@ export type IdlClient<T extends SupportedIdl = SupportedIdl> = IdlMetaClient<T> 
  * use `tryCreateIdlClient` for untrusted input. Assumes the IDL is not mutated after construction
  * (the instruction name table is precomputed).
  */
-export function createIdlClient<T extends SupportedIdl>(idl: T, options: IdlClientOptions): IdlClient<T>;
-export function createIdlClient<T extends SupportedIdl>(idl: T): IdlMetaClient<T>;
-export function createIdlClient<T extends SupportedIdl>(
+export function createIdlClient<T extends SupportedIdlInput>(idl: T, options: IdlClientOptions): IdlClient<T>;
+export function createIdlClient<T extends SupportedIdlInput>(idl: T): IdlMetaClient<T>;
+export function createIdlClient<T extends SupportedIdlInput>(
     idl: T,
     options?: IdlClientOptions,
 ): IdlClient<T> | IdlMetaClient<T> {
     if (!isSupportedIdl(idl)) throw unsupportedIdl();
+    // the guard's narrowing does not reach the nested function declarations — alias it once
+    const supportedIdl: SupportedIdl = idl;
 
-    const table = buildInstructionNameTable(idl);
+    const table = buildInstructionNameTable(supportedIdl);
     const metaClient: IdlMetaClient<T> = {
         idl,
         instructionName: data => matchInstructionName(table, data),
@@ -90,7 +93,7 @@ export function createIdlClient<T extends SupportedIdl>(
     function decodeInstruction(ix: Instruction): InstructionDecodeFor<T>;
     function decodeInstruction<R>(ix: Instruction, handlers: InstructionHandlers<T, R>): R;
     function decodeInstruction<R>(ix: Instruction, handlers?: InstructionHandlers<T, R>) {
-        const decode = provider.decodeInstruction(idl, ix, legacyOptions);
+        const decode = provider.decodeInstruction(supportedIdl, ix, legacyOptions);
         if (!handlers) return decode;
         return dispatch(decode, handlers);
     }
@@ -98,7 +101,7 @@ export function createIdlClient<T extends SupportedIdl>(
     function decodeAccount(data: Uint8Array): AccountDecodeFor<T>;
     function decodeAccount<R>(data: Uint8Array, handlers: AccountHandlers<T, R>): R;
     function decodeAccount<R>(data: Uint8Array, handlers?: AccountHandlers<T, R>) {
-        const decode = provider.decodeAccount(idl, data);
+        const decode = provider.decodeAccount(supportedIdl, data);
         if (!handlers) return decode;
         return dispatch(decode, handlers);
     }
