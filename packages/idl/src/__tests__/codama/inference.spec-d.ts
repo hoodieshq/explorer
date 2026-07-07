@@ -1,7 +1,8 @@
 // Compile-time guidance for the Codama route — validated by vitest typecheck mode, nothing executes.
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { createIdlClient, type IdlClient } from '../../client';
+import { type IdlClient } from '../../client';
+import { createCodamaIdlClient } from '../../codama/index';
 import { type CodamaIdl, IdlStandard, type InstructionDecode } from '../../types';
 import { loadTokenkegIdl, transferIx } from '../fixtures';
 
@@ -10,7 +11,7 @@ const codamaTransferIx = transferIx(codamaIdl);
 
 describe('sample: Codama IDL', () => {
     it('should guide the developer into the codama-only surface', () => {
-        const client = createIdlClient(codamaIdl);
+        const client = createCodamaIdlClient(codamaIdl);
 
         expectTypeOf(client).toEqualTypeOf<IdlClient<CodamaIdl>>();
         expectTypeOf(client.idl).toEqualTypeOf<CodamaIdl>();

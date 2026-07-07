@@ -1,8 +1,6 @@
 import type { Instruction } from '@solana/kit';
 
-import { codamaProvider } from './codama/index';
 import { getIdlProgramAddress, isAnchorIdl, isCodamaIdl, isSupportedIdl } from './detect';
-import type { AccountDataOf, InstructionDataOf } from './infer';
 import {
     err,
     IDL_ERROR__MISSING_DECODE_HANDLER,
@@ -11,6 +9,7 @@ import {
     ok,
     type Result,
 } from './errors';
+import type { AccountDataOf, InstructionDataOf } from './infer';
 import { buildInstructionNameTable, buildProgramName, matchInstructionName } from './names';
 import {
     type AccountDecode,
@@ -28,8 +27,16 @@ import {
 } from './types';
 
 export type IdlClientOptions = LegacyDecoderOptions & {
-    /** Decode engine — defaults to the codama provider; pass a heavier one (anchor) only when needed. */
-    provider?: IdlDecodeProvider;
+    /** Decode engine — an explicit choice so processes that never decode never load one ('@explorer/idl/codama' ships the default). */
+    provider: IdlDecodeProvider;
+};
+
+/** Engine-free client over one IDL — names and metadata only; decoding requires a provider (see `IdlClient`). */
+export type IdlMetaClient<T extends SupportedIdl = SupportedIdl> = {
+    readonly idl: T;
+    programAddress(): string | undefined;
+    programName(): string | undefined;
+    instructionName(data: Uint8Array): string | undefined;
 };
 
 /**
@@ -38,11 +45,7 @@ export type IdlClientOptions = LegacyDecoderOptions & {
  * payload types derive from the IDL type (literal documents infer, wide runtime documents degrade
  * to `unknown` — declare the shape per call in that case).
  */
-export type IdlClient<T extends SupportedIdl = SupportedIdl> = {
-    readonly idl: T;
-    programAddress(): string | undefined;
-    programName(): string | undefined;
-    instructionName(data: Uint8Array): string | undefined;
+export type IdlClient<T extends SupportedIdl = SupportedIdl> = IdlMetaClient<T> & {
     decodeInstruction: {
         (ix: Instruction): InstructionDecodeFor<T>;
         <R>(ix: Instruction, handlers: InstructionHandlers<T, R>): R;
@@ -61,11 +64,24 @@ export type IdlClient<T extends SupportedIdl = SupportedIdl> = {
 };
 
 /** Client for a known-supported IDL; throws on a value that fails runtime detection (lying type) — use `tryCreateIdlClient` for untrusted input. */
-export function createIdlClient<T extends SupportedIdl>(idl: T, options: IdlClientOptions = {}): IdlClient<T> {
+export function createIdlClient<T extends SupportedIdl>(idl: T, options: IdlClientOptions): IdlClient<T>;
+export function createIdlClient<T extends SupportedIdl>(idl: T): IdlMetaClient<T>;
+export function createIdlClient<T extends SupportedIdl>(
+    idl: T,
+    options?: IdlClientOptions,
+): IdlClient<T> | IdlMetaClient<T> {
     if (!isSupportedIdl(idl)) throw unsupportedIdl();
 
-    const { provider = codamaProvider(), ...legacyOptions } = options;
     const table = buildInstructionNameTable(idl);
+    const metaClient: IdlMetaClient<T> = {
+        idl,
+        instructionName: data => matchInstructionName(table, data),
+        programAddress: () => getIdlProgramAddress(idl),
+        programName: () => buildProgramName(idl),
+    };
+    if (!options) return metaClient;
+
+    const { provider, ...legacyOptions } = options;
 
     function decodeInstruction(ix: Instruction): InstructionDecodeFor<T>;
     function decodeInstruction<R>(ix: Instruction, handlers: InstructionHandlers<T, R>): R;
@@ -102,30 +118,36 @@ export function createIdlClient<T extends SupportedIdl>(idl: T, options: IdlClie
     }
 
     return {
+        ...metaClient,
         decodeAccount,
         decodeInstruction,
         getDecodedData,
-        idl,
-        instructionName: data => matchInstructionName(table, data),
-        programAddress: () => getIdlProgramAddress(idl),
-        programName: () => buildProgramName(idl),
     };
 }
 
 /** Detect and wrap untrusted input — error-first result instead of a throw. */
 export function tryCreateIdlClient(
     idl: unknown,
-    options: IdlClientOptions = {},
-): Result<IdlClient, typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> {
+    options: IdlClientOptions,
+): Result<IdlClient, typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT>;
+export function tryCreateIdlClient(idl: unknown): Result<IdlMetaClient, typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT>;
+export function tryCreateIdlClient(
+    idl: unknown,
+    options?: IdlClientOptions,
+): Result<IdlClient | IdlMetaClient, typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> {
     if (!isSupportedIdl(idl)) return err(unsupportedIdl());
-    return ok(createIdlClient(idl, options));
+    return ok(options ? createIdlClient(idl, options) : createIdlClient(idl));
 }
 
-export function isAnchorStandard(client: IdlClient): client is IdlClient<AnchorIdl> {
+export function isAnchorStandard(client: IdlClient): client is IdlClient<AnchorIdl>;
+export function isAnchorStandard(client: IdlMetaClient): client is IdlMetaClient<AnchorIdl>;
+export function isAnchorStandard(client: IdlMetaClient): boolean {
     return isAnchorIdl(client.idl);
 }
 
-export function isCodamaStandard(client: IdlClient): client is IdlClient<CodamaIdl> {
+export function isCodamaStandard(client: IdlClient): client is IdlClient<CodamaIdl>;
+export function isCodamaStandard(client: IdlMetaClient): client is IdlMetaClient<CodamaIdl>;
+export function isCodamaStandard(client: IdlMetaClient): boolean {
     return isCodamaIdl(client.idl);
 }
 

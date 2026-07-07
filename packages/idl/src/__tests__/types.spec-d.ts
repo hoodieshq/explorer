@@ -2,7 +2,14 @@
 import type { Instruction } from '@solana/kit';
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { createIdlClient, type IdlClient, isAnchorStandard, isCodamaStandard, tryCreateIdlClient } from '../client';
+import {
+    createIdlClient,
+    type IdlClient,
+    type IdlMetaClient,
+    isAnchorStandard,
+    isCodamaStandard,
+    tryCreateIdlClient,
+} from '../client';
 import { codamaProvider } from '../codama/index';
 import { convertToCodama } from '../anchor/convert';
 import { decodeAccountWithIdl } from '../codama/decode-account';
@@ -53,9 +60,17 @@ declare const probeDepositIx: Instruction;
 
 describe('createIdlClient inference', () => {
     it('should infer the client type parameter from a typed IDL argument', () => {
-        expectTypeOf(createIdlClient(codamaIdl)).toEqualTypeOf<IdlClient<CodamaIdl>>();
-        expectTypeOf(createIdlClient(anchorIdl)).toEqualTypeOf<IdlClient<AnchorIdl>>();
-        expectTypeOf(createIdlClient(anchorIdl as SupportedIdl)).toEqualTypeOf<IdlClient<SupportedIdl>>();
+        const provider = codamaProvider();
+        expectTypeOf(createIdlClient(codamaIdl, { provider })).toEqualTypeOf<IdlClient<CodamaIdl>>();
+        expectTypeOf(createIdlClient(anchorIdl, { provider })).toEqualTypeOf<IdlClient<AnchorIdl>>();
+        expectTypeOf(createIdlClient(anchorIdl as SupportedIdl, { provider })).toEqualTypeOf<IdlClient<SupportedIdl>>();
+    });
+
+    it('should return the engine-free metadata client without a provider — no decode surface', () => {
+        expectTypeOf(createIdlClient(codamaIdl)).toEqualTypeOf<IdlMetaClient<CodamaIdl>>();
+        expectTypeOf(createIdlClient(anchorIdl)).not.toHaveProperty('decodeInstruction');
+        expectTypeOf(createIdlClient(anchorIdl)).not.toHaveProperty('decodeAccount');
+        expectTypeOf(createIdlClient(anchorIdl)).not.toHaveProperty('getDecodedData');
     });
 
     it('should keep the idl property at the inferred standard', () => {
@@ -73,26 +88,29 @@ describe('createIdlClient inference', () => {
 
 describe('decode result inference', () => {
     it('should narrow the Codama client instruction decode to the codama and unknown arms', () => {
-        const client = createIdlClient(codamaIdl);
+        const client = createIdlClient(codamaIdl, { provider: codamaProvider() });
         expectTypeOf(client.decodeInstruction(anchorIncrementIx)).toEqualTypeOf<
             Exclude<InstructionDecode, { kind: IdlStandard.Anchor }>
         >();
     });
 
     it('should keep all instruction decode arms for the Anchor client (codama fallback stays possible)', () => {
-        const client = createIdlClient(anchorIdl);
+        const client = createIdlClient(anchorIdl, { provider: codamaProvider() });
         expectTypeOf(client.decodeInstruction(anchorIncrementIx)).toEqualTypeOf<InstructionDecode>();
     });
 
     it('should narrow account decodes the same way', () => {
-        expectTypeOf(createIdlClient(codamaIdl).decodeAccount(new Uint8Array())).toEqualTypeOf<
+        const provider = codamaProvider();
+        expectTypeOf(createIdlClient(codamaIdl, { provider }).decodeAccount(new Uint8Array())).toEqualTypeOf<
             Exclude<AccountDecode, { kind: IdlStandard.Anchor }>
         >();
-        expectTypeOf(createIdlClient(anchorIdl).decodeAccount(new Uint8Array())).toEqualTypeOf<AccountDecode>();
+        expectTypeOf(
+            createIdlClient(anchorIdl, { provider }).decodeAccount(new Uint8Array()),
+        ).toEqualTypeOf<AccountDecode>();
     });
 
     it('should infer the handler-map return type as R', () => {
-        const client = createIdlClient(codamaIdl);
+        const client = createIdlClient(codamaIdl, { provider: codamaProvider() });
         const result = client.decodeInstruction(anchorIncrementIx, {
             codama: () => 'decoded' as const,
             unknown: () => 'failed' as const,
@@ -101,7 +119,7 @@ describe('decode result inference', () => {
     });
 
     it('should pass each handler its narrowed decode arm', () => {
-        const client = createIdlClient(anchorIdl);
+        const client = createIdlClient(anchorIdl, { provider: codamaProvider() });
         client.decodeInstruction(anchorIncrementIx, {
             anchor: decode => expectTypeOf(decode).toEqualTypeOf<{ decoded: unknown; kind: IdlStandard.Anchor }>(),
             codama: decode =>
@@ -142,7 +160,7 @@ describe('decoder payload inference', () => {
     });
 
     it('should pass account handlers their narrowed decode arms', () => {
-        const client = createIdlClient(anchorIdl);
+        const client = createIdlClient(anchorIdl, { provider: codamaProvider() });
         client.decodeAccount(new Uint8Array(), {
             anchor: decode => expectTypeOf(decode).toEqualTypeOf<{ decoded: unknown; kind: IdlStandard.Anchor }>(),
             codama: decode =>
@@ -152,7 +170,7 @@ describe('decoder payload inference', () => {
     });
 
     it('should infer getDecodedData payloads from a literal IDL document', () => {
-        const client = createIdlClient(probeIdl);
+        const client = createIdlClient(probeIdl, { provider: codamaProvider() });
         const decode = client.decodeInstruction(probeDepositIx);
 
         expectTypeOf(client.getDecodedData(decode)).toEqualTypeOf<{ amount: bigint } | undefined>();
@@ -189,12 +207,15 @@ describe('decoder payload inference', () => {
 describe('tryCreateIdlClient inference', () => {
     it('should return an error-first result declaring the only failure code it can produce', () => {
         expectTypeOf(tryCreateIdlClient({} as unknown)).toEqualTypeOf<
+            Result<IdlMetaClient, typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT>
+        >();
+        expectTypeOf(tryCreateIdlClient({} as unknown, { provider: codamaProvider() })).toEqualTypeOf<
             Result<IdlClient, typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT>
         >();
     });
 
     it('should narrow the tuple by checking the error slot', () => {
-        const [error, client] = tryCreateIdlClient({} as unknown);
+        const [error, client] = tryCreateIdlClient({} as unknown, { provider: codamaProvider() });
         if (error === undefined) {
             expectTypeOf(client).toEqualTypeOf<IdlClient>();
         } else {
@@ -228,7 +249,7 @@ describe('IdlError inference', () => {
 
 describe('standard guard narrowing', () => {
     it('should narrow the client through isAnchorStandard / isCodamaStandard', () => {
-        const client = createIdlClient(codamaIdl as SupportedIdl);
+        const client = createIdlClient(codamaIdl as SupportedIdl, { provider: codamaProvider() });
         if (isCodamaStandard(client)) {
             expectTypeOf(client.idl).toEqualTypeOf<CodamaIdl>();
             expectTypeOf(client.decodeInstruction(anchorIncrementIx)).toEqualTypeOf<
@@ -265,6 +286,7 @@ describe('detection and names helper returns', () => {
 describe('client options', () => {
     it('should type the injectable legacy decoder against kit instructions', () => {
         createIdlClient(anchorIdl, {
+            provider: codamaProvider(),
             legacyAnchorDecoder: (idl, ix) => {
                 expectTypeOf(idl).toEqualTypeOf<AnchorIdl>();
                 expectTypeOf(ix).toEqualTypeOf<Instruction>();

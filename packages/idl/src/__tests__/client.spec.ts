@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { createIdlClient, type IdlClient, isAnchorStandard, isCodamaStandard, tryCreateIdlClient } from '../client';
+import { createIdlClient, type IdlMetaClient, isAnchorStandard, isCodamaStandard, tryCreateIdlClient } from '../client';
+import { createCodamaIdlClient, tryCreateCodamaIdlClient } from '../codama/index';
 import { IDL_ERROR__IDL_ADDRESS_MISMATCH, IDL_ERROR__UNSUPPORTED_IDL_FORMAT, IdlError } from '../errors';
 import { IdlStandard, type SupportedIdl } from '../types';
 import { incrementIx, loadSimpleIdl, loadTokenkegIdl, transferIx } from './fixtures';
 
-describe('createIdlClient', () => {
-    it('should expose program metadata for an Anchor IDL', () => {
+describe('createIdlClient (engine-free metadata client)', () => {
+    it('should expose program metadata for an Anchor IDL without any provider', () => {
         const simple = loadSimpleIdl();
         const client = createIdlClient(simple);
         expect(client.programAddress()).toBe(simple.address);
@@ -14,7 +15,7 @@ describe('createIdlClient', () => {
         expect(client.instructionName(incrementIx(simple).data)).toBe('Increment');
     });
 
-    it('should expose program metadata for a Codama IDL', () => {
+    it('should expose program metadata for a Codama IDL without any provider', () => {
         const tokenkeg = loadTokenkegIdl();
         const client = createIdlClient(tokenkeg);
         expect(client.programAddress()).toBe(tokenkeg.program.publicKey);
@@ -22,27 +23,35 @@ describe('createIdlClient', () => {
         expect(client.instructionName(transferIx(tokenkeg).data)).toBe('Transfer');
     });
 
+    it('should not carry decode methods without a provider', () => {
+        const client = createIdlClient(loadSimpleIdl());
+        expect('decodeInstruction' in client).toBe(false);
+        expect('decodeAccount' in client).toBe(false);
+    });
+
     it('should throw the unsupported-format error when a lying type sneaks past detection', () => {
         expect(() => createIdlClient({} as SupportedIdl)).toThrowError(
             expect.objectContaining({ code: IDL_ERROR__UNSUPPORTED_IDL_FORMAT }),
         );
     });
+});
 
+describe('createCodamaIdlClient (provider pre-wired)', () => {
     it('should decode a Codama instruction into the codama arm', () => {
         const tokenkeg = loadTokenkegIdl();
-        const decode = createIdlClient(tokenkeg).decodeInstruction(transferIx(tokenkeg));
+        const decode = createCodamaIdlClient(tokenkeg).decodeInstruction(transferIx(tokenkeg));
         expect(decode.kind).toBe(IdlStandard.Codama);
     });
 
     it('should decode an Anchor instruction through the conversion route into the codama arm', () => {
         const simple = loadSimpleIdl();
-        const decode = createIdlClient(simple).decodeInstruction(incrementIx(simple));
+        const decode = createCodamaIdlClient(simple).decodeInstruction(incrementIx(simple));
         expect(decode.kind).toBe(IdlStandard.Codama);
     });
 
     it('should dispatch a decode through the handler map', () => {
         const tokenkeg = loadTokenkegIdl();
-        const result = createIdlClient(tokenkeg).decodeInstruction(transferIx(tokenkeg), {
+        const result = createCodamaIdlClient(tokenkeg).decodeInstruction(transferIx(tokenkeg), {
             codama: () => 'decoded' as const,
             unknown: () => 'failed' as const,
         });
@@ -51,7 +60,7 @@ describe('createIdlClient', () => {
 
     it('should degrade unmatched instruction data to the unknown arm', () => {
         const tokenkeg = loadTokenkegIdl();
-        const decode = createIdlClient(tokenkeg).decodeInstruction({
+        const decode = createCodamaIdlClient(tokenkeg).decodeInstruction({
             ...transferIx(tokenkeg),
             data: Uint8Array.from([99, 1, 2]),
         });
@@ -60,7 +69,7 @@ describe('createIdlClient', () => {
 
     it('should fail loud when the IDL program does not match the instruction program', () => {
         const simple = loadSimpleIdl();
-        const client = createIdlClient(simple);
+        const client = createCodamaIdlClient(simple);
         expect(() =>
             client.decodeInstruction({
                 ...incrementIx(simple),
@@ -70,7 +79,7 @@ describe('createIdlClient', () => {
     });
 
     it('should degrade unmatched account data to the unknown arm', () => {
-        const decode = createIdlClient(loadSimpleIdl()).decodeAccount(Uint8Array.from([1, 2, 3]));
+        const decode = createCodamaIdlClient(loadSimpleIdl()).decodeAccount(Uint8Array.from([1, 2, 3]));
         expect(decode.kind).toBe('unknown');
     });
 });
@@ -83,22 +92,29 @@ describe('tryCreateIdlClient', () => {
         expect(error?.code).toBe(IDL_ERROR__UNSUPPORTED_IDL_FORMAT);
     });
 
-    it('should return the client in the value slot for supported input', () => {
+    it('should return the metadata client in the value slot for supported input', () => {
         const [error, client] = tryCreateIdlClient(loadTokenkegIdl() as unknown);
         expect(error).toBeUndefined();
         expect(client?.programName()).toBe('Token');
+    });
+
+    it('should return the full client through the codama convenience wrapper', () => {
+        const tokenkeg = loadTokenkegIdl();
+        const [error, client] = tryCreateCodamaIdlClient(tokenkeg as unknown);
+        expect(error).toBeUndefined();
+        expect(client?.decodeInstruction(transferIx(tokenkeg)).kind).toBe(IdlStandard.Codama);
     });
 });
 
 describe('standard guards', () => {
     it('should narrow an Anchor client', () => {
-        const client: IdlClient = createIdlClient(loadSimpleIdl() as SupportedIdl);
+        const client: IdlMetaClient = createIdlClient(loadSimpleIdl() as SupportedIdl);
         expect(isAnchorStandard(client)).toBe(true);
         expect(isCodamaStandard(client)).toBe(false);
     });
 
     it('should narrow a Codama client', () => {
-        const client: IdlClient = createIdlClient(loadTokenkegIdl() as SupportedIdl);
+        const client: IdlMetaClient = createIdlClient(loadTokenkegIdl() as SupportedIdl);
         expect(isCodamaStandard(client)).toBe(true);
         expect(isAnchorStandard(client)).toBe(false);
     });

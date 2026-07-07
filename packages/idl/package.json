@@ -3,11 +3,22 @@
     "version": "0.0.0",
     "private": true,
     "type": "module",
+    "sideEffects": false,
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
             "import": "./dist/index.js",
             "default": "./dist/index.js"
+        },
+        "./anchor": {
+            "types": "./dist/anchor/index.d.ts",
+            "import": "./dist/anchor/index.js",
+            "default": "./dist/anchor/index.js"
+        },
+        "./codama": {
+            "types": "./dist/codama/index.d.ts",
+            "import": "./dist/codama/index.js",
+            "default": "./dist/codama/index.js"
         }
     },
     "files": [

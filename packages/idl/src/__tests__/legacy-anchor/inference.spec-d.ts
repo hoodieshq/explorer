@@ -2,7 +2,7 @@
 import type { Instruction } from '@solana/kit';
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { createIdlClient, type IdlClient, tryCreateIdlClient } from '../../client';
+import { createIdlClient, type IdlMetaClient, tryCreateIdlClient } from '../../client';
 import { isLegacyAnchorIdl } from '../../detect';
 import { IDL_ERROR__UNSUPPORTED_IDL_FORMAT, type IdlError } from '../../errors';
 import type { LegacyAnchorIdl } from '../../types';
@@ -18,7 +18,7 @@ describe('sample: legacy Anchor (< 0.30) IDL — custom decoder outside the clie
         const [error, client] = tryCreateIdlClient(pre030AnchorIdl);
 
         expectTypeOf(error).toEqualTypeOf<IdlError<typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> | undefined>();
-        expectTypeOf(client).toEqualTypeOf<IdlClient | undefined>();
+        expectTypeOf(client).toEqualTypeOf<IdlMetaClient | undefined>();
     });
 
     it('should narrow the legacy document with the guard so a custom decoder receives a typed IDL', () => {

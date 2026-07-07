@@ -1,15 +1,14 @@
+// Engine-free entry — decode engines live behind './codama' and './anchor' so processes that never
+// decode never load one.
 export {
     createIdlClient,
     type IdlClient,
     type IdlClientOptions,
+    type IdlMetaClient,
     isAnchorStandard,
     isCodamaStandard,
     tryCreateIdlClient,
 } from './client';
-export { convertToCodama } from './anchor/convert';
-export { decodeAccountWithIdl } from './codama/decode-account';
-export { decodeInstructionWithIdl } from './codama/decode-instruction';
-export { codamaProvider } from './codama/index';
 export type { AccountDataOf, InstructionDataOf } from './infer';
 export {
     getIdlFormatVersion,
