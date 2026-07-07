@@ -5,10 +5,16 @@ import type { Simple } from '@explorer/idl-program-simple/types';
 
 import type { AnchorIdl } from '../../types';
 
-const readSimpleJson = (): unknown =>
-    JSON.parse(
-        readFileSync(createRequire(import.meta.url).resolve('@explorer/idl-program-simple'), 'utf8'),
-    );
+const readSimpleJson = (): unknown => {
+    try {
+        return JSON.parse(
+            readFileSync(createRequire(import.meta.url).resolve('@explorer/idl-program-simple'), 'utf8'),
+        );
+    } catch (cause) {
+        // direct vitest runs skip the pretest hook that builds the programs
+        throw new Error('simple program IDL missing — run `pnpm run build:programs` first', { cause });
+    }
+};
 
 /** IDL emitted by `anchor build` (anchor-lang 1.1.2) for `programs/simple`; fresh via the pretest hook. */
 export const loadSimpleIdl = (): AnchorIdl => readSimpleJson() as AnchorIdl;

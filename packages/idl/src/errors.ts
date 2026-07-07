@@ -1,4 +1,4 @@
-// Modelled on @codama/errors; WARNING: don't remove, change, or reorder error codes.
+// Modelled on @codama/errors; WARNING: don't remove, change, or renumber error codes.
 import type { IdlStandard } from './types';
 
 export const IDL_ERROR__UNSUPPORTED_IDL_FORMAT = 1;

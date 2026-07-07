@@ -63,7 +63,11 @@ export type IdlClient<T extends SupportedIdl = SupportedIdl> = IdlMetaClient<T> 
     };
 };
 
-/** Client for a known-supported IDL; throws on a value that fails runtime detection (lying type) — use `tryCreateIdlClient` for untrusted input. */
+/**
+ * Client for a known-supported IDL; throws on a value that fails runtime detection (lying type) —
+ * use `tryCreateIdlClient` for untrusted input. Assumes the IDL is not mutated after construction
+ * (the instruction name table is precomputed).
+ */
 export function createIdlClient<T extends SupportedIdl>(idl: T, options: IdlClientOptions): IdlClient<T>;
 export function createIdlClient<T extends SupportedIdl>(idl: T): IdlMetaClient<T>;
 export function createIdlClient<T extends SupportedIdl>(
