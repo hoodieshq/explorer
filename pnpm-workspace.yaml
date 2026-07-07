@@ -1,6 +1,6 @@
 packages:
   - 'packages/*'
-  - 'packages/idl/programs/*'
+  - 'packages/idl/test-anchor-programs/*'
 catalogs:
   storybook:
     '@storybook/addon-a11y': 10.2.6

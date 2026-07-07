@@ -16,7 +16,7 @@ const readSimpleJson = (): unknown => {
     }
 };
 
-/** IDL emitted by `anchor build` (anchor-lang 1.1.2) for `programs/simple`; fresh via the pretest hook. */
+/** IDL emitted by `anchor build` (anchor-lang 1.1.2) for `test-anchor-programs/simple`; fresh via the pretest hook. */
 export const loadSimpleIdl = (): AnchorIdl => readSimpleJson() as AnchorIdl;
 
 /**

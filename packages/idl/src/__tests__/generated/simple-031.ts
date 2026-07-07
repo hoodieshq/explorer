@@ -3,7 +3,7 @@ import { createRequire } from 'node:module';
 
 import type { AnchorIdl } from '../../types';
 
-/** IDL emitted by `anchor build` (anchor-lang 0.31.1) for `programs/simple-031`; fresh via the pretest hook. */
+/** IDL emitted by `anchor build` (anchor-lang 0.31.1) for `test-anchor-programs/simple-031`; fresh via the pretest hook. */
 export const loadSimple031Idl = (): AnchorIdl => {
     try {
         return JSON.parse(
