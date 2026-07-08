@@ -15,7 +15,7 @@ import {
     type SupportedIdl,
 } from '../types.js';
 
-// Single Codama pipeline (Anchor IDLs convert via nodes-from-anchor); the anchor arm only comes from the injected legacy decoder until the Anchor-rich path lands (mcp-endpoint Step 6).
+// Single Codama pipeline (Anchor IDLs convert via nodes-from-anchor); the anchor arm only comes from the injected legacy decoder until the Anchor-rich path lands.
 export function decodeInstructionWithIdl<T extends CodamaIdl>(
     idl: T,
     ix: Instruction,

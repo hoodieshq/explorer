@@ -29,7 +29,7 @@ describe('IdlError', () => {
     it('should describe unimplemented decode operations', () => {
         const error = new IdlError(IDL_ERROR__DECODE_UNIMPLEMENTED, { operation: 'decode account' });
         expect(error.message).toBe(
-            'decode account is not implemented yet — lands with the @explorer/idl extraction pieces (mcp-endpoint Steps 5/6)',
+            'decode account is not implemented yet — lands with the @explorer/idl extraction pieces',
         );
     });
 

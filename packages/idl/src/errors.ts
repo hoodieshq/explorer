@@ -42,7 +42,7 @@ const IDL_ERROR_MESSAGES: Readonly<{ [P in IdlErrorCode]: (context: IdlErrorCont
         `could not decode account data (${c.dataLength} bytes) with the ${c.standard} IDL`,
     [IDL_ERROR__DECODE_KIND_MISMATCH]: c => `expected the ${c.expected} decode arm, got '${c.received}'`,
     [IDL_ERROR__DECODE_UNIMPLEMENTED]: c =>
-        `${c.operation} is not implemented yet — lands with the @explorer/idl extraction pieces (mcp-endpoint Steps 5/6)`,
+        `${c.operation} is not implemented yet — lands with the @explorer/idl extraction pieces`,
     [IDL_ERROR__IDL_ADDRESS_MISMATCH]: c =>
         `IDL program ${c.declaredAddress} does not match program ${c.programAddress}`,
     [IDL_ERROR__IDL_FETCH_FAILED]: () => 'failed to fetch the program IDL',

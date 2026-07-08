@@ -151,7 +151,7 @@ const summary = client.decodeAccount(accountData, {
 });
 ```
 
-## Typed payloads — three routes
+## Typed payloads — four routes
 
 **1. Anchor generated companion type — zero generics.** Pair the built JSON with the
 `target/types` type (the `Program<MyProgram>` idiom) and payloads infer from the IDL itself:
@@ -208,6 +208,22 @@ const decode = client.decodeInstruction(instruction);
 if (decode.kind === IdlStandard.Codama) {
     const args = client.getDecodedData<{ amount: bigint }>(decode); // the generic IS the shape
 }
+```
+
+**4. `AsDecoded` — reuse a generated client type.** When a renderers-js type for the program already
+exists — your own `target` output, or a published `@solana-program/*` client — reuse it instead of
+hand-writing the decoded shape. It can't be passed *directly*, though: a generated type describes the
+program's **encoder input / on-chain layout** (`Address` for pubkeys, `ReadonlyUint8Array` for byte
+fields), while this decoder **returns** different runtime shapes (base58 `string`s, and
+`[encoding, data]` tuples for bytes). Passing the generated type as-is would mistype the decoded data.
+`AsDecoded<T>` rewrites it into what `getDecodedData` actually yields, so the two line up:
+
+```ts
+import type { AsDecoded } from '@explorer/idl';
+import type { Multisig } from '@solana-program/token-2022'; // type-only, erased at runtime
+
+const account = client.getDecodedData<AsDecoded<Multisig>>(decode);
+account.signers; // string[], not Address[]
 ```
 
 ## Anchor IDLs

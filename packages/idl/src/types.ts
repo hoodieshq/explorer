@@ -45,7 +45,7 @@ export enum IdlStandard {
 export type IdlVersion = AnchorIdl['metadata']['spec'] | RootNode['version'];
 
 // Codama payloads carry the real engine output; Anchor payloads stay opaque until the Anchor-rich
-// path lands (mcp-endpoint Step 6) — today they only come from the injected legacy decoder.
+// path lands — today they only come from the injected legacy decoder.
 export type CodamaDecodedInstruction = NonNullable<ReturnType<typeof parseInstruction>>;
 export type CodamaDecodedAccount = NonNullable<ReturnType<typeof parseAccountData>>;
 export type AnchorDecodedInstruction = unknown;

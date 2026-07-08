@@ -10,10 +10,9 @@ import type { AnchorIdl, SupportedIdlInput } from './types.js';
 type DecodedBytes = [encoding: string, data: string];
 
 /**
- * @internal — not exported from the package entry. Bridges @codama/renderers-js-generated types
- * (build-time codegen, type-only imports) to what @codama/dynamic-parsers actually returns: branded
- * addresses decode as plain base58 strings, byte fields as `DecodedBytes` tuples; kit Option objects
- * and bigints already match.
+ * Bridges @codama/renderers-js-generated types (build-time codegen, type-only imports) to what
+ * @codama/dynamic-parsers actually returns: branded addresses decode as plain base58 strings, byte
+ * fields as `DecodedBytes` tuples; kit Option objects and bigints already match.
  */
 export type AsDecoded<T> = T extends Address
     ? string
