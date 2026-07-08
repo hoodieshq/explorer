@@ -6,16 +6,19 @@ import type { CamelCaseString } from 'codama';
 
 import type { AnchorIdl, SupportedIdlInput } from './types.js';
 
+/** The [encoding, data] pair @codama/dynamic-parsers emits for every byte field. */
+type DecodedBytes = [encoding: string, data: string];
+
 /**
  * @internal — not exported from the package entry. Bridges @codama/renderers-js-generated types
  * (build-time codegen, type-only imports) to what @codama/dynamic-parsers actually returns: branded
- * addresses decode as plain base58 strings and byte fields as [encoding, data] tuples; kit Option
- * objects and bigints already match. Used by the decode tests to pin output against generated clients.
+ * addresses decode as plain base58 strings, byte fields as `DecodedBytes` tuples; kit Option objects
+ * and bigints already match.
  */
 export type AsDecoded<T> = T extends Address
     ? string
     : T extends ReadonlyUint8Array | Uint8Array
-      ? [string, string]
+      ? DecodedBytes
       : T extends bigint | boolean | number | string
         ? T
         : T extends readonly (infer E)[]
@@ -24,12 +27,10 @@ export type AsDecoded<T> = T extends Address
             ? { [K in keyof T]: AsDecoded<T[K]> }
             : T;
 
-// Matches the CODAMA runtime output (bigint for 64/128-bit ints, base58 string for pubkeys, bytes as
-// [encoding, data] tuples) — NOT anchor's BN/Uint8Array mapping; the anchor arm decodes through the
-// same codama pipeline, so its bytes come back as tuples too.
+// Matches the CODAMA runtime output — bigint for 64/128-bit ints, base58 string for pubkeys — NOT anchor's BN mapping.
 type ScalarMap = {
     bool: boolean;
-    bytes: [string, string];
+    bytes: DecodedBytes;
     f32: number;
     f64: number;
     i8: number;
@@ -67,9 +68,8 @@ type IsLiteralName<N> = CamelCaseString extends N ? false : string extends N ? f
 
 type CodamaNumber<F> = F extends 'i64' | 'i128' | 'i256' | 'u64' | 'u128' | 'u256' ? bigint : number;
 
-// @codama/dynamic-parsers types decoded `data` as `unknown`, so this reconstructs the payload type from
-// the IDL node types to match the parser's RUNTIME shape: bytes as [encoding, data] tuples, options as
-// kit Option objects, scalar enums as variant indices. Unsupported kinds degrade to `unknown`.
+// @codama/dynamic-parsers types decoded `data` as `unknown`; reconstruct the payload from the IDL node
+// types to match the parser's runtime shape. Unsupported kinds degrade to `unknown`.
 type CodamaValue<TRoot, TNode> = TNode extends { format: infer F; kind: 'numberTypeNode' }
     ? CodamaNumber<F>
     : TNode extends { kind: 'publicKeyTypeNode' }
@@ -79,7 +79,7 @@ type CodamaValue<TRoot, TNode> = TNode extends { format: infer F; kind: 'numberT
         : TNode extends { kind: 'booleanTypeNode' }
           ? boolean
           : TNode extends { kind: 'bytesTypeNode' }
-            ? [string, string]
+            ? DecodedBytes
             : TNode extends {
                     kind:
                         | 'fixedSizeTypeNode'
