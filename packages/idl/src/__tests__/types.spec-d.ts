@@ -82,6 +82,8 @@ describe('createIdlClient inference', () => {
         const client = createIdlClient(anchorIdl);
         expectTypeOf(client.programAddress()).toEqualTypeOf<string | undefined>();
         expectTypeOf(client.programName()).toEqualTypeOf<string | undefined>();
+        expectTypeOf(client.programVersion()).toEqualTypeOf<string | undefined>();
+        expectTypeOf(client.formatVersion()).toEqualTypeOf<IdlVersion>();
         expectTypeOf(client.instructionName(new Uint8Array())).toEqualTypeOf<string | undefined>();
     });
 });

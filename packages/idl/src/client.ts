@@ -1,6 +1,14 @@
 import type { Instruction } from '@solana/kit';
 
-import { getIdlProgramAddress, getIdlStandard, isAnchorIdl, isCodamaIdl, isSupportedIdl } from './detect.js';
+import {
+    getIdlProgramAddress,
+    getIdlProgramVersion,
+    getIdlStandard,
+    getIdlVersion,
+    isAnchorIdl,
+    isCodamaIdl,
+    isSupportedIdl,
+} from './detect.js';
 import {
     err,
     IDL_ERROR__ACCOUNT_DECODE_FAILED,
@@ -25,6 +33,7 @@ import {
     type InstructionDecode,
     type InstructionDecodeFor,
     type InstructionHandlers,
+    type IdlVersion,
     type LegacyDecoderOptions,
     type SupportedIdl,
     type SupportedIdlInput,
@@ -40,6 +49,10 @@ export type IdlMetaClient<T extends SupportedIdlInput = SupportedIdl> = {
     readonly idl: T;
     programAddress(): string | undefined;
     programName(): string | undefined;
+    /** The program's own semver, when the IDL carries one — distinct from the format version. */
+    programVersion(): string | undefined;
+    /** The IDL's format version: the Codama root `version`, or Anchor's `metadata.spec`. */
+    formatVersion(): IdlVersion;
     instructionName(data: Uint8Array): string | undefined;
 };
 
@@ -89,9 +102,11 @@ export function createIdlClient<T extends SupportedIdlInput>(
     const table = buildInstructionNameTable(supportedIdl);
     const metaClient: IdlMetaClient<T> = {
         idl,
+        formatVersion: () => getIdlVersion(supportedIdl),
         instructionName: data => matchInstructionName(table, data),
         programAddress: () => getIdlProgramAddress(idl),
         programName: () => buildProgramName(idl),
+        programVersion: () => getIdlProgramVersion(supportedIdl),
     };
     if (!options) return metaClient;
 

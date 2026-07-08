@@ -180,7 +180,9 @@ describe('capability: program summary (address, name, standard)', () => {
 
         expect(client.programAddress()).toBe(simple.address);
         expect(client.programName()).toBe('Simple');
-        // TODO: add parsing for program version and for standard version
+        expect(client.programVersion()).toBe('0.1.0'); // the program's own semver survives conversion
+        // post-conversion the format version is codama's (a codama root), not anchor's spec — value tracks @codama/nodes-from-anchor
+        expect(client.formatVersion()).toMatch(/^\d+\.\d+\.\d+$/);
         expect(getIdlStandard(client.idl)).toBe(IdlStandard.Codama);
     });
 
@@ -192,6 +194,8 @@ describe('capability: program summary (address, name, standard)', () => {
 
         expect(client.programAddress()).toBe('7u9qtZPjJcQ1jZsZxAGyRM4aGLNXqK5pzawpULopWFqB');
         expect(client.programName()).toBe('Simple');
+        expect(client.programVersion()).toBe('0.1.0'); // metadata.version
+        expect(client.formatVersion()).toBe('0.1.0'); // metadata.spec — anchor's format version
         expect(getIdlStandard(client.idl)).toBe(IdlStandard.Anchor);
     });
 

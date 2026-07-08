@@ -47,6 +47,8 @@ const meta: IdlMetaClient = createIdlClient(idl);
 
 meta.programName(); // 'Token' — undefined if the IDL declares none
 meta.programAddress(); // 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+meta.programVersion(); // '3.3.0' — the program's own semver, undefined if absent
+meta.formatVersion(); // Codama root version, or Anchor's metadata.spec
 ```
 
 `instructionName` resolves an instruction's name from its data bytes alone — a longest-prefix match
