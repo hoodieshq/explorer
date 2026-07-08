@@ -71,12 +71,23 @@ export function decodeInstructionWithIdl(
 
     // escape hatch for Anchor IDLs the conversion route cannot handle — injected, never bundled
     if (isAnchorIdl(idl) && options.legacyAnchorDecoder) {
-        const decoded = options.legacyAnchorDecoder(idl, ix);
-        if (decoded !== undefined) {
-            // keep the bypassed pipeline errors observable — a rescue must not hide a broken conversion
-            return errors.length
-                ? { decoded, kind: IdlStandard.Anchor, recoveredFrom: errors }
-                : { decoded, kind: IdlStandard.Anchor };
+        try {
+            const decoded = options.legacyAnchorDecoder(idl, ix);
+            if (decoded !== undefined) {
+                // keep the bypassed pipeline errors observable — a rescue must not hide a broken conversion
+                return errors.length
+                    ? { decoded, kind: IdlStandard.Anchor, recoveredFrom: errors }
+                    : { decoded, kind: IdlStandard.Anchor };
+            }
+        } catch (cause) {
+            // a throwing injected decoder must not escape the errors-as-values contract — fold it into the unknown arm
+            errors.push(
+                new IdlError(IDL_ERROR__INSTRUCTION_DECODE_FAILED, {
+                    cause,
+                    programAddress: ix.programAddress,
+                    standard: getIdlStandard(idl),
+                }),
+            );
         }
     }
 

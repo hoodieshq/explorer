@@ -216,6 +216,18 @@ describe('legacyAnchorDecoder escape hatch', () => {
         expect(decode.kind).toBe('unknown');
     });
 
+    it('should fold a throwing decoder into the unknown arm instead of escaping', () => {
+        const simple = loadSimpleIdl();
+        const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
+        const decode = createCodamaIdlClient(simple, {
+            legacyAnchorDecoder: () => {
+                throw new Error('decoder boom');
+            },
+        }).decodeInstruction(missIx);
+        if (decode.kind !== 'unknown') throw new Error('expected the unknown arm');
+        expect(decode.errors.map(e => e.code)).toEqual([IDL_ERROR__INSTRUCTION_DECODE_FAILED]);
+    });
+
     it('should return undefined for the unknown arm payload', () => {
         const simple = loadSimpleIdl();
         const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
@@ -259,7 +271,6 @@ describe('unknown-arm errors contract', () => {
         if (decode.kind !== 'unknown') throw new Error('expected the unknown arm');
         expect(decode.errors.map(e => e.code)).toEqual([IDL_ERROR__INSTRUCTION_DECODE_FAILED]);
     });
-
 });
 
 // m=1, n=1, initialized, 11 zeroed signer pubkeys — identifies the tokenkeg multisig account by size

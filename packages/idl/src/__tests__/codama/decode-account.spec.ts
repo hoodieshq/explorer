@@ -11,10 +11,26 @@ vi.mock('@codama/dynamic-parsers', () => ({
 }));
 
 describe('decodeAccountWithIdl', () => {
+    // runs first, so the mock is fresh — asserts the success arm wires the resolved root + data through
+    it('should decode via parseAccountData, passing the resolved root and raw data', () => {
+        const parsed = { data: { m: 1 }, path: [] };
+        vi.mocked(parseAccountData).mockReturnValue(parsed as unknown as ReturnType<typeof parseAccountData>);
+
+        const tokenkeg = loadTokenkegIdl();
+        const data = Uint8Array.from([1, 2, 3]);
+        const decode = decodeAccountWithIdl(tokenkeg, data);
+
+        if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
+        expect(parseAccountData).toHaveBeenCalledExactlyOnceWith(tokenkeg, data);
+        expect(decode.decoded).toBe(parsed);
+    });
+
     it('should return conversion errors for detected-but-unconvertible Anchor IDLs', () => {
         const brokenIdl = {
             address: '11111111111111111111111111111111',
-            instructions: [{ accounts: [], args: [{ name: 'x', type: 'not-a-type' }], discriminator: [9], name: 'boom' }],
+            instructions: [
+                { accounts: [], args: [{ name: 'x', type: 'not-a-type' }], discriminator: [9], name: 'boom' },
+            ],
             metadata: { name: 'broken', spec: '0.1.0', version: '0.0.1' },
         } as unknown as AnchorIdl;
 
