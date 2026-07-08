@@ -161,6 +161,27 @@ describe('legacyAnchorDecoder escape hatch', () => {
         });
         expect(legacyAnchorDecoder).not.toHaveBeenCalled();
     });
+
+    it('should land on the anchor arm when the decoder rescues a converted-but-unmatched instruction', () => {
+        const simple = loadSimpleIdl();
+        const missIx = { ...incrementIx(simple), data: Uint8Array.from([9, 9, 9, 9, 9, 9, 9, 9]) };
+        const decode = createCodamaIdlClient(simple, {
+            legacyAnchorDecoder: () => ({ name: 'increment' }),
+        }).decodeInstruction(missIx);
+        if (decode.kind !== IdlStandard.Anchor) throw new Error('expected the anchor arm');
+        expect(decode.decoded).toEqual({ name: 'increment' });
+        // conversion succeeded, so no bypassed pipeline errors ride along
+        expect(decode.recoveredFrom).toBeUndefined();
+    });
+
+    it('should fall to the unknown arm when the decoder returns undefined', () => {
+        const simple = loadSimpleIdl();
+        const missIx = { ...incrementIx(simple), data: Uint8Array.from([9, 9, 9, 9, 9, 9, 9, 9]) };
+        const decode = createCodamaIdlClient(simple, { legacyAnchorDecoder: () => undefined }).decodeInstruction(
+            missIx,
+        );
+        expect(decode.kind).toBe('unknown');
+    });
 });
 
 describe('unknown-arm errors contract', () => {
