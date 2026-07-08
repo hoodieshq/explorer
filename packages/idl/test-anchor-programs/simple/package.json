@@ -1,5 +1,5 @@
 {
-    "name": "@explorer/idl-program-simple",
+    "name": "@explorer/test-idl-program-simple",
     "version": "0.0.0",
     "private": true,
     "exports": {

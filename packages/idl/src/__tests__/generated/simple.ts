@@ -1,14 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 
-import type { Simple } from '@explorer/idl-program-simple/types';
+import type { Simple } from '@explorer/test-idl-program-simple/types';
 
 import type { AnchorIdl } from '../../types';
 
 const readSimpleJson = (): unknown => {
     try {
         return JSON.parse(
-            readFileSync(createRequire(import.meta.url).resolve('@explorer/idl-program-simple'), 'utf8'),
+            readFileSync(createRequire(import.meta.url).resolve('@explorer/test-idl-program-simple'), 'utf8'),
         );
     } catch (cause) {
         // direct vitest runs skip the pretest hook that builds the programs

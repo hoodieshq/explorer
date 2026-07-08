@@ -7,7 +7,7 @@ import { type IdlClient, isAnchorStandard } from '../../client';
 import { createCodamaIdlClient } from '../../codama/index';
 import { type AnchorIdl, type CodamaIdl, IdlStandard, type InstructionDecode } from '../../types';
 import { incrementIx, loadSimpleIdl } from '../fixtures';
-import type { Simple } from '@explorer/idl-program-simple/types';
+import type { Simple } from '@explorer/test-idl-program-simple/types';
 
 const anchorIdl = loadSimpleIdl();
 const anchorIncrementIx = incrementIx(anchorIdl);

@@ -7,7 +7,7 @@ import type { AnchorIdl } from '../../types';
 export const loadSimple031Idl = (): AnchorIdl => {
     try {
         return JSON.parse(
-            readFileSync(createRequire(import.meta.url).resolve('@explorer/idl-program-simple-031'), 'utf8'),
+            readFileSync(createRequire(import.meta.url).resolve('@explorer/test-idl-program-simple-031'), 'utf8'),
         ) as AnchorIdl;
     } catch (cause) {
         // direct vitest runs skip the pretest hook that builds the programs
