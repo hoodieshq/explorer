@@ -69,7 +69,10 @@ export function KeyValue({
         >
             {/* items-start: Icon and Label are both `lineBox`-tall boxes that internally drop their
                 content onto the shared grid, so aligning their tops aligns their contents. */}
-            <div className={cn('flex items-start gap-1.5', row ? 'flex-none' : 'sm:flex-none', labelWidth)}>
+            {/* min-w-0: without it this flex item's automatic minimum size is the label's
+                min-content, so a long single-word key (e.g. "Acknowledgements") grows the column
+                past `labelWidth` to stay on one line instead of wrapping. */}
+            <div className={cn('flex min-w-0 items-start gap-1.5', row ? 'flex-none' : 'sm:flex-none', labelWidth)}>
                 {icon != null && (
                     <Icon size={labelSize} lineBox={lineBox}>
                         {icon}

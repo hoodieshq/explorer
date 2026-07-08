@@ -41,7 +41,12 @@ export function StickyHeader({ children, className }: Props) {
                 )}
                 style={isStuck ? { marginLeft: 'calc(50% - 50vw)', width: '100vw' } : undefined}
             >
-                <div className={cn(!isStuck && '-mx-3')}>{children}</div>
+                {/* When not stuck, cancel the inner PageContainer's gutter so the tabs (and their
+                    underline) start flush with the page content edge. Must mirror PageContainer's
+                    responsive px scale exactly, otherwise a gap appears before the first tab. */}
+                <div className={cn(!isStuck && '-mx-4 sm:-mx-5 md:-mx-6 lg:-mx-8 xl:-mx-10 xxl:-mx-12')}>
+                    {children}
+                </div>
             </div>
         </>
     );

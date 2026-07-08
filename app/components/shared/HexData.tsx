@@ -88,6 +88,7 @@ export function HexData({
     align = 'end',
     spanSize = SPAN_SIZE,
     rowSize = ROW_SIZE,
+    wrap = false,
 }: {
     raw: ByteArray;
     copyableRaw?: ByteArray;
@@ -99,6 +100,13 @@ export function HexData({
     isCopyable?: boolean;
     spanSize?: number;
     rowSize?: number;
+    /**
+     * Flow the fixed-size groups so they wrap to fill the container width instead
+     * of laying out fixed-width rows. Removes horizontal overflow (no side scroll);
+     * each line then holds a whole number of `spanSize`-byte groups. Used by the
+     * mobile raw-data drawer.
+     */
+    wrap?: boolean;
 }) {
     if (!raw || raw.length === 0) {
         return (
@@ -133,6 +141,7 @@ export function HexData({
             spanSize={spanSize}
             rowSize={rowSize}
             isCopyable={isCopyable}
+            wrap={wrap}
         />
     );
 }
@@ -198,6 +207,7 @@ function FullContent({
     spanSize,
     rowSize,
     isCopyable,
+    wrap,
 }: {
     hexString: string;
     copyText: string | null;
@@ -207,9 +217,35 @@ function FullContent({
     spanSize: number;
     rowSize: number;
     isCopyable: boolean;
+    wrap: boolean;
 }) {
     const spans = formatHexSpans(splitHexPairs(hexString), { inverted }, spanSize);
     const rows = groupHexRows(spans, rowSize, spanSize);
+
+    // Wrapping flow: each fixed-size group is an atomic inline-block (never breaks
+    // mid-group; `mr-3` sets the inter-group gap) and the breakable space after it
+    // gives the browser a wrap point — so every line holds a multiple of `spanSize`
+    // values and nothing overflows sideways. No horizontal padding on the <pre>.
+    if (wrap) {
+        const content = (
+            // px-0 overrides the global `pre { padding: .33rem }` so the hex sits flush left.
+            <pre className="mb-0 block whitespace-normal bg-heavy-metal-900 px-0 py-1.5 text-left font-mono text-xs">
+                {spans.map((span, i) => (
+                    <React.Fragment key={i}>
+                        <span className={cn('mr-3 inline-block whitespace-nowrap', hexSpanVariants({ tone: span.variant }))}>
+                            {span.text}
+                        </span>
+                        {' '}
+                    </React.Fragment>
+                ))}
+            </pre>
+        );
+        return (
+            <div className={cn('w-full', className)}>
+                {isCopyable ? <Copyable text={copyText}>{content}</Copyable> : content}
+            </div>
+        );
+    }
 
     const divs = rows.map((row, rowIdx) => (
         <div key={rowIdx}>

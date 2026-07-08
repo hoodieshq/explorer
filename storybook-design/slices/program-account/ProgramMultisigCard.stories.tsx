@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { ProgramMultisigCard } from '@/app/components/account/ProgramMultisigCard';
+import { ProgramMultisigCard } from './ProgramTabCards/ProgramMultisigCard';
 
 import { MOCK_MULTISIG_ARGS, withMockRpc, withMultisigData } from './mocks';
 

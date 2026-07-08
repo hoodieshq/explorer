@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { ProgramSecurityTxtCard } from '@/app/features/security-txt/ui/SecurityCard';
+import { ProgramSecurityTxtCard } from './ProgramTabCards/SecurityCard';
 
 import { MOCK_PROGRAM_ADDRESS, MOCK_SECURITY_TXT, withMockProviders } from './mocks';
 

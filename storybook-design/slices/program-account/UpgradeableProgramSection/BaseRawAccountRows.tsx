@@ -33,7 +33,7 @@ export function BaseRawAccountRows({ account, rawData, isLoading }: BaseRawAccou
             <KeyValue label="Executable" labelWidth={LABEL_WIDTH} row>
                 {account.executable ? 'Yes' : 'No'}
             </KeyValue>
-            <KeyValue label="Raw Data" align="end" labelWidth={LABEL_WIDTH} row>
+            <KeyValue label="Raw Data" labelWidth={LABEL_WIDTH} row>
                 <RawDataField data={rawData} filename={account.pubkey.toBase58()} loading={isLoading} />
             </KeyValue>
         </>

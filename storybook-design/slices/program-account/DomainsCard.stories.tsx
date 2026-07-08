@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { BaseDomainsCard } from '@/app/entities/domain/ui/BaseDomainsCard';
+import { BaseDomainsCard } from './ProgramTabCards/DomainsCard';
 
 import { MOCK_DOMAINS, withMockProviders } from './mocks';
 

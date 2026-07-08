@@ -86,10 +86,15 @@ function PageContent({ address }: { address: string }) {
                     />
                 </div>
                 <SecurityNotification parsedData={MOCK_PARSED_DATA} address={address} />
-                <StickyHeader>
+                {/* Cap the sticky wrapper (and its bottom border) to the tab-area width when inline.
+                    Using `width: min(100%, 960px)` rather than max-width: when stuck, StickyHeader's
+                    inline `width: 100vw` overrides this same property, so the underline still goes
+                    full-bleed only while pinned. Constraint lives on the sticky element itself so its
+                    (tall) parent — and thus the sticky behavior — is unchanged. */}
+                <StickyHeader className="mb-10 mx-auto w-[min(100%,960px)]">
                     <PageContainer>
                         <div className="mx-auto w-full max-w-[960px]">
-                            <NavigationTabs buildHref={buildHref} tabs={PROGRAM_TABS} />
+                            <NavigationTabs buildHref={buildHref} tabs={PROGRAM_TABS} className="pt-2" />
                         </div>
                     </PageContainer>
                 </StickyHeader>

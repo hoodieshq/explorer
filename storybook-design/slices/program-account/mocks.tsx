@@ -10,7 +10,7 @@ import { MockTokenInfoBatchProvider } from '@storybook-config/__mocks__/MockToke
 import { MockTransactionsProvider } from '@storybook-config/__mocks__/MockTransactionsProvider';
 import { nextjsParameters } from '@storybook-config/decorators';
 import type { Decorator } from '@storybook-config/types';
-import { Connection, type ParsedTransactionWithMeta, PublicKey } from '@solana/web3.js';
+import { Connection, type ParsedTransactionWithMeta, PublicKey, type VersionedMessage } from '@solana/web3.js';
 import React from 'react';
 import { SWRConfig, unstable_serialize } from 'swr';
 
@@ -18,7 +18,9 @@ import { LoadingCard } from '@/app/components/common/LoadingCard';
 import type { DomainInfo } from '@/app/entities/domain';
 import type { NeodymeSecurityTXT } from '@/app/features/security-txt/lib/types';
 import { Account, UpgradeableLoaderAccountData } from '@/app/providers/accounts';
+import { type CacheEntry, FetchStatus } from '@/app/providers/cache';
 import type { ClusterState } from '@/app/providers/cluster';
+import type { Details as RawDetails } from '@/app/providers/transactions/raw';
 import { VisibilityProvider } from '@/app/shared/lib/visibility';
 import { type OsecRegistryInfo, VerificationStatus } from '@/app/utils/verified-builds';
 import { Cluster, ClusterStatus, DEVNET_URL } from '@/app/utils/cluster';
@@ -128,6 +130,35 @@ export const MOCK_HISTORY_WITH_DATA = {
     }),
 };
 
+// --- Raw-transaction seed (Size (bytes) column) --------------------------------
+// TransactionRawDataSize reads useRawTransactionDetails(signature) and only ever
+// touches `data.raw.message.serialize()`. In Storybook the provider's dispatch is a
+// no-op, so an unseeded raw cache leaves the Size column stuck on its skeleton
+// forever. Seed one Fetched entry per signature with a message whose serialize()
+// yields deterministic bytes of the desired length (drives both the byte count and
+// the raw-data popover).
+function mockRawEntry(byteLength: number): CacheEntry<RawDetails> {
+    const bytes = new Uint8Array(byteLength);
+    for (let i = 0; i < byteLength; i++) {
+        bytes[i] = (i * 37 + 11) % 256;
+    }
+    const message = { serialize: () => bytes } as unknown as VersionedMessage;
+    return {
+        data: { raw: { message, signatures: [], transaction: {} as never } },
+        status: FetchStatus.Fetched,
+    };
+}
+
+// Keyed by signature; covers both MOCK_HISTORY and MOCK_HISTORY_WITH_DATA rows.
+export const MOCK_RAW_BY_SIGNATURE: Record<string, CacheEntry<RawDetails>> = {
+    [SIGNATURES.failed]: mockRawEntry(184),
+    [SIGNATURES.first]: mockRawEntry(215),
+    [SIGNATURES.third]: mockRawEntry(352),
+    [DATA_SIGNATURES.memo]: mockRawEntry(164),
+    [DATA_SIGNATURES.mint]: mockRawEntry(388),
+    [DATA_SIGNATURES.transfer]: mockRawEntry(215),
+};
+
 // Program ids used to label the parsed instructions (getProgramName reads programId).
 const SYSTEM_PROGRAM = new PublicKey('11111111111111111111111111111111');
 const MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
@@ -192,10 +223,17 @@ const devnetClusterState: ClusterState = {
 export function MockProgramAccountProviders({
     children,
     history = MOCK_HISTORY,
+    raw = MOCK_RAW_BY_SIGNATURE,
     visibility = false,
 }: {
     children: React.ReactNode;
     history?: typeof MOCK_HISTORY;
+    /**
+     * Seeded raw-transaction cache (keyed by signature) that feeds the Size (bytes)
+     * column. Without it every row's size stays on its skeleton, since the mock
+     * provider's dispatch is a no-op and can't resolve the on-mount fetch.
+     */
+    raw?: Record<string, CacheEntry<RawDetails>>;
     /**
      * Wrap in a real `VisibilityProvider` so the per-row `useVisibility` hook flips to
      * visible and `useInstructionNames` actually fetches. Without it, every row's
@@ -208,7 +246,7 @@ export function MockProgramAccountProviders({
         <MockClusterProvider state={devnetClusterState}>
             <MockTokenInfoBatchProvider>
                 <MockAccountsProvider>
-                    <MockTransactionsProvider>
+                    <MockTransactionsProvider raw={raw}>
                         <MockHistoryProvider history={history}>{body}</MockHistoryProvider>
                     </MockTransactionsProvider>
                 </MockAccountsProvider>

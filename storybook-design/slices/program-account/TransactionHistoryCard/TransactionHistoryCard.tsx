@@ -85,6 +85,9 @@ export function TransactionHistoryCard({ address }: { address: string }) {
     }
 
     const hasTimestamps = transactionRows.some(element => element.blockTime);
+    // No rows → an empty account whose history is fully fetched. Hide the header
+    // (nothing to label) and give the footer message room to breathe.
+    const isEmpty = transactionRows.length === 0;
     const detailsList: React.ReactNode[] = transactionRows.map(({ slot, signature, blockTime, statusClass, statusText }) => (
         <TransactionRow
             key={signature}
@@ -105,22 +108,24 @@ export function TransactionHistoryCard({ address }: { address: string }) {
             </div>
             <Card ui="dashkit" marginBottom="none">
                 <BaseTable ui="dashkit" variant="card" nowrap>
-                    <BaseTable.Head>
-                        <BaseTable.Row>
-                            <BaseTable.HeaderCell>Transaction Signature</BaseTable.HeaderCell>
-                            {hasTimestamps && (
-                                <BaseTable.HeaderCell className="w-px" data-md-header="time">
-                                    Timestamp
-                                </BaseTable.HeaderCell>
-                            )}
-                            <BaseTable.HeaderCell className="w-px">Block</BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell className="w-px">Size (bytes)</BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell className="thc-progs-col">Programs</BaseTable.HeaderCell>
-                        </BaseTable.Row>
-                    </BaseTable.Head>
+                    {!isEmpty && (
+                        <BaseTable.Head>
+                            <BaseTable.Row>
+                                <BaseTable.HeaderCell>Transaction Signature</BaseTable.HeaderCell>
+                                {hasTimestamps && (
+                                    <BaseTable.HeaderCell className="w-px" data-md-header="time">
+                                        Timestamp
+                                    </BaseTable.HeaderCell>
+                                )}
+                                <BaseTable.HeaderCell className="w-px">Block</BaseTable.HeaderCell>
+                                <BaseTable.HeaderCell className="w-px">Size (bytes)</BaseTable.HeaderCell>
+                                <BaseTable.HeaderCell className="thc-progs-col">Programs</BaseTable.HeaderCell>
+                            </BaseTable.Row>
+                        </BaseTable.Head>
+                    )}
                     <BaseTable.Body>{detailsList}</BaseTable.Body>
                 </BaseTable>
-                <div className="thc-footer">
+                <div className={`thc-footer${isEmpty ? ' thc-footer--empty' : ''}`}>
                     {history.data.foundOldest ? (
                         <div className="text-center text-dk-gray-700">Fetched full history</div>
                     ) : (
@@ -161,7 +166,7 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
         ) : instructionNames === null ? (
             <InstructionListSkeleton />
         ) : (
-            <span className="text-muted">---</span>
+            <span className="text-outer-space-300">---</span>
         );
 
     const handleRowClick = (e: React.MouseEvent) => {
@@ -176,8 +181,11 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
                 <BaseTable.Cell data-label="Signature">
                     <div className="tx-sig-cell">
                         <div className="flex min-w-0 items-start gap-2">
-                            <span className="min-w-0">
-                                <Signature signature={signature} link />
+                            {/* On mobile the row is a single tap target that opens the drawer, so
+                                the signature drops its per-row copy icon (hidden via CSS) and its
+                                link — it renders as plain truncated text. */}
+                            <span className="tx-sig-value min-w-0">
+                                <Signature signature={signature} link={!isMobile} />
                             </span>
                             <Badge ui="dashkit" tone="soft" variant={statusClass as 'success' | 'warning'}>
                                 {statusText}
@@ -192,7 +200,7 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
                 </BaseTable.Cell>
 
                 {hasTimestamps && (
-                    <BaseTable.Cell className="w-px text-muted" data-label="Time">
+                    <BaseTable.Cell className="w-px text-outer-space-300" data-label="Time">
                         {blockTime ? (
                             <div className="flex flex-row items-center gap-1">
                                 <span className="text-dk-base">
@@ -201,10 +209,10 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <span
-                                            className="inline-flex cursor-default text-muted"
+                                            className="inline-flex cursor-help text-outer-space-300"
                                             style={{ lineHeight: 0 }}
                                         >
-                                            <Info size={11} />
+                                            <Info size={13} />
                                         </span>
                                     </TooltipTrigger>
                                     <TooltipContent side="top">{displayTimestampUtc(blockTime * 1000, true)}</TooltipContent>
@@ -217,11 +225,14 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
                 )}
 
                 <BaseTable.Cell className="w-px" data-label="Block">
-                    <Slot slot={slot} link />
+                    {/* Block link is dropped on mobile — Slot renders plain text (no copy, no link). */}
+                    <Slot slot={slot} link={!isMobile} />
                 </BaseTable.Cell>
 
                 <BaseTable.Cell className="w-px tx-raw-data-cell" data-label="Size (bytes)">
-                    <TransactionRawDataSize signature={signature} />
+                    {/* On mobile the size drops its popover button but keeps the `</>` glyph and the
+                        byte count as static text; the copy/download live in the drawer. */}
+                    <TransactionRawDataSize signature={signature} readOnly={isMobile} />
                 </BaseTable.Cell>
 
                 {/* Programs as its own trailing column on desktop (lg+). */}
@@ -248,7 +259,7 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
 
 // Raw-data column: byte-size button that opens the raw data (hex/base64 + copy +
 // download) in a popover. Fetches on mount so the size is shown without interaction.
-function TransactionRawDataSize({ signature }: { signature: string }) {
+function TransactionRawDataSize({ signature, readOnly }: { signature: string; readOnly?: boolean }) {
     const fetchRaw = useFetchRawTransaction();
     const rawDetails = useRawTransactionDetails(signature);
     const serialized = rawDetails?.data?.raw?.message.serialize();
@@ -265,6 +276,7 @@ function TransactionRawDataSize({ signature }: { signature: string }) {
             data={transactionData}
             filename={signature}
             loading={loading}
+            readOnly={readOnly}
             // Collapse the button's fixed height so the size sits on the same line
             // as the other top-aligned cells.
             buttonClassName="!h-auto !py-0"

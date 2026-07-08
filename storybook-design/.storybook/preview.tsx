@@ -107,7 +107,9 @@ const preview: Preview = {
                 <>
                     <style>{`:root { --explorer-default-font: ${rubikFont.style.fontFamily}; }`}</style>
                     <SelectedBackgroundBridge value={resolved} />
-                    <div id="storybook-outer">
+                    {/* lang drives `hyphens: auto` (language-aware line breaking) for slices;
+                        the iframe's <html> has none, so anchor it here. */}
+                    <div id="storybook-outer" lang="en">
                         <Story />
                     </div>
                 </>

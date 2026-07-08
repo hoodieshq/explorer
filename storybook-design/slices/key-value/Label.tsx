@@ -30,8 +30,18 @@ export function Label({
 
     return (
         <div
-            className={cn('text-outer-space-300', className)}
-            style={{ fontSize, lineHeight: `${lineHeight}px`, paddingBottom, paddingTop }}
+            className={cn('min-w-0', 'text-outer-space-300', className)}
+            style={{
+                fontSize,
+                // Wrap a too-long key onto multiple lines: hyphenate per the document's
+                // language rules first (`hyphens: auto` uses the inherited `lang`), and fall
+                // back to breaking an unbreakable run so it never overflows the label column.
+                hyphens: 'auto',
+                lineHeight: `${lineHeight}px`,
+                overflowWrap: 'break-word',
+                paddingBottom,
+                paddingTop,
+            }}
         >
             {children}
         </div>

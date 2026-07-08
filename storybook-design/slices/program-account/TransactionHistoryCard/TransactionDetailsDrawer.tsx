@@ -5,8 +5,8 @@
 // design-system <Badge ui="dashkit">; RawDataField/InstructionList point at the local copies.
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import Link from 'next/link';
-import React, { useEffect, useMemo } from 'react';
-import { ArrowRight, Copy, Tag, X } from 'react-feather';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowRight, CheckCircle, Copy, X } from 'react-feather';
 
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
@@ -51,6 +51,31 @@ export function TransactionDetailsDrawer({
     const [copyState, copy] = useCopyToClipboard();
     const [blockCopyState, copyBlock] = useCopyToClipboard();
 
+    // Swipe-to-dismiss: drag the header down and release past a threshold to close.
+    // Pointer (not touch) events so it works with mouse + touch alike; pointer
+    // capture keeps move/up firing even once the pointer leaves the grab zone.
+    const dragStartY = useRef<number | null>(null);
+    const [dragY, setDragY] = useState(0);
+    const [dragging, setDragging] = useState(false);
+    const handleDragStart = (e: React.PointerEvent) => {
+        dragStartY.current = e.clientY;
+        setDragging(true);
+        e.currentTarget.setPointerCapture(e.pointerId);
+    };
+    const handleDragMove = (e: React.PointerEvent) => {
+        if (dragStartY.current === null) return;
+        // Downward only — negative deltas (dragging up) are clamped to 0.
+        setDragY(Math.max(0, e.clientY - dragStartY.current));
+    };
+    const handleDragEnd = (e: React.PointerEvent) => {
+        if (dragStartY.current === null) return;
+        if (dragY > 80) onOpenChange(false);
+        dragStartY.current = null;
+        setDragging(false);
+        setDragY(0);
+        if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
+    };
+
     // Raw-data lazy-fetch: when the drawer opens, kick off the request if we
     // don't already have the bytes cached.
     const fetchRaw = useFetchRawTransaction();
@@ -73,24 +98,41 @@ export function TransactionDetailsDrawer({
                         left-0 right-0 top-auto bottom-0
                         w-full max-w-none
                         rounded-t-2xl rounded-b-none
-                        border-0 border-t border-solid border-outer-space-800
+                        border-0 border-t border-solid border-dark-border
                         bg-heavy-metal-900 p-4
                     "
+                    style={{
+                        transform: `translateY(${dragY}px)`,
+                        transition: dragging ? 'none' : 'transform 0.2s ease-out',
+                    }}
                 >
-                    <DialogTitle className="!mt-[2px] text-dk-base !text-outer-space-300">Transaction</DialogTitle>
+                    {/* Header + signature double as the swipe-to-close grab zone, so the
+                        whole title/signature block is draggable (not just the title label).
+                        Negative margins stretch it to the drawer edges over the p-4 padding. */}
+                    <div
+                        className="-mx-4 -mt-4 cursor-grab px-4 pt-3"
+                        style={{ touchAction: 'none' }}
+                        onPointerDown={handleDragStart}
+                        onPointerMove={handleDragMove}
+                        onPointerUp={handleDragEnd}
+                        onPointerCancel={handleDragEnd}
+                    >
+                        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-outer-space-700" />
+                        <DialogTitle className="!mt-0 text-dk-base !text-outer-space-300">Transaction</DialogTitle>
 
-                    {/* Big signature with the status badge inlined directly after it. */}
-                    <div className="mt-2 text-white">
-                        <span className="break-all font-mono text-dk-h2">{signature}</span>{' '}
-                        <Badge ui="dashkit" tone="soft" variant={statusClass as 'success' | 'warning'}>
-                            {statusText}
-                        </Badge>
+                        {/* Big signature with the status badge inlined directly after it. */}
+                        <div className="mt-2 text-white">
+                            <span className="break-all font-mono text-dk-h2">{signature}</span>{' '}
+                            <Badge ui="dashkit" tone="soft" variant={statusClass as 'success' | 'warning'}>
+                                {statusText}
+                            </Badge>
+                        </div>
                     </div>
 
-                    <hr className="mt-3 mb-0 border-0 border-t border-solid border-outer-space-800" />
+                    <hr className="mt-3 mb-0 border-0 border-t border-solid border-dark-border" />
 
                     {/* Property table — each row carries a top border. */}
-                    <div className="flex flex-col text-dk-sm">
+                    <div className="flex flex-col text-dk-base">
                         {blockTime && (
                             <DrawerRow label="Time">
                                 <span className="text-white">{displayTimestampUtc(blockTime * 1000, true)}</span>
@@ -106,23 +148,19 @@ export function TransactionDetailsDrawer({
                                     aria-label={blockCopyState === 'copied' ? 'Copied block number' : 'Copy block number'}
                                     onClick={() => copyBlock(slot.toString())}
                                 >
-                                    <Copy size={12} />
+                                    {blockCopyState === 'copied' ? (
+                                        <CheckCircle size={12} className="text-dk-info" />
+                                    ) : (
+                                        <Copy size={12} />
+                                    )}
                                 </Button>
                             }
                         >
-                            <Link href={blockPath} className="font-mono">
+                            <Link href={blockPath} className="font-mono text-dk-base">
                                 {slot.toLocaleString('en-US')}
                             </Link>
                         </DrawerRow>
-                        <DrawerRow
-                            label="Programs"
-                            alignTop
-                            trailing={
-                                <Button variant="outline" size="sm" aria-label="Lookup names" onClick={() => {}}>
-                                    <Tag size={12} />
-                                </Button>
-                            }
-                        >
+                        <DrawerRow label="Programs">
                             <div className="tx-instr-inline">
                                 {instructionNames !== null && instructionNames.length > 0 ? (
                                     <InstructionList instructions={instructionNames} />
@@ -147,7 +185,8 @@ export function TransactionDetailsDrawer({
                     <div className="mt-5 grid grid-cols-3 gap-2">
                         <ActionTile
                             icon={<Copy size={18} />}
-                            label={copyState === 'copied' ? 'Copied!' : 'Copy tx ID'}
+                            label={copyState === 'copied' ? 'Copied' : 'Copy tx ID'}
+                            copied={copyState === 'copied'}
                             onClick={() => copy(signature)}
                         />
                         <ActionTile icon={<ArrowRight size={18} />} label="Open" href={txPath} primary />
@@ -174,7 +213,7 @@ function DrawerRow({
         <div
             className={`
                 flex gap-4 py-2
-                border-0 border-b border-solid border-outer-space-800
+                border-0 border-b border-solid border-dark-border
                 ${alignTop ? 'items-start' : 'items-baseline'}
             `}
         >
@@ -191,12 +230,14 @@ function ActionTile({
     onClick,
     href,
     primary,
+    copied,
 }: {
     icon: React.ReactNode;
     label: string;
     onClick?: () => void;
     href?: string;
     primary?: boolean;
+    copied?: boolean;
 }) {
     const cls = `
         flex flex-col items-center justify-center gap-1
@@ -208,19 +249,23 @@ function ActionTile({
                 ? 'border-transparent bg-emerald-400 text-heavy-metal-900 hover:bg-emerald-300'
                 : 'border-outer-space-700 bg-transparent text-outer-space-200 hover:bg-outer-space-800'
         }
+        ${copied ? 'tx-copy-flash' : ''}
     `;
+    // While copied, the label sits inside a soft-green badge-style pill (no <Badge>
+    // import — the drawer renders in a portal, so the pill is styled via CSS classes).
+    const labelEl = copied ? <span className="tx-copy-badge">{label}</span> : <span>{label}</span>;
     if (href) {
         return (
             <Link href={href} className={cls}>
                 {icon}
-                <span>{label}</span>
+                {labelEl}
             </Link>
         );
     }
     return (
         <button type="button" className={cls} onClick={onClick}>
             {icon}
-            <span>{label}</span>
+            {labelEl}
         </button>
     );
 }

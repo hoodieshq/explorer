@@ -39,7 +39,7 @@ function InstructionLine({ instruction, trailing }: { instruction: TransactionIn
     // separately-wrapping flex item with weird gaps between them.
     return (
         <span className="block cursor-default text-dk-base">
-            <span className="text-muted">{instruction.program}</span>{' '}
+            <span className="text-outer-space-300">{instruction.program}</span>{' '}
             <span className="text-white">{instruction.name}</span>
             {trailing}
         </span>
@@ -48,7 +48,7 @@ function InstructionLine({ instruction, trailing }: { instruction: TransactionIn
 
 export function InstructionListSkeleton() {
     return (
-        <div className="flex flex-col gap-1">
+        <div className="tx-instr-skeleton my-1 flex flex-col gap-1">
             <Skeleton className="h-3.5 w-44" />
             <Skeleton className="h-3.5 w-36" />
         </div>
@@ -59,7 +59,7 @@ function OverflowLine({ instructions }: { instructions: TransactionInstructionIn
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <span className="cursor-pointer text-dk-xs text-muted">+{instructions.length} more</span>
+                <span className="cursor-pointer text-dk-xs text-outer-space-300">+{instructions.length} more</span>
             </TooltipTrigger>
             <TooltipContent
                 side="bottom"

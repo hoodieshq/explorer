@@ -3,12 +3,13 @@ import * as React from 'react';
 
 import { cn } from '@/app/components/shared/utils';
 
-// Fluid container: fills 100% of the available width (minus `px-3` padding, mirroring dashkit's
-// `$container-padding-x` = 0.75rem) up to a single `max-width` cap, then `mx-auto` centers it.
-// Cap matches dashkit's largest `$container-max-widths` step (xl 1140); unlike Bootstrap's `.container`
-// we don't step the max-width down at sm/md/lg, so the content keeps stretching until it hits the cap.
+// Fluid container: fills 100% of the available width (minus the responsive gutter below) up to a
+// single `max-width` cap, then `mx-auto` centers it. The gutter steps up with the viewport —
+// 16px (xs) → 20 (sm) → 24 (md) → 32 (lg) → 40 (xl) → 48 (xxl) — so the page breathes more on
+// wider screens. Cap is the `xxl` breakpoint (1400px); unlike Bootstrap's `.container` we don't
+// step the max-width down at sm/md/lg, so the content keeps stretching until it hits the cap.
 const pageContainerVariants = cva(
-    'mx-auto w-full max-w-[1140px] px-3',
+    'mx-auto w-full max-w-[1400px] px-4 sm:px-5 md:px-6 lg:px-8 xl:px-10 xxl:px-12',
     {
         defaultVariants: { variant: 'default' },
         variants: {

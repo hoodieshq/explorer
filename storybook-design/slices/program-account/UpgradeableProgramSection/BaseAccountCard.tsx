@@ -3,6 +3,7 @@ import { Code } from 'react-feather';
 
 import { RefreshButton } from '@/app/components/shared/ui/refresh-button';
 import { Button } from '@/app/components/shared/ui/button';
+import { cn } from '@/app/components/shared/utils';
 import { Card, CardTitle } from '@/app/shared/ui/Card';
 
 export type BaseAccountCardProps = {
@@ -38,12 +39,14 @@ export function BaseAccountCard({
             {refresh && analyticsSection && <RefreshButton analyticsSection={analyticsSection} onClick={refresh} />}
             {showRawButton && (
                 <Button
-                    ui="dashkit"
-                    variant="white"
-                    active={showRaw}
+                    variant="outline"
                     size="sm"
                     aria-label="Raw"
+                    aria-pressed={showRaw}
                     onClick={() => setShowRaw(r => !r)}
+                    // Match the sibling outline buttons (Refresh / Download); keep the
+                    // original green toggle ring while active so the state stays legible.
+                    className={cn(showRaw && 'shadow-[0_0_0_0.15rem_#33a382]')}
                 >
                     <Code size={12} />
                     <span className="hidden md:inline">Raw</span>
@@ -53,7 +56,12 @@ export function BaseAccountCard({
         </>
     );
 
-    const body = <div className="flex flex-col">{showRaw ? rawContent : children}</div>;
+    // `overflow-x-clip` + `min-w-0` keep every row's content bounded to the card:
+    // a value that can't wrap (long address/label/raw data) is clipped at the block
+    // edge instead of spilling past the rounded border. `clip` (not `hidden`) leaves
+    // the y-axis visible, so nothing turns into a scroll container. Portaled popovers
+    // (tooltips, download dropdown, nickname modal) render outside this box, unaffected.
+    const body = <div className="flex min-w-0 flex-col overflow-x-clip">{showRaw ? rawContent : children}</div>;
 
     if (headerOutside) {
         return (

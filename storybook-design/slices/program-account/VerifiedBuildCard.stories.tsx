@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { BaseVerifiedBuildCard } from '@/app/components/account/VerifiedBuildCard';
+import { BaseVerifiedBuildCard } from './ProgramTabCards/VerifiedBuildCard';
 
 import { MOCK_PARSED_DATA, MOCK_VERIFIED_BUILD, withMockProviders } from './mocks';
 
