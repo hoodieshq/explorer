@@ -3,6 +3,8 @@
 // in codama-idls.spec.ts; the cases here stay hand-written because inference IS the subject.
 import { type AsDecoded, type CodamaIdl, IdlStandard } from '@explorer/idl';
 import { createCodamaIdlClient } from '@explorer/idl/codama';
+// a literal `as const` codama root (test-codama-programs/vault) — its literal type drives inference
+import { vaultIdl } from '@explorer/test-idl-program-vault';
 // real-world interop: a PUBLISHED renderers-js-generated client (type-only import, erased at runtime)
 import type { Multisig as PublishedMultisig } from '@solana-program/token-2022';
 import type { Instruction } from '@solana/kit';
@@ -24,77 +26,6 @@ import { base16, base64, DEFAULT_ADDRESS, encodeAccount } from './helpers';
 
 describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', () => {
     describe('literal IDL type — the codama counterpart of the anchor companion type', () => {
-        // JSON imports widen, so the IDL lives in a TS module `as const` — that literal type
-        // alone drives inference; no generics at any call site.
-        const vaultIdl = {
-            additionalPrograms: [],
-            kind: 'rootNode',
-            program: {
-                accounts: [
-                    {
-                        data: {
-                            fields: [
-                                {
-                                    docs: [],
-                                    kind: 'structFieldTypeNode',
-                                    name: 'authority',
-                                    type: { kind: 'publicKeyTypeNode' },
-                                },
-                                {
-                                    docs: [],
-                                    kind: 'structFieldTypeNode',
-                                    name: 'count',
-                                    type: { endian: 'le', format: 'u64', kind: 'numberTypeNode' },
-                                },
-                            ],
-                            kind: 'structTypeNode',
-                        },
-                        discriminators: [{ kind: 'sizeDiscriminatorNode', size: 40 }],
-                        docs: [],
-                        kind: 'accountNode',
-                        name: 'vault',
-                        size: 40,
-                    },
-                ],
-                definedTypes: [],
-                docs: [],
-                errors: [],
-                instructions: [
-                    {
-                        accounts: [],
-                        arguments: [
-                            {
-                                defaultValue: { kind: 'numberValueNode', number: 1 },
-                                defaultValueStrategy: 'omitted',
-                                docs: [],
-                                kind: 'instructionArgumentNode',
-                                name: 'discriminator',
-                                type: { endian: 'le', format: 'u8', kind: 'numberTypeNode' },
-                            },
-                            {
-                                docs: [],
-                                kind: 'instructionArgumentNode',
-                                name: 'amount',
-                                type: { endian: 'le', format: 'u64', kind: 'numberTypeNode' },
-                            },
-                        ],
-                        discriminators: [{ kind: 'fieldDiscriminatorNode', name: 'discriminator', offset: 0 }],
-                        docs: [],
-                        kind: 'instructionNode',
-                        name: 'deposit',
-                        optionalAccountStrategy: 'programId',
-                    },
-                ],
-                kind: 'programNode',
-                name: 'vault',
-                pdas: [],
-                publicKey: DEFAULT_ADDRESS,
-                version: '1.0.0',
-            },
-            standard: 'codama',
-            version: '1.0.0',
-        } as const;
-
         it('should infer instruction args from the IDL type with no generics', () => {
             const client = createCodamaIdlClient(vaultIdl);
 

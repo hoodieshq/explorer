@@ -52,6 +52,7 @@
         "@explorer/test-idl-program-memo": "workspace:*",
         "@explorer/test-idl-program-simple": "workspace:*",
         "@explorer/test-idl-program-simple-031": "workspace:*",
+        "@explorer/test-idl-program-vault": "workspace:*",
         "@solana-program/token-2022": "0.9.0",
         "@vitest/coverage-v8": "catalog:vitest",
         "agadoo": "^3.0.0",
