@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { getIdlProgramVersion, getIdlStandard, getIdlVersion, isCodamaIdl, isSupportedIdl } from '../../detect';
-import { IdlStandard } from '../../types';
+import {
+    getIdlProgramAddress,
+    getIdlProgramVersion,
+    getIdlStandard,
+    getIdlVersion,
+    isCodamaIdl,
+    isSupportedIdl,
+} from '../../detect';
+import { IdlStandard, type SupportedIdl } from '../../types';
 import { loadSimpleIdl, loadTokenkegIdl } from '../fixtures';
 
 describe('isCodamaIdl', () => {
@@ -36,5 +43,11 @@ describe('Codama version helpers', () => {
 
     it('should return the program version from program.version', () => {
         expect(getIdlProgramVersion(loadTokenkegIdl())).toBe('3.3.0');
+    });
+
+    it('should return undefined when runtime Codama metadata omits optional program fields', () => {
+        const idl = { kind: 'rootNode', program: {} } as unknown as SupportedIdl;
+        expect(getIdlProgramAddress(idl)).toBeUndefined();
+        expect(getIdlProgramVersion(idl)).toBeUndefined();
     });
 });

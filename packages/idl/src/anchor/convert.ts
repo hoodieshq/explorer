@@ -11,7 +11,7 @@ import type { AnchorIdl, CodamaIdl } from '../types';
  */
 export function convertToCodama(idl: AnchorIdl): Result<CodamaIdl, typeof IDL_ERROR__IDL_PARSE_FAILED> {
     try {
-        return ok(rootNodeFromAnchor(idl as Parameters<typeof rootNodeFromAnchor>[0]) as unknown as CodamaIdl);
+        return ok(rootNodeFromAnchor(idl as Parameters<typeof rootNodeFromAnchor>[0]));
     } catch (cause) {
         return err(new IdlError(IDL_ERROR__IDL_PARSE_FAILED, { cause, operation: 'rootNodeFromAnchor' }));
     }

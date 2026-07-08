@@ -36,7 +36,7 @@
         "test": "pnpm run typecheck && vitest run && pnpm run test:integration && pnpm run test:treeshakability",
         "test:coverage": "vitest run --config vitest.coverage.config.ts && pnpm run test:type-coverage",
         "test:integration": "vitest run --config vitest.integration.config.ts",
-        "test:type-coverage": "type-coverage -p tsconfig.build.json --strict --at-least 99",
+        "test:type-coverage": "type-coverage -p tsconfig.build.json --strict --at-least 99.5",
         "test:treeshakability": "for file in dist/index.js dist/*/index.js; do agadoo $file || exit 1; done",
         "test:watch": "vitest",
         "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json --noEmit"

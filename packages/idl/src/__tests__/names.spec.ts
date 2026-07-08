@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { convertToCodama } from '../anchor/convert';
 import { buildInstructionNameTable, matchInstructionName } from '../names';
+import type { SupportedIdl } from '../types';
 import { loadLetMeBuyIdl } from './fixtures';
 
 describe('matchInstructionName', () => {
@@ -22,6 +23,23 @@ describe('matchInstructionName', () => {
     it('should skip empty discriminators instead of matching everything', () => {
         const table = [{ discriminator: new Uint8Array(), name: 'CatchAll' }];
         expect(matchInstructionName(table, Uint8Array.from([1]))).toBeUndefined();
+    });
+
+    it('should reject discriminators longer than the provided data', () => {
+        const table = [{ discriminator: Uint8Array.from([1, 2, 3]), name: 'Too Long' }];
+        expect(matchInstructionName(table, Uint8Array.from([1, 2]))).toBeUndefined();
+    });
+});
+
+describe('buildInstructionNameTable fallbacks', () => {
+    it('should tolerate runtime Anchor IDLs without an instruction array', () => {
+        const idl = { metadata: { spec: '0.1.0' } } as unknown as SupportedIdl;
+        expect(buildInstructionNameTable(idl)).toEqual([]);
+    });
+
+    it('should tolerate runtime Codama IDLs without an instruction array', () => {
+        const idl = { kind: 'rootNode', program: {} } as unknown as SupportedIdl;
+        expect(buildInstructionNameTable(idl)).toEqual([]);
     });
 });
 

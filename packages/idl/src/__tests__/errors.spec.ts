@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
     getIdlErrorMessage,
+    IDL_ERROR__DECODE_UNIMPLEMENTED,
     IDL_ERROR__IDL_ADDRESS_MISMATCH,
+    IDL_ERROR__IDL_FETCH_FAILED,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     IdlError,
@@ -22,6 +24,18 @@ describe('IdlError', () => {
         const error = new IdlError(IDL_ERROR__UNSUPPORTED_IDL_FORMAT);
         expect(error.message).toBe(getIdlErrorMessage(IDL_ERROR__UNSUPPORTED_IDL_FORMAT, undefined));
         expect(error.context).toBeUndefined();
+    });
+
+    it('should describe unimplemented decode operations', () => {
+        const error = new IdlError(IDL_ERROR__DECODE_UNIMPLEMENTED, { operation: 'decode account' });
+        expect(error.message).toBe(
+            'decode account is not implemented yet — lands with the @explorer/idl extraction pieces (mcp-endpoint Steps 5/6)',
+        );
+    });
+
+    it('should describe IDL fetch failures', () => {
+        const error = new IdlError(IDL_ERROR__IDL_FETCH_FAILED);
+        expect(error.message).toBe('failed to fetch the program IDL');
     });
 
     it('should carry a cause passed alongside the context', () => {

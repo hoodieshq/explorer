@@ -14,7 +14,7 @@ import {
     IdlError,
 } from '../errors';
 import { type AnchorIdl, type CodamaIdl, IdlStandard, type InstructionHandlers, type SupportedIdl } from '../types';
-import { incrementIx, loadSimpleIdl, loadTokenkegIdl, transferIx } from './fixtures';
+import { incrementIx, loadSimpleIdl, loadTokenkegIdl, transferIx, undeclaredInstructionData } from './fixtures';
 
 // passes isAnchorIdl (metadata.spec + instructions) but rootNodeFromAnchor rejects the arg type
 const brokenAnchorIdl = () =>
@@ -108,6 +108,15 @@ describe('createCodamaIdlClient (provider pre-wired)', () => {
         const decode = createCodamaIdlClient(loadSimpleIdl()).decodeAccount(Uint8Array.from([1, 2, 3]));
         expect(decode.kind).toBe('unknown');
     });
+
+    it('should dispatch an account decode through the handler map', () => {
+        const result = createCodamaIdlClient(loadSimpleIdl()).decodeAccount(Uint8Array.from([1, 2, 3]), {
+            anchor: () => 'rescued' as const,
+            codama: () => 'decoded' as const,
+            unknown: () => 'miss' as const,
+        });
+        expect(result).toBe('miss');
+    });
 });
 
 describe('tryCreateIdlClient', () => {
@@ -133,6 +142,19 @@ describe('tryCreateIdlClient', () => {
 });
 
 describe('handler-map dispatch guard', () => {
+    it('should dispatch an anchor decode through the handler map', () => {
+        const simple = loadSimpleIdl();
+        const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
+        const result = createCodamaIdlClient(simple, {
+            legacyAnchorDecoder: () => ({ name: 'increment' }),
+        }).decodeInstruction(missIx, {
+            anchor: () => 'rescued' as const,
+            codama: () => 'decoded' as const,
+            unknown: () => 'failed' as const,
+        });
+        expect(result).toBe('rescued');
+    });
+
     it('should throw MISSING_DECODE_HANDLER when a widened handler map misses the arm', () => {
         const tokenkeg = loadTokenkegIdl();
         // the types enforce totality — widen the map to pin the runtime guard behind them
@@ -147,7 +169,7 @@ describe('legacyAnchorDecoder escape hatch', () => {
     it('should pass the anchor document and the instruction to the injected decoder', () => {
         const simple = loadSimpleIdl();
         const legacyAnchorDecoder = vi.fn(() => undefined);
-        const missIx = { ...incrementIx(simple), data: Uint8Array.from([9, 9, 9, 9, 9, 9, 9, 9]) };
+        const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
         createCodamaIdlClient(simple, { legacyAnchorDecoder }).decodeInstruction(missIx);
         expect(legacyAnchorDecoder).toHaveBeenCalledExactlyOnceWith(simple, missIx);
     });
@@ -164,7 +186,7 @@ describe('legacyAnchorDecoder escape hatch', () => {
 
     it('should land on the anchor arm when the decoder rescues a converted-but-unmatched instruction', () => {
         const simple = loadSimpleIdl();
-        const missIx = { ...incrementIx(simple), data: Uint8Array.from([9, 9, 9, 9, 9, 9, 9, 9]) };
+        const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
         const decode = createCodamaIdlClient(simple, {
             legacyAnchorDecoder: () => ({ name: 'increment' }),
         }).decodeInstruction(missIx);
@@ -174,13 +196,31 @@ describe('legacyAnchorDecoder escape hatch', () => {
         expect(decode.recoveredFrom).toBeUndefined();
     });
 
+    it('should return the decoded payload from the anchor arm', () => {
+        const simple = loadSimpleIdl();
+        const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
+        const client = createCodamaIdlClient(simple, {
+            legacyAnchorDecoder: () => ({ name: 'increment' }),
+        });
+        const decode = client.decodeInstruction(missIx);
+        if (decode.kind !== IdlStandard.Anchor) throw new Error('expected the anchor arm');
+        expect(client.getDecodedData(decode)).toEqual({ name: 'increment' });
+    });
+
     it('should fall to the unknown arm when the decoder returns undefined', () => {
         const simple = loadSimpleIdl();
-        const missIx = { ...incrementIx(simple), data: Uint8Array.from([9, 9, 9, 9, 9, 9, 9, 9]) };
+        const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
         const decode = createCodamaIdlClient(simple, { legacyAnchorDecoder: () => undefined }).decodeInstruction(
             missIx,
         );
         expect(decode.kind).toBe('unknown');
+    });
+
+    it('should return undefined for the unknown arm payload', () => {
+        const simple = loadSimpleIdl();
+        const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
+        const client = createCodamaIdlClient(simple, { legacyAnchorDecoder: () => undefined });
+        expect(client.getDecodedData(client.decodeInstruction(missIx))).toBeUndefined();
     });
 });
 
@@ -219,6 +259,7 @@ describe('unknown-arm errors contract', () => {
         if (decode.kind !== 'unknown') throw new Error('expected the unknown arm');
         expect(decode.errors.map(e => e.code)).toEqual([IDL_ERROR__INSTRUCTION_DECODE_FAILED]);
     });
+
 });
 
 // m=1, n=1, initialized, 11 zeroed signer pubkeys — identifies the tokenkeg multisig account by size
@@ -256,6 +297,17 @@ describe('decodeInstructionData / decodeAccountData (combined error-first decode
         const tokenkeg = loadTokenkegIdl();
         const [error, data] = createCodamaIdlClient(tokenkeg).decodeInstructionData(
             transferIx(tokenkeg),
+            IdlStandard.Anchor,
+        );
+        expect(data).toBeUndefined();
+        expect(error?.code).toBe(IDL_ERROR__DECODE_KIND_MISMATCH);
+        expect(error?.context).toEqual({ expected: IdlStandard.Anchor, received: IdlStandard.Codama });
+    });
+
+    it('should return the account kind-mismatch error when the asserted kind differs', () => {
+        const tokenkeg = loadTokenkegIdl() as CodamaIdl;
+        const [error, data] = createCodamaIdlClient(tokenkeg).decodeAccountData<unknown>(
+            multisigBytes(),
             IdlStandard.Anchor,
         );
         expect(data).toBeUndefined();

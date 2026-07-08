@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
-import { getIdlProgramVersion, getIdlStandard, getIdlVersion, isAnchorIdl, isSupportedIdl } from '../../detect';
-import { IdlStandard } from '../../types';
+import {
+    getIdlProgramAddress,
+    getIdlProgramVersion,
+    getIdlStandard,
+    getIdlVersion,
+    isAnchorIdl,
+    isSupportedIdl,
+} from '../../detect';
+import { IdlStandard, type SupportedIdl } from '../../types';
 import {
     loadLetMeBuyIdl,
     loadLetMeBuyPmpIdl,
@@ -48,5 +55,11 @@ describe('Anchor version helpers', () => {
 
     it('should return the program version from metadata.version', () => {
         expect(getIdlProgramVersion(loadSimpleIdl())).toBe('0.1.0');
+    });
+
+    it('should return undefined when runtime Anchor metadata omits optional program fields', () => {
+        const idl = { instructions: [], metadata: { spec: '0.1.0' } } as unknown as SupportedIdl;
+        expect(getIdlProgramAddress(idl)).toBeUndefined();
+        expect(getIdlProgramVersion(idl)).toBeUndefined();
     });
 });

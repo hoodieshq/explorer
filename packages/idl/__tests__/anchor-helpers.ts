@@ -3,7 +3,7 @@ import type { AnchorIdl } from '@explorer/idl';
 import { Program, type Provider } from '@coral-xyz/anchor';
 import { deflateSync } from 'node:zlib';
 
-import { loadSimple031Idl, type Simple031, u64le } from '../src/__tests__/fixtures';
+import { loadSimple031Idl, u64le } from '../src/__tests__/fixtures';
 
 // Stand-in for fetched account bytes — assembled from the program's own declared discriminator.
 export function counterAccountData(idl: AnchorIdl): Uint8Array {
@@ -21,13 +21,15 @@ function idlAccountInfo(idl: AnchorIdl): { data: Buffer } {
     return { data: Buffer.concat([Buffer.alloc(8), Buffer.alloc(32), length, deflated]) };
 }
 
-/** The simple-031 document arrives through anchor's client: Program.fetchIdl over a mocked connection (no HTTP). */
-export async function fetchSimple031Idl(): Promise<Simple031> {
+// simple-031's IDL arrives through anchor's client: Program.fetchIdl over a mocked connection (no HTTP).
+// The optional generic mirrors `Program.fetchIdl<T>` — pass a companion type to flow inference, omit it
+// for the wide runtime shape (Anchor IDL JSON embeds no TS type of its own).
+export async function fetchSimple031Idl<T = AnchorIdl>(): Promise<T> {
     const raw = loadSimple031Idl();
     const provider = {
         connection: { getAccountInfo: async () => idlAccountInfo(raw) },
     } as unknown as Provider;
-    const fetched = await Program.fetchIdl<Simple031>(raw.address, provider);
+    const fetched = await Program.fetchIdl(raw.address, provider);
     if (!fetched) throw new Error('mocked IDL account must resolve');
-    return fetched;
+    return fetched as unknown as T;
 }

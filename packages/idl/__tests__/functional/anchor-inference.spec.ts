@@ -6,7 +6,13 @@ import { type AccountDecode, type AnchorIdl, IdlStandard, type InstructionDecode
 import { createCodamaIdlClient } from '@explorer/idl/codama';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { incrementIx, loadSimpleIdlTyped, type Simple } from '../../src/__tests__/fixtures';
+import {
+    incrementIx,
+    loadSimple031IdlTyped,
+    loadSimpleIdlTyped,
+    type Simple,
+    type Simple031,
+} from '../../src/__tests__/fixtures';
 import { counterAccountData, fetchSimple031Idl } from '../anchor-helpers';
 
 const DEFAULT_ADDRESS = '11111111111111111111111111111111';
@@ -44,17 +50,32 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
             expect(decode.kind).toBe(IdlStandard.Codama);
             expect(result).toMatchObject({ authority: DEFAULT_ADDRESS, count: 7n });
         });
-    });
 
-    describe('anchor fetch generic — Program.fetchIdl<Simple031> keeps the literal type', () => {
-        /** Case: the 0.31 document arrives through anchor's client (Program.fetchIdl<Simple031>) — inference flows the same. */
-        it("should decode the 0.31 increment instruction for an IDL fetched with anchor's client", async () => {
-            const simple031 = await fetchSimple031Idl();
+        /** Case: the 0.31 program's bundled JSON paired with its companion type — same no-generic inference across anchor versions. */
+        it('should decode the 0.31 increment instruction with args inferred from the bundled companion type', () => {
+            const simple031 = loadSimple031IdlTyped();
             const client = createCodamaIdlClient(simple031);
 
             const decode = client.decodeInstruction(incrementIx(simple031));
             const result = client.getDecodedData(decode);
 
+            expectTypeOf(simple031).toEqualTypeOf<Simple031>();
+            expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
+            expect(decode.kind).toBe(IdlStandard.Codama);
+            expect(result).toMatchObject({ amount: 42n });
+        });
+    });
+
+    describe('anchor fetch generic — Program.fetchIdl<Simple031> keeps the literal type', () => {
+        /** Case: the 0.31 document arrives through anchor's client (Program.fetchIdl<Simple031>) — inference flows the same. */
+        it("should decode the 0.31 increment instruction for an IDL fetched with anchor's client", async () => {
+            const simple031 = await fetchSimple031Idl<Simple031>();
+            const client = createCodamaIdlClient(simple031);
+
+            const decode = client.decodeInstruction(incrementIx(simple031));
+            const result = client.getDecodedData(decode);
+
+            expectTypeOf(simple031).toEqualTypeOf<Simple031>();
             expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
             expect(decode.kind).toBe(IdlStandard.Codama);
             expect(result).toMatchObject({ amount: 42n });
@@ -62,7 +83,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
 
         /** Case: the typed fetch also infers account fields — no generic at the call. */
         it("should decode 0.31 counter account fields for an IDL fetched with anchor's client", async () => {
-            const simple031 = await fetchSimple031Idl();
+            const simple031 = await fetchSimple031Idl<Simple031>();
             const client = createCodamaIdlClient(simple031);
 
             const decode = client.decodeAccount(counterAccountData(simple031));
@@ -75,15 +96,16 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
     });
 
     describe('per-call shape — the route when only the wide runtime IDL exists', () => {
-        /** Case: the same fetched document held wide (fetchIdl without a generic) — the field shape is passed per call. */
+        /** Case: the same document fetched WITHOUT a generic — wide `AnchorIdl`, so the field shape is passed per call. */
         it('should decode 0.31 counter account bytes with a per-call shape', async () => {
-            const simple031: AnchorIdl = await fetchSimple031Idl();
+            const simple031 = await fetchSimple031Idl(); // no generic → wide AnchorIdl
             const client = createCodamaIdlClient(simple031);
 
             const decode = client.decodeAccount(counterAccountData(simple031));
             // the deliberate per-call variant: the declared shape types the result exactly
             const result = client.getDecodedData<{ authority: string; count: bigint }>(decode);
 
+            expectTypeOf(simple031).toEqualTypeOf<AnchorIdl>();
             expectTypeOf(decode).toEqualTypeOf<AccountDecode>();
             expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
             expect(decode.kind).toBe(IdlStandard.Codama);
@@ -92,7 +114,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
 
         /** Case: the wide document's instruction args also take a per-call shape. */
         it('should decode the 0.31 increment instruction with a per-call shape', async () => {
-            const simple031: AnchorIdl = await fetchSimple031Idl();
+            const simple031 = await fetchSimple031Idl(); // no generic → wide AnchorIdl
             const client = createCodamaIdlClient(simple031);
 
             const decode = client.decodeInstruction(incrementIx(simple031));

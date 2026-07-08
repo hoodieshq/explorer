@@ -6,7 +6,7 @@ export { loadLetMeBuyIdl, loadLetMeBuyPmpIdl } from './generated/let-me-buy';
 // companion types come straight from the program packages — anchor build output, no copies
 export { type Simple } from '@explorer/test-idl-program-simple/types';
 export { type Simple031 } from '@explorer/test-idl-program-simple-031/types';
-export { loadSimple031Idl } from './generated/simple-031';
+export { loadSimple031Idl, loadSimple031IdlTyped } from './generated/simple-031';
 export { loadSimpleIdl, loadSimpleIdlTyped } from './generated/simple';
 export { loadTokenkegIdl } from './generated/tokenkeg';
 
@@ -44,6 +44,8 @@ export const transferIx = (idl: CodamaIdl): Instruction & { accounts: []; data: 
 export const PRE030_PROGRAM_ADDRESS = '11111111111111111111111111111111';
 // sha256('global:<name>')[0..8] derivation; exact bytes are irrelevant — the custom decoder just has to know them.
 export const PRE030_WITHDRAW_DISCRIMINATOR = [183, 18, 70, 156, 148, 109, 161, 34];
+// Valid discriminator width, intentionally undeclared by the simple program.
+export const undeclaredInstructionData = () => Uint8Array.from([9, 9, 9, 9, 9, 9, 9, 9]);
 
 /** A pre-0.30 Anchor IDL: top-level name/version, no `metadata.spec` — rejected by the client. */
 export const pre030AnchorIdl: LegacyAnchorIdl = {

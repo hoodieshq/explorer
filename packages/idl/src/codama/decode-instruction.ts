@@ -9,17 +9,33 @@ import {
     type AnchorIdl,
     type CodamaIdl,
     IdlStandard,
+    type InstructionDecode,
     type InstructionDecodeFor,
     type LegacyDecoderOptions,
     type SupportedIdl,
 } from '../types';
 
 // Single Codama pipeline (Anchor IDLs convert via nodes-from-anchor); the anchor arm only comes from the injected legacy decoder until the Anchor-rich path lands (mcp-endpoint Step 6).
-export function decodeInstructionWithIdl<T extends SupportedIdl>(
+export function decodeInstructionWithIdl<T extends CodamaIdl>(
     idl: T,
     ix: Instruction,
+    options?: LegacyDecoderOptions,
+): InstructionDecodeFor<T>;
+export function decodeInstructionWithIdl<T extends AnchorIdl>(
+    idl: T,
+    ix: Instruction,
+    options?: LegacyDecoderOptions,
+): InstructionDecodeFor<T>;
+export function decodeInstructionWithIdl(
+    idl: SupportedIdl,
+    ix: Instruction,
+    options?: LegacyDecoderOptions,
+): InstructionDecode;
+export function decodeInstructionWithIdl(
+    idl: SupportedIdl,
+    ix: Instruction,
     options: LegacyDecoderOptions = {},
-): InstructionDecodeFor<T> {
+): InstructionDecode {
     // A declared-program mismatch is a wiring bug — fail loud rather than mis-decode against the wrong interface.
     const declaredAddress = getIdlProgramAddress(idl);
     if (declaredAddress && declaredAddress !== ix.programAddress) {
@@ -40,7 +56,7 @@ export function decodeInstructionWithIdl<T extends SupportedIdl>(
                 programAddress: ix.programAddress,
             });
             // a miss (no discriminator match) is a plain miss, not an error
-            if (parsed) return { decoded: parsed, kind: IdlStandard.Codama } as InstructionDecodeFor<T>;
+            if (parsed) return { decoded: parsed, kind: IdlStandard.Codama };
         } catch (cause) {
             // the document already converted — this is a decode failure, not a document-parse failure
             errors.push(
@@ -58,13 +74,11 @@ export function decodeInstructionWithIdl<T extends SupportedIdl>(
         const decoded = options.legacyAnchorDecoder(idl, ix);
         if (decoded !== undefined) {
             // keep the bypassed pipeline errors observable — a rescue must not hide a broken conversion
-            return (
-                errors.length
-                    ? { decoded, kind: IdlStandard.Anchor, recoveredFrom: errors }
-                    : { decoded, kind: IdlStandard.Anchor }
-            ) as InstructionDecodeFor<T>;
+            return errors.length
+                ? { decoded, kind: IdlStandard.Anchor, recoveredFrom: errors }
+                : { decoded, kind: IdlStandard.Anchor };
         }
     }
 
-    return { errors, kind: 'unknown' } as InstructionDecodeFor<T>;
+    return { errors, kind: 'unknown' };
 }
