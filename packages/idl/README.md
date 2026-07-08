@@ -1,11 +1,11 @@
 # @explorer/idl
 
 One small client over Solana program IDLs: detection, names, and decoding, regardless of which
-standard produced the document.
+standard produced the IDL.
 
-- **Anchor** — modern documents (`metadata.spec`), emitted by `anchor build` since 0.30
+- **Anchor** — modern IDLs (`metadata.spec`), emitted by `anchor build` since 0.30
 - **Codama** — root nodes, as the program-metadata program (PMP) stores them
-- **Legacy Anchor** — pre-0.30 documents are recognized and *rejected* with a typed error
+- **Legacy Anchor** — pre-0.30 IDLs are recognized and *rejected* with a typed error
 
 ## Entries
 
@@ -15,7 +15,7 @@ The main entry is engine-free; every entry is side-effect-free and tree-shakeabl
 | --------------------- | ------------------------------------------------------------------ |
 | `@explorer/idl`        | client, guards, names, errors, types — no decode engine            |
 | `@explorer/idl/codama` | the codama decode engine + `createCodamaIdlClient` wrappers        |
-| `@explorer/idl/anchor` | Anchor document helpers (`convertToCodama`)                        |
+| `@explorer/idl/anchor` | Anchor IDL helpers (`convertToCodama`)                        |
 
 ## Quick start
 
@@ -78,7 +78,7 @@ if (decode.kind === IdlStandard.Codama) {
 }
 ```
 
-Or declare the outcomes as a handler map, typed to exactly the arms the document's standard can produce:
+Or declare the outcomes as a handler map, typed to exactly the arms the IDL's standard can produce:
 
 ```ts
 const outcome = client.decodeInstruction(instruction, {
@@ -109,7 +109,7 @@ const [accError, account] = client.decodeAccountData<{ authority: string }>(acco
 ## Typed payloads — four routes
 
 **1. Anchor generated companion type — zero generics.** Pair the built JSON with the
-`target/types` type (the `Program<MyProgram>` idiom) and payloads infer from the document itself:
+`target/types` type (the `Program<MyProgram>` idiom) and payloads infer from the IDL itself:
 
 ```ts
 import type { MyProgram } from './target/types/my_program';
@@ -122,14 +122,14 @@ if (decode.kind === IdlStandard.Codama) {
 }
 ```
 
-**2. Codama literal document — zero generics.** Codama ships no generated document types and JSON
+**2. Codama literal IDL — zero generics.** Codama ships no generated IDL types and JSON
 imports widen — hold the root node in a TS module `as const` and payloads infer the same way:
 
 ```ts
-// idl/vault.ts — `as const` keeps the literals inference reads; the document IS the type
-export const vaultDocument = { kind: 'rootNode', program: { /* … */ } } as const;
+// idl/vault.ts — `as const` keeps the literals inference reads; the IDL IS the type
+export const vaultIdl = { kind: 'rootNode', program: { /* … */ } } as const;
 
-const client = createCodamaIdlClient(vaultDocument);
+const client = createCodamaIdlClient(vaultIdl);
 const decode = client.decodeAccount(accountData);
 if (decode.kind === IdlStandard.Codama) {
     const account = client.getDecodedData(decode); // { authority: string; count: bigint } — inferred
@@ -151,7 +151,7 @@ const account = client.getDecodedData<AsDecoded<Multisig>>(decode);
 account.signers; // string[], not Address[]
 ```
 
-## Anchor documents
+## Anchor IDLs
 
 Anchor IDLs go through the same client — conversion to Codama happens inside the engine, so
 decodes land in the codama arm:
@@ -164,15 +164,15 @@ const decode = client.decodeInstruction(instruction);
 decode.kind; // IdlStandard.Codama — the conversion is an implementation detail
 ```
 
-## Legacy Anchor documents
+## Legacy Anchor IDLs
 
-Pre-0.30 documents route to consumer-owned decoding; modern documents the conversion route cannot
+Pre-0.30 IDLs route to consumer-owned decoding; modern IDLs the conversion route cannot
 handle get an injected escape hatch — its result lands in the anchor arm:
 
 ```ts
 import { isLegacyAnchorIdl } from '@explorer/idl';
 
-isLegacyAnchorIdl(document); // true → decode it yourself; the client will not accept it
+isLegacyAnchorIdl(idl); // true → decode it yourself; the client will not accept it
 
 const client = createCodamaIdlClient(idl, {
     legacyAnchorDecoder: (idl, ix) => myCustomDecode(idl, ix), // undefined → 'unknown' arm
@@ -185,7 +185,7 @@ if (decode.kind === IdlStandard.Anchor) {
 }
 ```
 
-## Converting Anchor documents to Codama
+## Converting Anchor IDLs to Codama
 
 ```ts
 import { convertToCodama } from '@explorer/idl/anchor';
