@@ -1,9 +1,9 @@
-// Shared drivers for the integration suites — real workspace-program documents on the encode side.
+// Shared Anchor drivers for the __tests__ suites — real workspace-program IDLs on the encode side.
 import type { AnchorIdl } from '@explorer/idl';
 import { Program, type Provider } from '@coral-xyz/anchor';
 import { deflateSync } from 'node:zlib';
 
-import { loadSimple031Idl, type Simple031, u64le } from '../../src/__tests__/fixtures';
+import { loadSimple031Idl, type Simple031, u64le } from '../src/__tests__/fixtures';
 
 // Stand-in for fetched account bytes — assembled from the program's own declared discriminator.
 export function counterAccountData(idl: AnchorIdl): Uint8Array {

@@ -43,7 +43,7 @@ import {
     transferIx,
     u64le,
 } from '../../src/__tests__/fixtures';
-import { fetchSimple031Idl } from './helpers';
+import { fetchSimple031Idl } from '../anchor-helpers';
 
 const TOKENKEG_ADDRESS = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 
