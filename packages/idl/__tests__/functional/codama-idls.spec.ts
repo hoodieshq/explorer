@@ -1,19 +1,14 @@
 // Codama documents end to end, over codama's own dynamic-client test IDLs — the `codama-fixtures`
 // sha-pinned tarball devDependency, so the documents are imported at their source revision, never copied.
-import { createProgramClient, type ProgramClient } from '@codama/dynamic-client';
-import { getNodeCodec } from '@codama/dynamic-codecs';
+// Runtime sweep only — the typed getDecodedData routes are demonstrated in codama-inference.spec.ts.
 import {
-    type AsDecoded,
     type CodamaIdl,
-    type CodamaIdlLike,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
     IdlStandard,
     isCodamaStandard,
     tryCreateIdlClient,
 } from '@explorer/idl';
 import { createCodamaIdlClient } from '@explorer/idl/codama';
-// real-world interop: a PUBLISHED renderers-js-generated client (type-only import, erased at runtime)
-import type { Multisig as PublishedMultisig } from '@solana-program/token-2022';
 import type { Instruction } from '@solana/kit';
 import { getLastNodeFromPath } from 'codama';
 import associatedTokenAccountIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/associated-token-account-idl.json';
@@ -28,52 +23,39 @@ import sasIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/s
 import systemProgramIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/system-program-idl.json';
 import token2022Idl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/token-2022-idl.json';
 import tokenIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/token-idl.json';
-import { describe, expect, expectTypeOf, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-// generated literal type (codama ships no target/types equivalent) — see scripts/generate-codama-types.mjs
-import { blogIdl as blogIdlTyped } from './generated/blog-idl';
-// renderers-js-rendered clients — codama's own codegen; type-only imports, erased at runtime
-import type { Multisig } from './generated/token-client/accounts/multisig';
-import type { SyncNativeInstructionData } from './generated/token-client/instructions/syncNative';
+import { buildInstruction, DEFAULT_ADDRESS, fetchedJson } from './helpers';
 
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON documents are known codama roots (detection is re-proven per test); NodePath/Instruction casts bridge codama tooling with the client */
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON documents are known codama roots (detection is re-proven per test); the Instruction cast bridges codama tooling with the client */
 
-const DEFAULT_ADDRESS = '11111111111111111111111111111111';
-// dynamic-codecs represents bytesTypeNode values as [encoding, data] tuples; the parsers READ them
-// back as base64 regardless of what encoding fed the encoder.
-const base16 = (hex: string): [string, string] => ['base16', hex];
-const base64 = (data: string): [string, string] => ['base64', data];
+// Every document decodes one instruction built by codama's OWN dynamic client; the rows share one
+// widened type (CodamaIdl), so a table loses no inference — typed routes live in the other suite.
+const DECODABLE_DOCUMENTS = [
+    {
+        document: associatedTokenAccountIdl as unknown as CodamaIdl,
+        instruction: 'create',
+        name: 'associated-token-account',
+    },
+    { document: blogIdl as unknown as CodamaIdl, instruction: 'subscribe', name: 'blog' },
+    { document: exampleIdl as unknown as CodamaIdl, instruction: 'noArguments', name: 'example' },
+    { document: mplTokenMetadataIdl as unknown as CodamaIdl, instruction: 'puffMetadata', name: 'mpl-token-metadata' },
+    { document: pmpIdl as unknown as CodamaIdl, instruction: 'setImmutable', name: 'pmp' },
+    { document: sasIdl as unknown as CodamaIdl, instruction: 'emitEvent', name: 'sas' },
+    { document: systemProgramIdl as unknown as CodamaIdl, instruction: 'upgradeNonceAccount', name: 'system-program' },
+    { document: tokenIdl as unknown as CodamaIdl, instruction: 'syncNative', name: 'token' },
+    { document: token2022Idl as unknown as CodamaIdl, instruction: 'syncNative', name: 'token-2022' },
+];
 
-/** The PMP-fetch acquisition route for codama roots: plain untrusted JSON, no anchor client involved. */
-function fetchedJson(document: CodamaIdlLike): unknown {
-    return JSON.parse(JSON.stringify(document));
-}
+// These documents declare no instruction discriminators — identification can only miss safely.
+const DISCRIMINATOR_LESS_DOCUMENTS = [
+    { document: circularAccountRefsIdl as unknown as CodamaIdl, name: 'circular-account-refs' },
+    { document: collectionTypesIdl as unknown as CodamaIdl, name: 'collection-types' },
+    { document: customResolversTestIdl as unknown as CodamaIdl, name: 'custom-resolvers-test' },
+];
 
-/** Build the named zero-argument instruction with codama's OWN dynamic client (every account defaulted). */
-async function buildInstruction(document: CodamaIdlLike, name: string): Promise<Instruction> {
-    const root = document as unknown as CodamaIdl;
-    const node = root.program.instructions.find(item => item.name === name);
-    if (!node) throw new Error(`${name} must be declared by the document`);
-    const accounts = Object.fromEntries(node.accounts.map(item => [item.name, DEFAULT_ADDRESS]));
-    const built = await createProgramClient<ProgramClient>(root).methods[name]().accounts(accounts).instruction();
-    return built as Instruction;
-}
-
-/** Encode the named account's full field values (incl. discriminator defaults) with codama's OWN codec. */
-function encodeAccount(document: CodamaIdlLike, name: string, data: object): Uint8Array {
-    const root = document as unknown as CodamaIdl;
-    const node = root.program.accounts.find(item => item.name === name);
-    if (!node) throw new Error(`${name} must be declared by the document`);
-    const codec = getNodeCodec([root, root.program, node] as Parameters<typeof getNodeCodec>[0]);
-    return Uint8Array.from(codec.encode(data));
-}
-
-// Deliberately one hand-written section per program, NOT describe.each — a shared table would widen
-// every case to one row type, and these cases exist to show the inference at each call site.
 describe('functional: Codama documents (dynamic-client test IDLs)', () => {
-    describe('associated-token-account', () => {
-        const document = associatedTokenAccountIdl as unknown as CodamaIdl;
-
+    describe.each(DECODABLE_DOCUMENTS)('$name', ({ document, instruction }) => {
         it('should wrap the untrusted document into a codama client', () => {
             const [error, client] = tryCreateIdlClient(fetchedJson(document));
             expect(error).toBeUndefined();
@@ -83,82 +65,18 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
             expect(client.programAddress()).toBe(document.program.publicKey);
         });
 
-        it('should decode the create instruction built by the dynamic client', async () => {
+        it(`should decode the ${instruction} instruction built by the dynamic client`, async () => {
             const client = createCodamaIdlClient(document);
 
-            const decode = client.decodeInstruction(await buildInstruction(document, 'create'));
+            const decode = client.decodeInstruction(await buildInstruction(document, instruction));
 
             if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
 
-            const result = decode.decoded;
-
-            expect(getLastNodeFromPath(result.path).name).toBe('create');
+            expect(getLastNodeFromPath(decode.decoded.path).name).toBe(instruction);
         });
     });
 
-    describe('blog', () => {
-        const document = blogIdl as unknown as CodamaIdl;
-
-        it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
-
-            expect(isCodamaStandard(client)).toBe(true);
-            expect(client.programAddress()).toBe(document.program.publicKey);
-        });
-
-        it('should decode the subscribe instruction built by the dynamic client', async () => {
-            const client = createCodamaIdlClient(document);
-
-            const decode = client.decodeInstruction(await buildInstruction(document, 'subscribe'));
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-
-            expect(getLastNodeFromPath(result.path).name).toBe('subscribe');
-        });
-
-        it('should decode the accessGrant account from codec-encoded bytes', () => {
-            // the IDL signature of accessGrant, as codama's runtime represents it (bytes = [encoding, data])
-            type AccessGrantData = {
-                bump: number;
-                discriminator: [string, string];
-                permissions: [string, string];
-                profile: string;
-            };
-            // the GENERATED literal type drives inference — no per-call shape below
-            const client = createCodamaIdlClient(blogIdlTyped);
-            const bytes = encodeAccount(document, 'accessGrant', {
-                bump: 255,
-                discriminator: base16('a737b8ed4af2006d'),
-                permissions: base16('00000000'),
-                profile: DEFAULT_ADDRESS,
-            });
-
-            const decode = client.decodeAccount(bytes);
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-            // inferred as the union of every blog account struct — which account matched is runtime knowledge
-            const data = client.getDecodedData(decode);
-
-            expectTypeOf<AccessGrantData>().toExtend<typeof data>();
-            expect(getLastNodeFromPath(result.path).name).toBe('accessGrant');
-            expect(data).toEqual({
-                bump: 255,
-                discriminator: base64('pze47UryAG0='),
-                permissions: base64('AAAAAA=='),
-                profile: DEFAULT_ADDRESS,
-            });
-        });
-    });
-
-    describe('circular-account-refs', () => {
-        const document = circularAccountRefsIdl as unknown as CodamaIdl;
-
+    describe.each(DISCRIMINATOR_LESS_DOCUMENTS)('$name', ({ document }) => {
         it('should wrap the untrusted document into a codama client', () => {
             const [error, client] = tryCreateIdlClient(fetchedJson(document));
             expect(error).toBeUndefined();
@@ -184,386 +102,24 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
         });
     });
 
-    describe('collection-types', () => {
-        const document = collectionTypesIdl as unknown as CodamaIdl;
-
-        it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
-
-            expect(isCodamaStandard(client)).toBe(true);
-            expect(client.programAddress()).toBe(document.program.publicKey);
-        });
-
-        it('should stay on the unknown arm when instructions declare no discriminators', () => {
-            const client = createCodamaIdlClient(document);
-
-            const decode = client.decodeInstruction({
-                accounts: [],
-                data: Uint8Array.from([1, 2, 3]),
-                programAddress: document.program.publicKey as Instruction['programAddress'],
-            });
-
-            if (decode.kind !== 'unknown') throw new Error('expected the unknown arm');
-            expect(decode.errors.every(error => error.code === IDL_ERROR__INSTRUCTION_DECODE_FAILED)).toBe(true);
-        });
-    });
-
-    describe('custom-resolvers-test', () => {
-        const document = customResolversTestIdl as unknown as CodamaIdl;
-
-        it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
-
-            expect(isCodamaStandard(client)).toBe(true);
-            expect(client.programAddress()).toBe(document.program.publicKey);
-        });
-
-        it('should stay on the unknown arm when instructions declare no discriminators', () => {
-            const client = createCodamaIdlClient(document);
-
-            const decode = client.decodeInstruction({
-                accounts: [],
-                data: Uint8Array.from([1, 2, 3]),
-                programAddress: document.program.publicKey as Instruction['programAddress'],
-            });
-
-            if (decode.kind !== 'unknown') throw new Error('expected the unknown arm');
-            expect(decode.errors.every(error => error.code === IDL_ERROR__INSTRUCTION_DECODE_FAILED)).toBe(true);
-        });
-    });
-
-    describe('example', () => {
-        const document = exampleIdl as unknown as CodamaIdl;
-
-        it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
-
-            expect(isCodamaStandard(client)).toBe(true);
-            expect(client.programAddress()).toBe(document.program.publicKey);
-        });
-
-        it('should decode the noArguments instruction built by the dynamic client', async () => {
-            const client = createCodamaIdlClient(document);
-
-            const decode = client.decodeInstruction(await buildInstruction(document, 'noArguments'));
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-
-            expect(getLastNodeFromPath(result.path).name).toBe('noArguments');
-        });
-
-        it('should decode the dataAccount1 account from codec-encoded bytes', () => {
-            // hand-written signature: renderers-js rejects this document (circular account defaults)
-            // u64 → bigint, option → kit Option object
-            type DataAccount1Data = {
-                bump: number;
-                discriminator: [string, string];
-                input: bigint;
-                optionalInput: { __option: 'None' } | { __option: 'Some'; value: string };
-            };
-            const client = createCodamaIdlClient(document);
-            const bytes = encodeAccount(document, 'dataAccount1', {
-                bump: 255,
-                discriminator: base16('bd16d2a9c3062624'),
-                input: 0n,
-                optionalInput: null,
-            });
-
-            const decode = client.decodeAccount(bytes);
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-            const data = client.getDecodedData<DataAccount1Data>(decode);
-
-            expectTypeOf(data).toEqualTypeOf<DataAccount1Data>();
-            expect(getLastNodeFromPath(result.path).name).toBe('dataAccount1');
-            expect(data).toEqual({
-                bump: 255,
-                discriminator: base64('vRbSqcMGJiQ='),
-                input: 0n,
-                optionalInput: { __option: 'None' },
-            });
-        });
-    });
-
-    describe('mpl-token-metadata', () => {
-        const document = mplTokenMetadataIdl as unknown as CodamaIdl;
-
-        it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
-
-            expect(isCodamaStandard(client)).toBe(true);
-            expect(client.programAddress()).toBe(document.program.publicKey);
-        });
-
-        it('should decode the puffMetadata instruction built by the dynamic client', async () => {
-            const client = createCodamaIdlClient(document);
-
-            const decode = client.decodeInstruction(await buildInstruction(document, 'puffMetadata'));
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-
-            expect(getLastNodeFromPath(result.path).name).toBe('puffMetadata');
-        });
-
-        it('should decode the editionMarker account from codec-encoded bytes', () => {
-            // hand-written signature: renderers-js emits self-inconsistent PDA helpers for this document
-            // scalar enums ENCODE by variant name but DECODE to the index
-            type EditionMarkerData = { key: number; ledger: [string, string] };
-            const client = createCodamaIdlClient(document);
-            // key is a scalar enum discriminator — encoded by variant name
-            const bytes = encodeAccount(document, 'editionMarker', {
-                key: 'editionMarker',
-                ledger: base16('00'.repeat(31)),
-            });
-
-            const decode = client.decodeAccount(bytes);
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-            const data = client.getDecodedData<EditionMarkerData>(decode);
-
-            expectTypeOf(data).toEqualTypeOf<EditionMarkerData>();
-            expect(getLastNodeFromPath(result.path).name).toBe('editionMarker');
-            // 7 = the editionMarker variant's position in the Key enum
-            expect(data).toEqual({ key: 7, ledger: base64('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==') });
-        });
-    });
-
-    describe('pmp', () => {
-        const document = pmpIdl as unknown as CodamaIdl;
-
-        it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
-
-            expect(isCodamaStandard(client)).toBe(true);
-            expect(client.programAddress()).toBe(document.program.publicKey);
-        });
-
-        it('should decode the setImmutable instruction built by the dynamic client', async () => {
-            const client = createCodamaIdlClient(document);
-
-            const decode = client.decodeInstruction(await buildInstruction(document, 'setImmutable'));
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-
-            expect(getLastNodeFromPath(result.path).name).toBe('setImmutable');
-        });
-    });
-
-    describe('sas', () => {
-        const document = sasIdl as unknown as CodamaIdl;
-
-        it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
-
-            expect(isCodamaStandard(client)).toBe(true);
-            expect(client.programAddress()).toBe(document.program.publicKey);
-        });
-
-        it('should decode the emitEvent instruction built by the dynamic client', async () => {
-            const client = createCodamaIdlClient(document);
-
-            const decode = client.decodeInstruction(await buildInstruction(document, 'emitEvent'));
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-
-            expect(getLastNodeFromPath(result.path).name).toBe('emitEvent');
-        });
-    });
-
-    describe('system-program', () => {
-        const document = systemProgramIdl as unknown as CodamaIdl;
-
-        it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
-
-            expect(isCodamaStandard(client)).toBe(true);
-            expect(client.programAddress()).toBe(document.program.publicKey);
-        });
-
-        it('should decode the upgradeNonceAccount instruction built by the dynamic client', async () => {
-            const client = createCodamaIdlClient(document);
-
-            const decode = client.decodeInstruction(await buildInstruction(document, 'upgradeNonceAccount'));
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-
-            expect(getLastNodeFromPath(result.path).name).toBe('upgradeNonceAccount');
-        });
-    });
-
-    describe('token', () => {
-        const document = tokenIdl as unknown as CodamaIdl;
-
-        it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
-
-            expect(isCodamaStandard(client)).toBe(true);
-            expect(client.programAddress()).toBe(document.program.publicKey);
-        });
-
-        it('should decode the syncNative instruction built by the dynamic client', async () => {
-            const client = createCodamaIdlClient(document);
-
-            const decode = client.decodeInstruction(await buildInstruction(document, 'syncNative'));
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-
-            expect(getLastNodeFromPath(result.path).name).toBe('syncNative');
-        });
-
-        /** Case: no codama tooling on the encode side — the raw document alone is enough to decode hand-built bytes. */
-        it('should decode the syncNative instruction from raw hand-built bytes', () => {
-            const client = createCodamaIdlClient(document);
-
-            // the document declares syncNative as a single u8 discriminator (17) with no other data
-            const decode = client.decodeInstruction({
-                accounts: [],
-                data: Uint8Array.from([17]),
-                programAddress: document.program.publicKey as Instruction['programAddress'],
-            });
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-            // the payload type comes from the rendered token client, bridged to parser output
-            const data = client.getDecodedData<AsDecoded<SyncNativeInstructionData>>(decode);
-
-            expectTypeOf(data).toEqualTypeOf<{ discriminator: number }>();
-            expect(getLastNodeFromPath(result.path).name).toBe('syncNative');
-            expect(data).toEqual({ discriminator: 17 });
-        });
-
-        it('should decode the multisig account from codec-encoded bytes', () => {
-            const client = createCodamaIdlClient(document);
-            // multisig carries no discriminator field — it is identified by its exact size
-            const bytes = encodeAccount(document, 'multisig', {
-                isInitialized: true,
-                m: 1,
-                n: 1,
-                signers: Array.from({ length: 11 }, () => DEFAULT_ADDRESS),
-            });
-
-            const decode = client.decodeAccount(bytes);
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-            // the payload type comes from the rendered token client, bridged to parser output
-            const data = client.getDecodedData<AsDecoded<Multisig>>(decode);
-
-            expectTypeOf(data).toEqualTypeOf<{ isInitialized: boolean; m: number; n: number; signers: string[] }>();
-            expect(getLastNodeFromPath(result.path).name).toBe('multisig');
-            expect(data).toEqual({
-                isInitialized: true,
-                m: 1,
-                n: 1,
-                signers: Array.from({ length: 11 }, () => DEFAULT_ADDRESS),
-            });
-        });
-
-        it('should decode the multisig account from raw hand-built bytes', () => {
-            const client = createCodamaIdlClient(document);
-
-            // m=1, n=1, initialized, 11 zeroed signer pubkeys — the exact 355 bytes that identify multisig
-            const decode = client.decodeAccount(Uint8Array.from([1, 1, 1, ...new Uint8Array(11 * 32)]));
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-            const data = client.getDecodedData<AsDecoded<Multisig>>(decode);
-
-            expectTypeOf(data).toEqualTypeOf<{ isInitialized: boolean; m: number; n: number; signers: string[] }>();
-            expect(getLastNodeFromPath(result.path).name).toBe('multisig');
-            expect(data).toEqual({
-                isInitialized: true,
-                m: 1,
-                n: 1,
-                signers: Array.from({ length: 11 }, () => DEFAULT_ADDRESS),
-            });
-        });
-    });
-
-    describe('token-2022', () => {
-        const document = token2022Idl as unknown as CodamaIdl;
-
-        it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
-
-            expect(isCodamaStandard(client)).toBe(true);
-            expect(client.programAddress()).toBe(document.program.publicKey);
-        });
-
-        it('should decode the syncNative instruction built by the dynamic client', async () => {
-            const client = createCodamaIdlClient(document);
-
-            const decode = client.decodeInstruction(await buildInstruction(document, 'syncNative'));
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-
-            expect(getLastNodeFromPath(result.path).name).toBe('syncNative');
-        });
-
-        it('should decode the multisig account from codec-encoded bytes', () => {
-            const client = createCodamaIdlClient(document);
-            const bytes = encodeAccount(document, 'multisig', {
-                isInitialized: true,
-                m: 1,
-                n: 1,
-                signers: Array.from({ length: 11 }, () => DEFAULT_ADDRESS),
-            });
-
-            const decode = client.decodeAccount(bytes);
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-            // the payload type comes from the PUBLISHED @solana-program/token-2022 client
-            const data = client.getDecodedData<AsDecoded<PublishedMultisig>>(decode);
-
-            expectTypeOf(data).toEqualTypeOf<{ isInitialized: boolean; m: number; n: number; signers: string[] }>();
-            expect(getLastNodeFromPath(result.path).name).toBe('multisig');
-            expect(data).toEqual({
-                isInitialized: true,
-                m: 1,
-                n: 1,
-                signers: Array.from({ length: 11 }, () => DEFAULT_ADDRESS),
-            });
+    /** Case: no codama tooling on the encode side — multisig carries no discriminator, its exact 355-byte size identifies it. */
+    it('should decode the token multisig account from raw hand-built bytes', () => {
+        const client = createCodamaIdlClient(tokenIdl as unknown as CodamaIdl);
+
+        // m=1, n=1, initialized, 11 zeroed signer pubkeys
+        const decode = client.decodeAccount(Uint8Array.from([1, 1, 1, ...new Uint8Array(11 * 32)]));
+
+        if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
+
+        // wide runtime documents degrade inference — declare the shape per call, per the client contract
+        const data = client.getDecodedData<{ isInitialized: boolean; m: number; n: number; signers: string[] }>(decode);
+
+        expect(getLastNodeFromPath(decode.decoded.path).name).toBe('multisig');
+        expect(data).toEqual({
+            isInitialized: true,
+            m: 1,
+            n: 1,
+            signers: Array.from({ length: 11 }, () => DEFAULT_ADDRESS),
         });
     });
 });

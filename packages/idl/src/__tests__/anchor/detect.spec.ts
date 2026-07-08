@@ -10,7 +10,14 @@ import {
     MODERN_ANCHOR_IDL_WILDCARD,
 } from '../../detect';
 import { IdlStandard } from '../../types';
-import { loadLetMeBuyIdl, loadSimpleIdl, loadTokenkegIdl, pre030AnchorIdl } from '../fixtures';
+import {
+    loadLetMeBuyIdl,
+    loadLetMeBuyPmpIdl,
+    loadSimple031Idl,
+    loadSimpleIdl,
+    loadTokenkegIdl,
+    pre030AnchorIdl,
+} from '../fixtures';
 
 describe('isAnchorIdl', () => {
     it('should accept a modern Anchor IDL', () => {
@@ -37,8 +44,14 @@ describe('Anchor version helpers', () => {
         expect(getIdlStandard(loadSimpleIdl())).toBe(IdlStandard.Anchor);
     });
 
-    it('should label a modern Anchor IDL with the standard-era wildcard', () => {
-        expect(getIdlVersion(loadSimpleIdl())).toBe(MODERN_ANCHOR_IDL_WILDCARD);
+    // every anchor-era acquisition point labels the same — the wildcard marks the standard, not the toolchain version
+    it.each([
+        ['simple (anchor-lang 1.1.2 workspace build)', loadSimpleIdl],
+        ['simple-031 (anchor-lang 0.31.1 workspace build)', loadSimple031Idl],
+        ['let_me_buy (mainnet Anchor PDA leg)', loadLetMeBuyIdl],
+        ['let_me_buy (mainnet PMP leg)', loadLetMeBuyPmpIdl],
+    ])('should label %s with the standard-era wildcard', (_, loadIdl) => {
+        expect(getIdlVersion(loadIdl())).toBe(MODERN_ANCHOR_IDL_WILDCARD);
     });
 
     it('should return the format version from metadata.spec', () => {
