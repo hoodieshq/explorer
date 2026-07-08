@@ -34,7 +34,9 @@
         "lint:fix": "oxlint --fix",
         "pretest": "pnpm run build:programs && node scripts/generate-codama-types.mjs && pnpm run build",
         "test": "pnpm run typecheck && vitest run && pnpm run test:integration && pnpm run test:treeshakability",
+        "test:coverage": "vitest run --config vitest.coverage.config.ts && pnpm run test:type-coverage",
         "test:integration": "vitest run --config vitest.integration.config.ts",
+        "test:type-coverage": "type-coverage -p tsconfig.build.json --strict --at-least 99",
         "test:treeshakability": "for file in dist/index.js dist/*/index.js; do agadoo $file || exit 1; done",
         "test:watch": "vitest",
         "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json --noEmit"
@@ -50,11 +52,13 @@
         "@explorer/idl-program-simple": "workspace:*",
         "@explorer/idl-program-simple-031": "workspace:*",
         "@solana-program/token-2022": "0.9.0",
+        "@vitest/coverage-v8": "catalog:vitest",
         "agadoo": "^3.0.0",
         "codama-fixtures": "https://codeload.github.com/codama-idl/codama/tar.gz/008849ce88472dc1080ed9a71a897b631de82b98",
         "oxc-transform": "^0.137.0",
         "oxfmt": "^0.56.0",
         "oxlint": "^1.71.0",
+        "type-coverage": "^2.29.7",
         "typescript": "catalog:tooling",
         "vitest": "catalog:vitest"
     },
