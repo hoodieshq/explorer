@@ -188,7 +188,16 @@ if (decode.kind === IdlStandard.Codama) {
 ```
 
 **3. Per-call shape.** Runtime-fetched JSON (either standard) has no compile-time type — inference
-degrades to `unknown`; declare the shape at the call (samples above).
+degrades to `unknown`, so declare the shape at the call:
+
+```ts
+const idl: CodamaIdl = await fetchIdlFromChain(programId); // wide — no literal type
+const client = createCodamaIdlClient(idl);
+const decode = client.decodeInstruction(instruction);
+if (decode.kind === IdlStandard.Codama) {
+    const args = client.getDecodedData<{ amount: bigint }>(decode); // the generic IS the shape
+}
+```
 
 **4. `AsDecoded` — reuse codama-generated client types.** `@codama/renderers-js` types describe
 *their* codecs; `AsDecoded<T>` maps them to this decoder's output (addresses → base58 strings,
