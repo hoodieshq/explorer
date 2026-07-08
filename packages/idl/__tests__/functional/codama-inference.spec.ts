@@ -1,5 +1,5 @@
-// Typed getDecodedData routes over the same codama-fixtures documents — one case per way a
-// consumer can source the payload type. The runtime sweep across every supported document lives
+// Typed getDecodedData routes over the same codama-fixtures IDLs — one case per way a
+// consumer can source the payload type. The runtime sweep across every supported IDL lives
 // in codama-idls.spec.ts; the cases here stay hand-written because inference IS the subject.
 import { type AsDecoded, type CodamaIdl, IdlStandard } from '@explorer/idl';
 import { createCodamaIdlClient } from '@explorer/idl/codama';
@@ -20,12 +20,118 @@ import type { Multisig } from './generated/token-client/accounts/multisig';
 import type { SyncNativeInstructionData } from './generated/token-client/instructions/syncNative';
 import { base16, base64, DEFAULT_ADDRESS, encodeAccount } from './helpers';
 
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON documents are known codama roots (the sweep suite re-proves detection); the Instruction cast bridges codama tooling with the client */
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON IDLs are known codama roots (the sweep suite re-proves detection); the Instruction cast bridges codama tooling with the client */
 
 describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', () => {
-    describe('hand-written payload signatures — documents codama codegen rejects', () => {
+    describe('literal IDL type — the codama counterpart of the anchor companion type', () => {
+        // JSON imports widen, so the IDL lives in a TS module `as const` — that literal type
+        // alone drives inference; no generics at any call site.
+        const vaultIdl = {
+            additionalPrograms: [],
+            kind: 'rootNode',
+            program: {
+                accounts: [
+                    {
+                        data: {
+                            fields: [
+                                {
+                                    docs: [],
+                                    kind: 'structFieldTypeNode',
+                                    name: 'authority',
+                                    type: { kind: 'publicKeyTypeNode' },
+                                },
+                                {
+                                    docs: [],
+                                    kind: 'structFieldTypeNode',
+                                    name: 'count',
+                                    type: { endian: 'le', format: 'u64', kind: 'numberTypeNode' },
+                                },
+                            ],
+                            kind: 'structTypeNode',
+                        },
+                        discriminators: [{ kind: 'sizeDiscriminatorNode', size: 40 }],
+                        docs: [],
+                        kind: 'accountNode',
+                        name: 'vault',
+                        size: 40,
+                    },
+                ],
+                definedTypes: [],
+                docs: [],
+                errors: [],
+                instructions: [
+                    {
+                        accounts: [],
+                        arguments: [
+                            {
+                                defaultValue: { kind: 'numberValueNode', number: 1 },
+                                defaultValueStrategy: 'omitted',
+                                docs: [],
+                                kind: 'instructionArgumentNode',
+                                name: 'discriminator',
+                                type: { endian: 'le', format: 'u8', kind: 'numberTypeNode' },
+                            },
+                            {
+                                docs: [],
+                                kind: 'instructionArgumentNode',
+                                name: 'amount',
+                                type: { endian: 'le', format: 'u64', kind: 'numberTypeNode' },
+                            },
+                        ],
+                        discriminators: [{ kind: 'fieldDiscriminatorNode', name: 'discriminator', offset: 0 }],
+                        docs: [],
+                        kind: 'instructionNode',
+                        name: 'deposit',
+                        optionalAccountStrategy: 'programId',
+                    },
+                ],
+                kind: 'programNode',
+                name: 'vault',
+                pdas: [],
+                publicKey: DEFAULT_ADDRESS,
+                version: '1.0.0',
+            },
+            standard: 'codama',
+            version: '1.0.0',
+        } as const;
+
+        it('should infer instruction args from the IDL type with no generics', () => {
+            const client = createCodamaIdlClient(vaultIdl);
+
+            // u8 discriminator (1) + u64le amount (42)
+            const decode = client.decodeInstruction({
+                accounts: [],
+                data: Uint8Array.from([1, 42, 0, 0, 0, 0, 0, 0, 0]),
+                programAddress: vaultIdl.program.publicKey as Instruction['programAddress'],
+            });
+
+            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
+
+            const args = client.getDecodedData(decode);
+
+            expectTypeOf(args).toEqualTypeOf<{ amount: bigint; discriminator: number }>();
+            expect(getLastNodeFromPath(decode.decoded.path).name).toBe('deposit');
+            expect(args).toEqual({ amount: 42n, discriminator: 1 });
+        });
+
+        it('should infer account fields from the IDL type with no generics', () => {
+            const client = createCodamaIdlClient(vaultIdl);
+            const bytes = encodeAccount(vaultIdl, 'vault', { authority: DEFAULT_ADDRESS, count: 7n });
+
+            const decode = client.decodeAccount(bytes);
+
+            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
+
+            const account = client.getDecodedData(decode);
+
+            expectTypeOf(account).toEqualTypeOf<{ authority: string; count: bigint }>();
+            expect(account).toEqual({ authority: DEFAULT_ADDRESS, count: 7n });
+        });
+    });
+
+    describe('hand-written payload signatures — IDLs codama codegen rejects', () => {
         it('should decode the example dataAccount1 account with a hand-written type param', () => {
-            // hand-written signature: renderers-js rejects this document (circular account defaults)
+            // hand-written signature: renderers-js rejects this IDL (circular account defaults)
             // u64 → bigint, option → kit Option object
             type DataAccount1Data = {
                 bump: number;
@@ -33,9 +139,9 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
                 input: bigint;
                 optionalInput: { __option: 'None' } | { __option: 'Some'; value: string };
             };
-            const document = exampleIdl as unknown as CodamaIdl;
-            const client = createCodamaIdlClient(document);
-            const bytes = encodeAccount(document, 'dataAccount1', {
+            const idl = exampleIdl as unknown as CodamaIdl;
+            const client = createCodamaIdlClient(idl);
+            const bytes = encodeAccount(idl, 'dataAccount1', {
                 bump: 255,
                 discriminator: base16('bd16d2a9c3062624'),
                 input: 0n,
@@ -60,13 +166,13 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
         });
 
         it('should decode the mpl-token-metadata editionMarker account with a hand-written type param', () => {
-            // hand-written signature: renderers-js emits self-inconsistent PDA helpers for this document
+            // hand-written signature: renderers-js emits self-inconsistent PDA helpers for this IDL
             // scalar enums ENCODE by variant name but DECODE to the index
             type EditionMarkerData = { key: number; ledger: [string, string] };
-            const document = mplTokenMetadataIdl as unknown as CodamaIdl;
-            const client = createCodamaIdlClient(document);
+            const idl = mplTokenMetadataIdl as unknown as CodamaIdl;
+            const client = createCodamaIdlClient(idl);
             // key is a scalar enum discriminator — encoded by variant name
-            const bytes = encodeAccount(document, 'editionMarker', {
+            const bytes = encodeAccount(idl, 'editionMarker', {
                 key: 'editionMarker',
                 ledger: base16('00'.repeat(31)),
             });
@@ -86,13 +192,11 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
     });
 
     describe('rendered client types — AsDecoded bridges renderers-js output', () => {
-        const document = tokenIdl as unknown as CodamaIdl;
-
         /** Case: the consumer flow verbatim — the wide IDL JSON at runtime, the payload type from the rendered client. */
         it('should decode the blog accessGrant account from codec-encoded bytes', () => {
-            const blogDocument = blogIdl as unknown as CodamaIdl;
-            const client = createCodamaIdlClient(blogDocument);
-            const bytes = encodeAccount(blogDocument, 'accessGrant', {
+            const idl = blogIdl as unknown as CodamaIdl;
+            const client = createCodamaIdlClient(idl);
+            const bytes = encodeAccount(idl, 'accessGrant', {
                 bump: 255,
                 discriminator: base16('a737b8ed4af2006d'),
                 permissions: base16('00000000'),
@@ -122,15 +226,16 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
             });
         });
 
-        /** Case: no codama tooling on the encode side — the raw document alone is enough to decode hand-built bytes. */
+        /** Case: no codama tooling on the encode side — the raw IDL alone is enough to decode hand-built bytes. */
         it('should decode the token syncNative instruction from raw hand-built bytes', () => {
-            const client = createCodamaIdlClient(document);
+            const idl = tokenIdl as unknown as CodamaIdl;
+            const client = createCodamaIdlClient(idl);
 
-            // the document declares syncNative as a single u8 discriminator (17) with no other data
+            // the IDL declares syncNative as a single u8 discriminator (17) with no other data
             const decode = client.decodeInstruction({
                 accounts: [],
                 data: Uint8Array.from([17]),
-                programAddress: document.program.publicKey as Instruction['programAddress'],
+                programAddress: idl.program.publicKey as Instruction['programAddress'],
             });
 
             if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
@@ -145,9 +250,10 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
         });
 
         it('should decode the token multisig account from codec-encoded bytes', () => {
-            const client = createCodamaIdlClient(document);
+            const idl = tokenIdl as unknown as CodamaIdl;
+            const client = createCodamaIdlClient(idl);
             // multisig carries no discriminator field — it is identified by its exact size
-            const bytes = encodeAccount(document, 'multisig', {
+            const bytes = encodeAccount(idl, 'multisig', {
                 isInitialized: true,
                 m: 1,
                 n: 1,
@@ -175,9 +281,9 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
 
     describe('published client types — AsDecoded over @solana-program/token-2022', () => {
         it('should decode the token-2022 multisig account from codec-encoded bytes', () => {
-            const document = token2022Idl as unknown as CodamaIdl;
-            const client = createCodamaIdlClient(document);
-            const bytes = encodeAccount(document, 'multisig', {
+            const idl = token2022Idl as unknown as CodamaIdl;
+            const client = createCodamaIdlClient(idl);
+            const bytes = encodeAccount(idl, 'multisig', {
                 isInitialized: true,
                 m: 1,
                 n: 1,
