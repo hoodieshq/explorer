@@ -198,6 +198,25 @@ describe('decoder payload inference', () => {
         expectTypeOf<AccountDataOf<Simple031>>().toEqualTypeOf<{ authority: string; count: bigint }>();
     });
 
+    it('should decode anchor bytes args as [encoding, data] tuples (the codama pipeline shape)', () => {
+        // no built fixture declares a bytes arg — pin the anchor arm against the codama runtime shape
+        type BytesProbe = {
+            address: 'Bytes11111111111111111111111111111111111111';
+            accounts: [];
+            instructions: [
+                {
+                    accounts: [];
+                    args: [{ name: 'blob'; type: 'bytes' }, { name: 'owner'; type: 'pubkey' }];
+                    discriminator: [1];
+                    name: 'store';
+                },
+            ];
+            metadata: { name: 'bytes'; spec: '0.1.0'; version: '0.1.0' };
+            types: [];
+        };
+        expectTypeOf<InstructionDataOf<BytesProbe>>().toEqualTypeOf<{ blob: [string, string]; owner: string }>();
+    });
+
     it('should degrade to unknown for wide runtime documents and accept a per-call override', () => {
         // anchorIdl is typed as the wide AnchorIdl — the runtime-fetched situation
         const client = createIdlClient(anchorIdl, { provider: codamaProvider() });

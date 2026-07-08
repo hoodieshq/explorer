@@ -7,7 +7,7 @@ import type { CamelCaseString } from 'codama';
 import type { AnchorIdl, SupportedIdlInput } from './types.js';
 
 /**
- * Internal — not exported from the package entry. Bridges @codama/renderers-js-generated types
+ * @internal — not exported from the package entry. Bridges @codama/renderers-js-generated types
  * (build-time codegen, type-only imports) to what @codama/dynamic-parsers actually returns: branded
  * addresses decode as plain base58 strings and byte fields as [encoding, data] tuples; kit Option
  * objects and bigints already match. Used by the decode tests to pin output against generated clients.
@@ -24,11 +24,12 @@ export type AsDecoded<T> = T extends Address
             ? { [K in keyof T]: AsDecoded<T[K]> }
             : T;
 
-// Matches the CODAMA runtime output (bigint for 64/128-bit ints, base58 string for pubkeys) — NOT
-// anchor's BN mapping; this package decodes through the codama pipeline.
+// Matches the CODAMA runtime output (bigint for 64/128-bit ints, base58 string for pubkeys, bytes as
+// [encoding, data] tuples) — NOT anchor's BN/Uint8Array mapping; the anchor arm decodes through the
+// same codama pipeline, so its bytes come back as tuples too.
 type ScalarMap = {
     bool: boolean;
-    bytes: Uint8Array;
+    bytes: [string, string];
     f32: number;
     f64: number;
     i8: number;
@@ -66,8 +67,9 @@ type IsLiteralName<N> = CamelCaseString extends N ? false : string extends N ? f
 
 type CodamaNumber<F> = F extends 'i64' | 'i128' | 'i256' | 'u64' | 'u128' | 'u256' ? bigint : number;
 
-// Mirrors what @codama/dynamic-parsers RETURNS at runtime: bytes as [encoding, data] tuples, options
-// as kit Option objects, scalar enums as variant indices. Unsupported kinds degrade to `unknown`.
+// @codama/dynamic-parsers types decoded `data` as `unknown`, so this reconstructs the payload type from
+// the IDL node types to match the parser's RUNTIME shape: bytes as [encoding, data] tuples, options as
+// kit Option objects, scalar enums as variant indices. Unsupported kinds degrade to `unknown`.
 type CodamaValue<TRoot, TNode> = TNode extends { format: infer F; kind: 'numberTypeNode' }
     ? CodamaNumber<F>
     : TNode extends { kind: 'publicKeyTypeNode' }
