@@ -61,14 +61,39 @@ const client: IdlClient = createIdlClient(idl, { provider: codamaProvider() });
 const same: IdlClient = createCodamaIdlClient(idl);
 ```
 
+## One-step data access
+
+Prefer the one-step helpers for the common "decode and read the payload" case:
+`decodeInstructionData` / `decodeAccountData` collapse decode and payload into a single error-first
+result — no arm to narrow, just the data or an error. The two-step `decodeInstruction` /
+`decodeAccount` primitives ([below](#decoding-instructions)) are for when you need the arm, kind, or
+raw errors instead.
+
+```ts
+const [error, args] = client.decodeInstructionData<{ amount: bigint }>(instruction);
+if (error) throw error; // a miss or pipeline failure — never a crash
+args.amount; // typed, no narrowing needed past the error check
+```
+
+Passing a second argument asserts the arm you expect. If the decode lands on a *different* arm, you
+get an `IDL_ERROR__DECODE_KIND_MISMATCH` in the error slot instead of the data — the assertion never
+returns the wrong-arm payload:
+
+```ts
+import { IDL_ERROR__DECODE_KIND_MISMATCH, IdlStandard, isIdlError } from '@explorer/idl';
+
+// require the codama arm; an anchor- or unknown-arm result becomes an error
+const [error, account] = client.decodeAccountData<{ authority: string }>(accountData, IdlStandard.Codama);
+if (isIdlError(error, IDL_ERROR__DECODE_KIND_MISMATCH)) {
+    error.context; // { expected: IdlStandard.Codama, received: 'anchor' | 'unknown' } — what it got instead
+}
+```
+
 ## Decoding instructions
 
-For the common "decode and read the payload" case, prefer `decodeInstructionData` — one error-first
-call, no arm to narrow ([One-step data access](#one-step-data-access)). Reach for the two-step
-`decodeInstruction` + `getDecodedData` below only when you need the arm, kind, or raw errors.
-
-Results are discriminated by the producing standard. A miss is `{ kind: 'unknown', errors: [] }`;
-a pipeline failure carries its errors — never a crash:
+The two-step primitive behind `decodeInstructionData` — decode to a discriminated result, then read
+the payload. Results are discriminated by the producing standard. A miss is
+`{ kind: 'unknown', errors: [] }`; a pipeline failure carries its errors — never a crash:
 
 ```ts
 import { IdlStandard } from '@explorer/idl';
@@ -95,9 +120,8 @@ const args = client.decodeInstruction(instruction, {
 
 ## Decoding accounts
 
-Same shape as instructions — prefer `decodeAccountData`
-([One-step data access](#one-step-data-access)) for the common case; the two-step form below is for
-when you need the arm or errors:
+The account counterpart of `decodeInstruction` — the two-step primitive behind `decodeAccountData`,
+same shape:
 
 ```ts
 const decode = client.decodeAccount(accountData);
@@ -114,31 +138,6 @@ const summary = client.decodeAccount(accountData, {
     codama: decode => client.getDecodedData<{ authority: string }>(decode),
     unknown: () => undefined,
 });
-```
-
-## One-step data access
-
-`decodeInstructionData` / `decodeAccountData` collapse decode + payload into one error-first
-result — no arm to narrow, the data or an error:
-
-```ts
-const [error, args] = client.decodeInstructionData<{ amount: bigint }>(instruction);
-if (error) throw error; // a miss or pipeline failure — never a crash
-args.amount; // typed, no narrowing needed past the error check
-```
-
-Passing a second argument asserts the arm you expect. If the decode lands on a *different* arm, you
-get an `IDL_ERROR__DECODE_KIND_MISMATCH` in the error slot instead of the data — the assertion never
-returns the wrong-arm payload:
-
-```ts
-import { IDL_ERROR__DECODE_KIND_MISMATCH, isIdlError } from '@explorer/idl';
-
-// require the codama arm; an anchor- or unknown-arm result becomes an error
-const [error, account] = client.decodeAccountData<{ authority: string }>(accountData, IdlStandard.Codama);
-if (isIdlError(error, IDL_ERROR__DECODE_KIND_MISMATCH)) {
-    error.context; // { expected: IdlStandard.Codama, received: 'anchor' | 'unknown' } — what it got instead
-}
 ```
 
 ## Typed payloads — four routes
