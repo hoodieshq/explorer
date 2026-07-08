@@ -1,14 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-    getIdlFormatVersion,
-    getIdlProgramVersion,
-    getIdlStandard,
-    getIdlVersion,
-    isAnchorIdl,
-    isSupportedIdl,
-    MODERN_ANCHOR_IDL_WILDCARD,
-} from '../../detect';
+import { getIdlProgramVersion, getIdlStandard, getIdlVersion, isAnchorIdl, isSupportedIdl } from '../../detect';
 import { IdlStandard } from '../../types';
 import {
     loadLetMeBuyIdl,
@@ -44,18 +36,14 @@ describe('Anchor version helpers', () => {
         expect(getIdlStandard(loadSimpleIdl())).toBe(IdlStandard.Anchor);
     });
 
-    // every anchor-era acquisition point labels the same — the wildcard marks the standard, not the toolchain version
+    // every anchor-era acquisition point carries spec 0.1.0 — the spec is semver'd independently of anchor releases
     it.each([
         ['simple (anchor-lang 1.1.2 workspace build)', loadSimpleIdl],
         ['simple-031 (anchor-lang 0.31.1 workspace build)', loadSimple031Idl],
         ['let_me_buy (mainnet Anchor PDA leg)', loadLetMeBuyIdl],
         ['let_me_buy (mainnet PMP leg)', loadLetMeBuyPmpIdl],
-    ])('should label %s with the standard-era wildcard', (_, loadIdl) => {
-        expect(getIdlVersion(loadIdl())).toBe(MODERN_ANCHOR_IDL_WILDCARD);
-    });
-
-    it('should return the format version from metadata.spec', () => {
-        expect(getIdlFormatVersion(loadSimpleIdl())).toBe('0.1.0');
+    ])('should return the metadata.spec format version for %s', (_, loadIdl) => {
+        expect(getIdlVersion(loadIdl())).toBe('0.1.0');
     });
 
     it('should return the program version from metadata.version', () => {

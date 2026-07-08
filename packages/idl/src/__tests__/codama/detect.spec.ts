@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-    getIdlFormatVersion,
-    getIdlProgramVersion,
-    getIdlStandard,
-    getIdlVersion,
-    isCodamaIdl,
-    isSupportedIdl,
-} from '../../detect';
+import { getIdlProgramVersion, getIdlStandard, getIdlVersion, isCodamaIdl, isSupportedIdl } from '../../detect';
 import { IdlStandard } from '../../types';
 import { loadSimpleIdl, loadTokenkegIdl } from '../fixtures';
 
@@ -36,14 +29,9 @@ describe('Codama version helpers', () => {
         expect(getIdlStandard(loadTokenkegIdl())).toBe(IdlStandard.Codama);
     });
 
-    it('should return the root version as the standard-era label', () => {
+    it('should return the root version as the format version', () => {
         const tokenkeg = loadTokenkegIdl();
         expect(getIdlVersion(tokenkeg)).toBe(tokenkeg.version);
-    });
-
-    it('should return the format version from the root version', () => {
-        const tokenkeg = loadTokenkegIdl();
-        expect(getIdlFormatVersion(tokenkeg)).toBe(tokenkeg.version);
     });
 
     it('should return the program version from program.version', () => {

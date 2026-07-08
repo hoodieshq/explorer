@@ -14,7 +14,7 @@ export type SupportedIdl = AnchorIdl | CodamaIdl;
 
 // Codama's node types brand every name (CamelCaseString), so literal documents (as-const/generated)
 // never extend RootNode — the structural shape below lets them in WITHOUT erasing their literals.
-export type CodamaIdlLike = {
+export type CodamaIdlInput = {
     kind: 'rootNode';
     program: {
         accounts: readonly unknown[];
@@ -27,7 +27,7 @@ export type CodamaIdlLike = {
 };
 
 /** What the client accepts statically: brands are not required, only the structure (runtime detection still applies). */
-export type SupportedIdlInput = CodamaIdlLike | SupportedIdl;
+export type SupportedIdlInput = CodamaIdlInput | SupportedIdl;
 
 /** A pre-0.30 Anchor IDL — deliberately NOT in `SupportedIdl`; the client rejects it, consumers decode it themselves. */
 export type LegacyAnchorIdl = {
@@ -41,11 +41,8 @@ export enum IdlStandard {
     Codama = 'codama',
 }
 
-/** Wildcard label for all modern Anchor IDL versions (>= 0.30.1) — a standard-era label, not a specific version. */
-export const MODERN_ANCHOR_IDL_WILDCARD = '0.30.1';
-
-/** Standard-era label: the Codama root format version, or the modern-Anchor wildcard (see `getIdlVersion`). */
-export type IdlVersion = typeof MODERN_ANCHOR_IDL_WILDCARD | RootNode['version'];
+/** The document's format version: the Codama root `version`, or Anchor's `metadata.spec` (see `getIdlVersion`). */
+export type IdlVersion = AnchorIdl['metadata']['spec'] | RootNode['version'];
 
 // Codama payloads carry the real engine output; Anchor payloads stay opaque until the Anchor-rich
 // path lands (mcp-endpoint Step 6) — today they only come from the injected legacy decoder.

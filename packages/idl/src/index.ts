@@ -11,7 +11,6 @@ export {
 } from './client';
 export type { AccountDataOf, AsDecoded, InstructionDataOf } from './infer';
 export {
-    getIdlFormatVersion,
     getIdlProgramVersion,
     getIdlStandard,
     getIdlVersion,
@@ -19,7 +18,6 @@ export {
     isCodamaIdl,
     isLegacyAnchorIdl,
     isSupportedIdl,
-    MODERN_ANCHOR_IDL_WILDCARD,
 } from './detect';
 export {
     err,
@@ -58,7 +56,7 @@ export {
     type CodamaDecodedAccount,
     type CodamaDecodedInstruction,
     type CodamaIdl,
-    type CodamaIdlLike,
+    type CodamaIdlInput,
     IdlStandard,
     type IdlVersion,
     type IdlDecodeProvider,

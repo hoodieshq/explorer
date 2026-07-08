@@ -4,11 +4,8 @@ import {
     IdlStandard,
     type IdlVersion,
     type LegacyAnchorIdl,
-    MODERN_ANCHOR_IDL_WILDCARD,
     type SupportedIdl,
 } from './types';
-
-export { MODERN_ANCHOR_IDL_WILDCARD };
 
 /** Modern Anchor (>= 0.30) declares `metadata.spec`; legacy Anchor has none and is not supported here. */
 export function isAnchorIdl(value: unknown): value is AnchorIdl {
@@ -57,13 +54,8 @@ export function getIdlProgramAddress(idl: SupportedIdl): string | undefined {
     return (isCodamaIdl(idl) ? idl.program?.publicKey : idl.address) || undefined;
 }
 
-/** Standard-era label: the Codama root format version, or the modern-Anchor wildcard. */
+// The spec is semver'd independently of anchor releases (anchor-lang-idl-spec) — '0.1.0' for ALL modern anchor.
 export function getIdlVersion(idl: SupportedIdl): IdlVersion {
-    return isCodamaIdl(idl) ? idl.version : MODERN_ANCHOR_IDL_WILDCARD;
-}
-
-/** The IDL format (encoding) version — Codama's root `version` or Anchor's `metadata.spec`. */
-export function getIdlFormatVersion(idl: SupportedIdl): string {
     return isCodamaIdl(idl) ? idl.version : idl.metadata.spec;
 }
 
