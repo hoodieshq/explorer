@@ -7,9 +7,10 @@ import type { CamelCaseString } from 'codama';
 import type { AnchorIdl, SupportedIdlInput } from './types.js';
 
 /**
- * Bridges @codama/renderers-js-generated types (build-time codegen, type-only imports) to what
- * @codama/dynamic-parsers actually returns: branded addresses decode as plain base58 strings and
- * byte fields as [encoding, data] tuples; kit Option objects and bigints already match.
+ * Internal — not exported from the package entry. Bridges @codama/renderers-js-generated types
+ * (build-time codegen, type-only imports) to what @codama/dynamic-parsers actually returns: branded
+ * addresses decode as plain base58 strings and byte fields as [encoding, data] tuples; kit Option
+ * objects and bigints already match. Used by the decode tests to pin output against generated clients.
  */
 export type AsDecoded<T> = T extends Address
     ? string

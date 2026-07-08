@@ -9,7 +9,7 @@ export {
     isCodamaStandard,
     tryCreateIdlClient,
 } from './client.js';
-export type { AccountDataOf, AsDecoded, InstructionDataOf } from './infer.js';
+export type { AccountDataOf, InstructionDataOf } from './infer.js';
 export {
     getIdlProgramVersion,
     getIdlStandard,

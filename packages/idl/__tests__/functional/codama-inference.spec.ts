@@ -1,7 +1,9 @@
 // Typed getDecodedData routes over the same codama-fixtures IDLs — one case per way a
 // consumer can source the payload type. The runtime sweep across every supported IDL lives
 // in codama-idls.spec.ts; the cases here stay hand-written because inference IS the subject.
-import { type AsDecoded, type CodamaIdl, IdlStandard } from '@explorer/idl';
+import { type CodamaIdl, IdlStandard } from '@explorer/idl';
+// AsDecoded is internal (not exported from the entry) — imported from source for these type assertions
+import type { AsDecoded } from '../../src/infer';
 import { createCodamaIdlClient } from '@explorer/idl/codama';
 // a literal `as const` codama root (test-codama-programs/vault) — its literal type drives inference
 import { vaultIdl } from '@explorer/test-idl-program-vault';

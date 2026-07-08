@@ -151,7 +151,7 @@ const summary = client.decodeAccount(accountData, {
 });
 ```
 
-## Typed payloads — four routes
+## Typed payloads — three routes
 
 **1. Anchor generated companion type — zero generics.** Pair the built JSON with the
 `target/types` type (the `Program<MyProgram>` idiom) and payloads infer from the IDL itself:
@@ -208,18 +208,6 @@ const decode = client.decodeInstruction(instruction);
 if (decode.kind === IdlStandard.Codama) {
     const args = client.getDecodedData<{ amount: bigint }>(decode); // the generic IS the shape
 }
-```
-
-**4. `AsDecoded` — reuse codama-generated client types.** `@codama/renderers-js` types describe
-*their* codecs; `AsDecoded<T>` maps them to this decoder's output (addresses → base58 strings,
-bytes → `[encoding, data]` tuples):
-
-```ts
-import type { AsDecoded } from '@explorer/idl';
-import type { Multisig } from '@solana-program/token-2022'; // type-only, erased at runtime
-
-const account = client.getDecodedData<AsDecoded<Multisig>>(decode);
-account.signers; // string[], not Address[]
 ```
 
 ## Anchor IDLs
