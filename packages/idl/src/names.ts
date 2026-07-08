@@ -17,8 +17,8 @@ import {
 } from '@solana/kit';
 import { type InstructionNode, isNode, type Node, titleCase } from 'codama';
 
-import { isCodamaIdl } from './detect';
-import { type AnchorIdl, type CodamaIdl, type SupportedIdl } from './types';
+import { isCodamaIdl } from './detect.js';
+import { type AnchorIdl, type CodamaIdl, type SupportedIdl } from './types.js';
 
 export type InstructionNameEntry = {
     discriminator: Uint8Array;

@@ -3,7 +3,7 @@ import type { Idl } from '@coral-xyz/anchor';
 import type { Instruction } from '@solana/kit';
 import type { RootNode } from 'codama';
 
-import type { IdlError } from './errors';
+import type { IdlError } from './errors.js';
 
 /** An Anchor IDL — the `@coral-xyz/anchor` `Idl`; only the modern (>= 0.30) spec is supported. */
 export type AnchorIdl = Idl;

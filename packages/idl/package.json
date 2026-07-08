@@ -33,10 +33,11 @@
         "lint": "oxlint && oxfmt --check .",
         "lint:fix": "oxlint --fix",
         "pretest": "pnpm run build:programs && node scripts/generate-codama-types.mjs && pnpm run build",
-        "test": "pnpm run typecheck && vitest run && pnpm run test:integration && pnpm run test:treeshakability",
+        "test": "pnpm run typecheck && vitest run && pnpm run test:integration && pnpm run test:treeshakability && pnpm run test:node-esm",
         "test:coverage": "vitest run --config vitest.coverage.config.ts && pnpm run test:type-coverage",
         "test:integration": "vitest run --config vitest.integration.config.ts",
         "test:type-coverage": "type-coverage -p tsconfig.build.json --strict --at-least 99.5",
+        "test:node-esm": "for entry in dist/index.js dist/*/index.js; do node --input-type=module -e \"import('./$entry')\" || exit 1; done",
         "test:treeshakability": "for file in dist/index.js dist/*/index.js; do agadoo $file || exit 1; done",
         "test:watch": "vitest",
         "typecheck": "tsc --noEmit && tsc -p tsconfig.build.json --noEmit"

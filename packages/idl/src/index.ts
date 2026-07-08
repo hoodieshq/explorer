@@ -8,8 +8,8 @@ export {
     isAnchorStandard,
     isCodamaStandard,
     tryCreateIdlClient,
-} from './client';
-export type { AccountDataOf, AsDecoded, InstructionDataOf } from './infer';
+} from './client.js';
+export type { AccountDataOf, AsDecoded, InstructionDataOf } from './infer.js';
 export {
     getIdlProgramVersion,
     getIdlStandard,
@@ -18,7 +18,7 @@ export {
     isCodamaIdl,
     isLegacyAnchorIdl,
     isSupportedIdl,
-} from './detect';
+} from './detect.js';
 export {
     err,
     getIdlErrorMessage,
@@ -37,7 +37,7 @@ export {
     isIdlError,
     ok,
     type Result,
-} from './errors';
+} from './errors.js';
 export {
     buildInstructionNameResolver,
     buildInstructionNameTable,
@@ -46,7 +46,7 @@ export {
     type InstructionNameResolver,
     type InstructionNameTable,
     matchInstructionName,
-} from './names';
+} from './names.js';
 export {
     type AccountDecode,
     type AccountDecodeFor,
@@ -68,4 +68,4 @@ export {
     type LegacyDecoderOptions,
     type SupportedIdl,
     type SupportedIdlInput,
-} from './types';
+} from './types.js';

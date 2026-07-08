@@ -1,5 +1,5 @@
 // Modelled on @codama/errors; WARNING: don't remove, change, or renumber error codes.
-import type { IdlStandard } from './types';
+import type { IdlStandard } from './types.js';
 
 export const IDL_ERROR__UNSUPPORTED_IDL_FORMAT = 1;
 export const IDL_ERROR__IDL_FETCH_FAILED = 2;

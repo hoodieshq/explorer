@@ -5,7 +5,7 @@ import {
     type IdlVersion,
     type LegacyAnchorIdl,
     type SupportedIdl,
-} from './types';
+} from './types.js';
 
 /** Modern Anchor (>= 0.30) declares `metadata.spec`; legacy Anchor has none and is not supported here. */
 export function isAnchorIdl(value: unknown): value is AnchorIdl {

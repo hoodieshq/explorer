@@ -4,7 +4,7 @@
 import type { Address, ReadonlyUint8Array } from '@solana/kit';
 import type { CamelCaseString } from 'codama';
 
-import type { AnchorIdl, SupportedIdlInput } from './types';
+import type { AnchorIdl, SupportedIdlInput } from './types.js';
 
 /**
  * Bridges @codama/renderers-js-generated types (build-time codegen, type-only imports) to what

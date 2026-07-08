@@ -1,14 +1,14 @@
 // The codama decode engine ('@explorer/idl/codama') — behind its own entry so processes that never
 // decode (name-only MCP tools) never load it; the main entry stays engine-free.
-import { createIdlClient, type IdlClient, tryCreateIdlClient } from '../client';
-import type { IDL_ERROR__UNSUPPORTED_IDL_FORMAT, Result } from '../errors';
-import type { IdlDecodeProvider, LegacyDecoderOptions, SupportedIdlInput } from '../types';
+import { createIdlClient, type IdlClient, tryCreateIdlClient } from '../client.js';
+import type { IDL_ERROR__UNSUPPORTED_IDL_FORMAT, Result } from '../errors.js';
+import type { IdlDecodeProvider, LegacyDecoderOptions, SupportedIdlInput } from '../types.js';
 
-import { decodeAccountWithIdl } from './decode-account';
-import { decodeInstructionWithIdl } from './decode-instruction';
+import { decodeAccountWithIdl } from './decode-account.js';
+import { decodeInstructionWithIdl } from './decode-instruction.js';
 
-export { decodeAccountWithIdl } from './decode-account';
-export { decodeInstructionWithIdl } from './decode-instruction';
+export { decodeAccountWithIdl } from './decode-account.js';
+export { decodeInstructionWithIdl } from './decode-instruction.js';
 
 /** The codama-engine decode provider — decodes both standards via the codama pipeline. */
 export function codamaProvider(): IdlDecodeProvider {

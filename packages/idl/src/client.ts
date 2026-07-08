@@ -1,6 +1,6 @@
 import type { Instruction } from '@solana/kit';
 
-import { getIdlProgramAddress, getIdlStandard, isAnchorIdl, isCodamaIdl, isSupportedIdl } from './detect';
+import { getIdlProgramAddress, getIdlStandard, isAnchorIdl, isCodamaIdl, isSupportedIdl } from './detect.js';
 import {
     err,
     IDL_ERROR__ACCOUNT_DECODE_FAILED,
@@ -11,9 +11,9 @@ import {
     IdlError,
     ok,
     type Result,
-} from './errors';
-import type { AccountDataOf, InstructionDataOf } from './infer';
-import { buildInstructionNameTable, buildProgramName, matchInstructionName } from './names';
+} from './errors.js';
+import type { AccountDataOf, InstructionDataOf } from './infer.js';
+import { buildInstructionNameTable, buildProgramName, matchInstructionName } from './names.js';
 import {
     type AccountDecode,
     type AccountDecodeFor,
@@ -28,7 +28,7 @@ import {
     type LegacyDecoderOptions,
     type SupportedIdl,
     type SupportedIdlInput,
-} from './types';
+} from './types.js';
 
 export type IdlClientOptions = LegacyDecoderOptions & {
     /** Decode engine — an explicit choice so processes that never decode never load one ('@explorer/idl/codama' ships the default). */
