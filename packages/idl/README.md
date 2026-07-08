@@ -205,8 +205,8 @@ account.signers; // string[], not Address[]
 
 ## Anchor IDLs
 
-Anchor IDLs go through the same client — conversion to Codama happens inside the engine, so
-decodes land in the codama arm:
+Anchor IDLs go through the same client — `createCodamaIdlClient` runs nodes-from-anchor to convert
+the document to a Codama root before decoding, so a successful decode lands on the codama arm:
 
 ```ts
 import anchorIdl from './target/idl/my_program.json';
@@ -215,6 +215,21 @@ const client = createCodamaIdlClient(anchorIdl);
 const decode = client.decodeInstruction(instruction);
 decode.kind; // IdlStandard.Codama — the conversion is an implementation detail
 ```
+
+To run that conversion yourself — to catch a nodes-from-anchor failure explicitly — convert first:
+
+```ts
+import { convertToCodama } from '@explorer/idl/anchor';
+
+const [error, root] = convertToCodama(anchorIdl); // nodes-from-anchor
+if (error) throw error; // IDL_ERROR__IDL_PARSE_FAILED — the document could not be converted
+const client = createCodamaIdlClient(root); // root is already a Codama IDL
+```
+
+Left to convert internally, a nodes-from-anchor failure is *not* silent: the decode falls to the
+`unknown` arm with the conversion error in `decode.errors` — a pipeline failure, not a plain miss
+(`errors: []`). With a `legacyAnchorDecoder` wired, a successful rescue lands on the `anchor` arm
+instead, the conversion error preserved in `recoveredFrom`.
 
 ## Legacy Anchor IDLs
 
@@ -227,9 +242,13 @@ import { isLegacyAnchorIdl } from '@explorer/idl';
 isLegacyAnchorIdl(idl); // true → decode it yourself; the client will not accept it
 
 const client = createCodamaIdlClient(idl, {
-    legacyAnchorDecoder: (idl, ix) => myCustomDecode(idl, ix), // undefined → 'unknown' arm
+    legacyAnchorDecoder: (idl, ix) => myCustomDecode(idl, ix),
 });
 ```
+
+The decoder's return value picks the arm: return a value and the decode lands on the `anchor` arm;
+return `undefined` and it falls through to the `unknown` arm. It never guesses — no rescue means no
+anchor result.
 
 Here all three arms are live — the handler map is worth it: `codama` for instructions the
 conversion decoded, `anchor` for those your legacy decoder rescued, `unknown` for the rest.
