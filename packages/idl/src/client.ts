@@ -1,8 +1,11 @@
 import type { Instruction } from '@solana/kit';
 
-import { getIdlProgramAddress, isAnchorIdl, isCodamaIdl, isSupportedIdl } from './detect';
+import { getIdlProgramAddress, getIdlStandard, isAnchorIdl, isCodamaIdl, isSupportedIdl } from './detect';
 import {
     err,
+    IDL_ERROR__ACCOUNT_DECODE_FAILED,
+    IDL_ERROR__DECODE_KIND_MISMATCH,
+    IDL_ERROR__INSTRUCTION_DECODE_FAILED,
     IDL_ERROR__MISSING_DECODE_HANDLER,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     IdlError,
@@ -55,6 +58,10 @@ export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClien
         (data: Uint8Array): AccountDecodeFor<T>;
         <R>(data: Uint8Array, handlers: AccountHandlers<T, R>): R;
     };
+    /** `decodeAccount` + `getDecodedData` in one error-first step; a mismatched `expectedKind` is an error. */
+    decodeAccountData: <TData = AccountDataOf<T>>(data: Uint8Array, expectedKind?: IdlStandard) => Result<TData>;
+    /** `decodeInstruction` + `getDecodedData` in one error-first step; a mismatched `expectedKind` is an error. */
+    decodeInstructionData: <TData = InstructionDataOf<T>>(ix: Instruction, expectedKind?: IdlStandard) => Result<TData>;
     /** Decoded payload typed from the IDL; `undefined` only for the unknown arm — narrowing `decode.kind` first drops it. */
     getDecodedData: {
         <TData = InstructionDataOf<T>>(decode: Extract<InstructionDecode, { kind: IdlStandard }>): TData;
@@ -106,6 +113,48 @@ export function createIdlClient<T extends SupportedIdlInput>(
         return dispatch(decode, handlers);
     }
 
+    function decodeInstructionData<TData = InstructionDataOf<T>>(
+        ix: Instruction,
+        expectedKind?: IdlStandard,
+    ): Result<TData> {
+        const decode = decodeInstruction(ix);
+        if (decode.kind === 'unknown') {
+            // surface the pipeline's own failure rather than masking it; a plain miss gets a fresh error
+            return err(
+                decode.errors[0] ??
+                    new IdlError(IDL_ERROR__INSTRUCTION_DECODE_FAILED, {
+                        programAddress: ix.programAddress,
+                        standard: getIdlStandard(supportedIdl),
+                    }),
+            );
+        }
+        if (expectedKind !== undefined && decode.kind !== expectedKind) {
+            return err(
+                new IdlError(IDL_ERROR__DECODE_KIND_MISMATCH, { expected: expectedKind, received: decode.kind }),
+            );
+        }
+        return ok(getDecodedData<TData>(decode));
+    }
+
+    function decodeAccountData<TData = AccountDataOf<T>>(data: Uint8Array, expectedKind?: IdlStandard): Result<TData> {
+        const decode = decodeAccount(data);
+        if (decode.kind === 'unknown') {
+            return err(
+                decode.errors[0] ??
+                    new IdlError(IDL_ERROR__ACCOUNT_DECODE_FAILED, {
+                        dataLength: data.length,
+                        standard: getIdlStandard(supportedIdl),
+                    }),
+            );
+        }
+        if (expectedKind !== undefined && decode.kind !== expectedKind) {
+            return err(
+                new IdlError(IDL_ERROR__DECODE_KIND_MISMATCH, { expected: expectedKind, received: decode.kind }),
+            );
+        }
+        return ok(getDecodedData<TData>(decode));
+    }
+
     function getDecodedData<TData = InstructionDataOf<T>>(
         decode: Extract<InstructionDecode, { kind: IdlStandard }>,
     ): TData;
@@ -127,7 +176,9 @@ export function createIdlClient<T extends SupportedIdlInput>(
     return {
         ...metaClient,
         decodeAccount,
+        decodeAccountData,
         decodeInstruction,
+        decodeInstructionData,
         getDecodedData,
     };
 }

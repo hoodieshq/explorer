@@ -63,6 +63,10 @@ const same: IdlClient = createCodamaIdlClient(idl);
 
 ## Decoding instructions
 
+For the common "decode and read the payload" case, prefer `decodeInstructionData` — one error-first
+call, no arm to narrow ([One-step data access](#one-step-data-access)). Reach for the two-step
+`decodeInstruction` + `getDecodedData` below only when you need the arm, kind, or raw errors.
+
 Results are discriminated by the producing standard. A miss is `{ kind: 'unknown', errors: [] }`;
 a pipeline failure carries its errors — never a crash:
 
@@ -78,16 +82,22 @@ if (decode.kind === IdlStandard.Codama) {
 }
 ```
 
-Or declare the outcomes as a handler map, typed to exactly the arms the IDL's standard can produce:
+`decodeInstruction` also accepts a handler map instead of an `if` — one branch per arm the IDL's
+standard can produce. A Codama client only ever yields `codama` / `unknown`, so it buys little there;
+it earns its keep on Anchor IDLs with a legacy decoder, where all three arms are live (see below).
 
 ```ts
-const outcome = client.decodeInstruction(instruction, {
-    codama: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'codama' }),
-    unknown: decode => ({ data: undefined, source: decode.errors.length ? 'failed' : 'not in this IDL' }),
+const args = client.decodeInstruction(instruction, {
+    codama: decode => client.getDecodedData<{ amount: bigint }>(decode),
+    unknown: () => undefined,
 });
 ```
 
 ## Decoding accounts
+
+Same shape as instructions — prefer `decodeAccountData`
+([One-step data access](#one-step-data-access)) for the common case; the two-step form below is for
+when you need the arm or errors:
 
 ```ts
 const decode = client.decodeAccount(accountData);
@@ -96,14 +106,39 @@ if (decode.kind === IdlStandard.Codama) {
 }
 ```
 
+`decodeAccount` takes the same optional handler map as `decodeInstruction`. Accounts have no
+legacy-rescue path, so the arms are only ever `codama` / `unknown`:
+
+```ts
+const summary = client.decodeAccount(accountData, {
+    codama: decode => client.getDecodedData<{ authority: string }>(decode),
+    unknown: () => undefined,
+});
+```
+
 ## One-step data access
 
 `decodeInstructionData` / `decodeAccountData` collapse decode + payload into one error-first
-result; the optional `kind` argument asserts which arm produced it (`DECODE_KIND_MISMATCH` otherwise):
+result — no arm to narrow, the data or an error:
 
 ```ts
-const [ixError, args] = client.decodeInstructionData<{ amount: bigint }>(instruction);
-const [accError, account] = client.decodeAccountData<{ authority: string }>(accountData, IdlStandard.Codama);
+const [error, args] = client.decodeInstructionData<{ amount: bigint }>(instruction);
+if (error) throw error; // a miss or pipeline failure — never a crash
+args.amount; // typed, no narrowing needed past the error check
+```
+
+Passing a second argument asserts the arm you expect. If the decode lands on a *different* arm, you
+get an `IDL_ERROR__DECODE_KIND_MISMATCH` in the error slot instead of the data — the assertion never
+returns the wrong-arm payload:
+
+```ts
+import { IDL_ERROR__DECODE_KIND_MISMATCH, isIdlError } from '@explorer/idl';
+
+// require the codama arm; an anchor- or unknown-arm result becomes an error
+const [error, account] = client.decodeAccountData<{ authority: string }>(accountData, IdlStandard.Codama);
+if (isIdlError(error, IDL_ERROR__DECODE_KIND_MISMATCH)) {
+    error.context; // { expected: IdlStandard.Codama, received: 'anchor' | 'unknown' } — what it got instead
+}
 ```
 
 ## Typed payloads — four routes
@@ -121,6 +156,23 @@ if (decode.kind === IdlStandard.Codama) {
     const args = client.getDecodedData(decode); // inferred union of the program's instruction args
 }
 ```
+
+Fetching through anchor's client works the same — pass the type to `Program.fetchIdl<MyProgram>` and
+inference still flows. But fetch it untyped (plain `idl.json`, no companion type) and the IDL widens
+to `AnchorIdl`; inference is gone, so you must hand the shape to the generic:
+
+```ts
+const idl = await Program.fetchIdl(programId, provider); // no generic → AnchorIdl (wide)
+const client = createCodamaIdlClient(idl);
+const decode = client.decodeInstruction(instruction);
+if (decode.kind === IdlStandard.Codama) {
+    const args = client.getDecodedData<{ amount: bigint }>(decode); // explicit — the type can't be inferred
+}
+```
+
+Both forms feed an Anchor IDL to `createCodamaIdlClient`, which converts it to a Codama root via
+nodes-from-anchor before decoding — that's why `decode.kind` is `Codama`, not `Anchor`. See
+[Anchor IDLs](#anchor-idls) for that conversion and how it fails.
 
 **2. Codama literal IDL — zero generics.** Codama ships no generated IDL types and JSON
 imports widen — hold the root node in a TS module `as const` and payloads infer the same way:
@@ -177,12 +229,20 @@ isLegacyAnchorIdl(idl); // true → decode it yourself; the client will not acce
 const client = createCodamaIdlClient(idl, {
     legacyAnchorDecoder: (idl, ix) => myCustomDecode(idl, ix), // undefined → 'unknown' arm
 });
+```
 
-const decode = client.decodeInstruction(instruction);
-if (decode.kind === IdlStandard.Anchor) {
-    decode.decoded; // your decoder's payload
-    decode.recoveredFrom; // pipeline errors the rescue bypassed, when any
-}
+Here all three arms are live — the handler map is worth it: `codama` for instructions the
+conversion decoded, `anchor` for those your legacy decoder rescued, `unknown` for the rest.
+`createCodamaIdlClient` pre-wires the engine, so no provider is passed at the call site:
+
+```ts
+const client = createCodamaIdlClient(idl, { legacyAnchorDecoder });
+
+const label = client.decodeInstruction(instruction, {
+    codama: decode => client.getDecodedData(decode), // converted + decoded natively
+    anchor: decode => decode.decoded, // rescued by your legacy decoder (decode.recoveredFrom holds bypassed errors)
+    unknown: () => undefined,
+});
 ```
 
 ## Converting Anchor IDLs to Codama

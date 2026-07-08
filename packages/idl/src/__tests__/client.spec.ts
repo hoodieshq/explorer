@@ -4,6 +4,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { createIdlClient, type IdlMetaClient, isAnchorStandard, isCodamaStandard, tryCreateIdlClient } from '../client';
 import { createCodamaIdlClient, tryCreateCodamaIdlClient } from '../codama/index';
 import {
+    IDL_ERROR__ACCOUNT_DECODE_FAILED,
+    IDL_ERROR__DECODE_KIND_MISMATCH,
     IDL_ERROR__IDL_ADDRESS_MISMATCH,
     IDL_ERROR__IDL_PARSE_FAILED,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
@@ -49,6 +51,8 @@ describe('createIdlClient (engine-free metadata client)', () => {
         const client = createIdlClient(loadSimpleIdl());
         expect('decodeInstruction' in client).toBe(false);
         expect('decodeAccount' in client).toBe(false);
+        expect('decodeInstructionData' in client).toBe(false);
+        expect('decodeAccountData' in client).toBe(false);
     });
 
     it('should throw the unsupported-format error when a lying type sneaks past detection', () => {
@@ -193,6 +197,72 @@ describe('unknown-arm errors contract', () => {
         });
         if (decode.kind !== 'unknown') throw new Error('expected the unknown arm');
         expect(decode.errors.map(e => e.code)).toEqual([IDL_ERROR__INSTRUCTION_DECODE_FAILED]);
+    });
+});
+
+// m=1, n=1, initialized, 11 zeroed signer pubkeys — identifies the tokenkeg multisig account by size
+const multisigBytes = () => Uint8Array.from([1, 1, 1, ...new Uint8Array(11 * 32)]);
+
+describe('decodeInstructionData / decodeAccountData (combined error-first decode)', () => {
+    it('should return the instruction payload in the value slot', () => {
+        const tokenkeg = loadTokenkegIdl();
+        const [error, data] = createCodamaIdlClient(tokenkeg).decodeInstructionData<{ amount: bigint }>(
+            transferIx(tokenkeg),
+        );
+        expect(error).toBeUndefined();
+        expect(data).toMatchObject({ amount: 42n });
+    });
+
+    it('should return the account payload in the value slot', () => {
+        const [error, data] = createCodamaIdlClient(loadTokenkegIdl()).decodeAccountData<{ m: number; n: number }>(
+            multisigBytes(),
+        );
+        expect(error).toBeUndefined();
+        expect(data).toMatchObject({ m: 1, n: 1 });
+    });
+
+    it('should pass the kind assertion when the decode arm matches', () => {
+        const tokenkeg = loadTokenkegIdl();
+        const [error, data] = createCodamaIdlClient(tokenkeg).decodeInstructionData<{ amount: bigint }>(
+            transferIx(tokenkeg),
+            IdlStandard.Codama,
+        );
+        expect(error).toBeUndefined();
+        expect(data).toMatchObject({ amount: 42n });
+    });
+
+    it('should return the kind-mismatch error when the asserted kind differs', () => {
+        const tokenkeg = loadTokenkegIdl();
+        const [error, data] = createCodamaIdlClient(tokenkeg).decodeInstructionData(
+            transferIx(tokenkeg),
+            IdlStandard.Anchor,
+        );
+        expect(data).toBeUndefined();
+        expect(error?.code).toBe(IDL_ERROR__DECODE_KIND_MISMATCH);
+        expect(error?.context).toEqual({ expected: IdlStandard.Anchor, received: IdlStandard.Codama });
+    });
+
+    it('should return a fresh decode-failed error for a plain instruction miss', () => {
+        const tokenkeg = loadTokenkegIdl();
+        const [error, data] = createCodamaIdlClient(tokenkeg).decodeInstructionData({
+            ...transferIx(tokenkeg),
+            data: Uint8Array.from([99, 1, 2]),
+        });
+        expect(data).toBeUndefined();
+        expect(error?.code).toBe(IDL_ERROR__INSTRUCTION_DECODE_FAILED);
+    });
+
+    it('should return a fresh decode-failed error for a plain account miss', () => {
+        const [error, data] = createCodamaIdlClient(loadSimpleIdl()).decodeAccountData(Uint8Array.from([1, 2, 3]));
+        expect(data).toBeUndefined();
+        expect(error?.code).toBe(IDL_ERROR__ACCOUNT_DECODE_FAILED);
+        expect(error?.context).toMatchObject({ dataLength: 3 });
+    });
+
+    it('should surface the pipeline error for a detected-but-unconvertible document', () => {
+        const [error, data] = createCodamaIdlClient(brokenAnchorIdl()).decodeInstructionData(brokenIx());
+        expect(data).toBeUndefined();
+        expect(error?.code).toBe(IDL_ERROR__IDL_PARSE_FAILED);
     });
 });
 

@@ -207,6 +207,17 @@ describe('decoder payload inference', () => {
         expectTypeOf(client.getDecodedData(client.decodeAccount(new Uint8Array()))).toEqualTypeOf<unknown>();
         expectTypeOf(client.getDecodedData<{ amount: bigint }>(decode)).toEqualTypeOf<{ amount: bigint } | undefined>();
     });
+
+    it('should type the combined decode methods as error-first results', () => {
+        const client = createIdlClient(probeIdl, { provider: codamaProvider() });
+
+        expectTypeOf(client.decodeInstructionData(probeDepositIx)).toEqualTypeOf<Result<{ amount: bigint }>>();
+        expectTypeOf(client.decodeAccountData(new Uint8Array())).toEqualTypeOf<Result<{ balance: bigint }>>();
+        // the per-call override and the kind assertion compose
+        expectTypeOf(client.decodeAccountData<{ raw: string }>(new Uint8Array(), IdlStandard.Codama)).toEqualTypeOf<
+            Result<{ raw: string }>
+        >();
+    });
 });
 
 describe('tryCreateIdlClient inference', () => {

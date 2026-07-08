@@ -9,9 +9,11 @@ export const IDL_ERROR__INSTRUCTION_DECODE_FAILED = 5;
 export const IDL_ERROR__ACCOUNT_DECODE_FAILED = 6;
 export const IDL_ERROR__MISSING_DECODE_HANDLER = 7;
 export const IDL_ERROR__DECODE_UNIMPLEMENTED = 8;
+export const IDL_ERROR__DECODE_KIND_MISMATCH = 9;
 
 export type IdlErrorCode =
     | typeof IDL_ERROR__ACCOUNT_DECODE_FAILED
+    | typeof IDL_ERROR__DECODE_KIND_MISMATCH
     | typeof IDL_ERROR__DECODE_UNIMPLEMENTED
     | typeof IDL_ERROR__IDL_ADDRESS_MISMATCH
     | typeof IDL_ERROR__IDL_FETCH_FAILED
@@ -27,6 +29,7 @@ type DefaultUnspecifiedErrorContextToUndefined<T> = {
 // WARNING: don't change or remove members of an error's context.
 export type IdlErrorContext = DefaultUnspecifiedErrorContextToUndefined<{
     [IDL_ERROR__ACCOUNT_DECODE_FAILED]: { dataLength: number; standard: IdlStandard };
+    [IDL_ERROR__DECODE_KIND_MISMATCH]: { expected: IdlStandard; received: string };
     [IDL_ERROR__DECODE_UNIMPLEMENTED]: { operation: string };
     [IDL_ERROR__IDL_ADDRESS_MISMATCH]: { declaredAddress: string; programAddress: string };
     [IDL_ERROR__IDL_PARSE_FAILED]: { operation: string };
@@ -37,6 +40,7 @@ export type IdlErrorContext = DefaultUnspecifiedErrorContextToUndefined<{
 const IDL_ERROR_MESSAGES: Readonly<{ [P in IdlErrorCode]: (context: IdlErrorContext[P]) => string }> = {
     [IDL_ERROR__ACCOUNT_DECODE_FAILED]: c =>
         `could not decode account data (${c.dataLength} bytes) with the ${c.standard} IDL`,
+    [IDL_ERROR__DECODE_KIND_MISMATCH]: c => `expected the ${c.expected} decode arm, got '${c.received}'`,
     [IDL_ERROR__DECODE_UNIMPLEMENTED]: c =>
         `${c.operation} is not implemented yet — lands with the @explorer/idl extraction pieces (mcp-endpoint Steps 5/6)`,
     [IDL_ERROR__IDL_ADDRESS_MISMATCH]: c =>
