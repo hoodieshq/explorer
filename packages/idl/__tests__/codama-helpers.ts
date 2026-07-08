@@ -1,5 +1,5 @@
-// Shared drivers for the functional suites — codama's OWN tooling sits on the encode side, so the
-// package under test only ever sees what real consumers produce.
+// Shared Codama drivers for the __tests__ suites — codama's OWN tooling sits on the encode side, so
+// the package under test only ever sees what real consumers produce.
 import { createProgramClient, type ProgramClient } from '@codama/dynamic-client';
 import { getNodeCodec } from '@codama/dynamic-codecs';
 import type { CodamaIdl, CodamaIdlInput } from '@explorer/idl';

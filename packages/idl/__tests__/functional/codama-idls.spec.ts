@@ -27,7 +27,7 @@ import token2022Idl from 'codama-fixtures/packages/dynamic-client/test/programs/
 import tokenIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/token-idl.json';
 import { describe, expect, it } from 'vitest';
 
-import { buildInstruction, DEFAULT_ADDRESS, fetchedJson } from './helpers';
+import { buildInstruction, DEFAULT_ADDRESS, fetchedJson } from '../codama-helpers';
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON documents are known codama roots (detection is re-proven per test); the Instruction cast bridges codama tooling with the client */
 
