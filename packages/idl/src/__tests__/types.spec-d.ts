@@ -191,10 +191,10 @@ describe('decoder payload inference', () => {
 
     it('should infer arguments and accounts from the anchor-generated companion types', () => {
         // anchor's target/types view — args union covers every instruction (increment({amount}) |
-        // initialize (no args → {})), accounts map to their struct fields
-        expectTypeOf<InstructionDataOf<Simple>>().toEqualTypeOf<{ amount: bigint } | NonNullable<unknown>>();
+        // initialize (no args → empty struct)), accounts map to their struct fields
+        expectTypeOf<InstructionDataOf<Simple>>().toEqualTypeOf<{ amount: bigint } | Record<string, never>>();
         expectTypeOf<AccountDataOf<Simple>>().toEqualTypeOf<{ authority: string; count: bigint }>();
-        expectTypeOf<InstructionDataOf<Simple031>>().toEqualTypeOf<{ amount: bigint } | NonNullable<unknown>>();
+        expectTypeOf<InstructionDataOf<Simple031>>().toEqualTypeOf<{ amount: bigint } | Record<string, never>>();
         expectTypeOf<AccountDataOf<Simple031>>().toEqualTypeOf<{ authority: string; count: bigint }>();
     });
 

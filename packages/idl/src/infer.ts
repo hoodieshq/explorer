@@ -50,10 +50,15 @@ type ScalarMap = {
 // Non-scalar field types (defined/vec/option/…) stay unknown until they are needed.
 type FieldType<T> = T extends keyof ScalarMap ? ScalarMap[T] : unknown;
 
+// A no-field payload (a no-args instruction, an empty struct) — a real empty object, not the `{}` top type.
+type EmptyStruct = Record<string, never>;
+
 type FieldsObject<F> = F extends readonly { name: string; type: unknown }[]
     ? string extends F[number]['name']
         ? unknown // wide document — field names are not literal
-        : { [Item in F[number] as Item['name'] & string]: FieldType<Item['type']> }
+        : F extends readonly []
+          ? EmptyStruct
+          : { [Item in F[number] as Item['name'] & string]: FieldType<Item['type']> }
     : unknown;
 
 // Wide codama documents carry branded names (CamelCaseString); literal documents carry plain literals.
@@ -101,11 +106,11 @@ type CodamaValue<TRoot, TNode> = TNode extends { format: infer F; kind: 'numberT
                           : unknown;
 
 type CodamaFieldsObject<TRoot, F> = F extends readonly { name: string; type: unknown }[]
-    ? IsLiteralName<F[number]['name']> extends false
-        ? F extends readonly []
-            ? NonNullable<unknown>
-            : unknown // wide document — field names are not literal
-        : { [Item in F[number] as Item['name'] & string]: CodamaValue<TRoot, Item['type']> }
+    ? F extends readonly []
+        ? EmptyStruct
+        : IsLiteralName<F[number]['name']> extends false
+          ? unknown // wide document — field names are not literal
+          : { [Item in F[number] as Item['name'] & string]: CodamaValue<TRoot, Item['type']> }
     : unknown;
 
 type ResolveDefinedType<TRoot, N> = TRoot extends { program: { definedTypes: readonly (infer D)[] } }

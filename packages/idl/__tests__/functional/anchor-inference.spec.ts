@@ -30,9 +30,8 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
             expectTypeOf(simple).toEqualTypeOf<Simple>();
             // the anchor client keeps every arm (codama engine + injected-decoder anchor arm)
             expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
-            // the union covers every declared instruction: increment({amount}) | initialize (no args → {})
-            // TODO: check how to remove {} from the inferred type
-            expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
+            // the union covers every declared instruction: increment({amount}) | initialize (no args → empty struct)
+            expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | Record<string, never> | undefined>();
             expect(decode.kind).toBe(IdlStandard.Codama);
             expect(result).toMatchObject({ amount: 42n });
         });
@@ -60,7 +59,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
             const result = client.getDecodedData(decode);
 
             expectTypeOf(simple031).toEqualTypeOf<Simple031>();
-            expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
+            expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | Record<string, never> | undefined>();
             expect(decode.kind).toBe(IdlStandard.Codama);
             expect(result).toMatchObject({ amount: 42n });
         });
@@ -76,7 +75,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
             const result = client.getDecodedData(decode);
 
             expectTypeOf(simple031).toEqualTypeOf<Simple031>();
-            expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | NonNullable<unknown> | undefined>();
+            expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | Record<string, never> | undefined>();
             expect(decode.kind).toBe(IdlStandard.Codama);
             expect(result).toMatchObject({ amount: 42n });
         });
