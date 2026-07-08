@@ -33,17 +33,19 @@ Construction — untrusted input goes through the error-first route, typed input
 
 ```mermaid
 flowchart TD
-    RAW[unknown JSON<br/>RPC / PMP / upload] --> TRY["tryCreateIdlClient(idl)"]
-    TYPED["typed IDL (AnchorIdl | CodamaIdl)"] --> CREATE["createIdlClient(idl, options)"]
-    TRY -->|"isSupportedIdl fails"| ERR["[IdlError(UNSUPPORTED_IDL_FORMAT), undefined]"]
-    TRY -->|ok| CREATE
-    CREATE -->|"isSupportedIdl fails (lying type)"| THROW["throw IdlError(UNSUPPORTED_IDL_FORMAT)"]
-    CREATE -->|"no options (engine-free)"| METACLIENT["IdlMetaClient&lt;T&gt;<br/>readonly idl (guards narrow on it)<br/>name table precomputed from idl"]
-    CREATE -->|"{ provider } (or createCodamaIdlClient)"| CLIENT["IdlClient&lt;T&gt; = IdlMetaClient + decode surface"]
-    METACLIENT --> META["programAddress() / programName() /<br/>instructionName(data) — longest-prefix match"]
-    CLIENT --> DI["decodeInstruction(ix)"]
-    CLIENT --> DA["decodeAccount(data)"]
-    LEGACY["LegacyAnchorIdl (pre-0.30)"] -. "isLegacyAnchorIdl recognizes;<br/>client rejects at compile + runtime" .-> TRY
+    subgraph UNTRUSTED["Untrusted route — error-first"]
+        RAW["unknown JSON<br/>(RPC / PMP / upload)"] --> TRY["tryCreateIdlClient(idl)"]
+        TRY -->|"unsupported"| ERR["[IdlError(UNSUPPORTED_IDL_FORMAT), undefined]"]
+    end
+    subgraph TRUSTED["Trusted route — throws"]
+        TYPED["typed IDL<br/>(AnchorIdl | CodamaIdl)"]
+    end
+    TRY -->|"supported"| CREATE["createIdlClient(idl, options?)"]
+    TYPED --> CREATE
+    CREATE -->|"lying type"| THROW["throw IdlError(UNSUPPORTED_IDL_FORMAT)"]
+    CREATE -->|"no options"| META["IdlMetaClient&lt;T&gt;<br/>metadata + names"]
+    CREATE -->|"{ provider }"| CLIENT["IdlClient&lt;T&gt;<br/>metadata + decode surface"]
+    LEGACY["LegacyAnchorIdl (pre-0.30)"] -. "recognized, rejected" .-> TRY
 ```
 
 Instruction decode — single codama-normalized pipeline; the anchor arm exists only via the injected escape hatch:
