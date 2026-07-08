@@ -22,14 +22,14 @@ function idlAccountInfo(idl: AnchorIdl): { data: Buffer } {
 }
 
 // simple-031's IDL arrives through anchor's client: Program.fetchIdl over a mocked connection (no HTTP).
-// The optional generic mirrors `Program.fetchIdl<T>` — pass a companion type to flow inference, omit it
-// for the wide runtime shape (Anchor IDL JSON embeds no TS type of its own).
-export async function fetchSimple031Idl<T = AnchorIdl>(): Promise<T> {
+// The optional generic is anchor's own `Program.fetchIdl<T>` — pass a companion type to flow inference,
+// omit it for the wide runtime shape (Anchor IDL JSON embeds no TS type of its own).
+export async function fetchSimple031Idl<T extends AnchorIdl = AnchorIdl>(): Promise<T> {
     const raw = loadSimple031Idl();
     const provider = {
         connection: { getAccountInfo: async () => idlAccountInfo(raw) },
     } as unknown as Provider;
-    const fetched = await Program.fetchIdl(raw.address, provider);
+    const fetched = await Program.fetchIdl<T>(raw.address, provider);
     if (!fetched) throw new Error('mocked IDL account must resolve');
-    return fetched as unknown as T;
+    return fetched;
 }
