@@ -14,9 +14,8 @@ import token2022Idl from 'codama-fixtures/packages/dynamic-client/test/programs/
 import tokenIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/token-idl.json';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-// generated literal type (codama ships no target/types equivalent) — see scripts/generate-codama-types.mjs
-import { blogIdl as blogIdlTyped } from './generated/blog-idl';
 // renderers-js-rendered clients — codama's own codegen; type-only imports, erased at runtime
+import type { AccessGrant } from './generated/blog-client/accounts/accessGrant';
 import type { Multisig } from './generated/token-client/accounts/multisig';
 import type { SyncNativeInstructionData } from './generated/token-client/instructions/syncNative';
 import { base16, base64, DEFAULT_ADDRESS, encodeAccount } from './helpers';
@@ -24,43 +23,6 @@ import { base16, base64, DEFAULT_ADDRESS, encodeAccount } from './helpers';
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON documents are known codama roots (the sweep suite re-proves detection); the Instruction cast bridges codama tooling with the client */
 
 describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', () => {
-    describe('generated literal document — inference with no generics', () => {
-        it('should decode the blog accessGrant account with fields inferred from the document type', () => {
-            // the IDL signature of accessGrant, as codama's runtime represents it (bytes = [encoding, data])
-            type AccessGrantData = {
-                bump: number;
-                discriminator: [string, string];
-                permissions: [string, string];
-                profile: string;
-            };
-            // the GENERATED literal type drives inference — no per-call shape below
-            const client = createCodamaIdlClient(blogIdlTyped);
-            const bytes = encodeAccount(blogIdl as unknown as CodamaIdl, 'accessGrant', {
-                bump: 255,
-                discriminator: base16('a737b8ed4af2006d'),
-                permissions: base16('00000000'),
-                profile: DEFAULT_ADDRESS,
-            });
-
-            const decode = client.decodeAccount(bytes);
-
-            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-            const result = decode.decoded;
-            // inferred as the union of every blog account struct — which account matched is runtime knowledge
-            const data = client.getDecodedData(decode);
-
-            expectTypeOf<AccessGrantData>().toExtend<typeof data>();
-            expect(getLastNodeFromPath(result.path).name).toBe('accessGrant');
-            expect(data).toEqual({
-                bump: 255,
-                discriminator: base64('pze47UryAG0='),
-                permissions: base64('AAAAAA=='),
-                profile: DEFAULT_ADDRESS,
-            });
-        });
-    });
-
     describe('hand-written payload signatures — documents codama codegen rejects', () => {
         it('should decode the example dataAccount1 account with a hand-written type param', () => {
             // hand-written signature: renderers-js rejects this document (circular account defaults)
@@ -125,6 +87,40 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
 
     describe('rendered client types — AsDecoded bridges renderers-js output', () => {
         const document = tokenIdl as unknown as CodamaIdl;
+
+        /** Case: the consumer flow verbatim — the wide IDL JSON at runtime, the payload type from the rendered client. */
+        it('should decode the blog accessGrant account from codec-encoded bytes', () => {
+            const blogDocument = blogIdl as unknown as CodamaIdl;
+            const client = createCodamaIdlClient(blogDocument);
+            const bytes = encodeAccount(blogDocument, 'accessGrant', {
+                bump: 255,
+                discriminator: base16('a737b8ed4af2006d'),
+                permissions: base16('00000000'),
+                profile: DEFAULT_ADDRESS,
+            });
+
+            const decode = client.decodeAccount(bytes);
+
+            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
+
+            const result = decode.decoded;
+            // the payload type comes from the rendered blog client, bridged to parser output
+            const data = client.getDecodedData<AsDecoded<AccessGrant>>(decode);
+
+            expectTypeOf(data).toEqualTypeOf<{
+                bump: number;
+                discriminator: [string, string];
+                permissions: [string, string];
+                profile: string;
+            }>();
+            expect(getLastNodeFromPath(result.path).name).toBe('accessGrant');
+            expect(data).toEqual({
+                bump: 255,
+                discriminator: base64('pze47UryAG0='),
+                permissions: base64('AAAAAA=='),
+                profile: DEFAULT_ADDRESS,
+            });
+        });
 
         /** Case: no codama tooling on the encode side — the raw document alone is enough to decode hand-built bytes. */
         it('should decode the token syncNative instruction from raw hand-built bytes', () => {

@@ -1,0 +1,8 @@
+{
+    "name": "@explorer/test-idl-program-memo",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": "./memo.pmp.idl.json"
+    }
+}

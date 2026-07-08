@@ -9,6 +9,8 @@ import {
     tryCreateIdlClient,
 } from '@explorer/idl';
 import { createCodamaIdlClient } from '@explorer/idl/codama';
+// mainnet PMP snapshot in test-codama-programs (fetched with the @solana-program/program-metadata CLI)
+import memoIdl from '@explorer/test-idl-program-memo';
 import type { Instruction } from '@solana/kit';
 import { getLastNodeFromPath } from 'codama';
 import associatedTokenAccountIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/associated-token-account-idl.json';
@@ -31,6 +33,8 @@ import { buildInstruction, DEFAULT_ADDRESS, fetchedJson } from './helpers';
 
 // Every document decodes one instruction built by codama's OWN dynamic client; the rows share one
 // widened type (CodamaIdl), so a table loses no inference — typed routes live in the other suite.
+// 9 of the 12 fixtures — the other 3 declare no discriminator nodes, so a decode-success test is
+// impossible for them; they live in DISCRIMINATOR_LESS_DOCUMENTS with the unknown-arm contract.
 const DECODABLE_DOCUMENTS = [
     {
         document: associatedTokenAccountIdl as unknown as CodamaIdl,
@@ -99,6 +103,41 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
             if (decode.kind !== 'unknown') throw new Error('expected the unknown arm');
             // codama's parser throws on some discriminator-less documents — surfaced per the errors contract
             expect(decode.errors.every(error => error.code === IDL_ERROR__INSTRUCTION_DECODE_FAILED)).toBe(true);
+        });
+    });
+
+    // SPL Memo v4: ONE instruction, remainder utf8 arg, no discriminator — a real PMP snapshot, the
+    // fixtures tarball ships no such document. codama merged a single-candidate identification
+    // fallback (https://github.com/codama-idl/codama/pull/1010); it ships with dynamic-parsers 1.2.3.
+    describe('memo (single discriminator-less instruction)', () => {
+        const document = memoIdl as unknown as CodamaIdl;
+
+        function decodeMemo() {
+            const client = createCodamaIdlClient(document);
+            const decode = client.decodeInstruction({
+                accounts: [],
+                data: new TextEncoder().encode('Hello, Memo!'),
+                programAddress: document.program.publicKey as Instruction['programAddress'],
+            });
+            return { client, decode };
+        }
+
+        // DELETE this case when unskipping the one below — it pins the pre-fallback behavior on purpose
+        it('should stay on the unknown arm until the dynamic-parsers fallback ships', () => {
+            const { decode } = decodeMemo();
+
+            if (decode.kind !== 'unknown') throw new Error('expected the unknown arm');
+            expect(decode.errors.every(error => error.code === IDL_ERROR__INSTRUCTION_DECODE_FAILED)).toBe(true);
+        });
+
+        // unskip after bumping @codama/dynamic-parsers to >= 1.2.3
+        it.skip('should decode the single discriminator-less instruction via the fallback', () => {
+            const { client, decode } = decodeMemo();
+
+            if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
+
+            expect(getLastNodeFromPath(decode.decoded.path).name).toBe('addMemo');
+            expect(client.getDecodedData<{ memo: string }>(decode)).toEqual({ memo: 'Hello, Memo!' });
         });
     });
 

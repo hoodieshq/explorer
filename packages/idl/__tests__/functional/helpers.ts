@@ -6,7 +6,6 @@ import type { CodamaIdl, CodamaIdlInput } from '@explorer/idl';
 import type { Instruction } from '@solana/kit';
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the documents are known codama roots (detection is re-proven per test); NodePath/Instruction casts bridge codama tooling with the client */
-
 export const DEFAULT_ADDRESS = '11111111111111111111111111111111';
 
 // dynamic-codecs represents bytesTypeNode values as [encoding, data] tuples; the parsers READ them
