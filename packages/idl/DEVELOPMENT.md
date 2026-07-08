@@ -10,7 +10,7 @@ pnpm --filter @explorer/idl test:watch  # vitest watch mode
 pnpm --filter @explorer/idl typecheck   # tsc --noEmit
 ```
 
-`test` runs `build:programs` first via the `pretest` hook, so running the suite needs the toolchain listed below. Specs consume the generated IDLs through `loadSimpleIdl` / `loadSimple031Idl` (re-exported from `src/__tests__/generated/`), which resolve the `@explorer/idl-program-*` packages — each exports its live `target/idl/*.json`.
+`test` runs `build:programs` first via the `pretest` hook, so running the suite needs the toolchain listed below. Specs consume the generated IDLs through `loadSimpleIdl` / `loadSimpleIdlTyped` / `loadSimple031Idl` (re-exported from `src/__tests__/generated/` via `src/__tests__/fixtures.ts`), which resolve the `@explorer/test-idl-program-*` packages — each exports its live `target/idl/*.json`.
 
 ## Building the fixture programs
 
@@ -21,7 +21,12 @@ pnpm --filter @explorer/idl typecheck   # tsc --noEmit
 
 Both implement the same minimal program (one account, one instruction argument, one error, one event), so their IDLs are directly comparable across Anchor versions.
 
-Ready-made IDLs come from the `codama-fixtures` devDependency (a pinned tarball of the codama repo): functional specs import its `dynamic-client` test IDLs as-is, and `scripts/generate-codama-types.mjs` renders typed clients from them into `__tests__/functional/generated/`.
+`test-codama-programs/` holds Codama fixtures that need no build — plain data consumed directly:
+
+- `test-codama-programs/memo` (`@explorer/test-idl-program-memo`) — a real PMP root-node snapshot (single discriminator-less instruction)
+- `test-codama-programs/vault` (`@explorer/test-idl-program-vault`) — an `as const` root node whose literal type drives the codama inference specs
+
+Ready-made IDLs also come from the `codama-fixtures` devDependency (a pinned tarball of the codama repo): functional specs import its `dynamic-client` test IDLs as-is, and `scripts/generate-codama-types.mjs` renders typed clients from them into `__tests__/functional/generated/`.
 
 Prerequisites:
 
@@ -38,8 +43,8 @@ pnpm --filter @explorer/idl build:programs
 or one at a time:
 
 ```sh
-pnpm --filter @explorer/idl-program-simple build
-pnpm --filter @explorer/idl-program-simple-031 build
+pnpm --filter @explorer/test-idl-program-simple build
+pnpm --filter @explorer/test-idl-program-simple-031 build
 ```
 
 Generated IDLs land in each workspace's `target/idl/` (gitignored) and reach the tests through each program package's `exports` — no copying step.

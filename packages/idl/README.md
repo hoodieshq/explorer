@@ -44,6 +44,17 @@ import { createIdlClient, type IdlMetaClient } from '@explorer/idl';
 
 // names and metadata only — decode methods do not exist on the type
 const meta: IdlMetaClient = createIdlClient(idl);
+
+meta.programName(); // 'Token' — undefined if the IDL declares none
+meta.programAddress(); // 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+```
+
+`instructionName` resolves an instruction's name from its data bytes alone — a longest-prefix match
+against the IDL's discriminators, no decode engine needed. Pass the raw `data` of a `@solana/kit`
+instruction:
+
+```ts
+meta.instructionName(instruction.data); // 'Transfer' — undefined when no discriminator matches
 ```
 
 ## Decoding client
