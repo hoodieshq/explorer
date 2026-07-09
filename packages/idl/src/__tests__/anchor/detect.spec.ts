@@ -14,8 +14,8 @@ import {
     loadLetMeBuyPmpIdl,
     loadSimple031Idl,
     loadSimpleIdl,
+    loadNtt029Idl,
     loadTokenkegIdl,
-    pre030AnchorIdl,
 } from '../fixtures';
 
 describe('isAnchorIdl', () => {
@@ -26,7 +26,7 @@ describe('isAnchorIdl', () => {
     });
 
     it('should reject a legacy Anchor IDL', () => {
-        expect(isAnchorIdl(pre030AnchorIdl)).toBe(false);
+        expect(isAnchorIdl(loadNtt029Idl())).toBe(false);
     });
 
     it('should reject a modern Anchor shape whose program address is missing or empty', () => {

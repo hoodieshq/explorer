@@ -6,26 +6,29 @@ import { tryCreateIdlClient } from '../../client';
 import { isLegacyAnchorIdl } from '../../detect';
 import { IDL_ERROR__UNSUPPORTED_IDL_FORMAT } from '../../errors';
 import type { LegacyAnchorIdl } from '../../types';
-import { PRE030_WITHDRAW_DISCRIMINATOR, pre030AnchorIdl, pre030WithdrawIx } from '../fixtures';
+import { loadNtt029Idl, NTT_TRANSFER_BURN_DISCRIMINATOR, ntt029TransferIx } from '../fixtures';
 
 describe('legacy Anchor custom decoder route', () => {
     it('should refuse the legacy document with a typed error', () => {
-        const [error, client] = tryCreateIdlClient(pre030AnchorIdl);
+        const [error, client] = tryCreateIdlClient(loadNtt029Idl());
         expect(client).toBeUndefined();
         expect(error?.code).toBe(IDL_ERROR__UNSUPPORTED_IDL_FORMAT);
     });
 
     it('should route the document to a consumer-owned decoder via the guard', () => {
-        expect(isLegacyAnchorIdl(pre030AnchorIdl)).toBe(true);
-        expect(decodeLegacyWithdraw(pre030AnchorIdl, pre030WithdrawIx)).toEqual({ amount: 42n, name: 'withdraw' });
+        expect(isLegacyAnchorIdl(loadNtt029Idl())).toBe(true);
+        expect(decodeLegacyTransferBurn(loadNtt029Idl(), ntt029TransferIx)).toEqual({
+            amount: 42n,
+            name: 'transferBurn',
+        });
     });
 });
 
 // Stand-in for a consumer-owned legacy decoder: match the sha256-derived discriminator, read the args.
-function decodeLegacyWithdraw(idl: LegacyAnchorIdl, ix: Instruction): { amount: bigint; name: string } | undefined {
+function decodeLegacyTransferBurn(idl: LegacyAnchorIdl, ix: Instruction): { amount: bigint; name: string } | undefined {
     const data = ix.data ? Uint8Array.from(ix.data) : new Uint8Array();
-    const matches = PRE030_WITHDRAW_DISCRIMINATOR.every((byte, i) => data[i] === byte);
-    if (!matches || !idl.instructions.some(item => item.name === 'withdraw')) return undefined;
-    const view = new DataView(data.buffer, data.byteOffset + PRE030_WITHDRAW_DISCRIMINATOR.length);
-    return { amount: view.getBigUint64(0, true), name: 'withdraw' };
+    const matches = NTT_TRANSFER_BURN_DISCRIMINATOR.every((byte, i) => data[i] === byte);
+    if (!matches || !idl.instructions.some(item => item.name === 'transferBurn')) return undefined;
+    const view = new DataView(data.buffer, data.byteOffset + NTT_TRANSFER_BURN_DISCRIMINATOR.length);
+    return { amount: view.getBigUint64(0, true), name: 'transferBurn' };
 }

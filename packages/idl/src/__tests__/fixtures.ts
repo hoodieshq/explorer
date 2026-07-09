@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 import { address, type Instruction } from '@solana/kit';
@@ -64,32 +65,20 @@ export const transferIx = (idl: CodamaIdl): Instruction & { accounts: []; data: 
     };
 };
 
-export const PRE030_PROGRAM_ADDRESS = '11111111111111111111111111111111';
-// sha256('global:<name>')[0..8] derivation; exact bytes are irrelevant — the custom decoder just has to know them.
-export const PRE030_WITHDRAW_DISCRIMINATOR = [183, 18, 70, 156, 148, 109, 161, 34];
+// wormhole NTT's real mainnet program id (declare_id! in example-native-token-transfers) — a real
+// pre-0.30 Anchor program, so the legacy fixtures don't impersonate the System Program (`1111…`).
+export const NTT_PROGRAM_ADDRESS = 'nttiK1SepaQt6sZ4WGW5whvc9tEnGXGxuKeptcQPCcS';
+// Anchor (<= 0.29) derives an instruction discriminator as sha256('global:<snake_case_name>')[..8].
+const legacyAnchorDiscriminator = (snakeName: string): number[] =>
+    Array.from(createHash('sha256').update(`global:${snakeName}`).digest().subarray(0, 8));
+// The real discriminator for NTT's `transfer_burn` instruction (its IDL name is the camelCase `transferBurn`).
+export const NTT_TRANSFER_BURN_DISCRIMINATOR = legacyAnchorDiscriminator('transfer_burn');
 // Valid discriminator width, intentionally undeclared by the simple program.
 export const undeclaredInstructionData = () => Uint8Array.from([9, 9, 9, 9, 9, 9, 9, 9]);
 
-/** A pre-0.30 Anchor IDL: top-level name/version, no `metadata.spec` — rejected by the client. */
-export const pre030AnchorIdl: LegacyAnchorIdl = {
-    instructions: [{ name: 'withdraw' }],
-    name: 'legacy_vault',
-    version: '0.0.1',
-};
-
-/** The legacy_vault document as pre-0.30 codegen shipped it — literal-typed, with args and an extra instruction. */
-export const pre030GeneratedAnchorIdl = {
-    instructions: [
-        { args: [{ name: 'amount', type: 'u64' }], name: 'withdraw' },
-        { args: [], name: 'close' },
-    ],
-    name: 'legacy_vault',
-    version: '0.0.1',
-} as const;
-
-/** `withdraw(amount: 42)` against {@link pre030AnchorIdl}, as a kit instruction. */
-export const pre030WithdrawIx: Instruction & { accounts: []; data: Uint8Array } = {
+/** A real anchor-0.29 instruction's bytes — NTT `transfer_burn` (real id + derived discriminator + a u64 arg). */
+export const ntt029TransferIx: Instruction & { accounts: []; data: Uint8Array } = {
     accounts: [],
-    data: new Uint8Array([...PRE030_WITHDRAW_DISCRIMINATOR, ...u64le(42n)]),
-    programAddress: address(PRE030_PROGRAM_ADDRESS),
+    data: new Uint8Array([...NTT_TRANSFER_BURN_DISCRIMINATOR, ...u64le(42n)]),
+    programAddress: address(NTT_PROGRAM_ADDRESS),
 };

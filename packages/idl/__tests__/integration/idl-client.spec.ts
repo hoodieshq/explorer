@@ -38,10 +38,11 @@ import {
     loadLetMeBuyPmpIdl,
     loadSimpleIdl,
     loadTokenkegIdl,
-    pre030AnchorIdl,
-    pre030WithdrawIx,
+    loadNtt029Idl,
+    ntt029TransferIx,
     transferIx,
     u64le,
+    undeclaredInstructionData,
 } from '../../src/__tests__/fixtures';
 import { unwrap } from '../../src/__tests__/unwrap';
 import { fetchSimple031Idl } from '../anchor-helpers';
@@ -303,7 +304,7 @@ describe('decoding: modern Anchor documents', () => {
 describe('decoding: legacy Anchor documents', () => {
     // A realistic gap: the program executes an instruction its published IDL does not declare (an
     // upgrade outran the document). The consumer injects a decoder that knows the missing layout.
-    const AIRDROP_DISCRIMINATOR = [9, 9, 9, 9, 9, 9, 9, 9];
+    const AIRDROP_DISCRIMINATOR = undeclaredInstructionData();
 
     function clientWithLegacyDecoder() {
         return createCodamaIdlClient(loadSimpleIdl(), {
@@ -377,13 +378,13 @@ describe('decoding: legacy Anchor documents', () => {
     /** Case: a pre-0.30 document gets a typed refusal, and the guard routes it to consumer-owned decoding. */
     it('should refuse legacy documents and route them to consumer-owned decoding', () => {
         // the client refuses with a typed error...
-        const [error] = tryCreateIdlClient(pre030AnchorIdl);
+        const [error] = tryCreateIdlClient(loadNtt029Idl());
         expect(error?.code).toBe(IDL_ERROR__UNSUPPORTED_IDL_FORMAT);
 
         // ...the guard identifies the document, and the consumer decodes it themselves
         // (see legacy-anchor/custom-decoder.spec.ts for a working Borsh-style legacy decoder)
-        expect(isLegacyAnchorIdl(pre030AnchorIdl)).toBe(true);
-        expect(pre030WithdrawIx.data.length).toBeGreaterThan(8);
+        expect(isLegacyAnchorIdl(loadNtt029Idl())).toBe(true);
+        expect(ntt029TransferIx.data.length).toBeGreaterThan(8);
     });
 });
 

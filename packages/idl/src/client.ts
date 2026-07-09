@@ -44,7 +44,7 @@ export type IdlClientOptions = LegacyDecoderOptions & {
     provider: IdlDecodeProvider;
 };
 
-/** Engine-free client over one IDL — names and metadata only; decoding requires a provider (see `IdlClient`). */
+/** Engine-free client over one IDL — names and metadata only; decoding requires a provider (see {@link IdlClient}). */
 export type IdlMetaClient<T extends SupportedIdlInput = SupportedIdl> = {
     readonly idl: T;
     programAddress(): string | undefined;
@@ -58,7 +58,7 @@ export type IdlMetaClient<T extends SupportedIdlInput = SupportedIdl> = {
 
 /**
  * Parsed-data client over one IDL. Decode results narrow statically to the IDL's standard;
- * handler-map overloads let consumers declare outcomes instead of branching; `getDecodedData`
+ * handler-map overloads let consumers declare outcomes instead of branching; {@link getDecodedData}
  * payload types derive from the IDL type (literal documents infer, wide runtime documents degrade
  * to `unknown` — declare the shape per call in that case).
  */
@@ -71,9 +71,9 @@ export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClien
         (data: Uint8Array): AccountDecodeFor<T>;
         <R>(data: Uint8Array, handlers: AccountHandlers<T, R>): R;
     };
-    /** `decodeAccount` + `getDecodedData` in one error-first step; a mismatched `expectedKind` is an error. */
+    /** {@link decodeAccount} + {@link getDecodedData} in one error-first step; a mismatched `expectedKind` is an error. */
     decodeAccountData: <TData = AccountDataOf<T>>(data: Uint8Array, expectedKind?: IdlStandard) => Result<TData>;
-    /** `decodeInstruction` + `getDecodedData` in one error-first step; a mismatched `expectedKind` is an error. */
+    /** {@link decodeInstruction} + {@link getDecodedData} in one error-first step; a mismatched `expectedKind` is an error. */
     decodeInstructionData: <TData = InstructionDataOf<T>>(ix: Instruction, expectedKind?: IdlStandard) => Result<TData>;
     /** Decoded payload typed from the IDL; `undefined` only for the unknown arm — narrowing `decode.kind` first drops it. */
     getDecodedData: {
@@ -86,7 +86,7 @@ export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClien
 
 /**
  * Client for a known-supported IDL; throws on a value that fails runtime detection (lying type) —
- * use `tryCreateIdlClient` for untrusted input. Assumes the IDL is not mutated after construction
+ * use {@link tryCreateIdlClient} for untrusted input. Assumes the IDL is not mutated after construction
  * (the instruction name table is precomputed).
  */
 export function createIdlClient<T extends SupportedIdlInput>(idl: T, options: IdlClientOptions): IdlClient<T>;
