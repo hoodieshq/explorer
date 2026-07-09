@@ -19,5 +19,5 @@
             }
         }
     ],
-    "ignorePatterns": ["dist/**", "node_modules/**", "test-anchor-programs/**"]
+    "ignorePatterns": ["dist/**", "node_modules/**", "test-anchor-programs/**", "__fixtures__/**"]
 }

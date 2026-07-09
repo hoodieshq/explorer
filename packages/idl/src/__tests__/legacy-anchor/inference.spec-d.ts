@@ -6,7 +6,7 @@ import { createIdlClient, type IdlMetaClient, tryCreateIdlClient } from '../../c
 import { isLegacyAnchorIdl } from '../../detect';
 import { IDL_ERROR__UNSUPPORTED_IDL_FORMAT, type IdlError } from '../../errors';
 import type { LegacyAnchorIdl } from '../../types';
-import { pre030AnchorIdl, pre030GeneratedAnchorIdl, pre030WithdrawIx } from '../fixtures';
+import { loadNtt029IdlTyped, pre030AnchorIdl, pre030GeneratedAnchorIdl, pre030WithdrawIx } from '../fixtures';
 
 describe('sample: legacy Anchor (< 0.30) IDL — custom decoder outside the client', () => {
     it('should reject a legacy IDL at compile time in the typed constructor', () => {
@@ -40,6 +40,15 @@ declare function decodeLegacy<T extends LegacyAnchorIdl>(
 describe('sample: legacy Anchor with generated types', () => {
     it('should satisfy the LegacyAnchorIdl contract with a const-asserted generated document', () => {
         expectTypeOf(pre030GeneratedAnchorIdl).toExtend<LegacyAnchorIdl>();
+    });
+
+    it('should satisfy the LegacyAnchorIdl contract with a real anchor-0.29 companion type (NTT)', () => {
+        expectTypeOf(loadNtt029IdlTyped()).toExtend<LegacyAnchorIdl>();
+    });
+
+    it('should reject the real NTT 0.29 document in the client at compile time', () => {
+        // @ts-expect-error a real legacy IDL is not SupportedIdl either
+        createIdlClient(loadNtt029IdlTyped());
     });
 
     it('should give the custom decoder literal instruction-name guidance from the generated type', () => {

@@ -10,7 +10,7 @@ pnpm --filter @explorer/idl test:watch  # vitest watch mode
 pnpm --filter @explorer/idl typecheck   # tsc --noEmit
 ```
 
-Running the suite needs **no** Rust/Anchor toolchain: specs consume committed snapshots of the Anchor IDLs (`src/__tests__/generated/simple*.json` + companion `*.types.ts`) through `loadSimpleIdl` / `loadSimpleIdlTyped` / `loadSimple031Idl` (re-exported from `src/__tests__/generated/` via `src/__tests__/fixtures.ts`). The toolchain below is only needed to **regenerate** those snapshots after changing the Rust programs.
+Running the suite needs **no** Rust/Anchor toolchain: specs consume committed snapshots of the Anchor IDLs (`__fixtures__/simple.json` + companion `__fixtures__/simple.ts`, and the `simple_031` pair) through `loadSimpleIdl` / `loadSimpleIdlTyped` / `loadSimple031Idl` (defined in `src/__tests__/fixtures.ts`, which reads `packages/idl/__fixtures__/`). The toolchain below is only needed to **regenerate** those snapshots after changing the Rust programs.
 
 ## Building the fixture programs
 
@@ -47,7 +47,7 @@ pnpm --filter @explorer/test-idl-program-simple build
 pnpm --filter @explorer/test-idl-program-simple-031 build
 ```
 
-`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and then copies them into the committed snapshots under `src/__tests__/generated/` (via `scripts/copy-anchor-artifacts.mjs`). It is a standalone regeneration step, never part of the test pipeline:
+`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and then copies them into the committed snapshots under `__fixtures__/` (via `scripts/copy-anchor-artifacts.mjs`). It is a standalone regeneration step, never part of the test pipeline:
 
 ```sh
 pnpm --filter @explorer/idl build:programs   # anchor build + copy into the committed snapshots

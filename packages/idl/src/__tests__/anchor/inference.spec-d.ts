@@ -6,8 +6,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { type IdlClient, isAnchorStandard } from '../../client';
 import { createCodamaIdlClient } from '../../codama/index';
 import { type AnchorIdl, type CodamaIdl, IdlStandard, type InstructionDecode } from '../../types';
-import { incrementIx, loadSimpleIdl } from '../fixtures';
-import type { Simple } from '@explorer/test-idl-program-simple/types';
+import { incrementIx, loadSimpleIdl, type Simple } from '../fixtures';
 
 const anchorIdl = loadSimpleIdl();
 const anchorIncrementIx = incrementIx(anchorIdl);

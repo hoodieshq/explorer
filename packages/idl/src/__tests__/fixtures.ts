@@ -1,14 +1,37 @@
+import { readFileSync } from 'node:fs';
+
 import { address, type Instruction } from '@solana/kit';
 
 import type { AnchorIdl, CodamaIdl, LegacyAnchorIdl } from '../types';
+import type { ExampleNativeTokenTransfers } from '../../__fixtures__/ntt';
+import type { Simple } from '../../__fixtures__/simple';
+import type { Simple031 } from '../../__fixtures__/simple_031';
 
-export { loadLetMeBuyIdl, loadLetMeBuyPmpIdl } from './generated/let-me-buy';
-// companion types are committed snapshots of the anchor build output (see ./generated/*.types.ts)
-export { type Simple } from './generated/simple.types';
-export { type Simple031 } from './generated/simple-031.types';
-export { loadSimple031Idl, loadSimple031IdlTyped } from './generated/simple-031';
-export { loadSimpleIdl, loadSimpleIdlTyped } from './generated/simple';
-export { loadTokenkegIdl } from './generated/tokenkeg';
+export type { ExampleNativeTokenTransfers, Simple, Simple031 };
+
+// Committed fixtures in idl/__fixtures__: real mainnet snapshots (let-me-buy, tokenkeg) and
+// copied `anchor build` output (simple, simple-031 — refreshed by `pnpm run build:programs`).
+const readIdl = (name: string): unknown =>
+    JSON.parse(readFileSync(new URL(`../../__fixtures__/${name}`, import.meta.url), 'utf8'));
+
+/** let_me_buy's IDL from its Anchor PDA (mainnet snapshot). */
+export const loadLetMeBuyIdl = (): AnchorIdl => readIdl('let-me-buy.anchor.idl.json') as AnchorIdl;
+/** let_me_buy's IDL from its PMP `idl` account — Anchor-format there too. */
+export const loadLetMeBuyPmpIdl = (): AnchorIdl => readIdl('let-me-buy.pmp.idl.json') as AnchorIdl;
+/** SPL Token's PMP-stored Codama root node (mainnet snapshot). */
+export const loadTokenkegIdl = (): CodamaIdl => readIdl('tokenkeg.pmp.idl.json') as CodamaIdl;
+/** IDL emitted by `anchor build` (anchor-lang 1.1.2) for `test-anchor-programs/simple`. */
+export const loadSimpleIdl = (): AnchorIdl => readIdl('simple.json') as AnchorIdl;
+/** Same document typed with anchor's companion type — its camelCase view matches decoded payload keys. */
+export const loadSimpleIdlTyped = (): Simple => readIdl('simple.json') as Simple;
+/** IDL emitted by `anchor build` (anchor-lang 0.31.1) for `test-anchor-programs/simple-031`. */
+export const loadSimple031Idl = (): AnchorIdl => readIdl('simple_031.json') as AnchorIdl;
+/** Same document typed with anchor's companion type. */
+export const loadSimple031IdlTyped = (): Simple031 => readIdl('simple_031.json') as Simple031;
+/** Real anchor-0.29 (legacy, pre-0.30) IDL — wormhole NTT `example_native_token_transfers` v3.0.0, vendored as a test sample. */
+export const loadNtt029Idl = (): LegacyAnchorIdl => readIdl('ntt.json') as LegacyAnchorIdl;
+/** The same document typed with anchor 0.29's companion type (`export type` + a runtime `IDL` const). */
+export const loadNtt029IdlTyped = (): ExampleNativeTokenTransfers => readIdl('ntt.json') as ExampleNativeTokenTransfers;
 
 export const u64le = (value: bigint): number[] => {
     const bytes = new Uint8Array(8);
