@@ -28,18 +28,18 @@ import {
     type AccountHandlers,
     type AnchorIdl,
     type CodamaIdl,
+    type FallbackDecoderOptions,
     type IdlDecodeProvider,
     IdlStandard,
     type InstructionDecode,
     type InstructionDecodeFor,
     type InstructionHandlers,
     type IdlVersion,
-    type LegacyDecoderOptions,
     type SupportedIdl,
     type SupportedIdlInput,
 } from './types.js';
 
-export type IdlClientOptions = LegacyDecoderOptions & {
+export type IdlClientOptions = FallbackDecoderOptions & {
     /** Decode engine — an explicit choice so processes that never decode never load one ('@explorer/idl/codama' ships the default). */
     provider: IdlDecodeProvider;
 };
@@ -110,12 +110,12 @@ export function createIdlClient<T extends SupportedIdlInput>(
     };
     if (!options) return metaClient;
 
-    const { provider, ...legacyOptions } = options;
+    const { provider, ...fallbackOptions } = options;
 
     function decodeInstruction(ix: Instruction): InstructionDecodeFor<T>;
     function decodeInstruction<R>(ix: Instruction, handlers: InstructionHandlers<T, R>): R;
     function decodeInstruction<R>(ix: Instruction, handlers?: InstructionHandlers<T, R>) {
-        const decode = provider.decodeInstruction(supportedIdl, ix, legacyOptions);
+        const decode = provider.decodeInstruction(supportedIdl, ix, fallbackOptions);
         if (!handlers) return decode;
         return dispatch(decode, handlers);
     }
@@ -123,7 +123,7 @@ export function createIdlClient<T extends SupportedIdlInput>(
     function decodeAccount(data: Uint8Array): AccountDecodeFor<T>;
     function decodeAccount<R>(data: Uint8Array, handlers: AccountHandlers<T, R>): R;
     function decodeAccount<R>(data: Uint8Array, handlers?: AccountHandlers<T, R>) {
-        const decode = provider.decodeAccount(supportedIdl, data);
+        const decode = provider.decodeAccount(supportedIdl, data, fallbackOptions);
         if (!handlers) return decode;
         return dispatch(decode, handlers);
     }

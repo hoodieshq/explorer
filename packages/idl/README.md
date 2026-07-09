@@ -136,7 +136,7 @@ const args = client.decodeInstruction(instruction, {
 ```
 
 A raw Anchor IDL client also carries `anchor`, so its map must include that branch — even though the
-arm only fires once a legacy decoder fills it (see [below](#legacy-anchor-idls)).
+arm only fires once a fallback decoder fills it (see [below](#legacy-anchor-idls)).
 
 ## Decoding accounts
 
@@ -150,8 +150,7 @@ if (decode.kind === IdlStandard.Codama) {
 }
 ```
 
-`decodeAccount` takes the same handler map as `decodeInstruction`. Accounts never produce the
-`anchor` arm at runtime — there is no account-level legacy decoder — so a Codama-root client's map is
+`decodeAccount` takes the same handler map as `decodeInstruction`. A Codama-root client's map is
 `codama` / `unknown`:
 
 ```ts
@@ -161,8 +160,9 @@ const summary = client.decodeAccount(accountData, {
 });
 ```
 
-A raw Anchor IDL client's type still requires an `anchor` branch here, though it can never fire — a
-rough edge of keying the arm on the IDL standard rather than on decoder availability.
+A raw Anchor IDL client also carries the `anchor` branch — like the instruction side, it fires only
+when a wired `fallbackDecoder.decodeAccount` rescues data the pipeline missed (see
+[below](#legacy-anchor-idls)).
 
 ## Typed payloads — four routes
 
@@ -266,13 +266,14 @@ if (!error) {
 
 Left to convert internally, a nodes-from-anchor failure is *not* silent: the decode falls to the
 `unknown` arm with the conversion error in `decode.errors` — a pipeline failure, not a plain miss
-(`errors: []`). With a `legacyAnchorDecoder` wired, a successful rescue lands on the `anchor` arm
+(`errors: []`). With a `fallbackDecoder` wired, a successful rescue lands on the `anchor` arm
 instead, the conversion error preserved in `recoveredFrom`.
 
 ## Legacy Anchor IDLs
 
 Pre-0.30 IDLs route to consumer-owned decoding; modern IDLs the conversion route cannot
-handle get an injected escape hatch — its result lands in the anchor arm:
+handle get an injected escape hatch — its result lands in the anchor arm, for instructions and
+accounts alike:
 
 ```ts
 import { isLegacyAnchorIdl } from '@explorer/idl';
@@ -280,7 +281,10 @@ import { isLegacyAnchorIdl } from '@explorer/idl';
 isLegacyAnchorIdl(idl); // true → decode it yourself; the client will not accept it
 
 const client = createCodamaIdlClient(idl, {
-    legacyAnchorDecoder: (idl, ix) => myCustomDecode(idl, ix),
+    fallbackDecoder: {
+        decodeAccount: (idl, data) => myCustomAccountDecode(idl, data),
+        decodeInstruction: (idl, ix) => myCustomDecode(idl, ix),
+    },
 });
 ```
 
@@ -289,15 +293,15 @@ return `undefined` and it falls through to the `unknown` arm. It never guesses �
 anchor result.
 
 Here all three arms are live — the handler map is worth it: `codama` for instructions the
-conversion decoded, `anchor` for those your legacy decoder rescued, `unknown` for the rest.
+conversion decoded, `anchor` for those your fallback decoder rescued, `unknown` for the rest.
 `createCodamaIdlClient` pre-wires the engine, so no provider is passed at the call site:
 
 ```ts
-const client = createCodamaIdlClient(idl, { legacyAnchorDecoder });
+const client = createCodamaIdlClient(idl, { fallbackDecoder });
 
 const label = client.decodeInstruction(instruction, {
     codama: decode => client.getDecodedData(decode), // converted + decoded natively
-    anchor: decode => decode.decoded, // rescued by your legacy decoder (decode.recoveredFrom holds bypassed errors)
+    anchor: decode => decode.decoded, // rescued by your fallback decoder (decode.recoveredFrom holds bypassed errors)
     unknown: () => undefined,
 });
 ```

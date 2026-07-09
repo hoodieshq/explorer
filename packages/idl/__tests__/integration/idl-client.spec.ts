@@ -288,7 +288,7 @@ describe('decoding: modern Anchor documents', () => {
         const simple = loadSimpleIdl();
         const client = createIdlClient(simple, { provider: codamaProvider() });
 
-        // anchor is required (it's in an Anchor client's union) though only a legacy decoder makes it fire; codama runs here
+        // anchor is required (it's in an Anchor client's union) though only a fallback decoder makes it fire; codama runs here
         const outcome = client.decodeInstruction(incrementIx(simple), {
             anchor: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'anchor' }),
             codama: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'codama' }),
@@ -306,14 +306,15 @@ describe('decoding: legacy Anchor documents', () => {
     // upgrade outran the document). The consumer injects a decoder that knows the missing layout.
     const AIRDROP_DISCRIMINATOR = undeclaredInstructionData();
 
-    function clientWithLegacyDecoder() {
+    function clientWithFallbackDecoder() {
         return createCodamaIdlClient(loadSimpleIdl(), {
-            // TODO: either rename to InstructionDecoder, OR support account decoding
-            legacyAnchorDecoder: (idl, ix) => {
-                const data = ix.data ? Uint8Array.from(ix.data) : new Uint8Array();
-                if (!AIRDROP_DISCRIMINATOR.every((byte, i) => data[i] === byte)) return undefined;
-                const view = new DataView(data.buffer, data.byteOffset + AIRDROP_DISCRIMINATOR.length);
-                return { amount: view.getBigUint64(0, true), name: 'airdrop' };
+            fallbackDecoder: {
+                decodeInstruction: (idl, ix) => {
+                    const data = ix.data ? Uint8Array.from(ix.data) : new Uint8Array();
+                    if (!AIRDROP_DISCRIMINATOR.every((byte, i) => data[i] === byte)) return undefined;
+                    const view = new DataView(data.buffer, data.byteOffset + AIRDROP_DISCRIMINATOR.length);
+                    return { amount: view.getBigUint64(0, true), name: 'airdrop' };
+                },
             },
         });
     }
@@ -321,7 +322,7 @@ describe('decoding: legacy Anchor documents', () => {
     /** Case: an instruction the published IDL misses is rescued by the injected decoder → anchor arm. */
     it('should produce the anchor arm through the injected decoder when the document misses', () => {
         const simple = loadSimpleIdl();
-        const client = clientWithLegacyDecoder();
+        const client = clientWithFallbackDecoder();
         const decode = client.decodeInstruction({
             accounts: [],
             data: new Uint8Array([...AIRDROP_DISCRIMINATOR, ...u64le(7n)]),
@@ -336,10 +337,10 @@ describe('decoding: legacy Anchor documents', () => {
         expect(result).toEqual({ amount: 7n, name: 'airdrop' });
     });
 
-    /** Case: the handler map routes a legacy-rescued instruction to its anchor branch. */
+    /** Case: the handler map routes a fallback-rescued instruction to its anchor branch. */
     it('should dispatch the rescued instruction to the anchor handler', () => {
         const simple = loadSimpleIdl();
-        const client = clientWithLegacyDecoder();
+        const client = clientWithFallbackDecoder();
         const routed = client.decodeInstruction<{ data: { amount: bigint; name: string } | undefined; source: string }>(
             {
                 accounts: [],
@@ -363,10 +364,34 @@ describe('decoding: legacy Anchor documents', () => {
         expect(routed.data).toEqual({ amount: 7n, name: 'airdrop' });
     });
 
+    /** Case: an account layout the document misses is rescued the same way — the anchor branch is reachable for accounts too. */
+    it('should dispatch a rescued account to the anchor handler', () => {
+        const client = createCodamaIdlClient(loadSimpleIdl(), {
+            fallbackDecoder: {
+                decodeAccount: (idl, data) => {
+                    if (data.length !== 9 || data[0] !== 0xff) return undefined;
+                    return { balance: new DataView(data.buffer, data.byteOffset + 1).getBigUint64(0, true) };
+                },
+            },
+        });
+
+        const routed = client.decodeAccount<{ data: { balance: bigint } | undefined; source: string }>(
+            new Uint8Array([0xff, ...u64le(7n)]),
+            {
+                anchor: decode => ({ data: client.getDecodedData<{ balance: bigint }>(decode), source: 'anchor' }),
+                codama: decode => ({ data: client.getDecodedData<{ balance: bigint }>(decode), source: 'codama' }),
+                unknown: () => ({ data: undefined, source: 'raw' }),
+            },
+        );
+
+        expect(routed.source).toBe('anchor');
+        expect(routed.data).toEqual({ balance: 7n });
+    });
+
     /** Case: both the document and the injected decoder miss — the unknown arm, not an error. */
     it('should stay on the unknown arm when the injected decoder also misses', () => {
         const simple = loadSimpleIdl();
-        const decode = clientWithLegacyDecoder().decodeInstruction({
+        const decode = clientWithFallbackDecoder().decodeInstruction({
             accounts: [],
             data: Uint8Array.from([1, 2, 3]),
             programAddress: address(simple.address),

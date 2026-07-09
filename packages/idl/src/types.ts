@@ -45,7 +45,7 @@ export enum IdlStandard {
 export type IdlVersion = AnchorIdl['metadata']['spec'] | RootNode['version'];
 
 // Codama payloads carry the real engine output; Anchor payloads stay opaque until the Anchor-rich
-// path lands — today they only come from the injected legacy decoder.
+// path lands — today they only come from the injected fallback decoder.
 export type CodamaDecodedInstruction = NonNullable<ReturnType<typeof parseInstruction>>;
 export type CodamaDecodedAccount = NonNullable<ReturnType<typeof parseAccountData>>;
 export type AnchorDecodedInstruction = unknown;
@@ -54,18 +54,36 @@ export type AnchorDecodedAccount = unknown;
 /**
  * A decoded instruction — discriminated by the standard that produced the decode.
  * Unknown-arm contract: `errors: []` is a plain miss (no discriminator match); non-empty means the
- * pipeline failed on the way. A legacy-decoder rescue keeps the bypassed errors in `recoveredFrom`.
+ * pipeline failed on the way. A fallback-decoder rescue keeps the bypassed errors in `recoveredFrom`.
  */
 export type InstructionDecode =
     | { kind: IdlStandard.Anchor; decoded: AnchorDecodedInstruction; recoveredFrom?: readonly IdlError[] }
     | { kind: IdlStandard.Codama; decoded: CodamaDecodedInstruction }
     | { kind: 'unknown'; errors: readonly IdlError[] };
 
-/** A decoded account — same discrimination and unknown-arm `errors` contract as {@link InstructionDecode}. */
+/** A decoded account — same discrimination, unknown-arm `errors`, and rescue contract as {@link InstructionDecode}. */
 export type AccountDecode =
-    | { kind: IdlStandard.Anchor; decoded: AnchorDecodedAccount }
+    | { kind: IdlStandard.Anchor; decoded: AnchorDecodedAccount; recoveredFrom?: readonly IdlError[] }
     | { kind: IdlStandard.Codama; decoded: CodamaDecodedAccount }
     | { kind: 'unknown'; errors: readonly IdlError[] };
+
+// Arm constructors — one place owns the `kind` literals and the rescue contract (empty `recoveredFrom` is omitted).
+export function anchorArm<T>(
+    decoded: T,
+    recoveredFrom?: readonly IdlError[],
+): { decoded: T; kind: IdlStandard.Anchor; recoveredFrom?: readonly IdlError[] } {
+    return recoveredFrom?.length
+        ? { decoded, kind: IdlStandard.Anchor, recoveredFrom }
+        : { decoded, kind: IdlStandard.Anchor };
+}
+
+export function codamaArm<T>(decoded: T): { decoded: T; kind: IdlStandard.Codama } {
+    return { decoded, kind: IdlStandard.Codama };
+}
+
+export function unknownArm(errors: readonly IdlError[]): { errors: readonly IdlError[]; kind: 'unknown' } {
+    return { errors, kind: 'unknown' };
+}
 
 // An Anchor client may still fall back to Codama, so only the Codama client narrows an arm away.
 // The check is structural (kind: 'rootNode') so literal documents narrow like branded ones.
@@ -87,9 +105,14 @@ export type AccountHandlers<T extends SupportedIdlInput, R> = {
     [K in AccountDecodeFor<T>['kind']]: (decode: Extract<AccountDecodeFor<T>, { kind: K }>) => R;
 };
 
-/** The legacy-Anchor escape hatch — always injected, never bundled. */
-export type LegacyDecoderOptions = {
-    legacyAnchorDecoder?: (idl: AnchorIdl, ix: Instruction) => AnchorDecodedInstruction | undefined;
+/** The Anchor escape hatch — rescues what the pipeline cannot decode; always injected, never bundled. */
+export type FallbackDecoder = {
+    decodeAccount?: (idl: AnchorIdl, data: Uint8Array) => AnchorDecodedAccount | undefined;
+    decodeInstruction?: (idl: AnchorIdl, ix: Instruction) => AnchorDecodedInstruction | undefined;
+};
+
+export type FallbackDecoderOptions = {
+    fallbackDecoder?: FallbackDecoder;
 };
 
 /**
@@ -99,6 +122,6 @@ export type LegacyDecoderOptions = {
  * derive from the IDL type itself (see infer.ts).
  */
 export type IdlDecodeProvider = {
-    decodeAccount(idl: SupportedIdl, data: Uint8Array): AccountDecode;
-    decodeInstruction(idl: SupportedIdl, ix: Instruction, options?: LegacyDecoderOptions): InstructionDecode;
+    decodeAccount(idl: SupportedIdl, data: Uint8Array, options?: FallbackDecoderOptions): AccountDecode;
+    decodeInstruction(idl: SupportedIdl, ix: Instruction, options?: FallbackDecoderOptions): InstructionDecode;
 };

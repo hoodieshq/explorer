@@ -146,7 +146,7 @@ describe('handler-map dispatch guard', () => {
         const simple = loadSimpleIdl();
         const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
         const result = createCodamaIdlClient(simple, {
-            legacyAnchorDecoder: () => ({ name: 'increment' }),
+            fallbackDecoder: { decodeInstruction: () => ({ name: 'increment' }) },
         }).decodeInstruction(missIx, {
             anchor: () => 'rescued' as const,
             codama: () => 'decoded' as const,
@@ -165,30 +165,30 @@ describe('handler-map dispatch guard', () => {
     });
 });
 
-describe('legacyAnchorDecoder escape hatch', () => {
+describe('fallbackDecoder escape hatch (instructions)', () => {
     it('should pass the anchor document and the instruction to the injected decoder', () => {
         const simple = loadSimpleIdl();
-        const legacyAnchorDecoder = vi.fn(() => undefined);
+        const decodeInstruction = vi.fn(() => undefined);
         const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
-        createCodamaIdlClient(simple, { legacyAnchorDecoder }).decodeInstruction(missIx);
-        expect(legacyAnchorDecoder).toHaveBeenCalledExactlyOnceWith(simple, missIx);
+        createCodamaIdlClient(simple, { fallbackDecoder: { decodeInstruction } }).decodeInstruction(missIx);
+        expect(decodeInstruction).toHaveBeenCalledExactlyOnceWith(simple, missIx);
     });
 
     it('should never call the injected decoder for a Codama document', () => {
         const tokenkeg = loadTokenkegIdl();
-        const legacyAnchorDecoder = vi.fn(() => undefined);
-        createCodamaIdlClient(tokenkeg, { legacyAnchorDecoder }).decodeInstruction({
+        const decodeInstruction = vi.fn(() => undefined);
+        createCodamaIdlClient(tokenkeg, { fallbackDecoder: { decodeInstruction } }).decodeInstruction({
             ...transferIx(tokenkeg),
             data: Uint8Array.from([99, 1, 2]),
         });
-        expect(legacyAnchorDecoder).not.toHaveBeenCalled();
+        expect(decodeInstruction).not.toHaveBeenCalled();
     });
 
     it('should land on the anchor arm when the decoder rescues a converted-but-unmatched instruction', () => {
         const simple = loadSimpleIdl();
         const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
         const decode = createCodamaIdlClient(simple, {
-            legacyAnchorDecoder: () => ({ name: 'increment' }),
+            fallbackDecoder: { decodeInstruction: () => ({ name: 'increment' }) },
         }).decodeInstruction(missIx);
         if (decode.kind !== IdlStandard.Anchor) throw new Error('expected the anchor arm');
         expect(decode.decoded).toEqual({ name: 'increment' });
@@ -200,7 +200,7 @@ describe('legacyAnchorDecoder escape hatch', () => {
         const simple = loadSimpleIdl();
         const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
         const client = createCodamaIdlClient(simple, {
-            legacyAnchorDecoder: () => ({ name: 'increment' }),
+            fallbackDecoder: { decodeInstruction: () => ({ name: 'increment' }) },
         });
         const decode = client.decodeInstruction(missIx);
         if (decode.kind !== IdlStandard.Anchor) throw new Error('expected the anchor arm');
@@ -210,9 +210,9 @@ describe('legacyAnchorDecoder escape hatch', () => {
     it('should fall to the unknown arm when the decoder returns undefined', () => {
         const simple = loadSimpleIdl();
         const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
-        const decode = createCodamaIdlClient(simple, { legacyAnchorDecoder: () => undefined }).decodeInstruction(
-            missIx,
-        );
+        const decode = createCodamaIdlClient(simple, {
+            fallbackDecoder: { decodeInstruction: () => undefined },
+        }).decodeInstruction(missIx);
         expect(decode.kind).toBe('unknown');
     });
 
@@ -220,8 +220,10 @@ describe('legacyAnchorDecoder escape hatch', () => {
         const simple = loadSimpleIdl();
         const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
         const decode = createCodamaIdlClient(simple, {
-            legacyAnchorDecoder: () => {
-                throw new Error('decoder boom');
+            fallbackDecoder: {
+                decodeInstruction: () => {
+                    throw new Error('decoder boom');
+                },
             },
         }).decodeInstruction(missIx);
         if (decode.kind !== 'unknown') throw new Error('expected the unknown arm');
@@ -231,8 +233,64 @@ describe('legacyAnchorDecoder escape hatch', () => {
     it('should return undefined for the unknown arm payload', () => {
         const simple = loadSimpleIdl();
         const missIx = { ...incrementIx(simple), data: undeclaredInstructionData() };
-        const client = createCodamaIdlClient(simple, { legacyAnchorDecoder: () => undefined });
+        const client = createCodamaIdlClient(simple, { fallbackDecoder: { decodeInstruction: () => undefined } });
         expect(client.getDecodedData(client.decodeInstruction(missIx))).toBeUndefined();
+    });
+});
+
+describe('fallbackDecoder escape hatch (accounts)', () => {
+    const missAccountData = () => Uint8Array.from([1, 2, 3]);
+
+    it('should pass the anchor document and the raw data to the injected decoder', () => {
+        const simple = loadSimpleIdl();
+        const decodeAccount = vi.fn(() => undefined);
+        const data = missAccountData();
+        createCodamaIdlClient(simple, { fallbackDecoder: { decodeAccount } }).decodeAccount(data);
+        expect(decodeAccount).toHaveBeenCalledExactlyOnceWith(simple, data);
+    });
+
+    it('should never call the injected decoder for a Codama document', () => {
+        const decodeAccount = vi.fn(() => undefined);
+        createCodamaIdlClient(loadTokenkegIdl(), { fallbackDecoder: { decodeAccount } }).decodeAccount(
+            missAccountData(),
+        );
+        expect(decodeAccount).not.toHaveBeenCalled();
+    });
+
+    it('should land on the anchor arm when the decoder rescues an unmatched account', () => {
+        const decode = createCodamaIdlClient(loadSimpleIdl(), {
+            fallbackDecoder: { decodeAccount: () => ({ count: 7 }) },
+        }).decodeAccount(missAccountData());
+        if (decode.kind !== IdlStandard.Anchor) throw new Error('expected the anchor arm');
+        expect(decode.decoded).toEqual({ count: 7 });
+        // conversion succeeded, so no bypassed pipeline errors ride along
+        expect(decode.recoveredFrom).toBeUndefined();
+    });
+
+    it('should fall to the unknown arm when the decoder returns undefined', () => {
+        const decode = createCodamaIdlClient(loadSimpleIdl(), {
+            fallbackDecoder: { decodeAccount: () => undefined },
+        }).decodeAccount(missAccountData());
+        expect(decode.kind).toBe('unknown');
+    });
+
+    it('should dispatch a rescued account through the handler map anchor branch', () => {
+        const result = createCodamaIdlClient(loadSimpleIdl(), {
+            fallbackDecoder: { decodeAccount: () => ({ count: 7 }) },
+        }).decodeAccount(missAccountData(), {
+            anchor: () => 'rescued' as const,
+            codama: () => 'decoded' as const,
+            unknown: () => 'miss' as const,
+        });
+        expect(result).toBe('rescued');
+    });
+
+    it('should return the rescued payload through decodeAccountData', () => {
+        const [error, data] = createCodamaIdlClient(loadSimpleIdl(), {
+            fallbackDecoder: { decodeAccount: () => ({ count: 7 }) },
+        }).decodeAccountData<{ count: number }>(missAccountData());
+        expect(error).toBeUndefined();
+        expect(data).toEqual({ count: 7 });
     });
 });
 
@@ -253,9 +311,9 @@ describe('unknown-arm errors contract', () => {
         expect(decode.errors.map(e => e.code)).toEqual([IDL_ERROR__IDL_PARSE_FAILED]);
     });
 
-    it('should keep the bypassed pipeline errors on a legacy-decoder rescue', () => {
+    it('should keep the bypassed pipeline errors on a fallback rescue', () => {
         const decode = createCodamaIdlClient(brokenAnchorIdl(), {
-            legacyAnchorDecoder: () => ({ name: 'boom' }),
+            fallbackDecoder: { decodeInstruction: () => ({ name: 'boom' }) },
         }).decodeInstruction(brokenIx());
         if (decode.kind !== IdlStandard.Anchor) throw new Error('expected the anchor arm');
         expect(decode.recoveredFrom?.map(e => e.code)).toEqual([IDL_ERROR__IDL_PARSE_FAILED]);

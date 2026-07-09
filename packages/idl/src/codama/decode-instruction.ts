@@ -6,35 +6,37 @@ import { convertToCodama } from '../anchor/convert.js';
 import { getIdlProgramAddress, getIdlStandard, isAnchorIdl, isCodamaIdl } from '../detect.js';
 import { IDL_ERROR__IDL_ADDRESS_MISMATCH, IDL_ERROR__INSTRUCTION_DECODE_FAILED, IdlError, ok } from '../errors.js';
 import {
+    anchorArm,
     type AnchorIdl,
+    codamaArm,
     type CodamaIdl,
-    IdlStandard,
+    type FallbackDecoderOptions,
     type InstructionDecode,
     type InstructionDecodeFor,
-    type LegacyDecoderOptions,
     type SupportedIdl,
+    unknownArm,
 } from '../types.js';
 
-// Single Codama pipeline (Anchor IDLs convert via nodes-from-anchor); the anchor arm only comes from the injected legacy decoder until the Anchor-rich path lands.
+// Single Codama pipeline (Anchor IDLs convert via nodes-from-anchor); the anchor arm only comes from the injected fallback decoder until the Anchor-rich path lands.
 export function decodeInstructionWithIdl<T extends CodamaIdl>(
     idl: T,
     ix: Instruction,
-    options?: LegacyDecoderOptions,
+    options?: FallbackDecoderOptions,
 ): InstructionDecodeFor<T>;
 export function decodeInstructionWithIdl<T extends AnchorIdl>(
     idl: T,
     ix: Instruction,
-    options?: LegacyDecoderOptions,
+    options?: FallbackDecoderOptions,
 ): InstructionDecodeFor<T>;
 export function decodeInstructionWithIdl(
     idl: SupportedIdl,
     ix: Instruction,
-    options?: LegacyDecoderOptions,
+    options?: FallbackDecoderOptions,
 ): InstructionDecode;
 export function decodeInstructionWithIdl(
     idl: SupportedIdl,
     ix: Instruction,
-    options: LegacyDecoderOptions = {},
+    options: FallbackDecoderOptions = {},
 ): InstructionDecode {
     // A declared-program mismatch is a wiring bug — fail loud rather than mis-decode against the wrong interface.
     const declaredAddress = getIdlProgramAddress(idl);
@@ -56,7 +58,7 @@ export function decodeInstructionWithIdl(
                 programAddress: ix.programAddress,
             });
             // a miss (no discriminator match) is a plain miss, not an error
-            if (parsed) return { decoded: parsed, kind: IdlStandard.Codama };
+            if (parsed) return codamaArm(parsed);
         } catch (cause) {
             // the document already converted — this is a decode failure, not a document-parse failure
             errors.push(
@@ -70,15 +72,11 @@ export function decodeInstructionWithIdl(
     }
 
     // escape hatch for Anchor IDLs the conversion route cannot handle — injected, never bundled
-    if (isAnchorIdl(idl) && options.legacyAnchorDecoder) {
+    if (isAnchorIdl(idl) && options.fallbackDecoder?.decodeInstruction) {
         try {
-            const decoded = options.legacyAnchorDecoder(idl, ix);
-            if (decoded !== undefined) {
-                // keep the bypassed pipeline errors observable — a rescue must not hide a broken conversion
-                return errors.length
-                    ? { decoded, kind: IdlStandard.Anchor, recoveredFrom: errors }
-                    : { decoded, kind: IdlStandard.Anchor };
-            }
+            const decoded = options.fallbackDecoder.decodeInstruction(idl, ix);
+            // keep the bypassed pipeline errors observable — a rescue must not hide a broken conversion
+            if (decoded !== undefined) return anchorArm(decoded, errors);
         } catch (cause) {
             // a throwing injected decoder must not escape the errors-as-values contract — fold it into the unknown arm
             errors.push(
@@ -91,5 +89,5 @@ export function decodeInstructionWithIdl(
         }
     }
 
-    return { errors, kind: 'unknown' };
+    return unknownArm(errors);
 }

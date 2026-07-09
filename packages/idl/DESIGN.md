@@ -10,20 +10,20 @@ Decoding a program's instruction and account data by its IDL is the core problem
 
 - Standard detection, typed client, codama-primary decode pipeline, discriminator-based instruction naming, coded error family (`@codama/errors` pattern, error-first `Result` tuples).
 - Client API: `createIdlClient<T>` (throws on lying types) / `tryCreateIdlClient` (error-first for untrusted input); decode methods return discriminated unions that narrow statically per standard — a Codama client cannot even express an anchor-arm handler. A standalone `getDecodedData(decode)` returns the payload regardless of which arm produced it (undefined for the unknown arm); `decodeInstructionData` / `decodeAccountData` collapse decode + payload into one error-first `Result`, with an optional `kind` argument that asserts the expected arm (`DECODE_KIND_MISMATCH` otherwise).
-- Escape hatch: an injectable `legacyAnchorDecoder` option for modern Anchor IDLs the conversion route cannot handle — never bundled into the package.
+- Escape hatch: an injectable `fallbackDecoder` option (instruction and account rescue) for modern Anchor IDLs the conversion route cannot handle — never bundled into the package.
 - Legacy pre-0.30 IDLs: `isLegacyAnchorIdl` recognizes them; the client rejects them at compile time and runtime — consumers decode them with their own decoder.
 
 Capabilities:
 
 - `idl-detection`: recognize and narrow unknown input into modern Anchor, Codama, or legacy Anchor; expose standard/version metadata helpers.
-- `idl-client`: typed client construction over one IDL — program metadata reads, handler-map decode dispatch, static narrowing per standard, injectable legacy decoder seam.
+- `idl-client`: typed client construction over one IDL — program metadata reads, handler-map decode dispatch, static narrowing per standard, injectable fallback decoder seam.
 - `idl-decoding`: single codama-normalized decode pipeline for instructions and accounts — address-mismatch fail-loud, conversion + parse error collection, miss-vs-failure semantics of the `unknown` arm.
 - `instruction-naming`: discriminator-prefix name resolution (Anchor byte arrays, Codama constant int fields) with longest-prefix matching.
 
 ## Core ideas
 
 - *Errors are values, not throws* — fallible operations return the error-first `Result` tuple (`[IdlError, undefined] | [undefined, value]`), and decode failures ride the `unknown` arm as coded `IdlError`s; the consumer decides severity, the package never logs.
-- *Legacy variants are the consumer's decoder, not ours* — the client accepts a custom decoder via options (`legacyAnchorDecoder`) for IDLs the built-in conversion route cannot handle; the package ships no Borsh fallback of its own.
+- *Legacy variants are the consumer's decoder, not ours* — the client accepts a custom decoder via options (`fallbackDecoder`) for IDLs the built-in conversion route cannot handle; the package ships no Borsh fallback of its own.
 - *User-facing client, easy configuration* — one IDL in, working metadata client out (names, address, detection): no flags, no options. Decoding is an explicit engine choice (`{ provider }`), so processes that never decode — name-only MCP tools — never load an engine; `createCodamaIdlClient` from `@explorer/idl/codama` is the one-import path for default-engine users.
 - *Engines live behind subpath entries* — the main entry is engine-free; `./codama` ships the default engine, `./anchor` the conversion (and the future Anchor-rich provider). Subpath threshold: an entry earns its keep only when it guards a runtime dependency subtree not acceptable in every consumer (size or policy — web3.js) AND a real consumer profile never calls it; tree-shaking alone does not protect plain-Node consumers (MCP), whose ESM loader executes the whole import graph.
 
@@ -61,13 +61,13 @@ flowchart TD
     PARSE -->|"parsed"| CODAMA["{ kind: codama, decoded }"]
     PARSE -->|"undefined — discriminator miss"| FALLBACK
     PARSE -->|"throws"| COLLECT2["errors += IdlError(INSTRUCTION_DECODE_FAILED)<br/>converted already — a decode failure, not a parse failure"]
-    COLLECT --> FALLBACK{"Anchor IDL and<br/>options.legacyAnchorDecoder?"}
+    COLLECT --> FALLBACK{"Anchor IDL and<br/>options.fallbackDecoder?.decodeInstruction?"}
     COLLECT2 --> FALLBACK
     FALLBACK -->|"decoder returns value"| ANCHOR["{ kind: anchor, decoded }<br/>(only producer of this arm)"]
     FALLBACK -->|"no / returns undefined"| UNKNOWN["{ kind: unknown, errors }<br/>errors empty ⇔ plain miss"]
 ```
 
-`decodeAccount(data)` runs the same pipeline via `parseAccountData` — no address check, no legacy fallback; a throw collects `ACCOUNT_DECODE_FAILED` (with `dataLength` + standard) into the `unknown` arm. The handler-map overloads dispatch any decode over `{ anchor | codama | unknown }`; totality is enforced by the types (a Codama client's map has no `anchor` key), and a runtime miss throws `MISSING_DECODE_HANDLER` (bypassed-types tripwire). For consumers that don't care which arm produced the payload, the standalone `getDecodedData(decode)` returns it arm-agnostically (undefined for the unknown arm; note the asymmetry — the codama arm yields the engine result's `data`, the anchor arm the injected decoder's whole value).
+`decodeAccount(data)` runs the same pipeline via `parseAccountData` — no address check, and the same escape hatch via `options.fallbackDecoder?.decodeAccount`; a throw (pipeline or fallback) collects `ACCOUNT_DECODE_FAILED` (with `dataLength` + standard) into the `unknown` arm. The handler-map overloads dispatch any decode over `{ anchor | codama | unknown }`; totality is enforced by the types (a Codama client's map has no `anchor` key), and a runtime miss throws `MISSING_DECODE_HANDLER` (bypassed-types tripwire). For consumers that don't care which arm produced the payload, the standalone `getDecodedData(decode)` returns it arm-agnostically (undefined for the unknown arm; note the asymmetry — the codama arm yields the engine result's `data`, the anchor arm the injected decoder's whole value).
 
 The client is not the only surface: `convertToCodama`, the standalone `decodeInstructionWithIdl`/`decodeAccountWithIdl`, and the name-table helpers (`buildInstructionNameTable`/`buildInstructionNameResolver`/`matchInstructionName`) are exported for consumers composing their own flow.
 
@@ -89,7 +89,7 @@ The client is not the only surface: `convertToCodama`, the standalone `decodeIns
 ## Decisions
 
 - **Codama-normalized single pipeline** — Anchor IDLs convert via `@codama/nodes-from-anchor`, then one engine (`@codama/dynamic-parsers`) decodes everything. Alternative (two engines, anchor-first) rejected: double maintenance for the same bytes. Converted IDLs keep byte-array discriminator naming: `codamaDiscriminator` resolves the `fieldDiscriminatorNode` (bytes default) the conversion emits, alongside constant int fields and 64/128-bit formats.
-- **Anchor arm = escape hatch only** — `legacyAnchorDecoder` is injected via options, never bundled, and is the sole producer of `{ kind: anchor }`. A successful rescue keeps any bypassed pipeline errors in `recoveredFrom` rather than dropping them. Keeps the package free of consumer-specific Borsh fallbacks.
+- **Anchor arm = escape hatch only** — `fallbackDecoder` is injected via options, never bundled, and is the sole producer of `{ kind: anchor }` for instructions and accounts alike. A successful rescue keeps any bypassed pipeline errors in `recoveredFrom` rather than dropping them. Keeps the package free of consumer-specific Borsh fallbacks.
 - **`unknown` arm carries `errors: IdlError[]`** — a discriminator miss is a plain miss (`errors: []`), a pipeline failure carries coded errors (the length convention is documented in the README's error contract).
 - **Guards over a `standard` field** — `isAnchorStandard`/`isCodamaStandard` narrow `IdlClient<T>`; a string field would invite untyped branching.
 - **Codama payloads typed from the engine** (`NonNullable<ReturnType<typeof parseInstruction>>`); Anchor payloads stay opaque `unknown` until a future Anchor-rich provider defines the real shape — consumers cannot couple to a guess.

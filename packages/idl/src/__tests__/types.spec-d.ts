@@ -178,7 +178,12 @@ describe('decoder payload inference', () => {
     it('should pass account handlers their narrowed decode arms', () => {
         const client = createIdlClient(anchorIdl, { provider: codamaProvider() });
         client.decodeAccount(new Uint8Array(), {
-            anchor: decode => expectTypeOf(decode).toEqualTypeOf<{ decoded: unknown; kind: IdlStandard.Anchor }>(),
+            anchor: decode =>
+                expectTypeOf(decode).toEqualTypeOf<{
+                    decoded: unknown;
+                    kind: IdlStandard.Anchor;
+                    recoveredFrom?: readonly IdlError[];
+                }>(),
             codama: decode =>
                 expectTypeOf(decode).toEqualTypeOf<{ decoded: CodamaDecodedAccount; kind: IdlStandard.Codama }>(),
             unknown: decode => expectTypeOf(decode).toEqualTypeOf<{ errors: readonly IdlError[]; kind: 'unknown' }>(),
@@ -330,14 +335,21 @@ describe('detection and names helper returns', () => {
 });
 
 describe('client options', () => {
-    it('should type the injectable legacy decoder against kit instructions', () => {
+    it('should type the injectable fallback decoder against kit instructions and raw account data', () => {
         createIdlClient(anchorIdl, {
-            provider: codamaProvider(),
-            legacyAnchorDecoder: (idl, ix) => {
-                expectTypeOf(idl).toEqualTypeOf<AnchorIdl>();
-                expectTypeOf(ix).toEqualTypeOf<Instruction>();
-                return undefined;
+            fallbackDecoder: {
+                decodeAccount: (idl, data) => {
+                    expectTypeOf(idl).toEqualTypeOf<AnchorIdl>();
+                    expectTypeOf(data).toEqualTypeOf<Uint8Array>();
+                    return undefined;
+                },
+                decodeInstruction: (idl, ix) => {
+                    expectTypeOf(idl).toEqualTypeOf<AnchorIdl>();
+                    expectTypeOf(ix).toEqualTypeOf<Instruction>();
+                    return undefined;
+                },
             },
+            provider: codamaProvider(),
         });
     });
 });
