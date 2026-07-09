@@ -50,6 +50,7 @@ export function buildInstructionNameTable(idl: SupportedIdl): InstructionNameTab
     return isCodamaIdl(idl) ? buildCodamaTable(idl) : buildAnchorTable(idl);
 }
 
+// TODO: check whether identifyInstructionData (@codama/dynamic-parsers) can replace this local match — today it costs the engine-free entry, converts Anchor docs, and is first-match, not longest-prefix.
 // Longest-prefix match (1-byte Codama must not shadow 8-byte Anchor); empty discriminators would match everything, so they are skipped.
 export function matchInstructionName(table: InstructionNameTable, data: Uint8Array): string | undefined {
     let match: InstructionNameEntry | undefined;
