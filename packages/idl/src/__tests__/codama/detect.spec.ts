@@ -26,6 +26,14 @@ describe('isCodamaIdl', () => {
         expect(isCodamaIdl({ kind: 'rootNode' })).toBe(false);
     });
 
+    it('should reject a root node whose program address is missing or blank', () => {
+        const tokenkeg = loadTokenkegIdl();
+        const { publicKey: _drop, ...bareProgram } = tokenkeg.program;
+        expect(isCodamaIdl({ ...tokenkeg, program: bareProgram })).toBe(false);
+        expect(isCodamaIdl({ ...tokenkeg, program: { ...tokenkeg.program, publicKey: '' } })).toBe(false);
+        expect(isCodamaIdl({ ...tokenkeg, program: { ...tokenkeg.program, publicKey: '   ' } })).toBe(false);
+    });
+
     it.each([null, undefined, 42, 'idl', {}, []])('should reject non-IDL input %#', value => {
         expect(isCodamaIdl(value)).toBe(false);
     });

@@ -7,15 +7,17 @@ import {
     type SupportedIdl,
 } from './types.js';
 
+// A supported IDL always names its program — a missing/blank address flags a malformed document early.
+const isNonEmptyAddress = (value: unknown, emptyAddress = ''): value is string =>
+    typeof value === 'string' && value.trim() !== emptyAddress;
+
 /** Modern Anchor (>= 0.30) declares `metadata.spec`; legacy Anchor has none and is not supported here. */
 export function isAnchorIdl(value: unknown): value is AnchorIdl {
     if (typeof value !== 'object' || value === null) return false;
     if (!('address' in value) || !('metadata' in value) || !('instructions' in value)) return false;
     const { address, instructions, metadata } = value;
     return (
-        // a modern Anchor IDL always carries a non-empty program address — reject malformed docs early
-        typeof address === 'string' &&
-        address.length > 0 &&
+        isNonEmptyAddress(address) &&
         typeof metadata === 'object' &&
         metadata !== null &&
         'spec' in metadata &&
@@ -32,7 +34,9 @@ export function isCodamaIdl(value: unknown): value is CodamaIdl {
         value.kind === 'rootNode' &&
         'program' in value &&
         typeof value.program === 'object' &&
-        value.program !== null
+        value.program !== null &&
+        'publicKey' in value.program &&
+        isNonEmptyAddress(value.program.publicKey)
     );
 }
 
