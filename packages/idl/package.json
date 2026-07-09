@@ -27,7 +27,7 @@
     "scripts": {
         "prebuild": "rm -rf dist",
         "build": "node scripts/build.mjs",
-        "build:programs": "pnpm --filter \"@explorer/test-idl-program-*\" build && node scripts/copy-anchor-artifacts.mjs",
+        "build:programs": "pnpm --filter \"@explorer/test-idl-program-*\" run build:anchor && node scripts/copy-anchor-artifacts.mjs",
         "format": "oxfmt --check .",
         "format:fix": "oxfmt .",
         "lint": "oxlint && oxfmt --check .",

@@ -43,9 +43,13 @@ pnpm --filter @explorer/idl build:programs
 or one at a time:
 
 ```sh
-pnpm --filter @explorer/test-idl-program-simple build
-pnpm --filter @explorer/test-idl-program-simple-031 build
+pnpm --filter @explorer/test-idl-program-simple run build:anchor
+pnpm --filter @explorer/test-idl-program-simple-031 run build:anchor
 ```
+
+The script is named `build:anchor` (not `build`) on purpose: the root `build:packages` runs
+`pnpm -r run build` across `packages/**`, and a `build` script here would drag the Rust/Anchor
+toolchain into every standard build (CI included).
 
 `build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and then copies them into the committed snapshots under `__fixtures__/` (via `scripts/copy-anchor-artifacts.mjs`). It is a standalone regeneration step, never part of the test pipeline:
 
