@@ -19,7 +19,9 @@ The main entry is engine-free; every entry is side-effect-free and tree-shakeabl
 
 ## Quick start
 
-`tryCreate*` never throws on untrusted JSON — it returns an error-first tuple:
+`tryCreate*` never throws on untrusted JSON — it returns an error-first tuple. The `error` is a plain
+value: throw it if you prefer exceptions (the one `throw` in this guide), but we suggest branching on
+it, the way every example below does.
 
 ```ts
 import { isCodamaStandard, isIdlError, IDL_ERROR__UNSUPPORTED_IDL_FORMAT } from '@explorer/idl';
@@ -84,8 +86,10 @@ raw errors instead.
 
 ```ts
 const [error, args] = client.decodeInstructionData<{ amount: bigint }>(instruction);
-if (error) throw error; // a miss or pipeline failure — never a crash
-args.amount; // typed, no narrowing needed past the error check
+// error → a miss or pipeline failure; branch on it instead of throwing, never a crash
+if (!error) {
+    args.amount; // typed inside the happy branch — no narrowing ceremony
+}
 ```
 
 Passing a second argument asserts the arm you expect. If the decode lands on a *different* arm, you
@@ -120,9 +124,9 @@ if (decode.kind === IdlStandard.Codama) {
 }
 ```
 
-`decodeInstruction` also accepts a handler map instead of an `if` — one branch per arm the IDL's
-standard can produce. A Codama client only ever yields `codama` / `unknown`, so it buys little there;
-it earns its keep on Anchor IDLs with a legacy decoder, where all three arms are live (see below).
+`decodeInstruction` also accepts a handler map instead of an `if` — the map is exhaustive: one
+branch per arm the client's type carries. A Codama-root client (native or converted) carries only
+`codama` / `unknown`, so the map buys little there:
 
 ```ts
 const args = client.decodeInstruction(instruction, {
@@ -130,6 +134,9 @@ const args = client.decodeInstruction(instruction, {
     unknown: () => undefined,
 });
 ```
+
+A raw Anchor IDL client also carries `anchor`, so its map must include that branch — even though the
+arm only fires once a legacy decoder fills it (see [below](#legacy-anchor-idls)).
 
 ## Decoding accounts
 
@@ -143,8 +150,9 @@ if (decode.kind === IdlStandard.Codama) {
 }
 ```
 
-`decodeAccount` takes the same optional handler map as `decodeInstruction`. Accounts have no
-legacy-rescue path, so the arms are only ever `codama` / `unknown`:
+`decodeAccount` takes the same handler map as `decodeInstruction`. Accounts never produce the
+`anchor` arm at runtime — there is no account-level legacy decoder — so a Codama-root client's map is
+`codama` / `unknown`:
 
 ```ts
 const summary = client.decodeAccount(accountData, {
@@ -152,6 +160,9 @@ const summary = client.decodeAccount(accountData, {
     unknown: () => undefined,
 });
 ```
+
+A raw Anchor IDL client's type still requires an `anchor` branch here, though it can never fire — a
+rough edge of keying the arm on the IDL standard rather than on decoder availability.
 
 ## Typed payloads — four routes
 
@@ -247,8 +258,10 @@ To run that conversion yourself — to catch a nodes-from-anchor failure explici
 import { convertToCodama } from '@explorer/idl/anchor';
 
 const [error, root] = convertToCodama(anchorIdl); // nodes-from-anchor
-if (error) throw error; // IDL_ERROR__IDL_PARSE_FAILED — the document could not be converted
-const client = createCodamaIdlClient(root); // root is already a Codama IDL
+// error → IDL_ERROR__IDL_PARSE_FAILED (the document could not be converted); handle it as a value
+if (!error) {
+    const client = createCodamaIdlClient(root); // root is already a Codama IDL
+}
 ```
 
 Left to convert internally, a nodes-from-anchor failure is *not* silent: the decode falls to the

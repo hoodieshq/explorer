@@ -140,6 +140,15 @@ describe('decode result inference', () => {
         expectTypeOf<keyof InstructionHandlers<AnchorIdl, void>>().toEqualTypeOf<IdlStandard | 'unknown'>();
     });
 
+    it('should require the anchor handler on an Anchor client handler map', () => {
+        // anchor is reachable in an Anchor client's union, so the arm is required
+        const partial = {
+            codama: (_decode: Extract<InstructionDecode, { kind: IdlStandard.Codama }>) => 1,
+            unknown: (_decode: Extract<InstructionDecode, { kind: 'unknown' }>) => 1,
+        };
+        expectTypeOf(partial).not.toMatchTypeOf<InstructionHandlers<AnchorIdl, number>>();
+    });
+
     it('should type the standalone decode functions by the IDL argument', () => {
         expectTypeOf(decodeInstructionWithIdl(codamaIdl, anchorIncrementIx)).toEqualTypeOf<
             InstructionDecodeFor<CodamaIdl>

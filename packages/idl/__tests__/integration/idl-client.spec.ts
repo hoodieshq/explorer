@@ -28,7 +28,7 @@ import {
 } from '@explorer/idl';
 // conversion is anchor-input-only, engines are opt-in — both live behind their own entries
 import { convertToCodama } from '@explorer/idl/anchor';
-import { createCodamaIdlClient, tryCreateCodamaIdlClient } from '@explorer/idl/codama';
+import { codamaProvider, createCodamaIdlClient, tryCreateCodamaIdlClient } from '@explorer/idl/codama';
 import { address, type Instruction } from '@solana/kit';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
@@ -50,7 +50,7 @@ const TOKENKEG_ADDRESS = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 /** App flow: label an instruction from a transaction using the program's IDL. */
 function labelInstruction(rawIdl: unknown, ix: Instruction): string {
     const [error, client] = tryCreateIdlClient(rawIdl);
-    if (error) throw error;
+    if (error) return 'Unknown'; // use the Result — degrade to a label, don't throw
     const name = ix.data ? client.instructionName(Uint8Array.from(ix.data)) : undefined;
     return name ?? 'Unknown';
 }
@@ -104,6 +104,7 @@ describe('capability: client creation from untrusted IDLs', () => {
         expect(error).toBeUndefined();
         if (!client) throw new Error('unreachable');
 
+        expect(isCodamaStandard(client)).toBe(false);
         expect(isAnchorStandard(client)).toBe(true);
         expect(client.programName()).toBe('Let Me Buy');
     });
@@ -302,9 +303,9 @@ describe('decoding: modern Anchor documents', () => {
     /** Case: the accessor composes with handler-map dispatch when each outcome needs its own flow. */
     it('should compose the accessor with handler-map dispatch when flows differ per outcome', () => {
         const simple = loadSimpleIdl();
-        const client = createCodamaIdlClient(simple); // createCodamaIdl.. > createIdl..
+        const client = createIdlClient(simple, { provider: codamaProvider() });
 
-        // TODO: ensure we allow optional branches for any provider for generic client, not a specific one
+        // anchor is required (it's in an Anchor client's union) though only a legacy decoder makes it fire; codama runs here
         const outcome = client.decodeInstruction(incrementIx(simple), {
             anchor: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'anchor' }),
             codama: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'codama' }),
@@ -350,6 +351,33 @@ describe('decoding: legacy Anchor documents', () => {
         expectTypeOf(result).toEqualTypeOf<{ amount: bigint; name: string } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Anchor);
         expect(result).toEqual({ amount: 7n, name: 'airdrop' });
+    });
+
+    /** Case: the handler map routes a legacy-rescued instruction to its anchor branch. */
+    it('should dispatch the rescued instruction to the anchor handler', () => {
+        const simple = loadSimpleIdl();
+        const client = clientWithLegacyDecoder();
+        const routed = client.decodeInstruction<{ data: { amount: bigint; name: string } | undefined; source: string }>(
+            {
+                accounts: [],
+                data: new Uint8Array([...AIRDROP_DISCRIMINATOR, ...u64le(7n)]),
+                programAddress: address(simple.address),
+            },
+            {
+                anchor: decode => ({
+                    data: client.getDecodedData<{ amount: bigint; name: string }>(decode),
+                    source: 'anchor',
+                }),
+                codama: decode => ({
+                    data: client.getDecodedData<{ amount: bigint; name: string }>(decode),
+                    source: 'codama',
+                }),
+                unknown: () => ({ data: undefined, source: 'raw' }),
+            },
+        );
+
+        expect(routed.source).toBe('anchor');
+        expect(routed.data).toEqual({ amount: 7n, name: 'airdrop' });
     });
 
     /** Case: both the document and the injected decoder miss — the unknown arm, not an error. */

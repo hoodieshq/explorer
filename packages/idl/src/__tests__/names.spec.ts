@@ -56,7 +56,8 @@ const anchorEntry = () => {
 
 const codamaEntry = () => {
     const [error, converted] = convertToCodama(loadLetMeBuyIdl());
-    if (error || !converted) throw new Error('let_me_buy must convert to codama');
+    expect(error).toBeUndefined();
+    if (!converted) throw new Error('let_me_buy must convert to codama');
     const entry = buildInstructionNameTable(converted).find(item => item.name === 'Add Product');
     if (!entry) throw new Error('converted document must declare add_product');
     return entry;
@@ -85,7 +86,8 @@ describe('discriminator survives naming through conversion (real let_me_buy add_
     it('should resolve the instruction name from those bytes on both tables', () => {
         const bytes = Uint8Array.from(ADD_PRODUCT_DISC);
         const [error, converted] = convertToCodama(loadLetMeBuyIdl());
-        if (error || !converted) throw new Error('let_me_buy must convert to codama');
+        expect(error).toBeUndefined();
+        if (!converted) throw new Error('let_me_buy must convert to codama');
 
         expect(matchInstructionName(buildInstructionNameTable(loadLetMeBuyIdl()), bytes)).toBe('Add Product');
         expect(matchInstructionName(buildInstructionNameTable(converted), bytes)).toBe('Add Product');
