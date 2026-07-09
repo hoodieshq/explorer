@@ -29,6 +29,12 @@ describe('isAnchorIdl', () => {
         expect(isAnchorIdl(pre030AnchorIdl)).toBe(false);
     });
 
+    it('should reject a modern Anchor shape whose program address is missing or empty', () => {
+        const { address: _drop, ...noAddress } = loadLetMeBuyIdl();
+        expect(isAnchorIdl(noAddress)).toBe(false);
+        expect(isAnchorIdl({ ...loadLetMeBuyIdl(), address: '' })).toBe(false);
+    });
+
     it('should reject a Codama root node', () => {
         expect(isAnchorIdl(loadTokenkegIdl())).toBe(false);
     });

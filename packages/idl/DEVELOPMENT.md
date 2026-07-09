@@ -10,7 +10,7 @@ pnpm --filter @explorer/idl test:watch  # vitest watch mode
 pnpm --filter @explorer/idl typecheck   # tsc --noEmit
 ```
 
-`test` runs `build:programs` first via the `pretest` hook, so running the suite needs the toolchain listed below. Specs consume the generated IDLs through `loadSimpleIdl` / `loadSimpleIdlTyped` / `loadSimple031Idl` (re-exported from `src/__tests__/generated/` via `src/__tests__/fixtures.ts`), which resolve the `@explorer/test-idl-program-*` packages — each exports its live `target/idl/*.json`.
+Running the suite needs **no** Rust/Anchor toolchain: specs consume committed snapshots of the Anchor IDLs (`src/__tests__/generated/simple*.json` + companion `*.types.ts`) through `loadSimpleIdl` / `loadSimpleIdlTyped` / `loadSimple031Idl` (re-exported from `src/__tests__/generated/` via `src/__tests__/fixtures.ts`). The toolchain below is only needed to **regenerate** those snapshots after changing the Rust programs.
 
 ## Building the fixture programs
 
@@ -47,7 +47,13 @@ pnpm --filter @explorer/test-idl-program-simple build
 pnpm --filter @explorer/test-idl-program-simple-031 build
 ```
 
-Generated IDLs land in each workspace's `target/idl/` (gitignored) and reach the tests through each program package's `exports` — no copying step.
+`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and then copies them into the committed snapshots under `src/__tests__/generated/` (via `scripts/copy-anchor-artifacts.mjs`). It is a standalone regeneration step, never part of the test pipeline:
+
+```sh
+pnpm --filter @explorer/idl build:programs   # anchor build + copy into the committed snapshots
+```
+
+Commit the refreshed snapshots — the suite reads those committed copies, not the live `target/`, so it never invokes the toolchain.
 
 ### Gotchas
 

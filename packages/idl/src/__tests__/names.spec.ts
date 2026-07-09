@@ -10,24 +10,24 @@ import { unwrap } from './unwrap';
 describe('matchInstructionName', () => {
     it('should prefer the longest matching prefix', () => {
         const table = [
-            { discriminator: Uint8Array.from([1]), name: 'Short' },
-            { discriminator: Uint8Array.from([1, 2]), name: 'Long' },
+            { discriminator: Uint8Array.from([1]), name: 'Short', offset: 0 },
+            { discriminator: Uint8Array.from([1, 2]), name: 'Long', offset: 0 },
         ];
         expect(matchInstructionName(table, Uint8Array.from([1, 2, 3]))).toBe('Long');
     });
 
     it('should return undefined when nothing matches', () => {
-        const table = [{ discriminator: Uint8Array.from([9]), name: 'Nope' }];
+        const table = [{ discriminator: Uint8Array.from([9]), name: 'Nope', offset: 0 }];
         expect(matchInstructionName(table, Uint8Array.from([1, 2]))).toBeUndefined();
     });
 
     it('should skip empty discriminators instead of matching everything', () => {
-        const table = [{ discriminator: new Uint8Array(), name: 'CatchAll' }];
+        const table = [{ discriminator: new Uint8Array(), name: 'CatchAll', offset: 0 }];
         expect(matchInstructionName(table, Uint8Array.from([1]))).toBeUndefined();
     });
 
     it('should reject discriminators longer than the provided data', () => {
-        const table = [{ discriminator: Uint8Array.from([1, 2, 3]), name: 'Too Long' }];
+        const table = [{ discriminator: Uint8Array.from([1, 2, 3]), name: 'Too Long', offset: 0 }];
         expect(matchInstructionName(table, Uint8Array.from([1, 2]))).toBeUndefined();
     });
 });

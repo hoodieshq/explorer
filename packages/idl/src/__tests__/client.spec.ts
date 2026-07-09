@@ -16,7 +16,7 @@ import {
 import { type AnchorIdl, type CodamaIdl, IdlStandard, type InstructionHandlers, type SupportedIdl } from '../types';
 import { incrementIx, loadSimpleIdl, loadTokenkegIdl, transferIx, undeclaredInstructionData } from './fixtures';
 
-// passes isAnchorIdl (metadata.spec + instructions) but rootNodeFromAnchor rejects the arg type
+// passes isAnchorIdl (address + metadata.spec + instructions) but rootNodeFromAnchor rejects the arg type
 const brokenAnchorIdl = () =>
     ({
         address: '11111111111111111111111111111111',

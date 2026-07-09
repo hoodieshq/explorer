@@ -1,4 +1,5 @@
 import {
+    containsBytes,
     type Encoder,
     getBase16Encoder,
     getBase58Encoder,
@@ -22,6 +23,8 @@ import { type AnchorIdl, type CodamaIdl, type SupportedIdl } from './types.js';
 
 export type InstructionNameEntry = {
     discriminator: Uint8Array;
+    // Byte offset of the discriminator in the instruction data — 0 for every arm we build today.
+    offset: number;
     name: string;
 };
 
@@ -53,7 +56,7 @@ export function matchInstructionName(table: InstructionNameTable, data: Uint8Arr
     for (const entry of table) {
         if (
             entry.discriminator.length > 0 &&
-            startsWith(data, entry.discriminator) &&
+            containsBytes(data, entry.discriminator, entry.offset) &&
             (!match || entry.discriminator.length > match.discriminator.length)
         ) {
             match = entry;
@@ -62,19 +65,11 @@ export function matchInstructionName(table: InstructionNameTable, data: Uint8Arr
     return match?.name;
 }
 
-function startsWith(data: Uint8Array, prefix: Uint8Array): boolean {
-    if (prefix.length > data.length) return false;
-    for (let i = 0; i < prefix.length; i++) {
-        if (data[i] !== prefix[i]) return false;
-    }
-    return true;
-}
-
-// Anchor: discriminators are explicit byte arrays.
+// Anchor: discriminators are explicit byte arrays at the start of the data.
 function buildAnchorTable(idl: AnchorIdl): InstructionNameEntry[] {
     return (idl.instructions ?? []).flatMap(ix =>
         ix.discriminator?.length
-            ? [{ discriminator: Uint8Array.from(ix.discriminator), name: titleCase(ix.name) }]
+            ? [{ discriminator: Uint8Array.from(ix.discriminator), name: titleCase(ix.name), offset: 0 }]
             : [],
     );
 }
@@ -110,7 +105,7 @@ function getBytesEncoders(): Record<string, Encoder<string>> {
 function buildCodamaTable(idl: CodamaIdl): InstructionNameEntry[] {
     return (idl.program?.instructions ?? []).flatMap(ix => {
         const discriminator = codamaDiscriminator(ix);
-        return discriminator ? [{ discriminator, name: titleCase(ix.name) }] : [];
+        return discriminator ? [{ discriminator, name: titleCase(ix.name), offset: 0 }] : [];
     });
 }
 

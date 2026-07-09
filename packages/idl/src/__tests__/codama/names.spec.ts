@@ -52,7 +52,7 @@ describe('instruction names (Codama)', () => {
     it('should build entries from constant field discriminators', () => {
         const table = buildInstructionNameTable(loadTokenkegIdl());
         expect(table.length).toBeGreaterThan(1);
-        expect(table).toContainEqual({ discriminator: Uint8Array.from([3]), name: 'Transfer' });
+        expect(table).toContainEqual({ discriminator: Uint8Array.from([3]), name: 'Transfer', offset: 0 });
     });
 
     it('should resolve an instruction name from instruction data', () => {
@@ -65,19 +65,21 @@ describe('instruction names (Codama)', () => {
 describe('codama discriminator shapes', () => {
     it('should encode multi-byte number discriminators little-endian (u32)', () => {
         const table = buildInstructionNameTable(rootWith(fieldIx(numberTypeNode('u32'), numberValueNode(0x01020304))));
-        expect(table).toEqual([{ discriminator: Uint8Array.from([4, 3, 2, 1]), name: 'Probe' }]);
+        expect(table).toEqual([{ discriminator: Uint8Array.from([4, 3, 2, 1]), name: 'Probe', offset: 0 }]);
     });
 
     it('should encode 64-bit number discriminators', () => {
         const table = buildInstructionNameTable(rootWith(fieldIx(numberTypeNode('u64'), numberValueNode(7))));
-        expect(table).toEqual([{ discriminator: Uint8Array.from([7, 0, 0, 0, 0, 0, 0, 0]), name: 'Probe' }]);
+        expect(table).toEqual([{ discriminator: Uint8Array.from([7, 0, 0, 0, 0, 0, 0, 0]), name: 'Probe', offset: 0 }]);
     });
 
     it('should decode the byte defaults rootNodeFromAnchor emits (fixed-size base16 bytes)', () => {
         const table = buildInstructionNameTable(
             rootWith(fieldIx(fixedSizeTypeNode(bytesTypeNode(), 8), bytesValueNode('base16', '0b12680968ae3b21'))),
         );
-        expect(table).toEqual([{ discriminator: Uint8Array.from([11, 18, 104, 9, 104, 174, 59, 33]), name: 'Probe' }]);
+        expect(table).toEqual([
+            { discriminator: Uint8Array.from([11, 18, 104, 9, 104, 174, 59, 33]), name: 'Probe', offset: 0 },
+        ]);
     });
 
     it('should build entries from constant discriminator nodes', () => {
@@ -91,7 +93,7 @@ describe('codama discriminator shapes', () => {
                 }),
             ),
         );
-        expect(table).toEqual([{ discriminator: Uint8Array.from([9]), name: 'Probe' }]);
+        expect(table).toEqual([{ discriminator: Uint8Array.from([9]), name: 'Probe', offset: 0 }]);
     });
 
     it.each([

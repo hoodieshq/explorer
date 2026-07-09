@@ -25,6 +25,7 @@ describe('instruction names (Anchor)', () => {
         expect(table).toContainEqual({
             discriminator: Uint8Array.from(incrementIx(simple).data.slice(0, 8)),
             name: 'Increment',
+            offset: 0,
         });
     });
 
