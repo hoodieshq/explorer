@@ -5,6 +5,7 @@ import { convertToCodama } from '../anchor/convert';
 import { buildInstructionNameTable, matchInstructionName } from '../names';
 import type { SupportedIdl } from '../types';
 import { loadLetMeBuyIdl } from './fixtures';
+import { unwrap } from './unwrap';
 
 describe('matchInstructionName', () => {
     it('should prefer the longest matching prefix', () => {
@@ -55,9 +56,7 @@ const anchorEntry = () => {
 };
 
 const codamaEntry = () => {
-    const [error, converted] = convertToCodama(loadLetMeBuyIdl());
-    expect(error).toBeUndefined();
-    if (!converted) throw new Error('let_me_buy must convert to codama');
+    const converted = unwrap(convertToCodama(loadLetMeBuyIdl()));
     const entry = buildInstructionNameTable(converted).find(item => item.name === 'Add Product');
     if (!entry) throw new Error('converted document must declare add_product');
     return entry;
@@ -85,9 +84,7 @@ describe('discriminator survives naming through conversion (real let_me_buy add_
 
     it('should resolve the instruction name from those bytes on both tables', () => {
         const bytes = Uint8Array.from(ADD_PRODUCT_DISC);
-        const [error, converted] = convertToCodama(loadLetMeBuyIdl());
-        expect(error).toBeUndefined();
-        if (!converted) throw new Error('let_me_buy must convert to codama');
+        const converted = unwrap(convertToCodama(loadLetMeBuyIdl()));
 
         expect(matchInstructionName(buildInstructionNameTable(loadLetMeBuyIdl()), bytes)).toBe('Add Product');
         expect(matchInstructionName(buildInstructionNameTable(converted), bytes)).toBe('Add Product');

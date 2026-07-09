@@ -27,6 +27,7 @@ import token2022Idl from 'codama-fixtures/packages/dynamic-client/test/programs/
 import tokenIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/token-idl.json';
 import { describe, expect, it } from 'vitest';
 
+import { unwrap } from '../../src/__tests__/unwrap';
 import { buildInstruction, DEFAULT_ADDRESS, fetchedJson } from '../codama-helpers';
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON documents are known codama roots (detection is re-proven per test); the Instruction cast bridges codama tooling with the client */
@@ -61,9 +62,7 @@ const DISCRIMINATOR_LESS_DOCUMENTS = [
 describe('functional: Codama documents (dynamic-client test IDLs)', () => {
     describe.each(DECODABLE_DOCUMENTS)('$name', ({ document, instruction }) => {
         it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
+            const client = unwrap(tryCreateIdlClient(fetchedJson(document)));
 
             expect(isCodamaStandard(client)).toBe(true);
             expect(client.programAddress()).toBe(document.program.publicKey);
@@ -82,9 +81,7 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
 
     describe.each(DISCRIMINATOR_LESS_DOCUMENTS)('$name', ({ document }) => {
         it('should wrap the untrusted document into a codama client', () => {
-            const [error, client] = tryCreateIdlClient(fetchedJson(document));
-            expect(error).toBeUndefined();
-            if (!client) throw new Error('unreachable');
+            const client = unwrap(tryCreateIdlClient(fetchedJson(document)));
 
             expect(isCodamaStandard(client)).toBe(true);
             expect(client.programAddress()).toBe(document.program.publicKey);

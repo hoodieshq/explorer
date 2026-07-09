@@ -43,6 +43,7 @@ import {
     transferIx,
     u64le,
 } from '../../src/__tests__/fixtures';
+import { unwrap } from '../../src/__tests__/unwrap';
 import { fetchSimple031Idl } from '../anchor-helpers';
 
 const TOKENKEG_ADDRESS = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
@@ -85,9 +86,7 @@ describe('capability: client creation from untrusted IDLs', () => {
         const fetched: unknown = loadTokenkegIdl();
 
         // 2. wrap it — no throw on garbage, a typed error instead
-        const [error, client] = tryCreateIdlClient(fetched);
-        expect(error).toBeUndefined();
-        if (!client) throw new Error('unreachable');
+        const client = unwrap(tryCreateIdlClient(fetched));
 
         // 3. custom logic via guards (ErrorBoundary/Suspense composition happens out here)
         expect(isCodamaStandard(client)).toBe(true);
@@ -100,9 +99,7 @@ describe('capability: client creation from untrusted IDLs', () => {
 
     /** Case: the identical untrusted flow accepts a real mainnet Anchor document. */
     it('should handle a real anchor document through the same flow', () => {
-        const [error, client] = tryCreateIdlClient(loadLetMeBuyIdl());
-        expect(error).toBeUndefined();
-        if (!client) throw new Error('unreachable');
+        const client = unwrap(tryCreateIdlClient(loadLetMeBuyIdl()));
 
         expect(isCodamaStandard(client)).toBe(false);
         expect(isAnchorStandard(client)).toBe(true);
@@ -134,9 +131,7 @@ describe('capability: engine selection (one entry per engine)', () => {
     /** Case: the one-import default-engine path — untrusted input straight to a decoding client. */
     it('should decode untrusted input through the pre-wired codama client', () => {
         const tokenkeg = loadTokenkegIdl();
-        const [error, client] = tryCreateCodamaIdlClient(tokenkeg as unknown);
-        expect(error).toBeUndefined();
-        if (!client) throw new Error('unreachable');
+        const client = unwrap(tryCreateCodamaIdlClient(tokenkeg as unknown));
 
         const decode = client.decodeInstruction(transferIx(tokenkeg));
         expect(client.getDecodedData<{ amount: bigint }>(decode)).toMatchObject({ amount: 42n });
@@ -160,9 +155,7 @@ describe('capability: engine selection (one entry per engine)', () => {
 describe('capability: program summary (address, name, standard)', () => {
     /** Case: address/name/standard read from SPL Token's PMP-stored codama root. */
     it('should summarize SPL Token from its real PMP codama root', () => {
-        const [error, client] = tryCreateIdlClient(loadTokenkegIdl());
-        expect(error).toBeUndefined();
-        if (!client) throw new Error('unreachable');
+        const client = unwrap(tryCreateIdlClient(loadTokenkegIdl()));
 
         expect(client.programAddress()).toBe(TOKENKEG_ADDRESS);
         expect(client.programName()).toBe('Token');
@@ -172,12 +165,9 @@ describe('capability: program summary (address, name, standard)', () => {
     /** Case: a nodes-from-anchor conversion result summarizes as a Codama program. */
     it('should summarize the converted Anchor document as a Codama program', () => {
         const simple = loadSimpleIdl();
-        const [conversionError, converted] = convertToCodama(simple);
-        expect(conversionError).toBeUndefined();
+        const converted = unwrap(convertToCodama(simple));
 
-        const [error, client] = tryCreateIdlClient(converted);
-        expect(error).toBeUndefined();
-        if (!client) throw new Error('unreachable');
+        const client = unwrap(tryCreateIdlClient(converted));
 
         expect(client.programAddress()).toBe(simple.address);
         expect(client.programName()).toBe('Simple');
@@ -189,9 +179,7 @@ describe('capability: program summary (address, name, standard)', () => {
 
     /** Case: the workspace anchor-lang 1.1.2 program summarizes as Anchor. */
     it('should summarize the modern Anchor program', () => {
-        const [error, client] = tryCreateIdlClient(loadSimpleIdl());
-        expect(error).toBeUndefined();
-        if (!client) throw new Error('unreachable');
+        const client = unwrap(tryCreateIdlClient(loadSimpleIdl()));
 
         expect(client.programAddress()).toBe('7u9qtZPjJcQ1jZsZxAGyRM4aGLNXqK5pzawpULopWFqB');
         expect(client.programName()).toBe('Simple');
@@ -202,9 +190,7 @@ describe('capability: program summary (address, name, standard)', () => {
 
     /** Case: the workspace Anchor 0.31 program, fetched through anchor's client, summarizes as Anchor. */
     it('should summarize the Anchor 0.31 program', async () => {
-        const [error, client] = tryCreateIdlClient(await fetchSimple031Idl());
-        expect(error).toBeUndefined();
-        if (!client) throw new Error('unreachable');
+        const client = unwrap(tryCreateIdlClient(await fetchSimple031Idl()));
 
         expect(client.programAddress()).toBe('391y4fKGKUEt7n6HuKrkfGYLdkvnk6rvneR7snKe6wzy');
         expect(client.programName()).toBe('Simple 031');
@@ -213,9 +199,7 @@ describe('capability: program summary (address, name, standard)', () => {
 
     /** Case: a mainnet program's IDL from its Anchor PDA leg. */
     it('should summarize the real mainnet Anchor program (let_me_buy, Anchor PDA leg)', () => {
-        const [error, client] = tryCreateIdlClient(loadLetMeBuyIdl());
-        expect(error).toBeUndefined();
-        if (!client) throw new Error('unreachable');
+        const client = unwrap(tryCreateIdlClient(loadLetMeBuyIdl()));
 
         expect(client.programAddress()).toBe('BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya');
         expect(client.programName()).toBe('Let Me Buy');
@@ -224,9 +208,7 @@ describe('capability: program summary (address, name, standard)', () => {
 
     /** Case: the same program's PMP leg carries the same Anchor-format document. */
     it('should summarize the same program from its PMP leg — Anchor-format there too (PMP is storage, not a format)', () => {
-        const [error, client] = tryCreateIdlClient(loadLetMeBuyPmpIdl());
-        expect(error).toBeUndefined();
-        if (!client) throw new Error('unreachable');
+        const client = unwrap(tryCreateIdlClient(loadLetMeBuyPmpIdl()));
 
         expect(client.programAddress()).toBe('BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya');
         expect(client.programName()).toBe('Let Me Buy');
@@ -409,9 +391,7 @@ describe('decoding: converted Anchor documents (nodes-from-anchor)', () => {
     /** Case: an Anchor document converted with the library conversion decodes like a native root. */
     it('should decode through the converted Anchor document', () => {
         const simple = loadSimpleIdl();
-        const [conversionError, converted] = convertToCodama(simple);
-        expect(conversionError).toBeUndefined();
-        if (!converted) throw new Error('unreachable');
+        const converted = unwrap(convertToCodama(simple));
 
         // the conversion result is the WIDE CodamaIdl (literal types do not survive a runtime
         // conversion), so the client narrows like a native root and the shape stays per-call
