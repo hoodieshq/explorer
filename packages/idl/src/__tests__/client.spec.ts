@@ -30,6 +30,8 @@ const brokenIx = () => ({
     programAddress: address('11111111111111111111111111111111'),
 });
 
+const missAccountData = () => Uint8Array.from([1, 2, 3]);
+
 describe('createIdlClient (engine-free metadata client)', () => {
     it('should expose program metadata for an Anchor IDL without any provider', () => {
         const simple = loadSimpleIdl();
@@ -239,8 +241,6 @@ describe('fallbackDecoder escape hatch (instructions)', () => {
 });
 
 describe('fallbackDecoder escape hatch (accounts)', () => {
-    const missAccountData = () => Uint8Array.from([1, 2, 3]);
-
     it('should pass the anchor document and the raw data to the injected decoder', () => {
         const simple = loadSimpleIdl();
         const decodeAccount = vi.fn(() => undefined);
