@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { address, type Instruction } from '@solana/kit';
 
 import type { AnchorIdl, CodamaIdl, LegacyAnchorIdl } from '../types';
-import type { ExampleNativeTokenTransfers } from '../../__fixtures__/ntt';
+import type { ExampleNativeTokenTransfers } from '../../__fixtures__/example_native_token_transfers';
 import type { Simple } from '../../__fixtures__/simple';
 import type { Simple031 } from '../../__fixtures__/simple_031';
 
@@ -30,9 +30,12 @@ export const loadSimple031Idl = (): AnchorIdl => readIdl('simple_031.json') as A
 /** Same document typed with anchor's companion type. */
 export const loadSimple031IdlTyped = (): Simple031 => readIdl('simple_031.json') as Simple031;
 /** Real anchor-0.29 (legacy, pre-0.30) IDL — wormhole NTT `example_native_token_transfers` v3.0.0, vendored as a test sample. */
-export const loadNtt029Idl = (): LegacyAnchorIdl => readIdl('ntt.json') as LegacyAnchorIdl;
+export const loadNtt029Idl = (): LegacyAnchorIdl => readIdl('example_native_token_transfers.json') as LegacyAnchorIdl;
+/** `amm_v3` in v0.1 shape — the app's convert-legacy-idl output over the on-chain 0.29 doc; its spec-correct alias typedef (`kind: 'type'`) is what pristine nodes-from-anchor 1.3.8 rejects. */
+export const loadAmmV3Idl = (): AnchorIdl => readIdl('amm-v3-0.30.1.json') as AnchorIdl;
 /** The same document typed with anchor 0.29's companion type (`export type` + a runtime `IDL` const). */
-export const loadNtt029IdlTyped = (): ExampleNativeTokenTransfers => readIdl('ntt.json') as ExampleNativeTokenTransfers;
+export const loadNtt029IdlTyped = (): ExampleNativeTokenTransfers =>
+    readIdl('example_native_token_transfers.json') as ExampleNativeTokenTransfers;
 
 export const u64le = (value: bigint): number[] => {
     const bytes = new Uint8Array(8);
