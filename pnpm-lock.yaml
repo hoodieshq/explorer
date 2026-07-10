@@ -89,6 +89,9 @@ overrides:
 pnpmfileChecksum: sha256-BfkWczcQHe8lZlLbAuHsrj1b6UroZcYpYDwSzrgMhb8=
 
 patchedDependencies:
+  '@codama/nodes-from-anchor@1.3.8':
+    hash: 0998b86e7c34d80be23b8b33f9004bfbd53057bae5f6c8cfd6cd179e8f175199
+    path: packages/idl/patches/@codama__nodes-from-anchor@1.3.8.patch
   '@solana-developers/helpers@2.8.1':
     hash: 3404536e2e71cf96a8aa5675d9b2c17a94f209253305827d7d8dca7686d0c388
     path: patches/@solana-developers__helpers@2.8.1.patch
@@ -108,7 +111,7 @@ importers:
         version: 1.1.30(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
       '@codama/nodes-from-anchor':
         specifier: 1.3.8
-        version: 1.3.8(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
+        version: 1.3.8(patch_hash=0998b86e7c34d80be23b8b33f9004bfbd53057bae5f6c8cfd6cd179e8f175199)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
       '@coral-xyz/anchor':
         specifier: 0.30.1
         version: 0.30.1(bufferutil@4.0.7)(typescript@5.7.3)(utf-8-validate@5.0.10)
@@ -599,7 +602,7 @@ importers:
         version: 1.1.30(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
       '@codama/nodes-from-anchor':
         specifier: 1.3.8
-        version: 1.3.8(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
+        version: 1.3.8(patch_hash=0998b86e7c34d80be23b8b33f9004bfbd53057bae5f6c8cfd6cd179e8f175199)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
       '@coral-xyz/anchor':
         specifier: ^0.30.1
         version: 0.30.1(bufferutil@4.0.7)(typescript@5.7.3)(utf-8-validate@5.0.10)
@@ -12651,7 +12654,7 @@ snapshots:
 
   '@codama/node-types@1.8.0': {}
 
-  '@codama/nodes-from-anchor@1.3.8(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)':
+  '@codama/nodes-from-anchor@1.3.8(patch_hash=0998b86e7c34d80be23b8b33f9004bfbd53057bae5f6c8cfd6cd179e8f175199)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)':
     dependencies:
       '@codama/errors': 1.5.0
       '@codama/nodes': 1.5.0
