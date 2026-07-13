@@ -67,9 +67,27 @@ type IsLiteralName<N> = CamelCaseString extends N ? false : string extends N ? f
 
 type CodamaNumber<F> = F extends 'i64' | 'i128' | 'i256' | 'u64' | 'u128' | 'u256' ? bigint : number;
 
+// Flattens intersections so inferred enum variants hover as one object literal.
+type Flat<T> = { [K in keyof T]: T[K] };
+
+// Data enums decode as kit discriminated unions — `__kind` carries the capitalized variant name.
+type EnumVariantValue<TRoot, V> = V extends { kind: 'enumEmptyVariantTypeNode'; name: infer N }
+    ? IsLiteralName<N> extends true
+        ? { __kind: Capitalize<N & string> }
+        : unknown
+    : V extends { kind: 'enumStructVariantTypeNode'; name: infer N; struct: infer S }
+      ? IsLiteralName<N> extends true
+          ? Flat<{ __kind: Capitalize<N & string> } & CodamaValue<TRoot, S>>
+          : unknown
+      : V extends { kind: 'enumTupleVariantTypeNode'; name: infer N; tuple: infer T }
+        ? IsLiteralName<N> extends true
+            ? { __kind: Capitalize<N & string>; fields: CodamaValue<TRoot, T> }
+            : unknown
+        : unknown;
+
 // @codama/dynamic-parsers types decoded `data` as `unknown`; reconstruct the payload from the IDL node
 // types to match the parser's runtime shape. Unsupported kinds degrade to `unknown`.
-type CodamaValue<TRoot, TNode> = TNode extends { format: infer F; kind: 'numberTypeNode' }
+export type CodamaValue<TRoot, TNode> = TNode extends { format: infer F; kind: 'numberTypeNode' }
     ? CodamaNumber<F>
     : TNode extends { kind: 'publicKeyTypeNode' }
       ? string
@@ -86,25 +104,35 @@ type CodamaValue<TRoot, TNode> = TNode extends { format: infer F; kind: 'numberT
                         | 'hiddenSuffixTypeNode'
                         | 'postOffsetTypeNode'
                         | 'preOffsetTypeNode'
+                        | 'sentinelTypeNode'
                         | 'sizePrefixTypeNode';
                     type: infer Inner;
                 }
               ? CodamaValue<TRoot, Inner>
               : TNode extends { kind: 'amountTypeNode' | 'dateTimeTypeNode' | 'solAmountTypeNode'; number: infer Inner }
                 ? CodamaValue<TRoot, Inner>
-                : TNode extends { item: infer Item; kind: 'optionTypeNode' | 'zeroableOptionTypeNode' }
+                : TNode extends {
+                        item: infer Item;
+                        kind: 'optionTypeNode' | 'remainderOptionTypeNode' | 'zeroableOptionTypeNode';
+                    }
                   ? { __option: 'None' } | { __option: 'Some'; value: CodamaValue<TRoot, Item> }
-                  : TNode extends { item: infer Item; kind: 'arrayTypeNode' }
-                    ? CodamaValue<TRoot, Item>[]
-                    : TNode extends { fields: infer F; kind: 'structTypeNode' }
-                      ? CodamaFieldsObject<TRoot, F>
-                      : TNode extends { kind: 'enumTypeNode'; variants: infer V }
-                        ? V extends readonly { kind: 'enumEmptyVariantTypeNode' }[]
-                            ? number // scalar enums decode to the variant index
-                            : unknown
-                        : TNode extends { kind: 'definedTypeLinkNode'; name: infer N }
-                          ? ResolveDefinedType<TRoot, N>
-                          : unknown;
+                  : TNode extends { item: infer Item; kind: 'arrayTypeNode' | 'setTypeNode' }
+                    ? CodamaValue<TRoot, Item>[] // sets decode as plain arrays
+                    : TNode extends { kind: 'mapTypeNode'; value: infer Value }
+                      ? Record<string, CodamaValue<TRoot, Value>> // maps decode as plain objects — keys stringify
+                      : TNode extends { items: infer Items extends readonly unknown[]; kind: 'tupleTypeNode' }
+                        ? { -readonly [K in keyof Items]: CodamaValue<TRoot, Items[K]> } // decoded tuples are mutable arrays
+                        : TNode extends { fields: infer F; kind: 'structTypeNode' }
+                          ? CodamaFieldsObject<TRoot, F>
+                          : TNode extends { kind: 'enumTypeNode'; variants: infer V }
+                            ? V extends readonly { kind: 'enumEmptyVariantTypeNode' }[]
+                                ? number // scalar enums decode to the variant index
+                                : V extends readonly unknown[]
+                                  ? EnumVariantValue<TRoot, V[number]>
+                                  : unknown
+                            : TNode extends { kind: 'definedTypeLinkNode'; name: infer N }
+                              ? ResolveDefinedType<TRoot, N>
+                              : unknown;
 
 type CodamaFieldsObject<TRoot, F> = F extends readonly { name: string; type: unknown }[]
     ? F extends readonly []
