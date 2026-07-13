@@ -21,11 +21,14 @@ function idlAccountInfo(idl: AnchorIdl): { data: Buffer } {
     return { data: Buffer.concat([Buffer.alloc(8), Buffer.alloc(32), length, deflated]) };
 }
 
-// simple-031's IDL arrives through anchor's client: Program.fetchIdl over a mocked connection (no HTTP).
+// The IDL arrives through anchor's client: Program.fetchIdl over a mocked connection (no HTTP).
 // The optional generic is anchor's own `Program.fetchIdl<T>` — pass a companion type to flow inference,
-// omit it for the wide runtime shape (Anchor IDL JSON embeds no TS type of its own).
-export async function fetchSimple031Idl<T extends AnchorIdl = AnchorIdl>(): Promise<T> {
-    const raw = loadSimple031Idl();
+// omit it for the wide runtime shape (Anchor IDL JSON embeds no TS type of its own). Pass a loader
+// to serve any other modern anchor document over the same route.
+export async function fetchAnchorIdl<T extends AnchorIdl = AnchorIdl>(
+    load: () => AnchorIdl = loadSimple031Idl,
+): Promise<T> {
+    const raw = load();
     const provider = {
         connection: { getAccountInfo: async () => idlAccountInfo(raw) },
     } as unknown as Provider;

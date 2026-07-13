@@ -45,7 +45,7 @@ import {
     undeclaredInstructionData,
 } from '../../src/__tests__/fixtures';
 import { unwrap } from '../../src/__tests__/unwrap';
-import { fetchSimple031Idl } from '../anchor-helpers';
+import { fetchAnchorIdl } from '../anchor-helpers';
 
 const TOKENKEG_ADDRESS = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 
@@ -191,7 +191,7 @@ describe('capability: program summary (address, name, standard)', () => {
 
     /** Case: the workspace Anchor 0.31 program, fetched through anchor's client, summarizes as Anchor. */
     it('should summarize the Anchor 0.31 program', async () => {
-        const client = unwrap(tryCreateIdlClient(await fetchSimple031Idl()));
+        const client = unwrap(tryCreateIdlClient(await fetchAnchorIdl()));
 
         expect(client.programAddress()).toBe('391y4fKGKUEt7n6HuKrkfGYLdkvnk6rvneR7snKe6wzy');
         expect(client.programName()).toBe('Simple 031');
@@ -248,7 +248,7 @@ describe('capability: instruction naming (discriminator table)', () => {
 
     /** Case: the same resolution works on the Anchor 0.31 document fetched through anchor's client. */
     it('should label the Anchor 0.31 program instruction', async () => {
-        const simple031 = await fetchSimple031Idl();
+        const simple031 = await fetchAnchorIdl();
         const result = labelInstruction(simple031, incrementIx(simple031));
 
         expectTypeOf(result).toEqualTypeOf<string>();
