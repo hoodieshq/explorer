@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
-const OUT_DIR = fileURLToPath(new URL('../__tests__/functional/generated/', import.meta.url));
+const OUT_DIR = fileURLToPath(new URL('../__tests__/generated/', import.meta.url));
 const IDLS = 'codama-fixtures/packages/dynamic-client/test/programs/idls';
 
 // codama rejects some stress fixtures (circular defaults, invalid deps) — reported, never silent

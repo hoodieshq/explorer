@@ -11,6 +11,6 @@
         "resolveJsonModule": true,
         "noEmit": true
     },
-    "include": ["src", "__tests__", "__fixtures__"],
-    "exclude": ["node_modules", "dist", "__tests__/functional/generated"]
+    "include": ["src", "__tests__"],
+    "exclude": ["node_modules", "dist", "__tests__/generated"]
 }

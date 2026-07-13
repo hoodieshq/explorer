@@ -622,18 +622,39 @@ importers:
       '@codama/renderers-js':
         specifier: ^1.7.0
         version: 1.7.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
+      '@explorer/test-idl-program-amm-v3':
+        specifier: workspace:*
+        version: link:test-anchor-programs/amm-v3
+      '@explorer/test-idl-program-dummy-transfer-hook':
+        specifier: workspace:*
+        version: link:test-anchor-programs/dummy-transfer-hook
+      '@explorer/test-idl-program-example-native-token-transfers':
+        specifier: workspace:*
+        version: link:test-anchor-programs/example-native-token-transfers
+      '@explorer/test-idl-program-let-me-buy':
+        specifier: workspace:*
+        version: link:test-anchor-programs/let-me-buy
       '@explorer/test-idl-program-memo':
         specifier: workspace:*
         version: link:test-codama-programs/memo
+      '@explorer/test-idl-program-ntt-transceiver':
+        specifier: workspace:*
+        version: link:test-anchor-programs/ntt-transceiver
       '@explorer/test-idl-program-simple':
         specifier: workspace:*
         version: link:test-anchor-programs/simple
       '@explorer/test-idl-program-simple-031':
         specifier: workspace:*
         version: link:test-anchor-programs/simple-031
+      '@explorer/test-idl-program-tokenkeg':
+        specifier: workspace:*
+        version: link:test-codama-programs/tokenkeg
       '@explorer/test-idl-program-vault':
         specifier: workspace:*
         version: link:test-codama-programs/vault
+      '@explorer/test-idl-program-wormhole-governance':
+        specifier: workspace:*
+        version: link:test-anchor-programs/wormhole-governance
       '@solana-program/program-metadata':
         specifier: 0.7.0
         version: 0.7.0(@solana/kit@6.5.0(bufferutil@4.0.7)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)(utf-8-validate@5.0.10))
@@ -668,11 +689,25 @@ importers:
         specifier: catalog:vitest
         version: 4.1.8(@opentelemetry/api@1.9.0)(@types/node@22.15.3)(@vitest/browser-playwright@4.1.8)(@vitest/coverage-v8@4.1.8)(jsdom@26.0.0(bufferutil@4.0.7)(utf-8-validate@5.0.10))(msw@2.14.6(@types/node@22.15.3)(typescript@5.7.3))(vite@6.3.6(@types/node@22.15.3)(jiti@2.4.2)(lightningcss@1.29.2)(sass@1.53.0)(terser@5.48.0)(tsx@4.21.0)(yaml@2.9.0))
 
+  packages/idl/test-anchor-programs/amm-v3: {}
+
+  packages/idl/test-anchor-programs/dummy-transfer-hook: {}
+
+  packages/idl/test-anchor-programs/example-native-token-transfers: {}
+
+  packages/idl/test-anchor-programs/let-me-buy: {}
+
+  packages/idl/test-anchor-programs/ntt-transceiver: {}
+
   packages/idl/test-anchor-programs/simple: {}
 
   packages/idl/test-anchor-programs/simple-031: {}
 
+  packages/idl/test-anchor-programs/wormhole-governance: {}
+
   packages/idl/test-codama-programs/memo: {}
+
+  packages/idl/test-codama-programs/tokenkeg: {}
 
   packages/idl/test-codama-programs/vault: {}
 

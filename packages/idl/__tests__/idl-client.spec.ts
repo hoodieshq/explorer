@@ -1,7 +1,7 @@
 // The @explorer/idl client in action — consumer-style flows over the BUILT package ('@explorer/idl'
 // resolves to dist/ — build first). Creation/summary/naming sections group by client capability;
 // decoding sections group by document flavor (modern Anchor / legacy Anchor / converted / Codama).
-// Runtime flows only — the typed getDecodedData routes are demonstrated in idl-client-inference.spec.ts.
+// Runtime flows only — the typed getDecodedData routes are demonstrated in codama-inference.spec.ts and anchor-inference.spec.ts.
 // All documents are real:
 //   tokenkeg  — SPL Token's PMP-stored Codama root (mainnet snapshot)
 //   converted — the generated Anchor document normalized with nodes-from-anchor
@@ -47,9 +47,9 @@ import {
     transferIx,
     u64le,
     undeclaredInstructionData,
-} from '../../src/__tests__/fixtures';
-import { unwrap } from '../../src/__tests__/unwrap';
-import { fetchAnchorIdl } from '../anchor-helpers';
+} from '../src/__tests__/fixtures';
+import { unwrap } from '../src/__tests__/unwrap';
+import { fetchAnchorIdl } from './anchor-helpers';
 
 const TOKENKEG_ADDRESS = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 

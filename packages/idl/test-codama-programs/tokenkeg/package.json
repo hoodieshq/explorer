@@ -1,0 +1,8 @@
+{
+    "name": "@explorer/test-idl-program-tokenkeg",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        "./idl": "./tokenkeg.pmp.idl.json"
+    }
+}

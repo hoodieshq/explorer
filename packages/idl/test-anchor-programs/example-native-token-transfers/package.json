@@ -1,0 +1,22 @@
+{
+    "name": "@explorer/test-idl-program-example-native-token-transfers",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": "./example-native-token-transfers.idl.json",
+        "./idl": "./example-native-token-transfers.idl.json",
+        "./generated-types": "./example-native-token-transfers.ts",
+        "./codama": "./example-native-token-transfers.codama.ts"
+    },
+    "scripts": {
+        "generate:codama": "node ../generate-codama.mjs"
+    },
+    "explorer": {
+        "codamaFromAnchor": {
+            "source": "./example-native-token-transfers.idl.json",
+            "target": "./example-native-token-transfers.codama.ts",
+            "exportName": "exampleNativeTokenTransfersIdl",
+            "programAddress": "nttiK1SepaQt6sZ4WGW5whvc9tEnGXGxuKeptcQPCcS"
+        }
+    }
+}

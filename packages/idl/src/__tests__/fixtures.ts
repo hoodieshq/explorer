@@ -1,41 +1,43 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 
+import ammV3Idl from '@explorer/test-idl-program-amm-v3/idl';
+import exampleNativeTokenTransfersIdl from '@explorer/test-idl-program-example-native-token-transfers/idl';
+import type { ExampleNativeTokenTransfers } from '@explorer/test-idl-program-example-native-token-transfers/generated-types';
+import letMeBuyIdl from '@explorer/test-idl-program-let-me-buy/idl';
+import letMeBuyPmpIdl from '@explorer/test-idl-program-let-me-buy/pmp-idl';
+import simpleIdl from '@explorer/test-idl-program-simple/idl';
+import type { Simple } from '@explorer/test-idl-program-simple/generated-types';
+import simple031Idl from '@explorer/test-idl-program-simple-031/idl';
+import type { Simple031 } from '@explorer/test-idl-program-simple-031/generated-types';
+import tokenkegIdl from '@explorer/test-idl-program-tokenkeg/idl';
 import { address, type Instruction } from '@solana/kit';
 
 import type { AnchorIdl, CodamaIdl, CodamaIdlInput, LegacyAnchorIdl } from '../types';
-import type { ExampleNativeTokenTransfers } from '../../__fixtures__/example_native_token_transfers';
-import type { Simple } from '../../__fixtures__/simple';
-import type { Simple031 } from '../../__fixtures__/simple_031';
 
 export type { ExampleNativeTokenTransfers, Simple, Simple031 };
 
-// Committed fixtures in idl/__fixtures__: real mainnet snapshots (let-me-buy, tokenkeg) and
-// copied `anchor build` output (simple, simple-031 — refreshed by `pnpm run build:programs`).
-const readIdl = (name: string): unknown =>
-    JSON.parse(readFileSync(new URL(`../../__fixtures__/${name}`, import.meta.url), 'utf8'));
-
+// Loaders clone the package snapshots — module imports are singletons, and a mutating test must not leak into the next.
 /** let_me_buy's IDL from its Anchor PDA (mainnet snapshot). */
-export const loadLetMeBuyIdl = (): AnchorIdl => readIdl('let-me-buy.anchor.idl.json') as AnchorIdl;
+export const loadLetMeBuyIdl = (): AnchorIdl => structuredClone(letMeBuyIdl) as AnchorIdl;
 /** let_me_buy's IDL from its PMP `idl` account — Anchor-format there too. */
-export const loadLetMeBuyPmpIdl = (): AnchorIdl => readIdl('let-me-buy.pmp.idl.json') as AnchorIdl;
+export const loadLetMeBuyPmpIdl = (): AnchorIdl => structuredClone(letMeBuyPmpIdl) as AnchorIdl;
 /** SPL Token's PMP-stored Codama root node (mainnet snapshot). */
-export const loadTokenkegIdl = (): CodamaIdl => readIdl('tokenkeg.pmp.idl.json') as CodamaIdl;
+export const loadTokenkegIdl = (): CodamaIdl => structuredClone(tokenkegIdl) as unknown as CodamaIdl;
 /** IDL emitted by `anchor build` (anchor-lang 1.1.2) for `test-anchor-programs/simple`. */
-export const loadSimpleIdl = (): AnchorIdl => readIdl('simple.json') as AnchorIdl;
+export const loadSimpleIdl = (): AnchorIdl => structuredClone(simpleIdl) as AnchorIdl;
 /** Same document typed with anchor's companion type — its camelCase view matches decoded payload keys. */
-export const loadSimpleIdlTyped = (): Simple => readIdl('simple.json') as Simple;
+export const loadSimpleIdlTyped = (): Simple => structuredClone(simpleIdl) as Simple;
 /** IDL emitted by `anchor build` (anchor-lang 0.31.1) for `test-anchor-programs/simple-031`. */
-export const loadSimple031Idl = (): AnchorIdl => readIdl('simple_031.json') as AnchorIdl;
+export const loadSimple031Idl = (): AnchorIdl => structuredClone(simple031Idl) as AnchorIdl;
 /** Same document typed with anchor's companion type. */
-export const loadSimple031IdlTyped = (): Simple031 => readIdl('simple_031.json') as Simple031;
+export const loadSimple031IdlTyped = (): Simple031 => structuredClone(simple031Idl) as Simple031;
 /** Real anchor-0.29 (legacy, pre-0.30) IDL — wormhole NTT `example_native_token_transfers` v3.0.0, vendored as a test sample. */
-export const loadNtt029Idl = (): LegacyAnchorIdl => readIdl('example_native_token_transfers.json') as LegacyAnchorIdl;
+export const loadNtt029Idl = (): LegacyAnchorIdl => structuredClone(exampleNativeTokenTransfersIdl) as LegacyAnchorIdl;
 /** `amm_v3` in v0.1 shape — the app's convert-legacy-idl output over the on-chain 0.29 doc; its spec-correct alias typedef (`kind: 'type'`) is what pristine nodes-from-anchor 1.3.8 rejects. */
-export const loadAmmV3Idl = (): AnchorIdl => readIdl('amm-v3-0.30.1.json') as AnchorIdl;
+export const loadAmmV3Idl = (): AnchorIdl => structuredClone(ammV3Idl) as AnchorIdl;
 /** The same document typed with anchor 0.29's companion type (`export type` + a runtime `IDL` const). */
 export const loadNtt029IdlTyped = (): ExampleNativeTokenTransfers =>
-    readIdl('example_native_token_transfers.json') as ExampleNativeTokenTransfers;
+    structuredClone(exampleNativeTokenTransfersIdl) as ExampleNativeTokenTransfers;
 
 export const u64le = (value: bigint): number[] => {
     const bytes = new Uint8Array(8);

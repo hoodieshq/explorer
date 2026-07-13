@@ -19,7 +19,7 @@ import { describe, expect, expectTypeOf, it } from 'vitest';
 import type { AccessGrant } from './generated/blog-client/accounts/accessGrant';
 import type { Multisig } from './generated/token-client/accounts/multisig';
 import type { SyncNativeInstructionData } from './generated/token-client/instructions/syncNative';
-import { base16, base64, DEFAULT_ADDRESS, encodeAccount } from '../codama-helpers';
+import { base16, base64, DEFAULT_ADDRESS, encodeAccount } from './codama-helpers';
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON IDLs are known codama roots (the sweep suite re-proves detection); the Instruction cast bridges codama tooling with the client */
 

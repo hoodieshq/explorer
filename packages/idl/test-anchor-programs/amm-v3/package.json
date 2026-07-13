@@ -1,0 +1,10 @@
+{
+    "name": "@explorer/test-idl-program-amm-v3",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": "./amm-v3.idl.json",
+        "./idl": "./amm-v3.idl.json",
+        "./generated-types": "./amm-v3.ts"
+    }
+}

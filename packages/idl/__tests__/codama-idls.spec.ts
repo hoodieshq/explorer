@@ -4,6 +4,7 @@
 import {
     type CodamaIdl,
     createIdlClient,
+    getDecodedEntries,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
     IdlStandard,
     isCodamaStandard,
@@ -27,8 +28,8 @@ import token2022Idl from 'codama-fixtures/packages/dynamic-client/test/programs/
 import tokenIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/token-idl.json';
 import { describe, expect, it } from 'vitest';
 
-import { unwrap } from '../../src/__tests__/unwrap';
-import { buildInstruction, DEFAULT_ADDRESS, fetchedJson } from '../codama-helpers';
+import { unwrap } from '../src/__tests__/unwrap';
+import { buildInstruction, DEFAULT_ADDRESS, fetchedJson } from './codama-helpers';
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON documents are known codama roots (detection is re-proven per test); the Instruction cast bridges codama tooling with the client */
 
@@ -157,5 +158,47 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
             n: 1,
             signers: Array.from({ length: 11 }, () => DEFAULT_ADDRESS),
         });
+    });
+
+    /**
+     * Case: the same decode without claiming a type — entries pair each leaf with its schema node.
+     * README-ready sample of what `getDecodedEntries` is for:
+     *
+     * @example
+     * ```ts
+     * import { getDecodedEntries } from '@explorer/idl';
+     *
+     * // the payload is `unknown` (wide runtime IDL) — entries make it processable without a claimed
+     * // shape: every leaf VALUE arrives with WHERE it lives (path) and WHAT it is (node)
+     * const entries = getDecodedEntries(client.decodeAccount(accountData));
+     * // [{ path: ['m'], node: { kind: 'numberTypeNode', format: 'u8', … }, value: 1 },
+     * //  { path: ['signers', 0], node: { kind: 'publicKeyTypeNode' }, value: '1111…' }, …]
+     *
+     * // a lens by path segments — the path's native type, no string re-encoding, indices stay numbers
+     * const at = (...path: (number | string)[]) =>
+     *     entries.find(entry => entry.path.length === path.length && entry.path.every((part, i) => part === path[i]));
+     * at('m')?.value; // 1
+     * at('signers', 0)?.node.kind; // 'publicKeyTypeNode' — render it as an address link
+     *
+     * // select by what it is — every address the payload carries, no shape known upfront
+     * entries.filter(entry => entry.node.kind === 'publicKeyTypeNode').map(entry => entry.value);
+     * ```
+     */
+    it('should pair the multisig account leaves with their schema nodes without claiming a type', () => {
+        const client = createIdlClient(tokenIdl as unknown as CodamaIdl);
+
+        // no arm guard needed — getDecodedEntries throws the typed kind mismatch on any other arm
+        const entries = getDecodedEntries(client.decodeAccount(Uint8Array.from([1, 1, 1, ...new Uint8Array(11 * 32)])));
+
+        // the array flattens into indexed paths — every leaf arrives value-with-schema paired
+        expect(entries.map(({ node, path, value }) => `${path.join('.')}: ${String(value)} (${node.kind})`)).toEqual([
+            'm: 1 (numberTypeNode)',
+            'n: 1 (numberTypeNode)',
+            'isInitialized: true (booleanTypeNode)',
+            ...Array.from({ length: 11 }, (_, index) => `signers.${index}: ${DEFAULT_ADDRESS} (publicKeyTypeNode)`),
+        ]);
+        // extraction by node kind — collect every address the payload carries, no shape known upfront
+        const addresses = entries.filter(entry => entry.node.kind === 'publicKeyTypeNode').map(entry => entry.value);
+        expect(addresses).toEqual(Array.from({ length: 11 }, () => DEFAULT_ADDRESS));
     });
 });

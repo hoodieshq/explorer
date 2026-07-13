@@ -1,0 +1,10 @@
+{
+    "name": "@explorer/test-idl-program-wormhole-governance",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": "./wormhole-governance.idl.json",
+        "./idl": "./wormhole-governance.idl.json",
+        "./generated-types": "./wormhole-governance.ts"
+    }
+}

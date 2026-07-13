@@ -1,0 +1,11 @@
+{
+    "name": "@explorer/test-idl-program-ntt-transceiver",
+    "version": "0.0.0",
+    "private": true,
+    "exports": {
+        ".": "./ntt-transceiver.idl.json",
+        "./idl": "./ntt-transceiver.idl.json",
+        "./legacy-idl": "./ntt-transceiver-legacy.idl.json",
+        "./generated-types": "./ntt-transceiver.ts"
+    }
+}

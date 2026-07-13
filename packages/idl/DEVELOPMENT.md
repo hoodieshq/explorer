@@ -10,7 +10,7 @@ pnpm --filter @explorer/idl test:watch  # vitest watch mode
 pnpm --filter @explorer/idl typecheck   # tsc --noEmit
 ```
 
-Running the suite needs **no** Rust/Anchor toolchain: specs consume committed snapshots of the Anchor IDLs (`__fixtures__/simple.json` + companion `__fixtures__/simple.ts`, and the `simple_031` pair) through `loadSimpleIdl` / `loadSimpleIdlTyped` / `loadSimple031Idl` (defined in `src/__tests__/fixtures.ts`, which reads `packages/idl/__fixtures__/`). The toolchain below is only needed to **regenerate** those snapshots after changing the Rust programs.
+Running the suite needs **no** Rust/Anchor toolchain: specs consume committed snapshots of Anchor IDLs through the packages in `test-anchor-programs/`. Buildable packages preserve `.` as the live `target/idl/*.json` output, and expose committed snapshots at `./idl` for the raw JSON and `./generated-types` for the companion type module. Static snapshot packages use `.` and `./idl` for the same committed raw JSON. `src/__tests__/fixtures.ts` wraps the commonly used imports as `loadSimpleIdl` / `loadSimpleIdlTyped` / `loadSimple031Idl` / real-world snapshot loaders. The toolchain below is only needed to **regenerate** snapshots after changing Rust programs.
 
 ## Building the fixture programs
 
@@ -19,7 +19,21 @@ Running the suite needs **no** Rust/Anchor toolchain: specs consume committed sn
 - `test-anchor-programs/simple` — anchor-lang 1.1.2
 - `test-anchor-programs/simple-031` — anchor-lang 0.31.1
 
-Both implement the same minimal program (one account, one instruction argument, one error, one event), so their IDLs are directly comparable across Anchor versions.
+Both implement the same minimal program (one account, one instruction argument, one error, one event), so their IDLs are directly comparable across Anchor versions. Each Anchor package ships committed snapshot entries for test imports: `./idl` — the raw IDL JSON — and `./generated-types` — the generated Anchor companion type module.
+
+The same directory also contains static Anchor snapshot packages for mainnet and stress fixtures (`amm-v3`, `dummy-transfer-hook`, `example-native-token-transfers`, `let-me-buy`, `ntt-transceiver`, `wormhole-governance`). These have no build script; edit the committed JSON/type modules directly when refreshing the fixture. Variant documents are exposed with named subpaths such as `./pmp-idl`, `./legacy-idl`, and `./codama`.
+
+Anchor fixture packages that need a committed Codama literal opt in with `explorer.codamaFromAnchor` in their `package.json`. Regenerate all opted-in literals from the root package:
+
+```sh
+pnpm --filter @explorer/idl run generate:anchor-codama
+```
+
+or regenerate one package:
+
+```sh
+pnpm --filter @explorer/test-idl-program-example-native-token-transfers run generate:codama
+```
 
 `test-codama-programs/` holds Codama fixtures that need no build — plain data consumed directly.
 Each package ships two entries: `.` — a literal (`as const`) TS module whose type drives the codama
@@ -30,7 +44,7 @@ JSON is the source of truth: the literal module is generated from it by
 - `test-codama-programs/memo` (`@explorer/test-idl-program-memo`) — a real PMP root-node snapshot (single discriminator-less instruction)
 - `test-codama-programs/vault` (`@explorer/test-idl-program-vault`) — a hand-authored minimal root (one instruction, one size-identified account)
 
-Ready-made IDLs also come from the `codama-fixtures` devDependency (a pinned tarball of the codama repo): functional specs import its `dynamic-client` test IDLs as-is, and `scripts/generate-codama-types.mjs` renders typed clients from them into `__tests__/functional/generated/`.
+Ready-made IDLs also come from the `codama-fixtures` devDependency (a pinned tarball of the codama repo): functional specs import its `dynamic-client` test IDLs as-is, and `scripts/generate-codama-types.mjs` renders typed clients from them into `__tests__/generated/`.
 
 Prerequisites:
 
@@ -55,13 +69,13 @@ The script is named `build:anchor` (not `build`) on purpose: the root `build:pac
 `pnpm -r run build` across `packages/**`, and a `build` script here would drag the Rust/Anchor
 toolchain into every standard build (CI included).
 
-`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and then copies them into the committed snapshots under `__fixtures__/` (via `scripts/copy-anchor-artifacts.mjs`). It is a standalone regeneration step, never part of the test pipeline:
+`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and then copies them into the committed snapshots in each test-program package, plus the legacy `__fixtures__/simple*.{json,ts}` mirrors (via `scripts/copy-anchor-artifacts.mjs`). It is a standalone regeneration step, never part of the test pipeline:
 
 ```sh
 pnpm --filter @explorer/idl build:programs   # anchor build + copy into the committed snapshots
 ```
 
-Commit the refreshed snapshots — the suite reads those committed copies, not the live `target/`, so it never invokes the toolchain.
+Commit the refreshed snapshots — the suite reads those committed copies, not the live `target/`, so it never invokes the toolchain. To refresh one Anchor package after building it, run its `copy:artifacts` script.
 
 ### Gotchas
 

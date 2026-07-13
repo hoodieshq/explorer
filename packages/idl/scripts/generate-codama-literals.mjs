@@ -14,14 +14,14 @@ for (const entry of readdirSync(PROGRAMS_DIR, { withFileTypes: true })) {
     if (!entry.isDirectory()) continue;
     const pkg = JSON.parse(readFileSync(join(PROGRAMS_DIR, entry.name, 'package.json'), 'utf8'));
     const jsonEntry = pkg.exports?.['./idl'];
-    const tsEntry = pkg.exports?.['.'];
-    if (!jsonEntry || !tsEntry?.endsWith('.ts')) {
-        throw new Error(`${pkg.name}: expected exports '.' (TS literal) and './idl' (raw JSON)`);
-    }
+    if (!jsonEntry) throw new Error(`${pkg.name}: expected exports './idl' (raw JSON)`);
     const root = JSON.parse(readFileSync(join(PROGRAMS_DIR, entry.name, jsonEntry), 'utf8'));
     // validation only — the identity visitor throws on malformed kinds, but its output is NOT
     // serialized: it rebuilds nodes through constructors, which re-stamps versions and drops fields
     visit(root, identityVisitor());
+    // no '.' TS export → a raw-JSON-only fixture (consumed wide, e.g. tokenkeg) — nothing to generate
+    const tsEntry = pkg.exports?.['.'];
+    if (!tsEntry?.endsWith('.ts')) continue;
     const exportName = `${entry.name.replace(/-(\w)/g, (_, c) => c.toUpperCase())}Idl`;
     writeFileSync(
         join(PROGRAMS_DIR, entry.name, tsEntry),

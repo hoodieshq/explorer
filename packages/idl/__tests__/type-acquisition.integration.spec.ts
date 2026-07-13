@@ -4,14 +4,23 @@
 // One describe per row. The known-IDL rows use wormhole NTT (a legacy anchor program) with types
 // generated in advance from the document; the unknown-IDL row walks the runtime schema for both
 // origins — an anchor document converted on the fly and a fetched codama root (SPL Token).
-import { type AnchorIdl, type CodamaIdl, createIdlClient, IdlStandard } from '@explorer/idl';
+import {
+    type AccountDecode,
+    type AnchorIdl,
+    type CodamaIdl,
+    createIdlClient,
+    type DecodedEntry,
+    getDecodedEntries,
+    IdlStandard,
+    type InstructionDecode,
+} from '@explorer/idl';
 import { convertToCodama } from '@explorer/idl/anchor';
+import { exampleNativeTokenTransfersIdl } from '@explorer/test-idl-program-example-native-token-transfers/codama';
+import nttjson from '@explorer/test-idl-program-example-native-token-transfers/idl';
 import { address, type Instruction } from '@solana/kit';
-import { getLastNodeFromPath, type RootNode, type TypeNode } from 'codama';
+import { getLastNodeFromPath } from 'codama';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { exampleNativeTokenTransfersIdl } from '../../__fixtures__/example_native_token_transfers.codama';
-import nttjson from '../../__fixtures__/example_native_token_transfers.json';
 import {
     loadNtt029Idl,
     loadTokenkegIdl,
@@ -19,11 +28,11 @@ import {
     NTT_TRANSFER_BURN_DISCRIMINATOR,
     transferIx,
     u64le,
-} from '../../src/__tests__/fixtures';
-import { unwrap } from '../../src/__tests__/unwrap';
-import { DEFAULT_ADDRESS, encodeAccount } from '../codama-helpers';
+} from '../src/__tests__/fixtures';
+import { unwrap } from '../src/__tests__/unwrap';
+import { DEFAULT_ADDRESS, encodeAccount } from './codama-helpers';
 
-/* eslint-disable @typescript-eslint/consistent-type-assertions -- the legacy JSON rides the same casts real consumers use: AnchorIdl into the converter, the generated companion type onto the converted root, one Record cast at the schema-rendering boundary */
+/* eslint-disable @typescript-eslint/consistent-type-assertions -- the legacy JSON rides the same casts real consumers use: AnchorIdl into the converter, the generated companion type onto the converted root */
 
 /** The build-time artifact: the converted root written down as source (`as const`) — value and type at once. */
 type NttCodamaIdl = typeof exampleNativeTokenTransfersIdl;
@@ -56,42 +65,34 @@ const transferBurnIx: Instruction & { accounts: []; data: Uint8Array } = {
     programAddress: address(NTT_PROGRAM_ADDRESS),
 };
 
-/** Aaron's renderField, schema-driven: the node kind picks the rendering, not the value's JS shape. */
-function renderValue(root: RootNode, type: TypeNode, value: unknown): string {
-    switch (type.kind) {
+/**
+ * Aaron's renderField over `getDecodedEntries`: the library owns the traversal (links, wrappers,
+ * options, nesting) — only per-leaf formatting stays consumer-side, keyed by the entry's node kind.
+ */
+function renderEntry({ node, value }: DecodedEntry): string {
+    switch (node.kind) {
         case 'publicKeyTypeNode':
             return `address(${String(value)})`;
         case 'numberTypeNode':
-            return `${type.format}(${String(value)})`;
+            return `${node.format}(${String(value)})`;
         case 'booleanTypeNode':
             return value ? 'yes' : 'no';
         case 'bytesTypeNode':
             // dynamic-parsers hands bytes back as an [encoding, data] tuple
             return Array.isArray(value) ? `bytes(${String(value[1])})` : String(value);
-        case 'fixedSizeTypeNode':
-        case 'sizePrefixTypeNode':
-            return renderValue(root, type.type, value);
         case 'enumTypeNode': {
             // decoded as the variant index — the node's variants restore the display name
-            const variant = type.variants[Number(value)];
+            const variant = node.variants[Number(value)];
             return variant ? String(variant.name) : String(value);
         }
-        case 'optionTypeNode': {
-            const option = value as { __option: 'None' } | { __option: 'Some'; value: unknown };
-            return 'value' in option ? renderValue(root, type.item, option.value) : 'none';
-        }
-        case 'structTypeNode': {
-            const fields = value as Record<string, unknown>;
-            return `{ ${type.fields.map(f => `${f.name}: ${renderValue(root, f.type, fields[f.name])}`).join(', ')} }`;
-        }
-        case 'definedTypeLinkNode': {
-            const defined = root.program.definedTypes.find(item => item.name === type.name);
-            return defined ? renderValue(root, defined.type, value) : String(value);
-        }
         default:
-            return JSON.stringify(value) ?? String(value);
+            // an option that decoded to None is the only undefined-valued entry
+            return value === undefined ? 'none' : (JSON.stringify(value) ?? String(value));
     }
 }
+
+const renderEntries = (decode: AccountDecode | InstructionDecode): string[] =>
+    getDecodedEntries(decode).map(entry => `${entry.path.join('.')}: ${renderEntry(entry)}`);
 
 describe('integration: type acquisition — literal → static types; runtime IDL → runtime schema', () => {
     describe('known IDL, no types provided — the document literal is the type source', () => {
@@ -174,12 +175,7 @@ describe('integration: type acquisition — literal → static types; runtime ID
             expectTypeOf(decode.decoded.data).toBeUnknown();
 
             const account = getLastNodeFromPath(decode.decoded.path); // AccountNode — the schema
-            if (account.data.kind !== 'structTypeNode') throw new Error('expected a struct-shaped account');
-            const data = decode.decoded.data as Record<string, unknown>; // one honest cast at the boundary
-
-            const rendered = account.data.fields.map(
-                field => `${field.name}: ${renderValue(converted, field.type, data[field.name])}`,
-            );
+            const rendered = renderEntries(decode); // no cast — entries pair each leaf with its node
 
             expect(account.name).toBe('config');
             expect(rendered).toEqual([
@@ -190,10 +186,10 @@ describe('integration: type acquisition — literal → static types; runtime ID
                 `mint: address(${DEFAULT_ADDRESS})`,
                 `tokenProgram: address(${DEFAULT_ADDRESS})`,
                 'mode: burning', // decoded as index 1 — the enum node restored the variant name
-                'chainId: { id: u16(1) }',
+                'chainId.id: u16(1)', // nested fields flatten into dot paths
                 'nextTransceiverId: u8(1)',
                 'threshold: u8(1)',
-                'enabledTransceivers: { map: u128(1) }',
+                'enabledTransceivers.map: u128(1)',
                 'paused: no',
                 `custody: address(${DEFAULT_ADDRESS})`,
             ]);
@@ -212,11 +208,7 @@ describe('integration: type acquisition — literal → static types; runtime ID
             expectTypeOf(client.getDecodedData(decode)).toBeUnknown();
 
             const instruction = getLastNodeFromPath(decode.decoded.path); // InstructionNode — the schema
-            const data = decode.decoded.data as Record<string, unknown>; // one honest cast at the boundary
-
-            const rendered = instruction.arguments.map(
-                argument => `${argument.name}: ${renderValue(tokenkeg, argument.type, data[argument.name])}`,
-            );
+            const rendered = renderEntries(decode); // no cast — entries pair each leaf with its node
 
             expect(instruction.name).toBe('transfer');
             expect(rendered).toEqual(['discriminator: u8(3)', 'amount: u64(42)']);

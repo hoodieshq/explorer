@@ -4,9 +4,12 @@
     "private": true,
     "exports": {
         ".": "./target/idl/simple.json",
-        "./types": "./target/types/simple.ts"
+        "./idl": "./simple.idl.json",
+        "./types": "./target/types/simple.ts",
+        "./generated-types": "./simple.ts"
     },
     "scripts": {
-        "build:anchor": "anchor build"
+        "build:anchor": "anchor build",
+        "copy:artifacts": "node ../../scripts/copy-anchor-artifacts.mjs @explorer/test-idl-program-simple"
     }
 }

@@ -1,7 +1,7 @@
 // Typed getDecodedData routes for ANCHOR IDLs over the BUILT package — one case per way a consumer
-// can source the payload type: the repo-bundled generated companion type, anchor's Program.fetchIdl
-// generic, and the per-call shape when only the wide runtime IDL exists. Codama IDLs live in
-// codama-inference.spec.ts; general client usage in ../integration/idl-client-inference.spec.ts.
+// can source the payload type: the generated companion type flowing through anchor's own
+// Program.fetchIdl<T> generic (anchor-lang 1.1.2 and 0.31), and the per-call shape when only the
+// wide runtime IDL exists. Codama IDLs live in codama-inference.spec.ts.
 import {
     type AccountDecode,
     type AnchorIdl,
@@ -11,22 +11,16 @@ import {
 } from '@explorer/idl';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import {
-    incrementIx,
-    loadSimple031IdlTyped,
-    loadSimpleIdlTyped,
-    type Simple,
-    type Simple031,
-} from '../../src/__tests__/fixtures';
-import { counterAccountData, fetchAnchorIdl } from '../anchor-helpers';
+import { incrementIx, loadSimpleIdl, type Simple, type Simple031 } from '../src/__tests__/fixtures';
+import { counterAccountData, fetchAnchorIdl } from './anchor-helpers';
 
 const DEFAULT_ADDRESS = '11111111111111111111111111111111';
 
 describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
-    describe('generated companion type — inference with no generics', () => {
-        /** Case: repo-bundled document paired with the anchor-generated companion type — args infer, no generics. */
-        it('should decode the increment instruction with args inferred from the generated type', () => {
-            const simple = loadSimpleIdlTyped();
+    describe('generated companion type — Program.fetchIdl<Simple> flows inference with no generics', () => {
+        /** Case: the anchor-lang 1.1.2 document fetched with its companion type — args infer, no generics at the decode calls. */
+        it('should decode the increment instruction with args inferred from the generated type', async () => {
+            const simple = await fetchAnchorIdl<Simple>(loadSimpleIdl);
             const client = createIdlClient(simple);
 
             const decode = client.decodeInstruction(incrementIx(simple));
@@ -42,8 +36,8 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
         });
 
         /** Case: the same generated type infers account struct fields (its camelCase view matches codama-decoded keys). */
-        it('should decode counter account bytes with fields inferred from the generated type', () => {
-            const simple = loadSimpleIdlTyped();
+        it('should decode counter account bytes with fields inferred from the generated type', async () => {
+            const simple = await fetchAnchorIdl<Simple>(loadSimpleIdl);
             const client = createIdlClient(simple);
 
             const decode = client.decodeAccount(counterAccountData(simple));
@@ -53,20 +47,6 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
             expectTypeOf(result).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
             expect(decode.kind).toBe(IdlStandard.Codama);
             expect(result).toMatchObject({ authority: DEFAULT_ADDRESS, count: 7n });
-        });
-
-        /** Case: the 0.31 program's bundled JSON paired with its companion type — same no-generic inference across anchor versions. */
-        it('should decode the 0.31 increment instruction with args inferred from the bundled companion type', () => {
-            const simple031 = loadSimple031IdlTyped();
-            const client = createIdlClient(simple031);
-
-            const decode = client.decodeInstruction(incrementIx(simple031));
-            const result = client.getDecodedData(decode);
-
-            expectTypeOf(simple031).toEqualTypeOf<Simple031>();
-            expectTypeOf(result).toEqualTypeOf<{ amount: bigint } | Record<string, never> | undefined>();
-            expect(decode.kind).toBe(IdlStandard.Codama);
-            expect(result).toMatchObject({ amount: 42n });
         });
     });
 
