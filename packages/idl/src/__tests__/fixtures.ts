@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 
 import { address, type Instruction } from '@solana/kit';
 
-import type { AnchorIdl, CodamaIdl, LegacyAnchorIdl } from '../types';
+import type { AnchorIdl, CodamaIdl, CodamaIdlInput, LegacyAnchorIdl } from '../types';
 import type { ExampleNativeTokenTransfers } from '../../__fixtures__/example_native_token_transfers';
 import type { Simple } from '../../__fixtures__/simple';
 import type { Simple031 } from '../../__fixtures__/simple_031';
@@ -51,6 +51,22 @@ export const incrementIx = (idl: AnchorIdl): Instruction & { accounts: []; data:
         accounts: [],
         data: new Uint8Array([...increment.discriminator, ...u64le(42n)]),
         programAddress: address(idl.address),
+    };
+};
+
+/** `deposit(amount: 42)` for the vault literal — stands in for an instruction arriving from a transaction. */
+export const depositIx = (idl: CodamaIdlInput): Instruction & { accounts: []; data: Uint8Array } => {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- literal IDLs narrow structurally; the branded root is only needed to walk instructions
+    const root = idl as unknown as CodamaIdl;
+    const deposit = root.program.instructions.find(item => item.name === 'deposit');
+    const discriminator = deposit?.arguments[0]?.defaultValue;
+    if (!discriminator || !('number' in discriminator)) {
+        throw new Error('program must declare deposit with a constant discriminator');
+    }
+    return {
+        accounts: [],
+        data: new Uint8Array([discriminator.number, ...u64le(42n)]),
+        programAddress: address(root.program.publicKey),
     };
 };
 
