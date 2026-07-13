@@ -164,79 +164,110 @@ A raw Anchor IDL client also carries the `anchor` branch — like the instructio
 when a wired `fallbackDecoder.decodeAccount` rescues data the pipeline missed (see
 [below](#legacy-anchor-idls)).
 
-## Typed payloads — four routes
+## Typed payloads — when knowledge exists
 
-**1. Anchor generated companion type — zero generics.** Pair the built JSON with the
-`target/types` type (the `Program<MyProgram>` idiom) and payloads infer from the IDL itself:
+Two axes decide what the decode routes can type: the IDL's **standard**, and **when** you know the
+program — *build time* (a type is present → static typings) or *runtime* (only the fetched JSON
+exists → payloads type as `unknown`, but the decode carries the exact schema). Every sample below is
+executable: `__tests__/integration/readme-flows.integration.spec.ts` runs them with type assertions.
 
-```ts
-import type { MyProgram } from './target/types/my_program';
-import idlJson from './target/idl/my_program.json';
+### Codama IDLs · build time
 
-const client = createCodamaIdlClient(idlJson as unknown as MyProgram);
-const decode = client.decodeInstruction(instruction);
-if (decode.kind === IdlStandard.Codama) {
-    const args = client.getDecodedData(decode); // inferred union of the program's instruction args
-}
-```
-
-Fetching through anchor's client works the same — pass the type to `Program.fetchIdl<MyProgram>` and
-inference still flows. But fetch it untyped (plain `idl.json`, no companion type) and the IDL widens
-to `AnchorIdl`; inference is gone, so you must hand the shape to the generic:
+**The schema is the type source — zero generics.** The only requirement is that the IDL is TS source
+(`as const`) so the compiler can read it; JSON imports widen and lose inference. The RootNode TS
+variant may already be accessible (shipped by the program), or **built in advance** — run the
+anchor→codama conversion at build time and save the result:
 
 ```ts
-const idl = await Program.fetchIdl(programId, provider); // no generic → AnchorIdl (wide)
-const client = createCodamaIdlClient(idl);
-const decode = client.decodeInstruction(instruction);
-if (decode.kind === IdlStandard.Codama) {
-    const args = client.getDecodedData<{ amount: bigint }>(decode); // explicit — the type can't be inferred
-}
+import { createIdlClient } from '@explorer/idl';
+import { codamaProvider } from '@explorer/idl/codama';
+import { vaultIdl } from './idl/vault'; // `as const` root node — the IDL IS the type
+
+const client = createIdlClient(vaultIdl, { provider: codamaProvider() });
+
+const [, data] = client.decodeInstructionData(instruction);
+//        ^? { amount: bigint; discriminator: number } | undefined — read off the schema's `deposit` instruction
 ```
 
-Both forms feed an Anchor IDL to `createCodamaIdlClient`, which converts it to a Codama root via
-nodes-from-anchor before decoding — that's why `decode.kind` is `Codama`, not `Anchor`. See
-[Anchor IDLs](#anchor-idls) for that conversion and how it fails.
-
-**2. Codama literal IDL — zero generics.** Codama ships no generated IDL types and JSON
-imports widen — hold the root node in a TS module `as const` and payloads infer the same way:
+**Pick account payloads by name.** `AccountsDataOf` keys the inferred payloads by account name — and
+doubles as the decode-shape reference, because inferred types mirror what the parser *returns*, not
+the on-chain layout:
 
 ```ts
-// idl/vault.ts — `as const` keeps the literals inference reads; the IDL IS the type
-export const vaultIdl = { kind: 'rootNode', program: { /* … */ } } as const;
+import type { AccountsDataOf } from '@explorer/idl';
 
-const client = createCodamaIdlClient(vaultIdl);
-const decode = client.decodeAccount(accountData);
-if (decode.kind === IdlStandard.Codama) {
-    const account = client.getDecodedData(decode); // { authority: string; count: bigint } — inferred
-}
+type ConfigAccount = AccountsDataOf<typeof nttIdl>['config'];
+//   ^? {
+//        discriminator: [string, string]; // bytes → [encoding, data] tuple, NOT Uint8Array
+//        owner: string;                   // Address/pubkey → plain base58 string, NOT a branded Address
+//        pendingOwner:                    // Option<pubkey> → kit {__option} object, NOT `string | null`
+//            | { __option: 'None' }
+//            | { __option: 'Some'; value: string };
+//        mode: number;                    // scalar enum → its variant INDEX, NOT the variant name
+//        chainId: { id: number };         // defined type → resolved inline
+//        enabledTransceivers: { map: bigint }; // u128 (and u64/i64/i128) → bigint, NOT number
+//        paused: boolean;
+//        // …
+//      }
 ```
 
-**3. Per-call shape.** Runtime-fetched JSON (either standard) has no compile-time type — inference
-degrades to `unknown`, so declare the shape at the call:
+**Refine a fetched IDL with a generated client type.** renderers-js types describe the codec view
+(`Address` pubkeys, `Uint8Array` bytes) which the parser does not uphold — pass them through
+`AsDecoded<T>` (see its JSDoc for the mapping).
+
+### Codama IDLs · runtime
+
+**Payloads unknown, values exact.** A runtime-fetched root is the wide `CodamaIdl` — names and kinds
+are plain strings, nothing to infer from. Decoding still works exactly; only the static guidance is
+absent (claim a shape per call when you know it: `decodeAccountData<{ m: number }>(…)`):
 
 ```ts
 const idl: CodamaIdl = await fetchIdlFromChain(programId); // wide — no literal type
-const client = createCodamaIdlClient(idl);
-const decode = client.decodeInstruction(instruction);
-if (decode.kind === IdlStandard.Codama) {
-    const args = client.getDecodedData<{ amount: bigint }>(decode); // the generic IS the shape
+const client = createIdlClient(idl, { provider: codamaProvider() });
+
+const [, data] = client.decodeAccountData(accountData);
+//        ^? unknown — a wide IDL carries no literals to read; the value is still exact at runtime
+```
+
+**The decode carries the exact schema.** No type exists for a fetched IDL, but the two-step route
+keeps the whole decode envelope — `unwrapCodama` narrows to the codama arm (or throws a typed
+`IdlError`) and surfaces the matched schema node, so unknown-program consumers render by node kind,
+never by guessing the value's shape:
+
+```ts
+import { unwrapCodama } from '@explorer/idl';
+
+const { data, node } = unwrapCodama(client.decodeAccount(accountData));
+//            ^? node: AccountNode — the exact schema, at runtime; data stays unknown
+
+if (node.data.kind === 'structTypeNode') {
+    node.data.fields.map(field => `${field.name}: ${field.type.kind}`);
+    // ['m: numberTypeNode', 'n: numberTypeNode', 'isInitialized: booleanTypeNode', 'signers: arrayTypeNode']
 }
 ```
 
-**4. `AsDecoded` — reuse a generated client type.** When a renderers-js type for the program already
-exists — your own `target` output, or a published `@solana-program/*` client — reuse it instead of
-hand-writing the decoded shape. It can't be passed *directly*, though: a generated type describes the
-program's **encoder input / on-chain layout** (`Address` for pubkeys, `ReadonlyUint8Array` for byte
-fields), while this decoder **returns** different runtime shapes (base58 `string`s, and
-`[encoding, data]` tuples for bytes). Passing the generated type as-is would mistype the decoded data.
-`AsDecoded<T>` rewrites it into what `getDecodedData` actually yields, so the two line up:
+### Anchor IDLs · build time
+
+**The satellite type anchor emits — zero generics.** `anchor build` writes a TS type next to the
+JSON (`target/types`); pair them (`idlJson as unknown as MyProgram`, or fetch with
+`Program.fetchIdl<MyProgram>`) and payloads infer from the IDL itself — one union member per
+declared instruction.
+
+The strongest anchor route, though, is the codama one above: convert the anchor JSON **at build
+time** (`convertToCodama` / nodes-from-anchor), save the root `as const`, and the full codama
+inference applies to the anchor-born program.
+
+### Anchor IDLs · runtime
+
+Same rule as any runtime IDL: payloads type as `unknown` (claim a shape per call when you know it),
+and the exact schema still arrives with every decode — the engine creates it from the anchor JSON
+internally via nodes-from-anchor:
 
 ```ts
-import type { AsDecoded } from '@explorer/idl';
-import type { Multisig } from '@solana-program/token-2022'; // type-only, erased at runtime
-
-const account = client.getDecodedData<AsDecoded<Multisig>>(decode);
-account.signers; // string[], not Address[]
+const { data, node } = unwrapCodama(client.decodeInstruction(instruction));
+//            ^? node: InstructionNode — born from the anchor JSON
+node.arguments.map(argument => `${argument.name}: ${argument.type.kind}`);
+// ['discriminator: fixedSizeTypeNode', 'amount: numberTypeNode']
 ```
 
 ## Anchor IDLs
