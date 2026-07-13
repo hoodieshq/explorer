@@ -634,6 +634,9 @@ importers:
       '@explorer/test-idl-program-vault':
         specifier: workspace:*
         version: link:test-codama-programs/vault
+      '@solana-program/program-metadata':
+        specifier: 0.7.0
+        version: 0.7.0(@solana/kit@6.5.0(bufferutil@4.0.7)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)(utf-8-validate@5.0.10))
       '@solana-program/token-2022':
         specifier: 0.9.0
         version: 0.9.0(@solana/kit@6.5.0(bufferutil@4.0.7)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)(utf-8-validate@5.0.10))(@solana/sysvars@6.5.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3))
@@ -16104,7 +16107,7 @@ snapshots:
       pako: 2.1.0
       picocolors: 1.1.1
       smol-toml: 1.6.1
-      yaml: 2.8.3
+      yaml: 2.9.0
 
   '@solana-program/stake@0.6.0(@solana/kit@6.5.0(bufferutil@4.0.7)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)(utf-8-validate@5.0.10))':
     dependencies:

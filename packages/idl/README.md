@@ -16,6 +16,7 @@ The main entry is engine-free; every entry is side-effect-free and tree-shakeabl
 | `@explorer/idl`        | client, guards, names, errors, types — no decode engine            |
 | `@explorer/idl/codama` | the codama decode engine + `createCodamaIdlClient` wrappers        |
 | `@explorer/idl/anchor` | Anchor IDL helpers (`convertToCodama`)                        |
+| `@explorer/idl/fetch`  | fetch the IDL by program address (`fetchIdlClient`)           |
 
 ## Quick start
 
@@ -350,6 +351,39 @@ const [error, rootNode] = convertToCodama(anchorIdl);
 `IdlError` with stable numeric codes (`IDL_ERROR__*`) and per-code typed context, modelled on
 `@codama/errors`; `isIdlError(e, code)` narrows both. Unknown-arm contract: `errors: []` = the
 bytes did not match; non-empty = the pipeline failed and tells you where.
+
+## Fetching the IDL
+
+Everything above assumes you already hold the IDL. `@explorer/idl/fetch` resolves it **by program
+address** — whatever the program publishes — and hands back a ready decode client. The codama engine
+is the default here (pass `provider` to swap):
+
+```ts
+import { fetchIdlClient } from '@explorer/idl/fetch';
+
+const controller = new AbortController();
+const [error, client] = await fetchIdlClient(programAddress, {
+    abortSignal: controller.signal, // optional — aborting REJECTS with the abort reason
+    rpc, // createSolanaRpc(url)
+});
+if (!error) {
+    client.decodeInstruction(instruction); // works no matter which standard the program publishes
+}
+```
+
+The default resolution is the program's "latest" IDL: the PMP `idl` metadata first (via
+`@solana-program/program-metadata` — a peer of this entry), then the Anchor IDL PDA as the fallback
+(a kit-native, abortable mirror of anchor's `Program.fetchIdl`). An absent IDL lands as
+`IDL_ERROR__IDL_NOT_FOUND` in the Result; a transport failure as `IDL_ERROR__IDL_FETCH_FAILED` with
+its cause — a blip stays retryable and is never mistaken for "no IDL". A fetched IDL declaring a
+**different** program address is rejected as `IDL_ERROR__IDL_ADDRESS_MISMATCH` (registries and custom
+fetchers can serve mislabeled ones) — pass `verifyAddress: false` to accept it anyway.
+
+Any other source (a registry, a cache, an anchor-provider wrap) plugs in through the `fetcher`
+option — an `IdlFetcher` resolves the raw IDL JSON, resolves `undefined` when the program has none,
+and throws only on transport failure or abort. With a `fetcher` the `rpc` requirement drops.
+`createLatestIdlFetcher(rpc, { anchor, authority })` — the default's building block — is exported
+too, for skipping the Anchor leg (native programs) or reading a non-canonical PMP authority.
 
 ## Development
 

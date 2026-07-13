@@ -127,6 +127,14 @@ export type AccountHandlers<T extends SupportedIdlInput, R> = {
     [K in AccountDecodeFor<T>['kind']]: (decode: Extract<AccountDecodeFor<T>, { kind: K }>) => R;
 };
 
+/**
+ * Loads a program's raw IDL JSON by address, whatever its nature (PMP, Anchor PDA, a registry, a
+ * file). Resolves `undefined` when the program has no IDL; throws only on transport failure or
+ * abort — a blip stays retryable and is never mistaken for "no IDL". The reference implementation
+ * lives behind '@explorer/idl/fetch' (`createLatestIdlFetcher`).
+ */
+export type IdlFetcher = (programAddress: string, config?: { abortSignal?: AbortSignal }) => Promise<unknown>;
+
 /** The Anchor escape hatch — rescues what the pipeline cannot decode; always injected, never bundled. */
 export type FallbackDecoder = {
     decodeAccount?: (idl: AnchorIdl, data: Uint8Array) => AnchorDecodedAccount | undefined;

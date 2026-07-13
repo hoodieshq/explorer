@@ -10,6 +10,7 @@ export const IDL_ERROR__ACCOUNT_DECODE_FAILED = 6;
 export const IDL_ERROR__MISSING_DECODE_HANDLER = 7;
 export const IDL_ERROR__DECODE_UNIMPLEMENTED = 8;
 export const IDL_ERROR__DECODE_KIND_MISMATCH = 9;
+export const IDL_ERROR__IDL_NOT_FOUND = 10;
 
 export type IdlErrorCode =
     | typeof IDL_ERROR__ACCOUNT_DECODE_FAILED
@@ -17,6 +18,7 @@ export type IdlErrorCode =
     | typeof IDL_ERROR__DECODE_UNIMPLEMENTED
     | typeof IDL_ERROR__IDL_ADDRESS_MISMATCH
     | typeof IDL_ERROR__IDL_FETCH_FAILED
+    | typeof IDL_ERROR__IDL_NOT_FOUND
     | typeof IDL_ERROR__IDL_PARSE_FAILED
     | typeof IDL_ERROR__INSTRUCTION_DECODE_FAILED
     | typeof IDL_ERROR__MISSING_DECODE_HANDLER
@@ -32,6 +34,7 @@ export type IdlErrorContext = DefaultUnspecifiedErrorContextToUndefined<{
     [IDL_ERROR__DECODE_KIND_MISMATCH]: { expected: IdlStandard; received: string };
     [IDL_ERROR__DECODE_UNIMPLEMENTED]: { operation: string };
     [IDL_ERROR__IDL_ADDRESS_MISMATCH]: { declaredAddress: string; programAddress: string };
+    [IDL_ERROR__IDL_NOT_FOUND]: { programAddress: string };
     [IDL_ERROR__IDL_PARSE_FAILED]: { operation: string };
     [IDL_ERROR__INSTRUCTION_DECODE_FAILED]: { programAddress: string; standard: IdlStandard };
     [IDL_ERROR__MISSING_DECODE_HANDLER]: { kind: string };
@@ -46,6 +49,7 @@ const IDL_ERROR_MESSAGES: Readonly<{ [P in IdlErrorCode]: (context: IdlErrorCont
     [IDL_ERROR__IDL_ADDRESS_MISMATCH]: c =>
         `IDL program ${c.declaredAddress} does not match program ${c.programAddress}`,
     [IDL_ERROR__IDL_FETCH_FAILED]: () => 'failed to fetch the program IDL',
+    [IDL_ERROR__IDL_NOT_FOUND]: c => `no IDL found on-chain for program ${c.programAddress}`,
     [IDL_ERROR__IDL_PARSE_FAILED]: c => `failed to parse the program IDL (${c.operation})`,
     [IDL_ERROR__INSTRUCTION_DECODE_FAILED]: c =>
         `could not decode instruction data for program ${c.programAddress} with the ${c.standard} IDL`,

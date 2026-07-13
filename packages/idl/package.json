@@ -22,6 +22,11 @@
             "types": "./dist/codama/index.d.ts",
             "import": "./dist/codama/index.js",
             "default": "./dist/codama/index.js"
+        },
+        "./fetch": {
+            "types": "./dist/fetch/index.d.ts",
+            "import": "./dist/fetch/index.js",
+            "default": "./dist/fetch/index.js"
         }
     },
     "scripts": {
@@ -54,6 +59,7 @@
         "@explorer/test-idl-program-simple": "workspace:*",
         "@explorer/test-idl-program-simple-031": "workspace:*",
         "@explorer/test-idl-program-vault": "workspace:*",
+        "@solana-program/program-metadata": "0.7.0",
         "@solana-program/token-2022": "0.9.0",
         "@vitest/coverage-v8": "catalog:vitest",
         "agadoo": "^3.0.0",
@@ -67,6 +73,7 @@
     },
     "peerDependencies": {
         "@coral-xyz/anchor": "^0.30.1",
+        "@solana-program/program-metadata": "^0.7.0",
         "@solana/kit": "^6.5.0",
         "codama": "^1.5.0"
     }
