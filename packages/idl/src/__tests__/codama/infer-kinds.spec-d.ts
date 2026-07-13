@@ -3,7 +3,7 @@
 // maps → plain objects, sets → arrays, bytes → [encoding, data] tuples, options → kit {__option}).
 import { describe, expectTypeOf, it } from 'vitest';
 
-import type { CodamaValue } from '../../infer';
+import type { AccountsDataOf, CodamaValue } from '../../infer';
 
 const u8 = { format: 'u8', kind: 'numberTypeNode' } as const;
 const u64 = { format: 'u64', kind: 'numberTypeNode' } as const;
@@ -140,6 +140,44 @@ describe('CodamaValue per-kind decode shapes', () => {
                 }>
             >().toBeUnknown();
         });
+    });
+
+    it('should key decoded account payloads by account name', () => {
+        type Root = {
+            kind: 'rootNode';
+            program: {
+                accounts: readonly [
+                    {
+                        data: {
+                            fields: readonly [{ kind: 'structFieldTypeNode'; name: 'amount'; type: typeof u64 }];
+                            kind: 'structTypeNode';
+                        };
+                        kind: 'accountNode';
+                        name: 'vault';
+                    },
+                ];
+                definedTypes: readonly [];
+                instructions: readonly [];
+                name: 'p';
+                publicKey: string;
+                version: string;
+            };
+        };
+        expectTypeOf<AccountsDataOf<Root>['vault']>().toEqualTypeOf<{ amount: bigint }>();
+        // wide documents carry branded names — the whole map degrades before any recursion
+        expectTypeOf<
+            AccountsDataOf<{
+                kind: 'rootNode';
+                program: {
+                    accounts: readonly { data: unknown; kind: 'accountNode'; name: string }[];
+                    definedTypes: readonly unknown[];
+                    instructions: readonly unknown[];
+                    name: string;
+                    publicKey: string;
+                    version: string;
+                };
+            }>
+        >().toBeUnknown();
     });
 
     it('should map scalar enums to the variant index and data enums to the kit discriminated union', () => {

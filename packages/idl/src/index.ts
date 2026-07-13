@@ -9,7 +9,7 @@ export {
     isCodamaStandard,
     tryCreateIdlClient,
 } from './client.js';
-export type { AccountDataOf, AsDecoded, InstructionDataOf } from './infer.js';
+export type { AccountDataOf, AccountsDataOf, AsDecoded, InstructionDataOf } from './infer.js';
 export {
     getIdlProgramVersion,
     getIdlStandard,
@@ -72,4 +72,5 @@ export {
     type SupportedIdl,
     type SupportedIdlInput,
     unknownArm,
+    unwrapCodama,
 } from './types.js';

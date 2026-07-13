@@ -63,17 +63,33 @@ export type IdlMetaClient<T extends SupportedIdlInput = SupportedIdl> = {
  * to `unknown` — declare the shape per call in that case).
  */
 export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClient<T> & {
+    /**
+     * Two-step decode: the full decode envelope, discriminated by arm. Pipe through `unwrapCodama`
+     * to get the payload plus `node` — the matched schema (for runtime schema-driven consumers).
+     */
     decodeInstruction: {
         (ix: Instruction): InstructionDecodeFor<T>;
         <R>(ix: Instruction, handlers: InstructionHandlers<T, R>): R;
     };
+    /** Account counterpart of {@link decodeInstruction} — same arms, same `unwrapCodama` pairing. */
     decodeAccount: {
         (data: Uint8Array): AccountDecodeFor<T>;
         <R>(data: Uint8Array, handlers: AccountHandlers<T, R>): R;
     };
-    /** {@link decodeAccount} + {@link getDecodedData} in one error-first step; a mismatched `expectedKind` is an error. */
+    /**
+     * {@link decodeAccount} + {@link getDecodedData} in one error-first step; a mismatched `expectedKind`
+     * is an error. `TData` defaults to the payload inferred from the IDL's TYPE: `as const` roots and
+     * anchor satellite types infer automatically (pick one account via `AccountsDataOf<typeof idl>['name']`);
+     * runtime-fetched (wide) IDLs give `unknown` — claim `TData` per call, or reuse a renderers-js type
+     * through `AsDecoded<T>`.
+     */
     decodeAccountData: <TData = AccountDataOf<T>>(data: Uint8Array, expectedKind?: IdlStandard) => Result<TData>;
-    /** {@link decodeInstruction} + {@link getDecodedData} in one error-first step; a mismatched `expectedKind` is an error. */
+    /**
+     * {@link decodeInstruction} + {@link getDecodedData} in one error-first step; a mismatched `expectedKind`
+     * is an error. `TData` defaults to the payload inferred from the IDL's TYPE (a union — one member per
+     * declared instruction): `as const` roots and anchor satellite types infer automatically;
+     * runtime-fetched (wide) IDLs give `unknown` — claim `TData` per call.
+     */
     decodeInstructionData: <TData = InstructionDataOf<T>>(ix: Instruction, expectedKind?: IdlStandard) => Result<TData>;
     /** Decoded payload typed from the IDL; `undefined` only for the unknown arm — narrowing `decode.kind` first drops it. */
     getDecodedData: {

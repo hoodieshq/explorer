@@ -152,10 +152,28 @@ type ResolveDefinedType<TRoot, N> = TRoot extends { program: { definedTypes: rea
 export type InstructionDataOf<T extends SupportedIdlInput> = T extends AnchorIdl
     ? FieldsObject<T['instructions'][number]['args']>
     : T extends { program: { instructions: readonly (infer I)[] } }
-      ? I extends { arguments: infer A }
-          ? CodamaFieldsObject<T, A>
+      ? I extends { arguments: infer A; name: infer N }
+          ? IsLiteralName<N> extends true
+              ? CodamaFieldsObject<T, A>
+              : unknown // wide document — bail before recursing into codama's self-referential node types
           : unknown
       : unknown;
+
+/**
+ * Decoded account payloads keyed by account name — pick one member without structural guessing:
+ * `AccountsDataOf<typeof idl>['config']`. Works for literal (`as const`) codama roots only; wide
+ * runtime IDLs degrade to `unknown`. The shapes mirror what the parser RETURNS (see `AsDecoded`
+ * for the codec-view differences: pubkey → string, bytes → [encoding, data], scalar enum → index).
+ */
+export type AccountsDataOf<T extends SupportedIdlInput> = T extends { program: { accounts: readonly (infer A)[] } }
+    ? IsLiteralName<A extends { name: infer N } ? N : never> extends true
+        ? {
+              [Acc in A as Acc extends { name: infer N extends string } ? N : never]: Acc extends { data: infer D }
+                  ? CodamaValue<T, D>
+                  : unknown;
+          }
+        : unknown // wide document — bail before recursing into codama's self-referential node types
+    : unknown;
 
 /** Decoded account payload derived from the IDL type — the union of every declared account struct. */
 export type AccountDataOf<T extends SupportedIdlInput> = T extends AnchorIdl
@@ -167,7 +185,9 @@ export type AccountDataOf<T extends SupportedIdlInput> = T extends AnchorIdl
               : unknown
         : unknown
     : T extends { program: { accounts: readonly (infer A)[] } }
-      ? A extends { data: infer D }
-          ? CodamaValue<T, D>
+      ? A extends { data: infer D; name: infer N }
+          ? IsLiteralName<N> extends true
+              ? CodamaValue<T, D>
+              : unknown // wide document — bail before recursing into codama's self-referential node types
           : unknown
       : unknown;

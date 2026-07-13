@@ -1,9 +1,9 @@
 import type { parseAccountData, parseInstruction } from '@codama/dynamic-parsers';
 import type { Idl } from '@coral-xyz/anchor';
 import type { Instruction } from '@solana/kit';
-import type { RootNode } from 'codama';
+import { type AccountNode, getLastNodeFromPath, type InstructionNode, type RootNode } from 'codama';
 
-import type { IdlError } from './errors.js';
+import { IDL_ERROR__DECODE_KIND_MISMATCH, IdlError } from './errors.js';
 
 /** An Anchor IDL — the `@coral-xyz/anchor` `Idl`; only the modern (>= 0.30) spec is supported. */
 export type AnchorIdl = Idl;
@@ -83,6 +83,27 @@ export function codamaArm<T>(decoded: T): { decoded: T; kind: IdlStandard.Codama
 
 export function unknownArm(errors: readonly IdlError[]): { errors: readonly IdlError[]; kind: 'unknown' } {
     return { errors, kind: 'unknown' };
+}
+
+/**
+ * Unwrap the codama arm's decode envelope — the payload plus `node`, the matched schema
+ * (InstructionNode/AccountNode) for runtime schema-driven consumers: render by `node` kinds instead
+ * of guessing from values. Throws a typed IdlError (`IDL_ERROR__DECODE_KIND_MISMATCH`) on any other arm.
+ *
+ * @example const { data, node } = unwrapCodama(client.decodeAccount(bytes)); // node: AccountNode
+ */
+export function unwrapCodama(decode: InstructionDecode): CodamaDecodedInstruction & { node: InstructionNode };
+export function unwrapCodama(decode: AccountDecode): CodamaDecodedAccount & { node: AccountNode };
+export function unwrapCodama(
+    decode: AccountDecode | InstructionDecode,
+): (CodamaDecodedAccount & { node: AccountNode }) | (CodamaDecodedInstruction & { node: InstructionNode }) {
+    if (decode.kind !== IdlStandard.Codama) {
+        throw new IdlError(IDL_ERROR__DECODE_KIND_MISMATCH, { expected: IdlStandard.Codama, received: decode.kind });
+    }
+    const decoded = decode.decoded;
+    // narrow the envelope union first — TS cannot correlate path/node pairs across it in one expression
+    if ('accounts' in decoded) return { ...decoded, node: getLastNodeFromPath(decoded.path) };
+    return { ...decoded, node: getLastNodeFromPath(decoded.path) };
 }
 
 // An Anchor client may still fall back to Codama, so only the Codama client narrows an arm away.
