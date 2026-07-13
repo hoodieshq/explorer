@@ -143,7 +143,7 @@ describe('CodamaValue per-kind decode shapes', () => {
     });
 
     it('should key decoded account payloads by account name', () => {
-        type Root = {
+        type VaultRoot = {
             kind: 'rootNode';
             program: {
                 accounts: readonly [
@@ -163,8 +163,8 @@ describe('CodamaValue per-kind decode shapes', () => {
                 version: string;
             };
         };
-        expectTypeOf<AccountsDataOf<Root>['vault']>().toEqualTypeOf<{ amount: bigint }>();
-        // wide documents carry branded names — the whole map degrades before any recursion
+        expectTypeOf<AccountsDataOf<VaultRoot>['vault']>().toEqualTypeOf<{ amount: bigint }>();
+        // wide IDLs carry branded names — the whole map degrades before any recursion
         expectTypeOf<
             AccountsDataOf<{
                 kind: 'rootNode';
