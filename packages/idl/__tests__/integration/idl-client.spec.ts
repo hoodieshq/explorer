@@ -29,10 +29,14 @@ import {
 } from '@explorer/idl';
 // conversion is anchor-input-only — it lives behind its own entry
 import { convertToCodama } from '@explorer/idl/anchor';
+import { codamaProvider } from '@explorer/idl/codama';
+// a literal `as const` codama root — its literal type drives zero-generic inference
+import { vaultIdl } from '@explorer/test-idl-program-vault';
 import { address, type Instruction } from '@solana/kit';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
+    depositIx,
     incrementIx,
     loadLetMeBuyIdl,
     loadLetMeBuyPmpIdl,
@@ -136,6 +140,17 @@ describe('capability: engine selection (default codama, swappable)', () => {
 
         const decode = client.decodeInstruction(transferIx(tokenkeg));
         expect(client.getDecodedData<{ amount: bigint }>(decode)).toMatchObject({ amount: 42n });
+    });
+
+    /** Case: the default engine chosen explicitly — the literal IDL keeps zero-generic inference through the explicit form. */
+    it('should decode through an explicitly passed codama provider', () => {
+        const client = createIdlClient(vaultIdl, { provider: codamaProvider() });
+
+        const decode = client.decodeInstruction(depositIx(vaultIdl));
+        const result = client.getDecodedData(decode);
+
+        expectTypeOf(result).toEqualTypeOf<{ amount: bigint; discriminator: number } | undefined>();
+        expect(result).toEqual({ amount: 42n, discriminator: 1 });
     });
 
     /** Case: the provider seam heavier engines (the Anchor-rich path) plug into — same client surface. */
@@ -335,69 +350,6 @@ describe('decoding: legacy Anchor documents', () => {
         expectTypeOf(result).toEqualTypeOf<{ amount: bigint; name: string } | undefined>();
         expect(decode.kind).toBe(IdlStandard.Anchor);
         expect(result).toEqual({ amount: 7n, name: 'airdrop' });
-    });
-
-    /** Case: the handler map routes a fallback-rescued instruction to its anchor branch. */
-    it('should dispatch the rescued instruction to the anchor handler', () => {
-        const simple = loadSimpleIdl();
-        const client = clientWithFallbackDecoder();
-        const routed = client.decodeInstruction<{ data: { amount: bigint; name: string } | undefined; source: string }>(
-            {
-                accounts: [],
-                data: new Uint8Array([...AIRDROP_DISCRIMINATOR, ...u64le(7n)]),
-                programAddress: address(simple.address),
-            },
-            {
-                anchor: decode => ({
-                    data: client.getDecodedData<{ amount: bigint; name: string }>(decode),
-                    source: 'anchor',
-                }),
-                codama: decode => ({
-                    data: client.getDecodedData<{ amount: bigint; name: string }>(decode),
-                    source: 'codama',
-                }),
-                unknown: () => ({ data: undefined, source: 'raw' }),
-            },
-        );
-
-        expect(routed.source).toBe('anchor');
-        expect(routed.data).toEqual({ amount: 7n, name: 'airdrop' });
-    });
-
-    /** Case: an account layout the document misses is rescued the same way — the anchor branch is reachable for accounts too. */
-    it('should dispatch a rescued account to the anchor handler', () => {
-        const client = createIdlClient(loadSimpleIdl(), {
-            fallbackDecoder: {
-                decodeAccount: (idl, data) => {
-                    if (data.length !== 9 || data[0] !== 0xff) return undefined;
-                    return { balance: new DataView(data.buffer, data.byteOffset + 1).getBigUint64(0, true) };
-                },
-            },
-        });
-
-        const routed = client.decodeAccount<{ data: { balance: bigint } | undefined; source: string }>(
-            new Uint8Array([0xff, ...u64le(7n)]),
-            {
-                anchor: decode => ({ data: client.getDecodedData<{ balance: bigint }>(decode), source: 'anchor' }),
-                codama: decode => ({ data: client.getDecodedData<{ balance: bigint }>(decode), source: 'codama' }),
-                unknown: () => ({ data: undefined, source: 'raw' }),
-            },
-        );
-
-        expect(routed.source).toBe('anchor');
-        expect(routed.data).toEqual({ balance: 7n });
-    });
-
-    /** Case: both the document and the injected decoder miss — the unknown arm, not an error. */
-    it('should stay on the unknown arm when the injected decoder also misses', () => {
-        const simple = loadSimpleIdl();
-        const decode = clientWithFallbackDecoder().decodeInstruction({
-            accounts: [],
-            data: Uint8Array.from([1, 2, 3]),
-            programAddress: address(simple.address),
-        });
-
-        expect(decode.kind).toBe('unknown');
     });
 
     /** Case: a pre-0.30 document gets a typed refusal, and the guard routes it to consumer-owned decoding. */

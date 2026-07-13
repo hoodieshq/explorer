@@ -3,11 +3,11 @@
 // anchor document dropped into __fixtures__ must convert.
 import { readdirSync, readFileSync } from 'node:fs';
 
-import { type AnchorIdl } from '@explorer/idl';
-import { convertToCodama } from '@explorer/idl/anchor';
 import { describe, expect, it } from 'vitest';
 
-import { unwrap } from '../../src/__tests__/unwrap';
+import { convertToCodama } from '../anchor/convert';
+import type { AnchorIdl } from '../types';
+import { unwrap } from './unwrap';
 
 const FIXTURES_DIR = new URL('../../__fixtures__/', import.meta.url);
 
