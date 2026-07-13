@@ -3,8 +3,10 @@
 // maps → plain objects, sets → arrays, bytes → [encoding, data] tuples, options → kit {__option}).
 import { describe, expectTypeOf, it } from 'vitest';
 
-import type { AccountsDataOf, CodamaValue } from '../../infer';
+import type { AccountsDataOf, CodamaValue } from '../index';
 
+// codama's builders (numberTypeNode('u8'), …) would produce these, but the subject is `as const`
+// literal-document inference — and builders brand names as CamelCaseString, IsLiteralName's wide-document signal.
 const u8 = { format: 'u8', kind: 'numberTypeNode' } as const;
 const u64 = { format: 'u64', kind: 'numberTypeNode' } as const;
 const bool = { kind: 'booleanTypeNode', size: u8 } as const;

@@ -274,6 +274,35 @@ node.arguments.map(argument => `${argument.name}: ${argument.type.kind}`);
 // ['discriminator: fixedSizeTypeNode', 'amount: numberTypeNode']
 ```
 
+### Schema-paired entries · unknown programs
+
+**One row per value, each paired with its schema node.** For a program you only learn about at
+runtime there is no payload type to claim — `getDecodedEntries` turns the decode into rows you can
+present anyway: `path` says where the value lives, `node` says what it is, and rendering dispatches
+on `node.kind`, never on the value's JS shape. The traversal is the package's job — defined-type
+links resolved, size wrappers penetrated, options unwrapped, nesting flattened into paths. A
+non-codama arm throws the same typed kind mismatch as `unwrap`:
+
+```ts
+import { createIdlClient, findEntryOfKind, getDecodedEntries, joinPath } from '@explorer/idl';
+
+const idl: CodamaIdl = await fetchIdlFromChain(programId); // wide — no payload type anywhere
+const client = createIdlClient(idl);
+
+const entries = getDecodedEntries(client.decodeInstruction(instruction));
+//    ^? DecodedEntry[] — { path, node, value } per leaf
+entries.map(joinPath); // one key per field — nested payloads flatten to dot paths ('chainId.id')
+
+// focus one field — findEntryOfKind narrows the node, so kind-specific fields read typed
+const amount = findEntryOfKind(entries, 'amount', 'numberTypeNode');
+amount?.node.format; // how the program declared the field — 'u64'
+amount?.value; // the decoded value, already in that format's runtime shape — a bigint
+```
+
+**The anchor origin is invisible.** An anchor IDL goes through the same call — the internal
+conversion pairs its leaves with codama nodes too, so one schema-driven renderer serves both
+standards.
+
 ## Anchor IDLs
 
 Anchor IDLs go through the same client — the codama engine runs nodes-from-anchor to convert

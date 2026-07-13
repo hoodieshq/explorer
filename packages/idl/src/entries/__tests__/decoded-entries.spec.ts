@@ -19,9 +19,9 @@ import {
 } from 'codama';
 import { describe, expect, it } from 'vitest';
 
-import { getDecodedEntries } from '../entries';
-import { IDL_ERROR__DECODE_KIND_MISMATCH, IdlError, isIdlError } from '../errors';
-import { anchorArm, codamaArm, unknownArm } from '../types';
+import { getDecodedEntries } from '../index';
+import { IDL_ERROR__DECODE_KIND_MISMATCH, IdlError, isIdlError } from '../../errors';
+import { anchorArm, codamaArm, unknownArm } from '../../types';
 
 // real codama nodes (constructor-built) — the same objects the walk must surface back in entries
 const u16 = numberTypeNode('u16');

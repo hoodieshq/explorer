@@ -17,7 +17,7 @@ import { convertToCodama } from '../anchor/convert';
 import { decodeAccountWithIdl } from '../codama/decode-account';
 import { decodeInstructionWithIdl } from '../codama/decode-instruction';
 import { getIdlStandard, getIdlVersion, isAnchorIdl, isCodamaIdl, isSupportedIdl } from '../detect';
-import type { AccountDataOf, InstructionDataOf } from '../infer';
+import type { AccountDataOf, InstructionDataOf } from '../infer/index';
 import {
     IDL_ERROR__ACCOUNT_DECODE_FAILED,
     IDL_ERROR__IDL_PARSE_FAILED,

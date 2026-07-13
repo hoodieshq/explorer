@@ -10,15 +10,25 @@
 //     build time — 6. the satellite type anchor emits; 7. the satellite type passed explicitly
 //     runtime    — 8. payloads unknown + the per-call claim; 9. the schema is CREATED from the
 //                  anchor JSON by the internal conversion
+//   schema-paired entries (its own section) — 10. getDecodedEntries flattens the codama arm into
+//                  node-paired leaves; 11. one entries shape serves anchor-born programs too
 // `decodeInstructionData`/`decodeAccountData` are the one-step routes (typed payload as an
 // error-first Result); `unwrap` narrows the two-step route to the default (codama) arm (payload + schema node).
-import { type AccountsDataOf, type AsDecoded, createIdlClient, unwrap } from '@explorer/idl';
+import {
+    type AccountsDataOf,
+    type AsDecoded,
+    createIdlClient,
+    findEntryOfKind,
+    getDecodedEntries,
+    joinPath,
+    unwrap,
+} from '@explorer/idl';
+import { exampleNativeTokenTransfersIdl } from '@explorer/test-idl-program-example-native-token-transfers/codama';
 import { vaultIdl } from '@explorer/test-idl-program-vault';
 // the wide anchor IDL type is anchor's own — the library's AnchorIdl is a direct alias of it
 import type { Idl } from '@coral-xyz/anchor';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { exampleNativeTokenTransfersIdl } from '../../__fixtures__/example_native_token_transfers.codama';
 import {
     depositIx,
     incrementIx,
@@ -26,11 +36,12 @@ import {
     loadSimpleIdlTyped,
     loadTokenkegIdl,
     type Simple031,
+    transferIx,
 } from '../../src/__tests__/fixtures';
 import { fetchAnchorIdl } from '../anchor-helpers';
 import { base16, base64, DEFAULT_ADDRESS, encodeAccount } from '../codama-helpers';
 // renderers-js output for SPL Token — type-only import, erased at runtime
-import type { Multisig } from '../functional/generated/token-client/accounts/multisig';
+import type { Multisig } from '../generated/token-client/accounts/multisig';
 
 // a token multisig account value, shared by the fetched-tokenkeg cases
 const MULTISIG = {
@@ -249,5 +260,46 @@ describe('README flows: how payload types reach the consumer', () => {
                 ]);
             });
         });
+    });
+});
+
+describe('README flows: schema-paired entries for unknown programs', () => {
+    /** Case: a fetched codama root — getDecodedEntries flattens the decode into leaves, each paired with its schema node. */
+    it('should flatten a codama decode into node-paired entries', () => {
+        const tokenkeg = loadTokenkegIdl(); // wide CodamaIdl — no payload type exists anywhere
+        const client = createIdlClient(tokenkeg);
+
+        const decode = client.decodeInstruction(transferIx(tokenkeg));
+        const entries = getDecodedEntries(decode);
+        //    ^? DecodedEntry[] — { path, node, value } per leaf; a non-codama arm throws the typed kind-mismatch error
+
+        // the path is the field's key — one row per leaf, nested fields flattened to dot paths
+        expect(entries.map(joinPath)).toEqual(['discriminator', 'amount']);
+
+        // the node says how to read the value: `transfer`'s amount is declared u64…
+        const amount = findEntryOfKind(entries, 'amount', 'numberTypeNode');
+        expect(amount?.node.format).toBe('u64'); // …typed straight off the narrowed node — no manual narrowing
+        expect(amount?.value).toBe(42n); // …and the value already arrived in that format's runtime shape (bigint)
+    });
+
+    /** Case: an anchor JSON goes through the same call — the internal conversion pairs its leaves with codama nodes too. */
+    it('should serve anchor-born programs with the same entries shape', () => {
+        const simple = loadSimpleIdl(); // wide anchor JSON — converted internally by the engine
+        const client = createIdlClient(simple);
+
+        const decode = client.decodeInstruction(incrementIx(simple));
+        const entries = getDecodedEntries(decode);
+
+        // the same flattened keys — the anchor origin is invisible in the entries shape
+        expect(entries.map(joinPath)).toEqual(['discriminator', 'amount']);
+
+        // codama schema nodes even for the anchor-born program — one renderer serves both standards
+        // (size wrappers are penetrated: the fixedSize(bytes) discriminator resolves to its bytes node)
+        expect(findEntryOfKind(entries, 'discriminator', 'bytesTypeNode')).toBeDefined();
+
+        // and the same leaf read as the codama case: anchor's u64 declaration survives the conversion…
+        const amount = findEntryOfKind(entries, 'amount', 'numberTypeNode');
+        expect(amount?.node.format).toBe('u64');
+        expect(amount?.value).toBe(42n); // …so the value arrives in the same runtime shape (bigint)
     });
 });

@@ -4,7 +4,7 @@
 import type { Address, ReadonlyUint8Array } from '@solana/kit';
 import type { CamelCaseString } from 'codama';
 
-import type { AnchorIdl, SupportedIdlInput } from './types.js';
+import type { AnchorIdl, SupportedIdlInput } from '../types.js';
 
 /** The [encoding, data] pair @codama/dynamic-parsers emits for every byte field. */
 type DecodedBytes = [encoding: string, data: string];

@@ -21,7 +21,7 @@ import {
     ok,
     type Result,
 } from './errors.js';
-import type { AccountDataOf, InstructionDataOf } from './infer.js';
+import type { AccountDataOf, InstructionDataOf } from './infer/index.js';
 import { buildInstructionNameTable, buildProgramName, matchInstructionName } from './names.js';
 import {
     type AccountDecode,

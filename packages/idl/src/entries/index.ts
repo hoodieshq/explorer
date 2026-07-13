@@ -7,8 +7,8 @@ import {
     type TypeNode,
 } from 'codama';
 
-import { IDL_ERROR__DECODE_KIND_MISMATCH, IdlError } from './errors.js';
-import { type AccountDecode, IdlStandard, type InstructionDecode } from './types.js';
+import { IDL_ERROR__DECODE_KIND_MISMATCH, IdlError } from '../errors.js';
+import { type AccountDecode, IdlStandard, type InstructionDecode } from '../types.js';
 
 /** One decoded leaf paired with its schema — the runtime counterpart of the literal-IDL inference. */
 export type DecodedEntry = {
@@ -25,7 +25,7 @@ export type DecodedEntry = {
  * the decoded value, the type node that describes it (defined-type links followed against the
  * decode's own root, size wrappers penetrated, options unwrapped), and the path that reaches it —
  * render, extract, or diff by node kind without claiming a payload type. Throws the same typed
- * kind-mismatch IdlError as {@link unwrap} on any other arm.
+ * kind-mismatch IdlError as `unwrap` on any other arm.
  *
  * @example const entries = getDecodedEntries(client.decodeAccount(bytes));
  * // [{ path: ['mode'], node: { kind: 'enumTypeNode', … }, value: 1 }, { path: ['chainId', 'id'], … }, …]
@@ -86,6 +86,44 @@ export function getDecodedEntries(decode: AccountDecode | InstructionDecode): De
         collect(account.data, data, []);
     }
     return entries;
+}
+
+/** A leaf's key — the dot form (`'chainId.id'`) or raw segments (`['signers', 0]`). */
+export type EntryPath = string | readonly (number | string)[];
+
+/** A {@link DecodedEntry} whose node is narrowed to one kind — what {@link findEntryOfKind} focuses. */
+export type DecodedEntryOf<K extends TypeNode['kind']> = Omit<DecodedEntry, 'node'> & {
+    node: Extract<TypeNode, { kind: K }>;
+};
+
+/**
+ * The dot-form key of a leaf (`['chainId', 'id']` → `'chainId.id'`) — the spelling {@link findEntry}
+ * accepts back. Takes the entry itself too, so it maps point-free: `entries.map(joinPath)`.
+ */
+export function joinPath(entry: DecodedEntry | EntryPath): string {
+    if (typeof entry === 'string') return entry;
+    return ('node' in entry ? entry.path : entry).join('.');
+}
+
+/** Focus one leaf by its path — a miss is `undefined`, never a throw. */
+export function findEntry(entries: readonly DecodedEntry[], path: EntryPath): DecodedEntry | undefined {
+    const key = joinPath(path);
+    return entries.find(entry => joinPath(entry) === key);
+}
+
+/**
+ * {@link findEntry} narrowed to one node kind — kind-specific fields (`format`, `variants`) read
+ * typed, no manual narrowing; a path miss or a kind mismatch is `undefined`.
+ */
+export function findEntryOfKind<K extends TypeNode['kind']>(
+    entries: readonly DecodedEntry[],
+    path: EntryPath,
+    kind: K,
+): DecodedEntryOf<K> | undefined {
+    const entry = findEntry(entries, path);
+    if (!entry || entry.node.kind !== kind) return undefined;
+    // eslint-disable-next-line typescript/consistent-type-assertions -- the kind check above is the narrowing; TS cannot correlate the checked kind with the generic K
+    return entry as DecodedEntryOf<K>;
 }
 
 function findDefinedType(root: RootNode | undefined, name: string): TypeNode | undefined {
