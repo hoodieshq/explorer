@@ -11,8 +11,8 @@
 //     runtime    — 8. payloads unknown + the per-call claim; 9. the schema is CREATED from the
 //                  anchor JSON by the internal conversion
 // `decodeInstructionData`/`decodeAccountData` are the one-step routes (typed payload as an
-// error-first Result); `unwrapCodama` is the two-step route's unwrap (payload + schema node).
-import { type AccountsDataOf, type AsDecoded, createIdlClient, unwrapCodama } from '@explorer/idl';
+// error-first Result); `unwrap` narrows the two-step route to the default (codama) arm (payload + schema node).
+import { type AccountsDataOf, type AsDecoded, createIdlClient, unwrap } from '@explorer/idl';
 import { codamaProvider } from '@explorer/idl/codama';
 import { vaultIdl } from '@explorer/test-idl-program-vault';
 // the wide anchor IDL type is anchor's own — the library's AnchorIdl is a direct alias of it
@@ -157,8 +157,8 @@ describe('README flows: how payload types reach the consumer', () => {
                 const client = createIdlClient(tokenkeg, { provider: codamaProvider() });
                 const bytes = encodeAccount(tokenkeg, 'multisig', MULTISIG);
 
-                // the two-step route: unwrapCodama narrows to the codama arm and surfaces the schema node
-                const { data, node } = unwrapCodama(client.decodeAccount(bytes));
+                // the two-step route: unwrap narrows to the default (codama) arm and surfaces the schema node
+                const { data, node } = unwrap(client.decodeAccount(bytes));
                 //            ^? node: AccountNode — the exact schema, at runtime
                 expectTypeOf(data).toBeUnknown();
                 //           ^? unknown statically — the schema below is the runtime substitute
@@ -237,7 +237,7 @@ describe('README flows: how payload types reach the consumer', () => {
                 const wide: Idl = loadSimpleIdl();
                 const client = createIdlClient(wide, { provider: codamaProvider() });
 
-                const { data, node } = unwrapCodama(client.decodeInstruction(incrementIx(wide)));
+                const { data, node } = unwrap(client.decodeInstruction(incrementIx(wide)));
                 //            ^? node: InstructionNode — born from the anchor JSON
                 expectTypeOf(data).toBeUnknown();
                 //           ^? unknown statically — same rule as any runtime IDL

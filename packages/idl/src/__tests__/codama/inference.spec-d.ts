@@ -1,9 +1,11 @@
 // Compile-time guidance for the Codama route — validated by vitest typecheck mode, nothing executes.
+import { vaultIdl } from '@explorer/test-idl-program-vault';
+import type { InstructionNode } from 'codama';
 import { describe, expectTypeOf, it } from 'vitest';
 
 import { type IdlClient } from '../../client';
 import { createCodamaIdlClient } from '../../codama/index';
-import { type CodamaIdl, IdlStandard, type InstructionDecode } from '../../types';
+import { type CodamaIdl, IdlStandard, type InstructionDecode, unwrap } from '../../types';
 import { loadTokenkegIdl, transferIx } from '../fixtures';
 
 const codamaIdl = loadTokenkegIdl();
@@ -21,5 +23,17 @@ describe('sample: Codama IDL', () => {
         >();
         // the handler map compiles with exactly the codama + unknown arms
         client.decodeInstruction(codamaTransferIx, { codama: () => 0, unknown: () => 0 });
+    });
+
+    // mirrors the decodeInstruction jsdoc example — keep the snippet honest if unwrap or the overloads move
+    it('should keep the two-step seam typed: unwrap gives the node, getDecodedData keeps the inference', () => {
+        const client = createCodamaIdlClient(vaultIdl);
+        const decode = client.decodeInstruction(codamaTransferIx);
+        if (decode.kind === IdlStandard.Codama) {
+            const { node } = unwrap(decode);
+            const data = client.getDecodedData(decode);
+            expectTypeOf(node).toEqualTypeOf<InstructionNode>();
+            expectTypeOf(data).toEqualTypeOf<{ amount: bigint; discriminator: number }>();
+        }
     });
 });

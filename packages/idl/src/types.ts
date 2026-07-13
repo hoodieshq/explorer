@@ -86,15 +86,16 @@ export function unknownArm(errors: readonly IdlError[]): { errors: readonly IdlE
 }
 
 /**
- * Unwrap the codama arm's decode envelope — the payload plus `node`, the matched schema
+ * Unwrap the default (codama) arm's decode envelope — the payload plus `node`, the matched schema
  * (InstructionNode/AccountNode) for runtime schema-driven consumers: render by `node` kinds instead
- * of guessing from values. Throws a typed IdlError (`IDL_ERROR__DECODE_KIND_MISMATCH`) on any other arm.
+ * of guessing from values. Throws a typed IdlError (`IDL_ERROR__DECODE_KIND_MISMATCH`) on any other
+ * arm — other kinds get qualified unwraps as they land (e.g. a future `unwrapAnchor`).
  *
- * @example const { data, node } = unwrapCodama(client.decodeAccount(bytes)); // node: AccountNode
+ * @example const { data, node } = unwrap(client.decodeAccount(bytes)); // node: AccountNode
  */
-export function unwrapCodama(decode: InstructionDecode): CodamaDecodedInstruction & { node: InstructionNode };
-export function unwrapCodama(decode: AccountDecode): CodamaDecodedAccount & { node: AccountNode };
-export function unwrapCodama(
+export function unwrap(decode: InstructionDecode): CodamaDecodedInstruction & { node: InstructionNode };
+export function unwrap(decode: AccountDecode): CodamaDecodedAccount & { node: AccountNode };
+export function unwrap(
     decode: AccountDecode | InstructionDecode,
 ): (CodamaDecodedAccount & { node: AccountNode }) | (CodamaDecodedInstruction & { node: InstructionNode }) {
     if (decode.kind !== IdlStandard.Codama) {

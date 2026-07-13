@@ -64,14 +64,21 @@ export type IdlMetaClient<T extends SupportedIdlInput = SupportedIdl> = {
  */
 export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClient<T> & {
     /**
-     * Two-step decode: the full decode envelope, discriminated by arm. Pipe through `unwrapCodama`
+     * Two-step decode: the full decode envelope, discriminated by arm. Pipe through `unwrap`
      * to get the payload plus `node` — the matched schema (for runtime schema-driven consumers).
+     *
+     * @example // pair the schema with the typed payload — {@link getDecodedData} keeps the client's inference
+     * const decode = client.decodeInstruction(ix);
+     * if (decode.kind === IdlStandard.Codama) {
+     *     const { node } = unwrap(decode); // InstructionNode — render by schema
+     *     const data = client.getDecodedData(decode); // payload typed from the IDL
+     * }
      */
     decodeInstruction: {
         (ix: Instruction): InstructionDecodeFor<T>;
         <R>(ix: Instruction, handlers: InstructionHandlers<T, R>): R;
     };
-    /** Account counterpart of {@link decodeInstruction} — same arms, same `unwrapCodama` pairing. */
+    /** Account counterpart of {@link decodeInstruction} — same arms, same `unwrap` pairing. */
     decodeAccount: {
         (data: Uint8Array): AccountDecodeFor<T>;
         <R>(data: Uint8Array, handlers: AccountHandlers<T, R>): R;

@@ -230,14 +230,14 @@ const [, data] = client.decodeAccountData(accountData);
 ```
 
 **The decode carries the exact schema.** No type exists for a fetched IDL, but the two-step route
-keeps the whole decode envelope — `unwrapCodama` narrows to the codama arm (or throws a typed
-`IdlError`) and surfaces the matched schema node, so unknown-program consumers render by node kind,
+keeps the whole decode envelope — `unwrap` narrows to the default (codama) arm (or throws a typed
+`IdlError`; other kinds get qualified unwraps as they land) and surfaces the matched schema node, so unknown-program consumers render by node kind,
 never by guessing the value's shape:
 
 ```ts
-import { unwrapCodama } from '@explorer/idl';
+import { unwrap } from '@explorer/idl';
 
-const { data, node } = unwrapCodama(client.decodeAccount(accountData));
+const { data, node } = unwrap(client.decodeAccount(accountData));
 //            ^? node: AccountNode — the exact schema, at runtime; data stays unknown
 
 if (node.data.kind === 'structTypeNode') {
@@ -264,7 +264,7 @@ and the exact schema still arrives with every decode — the engine creates it f
 internally via nodes-from-anchor:
 
 ```ts
-const { data, node } = unwrapCodama(client.decodeInstruction(instruction));
+const { data, node } = unwrap(client.decodeInstruction(instruction));
 //            ^? node: InstructionNode — born from the anchor JSON
 node.arguments.map(argument => `${argument.name}: ${argument.type.kind}`);
 // ['discriminator: fixedSizeTypeNode', 'amount: numberTypeNode']

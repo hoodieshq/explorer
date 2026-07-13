@@ -1,3 +1,4 @@
+// TODO(@hoodieshq): rename the package to @explorer/idl-decode — the lib is about DECODING data with IDLs, not about IDLs themselves.
 // Engine-free entry — decode engines live behind './codama' and './anchor' so processes that never
 // decode never load one.
 export {
@@ -72,5 +73,5 @@ export {
     type SupportedIdl,
     type SupportedIdlInput,
     unknownArm,
-    unwrapCodama,
+    unwrap,
 } from './types.js';
