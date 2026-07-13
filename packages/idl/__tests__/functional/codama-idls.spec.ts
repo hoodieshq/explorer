@@ -10,7 +10,7 @@ import {
 } from '@explorer/idl';
 import { createCodamaIdlClient } from '@explorer/idl/codama';
 // mainnet PMP snapshot in test-codama-programs (fetched with the @solana-program/program-metadata CLI)
-import memoIdl from '@explorer/test-idl-program-memo';
+import memoIdl from '@explorer/test-idl-program-memo/idl';
 import type { Instruction } from '@solana/kit';
 import { getLastNodeFromPath } from 'codama';
 import associatedTokenAccountIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/associated-token-account-idl.json';

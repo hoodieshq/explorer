@@ -3,6 +3,7 @@
     "version": "0.0.0",
     "private": true,
     "exports": {
-        ".": "./memo.pmp.idl.json"
+        ".": "./memo.ts",
+        "./idl": "./memo.pmp.idl.json"
     }
 }

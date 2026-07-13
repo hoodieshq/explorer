@@ -21,10 +21,14 @@ Running the suite needs **no** Rust/Anchor toolchain: specs consume committed sn
 
 Both implement the same minimal program (one account, one instruction argument, one error, one event), so their IDLs are directly comparable across Anchor versions.
 
-`test-codama-programs/` holds Codama fixtures that need no build — plain data consumed directly:
+`test-codama-programs/` holds Codama fixtures that need no build — plain data consumed directly.
+Each package ships two entries: `.` — a literal (`as const`) TS module whose type drives the codama
+inference specs — and `./idl` — the raw JSON root node for wide-document (runtime-shaped) specs. The
+JSON is the source of truth: the literal module is generated from it by
+`scripts/generate-codama-literals.mjs` (`pretest` re-runs it), so edits go into the JSON only.
 
 - `test-codama-programs/memo` (`@explorer/test-idl-program-memo`) — a real PMP root-node snapshot (single discriminator-less instruction)
-- `test-codama-programs/vault` (`@explorer/test-idl-program-vault`) — an `as const` root node whose literal type drives the codama inference specs
+- `test-codama-programs/vault` (`@explorer/test-idl-program-vault`) — a hand-authored minimal root (one instruction, one size-identified account)
 
 Ready-made IDLs also come from the `codama-fixtures` devDependency (a pinned tarball of the codama repo): functional specs import its `dynamic-client` test IDLs as-is, and `scripts/generate-codama-types.mjs` renders typed clients from them into `__tests__/functional/generated/`.
 
