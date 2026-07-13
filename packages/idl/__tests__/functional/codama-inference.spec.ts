@@ -1,8 +1,7 @@
 // Typed getDecodedData routes over the same codama-fixtures IDLs — one case per way a
 // consumer can source the payload type. The runtime sweep across every supported IDL lives
 // in codama-idls.spec.ts; the cases here stay hand-written because inference IS the subject.
-import { type AsDecoded, type CodamaIdl, IdlStandard } from '@explorer/idl';
-import { createCodamaIdlClient } from '@explorer/idl/codama';
+import { type AsDecoded, type CodamaIdl, createIdlClient, IdlStandard } from '@explorer/idl';
 // a literal `as const` codama root (test-codama-programs/vault) — its literal type drives inference
 import { vaultIdl } from '@explorer/test-idl-program-vault';
 // real-world interop: a PUBLISHED renderers-js-generated client (type-only import, erased at runtime)
@@ -27,7 +26,7 @@ import { base16, base64, DEFAULT_ADDRESS, encodeAccount } from '../codama-helper
 describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', () => {
     describe('literal IDL type — the codama counterpart of the anchor companion type', () => {
         it('should infer instruction args from the IDL type with no generics', () => {
-            const client = createCodamaIdlClient(vaultIdl);
+            const client = createIdlClient(vaultIdl);
 
             // u8 discriminator (1) + u64le amount (42)
             const decode = client.decodeInstruction({
@@ -46,7 +45,7 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
         });
 
         it('should infer account fields from the IDL type with no generics', () => {
-            const client = createCodamaIdlClient(vaultIdl);
+            const client = createIdlClient(vaultIdl);
             const bytes = encodeAccount(vaultIdl, 'vault', { authority: DEFAULT_ADDRESS, count: 7n });
 
             const decode = client.decodeAccount(bytes);
@@ -71,7 +70,7 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
                 optionalInput: { __option: 'None' } | { __option: 'Some'; value: string };
             };
             const idl = exampleIdl as unknown as CodamaIdl;
-            const client = createCodamaIdlClient(idl);
+            const client = createIdlClient(idl);
             const bytes = encodeAccount(idl, 'dataAccount1', {
                 bump: 255,
                 discriminator: base16('bd16d2a9c3062624'),
@@ -101,7 +100,7 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
             // scalar enums ENCODE by variant name but DECODE to the index
             type EditionMarkerData = { key: number; ledger: [string, string] };
             const idl = mplTokenMetadataIdl as unknown as CodamaIdl;
-            const client = createCodamaIdlClient(idl);
+            const client = createIdlClient(idl);
             // key is a scalar enum discriminator — encoded by variant name
             const bytes = encodeAccount(idl, 'editionMarker', {
                 key: 'editionMarker',
@@ -126,7 +125,7 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
         /** Case: the consumer flow verbatim — the wide IDL JSON at runtime, the payload type from the rendered client. */
         it('should decode the blog accessGrant account from codec-encoded bytes', () => {
             const idl = blogIdl as unknown as CodamaIdl;
-            const client = createCodamaIdlClient(idl);
+            const client = createIdlClient(idl);
             const bytes = encodeAccount(idl, 'accessGrant', {
                 bump: 255,
                 discriminator: base16('a737b8ed4af2006d'),
@@ -160,7 +159,7 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
         /** Case: no codama tooling on the encode side — the raw IDL alone is enough to decode hand-built bytes. */
         it('should decode the token syncNative instruction from raw hand-built bytes', () => {
             const idl = tokenIdl as unknown as CodamaIdl;
-            const client = createCodamaIdlClient(idl);
+            const client = createIdlClient(idl);
 
             // the IDL declares syncNative as a single u8 discriminator (17) with no other data
             const decode = client.decodeInstruction({
@@ -182,7 +181,7 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
 
         it('should decode the token multisig account from codec-encoded bytes', () => {
             const idl = tokenIdl as unknown as CodamaIdl;
-            const client = createCodamaIdlClient(idl);
+            const client = createIdlClient(idl);
             // multisig carries no discriminator field — it is identified by its exact size
             const bytes = encodeAccount(idl, 'multisig', {
                 isInitialized: true,
@@ -213,7 +212,7 @@ describe('functional: typed getDecodedData routes (dynamic-client test IDLs)', (
     describe('published client types — AsDecoded over @solana-program/token-2022', () => {
         it('should decode the token-2022 multisig account from codec-encoded bytes', () => {
             const idl = token2022Idl as unknown as CodamaIdl;
-            const client = createCodamaIdlClient(idl);
+            const client = createIdlClient(idl);
             const bytes = encodeAccount(idl, 'multisig', {
                 isInitialized: true,
                 m: 1,

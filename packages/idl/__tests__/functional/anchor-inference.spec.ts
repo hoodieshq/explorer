@@ -2,8 +2,13 @@
 // can source the payload type: the repo-bundled generated companion type, anchor's Program.fetchIdl
 // generic, and the per-call shape when only the wide runtime IDL exists. Codama IDLs live in
 // codama-inference.spec.ts; general client usage in ../integration/idl-client-inference.spec.ts.
-import { type AccountDecode, type AnchorIdl, IdlStandard, type InstructionDecode } from '@explorer/idl';
-import { createCodamaIdlClient } from '@explorer/idl/codama';
+import {
+    type AccountDecode,
+    type AnchorIdl,
+    createIdlClient,
+    IdlStandard,
+    type InstructionDecode,
+} from '@explorer/idl';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
@@ -22,7 +27,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
         /** Case: repo-bundled document paired with the anchor-generated companion type — args infer, no generics. */
         it('should decode the increment instruction with args inferred from the generated type', () => {
             const simple = loadSimpleIdlTyped();
-            const client = createCodamaIdlClient(simple);
+            const client = createIdlClient(simple);
 
             const decode = client.decodeInstruction(incrementIx(simple));
             const result = client.getDecodedData(decode);
@@ -39,7 +44,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
         /** Case: the same generated type infers account struct fields (its camelCase view matches codama-decoded keys). */
         it('should decode counter account bytes with fields inferred from the generated type', () => {
             const simple = loadSimpleIdlTyped();
-            const client = createCodamaIdlClient(simple);
+            const client = createIdlClient(simple);
 
             const decode = client.decodeAccount(counterAccountData(simple));
             const result = client.getDecodedData(decode);
@@ -53,7 +58,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
         /** Case: the 0.31 program's bundled JSON paired with its companion type — same no-generic inference across anchor versions. */
         it('should decode the 0.31 increment instruction with args inferred from the bundled companion type', () => {
             const simple031 = loadSimple031IdlTyped();
-            const client = createCodamaIdlClient(simple031);
+            const client = createIdlClient(simple031);
 
             const decode = client.decodeInstruction(incrementIx(simple031));
             const result = client.getDecodedData(decode);
@@ -69,7 +74,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
         /** Case: the 0.31 document arrives through anchor's client (Program.fetchIdl<Simple031>) — inference flows the same. */
         it("should decode the 0.31 increment instruction for an IDL fetched with anchor's client", async () => {
             const simple031 = await fetchAnchorIdl<Simple031>();
-            const client = createCodamaIdlClient(simple031);
+            const client = createIdlClient(simple031);
 
             const decode = client.decodeInstruction(incrementIx(simple031));
             const result = client.getDecodedData(decode);
@@ -83,7 +88,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
         /** Case: the typed fetch also infers account fields — no generic at the call. */
         it("should decode 0.31 counter account fields for an IDL fetched with anchor's client", async () => {
             const simple031 = await fetchAnchorIdl<Simple031>();
-            const client = createCodamaIdlClient(simple031);
+            const client = createIdlClient(simple031);
 
             const decode = client.decodeAccount(counterAccountData(simple031));
             const result = client.getDecodedData(decode);
@@ -98,7 +103,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
         /** Case: the same document fetched WITHOUT a generic — wide `AnchorIdl`, so the field shape is passed per call. */
         it('should decode 0.31 counter account bytes with a per-call shape', async () => {
             const simple031 = await fetchAnchorIdl(); // no generic → wide AnchorIdl
-            const client = createCodamaIdlClient(simple031);
+            const client = createIdlClient(simple031);
 
             const decode = client.decodeAccount(counterAccountData(simple031));
             // the deliberate per-call variant: the declared shape types the result exactly
@@ -114,7 +119,7 @@ describe('functional: typed getDecodedData routes (anchor IDLs)', () => {
         /** Case: the wide document's instruction args also take a per-call shape. */
         it('should decode the 0.31 increment instruction with a per-call shape', async () => {
             const simple031 = await fetchAnchorIdl(); // no generic → wide AnchorIdl
-            const client = createCodamaIdlClient(simple031);
+            const client = createIdlClient(simple031);
 
             const decode = client.decodeInstruction(incrementIx(simple031));
             const result = client.getDecodedData<{ amount: bigint }>(decode);

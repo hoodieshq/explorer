@@ -12,6 +12,7 @@ import {
     type AnchorIdl,
     type CodamaIdl,
     createIdlClient,
+    createIdlMetaClient,
     getIdlStandard,
     IDL_ERROR__IDL_PARSE_FAILED,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
@@ -26,9 +27,8 @@ import {
     isLegacyAnchorIdl,
     tryCreateIdlClient,
 } from '@explorer/idl';
-// conversion is anchor-input-only, engines are opt-in — both live behind their own entries
+// conversion is anchor-input-only — it lives behind its own entry
 import { convertToCodama } from '@explorer/idl/anchor';
-import { codamaProvider, createCodamaIdlClient, tryCreateCodamaIdlClient } from '@explorer/idl/codama';
 import { address, type Instruction } from '@solana/kit';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
@@ -116,23 +116,23 @@ describe('capability: client creation from untrusted IDLs', () => {
     });
 });
 
-describe('capability: engine selection (one entry per engine)', () => {
-    /** Case: the name-only flow (MCP tools) — the bare entry serves names with NO decode engine loaded. */
-    it('should serve names and metadata engine-free without a provider', () => {
+describe('capability: engine selection (default codama, swappable)', () => {
+    /** Case: the name-only flow (MCP tools) — the meta client serves names with no decode surface. */
+    it('should serve names and metadata through the meta client', () => {
         const simple = loadSimpleIdl();
-        const client = createIdlClient(simple);
+        const client = createIdlMetaClient(simple);
 
         expect(client.programName()).toBe('Simple');
         expect(client.instructionName(incrementIx(simple).data)).toBe('Increment');
-        // decoding is structurally AND statically absent — an engine never even loads
+        // decoding is structurally AND statically absent
         expect('decodeInstruction' in client).toBe(false);
         expectTypeOf(client).not.toHaveProperty('decodeInstruction');
     });
 
-    /** Case: the one-import default-engine path — untrusted input straight to a decoding client. */
-    it('should decode untrusted input through the pre-wired codama client', () => {
+    /** Case: the zero-config default-engine path — untrusted input straight to a decoding client. */
+    it('should decode untrusted input through the default codama engine', () => {
         const tokenkeg = loadTokenkegIdl();
-        const client = unwrap(tryCreateCodamaIdlClient(tokenkeg as unknown));
+        const client = unwrap(tryCreateIdlClient(tokenkeg as unknown));
 
         const decode = client.decodeInstruction(transferIx(tokenkeg));
         expect(client.getDecodedData<{ amount: bigint }>(decode)).toMatchObject({ amount: 42n });
@@ -269,7 +269,7 @@ describe('decoding: modern Anchor documents', () => {
     /** Case: a mainnet document (runtime snapshot, wide) decodes borsh strings + u64 into camelCased args. */
     it('should decode the real mainnet add_product instruction', () => {
         const letMeBuy = loadLetMeBuyIdl();
-        const client = createCodamaIdlClient(letMeBuy);
+        const client = createIdlClient(letMeBuy);
 
         const decode = client.decodeInstruction(addProductIx(letMeBuy));
         const result = client.getDecodedData<{ name: string; price: bigint; storeName: string }>(decode);
@@ -286,7 +286,7 @@ describe('decoding: modern Anchor documents', () => {
     /** Case: the accessor composes with handler-map dispatch when each outcome needs its own flow. */
     it('should compose the accessor with handler-map dispatch when flows differ per outcome', () => {
         const simple = loadSimpleIdl();
-        const client = createIdlClient(simple, { provider: codamaProvider() });
+        const client = createIdlClient(simple);
 
         // anchor is required (it's in an Anchor client's union) though only a fallback decoder makes it fire; codama runs here
         const outcome = client.decodeInstruction(incrementIx(simple), {
@@ -307,7 +307,7 @@ describe('decoding: legacy Anchor documents', () => {
     const AIRDROP_DISCRIMINATOR = undeclaredInstructionData();
 
     function clientWithFallbackDecoder() {
-        return createCodamaIdlClient(loadSimpleIdl(), {
+        return createIdlClient(loadSimpleIdl(), {
             fallbackDecoder: {
                 decodeInstruction: (idl, ix) => {
                     const data = ix.data ? Uint8Array.from(ix.data) : new Uint8Array();
@@ -366,7 +366,7 @@ describe('decoding: legacy Anchor documents', () => {
 
     /** Case: an account layout the document misses is rescued the same way — the anchor branch is reachable for accounts too. */
     it('should dispatch a rescued account to the anchor handler', () => {
-        const client = createCodamaIdlClient(loadSimpleIdl(), {
+        const client = createIdlClient(loadSimpleIdl(), {
             fallbackDecoder: {
                 decodeAccount: (idl, data) => {
                     if (data.length !== 9 || data[0] !== 0xff) return undefined;
@@ -421,7 +421,7 @@ describe('decoding: converted Anchor documents (nodes-from-anchor)', () => {
 
         // the conversion result is the WIDE CodamaIdl (literal types do not survive a runtime
         // conversion), so the client narrows like a native root and the shape stays per-call
-        const client = createCodamaIdlClient(converted);
+        const client = createIdlClient(converted);
 
         const decode = client.decodeInstruction(incrementIx(simple));
         const result = client.getDecodedData<{ amount: bigint }>(decode);
@@ -436,7 +436,7 @@ describe('decoding: Codama documents', () => {
     /** Case: a codama root decodes a kit instruction; the anchor arm is statically excluded. */
     it("should decode SPL Token's transfer through the real codama root", () => {
         const tokenkeg = loadTokenkegIdl();
-        const client = createCodamaIdlClient(tokenkeg);
+        const client = createIdlClient(tokenkeg);
 
         const decode = client.decodeInstruction(transferIx(tokenkeg));
         const result = client.getDecodedData<{ amount: bigint }>(decode);

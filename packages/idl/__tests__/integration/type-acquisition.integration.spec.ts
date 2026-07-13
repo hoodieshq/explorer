@@ -1,4 +1,4 @@
-// The type-acquisition model over one engine (codamaProvider):
+// The type-acquisition model over the default codama engine:
 //   literal → static types; runtime IDL → exact runtime schema, unknown statically;
 //   semantics beyond the schema → only enrichment helps (nothing infers what was never written down).
 // One describe per row. The known-IDL rows use wormhole NTT (a legacy anchor program) with types
@@ -6,7 +6,6 @@
 // origins — an anchor document converted on the fly and a fetched codama root (SPL Token).
 import { type AnchorIdl, type CodamaIdl, createIdlClient, IdlStandard } from '@explorer/idl';
 import { convertToCodama } from '@explorer/idl/anchor';
-import { codamaProvider } from '@explorer/idl/codama';
 import { address, type Instruction } from '@solana/kit';
 import { getLastNodeFromPath, type RootNode, type TypeNode } from 'codama';
 import { describe, expect, expectTypeOf, it } from 'vitest';
@@ -98,7 +97,7 @@ describe('integration: type acquisition — literal → static types; runtime ID
     describe('known IDL, no types provided — the document literal is the type source', () => {
         /** Case: the generated codama literal IS the type source — payloads infer with zero generics. */
         it('should infer transferBurn args automatically from the generated literal', () => {
-            const client = createIdlClient(exampleNativeTokenTransfersIdl, { provider: codamaProvider() });
+            const client = createIdlClient(exampleNativeTokenTransfersIdl);
 
             const decode = client.decodeInstruction(transferBurnIx);
             if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
@@ -123,7 +122,7 @@ describe('integration: type acquisition — literal → static types; runtime ID
                 ...root,
                 program: { ...root.program, publicKey: NTT_PROGRAM_ADDRESS },
             } as unknown as NttCodamaIdl;
-            const client = createIdlClient(converted, { provider: codamaProvider() });
+            const client = createIdlClient(converted);
 
             const decode = client.decodeInstruction(transferBurnIx);
             if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
@@ -149,7 +148,7 @@ describe('integration: type acquisition — literal → static types; runtime ID
                 ...root,
                 program: { ...root.program, publicKey: NTT_PROGRAM_ADDRESS },
             } as unknown as CodamaIdl;
-            const client = createIdlClient(converted, { provider: codamaProvider() });
+            const client = createIdlClient(converted);
 
             // the literal fixture only drives the ENCODE side here (codama's own codec builds the bytes)
             const bytes = encodeAccount(exampleNativeTokenTransfersIdl, 'config', {
@@ -203,7 +202,7 @@ describe('integration: type acquisition — literal → static types; runtime ID
         /** Case: codama origin — a fetched root (SPL Token PMP snapshot); same schema walk, no conversion. */
         it('should render transfer instruction args from the node schema of a fetched codama root', () => {
             const tokenkeg = loadTokenkegIdl(); // wide CodamaIdl — runtime acquisition, no literal anywhere
-            const client = createIdlClient(tokenkeg, { provider: codamaProvider() });
+            const client = createIdlClient(tokenkeg);
 
             const decode = client.decodeInstruction(transferIx(tokenkeg));
             if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');

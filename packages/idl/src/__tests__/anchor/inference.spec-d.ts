@@ -3,8 +3,7 @@ import { rootNodeFromAnchor } from '@codama/nodes-from-anchor';
 import type { BN, IdlAccounts, IdlEvents, web3 } from '@coral-xyz/anchor';
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { type IdlClient, isAnchorStandard } from '../../client';
-import { createCodamaIdlClient } from '../../codama/index';
+import { createIdlClient, type IdlClient, isAnchorStandard } from '../../client';
 import { type AnchorIdl, type CodamaIdl, IdlStandard, type InstructionDecode } from '../../types';
 import { incrementIx, loadSimpleIdl, type Simple } from '../fixtures';
 
@@ -15,7 +14,7 @@ declare const simpleGeneratedIdl: Simple;
 
 describe('sample: Anchor >= 0.30 IDL — native vs nodes-from-anchor', () => {
     it('should keep the Anchor IDL type accessible on the native Anchor client', () => {
-        const client = createCodamaIdlClient(anchorIdl);
+        const client = createIdlClient(anchorIdl);
 
         expectTypeOf(client).toEqualTypeOf<IdlClient<AnchorIdl>>();
         // the Anchor variant carries Anchor's own IDL type — anchor-typed guidance stays available
@@ -30,7 +29,7 @@ describe('sample: Anchor >= 0.30 IDL — native vs nodes-from-anchor', () => {
     it('should collapse to the codama-only surface once converted with nodes-from-anchor', () => {
         // nodes-from-anchor ships its own (narrower) Anchor IDL + RootNode types — same cast the app uses
         const root = rootNodeFromAnchor(anchorIdl as Parameters<typeof rootNodeFromAnchor>[0]) as unknown as CodamaIdl;
-        const converted = createCodamaIdlClient(root);
+        const converted = createIdlClient(root);
 
         // normalize-first trades the anchor arm away STATICALLY — the compiler stops offering it
         expectTypeOf(converted).toEqualTypeOf<IdlClient<CodamaIdl>>();
@@ -42,7 +41,7 @@ describe('sample: Anchor >= 0.30 IDL — native vs nodes-from-anchor', () => {
 
 describe('sample: Anchor >= 0.30 with generated types (simple program)', () => {
     it('should preserve the generated literal type through the client', () => {
-        const client = createCodamaIdlClient(simpleGeneratedIdl);
+        const client = createIdlClient(simpleGeneratedIdl);
 
         expectTypeOf(client).toEqualTypeOf<IdlClient<Simple>>();
         // literal guidance survives: the compiler knows the exact instruction and argument
@@ -71,7 +70,7 @@ describe('sample: Anchor >= 0.30 with generated types (simple program)', () => {
     it('should degrade the same document to non-guidance once widened to the runtime Idl type', () => {
         // this is the runtime-fetched situation: same value, wide type — literal guidance is gone
         const widened: AnchorIdl = simpleGeneratedIdl;
-        const client = createCodamaIdlClient(widened);
+        const client = createIdlClient(widened);
 
         expectTypeOf(client).toEqualTypeOf<IdlClient<AnchorIdl>>();
         expectTypeOf(client.idl.instructions[0].name).toEqualTypeOf<string>();

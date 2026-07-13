@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the cast sits behind a runtime IDL guard TS cannot relate to the unresolved conditional return type */
 import { parseAccountData } from '@codama/dynamic-parsers';
+import type { ReadonlyUint8Array } from '@solana/kit';
 
 import { convertToCodama } from '../anchor/convert.js';
 import { getIdlStandard, isAnchorIdl, isCodamaIdl } from '../detect.js';
@@ -19,22 +20,22 @@ import {
 // Same Codama pipeline as the instruction decode (account struct layouts travel with the nodes-from-anchor conversion); the anchor arm only comes from the injected fallback decoder until the Anchor-rich path lands.
 export function decodeAccountWithIdl<T extends CodamaIdl>(
     idl: T,
-    data: Uint8Array,
+    data: ReadonlyUint8Array,
     options?: FallbackDecoderOptions,
 ): AccountDecodeFor<T>;
 export function decodeAccountWithIdl<T extends AnchorIdl>(
     idl: T,
-    data: Uint8Array,
+    data: ReadonlyUint8Array,
     options?: FallbackDecoderOptions,
 ): AccountDecodeFor<T>;
 export function decodeAccountWithIdl(
     idl: SupportedIdl,
-    data: Uint8Array,
+    data: ReadonlyUint8Array,
     options?: FallbackDecoderOptions,
 ): AccountDecode;
 export function decodeAccountWithIdl(
     idl: SupportedIdl,
-    data: Uint8Array,
+    data: ReadonlyUint8Array,
     options: FallbackDecoderOptions = {},
 ): AccountDecode {
     const errors: IdlError[] = [];

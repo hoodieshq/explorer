@@ -15,6 +15,7 @@ import {
     getU64Encoder,
     getU128Encoder,
     getUtf8Encoder,
+    type ReadonlyUint8Array,
 } from '@solana/kit';
 import { type InstructionNode, isNode, type Node, titleCase } from 'codama';
 
@@ -31,7 +32,7 @@ export type InstructionNameEntry = {
 // Names only — no arg/account schema — so resolution is a byte-prefix compare, never a Borsh decode.
 export type InstructionNameTable = readonly InstructionNameEntry[];
 
-export type InstructionNameResolver = (data: Uint8Array) => string | undefined;
+export type InstructionNameResolver = (data: ReadonlyUint8Array) => string | undefined;
 
 /** The program's display name from IDL metadata, title-cased; undefined when the IDL does not name it. */
 export function buildProgramName(idl: SupportedIdl): string | undefined {
@@ -52,7 +53,7 @@ export function buildInstructionNameTable(idl: SupportedIdl): InstructionNameTab
 
 // TODO: check whether identifyInstructionData (@codama/dynamic-parsers) can replace this local match — today it costs the engine-free entry, converts Anchor docs, and is first-match, not longest-prefix.
 // Longest-prefix match (1-byte Codama must not shadow 8-byte Anchor); empty discriminators would match everything, so they are skipped.
-export function matchInstructionName(table: InstructionNameTable, data: Uint8Array): string | undefined {
+export function matchInstructionName(table: InstructionNameTable, data: ReadonlyUint8Array): string | undefined {
     let match: InstructionNameEntry | undefined;
     for (const entry of table) {
         if (

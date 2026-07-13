@@ -1,6 +1,6 @@
 import type { parseAccountData, parseInstruction } from '@codama/dynamic-parsers';
 import type { Idl } from '@coral-xyz/anchor';
-import type { Instruction } from '@solana/kit';
+import type { Instruction, ReadonlyUint8Array } from '@solana/kit';
 import { type AccountNode, getLastNodeFromPath, type InstructionNode, type RootNode } from 'codama';
 
 import { IDL_ERROR__DECODE_KIND_MISMATCH, IdlError } from './errors.js';
@@ -44,8 +44,9 @@ export enum IdlStandard {
 /** The document's format version: the Codama root `version`, or Anchor's `metadata.spec` (see `getIdlVersion`). */
 export type IdlVersion = AnchorIdl['metadata']['spec'] | RootNode['version'];
 
-// Codama payloads carry the real engine output; Anchor payloads stay opaque until the Anchor-rich
-// path lands — today they only come from the injected fallback decoder.
+// Codama payloads carry the real engine output. Anchor payloads stay unknown BY DESIGN — no typed
+// variant is coming: the anchor arm only carries the consumer's own fallbackDecoder rescue when codama
+// parsing cannot decode, so the payload shape is the consumer's to declare, never the library's.
 export type CodamaDecodedInstruction = NonNullable<ReturnType<typeof parseInstruction>>;
 export type CodamaDecodedAccount = NonNullable<ReturnType<typeof parseAccountData>>;
 export type AnchorDecodedInstruction = unknown;
@@ -137,7 +138,7 @@ export type IdlFetcher = (programAddress: string, config?: { abortSignal?: Abort
 
 /** The Anchor escape hatch — rescues what the pipeline cannot decode; always injected, never bundled. */
 export type FallbackDecoder = {
-    decodeAccount?: (idl: AnchorIdl, data: Uint8Array) => AnchorDecodedAccount | undefined;
+    decodeAccount?: (idl: AnchorIdl, data: ReadonlyUint8Array) => AnchorDecodedAccount | undefined;
     decodeInstruction?: (idl: AnchorIdl, ix: Instruction) => AnchorDecodedInstruction | undefined;
 };
 
@@ -152,6 +153,6 @@ export type FallbackDecoderOptions = {
  * derive from the IDL type itself (see infer.ts).
  */
 export type IdlDecodeProvider = {
-    decodeAccount(idl: SupportedIdl, data: Uint8Array, options?: FallbackDecoderOptions): AccountDecode;
+    decodeAccount(idl: SupportedIdl, data: ReadonlyUint8Array, options?: FallbackDecoderOptions): AccountDecode;
     decodeInstruction(idl: SupportedIdl, ix: Instruction, options?: FallbackDecoderOptions): InstructionDecode;
 };

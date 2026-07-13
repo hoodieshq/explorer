@@ -9,7 +9,7 @@ Decoding a program's instruction and account data by its IDL is the core problem
 ## What the package delivers
 
 - Standard detection, typed client, codama-primary decode pipeline, discriminator-based instruction naming, coded error family (`@codama/errors` pattern, error-first `Result` tuples).
-- Client API: `createIdlClient<T>` (throws on lying types) / `tryCreateIdlClient` (error-first for untrusted input); decode methods return discriminated unions that narrow statically per standard — a Codama client cannot even express an anchor-arm handler. A standalone `getDecodedData(decode)` returns the payload regardless of which arm produced it (undefined for the unknown arm); `decodeInstructionData` / `decodeAccountData` collapse decode + payload into one error-first `Result`, with an optional `kind` argument that asserts the expected arm (`DECODE_KIND_MISMATCH` otherwise).
+- Client API: `createIdlClient<T>` (throws on lying types) / `tryCreateIdlClient` (error-first for untrusted input), with `createIdlMetaClient` / `tryCreateIdlMetaClient` as the names-only counterparts; decode methods return discriminated unions that narrow statically per standard — a Codama client cannot even express an anchor-arm handler. A standalone `getDecodedData(decode)` returns the payload regardless of which arm produced it (undefined for the unknown arm); `decodeInstructionData` / `decodeAccountData` collapse decode + payload into one error-first `Result`, with an optional `kind` argument that asserts the expected arm (`DECODE_KIND_MISMATCH` otherwise).
 - Escape hatch: an injectable `fallbackDecoder` option (instruction and account rescue) for modern Anchor IDLs the conversion route cannot handle — never bundled into the package.
 - Legacy pre-0.30 IDLs: `isLegacyAnchorIdl` recognizes them; the client rejects them at compile time and runtime — consumers decode them with their own decoder.
 
@@ -24,8 +24,8 @@ Capabilities:
 
 - *Errors are values, not throws* — fallible operations return the error-first `Result` tuple (`[IdlError, undefined] | [undefined, value]`), and decode failures ride the `unknown` arm as coded `IdlError`s; the consumer decides severity, the package never logs.
 - *Legacy variants are the consumer's decoder, not ours* — the client accepts a custom decoder via options (`fallbackDecoder`) for IDLs the built-in conversion route cannot handle; the package ships no Borsh fallback of its own.
-- *User-facing client, easy configuration* — one IDL in, working metadata client out (names, address, detection): no flags, no options. Decoding is an explicit engine choice (`{ provider }`), so processes that never decode — name-only MCP tools — never load an engine; `createCodamaIdlClient` from `@explorer/idl/codama` is the one-import path for default-engine users.
-- *Engines live behind subpath entries* — the main entry is engine-free; `./codama` ships the default engine, `./anchor` the conversion (and the future Anchor-rich provider). Subpath threshold: an entry earns its keep only when it guards a runtime dependency subtree not acceptable in every consumer (size or policy — web3.js) AND a real consumer profile never calls it; tree-shaking alone does not protect plain-Node consumers (MCP), whose ESM loader executes the whole import graph.
+- *User-facing client, easy configuration* — one IDL in, working decode client out: `createIdlClient(idl)` decodes with the codama engine by default, `{ provider }` swaps it. Name-only consumers get `createIdlMetaClient` — a metadata client with no decode surface. The default engine rides the main entry deliberately (ease of use over an engine-free core); the trade is that every main-entry consumer loads the codama pipeline, including plain-Node name-only ones.
+- *Heavier machinery lives behind subpath entries* — `./fetch` guards the rpc/PMP machinery, `./anchor` the conversion helpers, `./codama` the engine pieces for explicit wiring (and the future Anchor-rich provider gets its own entry). Subpath threshold: an entry earns its keep only when it guards a runtime dependency subtree not acceptable in every consumer (size or policy — web3.js) AND a real consumer profile never calls it; tree-shaking alone does not protect plain-Node consumers (MCP), whose ESM loader executes the whole import graph.
 
 ## Client flow
 
@@ -43,8 +43,9 @@ flowchart TD
     TRY -->|"supported"| CREATE["createIdlClient(idl, options?)"]
     TYPED --> CREATE
     CREATE -->|"lying type"| THROW["throw IdlError(UNSUPPORTED_IDL_FORMAT)"]
-    CREATE -->|"no options"| META["IdlMetaClient&lt;T&gt;<br/>metadata + names"]
-    CREATE -->|"{ provider }"| CLIENT["IdlClient&lt;T&gt;<br/>metadata + decode surface"]
+    CREATE -->|"codama engine by default<br/>{ provider } swaps it"| CLIENT["IdlClient&lt;T&gt;<br/>metadata + decode surface"]
+    TYPED --> METACREATE["createIdlMetaClient(idl)"]
+    METACREATE --> META["IdlMetaClient&lt;T&gt;<br/>metadata + names, no decode surface"]
     LEGACY["LegacyAnchorIdl (pre-0.30)"] -. "recognized, rejected" .-> TRY
 ```
 
@@ -98,11 +99,11 @@ The client is not the only surface: `convertToCodama`, the standalone `decodeIns
 ## Risks / Trade-offs
 
 - [Anchor fixture IDLs are committed snapshots, not built on every test run] → the suite reads `__fixtures__/simple*.{json,ts}` (produced and copied in by `build:programs`), so tests and CI never invoke the Rust/Anchor toolchain; regeneration is a deliberate manual step when the `.rs` sources change (DEVELOPMENT.md). Trades a build-freshness guarantee for CI speed and no flaky transitive-crate builds.
-- [The Anchor arm's payload is `unknown` until the Anchor-rich provider lands] → deliberate; consumers declare the shape per call rather than couple to a guess.
+- [The Anchor arm's payload is `unknown` by design — no typed variant is coming] → the arm only carries the consumer's own fallbackDecoder rescue when codama parsing cannot decode, so consumers declare the shape per call rather than couple to the library's guess.
 
 ## Footprint
 
-- Code: `packages/idl/src/**` — an engine-free main entry (`index.ts`) over the core modules (`detect`, `client`, `names`, `infer`, `errors`, `types`), plus two engine subpaths: `./codama` (`src/codama/**`, the decode pipeline) and `./anchor` (`src/anchor/**`, Anchor→Codama conversion). Tests: unit + type suites in `src/__tests__` (`*.spec.ts` / `*.spec-d.ts`), and a demonstration suite in `__tests__/**` running consumer flows over the built `dist` — integration (`__tests__/integration`) plus functional decode of the codama-fixtures IDLs (`__tests__/functional`).
+- Code: `packages/idl/src/**` — a main entry (`index.ts`, default codama engine) over the core modules (`detect`, `client`, `names`, `infer`, `errors`, `types`), plus two subpaths: `./codama` (`src/codama/**`, the decode pipeline) and `./anchor` (`src/anchor/**`, Anchor→Codama conversion). Tests: unit + type suites in `src/__tests__` (`*.spec.ts` / `*.spec-d.ts`), and a demonstration suite in `__tests__/**` running consumer flows over the built `dist` — integration (`__tests__/integration`) plus functional decode of the codama-fixtures IDLs (`__tests__/functional`).
 - Fixtures: two real Anchor programs (`test-anchor-programs/simple` anchor-lang 1.1.2, `test-anchor-programs/simple-031` anchor-lang 0.31.1) build genuine IDLs committed as snapshots (`__fixtures__/simple*.{json,ts}`, refreshed by `build:programs`) and consumed by the test suites from there; two build-free Codama fixtures (`test-codama-programs/memo` PMP snapshot, `test-codama-programs/vault` hand-authored root — each ships its raw JSON at `./idl` and an `as const` literal at `.`, generated from the JSON by `generate-codama-literals.mjs`); tracked real-world snapshots (`let-me-buy` in both Anchor and PMP form, `tokenkeg` PMP) exercise the dual-standard story against mainnet IDLs.
 - Workspace: `pnpm-workspace.yaml` includes `packages/idl/test-anchor-programs/*` and `packages/idl/test-codama-programs/*`; program packages are devDependencies of `@explorer/idl`; building the Anchor ones requires the Rust/Anchor toolchain (avm-managed, pinned per program workspace).
 - Dependencies: `@codama/dynamic-parsers` + `@codama/nodes-from-anchor` (runtime), `@coral-xyz/anchor` / `codama` / `@solana/kit` (peers). `@solana/web3.js` stays out of the public API (kit-first).

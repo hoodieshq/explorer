@@ -1,14 +1,16 @@
 // TODO(@hoodieshq): rename the package to @explorer/idl-decode — the lib is about DECODING data with IDLs, not about IDLs themselves.
-// Engine-free entry — decode engines live behind './codama' and './anchor' so processes that never
-// decode never load one.
+// Main entry — the client decodes with the codama engine by default ('./codama' exports the pieces
+// for explicit wiring or a custom provider).
 export {
     createIdlClient,
+    createIdlMetaClient,
     type IdlClient,
     type IdlClientOptions,
     type IdlMetaClient,
     isAnchorStandard,
     isCodamaStandard,
     tryCreateIdlClient,
+    tryCreateIdlMetaClient,
 } from './client.js';
 export type { AccountDataOf, AccountsDataOf, AsDecoded, InstructionDataOf } from './infer.js';
 export {

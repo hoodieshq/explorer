@@ -1,5 +1,5 @@
 // README-level consumer flows — one case per way a user meets the library, written to be lifted
-// into the README verbatim. Same engine everywhere (codamaProvider); the axes are the input standard
+// into the README verbatim. Same engine everywhere (the default codama engine); the axes are the input standard
 // and WHEN knowledge exists: build time (a type is present → static typings) vs runtime (only the
 // fetched JSON exists → exact schema in the decode, payloads statically unknown).
 //   codama IDLs
@@ -13,7 +13,6 @@
 // `decodeInstructionData`/`decodeAccountData` are the one-step routes (typed payload as an
 // error-first Result); `unwrap` narrows the two-step route to the default (codama) arm (payload + schema node).
 import { type AccountsDataOf, type AsDecoded, createIdlClient, unwrap } from '@explorer/idl';
-import { codamaProvider } from '@explorer/idl/codama';
 import { vaultIdl } from '@explorer/test-idl-program-vault';
 // the wide anchor IDL type is anchor's own — the library's AnchorIdl is a direct alias of it
 import type { Idl } from '@coral-xyz/anchor';
@@ -49,7 +48,7 @@ describe('README flows: how payload types reach the consumer', () => {
                 // that the IDL is bundled as TS source (`as const`) so the compiler can read it.
                 // The RootNode TS variant may already be accessible (shipped by the program, like vaultIdl)
                 // or built in advance — run the anchor→codama conversion at build time and save the result.
-                const client = createIdlClient(vaultIdl, { provider: codamaProvider() });
+                const client = createIdlClient(vaultIdl);
                 //                             ^? vaultIdl: { readonly kind: "rootNode"; readonly program: { … readonly name: "deposit" … } } — every field is a literal
 
                 // the instruction arrives from elsewhere (a transaction) — the fixture builds deposit(42)
@@ -63,7 +62,7 @@ describe('README flows: how payload types reach the consumer', () => {
             it('should infer parser-shaped field types where they differ from codec-level expectations', () => {
                 // a generated codama IDL (converted wormhole NTT) — its config account collects every
                 // field shape that surprises people coming from generated clients or anchor coders
-                const client = createIdlClient(exampleNativeTokenTransfersIdl, { provider: codamaProvider() });
+                const client = createIdlClient(exampleNativeTokenTransfersIdl);
                 //                             ^? exampleNativeTokenTransfersIdl: { readonly kind: "rootNode"; … } — a generated literal, same guidance as hand-written
                 const bytes = encodeAccount(exampleNativeTokenTransfersIdl, 'config', {
                     bump: 254,
@@ -115,7 +114,7 @@ describe('README flows: how payload types reach the consumer', () => {
                 // the IDL arrives at runtime, but the TYPE was generated at build time (renderers-js) —
                 // the consumer pairs them per call
                 const tokenkeg = loadTokenkegIdl();
-                const client = createIdlClient(tokenkeg, { provider: codamaProvider() });
+                const client = createIdlClient(tokenkeg);
                 const bytes = encodeAccount(tokenkeg, 'multisig', MULTISIG);
 
                 // the naive claim: the rendered client's own type describes the CODEC view —
@@ -140,7 +139,7 @@ describe('README flows: how payload types reach the consumer', () => {
                 // runtime acquisition (PMP fetch) — the wide CodamaIdl carries no literals
                 const tokenkeg = loadTokenkegIdl();
                 //    ^? tokenkeg: CodamaIdl — the wide RootNode; names and kinds are plain strings, nothing to infer from
-                const client = createIdlClient(tokenkeg, { provider: codamaProvider() });
+                const client = createIdlClient(tokenkeg);
                 const bytes = encodeAccount(tokenkeg, 'multisig', MULTISIG);
 
                 // default inference degrades honestly: the value is exact at runtime, unknown statically
@@ -154,7 +153,7 @@ describe('README flows: how payload types reach the consumer', () => {
                 // the runtime counterpart of build-level typings: no type exists for a fetched IDL, but
                 // the decode carries the matched schema node — consumers work schema-driven, not guessing
                 const tokenkeg = loadTokenkegIdl();
-                const client = createIdlClient(tokenkeg, { provider: codamaProvider() });
+                const client = createIdlClient(tokenkeg);
                 const bytes = encodeAccount(tokenkeg, 'multisig', MULTISIG);
 
                 // the two-step route: unwrap narrows to the default (codama) arm and surfaces the schema node
@@ -185,7 +184,7 @@ describe('README flows: how payload types reach the consumer', () => {
                 // `anchor build` emits a TS satellite type next to the JSON — pairing them keeps the literals
                 const simple = loadSimpleIdlTyped();
                 //    ^? simple: Simple — the anchor-generated satellite type; names and arg types are literals
-                const client = createIdlClient(simple, { provider: codamaProvider() });
+                const client = createIdlClient(simple);
 
                 const [, data] = client.decodeInstructionData(incrementIx(simple));
                 //        ^? data: { amount: bigint } | Record<string, never> | undefined — one member per declared instruction
@@ -199,7 +198,7 @@ describe('README flows: how payload types reach the consumer', () => {
                 // Program.fetchIdl<T> generic stamps the satellite type onto the fetched IDL
                 const simple031 = await fetchAnchorIdl<Simple031>();
                 //    ^? simple031: Simple031 — the satellite type, stamped by the fetch generic
-                const client = createIdlClient(simple031, { provider: codamaProvider() });
+                const client = createIdlClient(simple031);
 
                 const [, data] = client.decodeInstructionData(incrementIx(simple031));
                 //        ^? data: { amount: bigint } | Record<string, never> | undefined — same guidance, explicit source
@@ -214,7 +213,7 @@ describe('README flows: how payload types reach the consumer', () => {
                 // runtime acquisition with no satellite type — the wide AnchorIdl carries no literals
                 const wide: Idl = loadSimpleIdl();
                 //    ^? wide: Idl — anchor's own wide IDL type; instruction names/args are plain strings
-                const client = createIdlClient(wide, { provider: codamaProvider() });
+                const client = createIdlClient(wide);
 
                 // default inference degrades honestly: the value is exact at runtime, unknown statically
                 const [, data] = client.decodeInstructionData(incrementIx(wide));
@@ -235,7 +234,7 @@ describe('README flows: how payload types reach the consumer', () => {
                 // converts the anchor JSON internally (nodes-from-anchor), so the decode still carries an
                 // exact codama schema for the anchor-born program
                 const wide: Idl = loadSimpleIdl();
-                const client = createIdlClient(wide, { provider: codamaProvider() });
+                const client = createIdlClient(wide);
 
                 const { data, node } = unwrap(client.decodeInstruction(incrementIx(wide)));
                 //            ^? node: InstructionNode — born from the anchor JSON

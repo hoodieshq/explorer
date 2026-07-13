@@ -3,12 +3,12 @@
 // Runtime sweep only — the typed getDecodedData routes are demonstrated in codama-inference.spec.ts.
 import {
     type CodamaIdl,
+    createIdlClient,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
     IdlStandard,
     isCodamaStandard,
     tryCreateIdlClient,
 } from '@explorer/idl';
-import { createCodamaIdlClient } from '@explorer/idl/codama';
 // mainnet PMP snapshot in test-codama-programs (fetched with the @solana-program/program-metadata CLI)
 import memoIdl from '@explorer/test-idl-program-memo/idl';
 import type { Instruction } from '@solana/kit';
@@ -69,7 +69,7 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
         });
 
         it(`should decode the ${instruction} instruction built by the dynamic client`, async () => {
-            const client = createCodamaIdlClient(document);
+            const client = createIdlClient(document);
 
             const decode = client.decodeInstruction(await buildInstruction(document, instruction));
 
@@ -89,7 +89,7 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
 
         /** Case: identification is discriminator-driven — this document declares none, so decoding can only miss safely. */
         it('should stay on the unknown arm when instructions declare no discriminators', () => {
-            const client = createCodamaIdlClient(document);
+            const client = createIdlClient(document);
 
             const decode = client.decodeInstruction({
                 accounts: [],
@@ -110,7 +110,7 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
         const document = memoIdl as unknown as CodamaIdl;
 
         function decodeMemo() {
-            const client = createCodamaIdlClient(document);
+            const client = createIdlClient(document);
             const decode = client.decodeInstruction({
                 accounts: [],
                 data: new TextEncoder().encode('Hello, Memo!'),
@@ -140,7 +140,7 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
 
     /** Case: no codama tooling on the encode side — multisig carries no discriminator, its exact 355-byte size identifies it. */
     it('should decode the token multisig account from raw hand-built bytes', () => {
-        const client = createCodamaIdlClient(tokenIdl as unknown as CodamaIdl);
+        const client = createIdlClient(tokenIdl as unknown as CodamaIdl);
 
         // m=1, n=1, initialized, 11 zeroed signer pubkeys
         const decode = client.decodeAccount(Uint8Array.from([1, 1, 1, ...new Uint8Array(11 * 32)]));

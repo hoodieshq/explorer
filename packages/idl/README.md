@@ -9,12 +9,12 @@ standard produced the IDL.
 
 ## Entries
 
-The main entry is engine-free; every entry is side-effect-free and tree-shakeable (gated).
+Every entry is side-effect-free and tree-shakeable (gated).
 
 | Import                | Ships                                                             |
 | --------------------- | ------------------------------------------------------------------ |
-| `@explorer/idl`        | client, guards, names, errors, types — no decode engine            |
-| `@explorer/idl/codama` | the codama decode engine + `createCodamaIdlClient` wrappers        |
+| `@explorer/idl`        | client (codama decode engine by default), guards, names, errors, types |
+| `@explorer/idl/codama` | the codama engine pieces (`codamaProvider`, decode functions) for explicit wiring |
 | `@explorer/idl/anchor` | Anchor IDL helpers (`convertToCodama`)                        |
 | `@explorer/idl/fetch`  | fetch the IDL by program address (`fetchIdlClient`)           |
 
@@ -25,10 +25,9 @@ value: throw it if you prefer exceptions (the one `throw` in this guide), but we
 it, the way every example below does.
 
 ```ts
-import { isCodamaStandard, isIdlError, IDL_ERROR__UNSUPPORTED_IDL_FORMAT } from '@explorer/idl';
-import { tryCreateCodamaIdlClient } from '@explorer/idl/codama';
+import { isCodamaStandard, isIdlError, IDL_ERROR__UNSUPPORTED_IDL_FORMAT, tryCreateIdlClient } from '@explorer/idl';
 
-const [error, client] = tryCreateCodamaIdlClient(fetchedJson);
+const [error, client] = tryCreateIdlClient(fetchedJson);
 if (error) throw error; // code-discriminated: isIdlError(error, IDL_ERROR__UNSUPPORTED_IDL_FORMAT)
 
 client.programName(); // 'Token'
@@ -39,14 +38,14 @@ isCodamaStandard(client); // narrows the client to one standard
 
 ## Names-only client
 
-Without options, `createIdlClient` returns a metadata client — decode methods are statically
-absent, no engine code is loaded:
+`createIdlMetaClient` returns a metadata client — decode methods are statically absent
+(`tryCreateIdlMetaClient` is its error-first mirror for untrusted input):
 
 ```ts
-import { createIdlClient, type IdlMetaClient } from '@explorer/idl';
+import { createIdlMetaClient, type IdlMetaClient } from '@explorer/idl';
 
 // names and metadata only — decode methods do not exist on the type
-const meta: IdlMetaClient = createIdlClient(idl);
+const meta: IdlMetaClient = createIdlMetaClient(idl);
 
 meta.programName(); // 'Token' — undefined if the IDL declares none
 meta.programAddress(); // 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
@@ -64,17 +63,23 @@ meta.instructionName(instruction.data); // 'Transfer' — undefined when no disc
 
 ## Decoding client
 
-Decoding takes a provider — the engine is an explicit dependency, injected at construction:
+`createIdlClient` decodes with the codama engine by default — no configuration for the common case:
 
 ```ts
 import { createIdlClient, type IdlClient } from '@explorer/idl';
-import { codamaProvider, createCodamaIdlClient } from '@explorer/idl/codama';
 
-// the metadata surface plus decode methods, bound to the injected engine
-const client: IdlClient = createIdlClient(idl, { provider: codamaProvider() });
+// the metadata surface plus decode methods, codama engine pre-wired
+const client: IdlClient = createIdlClient(idl);
+```
 
-// the same client with the codama engine pre-wired
-const same: IdlClient = createCodamaIdlClient(idl);
+The engine stays swappable — pass `provider` to plug in another one (heavier engines, the
+Anchor-rich path) through the same client surface:
+
+```ts
+import { codamaProvider } from '@explorer/idl/codama';
+
+// the explicit form of the default — any IdlDecodeProvider plugs in here
+const same: IdlClient = createIdlClient(idl, { provider: codamaProvider() });
 ```
 
 ## One-step data access
@@ -114,10 +119,9 @@ the payload. Results are discriminated by the producing standard. A miss is
 `{ kind: 'unknown', errors: [] }`; a pipeline failure carries its errors — never a crash:
 
 ```ts
-import { IdlStandard } from '@explorer/idl';
-import { createCodamaIdlClient } from '@explorer/idl/codama';
+import { createIdlClient, IdlStandard } from '@explorer/idl';
 
-const client = createCodamaIdlClient(idl);
+const client = createIdlClient(idl);
 const decode = client.decodeInstruction(instruction); // a @solana/kit Instruction
 
 if (decode.kind === IdlStandard.Codama) {
@@ -181,10 +185,9 @@ anchor→codama conversion at build time and save the result:
 
 ```ts
 import { createIdlClient } from '@explorer/idl';
-import { codamaProvider } from '@explorer/idl/codama';
 import { vaultIdl } from './idl/vault'; // `as const` root node — the IDL IS the type
 
-const client = createIdlClient(vaultIdl, { provider: codamaProvider() });
+const client = createIdlClient(vaultIdl);
 
 const [, data] = client.decodeInstructionData(instruction);
 //        ^? { amount: bigint; discriminator: number } | undefined — read off the schema's `deposit` instruction
@@ -224,7 +227,7 @@ absent (claim a shape per call when you know it: `decodeAccountData<{ m: number 
 
 ```ts
 const idl: CodamaIdl = await fetchIdlFromChain(programId); // wide — no literal type
-const client = createIdlClient(idl, { provider: codamaProvider() });
+const client = createIdlClient(idl);
 
 const [, data] = client.decodeAccountData(accountData);
 //        ^? unknown — a wide IDL carries no literals to read; the value is still exact at runtime
@@ -273,13 +276,13 @@ node.arguments.map(argument => `${argument.name}: ${argument.type.kind}`);
 
 ## Anchor IDLs
 
-Anchor IDLs go through the same client — `createCodamaIdlClient` runs nodes-from-anchor to convert
+Anchor IDLs go through the same client — the codama engine runs nodes-from-anchor to convert
 the document to a Codama root before decoding, so a successful decode lands on the codama arm:
 
 ```ts
 import anchorIdl from './target/idl/my_program.json';
 
-const client = createCodamaIdlClient(anchorIdl);
+const client = createIdlClient(anchorIdl);
 const decode = client.decodeInstruction(instruction);
 decode.kind; // IdlStandard.Codama — the conversion is an implementation detail
 ```
@@ -292,7 +295,7 @@ import { convertToCodama } from '@explorer/idl/anchor';
 const [error, root] = convertToCodama(anchorIdl); // nodes-from-anchor
 // error → IDL_ERROR__IDL_PARSE_FAILED (the document could not be converted); handle it as a value
 if (!error) {
-    const client = createCodamaIdlClient(root); // root is already a Codama IDL
+    const client = createIdlClient(root); // root is already a Codama IDL
 }
 ```
 
@@ -312,7 +315,7 @@ import { isLegacyAnchorIdl } from '@explorer/idl';
 
 isLegacyAnchorIdl(idl); // true → decode it yourself; the client will not accept it
 
-const client = createCodamaIdlClient(idl, {
+const client = createIdlClient(idl, {
     fallbackDecoder: {
         decodeAccount: (idl, data) => myCustomAccountDecode(idl, data),
         decodeInstruction: (idl, ix) => myCustomDecode(idl, ix),
@@ -326,10 +329,10 @@ anchor result.
 
 Here all three arms are live — the handler map is worth it: `codama` for instructions the
 conversion decoded, `anchor` for those your fallback decoder rescued, `unknown` for the rest.
-`createCodamaIdlClient` pre-wires the engine, so no provider is passed at the call site:
+The codama engine is the default, so no provider is passed at the call site:
 
 ```ts
-const client = createCodamaIdlClient(idl, { fallbackDecoder });
+const client = createIdlClient(idl, { fallbackDecoder });
 
 const label = client.decodeInstruction(instruction, {
     codama: decode => client.getDecodedData(decode), // converted + decoded natively

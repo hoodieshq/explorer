@@ -3,8 +3,7 @@ import { vaultIdl } from '@explorer/test-idl-program-vault';
 import type { InstructionNode } from 'codama';
 import { describe, expectTypeOf, it } from 'vitest';
 
-import { type IdlClient } from '../../client';
-import { createCodamaIdlClient } from '../../codama/index';
+import { createIdlClient, type IdlClient } from '../../client';
 import { type CodamaIdl, IdlStandard, type InstructionDecode, unwrap } from '../../types';
 import { loadTokenkegIdl, transferIx } from '../fixtures';
 
@@ -13,7 +12,7 @@ const codamaTransferIx = transferIx(codamaIdl);
 
 describe('sample: Codama IDL', () => {
     it('should guide the developer into the codama-only surface', () => {
-        const client = createCodamaIdlClient(codamaIdl);
+        const client = createIdlClient(codamaIdl);
 
         expectTypeOf(client).toEqualTypeOf<IdlClient<CodamaIdl>>();
         expectTypeOf(client.idl).toEqualTypeOf<CodamaIdl>();
@@ -27,7 +26,7 @@ describe('sample: Codama IDL', () => {
 
     // mirrors the decodeInstruction jsdoc example — keep the snippet honest if unwrap or the overloads move
     it('should keep the two-step seam typed: unwrap gives the node, getDecodedData keeps the inference', () => {
-        const client = createCodamaIdlClient(vaultIdl);
+        const client = createIdlClient(vaultIdl);
         const decode = client.decodeInstruction(codamaTransferIx);
         if (decode.kind === IdlStandard.Codama) {
             const { node } = unwrap(decode);

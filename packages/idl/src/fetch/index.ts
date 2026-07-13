@@ -12,7 +12,6 @@ import {
 } from '@solana/kit';
 
 import { type IdlClient, type IdlClientOptions, tryCreateIdlClient } from '../client.js';
-import { codamaProvider } from '../codama/index.js';
 import {
     err,
     IDL_ERROR__IDL_ADDRESS_MISMATCH,
@@ -50,10 +49,8 @@ export function createLatestIdlFetcher(rpc: IdlFetcherRpc, options: LatestIdlFet
     };
 }
 
-export type FetchIdlClientOptions = Omit<IdlClientOptions, 'provider'> & {
+export type FetchIdlClientOptions = IdlClientOptions & {
     abortSignal?: AbortSignal;
-    /** The decode engine — the codama engine by default; pass one to swap (e.g. a future anchor-rich engine). */
-    provider?: IdlClientOptions['provider'];
     /** Reject an IDL declaring a DIFFERENT program address (default true) — registries and custom fetchers can serve mislabeled ones. */
     verifyAddress?: boolean;
 } & ({ fetcher?: undefined; rpc: IdlFetcherRpc } | { fetcher: IdlFetcher; rpc?: IdlFetcherRpc });
@@ -70,7 +67,7 @@ export async function fetchIdlClient(
     programAddress: string,
     options: FetchIdlClientOptions,
 ): Promise<Result<IdlClient>> {
-    const { abortSignal, fetcher, provider = codamaProvider(), rpc, verifyAddress = true, ...clientOptions } = options;
+    const { abortSignal, fetcher, rpc, verifyAddress = true, ...clientOptions } = options;
     abortSignal?.throwIfAborted();
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the options union guarantees `rpc` whenever `fetcher` is absent; TS drops that correlation on destructuring
     const resolveIdl = fetcher ?? createLatestIdlFetcher(rpc as IdlFetcherRpc);
@@ -84,7 +81,7 @@ export async function fetchIdlClient(
     }
     if (idl === undefined) return err(new IdlError(IDL_ERROR__IDL_NOT_FOUND, { programAddress }));
 
-    const [createError, client] = tryCreateIdlClient(idl, { ...clientOptions, provider });
+    const [createError, client] = tryCreateIdlClient(idl, clientOptions);
     if (createError) return err(createError);
     const declaredAddress = client.programAddress();
     if (verifyAddress && declaredAddress && declaredAddress !== programAddress) {
