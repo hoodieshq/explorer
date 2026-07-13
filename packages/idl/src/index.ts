@@ -12,6 +12,7 @@ export {
     tryCreateIdlClient,
     tryCreateIdlMetaClient,
 } from './client.js';
+export { type DecodedEntry, getDecodedEntries } from './entries.js';
 export type { AccountDataOf, AccountsDataOf, AsDecoded, InstructionDataOf } from './infer.js';
 export {
     getIdlProgramVersion,
