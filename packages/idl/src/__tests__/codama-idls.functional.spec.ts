@@ -1,17 +1,8 @@
-// Codama documents end to end, over codama's own dynamic-client test IDLs — the `codama-fixtures`
-// sha-pinned tarball devDependency, so the documents are imported at their source revision, never copied.
-// Runtime sweep only — the typed getDecodedData routes are demonstrated in codama-inference.spec.ts.
-import {
-    type CodamaIdl,
-    createIdlClient,
-    getDecodedEntries,
-    IDL_ERROR__INSTRUCTION_DECODE_FAILED,
-    IdlStandard,
-    isCodamaStandard,
-    tryCreateIdlClient,
-} from '@explorer/idl';
-// mainnet PMP snapshot in test-codama-programs (fetched with the @solana-program/program-metadata CLI)
-import memoIdl from '@explorer/test-idl-program-memo/idl';
+// Functional sweep of the codama engine over EXTERNAL real-program IDLs — codama's own
+// dynamic-client test documents (the `codama-fixtures` sha-pinned tarball, imported at their source
+// revision, never copied) plus the memo PMP snapshot. The convert counterpart is
+// convert-sweep.functional.spec.ts; the typed routes over these documents live in
+// __tests__/codama-inference.spec.ts.
 import type { Instruction } from '@solana/kit';
 import { getLastNodeFromPath } from 'codama';
 import associatedTokenAccountIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/associated-token-account-idl.json';
@@ -28,8 +19,14 @@ import token2022Idl from 'codama-fixtures/packages/dynamic-client/test/programs/
 import tokenIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/token-idl.json';
 import { describe, expect, it } from 'vitest';
 
-import { unwrap } from '../src/__tests__/unwrap';
-import { buildInstruction, DEFAULT_ADDRESS, fetchedJson } from './codama-helpers';
+// mainnet PMP snapshot in test-codama-programs (fetched with the @solana-program/program-metadata CLI)
+import memoIdl from '@explorer/test-idl-program-memo/idl';
+
+import { createIdlClient, isCodamaStandard, tryCreateIdlClient } from '../client';
+import { IDL_ERROR__INSTRUCTION_DECODE_FAILED } from '../errors';
+import { type CodamaIdl, IdlStandard } from '../types';
+import { buildInstruction, fetchedJson } from './codama-helpers';
+import { unwrap } from './unwrap';
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the imported JSON documents are known codama roots (detection is re-proven per test); the Instruction cast bridges codama tooling with the client */
 
@@ -137,68 +134,5 @@ describe('functional: Codama documents (dynamic-client test IDLs)', () => {
             expect(getLastNodeFromPath(decode.decoded.path).name).toBe('addMemo');
             expect(client.getDecodedData<{ memo: string }>(decode)).toEqual({ memo: 'Hello, Memo!' });
         });
-    });
-
-    /** Case: no codama tooling on the encode side — multisig carries no discriminator, its exact 355-byte size identifies it. */
-    it('should decode the token multisig account from raw hand-built bytes', () => {
-        const client = createIdlClient(tokenIdl as unknown as CodamaIdl);
-
-        // m=1, n=1, initialized, 11 zeroed signer pubkeys
-        const decode = client.decodeAccount(Uint8Array.from([1, 1, 1, ...new Uint8Array(11 * 32)]));
-
-        if (decode.kind !== IdlStandard.Codama) throw new Error('expected the codama arm');
-
-        // wide runtime documents degrade inference — declare the shape per call, per the client contract
-        const data = client.getDecodedData<{ isInitialized: boolean; m: number; n: number; signers: string[] }>(decode);
-
-        expect(getLastNodeFromPath(decode.decoded.path).name).toBe('multisig');
-        expect(data).toEqual({
-            isInitialized: true,
-            m: 1,
-            n: 1,
-            signers: Array.from({ length: 11 }, () => DEFAULT_ADDRESS),
-        });
-    });
-
-    /**
-     * Case: the same decode without claiming a type — entries pair each leaf with its schema node.
-     * README-ready sample of what `getDecodedEntries` is for:
-     *
-     * @example
-     * ```ts
-     * import { getDecodedEntries } from '@explorer/idl';
-     *
-     * // the payload is `unknown` (wide runtime IDL) — entries make it processable without a claimed
-     * // shape: every leaf VALUE arrives with WHERE it lives (path) and WHAT it is (node)
-     * const entries = getDecodedEntries(client.decodeAccount(accountData));
-     * // [{ path: ['m'], node: { kind: 'numberTypeNode', format: 'u8', … }, value: 1 },
-     * //  { path: ['signers', 0], node: { kind: 'publicKeyTypeNode' }, value: '1111…' }, …]
-     *
-     * // a lens by path segments — the path's native type, no string re-encoding, indices stay numbers
-     * const at = (...path: (number | string)[]) =>
-     *     entries.find(entry => entry.path.length === path.length && entry.path.every((part, i) => part === path[i]));
-     * at('m')?.value; // 1
-     * at('signers', 0)?.node.kind; // 'publicKeyTypeNode' — render it as an address link
-     *
-     * // select by what it is — every address the payload carries, no shape known upfront
-     * entries.filter(entry => entry.node.kind === 'publicKeyTypeNode').map(entry => entry.value);
-     * ```
-     */
-    it('should pair the multisig account leaves with their schema nodes without claiming a type', () => {
-        const client = createIdlClient(tokenIdl as unknown as CodamaIdl);
-
-        // no arm guard needed — getDecodedEntries throws the typed kind mismatch on any other arm
-        const entries = getDecodedEntries(client.decodeAccount(Uint8Array.from([1, 1, 1, ...new Uint8Array(11 * 32)])));
-
-        // the array flattens into indexed paths — every leaf arrives value-with-schema paired
-        expect(entries.map(({ node, path, value }) => `${path.join('.')}: ${String(value)} (${node.kind})`)).toEqual([
-            'm: 1 (numberTypeNode)',
-            'n: 1 (numberTypeNode)',
-            'isInitialized: true (booleanTypeNode)',
-            ...Array.from({ length: 11 }, (_, index) => `signers.${index}: ${DEFAULT_ADDRESS} (publicKeyTypeNode)`),
-        ]);
-        // extraction by node kind — collect every address the payload carries, no shape known upfront
-        const addresses = entries.filter(entry => entry.node.kind === 'publicKeyTypeNode').map(entry => entry.value);
-        expect(addresses).toEqual(Array.from({ length: 11 }, () => DEFAULT_ADDRESS));
     });
 });

@@ -276,6 +276,9 @@ describe('README flows: schema-paired entries for unknown programs', () => {
         // the path is the field's key — one row per leaf, nested fields flattened to dot paths
         expect(entries.map(joinPath)).toEqual(['discriminator', 'amount']);
 
+        // or select leaves by what they ARE — no shape known upfront (e.g. every address in a payload)
+        expect(entries.filter(({ node }) => node.kind === 'numberTypeNode')).toHaveLength(2);
+
         // the node says how to read the value: `transfer`'s amount is declared u64…
         const amount = findEntryOfKind(entries, 'amount', 'numberTypeNode');
         expect(amount?.node.format).toBe('u64'); // …typed straight off the narrowed node — no manual narrowing
