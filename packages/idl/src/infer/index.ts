@@ -1,5 +1,5 @@
-// Type-level payload inference from the IDL document itself. Works when the IDL is a compile-time
-// literal (anchor-generated types, or generated codama literal modules); runtime-fetched documents
+// Type-level payload inference from the IDL itself. Works when the IDL is a compile-time
+// literal (anchor-generated types, or generated codama literal modules); runtime-fetched IDLs
 // type as the wide AnchorIdl/CodamaIdl and every shape below deliberately degrades to `unknown`.
 import type { Address, ReadonlyUint8Array } from '@solana/kit';
 import type { CamelCaseString } from 'codama';
@@ -56,13 +56,13 @@ type EmptyStruct = Record<string, never>;
 
 type FieldsObject<F> = F extends readonly { name: string; type: unknown }[]
     ? string extends F[number]['name']
-        ? unknown // wide document — field names are not literal
+        ? unknown // wide IDL — field names are not literal
         : F extends readonly []
           ? EmptyStruct
           : { [Item in F[number] as Item['name'] & string]: FieldType<Item['type']> }
     : unknown;
 
-// Wide codama documents carry branded names (CamelCaseString); literal documents carry plain literals.
+// Wide codama IDLs carry branded names (CamelCaseString); literal IDLs carry plain literals.
 type IsLiteralName<N> = CamelCaseString extends N ? false : string extends N ? false : N extends string ? true : false;
 
 type CodamaNumber<F> = F extends 'i64' | 'i128' | 'i256' | 'u64' | 'u128' | 'u256' ? bigint : number;
@@ -138,7 +138,7 @@ type CodamaFieldsObject<TRoot, F> = F extends readonly { name: string; type: unk
     ? F extends readonly []
         ? EmptyStruct
         : IsLiteralName<F[number]['name']> extends false
-          ? unknown // wide document — field names are not literal
+          ? unknown // wide IDL — field names are not literal
           : { [Item in F[number] as Item['name'] & string]: CodamaValue<TRoot, Item['type']> }
     : unknown;
 
@@ -155,7 +155,7 @@ export type InstructionDataOf<T extends SupportedIdlInput> = T extends AnchorIdl
       ? I extends { arguments: infer A; name: infer N }
           ? IsLiteralName<N> extends true
               ? CodamaFieldsObject<T, A>
-              : unknown // wide document — bail before recursing into codama's self-referential node types
+              : unknown // wide IDL — bail before recursing into codama's self-referential node types
           : unknown
       : unknown;
 
@@ -172,14 +172,14 @@ export type AccountsDataOf<T extends SupportedIdlInput> = T extends { program: {
                   ? CodamaValue<T, D>
                   : unknown;
           }
-        : unknown // wide document — bail before recursing into codama's self-referential node types
+        : unknown // wide IDL — bail before recursing into codama's self-referential node types
     : unknown;
 
 /** Decoded account payload derived from the IDL type — the union of every declared account struct. */
 export type AccountDataOf<T extends SupportedIdlInput> = T extends AnchorIdl
     ? T extends { accounts: readonly { name: infer N }[]; types: readonly (infer TD)[] }
         ? string extends N
-            ? unknown // wide document — account names are not literal
+            ? unknown // wide IDL — account names are not literal
             : Extract<TD, { name: N }> extends { type: { fields: infer F } }
               ? FieldsObject<F>
               : unknown
@@ -188,6 +188,6 @@ export type AccountDataOf<T extends SupportedIdlInput> = T extends AnchorIdl
       ? A extends { data: infer D; name: infer N }
           ? IsLiteralName<N> extends true
               ? CodamaValue<T, D>
-              : unknown // wide document — bail before recursing into codama's self-referential node types
+              : unknown // wide IDL — bail before recursing into codama's self-referential node types
           : unknown
       : unknown;

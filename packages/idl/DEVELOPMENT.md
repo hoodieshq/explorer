@@ -21,7 +21,7 @@ Running the suite needs **no** Rust/Anchor toolchain: specs consume committed sn
 
 Both implement the same minimal program (one account, one instruction argument, one error, one event), so their IDLs are directly comparable across Anchor versions. Each Anchor package ships committed snapshot entries for test imports: `./idl` — the raw IDL JSON — and `./generated-types` — the generated Anchor companion type module.
 
-The same directory also contains static Anchor snapshot packages for mainnet and stress fixtures (`amm-v3`, `dummy-transfer-hook`, `example-native-token-transfers`, `let-me-buy`, `ntt-transceiver`, `wormhole-governance`). These have no build script; edit the committed JSON/type modules directly when refreshing the fixture. Variant documents are exposed with named subpaths such as `./pmp-idl`, `./legacy-idl`, and `./codama`.
+The same directory also contains static Anchor snapshot packages for mainnet and stress fixtures (`amm-v3`, `dummy-transfer-hook`, `example-native-token-transfers`, `let-me-buy`, `ntt-transceiver`, `wormhole-governance`). These have no build script; edit the committed JSON/type modules directly when refreshing the fixture. Variant IDLs are exposed with named subpaths such as `./pmp-idl`, `./legacy-idl`, and `./codama`.
 
 Anchor fixture packages that need a committed Codama literal opt in with `explorer.codamaFromAnchor` in their `package.json`. Regenerate all opted-in literals from the root package:
 
@@ -37,7 +37,7 @@ pnpm --filter @explorer/test-idl-program-example-native-token-transfers run gene
 
 `test-codama-programs/` holds Codama fixtures that need no build — plain data consumed directly.
 Each package ships two entries: `.` — a literal (`as const`) TS module whose type drives the codama
-inference specs — and `./idl` — the raw JSON root node for wide-document (runtime-shaped) specs. The
+inference specs — and `./idl` — the raw JSON root node for wide (runtime-shaped) specs. The
 JSON is the source of truth: the literal module is generated from it by
 `scripts/generate-codama-literals.mjs` (`pretest` re-runs it), so edits go into the JSON only.
 

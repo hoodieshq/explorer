@@ -17,7 +17,9 @@ import {
     IDL_ERROR__IDL_ADDRESS_MISMATCH,
     IDL_ERROR__IDL_FETCH_FAILED,
     IDL_ERROR__IDL_NOT_FOUND,
+    IDL_ERROR__IDL_PARSE_FAILED,
     IdlError,
+    isIdlError,
     ok,
     type Result,
 } from '../errors.js';
@@ -35,8 +37,9 @@ export type LatestIdlFetcherOptions = {
 
 /**
  * The default resolution — a program's "latest" IDL: the PMP `idl` metadata first, the Anchor IDL
- * PDA as the fallback. Absent on both legs resolves `undefined`; transport failures throw; the
- * signal reaches every rpc read.
+ * PDA as the fallback. Absent on both legs resolves `undefined`; transport failures throw; corrupt
+ * data throws `IDL_ERROR__IDL_PARSE_FAILED` without falling through to the other leg (corruption is
+ * surfaced, not masked); the signal reaches every rpc read.
  */
 export function createLatestIdlFetcher(rpc: IdlFetcherRpc, options: LatestIdlFetcherOptions = {}): IdlFetcher {
     const { anchor = true, authority = null } = options;
@@ -59,9 +62,10 @@ export type FetchIdlClientOptions = IdlClientOptions & {
  * Resolve a program's IDL by address and build a decode client over it — `decodeInstruction` /
  * `decodeAccount` work regardless of which standard the program publishes. The fetcher DEFAULTS to
  * {@link createLatestIdlFetcher} over `rpc` (pass `fetcher` to bring any other source: a registry, a
- * cache, an anchor-provider wrap) and the decode engine defaults to the codama provider. Absent IDL →
- * `IDL_ERROR__IDL_NOT_FOUND` in the Result; transport failures → `IDL_ERROR__IDL_FETCH_FAILED` with
- * the cause; an abort REJECTS with the abort reason.
+ * cache, an anchor-provider wrap) and the decode engine defaults to the codama provider. Every data
+ * outcome is a Result value: absent IDL → `IDL_ERROR__IDL_NOT_FOUND`, corrupt on-chain data →
+ * `IDL_ERROR__IDL_PARSE_FAILED`, transport failures → `IDL_ERROR__IDL_FETCH_FAILED` with the cause;
+ * only an abort REJECTS, with the abort reason.
  */
 export async function fetchIdlClient(
     programAddress: string,
@@ -76,7 +80,10 @@ export async function fetchIdlClient(
     try {
         idl = await resolveIdl(programAddress, abortSignal ? { abortSignal } : undefined);
     } catch (cause) {
-        if (abortSignal?.aborted) throw cause; // caller-initiated — not a data outcome
+        // caller-initiated — not a data outcome; the reason, not whatever wrapper the transport rejected with
+        if (abortSignal?.aborted) throw abortSignal.reason ?? cause;
+        // a leg's own coded error (data corruption → IDL_PARSE_FAILED) — pass it through, don't relabel it a transport failure
+        if (isIdlError(cause)) return err(cause);
         return err(new IdlError(IDL_ERROR__IDL_FETCH_FAILED, { cause }));
     }
     if (idl === undefined) return err(new IdlError(IDL_ERROR__IDL_NOT_FOUND, { programAddress }));
@@ -100,17 +107,22 @@ async function fetchPmpIdl(
     const metadata = await fetchMaybeMetadataFromSeeds(rpc, { authority, program, seed: 'idl' }, { abortSignal });
     if (!metadata.exists) return undefined;
     if (metadata.data.format !== Format.Json) {
-        throw new Error(`the PMP idl metadata for ${program} is not JSON-formatted`);
+        throw new IdlError(IDL_ERROR__IDL_PARSE_FAILED, { operation: 'pmp idl metadata format' });
     }
     // url-sourced payloads go through global fetch — only the metadata read above is signal-bound
     const content = await unpackAndFetchData({ rpc, ...metadata.data });
-    return JSON.parse(content);
+    try {
+        return JSON.parse(content);
+    } catch (cause) {
+        throw new IdlError(IDL_ERROR__IDL_PARSE_FAILED, { cause, operation: 'pmp idl content' });
+    }
 }
 
 /**
  * Anchor leg — mirrors anchor's `Program.fetchIdl` (idl PDA → account → skip the discriminator and
  * authority header → inflate → parse), kit-native and abortable. Account layout: 8-byte
  * discriminator, 32-byte authority, u32 LE data length, zlib-deflated JSON.
+ * Source of parity: `@coral-xyz/anchor` `src/program/index.ts` (`fetchIdl`) + `src/idl.ts` (`idlAddress`/`decodeIdlAccount`).
  */
 async function fetchAnchorPdaIdl(rpc: IdlFetcherRpc, program: Address, abortSignal?: AbortSignal): Promise<unknown> {
     const [baseAddress] = await getProgramDerivedAddress({ programAddress: program, seeds: [] });
@@ -118,9 +130,13 @@ async function fetchAnchorPdaIdl(rpc: IdlFetcherRpc, program: Address, abortSign
     const { value } = await rpc.getAccountInfo(idlAddress, { encoding: 'base64' }).send({ abortSignal });
     if (!value) return undefined;
     const bytes = getBase64Encoder().encode(value.data[0]);
-    const dataLength = new DataView(bytes.buffer, bytes.byteOffset).getUint32(40, true);
-    const inflated = await inflate(bytes.slice(44, 44 + dataLength));
-    return JSON.parse(new TextDecoder().decode(inflated));
+    try {
+        const dataLength = new DataView(bytes.buffer, bytes.byteOffset).getUint32(40, true);
+        const inflated = await inflate(bytes.slice(44, 44 + dataLength));
+        return JSON.parse(new TextDecoder().decode(inflated));
+    } catch (cause) {
+        throw new IdlError(IDL_ERROR__IDL_PARSE_FAILED, { cause, operation: 'anchor idl account data' });
+    }
 }
 
 // zlib inflate via the standard DecompressionStream (Node >= 18, all modern browsers) — the format

@@ -60,7 +60,7 @@ export function decodeInstructionWithIdl(
             // a miss (no discriminator match) is a plain miss, not an error
             if (parsed) return codamaArm(parsed);
         } catch (cause) {
-            // the document already converted — this is a decode failure, not a document-parse failure
+            // the IDL already converted — this is a decode failure, not an IDL-parse failure
             errors.push(
                 new IdlError(IDL_ERROR__INSTRUCTION_DECODE_FAILED, {
                     cause,

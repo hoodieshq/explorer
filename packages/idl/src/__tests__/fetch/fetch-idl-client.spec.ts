@@ -26,6 +26,7 @@ import {
     IDL_ERROR__IDL_ADDRESS_MISMATCH,
     IDL_ERROR__IDL_FETCH_FAILED,
     IDL_ERROR__IDL_NOT_FOUND,
+    IDL_ERROR__IDL_PARSE_FAILED,
     isIdlError,
 } from '../../errors';
 import { createLatestIdlFetcher, fetchIdlClient } from '../../fetch/index';
@@ -66,7 +67,7 @@ function anchorIdlAccount(idl: object): Uint8Array {
 }
 
 /** A canonical PMP `idl` metadata account with direct, uncompressed JSON content. */
-function pmpIdlAccount(program: Address, idl: object): Uint8Array {
+function pmpIdlAccount(program: Address, idl: object, format: Format = Format.Json): Uint8Array {
     const data = new TextEncoder().encode(JSON.stringify(idl));
     return Uint8Array.from(
         getMetadataEncoder().encode({
@@ -77,12 +78,21 @@ function pmpIdlAccount(program: Address, idl: object): Uint8Array {
             dataLength: data.length,
             dataSource: DataSource.Direct,
             encoding: Encoding.Utf8,
-            format: Format.Json,
+            format,
             mutable: true,
             program,
             seed: 'idl',
         }),
     );
+}
+
+/** An anchor IDL account whose header is valid but whose deflated payload is not JSON. */
+function anchorCorruptIdlAccount(): Uint8Array {
+    const deflated = deflateSync(Buffer.from('not json'));
+    const data = Buffer.alloc(44 + deflated.length);
+    data.writeUInt32LE(deflated.length, 40);
+    deflated.copy(data, 44);
+    return Uint8Array.from(data);
 }
 
 async function anchorIdlAddress(program: Address): Promise<Address> {
@@ -171,6 +181,24 @@ describe('fetchIdlClient', () => {
         ).rejects.toThrow(/abort/i);
     });
 
+    it('should reject with the abort reason when the abort lands mid-fetch', async () => {
+        const controller = new AbortController();
+        const reason = new Error('caller cancelled');
+        const pending = fetchIdlClient('11111111111111111111111111111111', {
+            abortSignal: controller.signal,
+            // a transport that wraps the abort in its own rejection — the reason must still win
+            fetcher: (_programAddress, config) =>
+                new Promise((_resolve, reject) => {
+                    config?.abortSignal?.addEventListener('abort', () => reject(new Error('transport wrapper')));
+                }),
+            provider,
+        });
+
+        controller.abort(reason);
+
+        await expect(pending).rejects.toBe(reason);
+    });
+
     it('should pass the signal through to the fetcher', async () => {
         const controller = new AbortController();
         let receivedSignal: AbortSignal | undefined;
@@ -226,5 +254,42 @@ describe('createLatestIdlFetcher', () => {
         const fetcher = createLatestIdlFetcher(mockRpc({}));
 
         await expect(fetcher('11111111111111111111111111111111')).resolves.toBeUndefined();
+    });
+
+    it('should surface a corrupt anchor idl account as the typed parse error', async () => {
+        const simple = loadSimpleIdl();
+        const program = address(simple.address);
+        // valid layout, but the deflated payload inflates to something that is not JSON
+        const rpc = mockRpc({ [await anchorIdlAddress(program)]: anchorCorruptIdlAccount() });
+
+        const [error, client] = await fetchIdlClient(program, { rpc });
+
+        expect(client).toBeUndefined();
+        expect(isIdlError(error, IDL_ERROR__IDL_PARSE_FAILED)).toBe(true);
+    });
+
+    it('should surface a non-JSON PMP idl metadata as the typed parse error', async () => {
+        const tokenkeg = loadTokenkegIdl();
+        const program = address(tokenkeg.program.publicKey);
+        const rpc = mockRpc({ [await pmpIdlAddress(program)]: pmpIdlAccount(program, tokenkeg, Format.Toml) });
+
+        const [error, client] = await fetchIdlClient(program, { rpc });
+
+        expect(client).toBeUndefined();
+        expect(isIdlError(error, IDL_ERROR__IDL_PARSE_FAILED)).toBe(true);
+    });
+
+    it('should not fall through to the anchor leg when the PMP metadata is corrupt', async () => {
+        const simple = loadSimpleIdl();
+        const program = address(simple.address);
+        const rpc = mockRpc({
+            [await anchorIdlAddress(program)]: anchorIdlAccount(simple), // a valid fallback that must NOT mask the corruption
+            [await pmpIdlAddress(program)]: pmpIdlAccount(program, simple, Format.Toml),
+        });
+
+        const [error, client] = await fetchIdlClient(program, { rpc });
+
+        expect(client).toBeUndefined();
+        expect(isIdlError(error, IDL_ERROR__IDL_PARSE_FAILED)).toBe(true);
     });
 });

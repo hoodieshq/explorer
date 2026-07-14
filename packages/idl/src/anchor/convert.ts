@@ -5,8 +5,8 @@ import { err, IDL_ERROR__IDL_PARSE_FAILED, IdlError, ok, type Result } from '../
 import type { AnchorIdl, CodamaIdl } from '../types.js';
 
 /**
- * The recommended conversion of a modern Anchor document into the Codama model (nodes-from-anchor).
- * Error-first result — conversion fails for documents the converter does not understand (route those
+ * The recommended conversion of a modern Anchor IDL into the Codama model (nodes-from-anchor).
+ * Error-first result — conversion fails for IDLs the converter does not understand (route those
  * to an injected legacy decoder).
  */
 export function convertToCodama(idl: AnchorIdl): Result<CodamaIdl, typeof IDL_ERROR__IDL_PARSE_FAILED> {

@@ -12,7 +12,7 @@ export type CodamaIdl = RootNode;
 /** Either supported IDL standard. */
 export type SupportedIdl = AnchorIdl | CodamaIdl;
 
-// Codama's node types brand every name (CamelCaseString), so literal documents (as-const/generated)
+// Codama's node types brand every name (CamelCaseString), so literal IDLs (as-const/generated)
 // never extend RootNode — the structural shape below lets them in WITHOUT erasing their literals.
 export type CodamaIdlInput = {
     kind: 'rootNode';
@@ -41,7 +41,7 @@ export enum IdlStandard {
     Codama = 'codama',
 }
 
-/** The document's format version: the Codama root `version`, or Anchor's `metadata.spec` (see `getIdlVersion`). */
+/** The IDL's format version: the Codama root `version`, or Anchor's `metadata.spec` (see `getIdlVersion`). */
 export type IdlVersion = AnchorIdl['metadata']['spec'] | RootNode['version'];
 
 // Codama payloads carry the real engine output. Anchor payloads stay unknown BY DESIGN — no typed
@@ -109,7 +109,7 @@ export function unwrap(
 }
 
 // An Anchor client may still fall back to Codama, so only the Codama client narrows an arm away.
-// The check is structural (kind: 'rootNode') so literal documents narrow like branded ones.
+// The check is structural (kind: 'rootNode') so literal IDLs narrow like branded ones.
 export type InstructionDecodeFor<T extends SupportedIdlInput> = T extends { kind: 'rootNode' }
     ? Exclude<InstructionDecode, { kind: IdlStandard.Anchor }>
     : InstructionDecode;
@@ -148,9 +148,9 @@ export type FallbackDecoderOptions = {
 
 /**
  * A decode engine bound to the client — it receives the client's IDL per call and decodes against
- * it. Providers live behind subpath entries ('@explorer/idl/codama' ships the standard engine) so
- * processes that never decode never load one. Payload TYPES are not the provider's concern: they
- * derive from the IDL type itself (see infer.ts).
+ * it. The main entry defaults to the codama engine ('@explorer/idl/codama' also ships it standalone);
+ * pass a custom provider to swap the pipeline. Payload TYPES are not the provider's concern: they
+ * derive from the IDL type itself (see src/infer).
  */
 export type IdlDecodeProvider = {
     decodeAccount(idl: SupportedIdl, data: ReadonlyUint8Array, options?: FallbackDecoderOptions): AccountDecode;
