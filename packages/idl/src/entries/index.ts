@@ -126,6 +126,27 @@ export function findEntryOfKind<K extends TypeNode['kind']>(
     return entry as DecodedEntryOf<K>;
 }
 
+/**
+ * The IDL's label for an enum entry's decoded value: a scalar enum's index looks the variant name up
+ * in the entry's node; a data enum's value already carries it (`__kind`, kit-capitalized — scalar
+ * labels keep the IDL's own spelling). `undefined` off the enum kind or for an out-of-range index —
+ * a schema/value disagreement stays visible, never a throw.
+ *
+ * @example getEnumVariantName(findEntry(entries, 'mode')) // 'burning' — decoded index 1, named by the schema
+ */
+export function getEnumVariantName(entry: DecodedEntry | undefined): string | undefined {
+    if (entry?.node.kind !== 'enumTypeNode') return undefined;
+    // eslint-disable-next-line no-underscore-dangle -- kit's own data-enum discriminant
+    if (isDataEnumValue(entry.value)) return entry.value.__kind;
+    const variant = entry.node.variants[Number(entry.value)];
+    return variant ? String(variant.name) : undefined;
+}
+
+function isDataEnumValue(value: unknown): value is { __kind: string } {
+    // eslint-disable-next-line no-underscore-dangle -- kit's own data-enum discriminant
+    return typeof value === 'object' && value !== null && '__kind' in value && typeof value.__kind === 'string';
+}
+
 function findDefinedType(root: RootNode | undefined, name: string): TypeNode | undefined {
     return root?.program.definedTypes.find(definedType => definedType.name === name)?.type;
 }

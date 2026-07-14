@@ -11,6 +11,7 @@ import {
     createIdlClient,
     type DecodedEntry,
     getDecodedEntries,
+    getEnumVariantName,
     IdlStandard,
     type InstructionDecode,
 } from '@explorer/idl';
@@ -69,7 +70,8 @@ const transferBurnIx: Instruction & { accounts: []; data: Uint8Array } = {
  * Aaron's renderField over `getDecodedEntries`: the library owns the traversal (links, wrappers,
  * options, nesting) — only per-leaf formatting stays consumer-side, keyed by the entry's node kind.
  */
-function renderEntry({ node, value }: DecodedEntry): string {
+function renderEntry(entry: DecodedEntry): string {
+    const { node, value } = entry;
     switch (node.kind) {
         case 'publicKeyTypeNode':
             return `address(${String(value)})`;
@@ -80,11 +82,9 @@ function renderEntry({ node, value }: DecodedEntry): string {
         case 'bytesTypeNode':
             // dynamic-parsers hands bytes back as an [encoding, data] tuple
             return Array.isArray(value) ? `bytes(${String(value[1])})` : String(value);
-        case 'enumTypeNode': {
-            // decoded as the variant index — the node's variants restore the display name
-            const variant = node.variants[Number(value)];
-            return variant ? String(variant.name) : String(value);
-        }
+        case 'enumTypeNode':
+            // decoded as the variant index — the library names it back from the entry's node
+            return getEnumVariantName(entry) ?? String(value);
         default:
             // an option that decoded to None is the only undefined-valued entry
             return value === undefined ? 'none' : (JSON.stringify(value) ?? String(value));

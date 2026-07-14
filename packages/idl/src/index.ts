@@ -19,6 +19,7 @@ export {
     findEntry,
     findEntryOfKind,
     getDecodedEntries,
+    getEnumVariantName,
     joinPath,
 } from './entries/index.js';
 export type { AccountDataOf, AccountsDataOf, AsDecoded, InstructionDataOf } from './infer/index.js';

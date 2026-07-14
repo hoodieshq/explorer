@@ -1,8 +1,15 @@
 // Pure lookups over DecodedEntry[] — codama's builders are fine here (runtime spec, no literal-type stakes).
-import { numberTypeNode, publicKeyTypeNode } from 'codama';
+import {
+    enumEmptyVariantTypeNode,
+    enumStructVariantTypeNode,
+    enumTypeNode,
+    numberTypeNode,
+    publicKeyTypeNode,
+    structTypeNode,
+} from 'codama';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import { type DecodedEntry, findEntry, findEntryOfKind, joinPath } from '../index';
+import { type DecodedEntry, findEntry, findEntryOfKind, getEnumVariantName, joinPath } from '../index';
 
 const entries: DecodedEntry[] = [
     { node: numberTypeNode('u8'), path: ['discriminator'], value: 3 },
@@ -59,5 +66,27 @@ describe('findEntryOfKind', () => {
 
     it('should return undefined for a missing path', () => {
         expect(findEntryOfKind(entries, 'missing', 'numberTypeNode')).toBeUndefined();
+    });
+});
+
+describe('getEnumVariantName', () => {
+    const modeEnum = enumTypeNode([enumEmptyVariantTypeNode('locking'), enumEmptyVariantTypeNode('burning')]);
+
+    it("should name a scalar enum's decoded index with the IDL's own spelling", () => {
+        expect(getEnumVariantName({ node: modeEnum, path: ['mode'], value: 1 })).toBe('burning');
+    });
+
+    it("should pass a data enum's own __kind through", () => {
+        const dataEnum = enumTypeNode([enumStructVariantTypeNode('shaped', structTypeNode([]))]);
+        expect(getEnumVariantName({ node: dataEnum, path: ['event'], value: { __kind: 'Shaped' } })).toBe('Shaped');
+    });
+
+    it('should return undefined for an out-of-range index — the disagreement stays visible', () => {
+        expect(getEnumVariantName({ node: modeEnum, path: ['mode'], value: 9 })).toBeUndefined();
+    });
+
+    it('should return undefined off the enum kind and compose with a findEntry miss', () => {
+        expect(getEnumVariantName(findEntry(entries, 'amount'))).toBeUndefined();
+        expect(getEnumVariantName(findEntry(entries, 'missing'))).toBeUndefined();
     });
 });
