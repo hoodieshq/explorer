@@ -8,7 +8,7 @@ import { cn } from '@/app/components/shared/utils';
 //   `appearance`  — visual style. `filled` (default) is the solid Dashkit-dark `.alert-<color>`
 //                   look; `outlined` drops the background for a transparent block with a coloured
 //                   border + coloured text. Colours per axis are wired via compoundVariants below.
-const alertVariants = cva(['relative', 'mb-6', 'rounded-dk', 'border', 'border-solid', 'px-5', 'py-3', 'text-dk-base'], {
+const alertVariants = cva(['relative', 'rounded-dk', 'border', 'border-solid', 'px-4', 'py-3', 'text-sm'], {
     compoundVariants: [
         // Filled — solid background (matches app/scss/dashkit/_alert.scss at runtime).
         { appearance: 'filled', class: 'border-dk-danger bg-dk-danger text-dk-white', variant: 'danger' },
@@ -76,7 +76,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
         >
             {icon != null ? (
                 <div className="flex items-start gap-2.5">
-                    <span className="alert-icon mt-[3px] flex shrink-0 items-center" aria-hidden="true">
+                    <span className="alert-icon mt-[2px] flex shrink-0 items-center" aria-hidden="true">
                         {icon}
                     </span>
                     <div className="min-w-0 flex-1">{children}</div>

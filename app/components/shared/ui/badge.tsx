@@ -15,12 +15,15 @@ const badgeVariants = cva([], {
         {
             class: cn(
                 'inline-flex items-center justify-center',
-                'px-2 py-0.5 font-medium w-fit whitespace-nowrap shrink-0',
+                // whitespace-normal (not nowrap): a tw badge whose text is wider than the space it
+                // sits in wraps to a second line instead of overflowing. w-fit still shrinks it to
+                // content when there's room.
+                'px-1.5 py-0.5 font-medium w-fit whitespace-normal shrink-0',
                 '[&_svg]:size-3 gap-1 [&_svg]:pointer-events-none',
             ),
             ui: 'tw',
         },
-        { as: 'badge', class: 'rounded', ui: 'tw' },
+        { as: 'badge', class: 'rounded-md', ui: 'tw' },
         { as: 'link', class: 'rounded-sm', size: 'xs', ui: 'tw' },
         {
             as: 'link',
@@ -35,21 +38,62 @@ const badgeVariants = cva([], {
         { class: 'text-sm', size: 'sm', ui: 'tw' },
         { class: 'text-xs', size: 'xs', ui: 'tw' },
         { class: 'shadow-active', status: 'active', ui: 'tw' },
+        // --- tw / tone="original" — the standard Tailwind-palette treatment (default for tw). ---
         {
             class: 'border-transparent text-neutral-200 [&_a]:text-neutral-200 [&_a]:hover:text-neutral-100',
+            tone: 'original',
             ui: 'tw',
             variant: 'default',
         },
-        { class: 'border-transparent bg-destructive text-white', ui: 'tw', variant: 'destructive' },
-        { class: 'border-transparent bg-teal-900 text-teal-400', ui: 'tw', variant: 'info' },
-        { class: 'border-transparent bg-neutral-400 text-neutral-800', ui: 'tw', variant: 'secondary' },
-        { class: 'border-transparent text-green-400 bg-green-900', ui: 'tw', variant: 'success' },
+        { class: 'border-transparent bg-destructive text-white', tone: 'original', ui: 'tw', variant: 'destructive' },
+        // Soft counterpart to `destructive` (which is solid red/white) — mirrors the soft
+        // treatment success/warning already get, for error states that shouldn't shout.
+        { class: 'border-transparent bg-red-950 text-red-400', tone: 'original', ui: 'tw', variant: 'danger' },
+        { class: 'border-transparent bg-teal-900 text-teal-400', tone: 'original', ui: 'tw', variant: 'info' },
+        {
+            class: 'border-transparent bg-neutral-400 text-neutral-800',
+            tone: 'original',
+            ui: 'tw',
+            variant: 'secondary',
+        },
+        { class: 'border-transparent text-green-400 bg-green-900', tone: 'original', ui: 'tw', variant: 'success' },
         {
             class: 'border-transparent bg-transparent text-neutral-200 [&_a]:text-neutral-200 [&_a]:hover:text-neutral-100',
+            tone: 'original',
             ui: 'tw',
             variant: 'transparent',
         },
-        { class: 'border-transparent bg-orange-950 text-orange-400', ui: 'tw', variant: 'warning' },
+        { class: 'border-transparent bg-orange-950 text-orange-400', tone: 'original', ui: 'tw', variant: 'warning' },
+
+        // --- tw / tone="soft" — the dashkit soft palette rebuilt on the clean tw badge.
+        // Same hues/values as the ui="dashkit" soft variants, but riding the tw base layout
+        // (rounded/px-2/py-0.5/text-xs) instead of the Bootstrap `.badge` sizing. When the
+        // dashkit lineage is deleted these carry the soft look forward on pure tw. ---
+        {
+            class: 'border-transparent text-neutral-200 [&_a]:text-neutral-200 [&_a]:hover:text-neutral-100',
+            tone: 'soft',
+            ui: 'tw',
+            variant: 'default',
+        },
+        {
+            class: 'border-transparent bg-[#512965] text-[#b45be1]',
+            tone: 'soft',
+            ui: 'tw',
+            variant: 'destructive',
+        },
+        { class: 'border-transparent bg-[#512965] text-[#b45be1]', tone: 'soft', ui: 'tw', variant: 'danger' },
+        { class: 'border-transparent bg-[#1e5159] text-[#43b5c5]', tone: 'soft', ui: 'tw', variant: 'info' },
+        { class: 'border-transparent bg-[#2f3c3b] text-[#698582]', tone: 'soft', ui: 'tw', variant: 'secondary' },
+        { class: 'border-transparent bg-[#3c5352] text-[#86b8b6]', tone: 'soft', ui: 'tw', variant: 'gray' },
+        { class: 'border-transparent bg-[#0c231c] text-[#1b4e3f]', tone: 'soft', ui: 'tw', variant: 'dark' },
+        { class: 'border-transparent bg-[#116939] text-[#26e97e]', tone: 'soft', ui: 'tw', variant: 'success' },
+        {
+            class: 'border-transparent bg-transparent text-neutral-200 [&_a]:text-neutral-200 [&_a]:hover:text-neutral-100',
+            tone: 'soft',
+            ui: 'tw',
+            variant: 'transparent',
+        },
+        { class: 'border-transparent bg-[#712c71] text-[#fa62fc]', tone: 'soft', ui: 'tw', variant: 'warning' },
 
         // ===== ui="dashkit" =====
         // Base `.badge` layout, matching dashkit `_badge.scss` + Bootstrap `.badge`:
@@ -128,12 +172,15 @@ const badgeVariants = cva([], {
         // Pill must follow base so `px-[0.6em]` wins over the umbrella `px-2`.
         { class: 'rounded-[50rem] px-[0.6em]', pill: true, ui: 'dashkit' },
     ],
+    // cva default tone is `original` (the tw default, and what bare `badgeVariants(...)` callers
+    // get). The dashkit lineage's historical `soft` default is applied in the Badge component
+    // below, which resolves tone per-`ui` before handing it to cva.
     defaultVariants: {
         as: 'badge',
         pill: false,
         size: 'xs',
         status: 'inactive',
-        tone: 'soft',
+        tone: 'original',
         ui: 'tw',
         variant: 'default',
     },
@@ -142,7 +189,7 @@ const badgeVariants = cva([], {
         pill: { false: '', true: '' },
         size: { lg: '', md: '', sm: '', xs: '' },
         status: { active: '', inactive: '' },
-        tone: { soft: '', solid: '' },
+        tone: { original: '', soft: '', solid: '' },
         ui: { dashkit: '', tw: '' },
         variant: {
             danger: '',
@@ -173,11 +220,19 @@ function Badge({
 }: React.ComponentProps<'span'> & VariantProps<typeof badgeVariants> & { asChild?: boolean }) {
     const Comp = asChild ? Slot : 'span';
 
+    // Per-lineage tone default: the tw badge is "original" unless asked for "soft"; the dashkit
+    // badge stays "soft" (its historical default). Solid remains opt-in for both.
+    const resolvedUi = ui ?? 'tw';
+    const resolvedTone = tone ?? (resolvedUi === 'dashkit' ? 'soft' : 'original');
+
     return (
         <Comp
             data-slot="badge"
             data-variant={variant ?? 'default'}
-            className={cn(badgeVariants({ as, pill, size, status, tone, ui, variant }), className)}
+            className={cn(
+                badgeVariants({ as, pill, size, status, tone: resolvedTone, ui: resolvedUi, variant }),
+                className,
+            )}
             {...props}
         />
     );

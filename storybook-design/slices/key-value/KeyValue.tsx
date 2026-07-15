@@ -91,7 +91,11 @@ export function KeyValue({
             </div>
             <div
                 className={cn(
-                    'flex min-w-0 flex-1 break-words text-dk-base',
+                    // overflow-wrap:anywhere (not break-word) so a long unbroken value — a base58
+                    // address/hash with no break points — wraps inside the column instead of
+                    // running past the block edge: `anywhere` also lets the flex column shrink
+                    // below the token's width (break-word leaves min-content = the whole token).
+                    'flex min-w-0 flex-1 [overflow-wrap:anywhere] text-sm',
                     align === 'end' && (row ? 'justify-end' : 'sm:justify-end'),
                     valueClassName,
                 )}

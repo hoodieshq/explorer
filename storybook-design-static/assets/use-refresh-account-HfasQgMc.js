@@ -1,0 +1,1 @@
+import{R as r,be as u}from"./verified-builds-h1zNVeSe.js";import{u as a,H as n}from"./cluster-zsaKFN-L.js";import{r as f}from"./iframe-CRlzrArO.js";function p(){const t=r(),{url:o}=a(),{mutate:s}=n();return f.useCallback((c,e)=>{t(c,e),s(u(o,c.toBase58()))},[t,s,o])}export{p as u};

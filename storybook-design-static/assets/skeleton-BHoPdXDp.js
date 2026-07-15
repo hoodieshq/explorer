@@ -1,0 +1,1 @@
+import{j as n}from"./iframe-CRlzrArO.js";import{c as t}from"./utils-CA04WxlW.js";function a({className:e,...o}){return n.jsx("div",{className:t("animate-pulse rounded bg-heavy-metal-700 motion-reduce:animate-none",e),...o})}a.__docgenInfo={description:"",methods:[],displayName:"Skeleton"};export{a as S};

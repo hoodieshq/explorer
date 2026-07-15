@@ -18,28 +18,39 @@ export function SectionCard({
     title,
     headerActions,
     note,
+    noCardMargin,
     children,
 }: {
     title: React.ReactNode;
     /** Rendered to the right of the title in the outside header (e.g. a badge or Download button). */
     headerActions?: React.ReactNode;
     /**
-     * Optional standalone note (e.g. an `InfoCard`) rendered in the gap between the outside
+     * Optional standalone note (e.g. an `Alert`) rendered in the gap between the outside
      * header and the card — the H-explorer-pre-sorybook treatment for the Security.txt caveat.
      */
     note?: React.ReactNode;
+    /**
+     * Drop the Card's built-in `mb-6` so the caller can control the gap to whatever it
+     * renders directly below the card. Applied as `!mb-0` because `cn` here is plain
+     * `clsx` (no tailwind-merge): a non-important `mb-0` would just sit next to `mb-6` and
+     * lose the source-order tie, leaving the 24px margin in place.
+     */
+    noCardMargin?: boolean;
     children: React.ReactNode;
 }) {
     return (
         <>
-            <div className="mb-3 flex items-center gap-2">
+            {/* min-h-[1.75rem] matches the Transaction History external header (.thc-external-header):
+                a title-only header is centered in the same 28px box, so the space above and below the
+                title — and thus the gap to the card — lines up across all tabs. */}
+            <div className="mb-3 flex min-h-[1.75rem] items-center gap-2">
                 <CardTitle as="h3" ui="dashkit" className="flex flex-1 items-center gap-2">
                     {title}
                 </CardTitle>
                 {headerActions}
             </div>
             {note && <div className="mb-3">{note}</div>}
-            <Card ui="dashkit">
+            <Card ui="dashkit" className={noCardMargin ? '!mb-0' : undefined}>
                 <div className="flex min-w-0 flex-col overflow-x-clip">{children}</div>
             </Card>
         </>

@@ -11,7 +11,6 @@
 // `.transaction-history-card`, so nothing leaks into other slices).
 import { PublicKey } from '@solana/web3.js';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Info } from 'react-feather';
 
 import { getTransactionRows } from '@/app/components/account/HistoryCardComponents';
 import { ErrorCard } from '@/app/components/common/ErrorCard';
@@ -20,7 +19,6 @@ import { Signature } from '@/app/components/common/Signature';
 import { Slot } from '@/app/components/common/Slot';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
 import { useAccountHistory, useFetchAccountHistory } from '@/app/providers/accounts/history';
 import { FetchStatus } from '@/app/providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
@@ -106,19 +104,19 @@ export function TransactionHistoryCard({ address }: { address: string }) {
             <div className="thc-external-header">
                 <h3 className="thc-title text-dk-h3">Transaction History</h3>
             </div>
-            <Card ui="dashkit" marginBottom="none">
+            <Card ui="dashkit" marginBottom="none" className="thc-card">
                 <BaseTable ui="dashkit" variant="card" nowrap>
                     {!isEmpty && (
                         <BaseTable.Head>
                             <BaseTable.Row>
                                 <BaseTable.HeaderCell>Transaction Signature</BaseTable.HeaderCell>
                                 {hasTimestamps && (
-                                    <BaseTable.HeaderCell className="w-px" data-md-header="time">
-                                        Timestamp
+                                    <BaseTable.HeaderCell className="w-[26%] min-w-[190px]" data-md-header="time">
+                                        Time
                                     </BaseTable.HeaderCell>
                                 )}
-                                <BaseTable.HeaderCell className="w-px">Block</BaseTable.HeaderCell>
-                                <BaseTable.HeaderCell className="w-px">Size (bytes)</BaseTable.HeaderCell>
+                                <BaseTable.HeaderCell className="w-[19%] min-w-[150px]">Block</BaseTable.HeaderCell>
+                                <BaseTable.HeaderCell className="w-[16%] min-w-[120px]">Size (bytes)</BaseTable.HeaderCell>
                                 <BaseTable.HeaderCell className="thc-progs-col">Programs</BaseTable.HeaderCell>
                             </BaseTable.Row>
                         </BaseTable.Head>
@@ -181,13 +179,19 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
                 <BaseTable.Cell data-label="Signature">
                     <div className="tx-sig-cell">
                         <div className="flex min-w-0 items-start gap-2">
-                            {/* On mobile the row is a single tap target that opens the drawer, so
-                                the signature drops its per-row copy icon (hidden via CSS) and its
-                                link — it renders as plain truncated text. */}
+                            {/* The signature is always a real link: tapping it navigates (the
+                                row's click handler skips the drawer for taps on `a`/`button`),
+                                while tapping elsewhere on the card opens the drawer. The per-row
+                                copy icon stays hidden on mobile via CSS. */}
                             <span className="tx-sig-value min-w-0">
-                                <Signature signature={signature} link={!isMobile} />
+                                <Signature signature={signature} link />
                             </span>
-                            <Badge ui="dashkit" tone="soft" variant={statusClass as 'success' | 'warning'}>
+                            <Badge
+                                ui="dashkit"
+                                tone="soft"
+                                variant={statusClass as 'success' | 'warning'}
+                                className="tx-status-badge"
+                            >
                                 {statusText}
                             </Badge>
                         </div>
@@ -202,21 +206,17 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
                 {hasTimestamps && (
                     <BaseTable.Cell className="w-px text-outer-space-300" data-label="Time">
                         {blockTime ? (
-                            <div className="flex flex-row items-center gap-1">
-                                <span className="text-dk-base">
+                            // Two-line stack (mirrors the drawer's Time row): absolute UTC
+                            // timestamp on top, relative age beneath. On mobile the relative
+                            // line is hidden (see .tx-time-rel in transaction-history.css) so
+                            // only the timestamp shows.
+                            <div className="tx-time-cell flex flex-col">
+                                <span className="tx-time-abs text-sm">
+                                    {displayTimestampUtc(blockTime * 1000, true)}
+                                </span>
+                                <span className="tx-time-rel text-sm">
                                     <RelativeTime date={blockTime * 1000} />
                                 </span>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <span
-                                            className="inline-flex cursor-help text-outer-space-300"
-                                            style={{ lineHeight: 0 }}
-                                        >
-                                            <Info size={13} />
-                                        </span>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top">{displayTimestampUtc(blockTime * 1000, true)}</TooltipContent>
-                                </Tooltip>
                             </div>
                         ) : (
                             '---'
@@ -229,11 +229,13 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
                     <Slot slot={slot} link={!isMobile} />
                 </BaseTable.Cell>
 
-                <BaseTable.Cell className="w-px tx-raw-data-cell" data-label="Size (bytes)">
-                    {/* On mobile the size drops its popover button but keeps the `</>` glyph and the
-                        byte count as static text; the copy/download live in the drawer. */}
-                    <TransactionRawDataSize signature={signature} readOnly={isMobile} />
-                </BaseTable.Cell>
+                {/* Size (bytes) is hidden on mobile — the drawer carries its own size row
+                    plus the raw-data view. */}
+                {!isMobile && (
+                    <BaseTable.Cell className="w-px tx-raw-data-cell" data-label="Size (bytes)">
+                        <TransactionRawDataSize signature={signature} />
+                    </BaseTable.Cell>
+                )}
 
                 {/* Programs as its own trailing column on desktop (lg+). */}
                 <BaseTable.Cell className="thc-progs-col" data-label="Programs">
@@ -259,7 +261,7 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
 
 // Raw-data column: byte-size button that opens the raw data (hex/base64 + copy +
 // download) in a popover. Fetches on mount so the size is shown without interaction.
-function TransactionRawDataSize({ signature, readOnly }: { signature: string; readOnly?: boolean }) {
+function TransactionRawDataSize({ signature }: { signature: string }) {
     const fetchRaw = useFetchRawTransaction();
     const rawDetails = useRawTransactionDetails(signature);
     const serialized = rawDetails?.data?.raw?.message.serialize();
@@ -276,7 +278,6 @@ function TransactionRawDataSize({ signature, readOnly }: { signature: string; re
             data={transactionData}
             filename={signature}
             loading={loading}
-            readOnly={readOnly}
             // Collapse the button's fixed height so the size sits on the same line
             // as the other top-aligned cells.
             buttonClassName="!h-auto !py-0"

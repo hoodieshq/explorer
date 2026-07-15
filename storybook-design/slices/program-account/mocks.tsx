@@ -9,6 +9,7 @@ import { MockHistoryProvider } from '@storybook-config/__mocks__/MockHistoryProv
 import { MockTokenInfoBatchProvider } from '@storybook-config/__mocks__/MockTokenInfoBatchProvider';
 import { MockTransactionsProvider } from '@storybook-config/__mocks__/MockTransactionsProvider';
 import { nextjsParameters } from '@storybook-config/decorators';
+import { rpcMethodStubs } from '@storybook-config/responsive-decorators';
 import type { Decorator } from '@storybook-config/types';
 import { Connection, type ParsedTransactionWithMeta, PublicKey, type VersionedMessage } from '@solana/web3.js';
 import React from 'react';
@@ -23,7 +24,8 @@ import type { ClusterState } from '@/app/providers/cluster';
 import type { Details as RawDetails } from '@/app/providers/transactions/raw';
 import { VisibilityProvider } from '@/app/shared/lib/visibility';
 import { type OsecRegistryInfo, VerificationStatus } from '@/app/utils/verified-builds';
-import { Cluster, ClusterStatus, DEVNET_URL } from '@/app/utils/cluster';
+import { Cluster, ClusterStatus, clusterUrl, DEVNET_URL } from '@/app/utils/cluster';
+import { SQUADS_V4_ADDRESS } from '@/app/providers/squadsMultisig';
 
 export { nextjsParameters };
 
@@ -98,7 +100,7 @@ export const MOCK_HISTORY_EMPTY = {
 // Distinct signatures from MOCK_HISTORY so the module-level transaction-queue cache
 // (keyed by `${url}:${signature}`) can't hand back a result another story cached.
 // blockTime is populated so the Age/Timestamp columns render too.
-const DATA_SIGNATURES = {
+export const DATA_SIGNATURES = {
     memo: '7QmDdataRenderedSignaturePlaceholderProgramAccountSlice3xk9Zt',
     mint: '4Le8AdataRenderedSignaturePlaceholderProgramAccountSlice2mNpQr',
     transfer: '3KdXBdataRenderedSignaturePlaceholderProgramAccountSlice1vWsLc',
@@ -345,20 +347,37 @@ export const MOCK_DOMAINS: DomainInfo[] = [
 ];
 
 // --- Program Multisig tab (ProgramMultisigCard) --------------------------------
-// The card reads two `useSWRImmutable` caches (squads reverse-map lookup + the
-// multisig account). We seed both via SWRConfig `fallback` so the fetchers never
-// run and the card renders a fully-populated Squads V4 multisig. Keys must match
-// the component's cluster (Devnet, from MockClusterProvider) and the program
-// authority (MOCK_PROGRAM_DATA.authority = AUTHORITY_PUBKEY).
-const MULTISIG_ACCOUNT = new PublicKey('Vote111111111111111111111111111111111111111');
+// The card reads THREE `useSWRImmutable` caches: the squads reverse-map lookup, the
+// multisig account, and — via `useAnchorProgram` — the Squads V4 program's Anchor
+// IDL. We seed all three via SWRConfig `fallback` so no fetcher runs and the card
+// renders a fully-populated Squads V4 multisig. Keys must match the component's
+// cluster (Devnet, from MockClusterProvider), the program authority
+// (MOCK_PROGRAM_DATA.authority = AUTHORITY_PUBKEY), and the resolved cluster url.
+// Realistic wallet-style pubkeys (not well-known program/sysvar addresses, which would
+// render as "Vote Program", "Sysvar: Clock", … and read like placeholders). Deterministic
+// so the story is stable; they resolve to plain truncated addresses like a real multisig.
+const MULTISIG_ACCOUNT = new PublicKey('22tGB5bkgpGssrN2gbkhAK3W8GLFgNhGacaLNdPG8gvb');
 const MULTISIG_MEMBERS = [
-    new PublicKey('SysvarC1ock11111111111111111111111111111111'),
-    new PublicKey('SysvarS1otHashes111111111111111111111111111'),
-    new PublicKey('Stake11111111111111111111111111111111111111'),
+    new PublicKey('5G6jnYbvVh4D5ReEowh3pnQUTL2PdwG21JbvnFneiDkG'),
+    new PublicKey('6AXtp7k7ecCKUzAcg5Cf2n2wvDr81q4DPLTZD6K5JYWJ'),
+    new PublicKey('J4Hm7ME7QgUPyc5soYtoHMMUz8Fm3skVmb3cjkCFKLLV'),
 ];
 
 const squadsLookupKey = unstable_serialize(['squadsReverseMap', AUTHORITY_PUBKEY.toString(), Cluster.Devnet]);
 const squadsMultisigKey = unstable_serialize(['squadsMultisig', MULTISIG_ACCOUNT.toString(), Cluster.Devnet]);
+// `useAnchorProgram(SQUADS_V4_ADDRESS, url, cluster)` -> `useIdlFromAnchorProgramSeed`,
+// whose key is `['idl-anchor', programAddress, cluster, url]` and whose fetcher does a
+// raw `fetch('/api/anchor?...')` — NOT a Connection RPC, so the getAccountInfo stub
+// below can't suppress it. Left unseeded it fires an unhandled request (404) on every
+// render. `clusterUrl(Devnet, DEVNET_URL)` reproduces exactly the url `useCluster()`
+// hands the card. A `null` IDL is fine: the multisig fetcher is already seeded, so the
+// anchor program is never actually used.
+const squadsIdlKey = unstable_serialize([
+    'idl-anchor',
+    SQUADS_V4_ADDRESS,
+    Cluster.Devnet,
+    clusterUrl(Cluster.Devnet, DEVNET_URL),
+]);
 
 const MULTISIG_SWR_FALLBACK = {
     [squadsLookupKey]: { isSquad: true, multisig: MULTISIG_ACCOUNT.toString(), version: 'v4' },
@@ -366,6 +385,7 @@ const MULTISIG_SWR_FALLBACK = {
         multisig: { members: MULTISIG_MEMBERS.map(key => ({ key })), threshold: 2 },
         version: 'v4',
     },
+    [squadsIdlKey]: null,
 };
 
 // Args for ProgramMultisigCard — it reads `data.programData?.authority`.
@@ -373,15 +393,48 @@ export const MOCK_MULTISIG_ARGS = { data: MOCK_PARSED_DATA };
 
 /**
  * Renders ProgramMultisigCard with a fully-populated Squads V4 multisig by seeding
- * the two squads SWR caches. Includes the standard page providers (Address needs
- * MockTokenInfoBatchProvider + cluster) and stubs Connection RPC so the incidental
- * anchor-IDL fetch resolves to nothing instead of hitting a real RPC.
+ * the three squads SWR caches (reverse-map lookup, multisig account, and the Anchor
+ * IDL — see MULTISIG_SWR_FALLBACK). Includes the standard page providers (Address
+ * needs MockTokenInfoBatchProvider + cluster) and stubs Connection RPC so any
+ * incidental on-chain read resolves to nothing instead of hitting a real RPC.
  */
 export const withMultisigData: Decorator = Story => {
     Object.assign(Connection.prototype, { getAccountInfo: async () => undefined });
     return (
         <SWRConfig value={{ fallback: MULTISIG_SWR_FALLBACK }}>
             <MockProgramAccountProviders>
+                <Story />
+            </MockProgramAccountProviders>
+        </SWRConfig>
+    );
+};
+
+/**
+ * Single decorator covering every tab in the page-context Tab Preview at once:
+ *  - squads SWR fallback + `getAccountInfo` stub → Program Multisig tab renders a
+ *    populated Squads V4 multisig,
+ *  - `getParsedTransaction` stub + `visibility` + `MOCK_HISTORY_WITH_DATA` → the
+ *    History tab (TransactionHistoryCard) shows resolved instruction names/params
+ *    and byte sizes instead of skeletons.
+ * Combines `withMultisigData` and `withInstructionData` into one provider tree so
+ * all tab cards can share the same mounted providers.
+ *
+ * Self-contained: it applies the base RPC stubs itself, then layers the mock
+ * `getParsedTransaction`/`getAccountInfo` on top — all in one body — so it does NOT
+ * rely on running after a separate `withMockRpc` decorator. (Both mutate the shared
+ * `Connection.prototype`; when they were two sibling meta-level decorators, the
+ * ordering was unreliable and `withMockRpc`'s `getParsedTransaction: undefined` stub
+ * won, leaving every History row's instructions stuck on "---".) Do NOT add
+ * `withMockRpc` alongside this one — this decorator already covers it.
+ */
+export const withTabPreviewData: Decorator = Story => {
+    Object.assign(Connection.prototype, rpcMethodStubs, {
+        getAccountInfo: async () => undefined,
+        getParsedTransaction: async (signature: string) => MOCK_PARSED_TX_BY_SIGNATURE[signature] ?? null,
+    });
+    return (
+        <SWRConfig value={{ fallback: MULTISIG_SWR_FALLBACK }}>
+            <MockProgramAccountProviders history={MOCK_HISTORY_WITH_DATA} visibility>
                 <Story />
             </MockProgramAccountProviders>
         </SWRConfig>

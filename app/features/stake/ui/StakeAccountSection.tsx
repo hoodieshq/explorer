@@ -70,7 +70,7 @@ function LockupCard({ stakeAccount }: { stakeAccount: StakeAccountInfo }) {
         return null;
     }
     return (
-        <Alert variant="warning" className="text-center">
+        <Alert variant="warning" className="mb-6 text-center">
             <strong>Account is locked!</strong> Lockup expires on {displayTimestampUtc(lockupExpiryMs)}
         </Alert>
     );

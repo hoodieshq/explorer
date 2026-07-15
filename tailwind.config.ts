@@ -90,6 +90,11 @@ const config: Config = {
                 'dk-lg': '0.5rem',
                 'dk-pill': '200px',
             },
+            maxWidth: {
+                // Named column-width caps for constraining content column width. Pair with
+                // `mx-auto w-full` to center. Extend this scale as more constraint sizes appear.
+                col: '960px',
+            },
             fontSize: {
                 'dk-xs': '0.625rem',
                 'dk-sm': '0.8125rem',

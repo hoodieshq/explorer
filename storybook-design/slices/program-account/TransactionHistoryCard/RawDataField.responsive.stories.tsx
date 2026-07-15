@@ -1,6 +1,5 @@
 import { withViewportFromGlobal } from '@storybook-config/responsive-decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
-import { userEvent, within } from 'storybook/test';
 
 import { RawDataField } from './RawDataField';
 import { MOCK_DATA_LARGE, MOCK_FILENAME, withDrawerFrame } from './RawDataField.mocks';
@@ -31,14 +30,4 @@ export const TabletPortrait: Story = {
 export const TabletLandscape: Story = {
     args,
     globals: { viewport: { isRotated: true, value: 'ipad' } },
-};
-
-// Fullscreen dialog at phone width — the layout the mode was designed for.
-export const MobileFullscreen: Story = {
-    args,
-    globals: { viewport: { value: 'iphonex' } },
-    play: async ({ canvasElement }) => {
-        const canvas = within(canvasElement);
-        await userEvent.click(await canvas.findByRole('button', { name: /full screen/i }));
-    },
 };

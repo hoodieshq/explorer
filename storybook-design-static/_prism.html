@@ -1,0 +1,565 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prism · viewport preview</title>
+<style>
+  :root { --bar: #141a19; --bar2: #1c2422; --fg: #cfe3dd; --accent: #38e0b0; --muted: #6b817b; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0c0f0e; font: 13px/1.4 -apple-system, system-ui, sans-serif; color: var(--fg); }
+  body { display: flex; flex-direction: column; }
+
+  #stage {
+    flex: 1; min-height: 0; display: flex; align-items: stretch; justify-content: center;
+    padding: 0; overflow: auto; background:
+      repeating-linear-gradient(45deg, #0c0f0e, #0c0f0e 10px, #0e1211 10px, #0e1211 20px);
+  }
+  #wrap {
+    position: relative; flex-shrink: 0; height: 100%; width: 100%;
+    background: #fff; box-shadow: 0 0 0 1px #000, 0 20px 60px rgba(0,0,0,.5);
+    transition: width 160ms ease;
+  }
+  #wrap.dragging { transition: none; }
+  #frame { width: 100%; height: 100%; border: 0; display: block; background: #fff; }
+
+  .handle { position: absolute; top: 0; bottom: 0; width: 16px; cursor: ew-resize; z-index: 2; touch-action: none; display: flex; align-items: center; justify-content: center; }
+  .handle::before { content: ""; width: 4px; height: 48px; border-radius: 4px; background: var(--accent); opacity: 0; transition: opacity .12s ease; }
+  /* grip stays hidden until the cursor enters the 16px-wide handle zone (or a drag is underway) */
+  .handle:hover::before, .handle.dragging::before { opacity: 1; }
+  .handle.left { left: 0; } .handle.right { right: 0; }
+  body.dragging { cursor: ew-resize; user-select: none; }
+  body.dragging #frame { pointer-events: none; }
+
+  #bar { position: relative; z-index: 10; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 12px; background: var(--bar); border-top: 1px solid #000; }
+  #bar .group { display: flex; align-items: center; gap: 4px; }
+  #bar .sep { width: 1px; align-self: stretch; background: #2a3431; margin: 0 4px; }
+  button { font: inherit; color: var(--fg); background: var(--bar2); border: 1px solid #2a3431; border-radius: 6px; padding: 4px 9px; cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.active { background: var(--accent); color: #08110d; border-color: var(--accent); font-weight: 600; }
+  #favSlot { flex: 0 0 auto; width: 150px; }
+  .slotbtn { width: 100%; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slotbtn.on { color: var(--accent); border-color: var(--accent); }
+  input { font: inherit; color: var(--fg); background: #0c0f0e; border: 1px solid #2a3431; border-radius: 6px; padding: 4px 8px; }
+  #addr { position: relative; flex: 1; display: flex; }
+  #path { width: 100%; padding-right: 34px; }
+  #copyUrl { position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+             padding: 2px 7px; line-height: 1; background: transparent; border-color: transparent;
+             color: var(--muted); z-index: 2; }
+  #copyUrl:hover { color: var(--accent); border-color: var(--accent); background: var(--bar2); }
+  #copyUrl.ok { color: var(--accent); border-color: var(--accent); }
+  #favs { position: absolute; left: -6px; right: -6px; bottom: calc(100% + 6px); display: none;
+          background: var(--bar2); border: 1px solid #2a3431; border-radius: 8px; overflow: auto;
+          max-height: 280px; box-shadow: 0 -10px 36px rgba(0,0,0,.55); z-index: 50; }
+  #favs.open { display: block; }
+  #favs .empty { padding: 10px 12px; color: var(--muted); }
+  .fav { display: flex; align-items: center; gap: 4px; padding: 6px; border-bottom: 1px solid #232c2a; }
+  .fav:last-child { border-bottom: 0; }
+  .fav:hover { background: #232c2a; }
+  .fav .name { width: 150px; flex: 0 0 auto; padding: 3px 6px; }
+  .fav .p { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .fav .p:hover { color: var(--fg); }
+  .fav .del { padding: 2px 8px; line-height: 1; color: var(--muted); }
+  .fav .del:hover { color: #ff7b72; border-color: #ff7b72; }
+
+  /* favorites: tabs (Personal / Catalog) + section anchors */
+  .favtabs { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; gap: 4px; background: var(--bar2); border-top: 1px solid #2a3431; padding: 0 6px; }
+  .favtab { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted); padding: 8px 8px; }
+  .favtab:hover { color: var(--fg); border-bottom-color: transparent; }
+  .favtab.active { color: var(--accent); border-bottom-color: var(--accent); background: transparent; font-weight: 600; }
+  .favanchors { margin-left: auto; display: flex; align-items: center; gap: 1.5px; overflow-x: auto; }
+  .favanchor { flex: 0 0 auto; border: 0; background: transparent; color: var(--muted); font-size: 11px; padding: 3px 5px; border-radius: 4px; }
+  .favanchor:hover { color: var(--accent); border-color: transparent; background: #232c2a; }
+
+  /* favorites: shared catalog (read-only) */
+  .favgroup { padding: 18px 10px 6px; color: var(--accent); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; background: #11211c; border-bottom: 1px solid #243430; }
+  /* padding-left 13px aligns the name with the favorites' name input text
+     (.fav 6px + input border 1px + input padding 6px). */
+  .catrow { display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 13px; border-bottom: 1px solid #232c2a; cursor: pointer; }
+  .catrow:hover { background: #232c2a; }
+  .catrow .cname { flex: 0 0 auto; width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .catrow .cpath { flex: 1; min-width: 0; color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .catrow .star { flex: 0 0 auto; padding: 2px 7px; line-height: 1; color: var(--muted); }
+  .catrow .star.on { color: var(--accent); border-color: var(--accent); }
+  .catrow .star:hover { color: var(--accent); }
+
+  label { color: var(--muted); }
+  #readout { color: var(--muted); margin-left: auto; white-space: nowrap; flex: 0 0 auto; width: 64px; text-align: right; }
+  #readout b { color: var(--fg); }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <div id="wrap">
+      <iframe id="frame" title="preview"></iframe>
+      <div class="handle left"></div>
+      <div class="handle right"></div>
+    </div>
+  </div>
+
+  <div id="bar">
+    <div class="group" id="addrGroup" style="flex:1; min-width:280px; position: relative;">
+      <div id="favSlot"></div>
+      <div id="addr">
+        <input id="path" value="/?cluster=testnet" spellcheck="false" autocomplete="off" placeholder="paste full explorer URL or /path?cluster=…" />
+        <button id="copyUrl" type="button" title="Copy public explorer URL (explorer.solana.com)">⧉</button>
+      </div>
+      <div id="favs"></div>
+    </div>
+    <div class="sep"></div>
+    <div class="group" id="presets"></div>
+    <div id="readout">— px</div>
+  </div>
+
+<script>
+(function () {
+  var PRESETS = [
+    { id: 'auto', label: 'Auto', width: null },
+    { id: 'xs',  label: 'xs · 375',  width: 375 },
+    { id: 'sm',  label: 'sm · 576',  width: 576 },
+    { id: 'md',  label: 'md · 768',  width: 768 },
+    { id: 'lg',  label: 'lg · 992',  width: 992 },
+    { id: 'xl',  label: 'xl · 1200', width: 1200 },
+    { id: 'xxl', label: 'xxl · 1400', width: 1400 },
+  ];
+  var MIN = 240;
+
+  // Shared, read-only catalog of explorer pages worth testing UI on. Paths are
+  // mainnet (no ?cluster= → mainnet-beta). Edit here to curate the list — it's
+  // baked into the tool, not synced to the favorites store.
+  var CATALOG = [
+    { group: 'Accounts', short: 'Acct', items: [
+      { name: 'Wallet', path: '/address/86xCnPeV69n6t3DnyGvkKobf9FdN2H9oiVDdaMpo2MMY' },
+      { name: 'USDC mint (Token)', path: '/address/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v' },
+      { name: 'Wrapped SOL', path: '/address/So11111111111111111111111111111111111111112' },
+      { name: 'BONK mint', path: '/address/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263' },
+      { name: 'Token-2022 mint (PYUSD)', path: '/address/2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo' },
+      { name: 'Stake account', path: '/address/CtJDqz1KCsEjQjjPLZ27q5kVxoFNG39oEPv7T6dyKf3y' },
+      { name: 'Address Lookup Table', path: '/address/AddressLookupTab1e1111111111111111111111111' },
+    ] },
+    { group: 'Programs', short: 'Prog', items: [
+      { name: 'Token Program', path: '/address/TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA' },
+      { name: 'Token-2022 Program', path: '/address/TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb' },
+      { name: 'Associated Token Program', path: '/address/ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL' },
+      { name: 'System Program', path: '/address/11111111111111111111111111111111' },
+      { name: 'BPF Upgradeable Loader', path: '/address/BPFLoaderUpgradeab1e11111111111111111111111' },
+      { name: 'Jupiter Aggregator v6', path: '/address/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4' },
+      { name: 'Verified (security.txt)', path: '/address/TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb/security' },
+      { name: 'Anchor program (IDL)', path: '/address/MarBmsSgKXdrN1egZf5sqe1TMThczhMLJhrYxgfYbiZ/anchor-program' },
+    ] },
+    { group: 'IDL / interactive', short: 'IDL', items: [
+      { name: 'Callable program (IDL)', path: '/address/BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya/idl' },
+    ] },
+    { group: 'Transactions', short: 'Tx', items: [
+      { name: 'Regular tx detail', path: '/tx/3nfjAGSZENsyDx2ngBhnsJHbdAJFEbX53yYVu9Kgn5zd3Zf5e39zis12zuLf9emT32tRPh6Quartjcu1yaYbJv1o' },
+      { name: 'Inspector (ix + accounts)', path: '/tx/3nfjAGSZENsyDx2ngBhnsJHbdAJFEbX53yYVu9Kgn5zd3Zf5e39zis12zuLf9emT32tRPh6Quartjcu1yaYbJv1o/inspect' },
+      { name: 'New tx for the inspector', path: '/tx/inspector' },
+      { name: 'Token-2022 tx inspector', path: '/tx/3wGigyZMqpwG7JkfAGsMBM1yBGYwu4eVtL8VdQeqXYcxQfD7kjMhbJQA9z9E39dqNS7biPzEGArd1LgRXxPwgu8j/inspect' },
+    ] },
+    { group: 'Block / Slot / Epoch', short: 'Block', items: [
+      { name: 'Recent block', path: '/block/350000000' },
+      { name: 'Block · accounts', path: '/block/350000000/accounts' },
+      { name: 'Block · programs', path: '/block/350000000/programs' },
+      { name: 'Block · rewards', path: '/block/350000000/rewards' },
+      { name: 'Epoch detail', path: '/epoch/810' },
+    ] },
+    { group: 'Feature gates', short: 'Gates', items: [
+      { name: 'Index', path: '/feature-gates' },
+      { name: 'Specific feature', path: '/address/9PdNkXyt4qBSDvW1ZbZuY3vEZJTrurC3oCa45UQ4QzMq/feature-gate' },
+    ] },
+    { group: 'Home / search', short: 'Home', items: [
+      { name: 'Home', path: '/' },
+      { name: 'Custom cluster (modal)', path: '/?cluster=custom' },
+    ] },
+  ];
+
+  var stage = document.getElementById('stage');
+  var wrap = document.getElementById('wrap');
+  var frame = document.getElementById('frame');
+  var pathEl = document.getElementById('path');
+  var presetsEl = document.getElementById('presets');
+  var readout = document.getElementById('readout');
+  var favSlot = document.getElementById('favSlot');
+  var copyUrlEl = document.getElementById('copyUrl');
+
+  // The address field holds a path (/address/…?cluster=…); the copy button mirrors
+  // it to the REAL public explorer so the URL can be shared/opened outside the prism.
+  var PUBLIC_EXPLORER = 'https://explorer.solana.com';
+
+  var favs = [];     // favorites — synced to the server (favorites.json)
+
+  // Window state (viewport / base / path) — localStorage ONLY, never sent to the
+  // server.
+  var STORE = 'prism:flags';
+  var flags = load();
+  function load() { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; } }
+  function save() { try { localStorage.setItem(STORE, JSON.stringify(flags)); } catch (e) {} }
+
+  // Favorites — persisted to the favorites store (separate server on :5180, same
+  // host) so the list lives in a file. Debounced PUT mirrors every add/remove/rename.
+  var FAV_API = location.protocol + '//' + location.hostname + ':5180/favorites';
+  var favTimer = 0;
+  function saveFavs() {
+    renderFavSlot();
+    if (favTimer) clearTimeout(favTimer);
+    favTimer = setTimeout(function () {
+      fetch(FAV_API, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(favs)
+      }).catch(function () {});
+    }, 200);
+  }
+
+  // Accept a full URL (e.g. https://explorer.solana.com/address/..?cluster=devnet),
+  // a bare domain+path (explorer.solana.com/address/..), or a plain path — and
+  // reduce it to everything after the domain: pathname + query + hash.
+  function toPath(input) {
+    input = (input || '').trim();
+    if (/^https?:\/\//i.test(input)) {
+      try { var u = new URL(input); return u.pathname + u.search + u.hash; } catch (e) {}
+    }
+    if (/^[\w.-]+\.[a-z]{2,}(?:[:/]|$)/i.test(input)) {
+      try { var u2 = new URL('https://' + input); return u2.pathname + u2.search + u2.hash; } catch (e) {}
+    }
+    return input[0] === '/' ? input : '/' + input;
+  }
+
+  var lastFramePath = '';
+
+  function navigate() {
+    var path = toPath(pathEl.value);
+    pathEl.value = path; // reflect the stripped path back into the field
+    lastFramePath = path;
+    frame.src = path;    // same-origin (proxied to the explorer by serve.py)
+    flags.path = path; save();
+    hideFavs();
+    renderFavSlot();
+  }
+
+  // The iframe is same-origin (served through the prism's reverse proxy), so we
+  // can read its current location and reflect it back into the path field as you
+  // navigate inside the frame. Covered by both the load event and a poll (client
+  // -side router pushState doesn't fire load).
+  function currentFramePath() {
+    try { var l = frame.contentWindow.location; return l.pathname + l.search + l.hash; }
+    catch (e) { return null; }
+  }
+  function syncFromFrame() {
+    var p = currentFramePath();
+    if (!p || p === lastFramePath) return;
+    lastFramePath = p;
+    if (document.activeElement !== pathEl) pathEl.value = p;
+    flags.path = p; save();
+    renderFavSlot();
+  }
+
+  // Close the favorites dropdown when the user clicks into the iframe. Clicks
+  // inside an iframe don't bubble to the parent document, so the outside-click
+  // handler misses them — but the parent window blurs, and (since the iframe is
+  // same-origin via the proxy) we can also listen on its document directly.
+  function attachFrameClose() {
+    window.addEventListener('blur', hideFavs);
+    try { frame.contentWindow.document.addEventListener('pointerdown', hideFavs); } catch (e) {}
+  }
+
+  function maxWidth() { return stage.getBoundingClientRect().width; }
+
+  var currentWidth = null; // null = auto (fills stage); otherwise target px
+
+  function applyWidth(w) {
+    currentWidth = w;
+    if (w == null) { wrap.style.width = '100%'; }
+    else { wrap.style.width = Math.round(w) + 'px'; }
+    updateReadout();
+  }
+  function updateReadout() {
+    // Use the target width directly so it's correct immediately, even while the
+    // CSS width transition (preset clicks) is still animating.
+    var actual = currentWidth == null ? Math.round(stage.getBoundingClientRect().width) : Math.round(currentWidth);
+    readout.innerHTML = '<b>' + actual + '</b> px';
+  }
+
+  function setPreset(id) {
+    flags.viewport = id;
+    var p = PRESETS.filter(function (x) { return x.id === id; })[0];
+    if (p) { flags.customWidth = p.width; applyWidth(p.width); }
+    save(); renderPresets();
+  }
+
+  function renderPresets() {
+    presetsEl.innerHTML = '';
+    PRESETS.forEach(function (p) {
+      var b = document.createElement('button');
+      b.textContent = p.label;
+      if ((flags.viewport || 'auto') === p.id) b.className = 'active';
+      b.onclick = function () { setPreset(p.id); };
+      presetsEl.appendChild(b);
+    });
+  }
+
+  // drag-to-resize. Pointer capture keeps move/up events flowing to the handle
+  // even when the cursor passes over the (cross-origin) iframe — otherwise the
+  // iframe swallows them and the drag stutters. Width updates are batched into a
+  // requestAnimationFrame to avoid layout thrash on every pointermove.
+  function startResize(side) {
+    return function (e) {
+      e.preventDefault();
+      var handle = e.currentTarget;
+      try { handle.setPointerCapture(e.pointerId); } catch (_) {}
+      var startX = e.clientX;
+      var startW = wrap.getBoundingClientRect().width;
+      var lim = maxWidth();
+      document.body.classList.add('dragging');
+      wrap.classList.add('dragging');
+      handle.classList.add('dragging');
+      flags.viewport = 'custom';
+
+      var pending = null, raf = 0;
+      function flush() { raf = 0; if (pending != null) { flags.customWidth = Math.round(pending); applyWidth(pending); } }
+      function move(ev) {
+        var delta = ev.clientX - startX;
+        var signed = side === 'right' ? delta : -delta;
+        pending = Math.max(MIN, Math.min(lim, startW + signed * 2));
+        if (!raf) raf = requestAnimationFrame(flush);
+      }
+      function up(ev) {
+        handle.removeEventListener('pointermove', move);
+        handle.removeEventListener('pointerup', up);
+        try { handle.releasePointerCapture(ev.pointerId); } catch (_) {}
+        if (raf) cancelAnimationFrame(raf);
+        flush();
+        document.body.classList.remove('dragging');
+        wrap.classList.remove('dragging');
+        handle.classList.remove('dragging');
+        save(); renderPresets();
+      }
+      handle.addEventListener('pointermove', move);
+      handle.addEventListener('pointerup', up);
+    };
+  }
+  document.querySelector('.handle.left').addEventListener('pointerdown', startResize('left'));
+  document.querySelector('.handle.right').addEventListener('pointerdown', startResize('right'));
+
+  pathEl.addEventListener('keydown', function (e) { if (e.key === 'Enter') navigate(); });
+  pathEl.addEventListener('input', renderFavSlot);
+
+  // Copy the current path prefixed with the public explorer origin. Brief ✓ on
+  // success; falls back to execCommand when the async clipboard API is unavailable.
+  var copyTimer = 0;
+  function copyPublicUrl() {
+    var url = PUBLIC_EXPLORER + toPath(pathEl.value);
+    function done() {
+      copyUrlEl.classList.add('ok');
+      copyUrlEl.textContent = '✓';
+      if (copyTimer) clearTimeout(copyTimer);
+      copyTimer = setTimeout(function () { copyUrlEl.classList.remove('ok'); copyUrlEl.textContent = '⧉'; }, 1000);
+    }
+    function fallback() {
+      try {
+        var ta = document.createElement('textarea');
+        ta.value = url; ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+        document.body.removeChild(ta); done();
+      } catch (e) {}
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(done).catch(fallback);
+    } else { fallback(); }
+  }
+  copyUrlEl.addEventListener('click', copyPublicUrl);
+  window.addEventListener('resize', updateReadout);
+  frame.addEventListener('load', function () { syncFromFrame(); attachFrameClose(); });
+  setInterval(syncFromFrame, 700);
+
+  // favorites
+  var favsEl = document.getElementById('favs');
+  var addrEl = document.getElementById('addr');
+  var addrGroup = document.getElementById('addrGroup');
+
+  function showFavs() { renderFavs(); favsEl.classList.add('open'); }
+  function hideFavs() { favsEl.classList.remove('open'); }
+  function toggleFavs() { if (favsEl.classList.contains('open')) hideFavs(); else showFavs(); }
+  function openFav(path) { pathEl.value = path; hideFavs(); navigate(); }
+
+  // Fixed-width slot next to the path field: shows the favorite's NAME when the
+  // current address is saved (★, click opens the list to rename), otherwise an
+  // "add to favorites" button.
+  function renderFavSlot() {
+    var path = toPath(pathEl.value);
+    var fav = favs.filter(function (f) { return f.path === path; })[0];
+    favSlot.innerHTML = '';
+    var btn = document.createElement('button');
+    btn.className = 'slotbtn';
+    if (fav) {
+      // In personal favorites — takes precedence over the catalog. Show its name.
+      btn.classList.add('on');
+      btn.textContent = '★ ' + (fav.name || 'unnamed');
+      btn.title = 'In favorites — open list to rename';
+      btn.onclick = function () { flags.favTab = 'personal'; save(); toggleFavs(); };
+    } else {
+      // Not in favorites: if it's a catalog entry, show that name; clicking adds it
+      // (carrying the catalog name) to personal favorites.
+      var cat = catalogEntry(path);
+      if (cat) {
+        btn.textContent = '☆ ' + cat.name;
+        btn.title = 'In catalog — click to add to personal favorites';
+        btn.onclick = function () { addFav(cat.name); };
+      } else {
+        btn.textContent = '☆ Add';
+        btn.title = 'Add current address to favorites';
+        btn.onclick = function () { addFav(); };
+      }
+    }
+    favSlot.appendChild(btn);
+  }
+
+  function favRow(f, i) {
+    var row = document.createElement('div'); row.className = 'fav';
+    var name = document.createElement('input');
+    name.className = 'name'; name.value = f.name || ''; name.placeholder = 'name';
+    name.addEventListener('input', function () { favs[i].name = name.value; saveFavs(); });
+    name.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') name.blur(); });
+    var p = document.createElement('div');
+    p.className = 'p'; p.textContent = f.path; p.title = f.path;
+    p.addEventListener('click', function () { openFav(f.path); });
+    var del = document.createElement('button');
+    del.className = 'del'; del.textContent = '×'; del.title = 'Remove';
+    del.addEventListener('click', function () { favs.splice(i, 1); saveFavs(); renderFavs(); });
+    row.appendChild(name); row.appendChild(p); row.appendChild(del);
+    return row;
+  }
+
+  function inFavs(path) { return favs.some(function (f) { return f.path === path; }); }
+
+  // Look up a path in the shared catalog (returns the {name, path} entry or null).
+  function catalogEntry(path) {
+    for (var i = 0; i < CATALOG.length; i++) {
+      var items = CATALOG[i].items;
+      for (var j = 0; j < items.length; j++) {
+        if (items[j].path === path) return items[j];
+      }
+    }
+    return null;
+  }
+
+  function setFavTab(tab) { flags.favTab = tab; save(); renderFavs(); }
+
+  // Two tabs: Personal (editable, server-synced) and Catalog (shared, read-only).
+  function renderFavs() {
+    favsEl.innerHTML = '';
+    var tab = flags.favTab === 'catalog' ? 'catalog' : 'personal';
+
+    var tabs = document.createElement('div'); tabs.className = 'favtabs';
+    [['personal', 'Personal', favs.length], ['catalog', 'Catalog', null]].forEach(function (t) {
+      var b = document.createElement('button');
+      b.className = 'favtab' + (tab === t[0] ? ' active' : '');
+      b.textContent = t[2] ? t[1] + ' (' + t[2] + ')' : t[1];
+      b.onclick = function () { setFavTab(t[0]); };
+      tabs.appendChild(b);
+    });
+
+    var body = document.createElement('div');
+    if (tab === 'catalog') {
+      var headings = {};
+      renderCatalog(body, headings);
+      // section anchors, right-aligned in the tabs row — jump to a group heading
+      // (offset by the sticky tabs height so it lands just below them).
+      var anchors = document.createElement('div'); anchors.className = 'favanchors';
+      CATALOG.forEach(function (g) {
+        var a = document.createElement('button'); a.className = 'favanchor';
+        a.textContent = g.short || g.group; a.title = g.group;
+        a.onclick = function () {
+          var el = headings[g.group];
+          if (el) favsEl.scrollTop = Math.max(0, el.offsetTop);
+        };
+        anchors.appendChild(a);
+      });
+      tabs.appendChild(anchors);
+    } else {
+      renderPersonal(body);
+    }
+
+    favsEl.appendChild(body);
+    favsEl.appendChild(tabs);
+  }
+
+  function renderPersonal(body) {
+    if (!favs.length) {
+      var empty = document.createElement('div'); empty.className = 'empty';
+      empty.textContent = 'No favorites yet';
+      body.appendChild(empty);
+      return;
+    }
+    favs.forEach(function (f, i) { body.appendChild(favRow(f, i)); });
+  }
+
+  // Catalog rows are read-only: click the name/path to open, the ★ toggles the
+  // entry in/out of personal favorites (without navigating).
+  function renderCatalog(body, headings) {
+    CATALOG.forEach(function (g) {
+      var h = document.createElement('div'); h.className = 'favgroup'; h.textContent = g.group;
+      if (headings) headings[g.group] = h;
+      body.appendChild(h);
+      g.items.forEach(function (it) {
+        var row = document.createElement('div'); row.className = 'catrow';
+        var name = document.createElement('div'); name.className = 'cname'; name.textContent = it.name;
+        var p = document.createElement('div'); p.className = 'cpath'; p.textContent = it.path; p.title = it.path;
+        var star = document.createElement('button');
+        star.className = 'star' + (inFavs(it.path) ? ' on' : '');
+        star.textContent = inFavs(it.path) ? '★' : '☆';
+        star.title = inFavs(it.path) ? 'Remove from personal favorites' : 'Add to personal favorites';
+        star.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          toggleFavPath(it.path, it.name);
+        });
+        row.addEventListener('click', function () { openFav(it.path); });
+        row.appendChild(name); row.appendChild(p); row.appendChild(star);
+        body.appendChild(row);
+      });
+    });
+  }
+
+  function toggleFavPath(path, name) {
+    var idx = -1;
+    for (var k = 0; k < favs.length; k++) { if (favs[k].path === path) { idx = k; break; } }
+    if (idx >= 0) favs.splice(idx, 1);
+    else favs.unshift({ path: path, name: name || '' });
+    saveFavs();
+    renderFavs();
+  }
+
+  function addFav(name) {
+    var path = toPath(pathEl.value);
+    if (!inFavs(path)) { favs.unshift({ path: path, name: name || '' }); saveFavs(); }
+    flags.favTab = 'personal'; save();
+    showFavs();
+  }
+
+  pathEl.addEventListener('focus', showFavs);
+  document.addEventListener('pointerdown', function (ev) {
+    // #favs, #favSlot and #addr all live inside #addrGroup — keep the dropdown
+    // open for any click within the group (otherwise the pointerdown would hide
+    // it before a click on a row could register).
+    if (!addrGroup.contains(ev.target)) hideFavs();
+  });
+
+  function loadFavorites() {
+    fetch(FAV_API, { cache: 'no-store' })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .catch(function () { return []; })
+      .then(function (list) { if (Array.isArray(list)) { favs = list; renderFavSlot(); if (favsEl.classList.contains('open')) renderFavs(); } });
+  }
+
+  // init — window state comes from localStorage (synchronous); favorites load
+  // from the server afterwards.
+  pathEl.value = flags.path || pathEl.value;
+  renderPresets();
+  if (flags.viewport === 'custom' && flags.customWidth) applyWidth(flags.customWidth);
+  else setPreset(flags.viewport || 'auto');
+  navigate();
+  loadFavorites();
+})();
+</script>
+</body>
+</html>

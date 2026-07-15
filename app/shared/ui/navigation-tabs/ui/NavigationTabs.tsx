@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSelectedLayoutSegment } from 'next/navigation';
+import { useSelectedLayoutSegment } from 'next/navigation';
 import React from 'react';
 
 import { type NavigationTab } from '@/app/shared/ui/navigation-tabs/model/types';
@@ -17,20 +17,11 @@ type NavigationTabsProps = {
 export function NavigationTabs({ buildHref, tabs, children, className }: NavigationTabsProps) {
     const segment = useSelectedLayoutSegment();
     const activeValue = segment ?? '';
-    const router = useRouter();
-
-    const onSelectChange = React.useCallback(
-        (path: string) => {
-            router.push(buildHref(path), { scroll: false });
-        },
-        [router, buildHref],
-    );
 
     return (
         <BaseNavigationTabs
             tabs={tabs}
             activeValue={activeValue}
-            onSelectChange={onSelectChange}
             buildHref={buildHref}
             className={className}
         >

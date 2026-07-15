@@ -22,36 +22,19 @@ export type AccountSizeFieldProps = {
     loading?: boolean;
     /** Extra classes for the popover trigger button (e.g. to control vertical alignment in a table cell). */
     buttonClassName?: string;
-    /**
-     * Render the size as static text (`</>` glyph + byte count) instead of a
-     * popover button. Used on mobile, where the whole row opens a drawer that
-     * carries the raw-data view — so the cell must not be independently clickable.
-     */
-    readOnly?: boolean;
 };
 
 /**
  * Compact "size in bytes" control: shows the byte count and, when there's data,
  * opens the full RawDataField (hex/base64/copy/download) in a popover.
  */
-export function AccountSizeField({ size, data, filename, loading, buttonClassName, readOnly }: AccountSizeFieldProps) {
+export function AccountSizeField({ size, data, filename, loading, buttonClassName }: AccountSizeFieldProps) {
     if (loading) {
         return <Skeleton className="tx-size-skeleton my-1 h-3.5 w-16" />;
     }
 
     if (size === undefined) {
         return <span className="text-outer-space-300">-</span>;
-    }
-
-    // Static, non-interactive rendering: keep the `</>` glyph and the byte count,
-    // but drop the popover (the raw-data view lives in the mobile drawer).
-    if (readOnly) {
-        return (
-            <span className="tx-size-readonly inline-flex items-center gap-1">
-                <Code size={12} />
-                <span>{size.toLocaleString('en-US')}</span>
-            </span>
-        );
     }
 
     if (size > 0) {

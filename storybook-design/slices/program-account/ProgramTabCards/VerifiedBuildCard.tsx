@@ -3,26 +3,27 @@ import { UpgradeableLoaderAccountData } from '@providers/accounts';
 import { PublicKey } from '@solana/web3.js';
 import Link from 'next/link';
 import React from 'react';
-import { ExternalLink } from 'react-feather';
+import { ExternalLink, Info } from 'react-feather';
 
 import { Address } from '@/app/components/common/Address';
 import { LoadingCard } from '@/app/components/common/LoadingCard';
 import { Badge } from '@/app/components/shared/ui/badge';
-import { Card, CardBody } from '@/app/shared/ui/Card';
+import { Alert } from '@/app/shared/ui/Alert';
+import { Card, CardBody, CardTitle } from '@/app/shared/ui/Card';
 import { OsecRegistryInfo, VerificationStatus } from '@/app/utils/verified-builds';
 
 import { KeyValue } from '../../key-value/KeyValue';
 import { LABEL_WIDTH } from '../UpgradeableProgramSection/constants';
-import { InfoCard } from './InfoCard';
 import { SectionCard } from './SectionCard';
-import { CopyableCode, ExternalLinkValue, TextValue } from './values';
+import { CopyableCode } from '../CopyableCode/CopyableCode';
+import { ExternalLinkValue, TextValue } from './values';
 
 const VERIFIED_BUILDS_GUIDE = 'https://solana.com/developers/guides/advanced/verified-builds';
 
 /**
  * "Verified Build" tab — redesigned in the spirit of UpgradeableProgramSection. The osec.io
  * registry table (BaseTable + TableCardBody) becomes a stack of left-aligned `KeyValue` rows;
- * the guide callout moves into an `InfoCard` note between the header and the card (the
+ * the guide callout moves into an `Alert` note between the header and the card (the
  * H-explorer-pre-sorybook treatment).
  */
 export function BaseVerifiedBuildCard({
@@ -70,33 +71,35 @@ export function BaseVerifiedBuildCard({
     }
 
     return (
-        <SectionCard
-            title="Verified Build"
-            note={
-                <InfoCard variant="info">
-                    A verified build badge indicates that this program was built from source code that is publicly
-                    available, but does not imply that this program has been audited. For more details, refer to the{' '}
-                    <a href={VERIFIED_BUILDS_GUIDE} target="_blank" rel="noopener noreferrer">
-                        Verified Builds Guide
-                        <ExternalLink className="relative -top-0.5 ml-1.5" size={13} />
-                    </a>
-                    .
-                </InfoCard>
-            }
-        >
-            {ROWS.filter(x => x.key in registryInfo).map(x => (
-                <KeyValue key={x.key} label={x.display} labelWidth={LABEL_WIDTH} row>
-                    <RenderValue value={registryInfo[x.key]} type={x.type} mono={x.mono ?? true} />
-                </KeyValue>
-            ))}
-            {/* "Information provided by osec.io" — a full-width muted footer note (no value
-                column), matching the H-explorer-pre-sorybook `verified-build-note` row. */}
+        <>
+            <SectionCard
+                title="Verified Build"
+                noCardMargin
+                note={
+                    <Alert variant="info" appearance="outlined" icon={<Info size={16} />}>
+                        A verified build badge indicates that this program was built from source code that is
+                        publicly available, but does not imply that this program has been audited. For more details,
+                        refer to the{' '}
+                        <a href={VERIFIED_BUILDS_GUIDE} target="_blank" rel="noopener noreferrer">
+                            Verified Builds Guide
+                            <ExternalLink className="relative -top-0.5 ml-1.5" size={13} />
+                        </a>
+                        .
+                    </Alert>
+                }
+            >
+                {ROWS.filter(x => x.key in registryInfo).map(x => (
+                    <KeyValue key={x.key} label={x.display} labelWidth={LABEL_WIDTH} row>
+                        <RenderValue value={registryInfo[x.key]} type={x.type} mono={x.mono ?? true} />
+                    </KeyValue>
+                ))}
+            </SectionCard>
+            {/* "Information provided by osec.io" — a standalone footer note below the table,
+                matching the H-explorer-pre-sorybook `verified-build-note` row. */}
             {verificationMessage && (
-                <div className="border-0 border-b border-solid border-dark-border px-3 py-2 text-dk-sm text-outer-space-300 last:border-b-0">
-                    {verificationMessage}
-                </div>
+                <div className="mb-10 mt-3 px-1 text-sm text-outer-space-300">{verificationMessage}</div>
             )}
-        </SectionCard>
+        </>
     );
 }
 
@@ -139,10 +142,16 @@ function RenderValue({
 }) {
     switch (type) {
         case DisplayType.Boolean:
+            // Dashkit success/warning badge wrapped in a `CardTitle as="h3" ui="dashkit"` so its
+            // font size comes from the heading container instead of a hardcoded step. (The Program
+            // Account block's Security/Verified rows now use the tw badges — see
+            // UpgradeableProgramSection's SecurityTXTBadge/VerifiedProgramBadge.)
             return (
-                <Badge ui="dashkit" variant={value ? 'success' : 'warning'}>
-                    {String(value)}
-                </Badge>
+                <CardTitle as="h3" ui="dashkit">
+                    <Badge ui="dashkit" variant={value ? 'success' : 'warning'}>
+                        {String(value)}
+                    </Badge>
+                </CardTitle>
             );
         case DisplayType.String:
             if (Object.values(VerificationStatus).includes(value as VerificationStatus)) {

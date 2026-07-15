@@ -21,7 +21,6 @@ export type BaseNavigationTabsProps = {
     buildHref: (path: string) => string;
     children?: React.ReactNode;
     className?: string;
-    onSelectChange?: (path: string) => void;
     onTabClick?: (path: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
     /**
      * Enables scroll-spy mode: active tab tracks scroll position, clicking scrolls smoothly.
@@ -37,7 +36,6 @@ export type BaseNavigationTabsProps = {
 export function BaseNavigationTabs({
     tabs,
     activeValue: activeValueProp,
-    onSelectChange,
     onTabClick: onTabClickProp,
     buildHref,
     children,
@@ -124,7 +122,6 @@ export function BaseNavigationTabs({
 
     const activeValue = scrollSpy ? spyActive : (activeValueProp ?? '');
     const onTabClick = scrollSpy ? scrollSpyTabClick : onTabClickProp;
-    const handleSelectChange = scrollSpy ? scrollToSection : onSelectChange;
 
     const contextValue = useMemo(
         () => ({ activeValue, buildHref, onTabClick, registerTab, renderTabLink: true, staticPaths, unregisterTab }),
@@ -150,7 +147,7 @@ export function BaseNavigationTabs({
                     </div>
                 )}
 
-                {moreTabs.length > 0 && <MobileMoreDropdown tabs={moreTabs} onSelectChange={handleSelectChange} />}
+                {moreTabs.length > 0 && <MobileMoreDropdown tabs={moreTabs} />}
             </div>
 
             {children && (

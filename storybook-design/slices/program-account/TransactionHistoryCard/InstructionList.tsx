@@ -23,8 +23,15 @@ export function InstructionList({ instructions, trailingAction }: InstructionLis
     const visible = OVERFLOW_SPOILER_ENABLED ? instructions.slice(0, INLINE_LIMIT) : instructions;
     const overflow = OVERFLOW_SPOILER_ENABLED ? instructions.slice(INLINE_LIMIT) : [];
 
+    // With more than one program row the inter-row gap-1 shifts the last row up,
+    // so it sits 4px closer to the divider line than a single-row cell does. The
+    // `thc-instr-multi` class adds that 4px back below the list (desktop only —
+    // gated by the ≥768px media query in transaction-history.css) so the
+    // last-row-to-line gap is always uniform.
+    const hasMultiple = visible.length + (overflow.length > 0 ? 1 : 0) > 1;
+
     return (
-        <div className="flex flex-col gap-1">
+        <div className={`flex flex-col gap-1${hasMultiple ? ' thc-instr-multi' : ''}`}>
             {visible.map((instruction, i) => (
                 <InstructionLine key={i} instruction={instruction} trailing={i === 0 ? trailingAction : undefined} />
             ))}
@@ -38,7 +45,7 @@ function InstructionLine({ instruction, trailing }: { instruction: TransactionIn
     // so they wrap together at the cell boundary rather than each becoming a
     // separately-wrapping flex item with weird gaps between them.
     return (
-        <span className="block cursor-default text-dk-base">
+        <span className="block cursor-default text-sm">
             <span className="text-outer-space-300">{instruction.program}</span>{' '}
             <span className="text-white">{instruction.name}</span>
             {trailing}
@@ -59,14 +66,14 @@ function OverflowLine({ instructions }: { instructions: TransactionInstructionIn
     return (
         <Tooltip>
             <TooltipTrigger asChild>
-                <span className="cursor-pointer text-dk-xs text-outer-space-300">+{instructions.length} more</span>
+                <span className="cursor-pointer text-sm text-outer-space-300">+{instructions.length} more</span>
             </TooltipTrigger>
             <TooltipContent
                 side="bottom"
                 sideOffset={4}
                 className="flex min-w-64 flex-col gap-1.5 rounded-lg border border-solid border-outer-space-800 bg-outer-space-900 p-3 shadow-md"
             >
-                <span className="text-dk-xs font-medium text-white">Programs</span>
+                <span className="text-sm font-medium text-white">Programs</span>
                 {instructions.map((instruction, i) => (
                     <InstructionLine key={i} instruction={instruction} />
                 ))}

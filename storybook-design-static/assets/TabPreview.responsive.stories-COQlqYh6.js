@@ -1,0 +1,26 @@
+import{j as a,R as p,r as N}from"./iframe-CRlzrArO.js";import{a as y}from"./responsive-decorators-Bcu_tUP2.js";import{P as m,S as _,B as R,N as A,a as u,M as B,C as O,F as E}from"./StickyHeader-Ks_J71xM.js";import{H as I,S as k}from"./Header-CSbqshjm.js";import{n as K,k as L,M as C,c as H,d as t,e as c,L as V,f as U,l as F,j as G}from"./mocks-21Dvz4uj.js";import"./fromProgramData-DHY4gYOX.js";import"./cluster-zsaKFN-L.js";import{B as $}from"./DomainsCard-aRljTT5z.js";import{P as W}from"./ProgramMultisigCard-CAAN6Tvf.js";import{P as X}from"./SecurityCard-V7_D9D79.js";import{B as Y}from"./VerifiedBuildCard-DvHeDZna.js";import{T as q}from"./TransactionHistoryCard-BLZ0fue0.js";import{U as z}from"./UpgradeableProgramSection-B0syJ6Yz.js";import"./index-Cun1SEai.js";import"./index.browser.esm-Ci1UQyGp.js";import"./index-CKHJf83E.js";import"./verified-builds-h1zNVeSe.js";import"./useCopyToClipboard-BdywpqX_.js";import"./index-DM8-PE0G.js";import"./cluster-CTElM7Kw.js";import"./index-XYy5IKpr.js";import"./tabs-CcRN6Phh.js";import"./check-circle-BWGel2E6.js";import"./index-Bgo6oLpT.js";import"./utils-CA04WxlW.js";import"./button-NvfdiL5w.js";import"./Alert-CDRBvKjb.js";import"./alert-circle-gAOD6ko6.js";import"./TokenVerificationButton-ROPUon0x.js";import"./help-circle-SyiG42nh.js";import"./ErrorCard-DY2MW1Pa.js";import"./popover-C4TBWjH7.js";import"./RawDataField-C5W7Q1Xc.js";import"./x-H8DAF0hF.js";import"./VerifiedBadge-CWqpa7dK.js";import"./skeleton-BHoPdXDp.js";import"./UnknownAccountCard-nuhwEUl-.js";import"./BaseSecurityNotification-CT6OIYfj.js";import"./react-error-boundary.esm-BL25MQbG.js";import"./constants-B4PdqX7Z.js";import"./KeyValue-zGVILgze.js";import"./Icon-CP6uJGP8.js";import"./Label-mHEzIVTt.js";import"./constants-C6SyxvEx.js";import"./SectionCard-BUhy82hi.js";import"./external-link-Ci3g-JLW.js";import"./values-BkR78_Ia.js";import"./CopyableCode-CTz3AMbL.js";import"./info-Dh_RPm9j.js";import"./Slot-5PJ4LnvR.js";import"./transaction-history-DeJ2Z8DF.js";import"./use-refresh-account-HfasQgMc.js";import"./VerifiedProgramBadge-BbTBXiqD.js";const J=t.parsedData.type==="program"?t.parsedData.info:{programData:t.account.pubkey};function Q({children:r}){return a.jsxs("div",{className:"flex min-h-screen flex-col",children:[a.jsxs("div",{className:"min-w-[292px] flex-1 pb-6",children:[a.jsx(A,{children:a.jsx(u,{})}),a.jsx(B,{}),a.jsx(m,{className:"my-3 xl:hidden",children:a.jsx("div",{className:"mx-auto w-full max-w-[960px]",children:a.jsx(u,{})})}),a.jsx(m,{className:"my-3 lg:hidden",children:a.jsx("div",{className:"mx-auto w-full max-w-[960px]",children:a.jsx(O,{})})}),r]}),a.jsx(E,{})]})}const Z=[{path:"",title:"History"},{path:"security",title:"Security"},{path:"verified-build",title:"Verified Build"},{path:"program-multisig",title:"Program Multisig"},{path:"domains",title:"Domains"}];function aa({active:r,address:e}){switch(r){case"":return a.jsx(q,{address:e});case"security":return a.jsx(X,{pmpSecurityTxt:void 0,programAddress:C,programDataSecurityTxt:G});case"verified-build":return a.jsx(Y,{data:c,isLoading:!1,registryInfo:F});case"program-multisig":return a.jsx(W,{data:c});case"domains":return a.jsx($,{domains:U})}}function T({address:r}){const[e,P]=p.useState(""),D=p.useCallback(n=>`/address/${r}/${n}`,[r]),M=p.useCallback(n=>P(n),[]);return a.jsx(m,{variant:"pulled-up",children:a.jsxs(N.Suspense,{fallback:a.jsx(V,{}),children:[a.jsxs("div",{className:"mx-auto w-full max-w-[960px]",children:[a.jsx(I,{address:r,account:H,isTokenInfoLoading:!1}),a.jsx(z,{account:t.account,programAccount:J,programData:t.programData})]}),a.jsx(k,{parsedData:c,address:r}),a.jsx(_,{className:"mb-10 mx-auto w-[min(100%,960px)]",children:a.jsx(m,{children:a.jsx("div",{className:"mx-auto w-full max-w-[960px]",children:a.jsx(R,{tabs:Z,activeValue:e,onTabClick:M,buildHref:D,className:"pt-2"})})})}),a.jsx("div",{className:"mx-auto w-full max-w-[960px]",children:a.jsx(aa,{active:e,address:r})})]})})}const ar={component:T,decorators:[L,y],parameters:{...K,layout:"fullscreen"},title:"Design Slices/program-account/Tab Preview@Media"},l=r=>a.jsx(Q,{children:a.jsx(T,{...r})}),d={address:C},s={args:d,globals:{viewport:{value:"iphonex"}},render:l},o={args:d,globals:{viewport:{value:"ipad"}},render:l},i={args:d,globals:{viewport:{isRotated:!0,value:"ipad"}},render:l};var x,g,f;s.parameters={...s.parameters,docs:{...(x=s.parameters)==null?void 0:x.docs,source:{originalSource:`{
+  args,
+  globals: {
+    viewport: {
+      value: 'iphonex'
+    }
+  },
+  render
+}`,...(f=(g=s.parameters)==null?void 0:g.docs)==null?void 0:f.source}}};var j,b,v;o.parameters={...o.parameters,docs:{...(j=o.parameters)==null?void 0:j.docs,source:{originalSource:`{
+  args,
+  globals: {
+    viewport: {
+      value: 'ipad'
+    }
+  },
+  render
+}`,...(v=(b=o.parameters)==null?void 0:b.docs)==null?void 0:v.source}}};var h,S,w;i.parameters={...i.parameters,docs:{...(h=i.parameters)==null?void 0:h.docs,source:{originalSource:`{
+  args,
+  globals: {
+    viewport: {
+      isRotated: true,
+      value: 'ipad'
+    }
+  },
+  render
+}`,...(w=(S=i.parameters)==null?void 0:S.docs)==null?void 0:w.source}}};const rr=["Mobile","TabletPortrait","TabletLandscape"];export{s as Mobile,i as TabletLandscape,o as TabletPortrait,rr as __namedExportsOrder,ar as default};

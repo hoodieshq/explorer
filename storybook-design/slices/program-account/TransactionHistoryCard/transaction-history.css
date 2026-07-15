@@ -7,6 +7,11 @@
  * outer-space-300 = oklch(70.297% 0.0218 185.24); row divider #282d2b.
  */
 
+/* Width is capped by the caller, not here: on the page the card sits inside the centered
+ * content column (`mx-auto w-full max-w-col`), and the standalone stories wrap it with the
+ * same `withColumnWidth` decorator — so the `col` (960px) token stays the single source and
+ * this card no longer hardcodes its own max-width. */
+
 /* ---- External header (title sits above the card) ------------------------- */
 .transaction-history-card .thc-external-header {
     display: flex;
@@ -19,11 +24,13 @@
 .transaction-history-card .thc-external-header > *:first-child {
     flex: 1;
 }
-/* Size comes from the `text-dk-h3` utility on the element (project font scale). */
+/* Size + metrics mirror the Program Account title (CardTitle as="h3" ui="dashkit"):
+ * text-dk-h3 on the element, with dashkit's compiled heading line-height/tracking. */
 .transaction-history-card .thc-title {
     margin: 0;
     font-weight: 500;
-    line-height: 1.5;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
     color: #fff;
 }
 
@@ -42,9 +49,13 @@
 
 /* ---- Desktop table tweaks ------------------------------------------------ */
 /* Top-align cells so a multi-line Programs list keeps the signature, block and
- * size on the first line (BaseTable defaults to vertical-align: middle). */
+ * size on the first line (BaseTable defaults to vertical-align: middle). The
+ * 24px line-box matches the KeyValue label line-box (`lineBox = 24`) the other
+ * program-account tabs use (Verified Build / Program Multisig / Domains), so a
+ * single-line row lands at the same ~41px height as those cards. */
 .transaction-history-card tbody td {
     vertical-align: top;
+    line-height: 1.5rem;
 }
 
 /* The Programs list gets a small top margin so it lines up with the other
@@ -53,16 +64,26 @@
     min-width: 0;
 }
 
-/* Font scale bumped one dk-step up, overriding the BaseTable / Button primitive
- * defaults purely by selector specificity — no primitive edits. Header dk-xs→dk-sm,
- * body (Signature / Block, inherited) dk-sm→dk-base, and the Size (bytes) Button
- * (primitive text-xs) →dk-base. Explicit dk classes on the Timestamp and Programs
+/* Drop the status badge 4px on every viewport so it sits lower against the signature.
+ * Relative offset (not margin) so the row height is unaffected. */
+.transaction-history-card .tx-status-badge {
+    position: relative;
+    top: 4px;
+}
+
+/* Font scale bumped one Tailwind step up, overriding the BaseTable / Button primitive
+ * defaults purely by selector specificity — no primitive edits. Header →text-sm,
+ * body (Signature / Block, inherited) →text-base, and the Size (bytes) Button
+ * (primitive text-xs) →text-base. Explicit font classes on the Timestamp and Programs
  * spans are bumped at their call sites. */
 .transaction-history-card table {
-    font-size: 0.9375rem; /* dk-base (was dk-sm inherited from the table) */
+    font-size: 0.875rem; /* text-sm (all Transaction History text is text-sm) */
 }
 .transaction-history-card table thead th {
-    font-size: 0.8125rem; /* dk-sm (was dk-xs) */
+    font-size: 0.75rem; /* text-xs (uppercase caption; body stays text-sm) */
+    /* Uppercase caption header with the caption tracking (matches the BaseTable primitive). */
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
     /* Drop the primitive's darker bg-dark-background (#141816) so the header shows
      * the card body bg (#1e2423) — same as the rows. */
     background-color: transparent;
@@ -71,7 +92,7 @@
     color: oklch(70.297% 0.0218 185.24);
 }
 .transaction-history-card .tx-raw-data-cell button {
-    font-size: 0.9375rem; /* dk-base (was the Button primitive's text-xs) */
+    font-size: 0.875rem; /* text-sm (all Transaction History text is text-sm) */
     /* Nudge down 2px so the size sits level with the other top-aligned cells' text. */
     position: relative;
     top: 2px;
@@ -95,18 +116,48 @@
     padding-right: 0.75rem;
 }
 
+/* Desktop only: Timestamp and Programs keep their own text-sm line-height (20px) inside
+ * the 24px cell line-box, so their text sits ~2px above the Signature/Block baseline. Shift
+ * the vertical pad 2px top-heavy (10px/6px — same 16px total, row height unchanged) to drop
+ * them onto the shared baseline. Longhand + the [data-label] attribute out-specificities the
+ * `padding` shorthand above. (Mobile has its own stacked padding + Programs nudge below.) */
+@media (min-width: 768px) {
+    .transaction-history-card tbody td[data-label='Time'] {
+        padding-top: 0.625rem; /* 10px: 2px down */
+        padding-bottom: 0.375rem; /* 6px */
+    }
+    /* Programs sits 1px lower than Timestamp (its list/skeleton renders slightly higher). */
+    .transaction-history-card tbody td[data-label='Programs'] {
+        padding-top: 0.6875rem; /* 11px: 3px down */
+        padding-bottom: 0.3125rem; /* 5px */
+    }
+
+    /* Multi-row program lists: the inter-row gap-1 shifts the last row 4px up, so
+     * add 4px below the list to keep the last-row-to-divider gap uniform. Desktop
+     * only — the mobile stacked layout (< 768px) leaves this off. */
+    .transaction-history-card .thc-instr-multi {
+        padding-bottom: 0.25rem;
+    }
+}
+
 /* Programs render in exactly one place, switching at 992px (Bootstrap lg / the
  * bsLg preset width). Below 992 the trailing Programs column collapses and the
  * programs show under the signature; at 992+ the column shows and the under-sig
  * block hides. Both use the same 992 boundary (max 991.98 / min 992, Bootstrap's
  * complementary pair) so they never overlap — this is intentionally NOT tied to
- * Tailwind `lg`, which is 993px here and desynced from the column. */
-@media (max-width: 991.98px) {
+ * Tailwind `lg`, which is 993px here and desynced from the column.
+ *
+ * TEMPORARY: the desktop "Programs as a trailing column" layout is DISABLED — the
+ * tablet layout (programs stacked under the signature) is used at every viewport
+ * ≥ 768px. The desktop rules are kept intact but gated behind an unreachable
+ * breakpoint; to restore the desktop column, change the two sentinel widths below
+ * (99999.98px / 100000px) back to the original 991.98px / 992px boundary. */
+@media (max-width: 99999.98px) {
     .transaction-history-card .thc-progs-col {
         display: none;
     }
 }
-@media (min-width: 992px) {
+@media (min-width: 100000px) {
     .transaction-history-card .tx-instr-under-sig {
         display: none;
     }
@@ -152,14 +203,35 @@
         width: auto;
     }
 
-    /* Each row becomes a card-like block separated by a divider. */
+    /* RowComparison Variant 4 · Neutral: drop the shared card chrome — each row
+     * becomes its own bordered, rounded card with a small gap between, rather
+     * than one shared panel with divider lines. */
+    .transaction-history-card .thc-card {
+        background-color: transparent;
+        border: 0;
+        box-shadow: none;
+    }
+
     .transaction-history-card tbody tr {
-        padding: 0.75rem 0;
-        border-bottom: 1px solid #282d2b;
+        margin-bottom: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        background-color: #1e2423;
+        /* Match the Program Account block's card outline (border-outer-space-800). */
+        border: 1px solid oklch(33.501% 0.01351 189.14);
+        border-radius: 0.5rem;
         cursor: pointer;
     }
     .transaction-history-card tbody tr:last-child {
-        border-bottom: 0;
+        margin-bottom: 0;
+    }
+
+    /* Rows now read as individual cards, so the footer's divider (meant to
+     * separate it from a shared panel) and its horizontal padding no longer
+     * apply — Load More sits flush under the last row card. */
+    .transaction-history-card .thc-footer {
+        padding-left: 0;
+        padding-right: 0;
+        border-top: 0;
     }
 
     /* One value per line; wrap freely (override table-nowrap), strip cell borders. */
@@ -176,8 +248,8 @@
         display: flex;
         align-items: baseline;
         gap: 0.75rem;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
     /* Let each cell's value column shrink inside the flex row so the Signature
      * measures/truncates within the viewport instead of forcing the row wide. */
@@ -198,7 +270,7 @@
         min-width: 4.5rem;
         flex-shrink: 0;
         white-space: nowrap; /* keep "Size (bytes)" on one line */
-        font-size: 0.8125rem; /* = dk-sm (one step below the values); ::before can't take a utility class */
+        font-size: 0.875rem; /* = text-sm (one step below the values); ::before can't take a utility class */
         line-height: 1.5;
         color: oklch(70.297% 0.0218 185.24);
         text-transform: none;
@@ -212,21 +284,13 @@
         display: none;
     }
 
-    /* The signature and block render as plain (non-navigable) text on mobile, but
-     * keep the app's green link color (#33a382) so the list reads the same. The
-     * Block cell's `::before` caption sets its own color, so it stays muted. */
-    .transaction-history-card .tx-sig-value,
-    .transaction-history-card td[data-label='Block'] .font-mono {
+    /* The signature is a real link (tapping it navigates); keep the app's green
+     * link color (#33a382) but drop the underline so it reads cleanly. The Block
+     * value stays the default text color (no green) since it isn't a link here —
+     * the whole row tap opens the drawer instead. */
+    .transaction-history-card .tx-sig-value {
         color: #33a382;
-    }
-
-    /* Static (read-only) size value: `</>` glyph + byte count. Shrink it to its
-     * content and pin it to the label start like every other value, nudged down
-     * 2px to sit level with the label baseline. */
-    .transaction-history-card td[data-label='Size (bytes)'] > .tx-size-readonly {
-        flex: 0 0 auto;
-        position: relative;
-        top: 2px;
+        text-decoration: none;
     }
 
     /* Programs render as their own stacked row here (the trailing `.thc-progs-col`
@@ -243,49 +307,60 @@
         top: -2px;
     }
 
-    /* Loading skeleton in the Size (bytes) cell. Keep the row's baseline
-     * alignment so the "Size (bytes)" label lines up like every other row.
-     * The skeleton's own `my-1` can't provide the vertical breathing room here:
-     * a bar has no text baseline, so the browser synthesizes one at its
-     * bottom-margin edge, which lifts the bar off the label baseline instead of
-     * spacing the row. Drop that margin and get the spacing from cell padding
-     * (moves label + bar together, preserving their alignment) — the same
-     * padding-driven approach the key-value rows use. */
-    .transaction-history-card td[data-label='Size (bytes)']:has(> .tx-size-skeleton) {
-        padding-top: 0.375rem !important;
-        padding-bottom: 0.375rem !important;
-    }
-    .transaction-history-card td[data-label='Size (bytes)'] > .tx-size-skeleton {
-        /* Left-align: keep the fixed width instead of stretching, and drop the
-         * desktop icon offset (there's no code icon to sit under here). */
-        flex: 0 0 auto;
-        margin: 0;
-        /* Baseline alignment lands the bar a touch high (its bottom sits on the
-         * label baseline); nudge it down ~2px to sit level with the label text. */
+    /* Raise only the Programs *value* 2px on mobile — the label caption keeps its own
+     * baseline (its ::before lift above). Relative offset so nothing reflows. */
+    .transaction-history-card td[data-label='Programs'] .tx-instr-inline {
         position: relative;
-        top: 2px;
+        top: -2px;
     }
-    /* The resolved size button is a flex item too; the shared `flex: 1 1 auto`
-     * rule stretches it full-width, and its `justify-center` base then centers
-     * the "<> 215" content — leaving a large left gap after the label. Shrink it
-     * to its content and pin it to the start so it hugs the label like every
-     * other value. */
-    .transaction-history-card td[data-label='Size (bytes)'] > button {
-        flex: 0 0 auto;
-        justify-content: flex-start;
-        /* Nudge down 2px to sit level with the label baseline (same offset the
-         * loading skeleton uses). */
-        position: relative;
-        top: 2px;
-    }
+
     /* The Programs skeleton is wrapped in `.tx-instr-inline` (a flex item that
      * establishes its own block context), so its `my-1` margins already render
      * normally — no baseline workaround needed. */
+
+    /* Timestamp cell: mobile shows only the absolute timestamp (first line); the
+     * relative-age line is dropped here (the full detail lives in the drawer). */
+    .transaction-history-card .tx-time-rel {
+        display: none;
+    }
 }
 
 /* ---- Transaction drawer: "Copy tx ID" feedback -------------------------- */
 /* Unscoped on purpose: the drawer renders in a Radix portal (document.body),
  * outside `.transaction-history-card`, so these rules can't be nested under it. */
+
+/* Bottom-sheet slide: the drawer slides up from below the viewport when it opens
+ * and slides back down out of view when it closes. Radix keeps the Content mounted
+ * while `data-state="closed"` until the exit animation ends, then unmounts it.
+ *
+ * The Content also carries an inline `transform: translateY(<dragY>px)` for
+ * swipe-to-dismiss. CSS animations sit in a higher cascade origin than inline
+ * author styles, so these keyframes win while running (open/close), and once the
+ * open animation finishes (fill-mode none) the inline transform takes back over
+ * so dragging still works. The close animation uses `forwards` to hold the
+ * off-screen position until Radix unmounts. */
+@keyframes tx-drawer-in {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+@keyframes tx-drawer-out {
+    from {
+        transform: translateY(0);
+    }
+    to {
+        transform: translateY(100%);
+    }
+}
+.tx-drawer[data-state='open'] {
+    animation: tx-drawer-in 0.15s ease-out;
+}
+.tx-drawer[data-state='closed'] {
+    animation: tx-drawer-out 0.125s ease-in forwards;
+}
 
 /* One-shot green blink over the whole tile the moment the copy lands. */
 @keyframes tx-copy-flash {
@@ -300,18 +375,4 @@
 }
 .tx-copy-flash {
     animation: tx-copy-flash 0.6s ease-out;
-}
-
-/* Green badge-style pill sitting only behind the "Copied" label; lingers for
- * the full 2s copied window (the label span is only mounted while copied).
- * The negative block margin cancels the vertical padding (and line-height is
- * left to inherit) so the pill's box matches the plain label — swapping it in
- * doesn't grow the tile and shift the button grid. */
-.tx-copy-badge {
-    display: inline-block;
-    padding: 0.0625rem 0.5rem;
-    margin-block: -0.0625rem;
-    border-radius: 0.375rem;
-    background-color: rgba(29, 215, 155, 0.15);
-    color: #1dd79b;
 }

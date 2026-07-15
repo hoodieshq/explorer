@@ -13,6 +13,7 @@ import { Button } from '@/app/components/shared/ui/button';
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/app/components/shared/ui/dialog';
 import { FetchStatus } from '@/app/providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
+import { RelativeTime } from '@/app/shared/RelativeTime';
 import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
 import { displayTimestampUtc } from '@/app/utils/date';
 import { TransactionInstructionInfo } from '@/app/utils/instruction';
@@ -76,6 +77,49 @@ export function TransactionDetailsDrawer({
         if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
     };
 
+    // Pull-to-close from the scroll region: only when the content is scrolled to
+    // the very top. We arm on pointer-down at scrollTop 0, but don't take over
+    // the gesture until we actually see downward movement — otherwise native
+    // vertical scroll keeps working. An upward move (or any non-top scroll)
+    // abandons the drag and hands the gesture back to the scroller.
+    const scrollRef = useRef<HTMLDivElement | null>(null);
+
+    // Edge fades: ramp in a gradient at whichever end has hidden content, so it
+    // vanishes softly instead of at a hard edge. The top fade tracks scroll
+    // distance from the top; the bottom fade tracks distance from the bottom, so
+    // it shows while more content lies below and eases out on reaching the end.
+    // Each ramps over the first/last 24px.
+    const [topFade, setTopFade] = useState(0);
+    const [bottomFade, setBottomFade] = useState(0);
+    const updateFades = () => {
+        const el = scrollRef.current;
+        if (!el) return;
+        setTopFade(Math.min(1, el.scrollTop / 24));
+        const fromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+        setBottomFade(Math.min(1, fromBottom / 24));
+    };
+
+    const handleContentDragStart = (e: React.PointerEvent) => {
+        if ((scrollRef.current?.scrollTop ?? 0) > 0) return;
+        dragStartY.current = e.clientY;
+    };
+    const handleContentDragMove = (e: React.PointerEvent) => {
+        if (dragStartY.current === null) return;
+        const delta = e.clientY - dragStartY.current;
+        if (!dragging) {
+            // Begin a sheet-drag only on downward movement while still at the top.
+            if (delta > 0 && (scrollRef.current?.scrollTop ?? 0) <= 0) {
+                setDragging(true);
+                e.currentTarget.setPointerCapture(e.pointerId);
+            } else {
+                // Upward, or the content has scrolled — let native scroll take over.
+                dragStartY.current = null;
+                return;
+            }
+        }
+        setDragY(Math.max(0, delta));
+    };
+
     // Raw-data lazy-fetch: when the drawer opens, kick off the request if we
     // don't already have the bytes cached.
     const fetchRaw = useFetchRawTransaction();
@@ -87,55 +131,138 @@ export function TransactionDetailsDrawer({
         if (open && !transactionData && !rawLoading) fetchRaw(signature);
     }, [open]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Recompute edge fades whenever the drawer opens or its content height can
+    // change (raw bytes / instruction list resolving) — onScroll alone never
+    // fires for these, so the bottom fade would otherwise be stale.
+    useEffect(() => {
+        updateFades();
+    }, [open, transactionData, instructionNames]); // eslint-disable-line react-hooks/exhaustive-deps
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogPortal>
                 <DialogOverlay />
                 {/* Bottom drawer: override Dialog's centred placement. */}
                 <DialogPrimitive.Content
+                    // Don't auto-focus the first focusable element (the copy button) on open.
+                    onOpenAutoFocus={(e) => e.preventDefault()}
                     className="
+                        tx-drawer
                         fixed z-50
                         left-0 right-0 top-auto bottom-0
-                        w-full max-w-none
+                        flex max-h-[85vh] w-full max-w-none flex-col
                         rounded-t-2xl rounded-b-none
                         border-0 border-t border-solid border-dark-border
-                        bg-heavy-metal-900 p-4
+                        bg-heavy-metal-900
                     "
                     style={{
                         transform: `translateY(${dragY}px)`,
                         transition: dragging ? 'none' : 'transform 0.2s ease-out',
                     }}
                 >
-                    {/* Header + signature double as the swipe-to-close grab zone, so the
-                        whole title/signature block is draggable (not just the title label).
-                        Negative margins stretch it to the drawer edges over the p-4 padding. */}
+                    {/* Drag handle: pinned to the top of the drawer, never scrolls. The
+                        entire 28px zone (pt-3 + 4px knob + pb-3) is the swipe-to-close grab
+                        area, so the top of the drawer always closes on a downward drag even
+                        after the content below has been scrolled. */}
                     <div
-                        className="-mx-4 -mt-4 cursor-grab px-4 pt-3"
+                        className="shrink-0 cursor-grab pt-3 pb-3"
                         style={{ touchAction: 'none' }}
                         onPointerDown={handleDragStart}
                         onPointerMove={handleDragMove}
                         onPointerUp={handleDragEnd}
                         onPointerCancel={handleDragEnd}
                     >
-                        <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-outer-space-700" />
-                        <DialogTitle className="!mt-0 text-dk-base !text-outer-space-300">Transaction</DialogTitle>
-
-                        {/* Big signature with the status badge inlined directly after it. */}
-                        <div className="mt-2 text-white">
-                            <span className="break-all font-mono text-dk-h2">{signature}</span>{' '}
-                            <Badge ui="dashkit" tone="soft" variant={statusClass as 'success' | 'warning'}>
-                                {statusText}
-                            </Badge>
-                        </div>
+                        <div className="mx-auto h-1 w-9 rounded-full bg-outer-space-700" />
                     </div>
 
-                    <hr className="mt-3 mb-0 border-0 border-t border-solid border-dark-border" />
+                    {/* Scrollable content region: everything from the "Transaction" label down to
+                        (but not including) the button block. Caps the drawer at 85vh via the
+                        Content's max-h; once the content is taller than the room left after the
+                        pinned handle and fixed button block, this region scrolls. `min-h-0` lets
+                        it shrink below its content height inside the flex column so
+                        `overflow-y-auto` can engage. */}
+                    {/* Relative wrapper so the top-fade overlay can be absolutely
+                        positioned over the scroll region without disturbing the
+                        drawer's own `fixed` placement. */}
+                    <div className="relative flex min-h-0 flex-1 flex-col">
+                    {/* Top fade overlay: sits at the top of the scroll region, pointer-through,
+                        eases in as content scrolls up so it disappears under a soft gradient
+                        instead of a hard edge. */}
+                    <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6"
+                        style={{
+                            opacity: topFade,
+                            transition: 'opacity 0.15s ease-out',
+                            background:
+                                'linear-gradient(to bottom, oklch(21.275% 0.00721 164.22), transparent)',
+                        }}
+                    />
+
+                    {/* Bottom fade overlay: mirror of the top one, sits above the button
+                        block and eases out as the content reaches the end. */}
+                    <div
+                        aria-hidden
+                        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6"
+                        style={{
+                            opacity: bottomFade,
+                            transition: 'opacity 0.15s ease-out',
+                            background:
+                                'linear-gradient(to top, oklch(21.275% 0.00721 164.22), transparent)',
+                        }}
+                    />
+
+                    <div
+                        ref={scrollRef}
+                        className="min-h-0 flex-1 overflow-y-auto px-4 pb-4"
+                        style={{ overscrollBehavior: 'contain' }}
+                        onScroll={updateFades}
+                        onPointerDown={handleContentDragStart}
+                        onPointerMove={handleContentDragMove}
+                        onPointerUp={handleDragEnd}
+                        onPointerCancel={handleDragEnd}
+                    >
+                        <DialogTitle className="!mt-0 text-base !text-outer-space-300">Transaction</DialogTitle>
+
+                        {/* Big signature; the status badge drops to its own line below, with a
+                            copy button pinned to the end of that line and aligned to the bottom. */}
+                        <div className="mt-2 flex items-end gap-4 pb-2 text-white">
+                            <div className="min-w-0 flex-1">
+                                <span className="break-all font-mono text-xl">{signature}</span>
+                                <div className="mt-1">
+                                    <Badge ui="dashkit" tone="soft" variant={statusClass as 'success' | 'warning'}>
+                                        {statusText}
+                                    </Badge>
+                                </div>
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="my-[-4px] border-outer-space-800"
+                                aria-label={copyState === 'copied' ? 'Copied signature' : 'Copy signature'}
+                                onClick={() => copy(signature)}
+                            >
+                                {copyState === 'copied' ? (
+                                    <CheckCircle size={12} className="text-dk-info" />
+                                ) : (
+                                    <Copy size={12} />
+                                )}
+                            </Button>
+                        </div>
+
+                    <hr className="mt-0 mb-0 border-0 border-t border-solid border-dark-border" />
 
                     {/* Property table — each row carries a top border. */}
-                    <div className="flex flex-col text-dk-base">
+                    <div className="flex flex-col text-sm">
                         {blockTime && (
-                            <DrawerRow label="Time">
-                                <span className="text-white">{displayTimestampUtc(blockTime * 1000, true)}</span>
+                            <DrawerRow label="Time" alignTop>
+                                <div className="flex flex-col">
+                                    <span className="text-white">{displayTimestampUtc(blockTime * 1000, true)}</span>
+                                    {/* Relative age (e.g. "about 2 years ago") under the absolute UTC time. */}
+                                    <span className="text-white">
+                                        <RelativeTime date={blockTime * 1000} />
+                                    </span>
+                                </div>
                             </DrawerRow>
                         )}
                         <DrawerRow
@@ -144,7 +271,7 @@ export function TransactionDetailsDrawer({
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="my-[-4px]"
+                                    className="relative top-[1px] my-[-4px] border-outer-space-800"
                                     aria-label={blockCopyState === 'copied' ? 'Copied block number' : 'Copy block number'}
                                     onClick={() => copyBlock(slot.toString())}
                                 >
@@ -156,7 +283,7 @@ export function TransactionDetailsDrawer({
                                 </Button>
                             }
                         >
-                            <Link href={blockPath} className="font-mono text-dk-base">
+                            <Link href={blockPath} className="font-mono text-sm">
                                 {slot.toLocaleString('en-US')}
                             </Link>
                         </DrawerRow>
@@ -171,21 +298,34 @@ export function TransactionDetailsDrawer({
                                 )}
                             </div>
                         </DrawerRow>
-                        <DrawerRow label="Size (bytes)" alignTop>
-                            <RawDataField
-                                data={transactionData}
-                                loading={rawDetails === undefined || rawLoading}
-                                filename={signature}
-                                variant="embedded"
-                            />
-                        </DrawerRow>
+                        {/* No separate "Size (bytes)" label — the raw-data field carries its own
+                            "Size" caption before the byte count. Full-width stacked row. */}
+                        <div className="flex flex-col gap-2 pt-2 pb-1 border-0 border-b border-solid border-dark-border">
+                            <div className="min-w-0 text-white">
+                                <RawDataField
+                                    data={transactionData}
+                                    loading={rawDetails === undefined || rawLoading}
+                                    filename={signature}
+                                    variant="embedded"
+                                    bytesPrefix="Size "
+                                />
+                            </div>
+                        </div>
+                    </div>
+                    </div>
                     </div>
 
-                    {/* Primary action buttons. */}
-                    <div className="mt-5 grid grid-cols-3 gap-2">
+                    {/* Primary action buttons — pinned below the scroll region, never scroll. */}
+                    <div className="grid shrink-0 grid-cols-3 gap-2 px-4 pt-5 pb-4">
                         <ActionTile
-                            icon={<Copy size={18} />}
-                            label={copyState === 'copied' ? 'Copied' : 'Copy tx ID'}
+                            icon={
+                                copyState === 'copied' ? (
+                                    <CheckCircle size={18} className="text-dk-info" />
+                                ) : (
+                                    <Copy size={18} />
+                                )
+                            }
+                            label={copyState === 'copied' ? 'Copied' : 'Copy'}
                             copied={copyState === 'copied'}
                             onClick={() => copy(signature)}
                         />
@@ -242,7 +382,7 @@ function ActionTile({
     const cls = `
         flex flex-col items-center justify-center gap-1
         rounded-md border border-solid
-        px-2 py-3 text-dk-xs
+        px-2 py-3 text-sm
         no-underline transition-colors
         ${
             primary
@@ -251,9 +391,7 @@ function ActionTile({
         }
         ${copied ? 'tx-copy-flash' : ''}
     `;
-    // While copied, the label sits inside a soft-green badge-style pill (no <Badge>
-    // import — the drawer renders in a portal, so the pill is styled via CSS classes).
-    const labelEl = copied ? <span className="tx-copy-badge">{label}</span> : <span>{label}</span>;
+    const labelEl = <span>{label}</span>;
     if (href) {
         return (
             <Link href={href} className={cls}>

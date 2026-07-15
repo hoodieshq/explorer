@@ -1,7 +1,6 @@
 import React from 'react';
 import { ExternalLink } from 'react-feather';
 
-import { Copyable } from '@/app/components/common/Copyable';
 import { cn } from '@/app/components/shared/utils';
 
 /**
@@ -42,17 +41,8 @@ export function ExternalLinkValue({
     );
 }
 
-/** Wrapping code block with a leading copy affordance — for verify commands / PGP blocks. */
-export function CopyableCode({ value }: { value: string }) {
-    return (
-        <div className="flex min-w-0 items-start gap-1.5">
-            <Copyable text={value}>
-                <span />
-            </Copyable>
-            <pre className="mb-0 min-w-0 whitespace-pre-wrap break-words font-mono">{value}</pre>
-        </div>
-    );
-}
+// `CopyableCode` now lives in the isolated slice at ../../CopyableCode/CopyableCode and is
+// imported directly where needed (VerifiedBuildCard) — it is no longer re-exported from here.
 
 /** Vertical list of values (contacts, auditors) — one per line, left aligned. */
 export function StackedList({ mono = true, children }: { mono?: boolean; children: React.ReactNode }) {

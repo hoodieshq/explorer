@@ -17,6 +17,7 @@ export const Single: Story = {
     args: {
         children: <span className="font-mono">TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</span>,
         label: 'Address',
+        row: true,
     },
 };
 
@@ -26,6 +27,7 @@ export const WithIcon: Story = {
     args: {
         children: <span className="font-mono">TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</span>,
         label: 'Address',
+        row: true,
         trailingIcon: <Key />,
     },
 };
@@ -36,19 +38,21 @@ export const Stack: Story = {
     args: { children: null, label: '' },
     render: () => (
         <div className="max-w-3xl rounded-lg border border-solid border-dk-card-outline-dark bg-dk-gray-800-dark">
-            <KeyValue label="Address">
+            {/* `row` on every line keeps label beside value at every width (no mobile stacking);
+                a shared unprefixed labelWidth holds the column on mobile so the values align. */}
+            <KeyValue label="Address" labelWidth="w-44" row>
                 <span className="font-mono">TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</span>
             </KeyValue>
-            <KeyValue label="Balance (SOL)">
+            <KeyValue label="Balance (SOL)" labelWidth="w-44" row>
                 <span className="font-mono">◎5.542247638</span>
             </KeyValue>
-            <KeyValue label="Executable">Yes</KeyValue>
-            <KeyValue label="Verified Build">
+            <KeyValue label="Executable" labelWidth="w-44" row>Yes</KeyValue>
+            <KeyValue label="Verified Build" labelWidth="w-44" row>
                 <span className="rounded bg-dk-warning-on-dark/20 px-2 py-0.5 text-dk-warning-on-dark">
                     Program Not Verified
                 </span>
             </KeyValue>
-            <KeyValue label="Last Deployed Slot">
+            <KeyValue label="Last Deployed Slot" labelWidth="w-44" row>
                 <span className="font-mono">312,456,789</span>
             </KeyValue>
         </div>
@@ -62,10 +66,14 @@ export const TrailingIcon: Story = {
     args: { children: null, label: '' },
     render: () => (
         <div className="max-w-3xl rounded-lg border border-solid border-dk-card-outline-dark bg-dk-gray-800-dark">
-            <KeyValue label="Address" trailingIcon={<HelpCircle />}>
+            {/* `row` keeps label beside value at every width (no mobile stacking), mirroring the
+                real page. Both rows share one unprefixed labelWidth (w-40) so the column width
+                holds on mobile too and the values line up in a single column; the narrow w-40 also
+                wraps the long second label, showing the trailing icon riding its last word. */}
+            <KeyValue label="Address" labelWidth="w-40" row trailingIcon={<HelpCircle />}>
                 <span className="font-mono">TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</span>
             </KeyValue>
-            <KeyValue label="Program Upgrade Authority" labelWidth="sm:w-40" trailingIcon={<HelpCircle />}>
+            <KeyValue label="Program Upgrade Authority" labelWidth="w-40" row trailingIcon={<HelpCircle />}>
                 <span className="font-mono">2wmVCSfPxGPjrnMMn7rchp4uaeoTqN39mXFC2zhPdri9</span>
             </KeyValue>
         </div>
@@ -79,18 +87,18 @@ export const IconsAndEqualWidth: Story = {
     args: { children: null, label: '' },
     render: () => (
         <div className="max-w-3xl rounded-lg border border-solid border-dk-card-outline-dark bg-dk-gray-800-dark">
-            <KeyValue label="Address" trailingIcon={<Key />}>
+            <KeyValue label="Address" labelWidth="w-44" row trailingIcon={<Key />}>
                 <span className="font-mono">TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</span>
             </KeyValue>
-            <KeyValue label="Verified Build" trailingIcon={<CheckCircle />}>
+            <KeyValue label="Verified Build" labelWidth="w-44" row trailingIcon={<CheckCircle />}>
                 <span className="rounded bg-dk-warning-on-dark/20 px-2 py-0.5 text-dk-warning-on-dark">
                     Program Not Verified
                 </span>
             </KeyValue>
-            <KeyValue label="Upgrade Authority" trailingIcon={<HelpCircle />}>
+            <KeyValue label="Upgrade Authority" labelWidth="w-44" row trailingIcon={<HelpCircle />}>
                 <span className="font-mono">2wmVCSfPxGPjrnMMn7rchp4uaeoTqN39mXFC2zhPdri9</span>
             </KeyValue>
-            <KeyValue label="Last Deployed Slot" trailingIcon={<Clock />}>
+            <KeyValue label="Last Deployed Slot" labelWidth="w-44" row trailingIcon={<Clock />}>
                 <span className="font-mono">312,456,789</span>
             </KeyValue>
         </div>
@@ -103,13 +111,13 @@ export const CustomLabelWidth: Story = {
     args: { children: null, label: '' },
     render: () => (
         <div className="max-w-3xl rounded-lg border border-solid border-dk-card-outline-dark bg-dk-gray-800-dark">
-            <KeyValue label="Address" labelWidth="sm:w-80">
+            <KeyValue label="Address" labelWidth="w-80" row>
                 <span className="font-mono">TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</span>
             </KeyValue>
-            <KeyValue label="Program Upgrade Authority" labelWidth="sm:w-80">
+            <KeyValue label="Program Upgrade Authority" labelWidth="w-80" row>
                 <span className="font-mono">2wmVCSfPxGPjrnMMn7rchp4uaeoTqN39mXFC2zhPdri9</span>
             </KeyValue>
-            <KeyValue label="Last Deployed Slot" labelWidth="sm:w-80">
+            <KeyValue label="Last Deployed Slot" labelWidth="w-80" row>
                 <span className="font-mono">312,456,789</span>
             </KeyValue>
         </div>

@@ -22,12 +22,14 @@ import { triggerDownloadText } from '@/app/shared/lib/triggerDownload';
 
 const DEFAULT_ENCODINGS: EncodingFormat[] = ['hex', 'base58', 'base64'];
 
-const DefaultTrigger = React.forwardRef<HTMLButtonElement, { disabled: boolean }>(({ disabled, ...props }, ref) => (
-    <Button ref={ref} variant="outline" size="sm" aria-label="Download" disabled={disabled} {...props}>
-        <Download size={12} />
-        <span className="hidden md:inline">Download</span>
-    </Button>
-));
+const DefaultTrigger = React.forwardRef<HTMLButtonElement, { disabled: boolean; className?: string }>(
+    ({ disabled, className, ...props }, ref) => (
+        <Button ref={ref} variant="outline" size="sm" className={className} aria-label="Download" disabled={disabled} {...props}>
+            <Download size={12} />
+            <span className="hidden md:inline">Download</span>
+        </Button>
+    ),
+);
 DefaultTrigger.displayName = 'DefaultTrigger';
 
 export function DownloadDropdown({
@@ -40,6 +42,7 @@ export function DownloadDropdown({
     onOpenChange,
     onDownload,
     children,
+    triggerClassName,
 }: {
     data: ByteArray | undefined;
     loading?: boolean;
@@ -50,9 +53,10 @@ export function DownloadDropdown({
     onOpenChange?: (open: boolean) => void;
     onDownload?: () => void;
     children?: React.ReactNode;
+    triggerClassName?: string;
 }) {
     if (encodings.length <= 1) {
-        const trigger = children ?? <DefaultTrigger disabled={loading || disabled} />;
+        const trigger = children ?? <DefaultTrigger disabled={loading || disabled} className={triggerClassName} />;
         if (React.isValidElement(trigger)) {
             return React.cloneElement(trigger as React.ReactElement<React.ButtonHTMLAttributes<HTMLButtonElement>>, {
                 onClick: () => {
@@ -68,7 +72,9 @@ export function DownloadDropdown({
 
     return (
         <DropdownMenu onOpenChange={onOpenChange}>
-            <DropdownMenuTrigger asChild>{children ?? <DefaultTrigger disabled={disabled} />}</DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild>
+                {children ?? <DefaultTrigger disabled={disabled} className={triggerClassName} />}
+            </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 {error ? (
                     <DropdownMenuItem disabled>Failed to load data</DropdownMenuItem>

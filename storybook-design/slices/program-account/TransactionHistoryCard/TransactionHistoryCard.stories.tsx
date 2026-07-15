@@ -1,3 +1,4 @@
+import { withColumnWidth } from '@storybook-config/responsive-decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
 import { TransactionHistoryCard } from './TransactionHistoryCard';
@@ -12,8 +13,9 @@ import {
 
 const meta = {
     component: TransactionHistoryCard,
-    // withMockRpc first (safe RPC stubs); per-story decorators supply the providers.
-    decorators: [withMockRpc],
+    // withColumnWidth caps the card at the `col` token (mirrors the page's content column);
+    // withMockRpc supplies safe RPC stubs; per-story decorators supply the providers.
+    decorators: [withColumnWidth, withMockRpc],
     parameters: nextjsParameters,
     title: 'Design Slices/program-account/TransactionHistoryCard',
 } satisfies Meta<typeof TransactionHistoryCard>;

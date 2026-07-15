@@ -1,5 +1,4 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
-import { userEvent, within } from 'storybook/test';
 
 import { RawDataField } from './RawDataField';
 import {
@@ -52,30 +51,4 @@ export const EmbeddedLoading: Story = {
 export const EmbeddedEmpty: Story = {
     args: { data: new Uint8Array(0), filename: MOCK_FILENAME, variant: 'embedded' },
     decorators: [withDrawerFrame],
-};
-
-// ---- Fullscreen mode (opened via the "Full screen" spoiler) ---------------
-
-// Auto-opens the fullscreen dialog so the relocated action bar is visible on load.
-export const Fullscreen: Story = {
-    args: { data: MOCK_DATA_LARGE, filename: MOCK_FILENAME, variant: 'embedded' },
-    decorators: [withDrawerFrame],
-    play: async ({ canvasElement }) => {
-        const canvas = within(canvasElement);
-        const openButton = await canvas.findByRole('button', { name: /full screen/i });
-        await userEvent.click(openButton);
-    },
-};
-
-// Fullscreen with the relocated Hex/Base64 picker expanded over the action bar.
-export const FullscreenFormatPicker: Story = {
-    args: { data: MOCK_DATA_LARGE, filename: MOCK_FILENAME, variant: 'embedded' },
-    decorators: [withDrawerFrame],
-    play: async ({ canvasElement }) => {
-        const canvas = within(canvasElement);
-        await userEvent.click(await canvas.findByRole('button', { name: /full screen/i }));
-        // The dialog renders in a portal on document.body, not inside canvasElement.
-        const body = within(document.body);
-        await userEvent.click(await body.findByRole('button', { name: /change format/i }));
-    },
 };

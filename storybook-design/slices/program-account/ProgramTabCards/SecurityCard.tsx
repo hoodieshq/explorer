@@ -1,8 +1,11 @@
 import React, { useMemo } from 'react';
+import { AlertCircle, Download } from 'react-feather';
 import { ErrorBoundary } from 'react-error-boundary';
 
-import { DownloadableButton } from '@/app/components/common/Downloadable';
 import { Button } from '@/app/components/shared/ui/button';
+import { Alert } from '@/app/shared/ui/Alert';
+import { Logger } from '@/app/shared/lib/logger';
+import { triggerDownload } from '@/app/shared/lib/triggerDownload';
 import { PMP_SECURITY_TXT_KEYS } from '@/app/features/security-txt/lib/constants';
 import type { NeodymeSecurityTXT } from '@/app/features/security-txt/lib/types';
 import { ContactInfo, SecurityTxtVersionBadge } from '@/app/features/security-txt/ui/common';
@@ -17,7 +20,6 @@ import {
 
 import { KeyValue } from '../../key-value/KeyValue';
 import { LABEL_WIDTH } from '../UpgradeableProgramSection/constants';
-import { InfoCard } from './InfoCard';
 import { SectionCard } from './SectionCard';
 import { CodeBlock, ExternalLinkValue, StackedList, TextValue } from './values';
 
@@ -64,22 +66,30 @@ export function ProgramSecurityTxtCard({
                 </>
             }
             headerActions={
-                <Button ui="dashkit" variant="white" size="sm" className="flex" asChild>
-                    <div>
-                        <DownloadableButton
-                            data={downloadData}
-                            filename={`${programAddress}-security-txt.json`}
-                            type="application/json"
-                        >
-                            Download
-                        </DownloadableButton>
-                    </div>
+                // Same trigger as the Program Account Download button (outline / size="sm" →
+                // h-7): icon-only below md, "Download" label at md+. A fixed-height button keeps
+                // the outside header the same height as Program Account — the version badge, being
+                // shorter, no longer dictates the row height.
+                <Button
+                    variant="outline"
+                    size="sm"
+                    aria-label="Download"
+                    onClick={() =>
+                        triggerDownload(downloadData, `${programAddress}-security-txt.json`, {
+                            type: 'application/json',
+                        }).catch(err =>
+                            Logger.error(new Error('Failed to download security.txt', { cause: err })),
+                        )
+                    }
+                >
+                    <Download size={12} />
+                    <span className="hidden md:inline">Download</span>
                 </Button>
             }
             note={
-                <InfoCard variant="warning">
+                <Alert variant="warning" appearance="outlined" icon={<AlertCircle size={16} />}>
                     Note that this is self-reported by the author of the program and might not be accurate
-                </InfoCard>
+                </Alert>
             }
         >
             <ErrorBoundary

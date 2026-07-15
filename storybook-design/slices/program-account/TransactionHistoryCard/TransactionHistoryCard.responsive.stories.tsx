@@ -1,4 +1,4 @@
-import { withViewportFromGlobal } from '@storybook-config/responsive-decorators';
+import { withColumnWidth, withViewportFromGlobal } from '@storybook-config/responsive-decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
 import { TransactionHistoryCard } from './TransactionHistoryCard';
@@ -7,7 +7,7 @@ import { MOCK_PROGRAM_ADDRESS, nextjsParameters, withInstructionData, withMockRp
 const meta = {
     component: TransactionHistoryCard,
     // Resolved programs (withInstructionData) so the mobile stacked layout shows real content.
-    decorators: [withMockRpc, withInstructionData, withViewportFromGlobal],
+    decorators: [withMockRpc, withInstructionData, withViewportFromGlobal, withColumnWidth],
     parameters: nextjsParameters,
     title: 'Design Slices/program-account/TransactionHistoryCard@Media',
 } satisfies Meta<typeof TransactionHistoryCard>;
