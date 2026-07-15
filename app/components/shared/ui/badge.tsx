@@ -5,6 +5,13 @@ import * as React from 'react';
 
 import { cn } from '@/app/components/shared/utils';
 
+// styles.css colors every anchor green (`a { color:#33a382 }`, `a:hover { color:#2b8a6e }`). When a
+// tw badge is itself an anchor (`asChild` → `<a>`) or wraps one, that global rule overrides the
+// variant's own text color on hover — a purple tag would flip to green. Each tw variant below
+// therefore re-asserts its text color for the badge-as-anchor (`[&[href]]:hover:`) and nested-anchor
+// (`[&_a]:` / `[&_a]:hover:`) cases so hovering a tag never shifts its palette. These must stay as
+// full literal class strings: Tailwind v3 scans raw source and won't emit classes assembled at runtime.
+
 // `ui` picks the visual lineage, mirroring BaseCard / BaseTable. `dashkit` emits the raw Bootstrap
 // `.badge` + `.bg-*-soft` / `.bg-*` classes that the rest of the app currently uses so migrations don't
 // change visuals; the dashkit branch + the dashkit-only variant values get deleted once the dashkit
@@ -40,60 +47,120 @@ const badgeVariants = cva([], {
         { class: 'shadow-active', status: 'active', ui: 'tw' },
         // --- tw / tone="original" — the standard Tailwind-palette treatment (default for tw). ---
         {
-            class: 'border-transparent text-neutral-200 [&_a]:text-neutral-200 [&_a]:hover:text-neutral-100',
+            class: 'border-transparent text-neutral-200 [&_a]:text-neutral-200 [&[href]]:hover:text-neutral-200 [&_a]:hover:text-neutral-200',
             tone: 'original',
             ui: 'tw',
             variant: 'default',
         },
-        { class: 'border-transparent bg-destructive text-white', tone: 'original', ui: 'tw', variant: 'destructive' },
+        {
+            class: 'border-transparent bg-destructive text-white [&_a]:text-white [&[href]]:hover:text-white [&_a]:hover:text-white',
+            tone: 'original',
+            ui: 'tw',
+            variant: 'destructive',
+        },
         // Soft counterpart to `destructive` (which is solid red/white) — mirrors the soft
         // treatment success/warning already get, for error states that shouldn't shout.
-        { class: 'border-transparent bg-red-950 text-red-400', tone: 'original', ui: 'tw', variant: 'danger' },
-        { class: 'border-transparent bg-teal-900 text-teal-400', tone: 'original', ui: 'tw', variant: 'info' },
         {
-            class: 'border-transparent bg-neutral-400 text-neutral-800',
+            class: 'border-transparent bg-red-950 text-red-400 [&_a]:text-red-400 [&[href]]:hover:text-red-400 [&_a]:hover:text-red-400',
+            tone: 'original',
+            ui: 'tw',
+            variant: 'danger',
+        },
+        {
+            class: 'border-transparent bg-teal-900 text-teal-400 [&_a]:text-teal-400 [&[href]]:hover:text-teal-400 [&_a]:hover:text-teal-400',
+            tone: 'original',
+            ui: 'tw',
+            variant: 'info',
+        },
+        {
+            class: 'border-transparent bg-neutral-400 text-neutral-800 [&_a]:text-neutral-800 [&[href]]:hover:text-neutral-800 [&_a]:hover:text-neutral-800',
             tone: 'original',
             ui: 'tw',
             variant: 'secondary',
         },
-        { class: 'border-transparent text-green-400 bg-green-900', tone: 'original', ui: 'tw', variant: 'success' },
         {
-            class: 'border-transparent bg-transparent text-neutral-200 [&_a]:text-neutral-200 [&_a]:hover:text-neutral-100',
+            class: 'border-transparent bg-green-900 text-green-400 [&_a]:text-green-400 [&[href]]:hover:text-green-400 [&_a]:hover:text-green-400',
+            tone: 'original',
+            ui: 'tw',
+            variant: 'success',
+        },
+        {
+            class: 'border-transparent bg-transparent text-neutral-200 [&_a]:text-neutral-200 [&[href]]:hover:text-neutral-200 [&_a]:hover:text-neutral-200',
             tone: 'original',
             ui: 'tw',
             variant: 'transparent',
         },
-        { class: 'border-transparent bg-orange-950 text-orange-400', tone: 'original', ui: 'tw', variant: 'warning' },
+        {
+            class: 'border-transparent bg-orange-950 text-orange-400 [&_a]:text-orange-400 [&[href]]:hover:text-orange-400 [&_a]:hover:text-orange-400',
+            tone: 'original',
+            ui: 'tw',
+            variant: 'warning',
+        },
 
         // --- tw / tone="soft" — the dashkit soft palette rebuilt on the clean tw badge.
         // Same hues/values as the ui="dashkit" soft variants, but riding the tw base layout
         // (rounded/px-2/py-0.5/text-xs) instead of the Bootstrap `.badge` sizing. When the
         // dashkit lineage is deleted these carry the soft look forward on pure tw. ---
         {
-            class: 'border-transparent text-neutral-200 [&_a]:text-neutral-200 [&_a]:hover:text-neutral-100',
+            class: 'border-transparent text-neutral-200 [&_a]:text-neutral-200 [&[href]]:hover:text-neutral-200 [&_a]:hover:text-neutral-200',
             tone: 'soft',
             ui: 'tw',
             variant: 'default',
         },
         {
-            class: 'border-transparent bg-[#512965] text-[#b45be1]',
+            class: 'border-transparent bg-[#512965] text-[#b45be1] [&_a]:text-[#b45be1] [&[href]]:hover:text-[#b45be1] [&_a]:hover:text-[#b45be1]',
             tone: 'soft',
             ui: 'tw',
             variant: 'destructive',
         },
-        { class: 'border-transparent bg-[#512965] text-[#b45be1]', tone: 'soft', ui: 'tw', variant: 'danger' },
-        { class: 'border-transparent bg-[#1e5159] text-[#43b5c5]', tone: 'soft', ui: 'tw', variant: 'info' },
-        { class: 'border-transparent bg-[#2f3c3b] text-[#698582]', tone: 'soft', ui: 'tw', variant: 'secondary' },
-        { class: 'border-transparent bg-[#3c5352] text-[#86b8b6]', tone: 'soft', ui: 'tw', variant: 'gray' },
-        { class: 'border-transparent bg-[#0c231c] text-[#1b4e3f]', tone: 'soft', ui: 'tw', variant: 'dark' },
-        { class: 'border-transparent bg-[#116939] text-[#26e97e]', tone: 'soft', ui: 'tw', variant: 'success' },
         {
-            class: 'border-transparent bg-transparent text-neutral-200 [&_a]:text-neutral-200 [&_a]:hover:text-neutral-100',
+            class: 'border-transparent bg-[#512965] text-[#b45be1] [&_a]:text-[#b45be1] [&[href]]:hover:text-[#b45be1] [&_a]:hover:text-[#b45be1]',
+            tone: 'soft',
+            ui: 'tw',
+            variant: 'danger',
+        },
+        {
+            class: 'border-transparent bg-[#1e5159] text-[#43b5c5] [&_a]:text-[#43b5c5] [&[href]]:hover:text-[#43b5c5] [&_a]:hover:text-[#43b5c5]',
+            tone: 'soft',
+            ui: 'tw',
+            variant: 'info',
+        },
+        {
+            class: 'border-transparent bg-[#2f3c3b] text-[#698582] [&_a]:text-[#698582] [&[href]]:hover:text-[#698582] [&_a]:hover:text-[#698582]',
+            tone: 'soft',
+            ui: 'tw',
+            variant: 'secondary',
+        },
+        {
+            class: 'border-transparent bg-[#3c5352] text-[#86b8b6] [&_a]:text-[#86b8b6] [&[href]]:hover:text-[#86b8b6] [&_a]:hover:text-[#86b8b6]',
+            tone: 'soft',
+            ui: 'tw',
+            variant: 'gray',
+        },
+        {
+            class: 'border-transparent bg-[#0c231c] text-[#1b4e3f] [&_a]:text-[#1b4e3f] [&[href]]:hover:text-[#1b4e3f] [&_a]:hover:text-[#1b4e3f]',
+            tone: 'soft',
+            ui: 'tw',
+            variant: 'dark',
+        },
+        {
+            class: 'border-transparent bg-[#116939] text-[#26e97e] [&_a]:text-[#26e97e] [&[href]]:hover:text-[#26e97e] [&_a]:hover:text-[#26e97e]',
+            tone: 'soft',
+            ui: 'tw',
+            variant: 'success',
+        },
+        {
+            class: 'border-transparent bg-transparent text-neutral-200 [&_a]:text-neutral-200 [&[href]]:hover:text-neutral-200 [&_a]:hover:text-neutral-200',
             tone: 'soft',
             ui: 'tw',
             variant: 'transparent',
         },
-        { class: 'border-transparent bg-[#712c71] text-[#fa62fc]', tone: 'soft', ui: 'tw', variant: 'warning' },
+        {
+            class: 'border-transparent bg-[#712c71] text-[#fa62fc] [&_a]:text-[#fa62fc] [&[href]]:hover:text-[#fa62fc] [&_a]:hover:text-[#fa62fc]',
+            tone: 'soft',
+            ui: 'tw',
+            variant: 'warning',
+        },
 
         // ===== ui="dashkit" =====
         // Base `.badge` layout, matching dashkit `_badge.scss` + Bootstrap `.badge`:
