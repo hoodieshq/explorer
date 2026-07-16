@@ -60,7 +60,7 @@ export type IdlMetaClient<T extends SupportedIdlInput = SupportedIdl> = {
 /**
  * Parsed-data client over one IDL. Decode results narrow statically to the IDL's standard;
  * handler-map overloads let consumers declare outcomes instead of branching; {@link getDecodedData}
- * payload types derive from the IDL type (literal documents infer, wide runtime documents degrade
+ * payload types derive from the IDL type (literal IDLs infer, wide runtime IDLs degrade
  * to `unknown` — declare the shape per call in that case).
  */
 export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClient<T> & {
@@ -85,21 +85,35 @@ export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClien
         <R>(data: ReadonlyUint8Array, handlers: AccountHandlers<T, R>): R;
     };
     /**
-     * {@link decodeAccount} + {@link getDecodedData} in one error-first step; a mismatched `expectedKind`
-     * is an error. `TData` defaults to the payload inferred from the IDL's TYPE: `as const` roots and
-     * anchor satellite types infer automatically (pick one account via `AccountsDataOf<typeof idl>['name']`);
-     * runtime-fetched (wide) IDLs give `unknown` — claim `TData` per call, or reuse a renderers-js type
-     * through `AsDecoded<T>`.
+     * {@link decodeAccount} + {@link getDecodedData} in one error-first step — same contract as
+     * {@link decodeInstructionData}. `TData` defaults to the payload inferred from the IDL's TYPE:
+     * `as const` roots and anchor satellite types infer automatically (pick one account via
+     * `AccountsDataOf<typeof idl>['name']`); runtime-fetched (wide) IDLs give `unknown` — claim
+     * `TData` per call, or reuse a renderers-js type through `AsDecoded<T>`.
+     *
+     * @example // `expectedKind` asserts the arm — a decode landing elsewhere becomes the error, never the wrong-arm payload
+     * const [error, account] = client.decodeAccountData<{ authority: string }>(bytes, IdlStandard.Codama);
+     * if (isIdlError(error, IDL_ERROR__DECODE_KIND_MISMATCH)) {
+     *     error.context; // { expected: IdlStandard.Codama, received: 'anchor' | 'unknown' } — what it got instead
+     * }
      */
     decodeAccountData: <TData = AccountDataOf<T>>(
         data: ReadonlyUint8Array,
         expectedKind?: IdlStandard,
     ) => Result<TData>;
     /**
-     * {@link decodeInstruction} + {@link getDecodedData} in one error-first step; a mismatched `expectedKind`
-     * is an error. `TData` defaults to the payload inferred from the IDL's TYPE (a union — one member per
-     * declared instruction): `as const` roots and anchor satellite types infer automatically;
-     * runtime-fetched (wide) IDLs give `unknown` — claim `TData` per call.
+     * {@link decodeInstruction} + {@link getDecodedData} in one error-first step — prefer this route
+     * for the common "decode and read the payload" case; the two-step {@link decodeInstruction} is
+     * for when the arm, kind, or raw errors matter. `TData` defaults to the payload inferred from
+     * the IDL's TYPE (a union — one member per declared instruction): `as const` roots and anchor
+     * satellite types infer automatically; runtime-fetched (wide) IDLs give `unknown` — claim
+     * `TData` per call.
+     *
+     * @example // error-first: a miss or pipeline failure lands in the error slot — branch, never catch
+     * const [error, args] = client.decodeInstructionData<{ amount: bigint }>(ix);
+     * if (!error) {
+     *     args.amount; // typed inside the happy branch — no narrowing ceremony
+     * }
      */
     decodeInstructionData: <TData = InstructionDataOf<T>>(ix: Instruction, expectedKind?: IdlStandard) => Result<TData>;
     /** Decoded payload typed from the IDL; `undefined` only for the unknown arm — narrowing `decode.kind` first drops it. */

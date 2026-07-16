@@ -82,36 +82,6 @@ import { codamaProvider } from '@explorer/idl/codama';
 const same: IdlClient = createIdlClient(idl, { provider: codamaProvider() });
 ```
 
-## One-step data access
-
-Prefer the one-step helpers for the common "decode and read the payload" case:
-`decodeInstructionData` / `decodeAccountData` collapse decode and payload into a single error-first
-result — no arm to narrow, just the data or an error. The two-step `decodeInstruction` /
-`decodeAccount` primitives ([below](#decoding-instructions)) are for when you need the arm, kind, or
-raw errors instead.
-
-```ts
-const [error, args] = client.decodeInstructionData<{ amount: bigint }>(instruction);
-// error → a miss or pipeline failure; branch on it instead of throwing, never a crash
-if (!error) {
-    args.amount; // typed inside the happy branch — no narrowing ceremony
-}
-```
-
-Passing a second argument asserts the arm you expect. If the decode lands on a *different* arm, you
-get an `IDL_ERROR__DECODE_KIND_MISMATCH` in the error slot instead of the data — the assertion never
-returns the wrong-arm payload:
-
-```ts
-import { IDL_ERROR__DECODE_KIND_MISMATCH, IdlStandard, isIdlError } from '@explorer/idl';
-
-// require the codama arm; an anchor- or unknown-arm result becomes an error
-const [error, account] = client.decodeAccountData<{ authority: string }>(accountData, IdlStandard.Codama);
-if (isIdlError(error, IDL_ERROR__DECODE_KIND_MISMATCH)) {
-    error.context; // { expected: IdlStandard.Codama, received: 'anchor' | 'unknown' } — what it got instead
-}
-```
-
 ## Decoding instructions
 
 The two-step primitive behind `decodeInstructionData` — decode to a discriminated result, then read
@@ -306,7 +276,7 @@ standards.
 ## Anchor IDLs
 
 Anchor IDLs go through the same client — the codama engine runs nodes-from-anchor to convert
-the document to a Codama root before decoding, so a successful decode lands on the codama arm:
+the IDL to a Codama root before decoding, so a successful decode lands on the codama arm:
 
 ```ts
 import anchorIdl from './target/idl/my_program.json';
@@ -322,7 +292,7 @@ To run that conversion yourself — to catch a nodes-from-anchor failure explici
 import { convertToCodama } from '@explorer/idl/anchor';
 
 const [error, root] = convertToCodama(anchorIdl); // nodes-from-anchor
-// error → IDL_ERROR__IDL_PARSE_FAILED (the document could not be converted); handle it as a value
+// error → IDL_ERROR__IDL_PARSE_FAILED (the IDL could not be converted); handle it as a value
 if (!error) {
     const client = createIdlClient(root); // root is already a Codama IDL
 }
