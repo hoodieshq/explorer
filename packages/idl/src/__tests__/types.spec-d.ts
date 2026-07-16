@@ -10,6 +10,7 @@ import {
     isAnchorStandard,
     isCodamaStandard,
     tryCreateIdlClient,
+    type TryCreateIdlErrorCode,
     tryCreateIdlMetaClient,
 } from '../client';
 import { codamaProvider } from '../codama/index';
@@ -265,13 +266,16 @@ describe('decoder payload inference', () => {
 
 describe('tryCreateIdlClient inference', () => {
     it('should return an error-first result declaring the failure codes it can produce', () => {
-        // unsupported format, plus the legacy route's conversion failure / missing program address
-        type CreateErrorCode =
+        // the explicit member pin — widening TryCreateIdlErrorCode must fail here, not silently propagate
+        expectTypeOf<TryCreateIdlErrorCode>().toEqualTypeOf<
             | typeof IDL_ERROR__IDL_PARSE_FAILED
             | typeof IDL_ERROR__PROGRAM_ADDRESS_REQUIRED
-            | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT;
-        expectTypeOf(tryCreateIdlClient({} as unknown)).toEqualTypeOf<Result<IdlClient, CreateErrorCode>>();
-        expectTypeOf(tryCreateIdlMetaClient({} as unknown)).toEqualTypeOf<Result<IdlMetaClient, CreateErrorCode>>();
+            | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT
+        >();
+        expectTypeOf(tryCreateIdlClient({} as unknown)).toEqualTypeOf<Result<IdlClient, TryCreateIdlErrorCode>>();
+        expectTypeOf(tryCreateIdlMetaClient({} as unknown)).toEqualTypeOf<
+            Result<IdlMetaClient, TryCreateIdlErrorCode>
+        >();
     });
 
     it('should narrow the tuple by checking the error slot', () => {
@@ -279,11 +283,7 @@ describe('tryCreateIdlClient inference', () => {
         if (error === undefined) {
             expectTypeOf(client).toEqualTypeOf<IdlClient>();
         } else {
-            expectTypeOf(error.code).toEqualTypeOf<
-                | typeof IDL_ERROR__IDL_PARSE_FAILED
-                | typeof IDL_ERROR__PROGRAM_ADDRESS_REQUIRED
-                | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT
-            >();
+            expectTypeOf(error.code).toEqualTypeOf<TryCreateIdlErrorCode>();
             expectTypeOf(client).toEqualTypeOf<undefined>();
         }
     });

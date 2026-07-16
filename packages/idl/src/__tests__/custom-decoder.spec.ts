@@ -1,11 +1,11 @@
 // The consumer-owned decoder route for legacy IDLs — the escape for consumers who skip the
-// client's convert-at-creation path (create-client.spec.ts) or hold IDLs conversion cannot handle.
+// client's convert-at-creation path (legacy-anchor/create-client.spec.ts) or hold IDLs conversion cannot handle.
 import type { Instruction } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 
-import { isLegacyAnchorIdl } from '../../detect';
-import type { AnchorV00Idl } from '../../types';
-import { loadNtt029Idl, NTT_TRANSFER_BURN_DISCRIMINATOR, ntt029TransferIx } from '../fixtures';
+import { isLegacyAnchorIdl } from '../detect';
+import type { AnchorV00Idl } from '../types';
+import { loadNtt029Idl, NTT_TRANSFER_BURN_DISCRIMINATOR, ntt029TransferIx } from './fixtures';
 
 describe('legacy Anchor custom decoder route', () => {
     it('should route the document to a consumer-owned decoder via the guard', () => {

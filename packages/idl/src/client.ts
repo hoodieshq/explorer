@@ -60,6 +60,9 @@ export type IdlMetaClientOptions = {
 
 type LegacyNormalizeErrorCode = typeof IDL_ERROR__IDL_PARSE_FAILED | typeof IDL_ERROR__PROGRAM_ADDRESS_REQUIRED;
 
+/** Every code the untrusted create routes can return: unsupported format, plus the legacy route's conversion failure / missing address. */
+export type TryCreateIdlErrorCode = LegacyNormalizeErrorCode | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT;
+
 /** Convert a legacy IDL and resolve its program address — the client contract requires one. */
 function tryNormalizeLegacyIdl(
     idl: AnchorV00Idl,
@@ -291,10 +294,7 @@ export function createIdlClient<T extends SupportedIdlInput>(
 }
 
 /** Detect and wrap untrusted input — error-first result instead of a throw. */
-export function tryCreateIdlClient(
-    idl: unknown,
-    options?: IdlClientOptions,
-): Result<IdlClient, LegacyNormalizeErrorCode | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> {
+export function tryCreateIdlClient(idl: unknown, options?: IdlClientOptions): Result<IdlClient, TryCreateIdlErrorCode> {
     if (isLegacyAnchorIdl(idl)) {
         const [error, root] = tryNormalizeLegacyIdl(idl, options?.programAddress);
         if (error) return err(error);
@@ -308,7 +308,7 @@ export function tryCreateIdlClient(
 export function tryCreateIdlMetaClient(
     idl: unknown,
     options?: IdlMetaClientOptions,
-): Result<IdlMetaClient, LegacyNormalizeErrorCode | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> {
+): Result<IdlMetaClient, TryCreateIdlErrorCode> {
     if (isLegacyAnchorIdl(idl)) {
         const [error, root] = tryNormalizeLegacyIdl(idl, options?.programAddress);
         if (error) return err(error);

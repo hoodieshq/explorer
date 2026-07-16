@@ -11,6 +11,7 @@ export {
     isAnchorStandard,
     isCodamaStandard,
     tryCreateIdlClient,
+    type TryCreateIdlErrorCode,
     tryCreateIdlMetaClient,
 } from './client.js';
 export {

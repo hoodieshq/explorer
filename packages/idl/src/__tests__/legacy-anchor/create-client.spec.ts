@@ -4,9 +4,17 @@ import { address, type Instruction } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 
 import { createIdlClient, createIdlMetaClient, tryCreateIdlClient, tryCreateIdlMetaClient } from '../../client';
+import { isAnchorIdl, isLegacyAnchorIdl, isSupportedIdl } from '../../detect';
 import { IDL_ERROR__IDL_PARSE_FAILED, IDL_ERROR__PROGRAM_ADDRESS_REQUIRED, isIdlError } from '../../errors';
 import { IdlStandard } from '../../types';
-import { loadNtt029Idl, NTT_PROGRAM_ADDRESS, NTT_TRANSFER_BURN_DISCRIMINATOR, u64le } from '../fixtures';
+import {
+    loadNtt029Idl,
+    loadSimpleIdl,
+    loadTokenkegIdl,
+    NTT_PROGRAM_ADDRESS,
+    NTT_TRANSFER_BURN_DISCRIMINATOR,
+    u64le,
+} from '../fixtures';
 
 /** A complete transferBurn instruction: TransferArgs{amount 42, chain 1, 32-byte recipient, no queue}. */
 const transferBurnIx: Instruction & { accounts: []; data: Uint8Array } = {
@@ -24,6 +32,24 @@ const transferBurnIx: Instruction & { accounts: []; data: Uint8Array } = {
 
 // legacy IDLs from `anchor build` carry no metadata.address — the option supplies it
 const withAddress = { programAddress: NTT_PROGRAM_ADDRESS };
+
+describe('isLegacyAnchorIdl', () => {
+    it('should recognize a real anchor-0.29 IDL (wormhole NTT) as legacy, not supported', () => {
+        const ntt = loadNtt029Idl();
+        expect(isLegacyAnchorIdl(ntt)).toBe(true);
+        expect(isAnchorIdl(ntt)).toBe(false);
+        expect(isSupportedIdl(ntt)).toBe(false);
+    });
+
+    it('should reject both supported standards', () => {
+        expect(isLegacyAnchorIdl(loadSimpleIdl())).toBe(false);
+        expect(isLegacyAnchorIdl(loadTokenkegIdl())).toBe(false);
+    });
+
+    it.each([null, undefined, 42, 'idl', {}, []])('should reject non-IDL input %#', value => {
+        expect(isLegacyAnchorIdl(value)).toBe(false);
+    });
+});
 
 describe('createIdlClient over a legacy IDL', () => {
     it('should decode through the internally converted root on the codama arm', () => {
