@@ -11,6 +11,7 @@ export const IDL_ERROR__MISSING_DECODE_HANDLER = 7;
 export const IDL_ERROR__DECODE_UNIMPLEMENTED = 8;
 export const IDL_ERROR__DECODE_KIND_MISMATCH = 9;
 export const IDL_ERROR__IDL_NOT_FOUND = 10;
+export const IDL_ERROR__PROGRAM_ADDRESS_REQUIRED = 11;
 
 export type IdlErrorCode =
     | typeof IDL_ERROR__ACCOUNT_DECODE_FAILED
@@ -22,6 +23,7 @@ export type IdlErrorCode =
     | typeof IDL_ERROR__IDL_PARSE_FAILED
     | typeof IDL_ERROR__INSTRUCTION_DECODE_FAILED
     | typeof IDL_ERROR__MISSING_DECODE_HANDLER
+    | typeof IDL_ERROR__PROGRAM_ADDRESS_REQUIRED
     | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT;
 
 type DefaultUnspecifiedErrorContextToUndefined<T> = {
@@ -38,6 +40,7 @@ export type IdlErrorContext = DefaultUnspecifiedErrorContextToUndefined<{
     [IDL_ERROR__IDL_PARSE_FAILED]: { operation: string };
     [IDL_ERROR__INSTRUCTION_DECODE_FAILED]: { programAddress: string; standard: IdlStandard };
     [IDL_ERROR__MISSING_DECODE_HANDLER]: { kind: string };
+    [IDL_ERROR__PROGRAM_ADDRESS_REQUIRED]: { programName?: string };
 }>;
 
 const IDL_ERROR_MESSAGES: Readonly<{ [P in IdlErrorCode]: (context: IdlErrorContext[P]) => string }> = {
@@ -54,6 +57,8 @@ const IDL_ERROR_MESSAGES: Readonly<{ [P in IdlErrorCode]: (context: IdlErrorCont
     [IDL_ERROR__INSTRUCTION_DECODE_FAILED]: c =>
         `could not decode instruction data for program ${c.programAddress} with the ${c.standard} IDL`,
     [IDL_ERROR__MISSING_DECODE_HANDLER]: c => `no handler declared for decode kind '${c.kind}'`,
+    [IDL_ERROR__PROGRAM_ADDRESS_REQUIRED]: c =>
+        `the legacy IDL${c.programName ? ` for ${c.programName}` : ''} declares no program address — pass options.programAddress`,
     [IDL_ERROR__UNSUPPORTED_IDL_FORMAT]: () => 'IDL is neither a Codama root node nor a modern (>= 0.30) Anchor IDL',
 };
 
