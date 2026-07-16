@@ -160,10 +160,9 @@ export type InstructionDataOf<T extends SupportedIdlInput> = T extends AnchorIdl
       : unknown;
 
 /**
- * Decoded account payloads keyed by account name — pick one member without structural guessing:
- * `AccountsDataOf<typeof idl>['config']`. Works for literal (`as const`) codama roots only; wide
- * runtime IDLs degrade to `unknown`. The shapes mirror what the parser RETURNS (see `AsDecoded`
- * for the codec-view differences: pubkey → string, bytes → [encoding, data], scalar enum → index).
+ * Decoded account payloads keyed by account name — `AccountsDataOf<typeof idl>['config']`. Literal
+ * (`as const`) codama roots only; wide runtime IDLs degrade to `unknown`. Shapes mirror what the
+ * parser RETURNS (see `AsDecoded` for the codec-view differences).
  */
 export type AccountsDataOf<T extends SupportedIdlInput> = T extends { program: { accounts: readonly (infer A)[] } }
     ? IsLiteralName<A extends { name: infer N } ? N : never> extends true

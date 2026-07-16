@@ -87,22 +87,22 @@ export type IdlMetaClient<T extends SupportedIdlInput = SupportedIdl> = {
 };
 
 /**
- * Parsed-data client over one IDL. Decode results narrow statically to the IDL's standard;
- * handler-map overloads let consumers declare outcomes instead of branching; {@link getDecodedData}
- * payload types derive from the IDL type (literal IDLs infer, wide runtime IDLs degrade
- * to `unknown` — declare the shape per call in that case).
+ * Parsed-data client over one IDL — decode results narrow statically to the IDL's standard, and
+ * payload types derive from the IDL type (literal IDLs infer; wide runtime IDLs give `unknown`).
  */
 export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClient<T> & {
     /**
-     * Two-step decode: the full decode envelope, discriminated by arm. Pipe through `unwrap`
-     * to get the payload plus `node` — the matched schema (for runtime schema-driven consumers).
+     * Two-step decode — the full envelope, discriminated by arm; pipe through `unwrap` for the
+     * payload plus the matched schema `node`.
      *
-     * @example // pair the schema with the typed payload — {@link getDecodedData} keeps the client's inference
+     * @example Pair the schema with the typed payload — {@link getDecodedData} keeps the client's inference
+     * ```ts
      * const decode = client.decodeInstruction(ix);
      * if (decode.kind === IdlStandard.Codama) {
      *     const { node } = unwrap(decode); // InstructionNode — render by schema
      *     const data = client.getDecodedData(decode); // payload typed from the IDL
      * }
+     * ```
      */
     decodeInstruction: {
         (ix: Instruction): InstructionDecodeFor<T>;
@@ -115,34 +115,33 @@ export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClien
     };
     /**
      * {@link decodeAccount} + {@link getDecodedData} in one error-first step — same contract as
-     * {@link decodeInstructionData}. `TData` defaults to the payload inferred from the IDL's TYPE:
-     * `as const` roots and anchor satellite types infer automatically (pick one account via
-     * `AccountsDataOf<typeof idl>['name']`); runtime-fetched (wide) IDLs give `unknown` — claim
-     * `TData` per call, or reuse a renderers-js type through `AsDecoded<T>`.
+     * {@link decodeInstructionData}. `TData` defaults to the account payload inferred from the IDL's
+     * type (pick one via `AccountsDataOf<typeof idl>['name']`, or bridge a renderers-js type with `AsDecoded<T>`).
      *
-     * @example // `expectedKind` asserts the arm — a decode landing elsewhere becomes the error, never the wrong-arm payload
+     * @example `expectedKind` asserts the arm — a decode landing elsewhere becomes the error, never the wrong-arm payload
+     * ```ts
      * const [error, account] = client.decodeAccountData<{ authority: string }>(bytes, IdlStandard.Codama);
      * if (isIdlError(error, IDL_ERROR__DECODE_KIND_MISMATCH)) {
      *     error.context; // { expected: IdlStandard.Codama, received: 'anchor' } — an unknown-arm decode becomes the decode-failed error instead, never a mismatch
      * }
+     * ```
      */
     decodeAccountData: <TData = AccountDataOf<T>>(
         data: ReadonlyUint8Array,
         expectedKind?: IdlStandard,
     ) => Result<TData>;
     /**
-     * {@link decodeInstruction} + {@link getDecodedData} in one error-first step — prefer this route
-     * for the common "decode and read the payload" case; the two-step {@link decodeInstruction} is
-     * for when the arm, kind, or raw errors matter. `TData` defaults to the payload inferred from
-     * the IDL's TYPE (a union — one member per declared instruction): `as const` roots and anchor
-     * satellite types infer automatically; runtime-fetched (wide) IDLs give `unknown` — claim
-     * `TData` per call.
+     * {@link decodeInstruction} + {@link getDecodedData} in one error-first step — the preferred
+     * route when only the payload matters. `TData` defaults to the instruction-payload union
+     * inferred from the IDL's type.
      *
-     * @example // error-first: a miss or pipeline failure lands in the error slot — branch, never catch
+     * @example Error-first — a miss or pipeline failure lands in the error slot; branch, never catch
+     * ```ts
      * const [error, args] = client.decodeInstructionData<{ amount: bigint }>(ix);
      * if (!error) {
      *     args.amount; // typed inside the happy branch — no narrowing ceremony
      * }
+     * ```
      */
     decodeInstructionData: <TData = InstructionDataOf<T>>(ix: Instruction, expectedKind?: IdlStandard) => Result<TData>;
     /** Decoded payload typed from the IDL; `undefined` only for the unknown arm — narrowing `decode.kind` first drops it. */
@@ -155,10 +154,9 @@ export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClien
 };
 
 /**
- * Names-and-metadata client for a known-supported IDL — no decode surface, no engine involved;
- * throws on a value that fails runtime detection (lying type) — use {@link tryCreateIdlMetaClient}
- * for untrusted input. Legacy (pre-0.30) input converts at creation — its metainfo (and the
- * sha256-derived discriminators the name table needs) only exists on the converted root.
+ * Names-and-metadata client — no decode surface, no engine; throws on a lying type (use
+ * {@link tryCreateIdlMetaClient} for untrusted input). Legacy (pre-0.30) input converts at
+ * creation — the name table needs the converted root's derived discriminators.
  */
 export function createIdlMetaClient(idl: AnchorV00Idl, options?: IdlMetaClientOptions): IdlMetaClient<CodamaIdl>;
 export function createIdlMetaClient<T extends SupportedIdlInput>(
@@ -180,11 +178,9 @@ export function createIdlMetaClient<T extends SupportedIdlInput>(
 }
 
 /**
- * Client for a known-supported IDL; throws on a value that fails runtime detection (lying type) —
- * use {@link tryCreateIdlClient} for untrusted input. Decodes with the codama engine unless
- * `options.provider` swaps it. Assumes the IDL is not mutated after construction
- * (the instruction name table is precomputed). Legacy (pre-0.30) input converts at creation and
- * yields a codama client — pass `options.programAddress` when the IDL declares no address.
+ * Client for a known-supported IDL; throws on a lying type (use {@link tryCreateIdlClient} for
+ * untrusted input) and assumes the IDL is not mutated after construction. Legacy (pre-0.30) input
+ * converts at creation — pass `options.programAddress` when the IDL declares no address.
  */
 export function createIdlClient(idl: AnchorV00Idl, options?: IdlClientOptions): IdlClient<CodamaIdl>;
 export function createIdlClient<T extends SupportedIdlInput>(idl: T, options?: IdlClientOptions): IdlClient<T>;

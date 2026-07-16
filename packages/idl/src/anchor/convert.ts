@@ -5,10 +5,8 @@ import { err, IDL_ERROR__IDL_PARSE_FAILED, IdlError, ok, type Result } from '../
 import type { AnchorV00Idl, AnchorV01Idl, CodamaIdl } from '../types.js';
 
 /**
- * The recommended conversion of an Anchor IDL — modern or legacy pre-0.30 — into the Codama model
- * (nodes-from-anchor handles both shapes). Error-first result — conversion fails for IDLs the
- * converter does not understand (route those to an injected fallback decoder). Legacy conversions
- * come back with an empty program address — inject it from context.
+ * Convert an Anchor IDL — modern or legacy pre-0.30 — into the Codama model (nodes-from-anchor).
+ * Error-first; legacy conversions come back with an empty program address — inject it from context.
  */
 export function convertToCodama(
     idl: AnchorV00Idl | AnchorV01Idl,

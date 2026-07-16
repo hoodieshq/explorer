@@ -1,6 +1,6 @@
 import type { parseAccountData, parseInstruction } from '@codama/dynamic-parsers';
 import type { Idl } from '@coral-xyz/anchor';
-import type { Instruction, ReadonlyUint8Array } from '@solana/kit';
+import type { GetAccountInfoApi, Instruction, ReadonlyUint8Array, Rpc } from '@solana/kit';
 import { type AccountNode, getLastNodeFromPath, type InstructionNode, type RootNode } from 'codama';
 
 import { IDL_ERROR__DECODE_KIND_MISMATCH, IdlError } from './errors.js';
@@ -89,12 +89,14 @@ export function unknownArm(errors: readonly IdlError[]): { errors: readonly IdlE
 }
 
 /**
- * Unwrap the default (codama) arm's decode envelope — the payload plus `node`, the matched schema
- * (InstructionNode/AccountNode) for runtime schema-driven consumers: render by `node` kinds instead
- * of guessing from values. Throws a typed IdlError (`IDL_ERROR__DECODE_KIND_MISMATCH`) on any other
- * arm — other kinds get qualified unwraps as they land (e.g. a future `unwrapAnchor`).
+ * Unwrap the default (codama) arm — the payload plus the matched schema `node`, so runtime
+ * consumers render by node kind instead of guessing from values. Any other arm throws the typed
+ * `IDL_ERROR__DECODE_KIND_MISMATCH`.
  *
- * @example const { data, node } = unwrap(client.decodeAccount(bytes)); // node: AccountNode
+ * @example
+ * ```ts
+ * const { data, node } = unwrap(client.decodeAccount(bytes)); // node: AccountNode
+ * ```
  */
 export function unwrap(decode: InstructionDecode): CodamaDecodedInstruction & { node: InstructionNode };
 export function unwrap(decode: AccountDecode): CodamaDecodedAccount & { node: AccountNode };
@@ -131,12 +133,14 @@ export type AccountHandlers<T extends SupportedIdlInput, R> = {
 };
 
 /**
- * Loads a program's raw IDL JSON by address, whatever its nature (PMP, Anchor PDA, a registry, a
- * file). Resolves `undefined` when the program has no IDL; throws only on transport failure or
- * abort — a blip stays retryable and is never mistaken for "no IDL". The reference implementation
- * lives behind '@explorer/idl/fetch' (`createLatestIdlFetcher`).
+ * Loads a program's raw IDL JSON by address, whatever its source. Resolves `undefined` when the
+ * program has no IDL; throws only on transport failure or abort — a blip stays retryable, never
+ * mistaken for "no IDL". Reference implementation: `createLatestIdlFetcher` ('@explorer/idl/fetch').
  */
 export type IdlFetcher = (programAddress: string, config?: { abortSignal?: AbortSignal }) => Promise<unknown>;
+
+/** The rpc surface the on-chain fetch legs need — `createSolanaRpc(url)` satisfies it. */
+export type IdlFetcherRpc = Rpc<GetAccountInfoApi>;
 
 /** The Anchor escape hatch — rescues what the pipeline cannot decode; always injected, never bundled. */
 export type FallbackDecoder = {
@@ -149,10 +153,9 @@ export type FallbackDecoderOptions = {
 };
 
 /**
- * A decode engine bound to the client — it receives the client's IDL per call and decodes against
- * it. The main entry defaults to the codama engine ('@explorer/idl/codama' also ships it standalone);
- * pass a custom provider to swap the pipeline. Payload TYPES are not the provider's concern: they
- * derive from the IDL type itself (see src/infer).
+ * A decode engine bound to the client — receives the client's IDL per call. The codama engine is
+ * the default ('@explorer/idl/codama' ships it standalone); payload TYPES derive from the IDL type
+ * (src/infer), never from the provider.
  */
 export type IdlDecodeProvider = {
     decodeAccount(idl: SupportedIdl, data: ReadonlyUint8Array, options?: FallbackDecoderOptions): AccountDecode;

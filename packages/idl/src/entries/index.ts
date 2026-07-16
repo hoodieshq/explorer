@@ -21,14 +21,16 @@ export type DecodedEntry = {
 };
 
 /**
- * Flatten the default (codama) arm's decoded payload into schema-paired leaves: each entry carries
- * the decoded value, the type node that describes it (defined-type links followed against the
- * decode's own root, size wrappers penetrated, options unwrapped), and the path that reaches it —
- * render, extract, or diff by node kind without claiming a payload type. Throws the same typed
- * kind-mismatch IdlError as `unwrap` on any other arm.
+ * Flatten the default (codama) arm's decoded payload into schema-paired leaves — render, extract,
+ * or diff by node kind without claiming a payload type (links resolved against the decode's own
+ * root, size wrappers penetrated, options unwrapped). Any other arm throws the same typed
+ * kind-mismatch IdlError as `unwrap`.
  *
- * @example const entries = getDecodedEntries(client.decodeAccount(bytes));
+ * @example
+ * ```ts
+ * const entries = getDecodedEntries(client.decodeAccount(bytes));
  * // [{ path: ['mode'], node: { kind: 'enumTypeNode', … }, value: 1 }, { path: ['chainId', 'id'], … }, …]
+ * ```
  */
 export function getDecodedEntries(decode: AccountDecode | InstructionDecode): DecodedEntry[] {
     if (decode.kind !== IdlStandard.Codama) {
@@ -96,10 +98,7 @@ export type DecodedEntryOf<K extends TypeNode['kind']> = Omit<DecodedEntry, 'nod
     node: Extract<TypeNode, { kind: K }>;
 };
 
-/**
- * The dot-form key of a leaf (`['chainId', 'id']` → `'chainId.id'`) — the spelling {@link findEntry}
- * accepts back. Takes the entry itself too, so it maps point-free: `entries.map(joinPath)`.
- */
+/** The dot-form key of a leaf (`['chainId', 'id']` → `'chainId.id'`) — the spelling {@link findEntry} accepts; maps point-free: `entries.map(joinPath)`. */
 export function joinPath(entry: DecodedEntry | EntryPath): string {
     if (typeof entry === 'string') return entry;
     return ('node' in entry ? entry.path : entry).join('.');
@@ -111,10 +110,7 @@ export function findEntry(entries: readonly DecodedEntry[], path: EntryPath): De
     return entries.find(entry => joinPath(entry) === key);
 }
 
-/**
- * {@link findEntry} narrowed to one node kind — kind-specific fields (`format`, `variants`) read
- * typed, no manual narrowing; a path miss or a kind mismatch is `undefined`.
- */
+/** {@link findEntry} narrowed to one node kind — kind-specific fields read typed; a path miss or kind mismatch is `undefined`. */
 export function findEntryOfKind<K extends TypeNode['kind']>(
     entries: readonly DecodedEntry[],
     path: EntryPath,
@@ -127,12 +123,14 @@ export function findEntryOfKind<K extends TypeNode['kind']>(
 }
 
 /**
- * The IDL's label for an enum entry's decoded value: a scalar enum's index looks the variant name up
- * in the entry's node; a data enum's value already carries it (`__kind`, kit-capitalized — scalar
- * labels keep the IDL's own spelling). `undefined` off the enum kind or for an out-of-range index —
- * a schema/value disagreement stays visible, never a throw.
+ * The IDL's label for an enum entry's decoded value — a scalar enum's index looked up in the node,
+ * a data enum's `__kind` passed through. `undefined` off the enum kind or out of range — a
+ * schema/value disagreement stays visible, never a throw.
  *
- * @example getEnumVariantName(findEntry(entries, 'mode')) // 'burning' — decoded index 1, named by the schema
+ * @example
+ * ```ts
+ * getEnumVariantName(findEntry(entries, 'mode')) // 'burning' — decoded index 1, named by the schema
+ * ```
  */
 export function getEnumVariantName(entry: DecodedEntry | undefined): string | undefined {
     if (entry?.node.kind !== 'enumTypeNode') return undefined;
