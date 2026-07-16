@@ -1,10 +1,10 @@
 import { parseAccountData } from '@codama/dynamic-parsers';
 import { describe, expect, it, vi } from 'vitest';
 
-import { decodeAccountWithIdl } from '../../codama/decode-account';
+import { decodeAccountWithIdl } from '../decode-account';
 import { IDL_ERROR__ACCOUNT_DECODE_FAILED, IDL_ERROR__IDL_PARSE_FAILED } from '../../errors';
 import { type AnchorIdl, IdlStandard } from '../../types';
-import { loadSimpleIdl, loadTokenkegIdl } from '../fixtures';
+import { loadSimpleIdl, loadTokenkegIdl } from '../../__tests__/fixtures';
 
 vi.mock('@codama/dynamic-parsers', () => ({
     parseAccountData: vi.fn(),

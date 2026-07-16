@@ -5,7 +5,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 
 import { createIdlClient, type IdlClient, isAnchorStandard } from '../../client';
 import { type AnchorIdl, type CodamaIdl, IdlStandard, type InstructionDecode } from '../../types';
-import { incrementIx, loadSimpleIdl, type Simple } from '../fixtures';
+import { incrementIx, loadSimpleIdl, type Simple } from '../../__tests__/fixtures';
 
 const anchorIdl = loadSimpleIdl();
 const anchorIncrementIx = incrementIx(anchorIdl);

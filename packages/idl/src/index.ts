@@ -33,7 +33,7 @@ export {
     isCodamaIdl,
     isLegacyAnchorIdl,
     isSupportedIdl,
-} from './detect.js';
+} from './detect/index.js';
 export {
     err,
     getIdlErrorMessage,
@@ -63,7 +63,7 @@ export {
     type InstructionNameResolver,
     type InstructionNameTable,
     matchInstructionName,
-} from './names.js';
+} from './names/index.js';
 export {
     type AccountDecode,
     type AccountDecodeFor,

@@ -11,7 +11,7 @@ import {
     isCodamaIdl,
     isLegacyAnchorIdl,
     isSupportedIdl,
-} from './detect.js';
+} from './detect/index.js';
 import {
     err,
     IDL_ERROR__ACCOUNT_DECODE_FAILED,
@@ -26,7 +26,7 @@ import {
     type Result,
 } from './errors.js';
 import type { AccountDataOf, InstructionDataOf } from './infer/index.js';
-import { buildInstructionNameTable, buildProgramName, matchInstructionName } from './names.js';
+import { buildInstructionNameTable, buildProgramName, matchInstructionName } from './names/index.js';
 import {
     type AccountDecode,
     type AccountDecodeFor,

@@ -5,7 +5,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 
 import { createIdlClient, type IdlClient } from '../../client';
 import { type CodamaIdl, IdlStandard, type InstructionDecode, unwrap } from '../../types';
-import { loadTokenkegIdl, transferIx } from '../fixtures';
+import { loadTokenkegIdl, transferIx } from '../../__tests__/fixtures';
 
 const codamaIdl = loadTokenkegIdl();
 const codamaTransferIx = transferIx(codamaIdl);

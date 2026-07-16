@@ -3,7 +3,7 @@ import { parseAccountData } from '@codama/dynamic-parsers';
 import type { ReadonlyUint8Array } from '@solana/kit';
 
 import { convertToCodama } from '../anchor/convert.js';
-import { getIdlStandard, isAnchorIdl, isCodamaIdl } from '../detect.js';
+import { getIdlStandard, isAnchorIdl, isCodamaIdl } from '../detect/index.js';
 import { IDL_ERROR__ACCOUNT_DECODE_FAILED, IdlError, ok } from '../errors.js';
 import {
     type AccountDecode,

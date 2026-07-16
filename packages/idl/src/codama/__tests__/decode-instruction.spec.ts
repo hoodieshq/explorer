@@ -2,8 +2,8 @@ import { parseInstruction } from '@codama/dynamic-parsers';
 import type { Instruction } from '@solana/kit';
 import { describe, expect, it, vi } from 'vitest';
 
-import { decodeInstructionWithIdl } from '../../codama/decode-instruction';
-import { loadTokenkegIdl, transferIx } from '../fixtures';
+import { decodeInstructionWithIdl } from '../decode-instruction';
+import { loadTokenkegIdl, transferIx } from '../../__tests__/fixtures';
 
 vi.mock('@codama/dynamic-parsers', () => ({
     parseInstruction: vi.fn(),

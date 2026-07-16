@@ -5,7 +5,7 @@ import {
     type IdlVersion,
     type AnchorV00Idl,
     type SupportedIdl,
-} from './types.js';
+} from '../types.js';
 
 // A supported IDL always names its program — a missing/blank address flags a malformed IDL early.
 const isNonEmptyAddress = (value: unknown, emptyAddress = ''): value is string =>

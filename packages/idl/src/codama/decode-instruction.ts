@@ -3,7 +3,7 @@ import { parseInstruction } from '@codama/dynamic-parsers';
 import type { Instruction } from '@solana/kit';
 
 import { convertToCodama } from '../anchor/convert.js';
-import { getIdlProgramAddress, getIdlStandard, isAnchorIdl, isCodamaIdl } from '../detect.js';
+import { getIdlProgramAddress, getIdlStandard, isAnchorIdl, isCodamaIdl } from '../detect/index.js';
 import { IDL_ERROR__IDL_ADDRESS_MISMATCH, IDL_ERROR__INSTRUCTION_DECODE_FAILED, IdlError, ok } from '../errors.js';
 import {
     anchorArm,
