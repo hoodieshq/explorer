@@ -9,13 +9,17 @@ import {
     fixedSizeTypeNode,
     instructionArgumentNode,
     instructionNode,
+    mapTypeNode,
     numberTypeNode,
     optionTypeNode,
     programNode,
     publicKeyTypeNode,
     rootNode,
+    setTypeNode,
+    stringTypeNode,
     structFieldTypeNode,
     structTypeNode,
+    tupleTypeNode,
 } from 'codama';
 import { describe, expect, it } from 'vitest';
 
@@ -106,6 +110,59 @@ describe('getDecodedEntries', () => {
         expect(entries).toEqual([
             { node: u16, path: ['discriminator'], value: 3 },
             { node: u64, path: ['amount'], value: 42n },
+        ]);
+    });
+
+    it('should walk tuples, maps, and sets with indices and keys as path segments', () => {
+        const containersAccount = accountNode({
+            data: structTypeNode([
+                structFieldTypeNode({ name: 'pair', type: tupleTypeNode([u16, pubkey]) }),
+                structFieldTypeNode({
+                    name: 'fees',
+                    type: mapTypeNode(stringTypeNode('utf8'), u64, fixedCountNode(2)),
+                }),
+                structFieldTypeNode({ name: 'flags', type: setTypeNode(u16, fixedCountNode(2)) }),
+            ]),
+            name: 'containers',
+        });
+        const decode = codamaArm({
+            // maps decode to plain objects and sets to plain arrays — the codec inputs, not Map/Set instances
+            data: { fees: { base: 10n, tip: 2n }, flags: [7, 9], pair: [3, 'KEY'] },
+            path: [root, program, containersAccount] as const,
+        });
+
+        expect(getDecodedEntries(decode)).toEqual([
+            { node: u16, path: ['pair', 0], value: 3 },
+            { node: pubkey, path: ['pair', 1], value: 'KEY' },
+            { node: u64, path: ['fees', 'base'], value: 10n },
+            { node: u64, path: ['fees', 'tip'], value: 2n },
+            { node: u16, path: ['flags', 0], value: 7 },
+            { node: u16, path: ['flags', 1], value: 9 },
+        ]);
+    });
+
+    it('should keep container values contradicting their schema as leaves instead of dropping them', () => {
+        const clashAccount = accountNode({
+            data: structTypeNode([
+                structFieldTypeNode({ name: 'list', type: arrayTypeNode(u16, fixedCountNode(2)) }),
+                structFieldTypeNode({
+                    name: 'lookup',
+                    type: mapTypeNode(stringTypeNode('utf8'), u16, fixedCountNode(1)),
+                }),
+                structFieldTypeNode({ name: 'pair', type: tupleTypeNode([u16]) }),
+            ]),
+            name: 'clash',
+        });
+        const decode = codamaArm({
+            // pair is not indexable at all — its items become undefined-valued leaves
+            data: { list: 'not-an-array', lookup: 42, pair: 9 },
+            path: [root, program, clashAccount] as const,
+        });
+
+        expect(getDecodedEntries(decode)).toEqual([
+            { node: arrayTypeNode(u16, fixedCountNode(2)), path: ['list'], value: 'not-an-array' },
+            { node: mapTypeNode(stringTypeNode('utf8'), u16, fixedCountNode(1)), path: ['lookup'], value: 42 },
+            { node: u16, path: ['pair', 0], value: undefined },
         ]);
     });
 

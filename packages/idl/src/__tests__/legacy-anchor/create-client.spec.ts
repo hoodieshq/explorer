@@ -63,6 +63,14 @@ describe('createIdlClient over a legacy IDL', () => {
         expect(error?.context).toMatchObject({ programName: 'example_native_token_transfers' });
     });
 
+    it('should build a working client through the untrusted route when the option supplies the address', () => {
+        const [error, client] = tryCreateIdlClient(loadNtt029Idl() as unknown, withAddress);
+
+        expect(error).toBeUndefined();
+        expect(client?.programAddress()).toBe(NTT_PROGRAM_ADDRESS);
+        expect(client?.decodeInstruction(transferBurnIx).kind).toBe(IdlStandard.Codama);
+    });
+
     it('should surface a conversion failure as the parse error', () => {
         // legacy-shaped, but declares a type nodes-from-anchor cannot convert
         const broken = {
@@ -91,5 +99,19 @@ describe('createIdlMetaClient over a legacy IDL', () => {
         const [error, meta] = tryCreateIdlMetaClient(loadNtt029Idl() as unknown);
         expect(meta).toBeUndefined();
         expect(error && isIdlError(error, IDL_ERROR__PROGRAM_ADDRESS_REQUIRED)).toBe(true);
+    });
+
+    it('should throw the typed error when no program address resolves', () => {
+        expect(() => createIdlMetaClient(loadNtt029Idl())).toThrowError(
+            expect.objectContaining({ code: IDL_ERROR__PROGRAM_ADDRESS_REQUIRED }),
+        );
+    });
+
+    it('should build a meta client through the untrusted route when the option supplies the address', () => {
+        const [error, meta] = tryCreateIdlMetaClient(loadNtt029Idl() as unknown, withAddress);
+
+        expect(error).toBeUndefined();
+        expect(meta?.programAddress()).toBe(NTT_PROGRAM_ADDRESS);
+        expect(meta?.instructionName(transferBurnIx.data)).toBe('Transfer Burn');
     });
 });

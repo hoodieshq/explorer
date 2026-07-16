@@ -39,7 +39,11 @@ describe('buildInstructionNameTable fallbacks', () => {
     });
 
     it('should tolerate runtime Codama IDLs without an instruction array', () => {
-        const idl = { kind: 'rootNode', program: {} } as unknown as SupportedIdl;
+        // publicKey present so detection routes to the codama table — its instruction array is the missing piece
+        const idl = {
+            kind: 'rootNode',
+            program: { publicKey: '11111111111111111111111111111111' },
+        } as unknown as SupportedIdl;
         expect(buildInstructionNameTable(idl)).toEqual([]);
     });
 });

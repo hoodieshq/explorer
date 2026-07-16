@@ -6,6 +6,7 @@ import {
     IDL_ERROR__IDL_ADDRESS_MISMATCH,
     IDL_ERROR__IDL_FETCH_FAILED,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
+    IDL_ERROR__PROGRAM_ADDRESS_REQUIRED,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     IdlError,
     isIdlError,
@@ -36,6 +37,15 @@ describe('IdlError', () => {
     it('should describe IDL fetch failures', () => {
         const error = new IdlError(IDL_ERROR__IDL_FETCH_FAILED);
         expect(error.message).toBe('failed to fetch the program IDL');
+    });
+
+    it('should name the program in the missing-address message only when the IDL declares one', () => {
+        expect(new IdlError(IDL_ERROR__PROGRAM_ADDRESS_REQUIRED, { programName: 'ntt' }).message).toBe(
+            'the legacy IDL for ntt declares no program address — pass options.programAddress',
+        );
+        expect(new IdlError(IDL_ERROR__PROGRAM_ADDRESS_REQUIRED, {}).message).toBe(
+            'the legacy IDL declares no program address — pass options.programAddress',
+        );
     });
 
     it('should carry a cause passed alongside the context', () => {

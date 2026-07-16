@@ -105,7 +105,8 @@ function getBytesEncoders(): Record<string, Encoder<string>> {
 }
 
 function buildCodamaTable(idl: CodamaIdl): InstructionNameEntry[] {
-    return (idl.program?.instructions ?? []).flatMap(ix => {
+    // detection guarantees `program`; a runtime root may still omit the instruction array
+    return (idl.program.instructions ?? []).flatMap(ix => {
         const discriminator = codamaDiscriminator(ix);
         return discriminator ? [{ discriminator, name: titleCase(ix.name), offset: 0 }] : [];
     });

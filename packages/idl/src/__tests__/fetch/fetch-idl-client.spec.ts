@@ -27,6 +27,7 @@ import {
     IDL_ERROR__IDL_FETCH_FAILED,
     IDL_ERROR__IDL_NOT_FOUND,
     IDL_ERROR__IDL_PARSE_FAILED,
+    IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     isIdlError,
 } from '../../errors';
 import { createLatestIdlFetcher, fetchIdlClient } from '../../fetch/index';
@@ -66,9 +67,9 @@ function anchorIdlAccount(idl: object): Uint8Array {
     return Uint8Array.from(data);
 }
 
-/** A canonical PMP `idl` metadata account with direct, uncompressed JSON content. */
-function pmpIdlAccount(program: Address, idl: object, format: Format = Format.Json): Uint8Array {
-    const data = new TextEncoder().encode(JSON.stringify(idl));
+/** A canonical PMP `idl` metadata account with direct, uncompressed content (a string stays raw). */
+function pmpIdlAccount(program: Address, idl: object | string, format: Format = Format.Json): Uint8Array {
+    const data = new TextEncoder().encode(typeof idl === 'string' ? idl : JSON.stringify(idl));
     return Uint8Array.from(
         getMetadataEncoder().encode({
             authority: null,
@@ -145,6 +146,16 @@ describe('fetchIdlClient', () => {
         );
 
         expect(client.programAddress()).toBe(tokenkeg.program.publicKey);
+    });
+
+    it('should surface a fetched value that is no IDL as the typed unsupported-format error', async () => {
+        const [error, client] = await fetchIdlClient('11111111111111111111111111111111', {
+            fetcher: async () => ({ not: 'an idl' }),
+            provider,
+        });
+
+        expect(client).toBeUndefined();
+        expect(isIdlError(error, IDL_ERROR__UNSUPPORTED_IDL_FORMAT)).toBe(true);
     });
 
     it('should surface an absent IDL as the typed not-found error', async () => {
@@ -272,6 +283,17 @@ describe('createLatestIdlFetcher', () => {
         const tokenkeg = loadTokenkegIdl();
         const program = address(tokenkeg.program.publicKey);
         const rpc = mockRpc({ [await pmpIdlAddress(program)]: pmpIdlAccount(program, tokenkeg, Format.Toml) });
+
+        const [error, client] = await fetchIdlClient(program, { rpc });
+
+        expect(client).toBeUndefined();
+        expect(isIdlError(error, IDL_ERROR__IDL_PARSE_FAILED)).toBe(true);
+    });
+
+    it('should surface unparseable PMP idl content as the typed parse error', async () => {
+        const tokenkeg = loadTokenkegIdl();
+        const program = address(tokenkeg.program.publicKey);
+        const rpc = mockRpc({ [await pmpIdlAddress(program)]: pmpIdlAccount(program, 'not json') });
 
         const [error, client] = await fetchIdlClient(program, { rpc });
 
