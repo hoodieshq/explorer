@@ -5,8 +5,10 @@ import { type AccountNode, getLastNodeFromPath, type InstructionNode, type RootN
 
 import { IDL_ERROR__DECODE_KIND_MISMATCH, IdlError } from './errors.js';
 
-/** An Anchor IDL — the `@coral-xyz/anchor` `Idl`; only the modern (>= 0.30) spec is supported. */
-export type AnchorIdl = Idl;
+/** A modern (spec 01, anchor >= 0.30) Anchor IDL — the `@coral-xyz/anchor` `Idl`. */
+export type AnchorV01Idl = Idl;
+/** The default Anchor IDL type — the modern spec 01 (the only one the client accepts). */
+export type AnchorIdl = AnchorV01Idl;
 /** A Codama IDL — the Codama `RootNode` (as the program-metadata program stores them). */
 export type CodamaIdl = RootNode;
 /** Either supported IDL standard. */
@@ -29,8 +31,8 @@ export type CodamaIdlInput = {
 /** What the client accepts statically: brands are not required, only the structure (runtime detection still applies). */
 export type SupportedIdlInput = CodamaIdlInput | SupportedIdl;
 
-/** A pre-0.30 Anchor IDL — deliberately NOT in `SupportedIdl`; the client rejects it, consumers decode it themselves. */
-export type LegacyAnchorIdl = {
+/** A legacy (spec 00, pre-0.30) Anchor IDL — deliberately NOT in `SupportedIdl`; the client rejects it directly, `convertToCodama` converts it. */
+export type AnchorV00Idl = {
     instructions: readonly { name: string }[];
     name: string;
     version: string;

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { tryCreateIdlClient } from '../../client';
 import { isLegacyAnchorIdl } from '../../detect';
 import { IDL_ERROR__UNSUPPORTED_IDL_FORMAT } from '../../errors';
-import type { LegacyAnchorIdl } from '../../types';
+import type { AnchorV00Idl } from '../../types';
 import { loadNtt029Idl, NTT_TRANSFER_BURN_DISCRIMINATOR, ntt029TransferIx } from '../fixtures';
 
 describe('legacy Anchor custom decoder route', () => {
@@ -25,7 +25,7 @@ describe('legacy Anchor custom decoder route', () => {
 });
 
 // Stand-in for a consumer-owned legacy decoder: match the sha256-derived discriminator, read the args.
-function decodeLegacyTransferBurn(idl: LegacyAnchorIdl, ix: Instruction): { amount: bigint; name: string } | undefined {
+function decodeLegacyTransferBurn(idl: AnchorV00Idl, ix: Instruction): { amount: bigint; name: string } | undefined {
     const data = ix.data ? Uint8Array.from(ix.data) : new Uint8Array();
     const matches = NTT_TRANSFER_BURN_DISCRIMINATOR.every((byte, i) => data[i] === byte);
     if (!matches || !idl.instructions.some(item => item.name === 'transferBurn')) return undefined;

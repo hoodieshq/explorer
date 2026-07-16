@@ -12,7 +12,7 @@ import type { Simple031 } from '@explorer/test-idl-program-simple-031/generated-
 import tokenkegIdl from '@explorer/test-idl-program-tokenkeg/idl';
 import { address, type Instruction } from '@solana/kit';
 
-import type { AnchorIdl, CodamaIdl, CodamaIdlInput, LegacyAnchorIdl } from '../types';
+import type { AnchorIdl, AnchorV00Idl, CodamaIdl, CodamaIdlInput } from '../types';
 
 export type { ExampleNativeTokenTransfers, Simple, Simple031 };
 
@@ -32,7 +32,7 @@ export const loadSimple031Idl = (): AnchorIdl => structuredClone(simple031Idl) a
 /** Same document typed with anchor's companion type. */
 export const loadSimple031IdlTyped = (): Simple031 => structuredClone(simple031Idl) as Simple031;
 /** Real anchor-0.29 (legacy, pre-0.30) IDL — wormhole NTT `example_native_token_transfers` v3.0.0, vendored as a test sample. */
-export const loadNtt029Idl = (): LegacyAnchorIdl => structuredClone(exampleNativeTokenTransfersIdl) as LegacyAnchorIdl;
+export const loadNtt029Idl = (): AnchorV00Idl => structuredClone(exampleNativeTokenTransfersIdl) as AnchorV00Idl;
 /** `amm_v3` in v0.1 shape — the app's convert-legacy-idl output over the on-chain 0.29 doc; its spec-correct alias typedef (`kind: 'type'`) is what pristine nodes-from-anchor 1.3.8 rejects. */
 export const loadAmmV3Idl = (): AnchorIdl => structuredClone(ammV3Idl) as AnchorIdl;
 /** The same document typed with anchor 0.29's companion type (`export type` + a runtime `IDL` const). */

@@ -5,7 +5,7 @@ import { describe, expectTypeOf, it } from 'vitest';
 import { createIdlClient, type IdlClient, tryCreateIdlClient } from '../../client';
 import { isLegacyAnchorIdl } from '../../detect';
 import { IDL_ERROR__UNSUPPORTED_IDL_FORMAT, type IdlError } from '../../errors';
-import type { LegacyAnchorIdl } from '../../types';
+import type { AnchorV00Idl } from '../../types';
 import { type ExampleNativeTokenTransfers, loadNtt029Idl, loadNtt029IdlTyped, ntt029TransferIx } from '../fixtures';
 
 describe('sample: legacy Anchor (< 0.30) IDL — custom decoder outside the client', () => {
@@ -24,22 +24,22 @@ describe('sample: legacy Anchor (< 0.30) IDL — custom decoder outside the clie
     it('should narrow the legacy document with the guard so a custom decoder receives a typed IDL', () => {
         const value: unknown = loadNtt029Idl();
         if (isLegacyAnchorIdl(value)) {
-            expectTypeOf(value).toEqualTypeOf<LegacyAnchorIdl>();
+            expectTypeOf(value).toEqualTypeOf<AnchorV00Idl>();
             expectTypeOf(value.instructions[0].name).toEqualTypeOf<string>();
         }
     });
 });
 
 // A custom decoder generic over the literal legacy IDL — instruction names stay a literal union.
-type LegacyName<T extends LegacyAnchorIdl> = T['instructions'][number]['name'];
-declare function decodeLegacy<T extends LegacyAnchorIdl>(
+type LegacyName<T extends AnchorV00Idl> = T['instructions'][number]['name'];
+declare function decodeLegacy<T extends AnchorV00Idl>(
     idl: T,
     ix: Instruction,
 ): { args: unknown; name: LegacyName<T> } | undefined;
 
 describe('sample: legacy Anchor with a real generated companion type (NTT 0.29)', () => {
-    it('should satisfy the LegacyAnchorIdl contract with the generated companion type', () => {
-        expectTypeOf(loadNtt029IdlTyped()).toExtend<LegacyAnchorIdl>();
+    it('should satisfy the AnchorV00Idl contract with the generated companion type', () => {
+        expectTypeOf(loadNtt029IdlTyped()).toExtend<AnchorV00Idl>();
     });
 
     it('should give the custom decoder literal instruction-name guidance from the generated type', () => {

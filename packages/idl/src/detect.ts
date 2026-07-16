@@ -3,7 +3,7 @@ import {
     type CodamaIdl,
     IdlStandard,
     type IdlVersion,
-    type LegacyAnchorIdl,
+    type AnchorV00Idl,
     type SupportedIdl,
 } from './types.js';
 
@@ -45,7 +45,7 @@ export function isSupportedIdl(value: unknown): value is SupportedIdl {
 }
 
 /** A pre-0.30 Anchor IDL — recognized only so consumers can route it to a custom decoder; the client rejects it. */
-export function isLegacyAnchorIdl(value: unknown): value is LegacyAnchorIdl {
+export function isLegacyAnchorIdl(value: unknown): value is AnchorV00Idl {
     if (isSupportedIdl(value)) return false;
     if (typeof value !== 'object' || value === null) return false;
     if (!('name' in value) || !('version' in value) || !('instructions' in value)) return false;

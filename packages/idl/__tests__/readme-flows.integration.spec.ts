@@ -21,7 +21,6 @@
 // error-first Result); `unwrap` narrows the two-step route to the default (codama) arm (payload + schema node).
 import {
     type AccountsDataOf,
-    type AnchorIdl,
     type AsDecoded,
     type CodamaIdl,
     createIdlClient,
@@ -222,8 +221,7 @@ describe('README flows: how payload types reach the consumer', () => {
             it('should carry the companion inference when a runtime conversion is asserted as the pre-generated type', () => {
                 // the type was generated in advance from the same IDL (the NTT codama literal);
                 // the legacy JSON arrives at runtime — convert it, then assert the companion type on the root
-                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the legacy JSON rides the same cast real consumers use
-                const [, root] = convertToCodama(loadNtt029Idl() as unknown as AnchorIdl);
+                const [, root] = convertToCodama(loadNtt029Idl());
                 if (!root) throw new Error('the vendored NTT IDL must convert');
                 // this vendored legacy IDL carries no metadata.address — the consumer injects it from context
                 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the companion assertion IS the flow
