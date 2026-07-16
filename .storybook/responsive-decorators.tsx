@@ -12,7 +12,7 @@ import type { Decorator, StoryContext } from './types';
 const stubbedUndefined = async () => undefined;
 const stubbedNumber = async () => 0;
 const stubbedArray = async () => [];
-export const rpcMethodStubs: Record<string, unknown> = {
+const rpcMethodStubs: Record<string, unknown> = {
     getAccountInfo: stubbedUndefined,
     getBalance: stubbedNumber,
     getBlockHeight: stubbedNumber,
@@ -99,17 +99,5 @@ export const withFixedContainer: Decorator = (Story, context) => {
         </div>
     );
 };
-
-/**
- * Caps a standalone story at the `col` column-width token (max-w-col) and centers it, mirroring
- * the content column the real page wraps the section/card in. Use on stories whose component, on
- * the page, sits inside the centered content column — so the card constrains its width the same
- * way in isolation without hardcoding the value itself.
- */
-export const withColumnWidth: Decorator = Story => (
-    <div className="mx-auto w-full max-w-col">
-        <Story />
-    </div>
-);
 
 export { INITIAL_VIEWPORTS };

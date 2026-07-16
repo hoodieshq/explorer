@@ -9,7 +9,6 @@ import { MockHistoryProvider } from '@storybook-config/__mocks__/MockHistoryProv
 import { MockTokenInfoBatchProvider } from '@storybook-config/__mocks__/MockTokenInfoBatchProvider';
 import { MockTransactionsProvider } from '@storybook-config/__mocks__/MockTransactionsProvider';
 import { nextjsParameters } from '@storybook-config/decorators';
-import { rpcMethodStubs } from '@storybook-config/responsive-decorators';
 import type { Decorator } from '@storybook-config/types';
 import { Connection, type ParsedTransactionWithMeta, PublicKey, type VersionedMessage } from '@solana/web3.js';
 import React from 'react';
@@ -26,6 +25,8 @@ import { VisibilityProvider } from '@/app/shared/lib/visibility';
 import { type OsecRegistryInfo, VerificationStatus } from '@/app/utils/verified-builds';
 import { Cluster, ClusterStatus, clusterUrl, DEVNET_URL } from '@/app/utils/cluster';
 import { SQUADS_V4_ADDRESS } from '@/app/providers/squadsMultisig';
+
+import { rpcMethodStubs } from '../../decorators';
 
 export { nextjsParameters };
 

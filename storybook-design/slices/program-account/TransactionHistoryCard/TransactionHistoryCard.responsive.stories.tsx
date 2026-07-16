@@ -1,8 +1,9 @@
-import { withColumnWidth, withViewportFromGlobal } from '@storybook-config/responsive-decorators';
+import { withViewportFromGlobal } from '@storybook-config/responsive-decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { TransactionHistoryCard } from './TransactionHistoryCard';
+import { withColumnWidth } from '../../../decorators';
 import { MOCK_PROGRAM_ADDRESS, nextjsParameters, withInstructionData, withMockRpc } from './mocks';
+import { TransactionHistoryCard } from './TransactionHistoryCard';
 
 const meta = {
     component: TransactionHistoryCard,
