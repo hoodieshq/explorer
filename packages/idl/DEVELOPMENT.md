@@ -5,12 +5,22 @@
 From the repo root:
 
 ```sh
+pnpm --filter @explorer/idl configure   # generate codama literals + typed clients, build dist
 pnpm --filter @explorer/idl test        # typecheck → unit → integration (over dist) → tree-shake → node-esm
 pnpm --filter @explorer/idl test:watch  # vitest watch mode (unit)
 pnpm --filter @explorer/idl typecheck   # tsc --noEmit (src/tests + build config)
 ```
 
-Running the suite needs **no** Rust/Anchor toolchain: specs consume committed snapshots of Anchor IDLs through the packages in `test-anchor-programs/`. Buildable packages preserve `.` as the live `target/idl/*.json` output, and expose committed snapshots at `./idl` for the raw JSON and `./generated-types` for the companion type module. Static snapshot packages use `.` and `./idl` for the same committed raw JSON. `src/__tests__/fixtures.ts` wraps the commonly used imports as `loadSimpleIdl` / `loadSimpleIdlTyped` / `loadSimple031Idl` / real-world snapshot loaders. The toolchain below is only needed to **regenerate** snapshots after changing Rust programs.
+`pretest` runs `configure`, so `test` self-prepares — run `configure` directly when you need fresh
+generated modules and a dist without the suite.
+
+Running the suite needs **no** Rust/Anchor toolchain — specs read committed snapshots through the
+`test-anchor-programs/` packages (`src/__tests__/fixtures.ts` wraps them as `load*` loaders):
+
+- buildable packages — `.` → live `target/idl/*.json`; `./idl` → committed JSON; `./generated-types` → companion type module
+- static snapshot packages — `.` and `./idl` → the same committed JSON
+
+The toolchain below only **regenerates** snapshots after the `.rs` sources change.
 
 ## Building the fixture programs
 
@@ -69,13 +79,7 @@ The script is named `build:anchor` (not `build`) on purpose: the root `build:pac
 `pnpm -r run build` across `packages/**`, and a `build` script here would drag the Rust/Anchor
 toolchain into every standard build (CI included).
 
-`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and then copies them into the committed snapshots in each test-program package (via `scripts/copy-anchor-artifacts.mjs`). It is a standalone regeneration step, never part of the test pipeline:
-
-```sh
-pnpm --filter @explorer/idl build:programs   # anchor build + copy into the committed snapshots
-```
-
-Commit the refreshed snapshots — the suite reads those committed copies, not the live `target/`, so it never invokes the toolchain. To refresh one Anchor package after building it, run its `copy:artifacts` script.
+`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and copies them into the committed snapshots (via `scripts/copy-anchor-artifacts.mjs`) — a standalone regeneration step, never part of the test pipeline. Commit the refreshed snapshots; the suite reads those, not the live `target/`. To refresh one Anchor package after building it, run its `copy:artifacts` script.
 
 ### Gotchas
 

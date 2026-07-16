@@ -1,10 +1,10 @@
 # @explorer/idl — Design
 
 One typed, standard-aware client over a program IDL: modern Anchor (>= 0.30) and Codama roots decode
-through a single pipeline; legacy pre-0.30 Anchor is rejected as direct client input but converts
-through the same `convertToCodama` route. Decode results are discriminated unions narrowed statically
-per standard — a Codama client cannot even express an anchor-arm handler. The README documents the
-consumer API; this file records the shape and the WHY.
+through a single pipeline; legacy pre-0.30 Anchor converts at creation (program address required).
+Decode results are discriminated unions narrowed statically per standard — a Codama client cannot
+even express an anchor-arm handler. The README documents the consumer API; this file records the
+shape and the WHY.
 
 ## Client flow
 
@@ -17,15 +17,16 @@ flowchart TD
         TRY -->|"unsupported"| ERR["[IdlError(UNSUPPORTED_IDL_FORMAT), undefined]"]
     end
     subgraph TRUSTED["Trusted route — throws"]
-        TYPED["typed IDL<br/>(AnchorIdl | CodamaIdl)"]
+        TYPED["typed IDL<br/>(AnchorIdl | CodamaIdl | AnchorV00Idl)"]
     end
-    TRY -->|"supported"| CREATE["createIdlClient(idl, options?)"]
+    TRY -->|"supported / legacy"| CREATE["createIdlClient(idl, options?)"]
     TYPED --> CREATE
-    CREATE -->|"lying type"| THROW["throw IdlError(UNSUPPORTED_IDL_FORMAT)"]
+    CREATE -->|"lying type / unresolved<br/>legacy program address"| THROW["throw IdlError"]
+    CREATE -->|"legacy (spec 00)"| CONVERT["convertToCodama internally<br/>address: metadata.address → options.programAddress"]
+    CONVERT --> CLIENT
     CREATE -->|"codama engine by default<br/>{ provider } swaps it"| CLIENT["IdlClient&lt;T&gt;<br/>metadata + decode surface"]
-    TYPED --> METACREATE["createIdlMetaClient(idl)"]
+    TYPED --> METACREATE["createIdlMetaClient(idl, options?)"]
     METACREATE --> META["IdlMetaClient&lt;T&gt;<br/>metadata + names, no decode surface"]
-    LEGACY["AnchorV00Idl (legacy, pre-0.30)"] -. "recognized, rejected" .-> TRY
 ```
 
 Instruction decode — one codama-normalized pipeline; the anchor arm exists only via the injected escape hatch:
@@ -55,7 +56,7 @@ Handler maps are total by type; a runtime miss throws `MISSING_DECODE_HANDLER` �
 
 - **Codama-normalized single pipeline** — anchor converts (`@codama/nodes-from-anchor`), one engine (`@codama/dynamic-parsers`) decodes everything; two engines would be double maintenance for the same bytes.
 - **Anchor arm = escape hatch only** — the injected `fallbackDecoder` is the sole producer of `{ kind: anchor }`; its payload stays `unknown` so consumers never couple to a library guess; bypassed pipeline errors survive in `recoveredFrom`.
-- **Legacy pre-0.30 = convert first, never direct input** — recognized (`isLegacyAnchorIdl`), rejected by the client at compile time and runtime; `convertToCodama` converts the legacy shape too (nodes-from-anchor handles both), the consumer injects the program address the legacy IDL may lack.
+- **Legacy pre-0.30 converts at creation** — recognized (`isLegacyAnchorIdl`), normalized internally via `convertToCodama` (nodes-from-anchor handles both specs) into a codama client; the program address must resolve (IDL `metadata.address` → `options.programAddress` → typed `PROGRAM_ADDRESS_REQUIRED`) because real `anchor build` 0.29 output declares none. Consumer-owned decoders remain for IDLs conversion cannot handle.
 - **Errors are values** — error-first `Result` tuples; decode failures ride the `unknown` arm as coded `IdlError`s (plain miss ⇔ `errors: []`); codes follow `@codama/errors`: stable numbers, typed context, throws split by pipeline stage.
 - **Guards over a `standard` field** — `isAnchorStandard`/`isCodamaStandard` narrow the client; a string field invites untyped branching.
 - **Codama payloads typed from the engine** — `NonNullable<ReturnType<typeof parseInstruction>>`, never a hand-maintained mirror.
@@ -68,4 +69,3 @@ Handler maps are total by type; a runtime miss throws `MISSING_DECODE_HANDLER` �
 
 - IDL sources beyond the two on-chain legs (PMP `idl` metadata, Anchor IDL PDA) — registries and caches plug in as consumer-supplied fetchers.
 - The Anchor-rich decode path (events, nested account groups) — a future seam, not this core.
-- Legacy pre-0.30 IDLs as direct client input — consumers convert first (`convertToCodama`) or own the decoder.

@@ -5,8 +5,8 @@ standard produced the IDL.
 
 - **Anchor** — modern IDLs (`metadata.spec`), emitted by `anchor build` since 0.30
 - **Codama** — root nodes, as the program-metadata program (PMP) stores them
-- **Legacy Anchor** — pre-0.30 IDLs are rejected as direct client input (typed error), but convert
-  through the same `convertToCodama` route — nodes-from-anchor handles the legacy shape too
+- **Legacy Anchor** — pre-0.30 IDLs convert internally at creation (nodes-from-anchor handles the
+  legacy shape too); pass `programAddress` when the IDL declares none
 
 ## Entries
 
@@ -313,22 +313,30 @@ instead, the conversion error preserved in `recoveredFrom`.
 
 ## Legacy Anchor IDLs
 
-The client rejects pre-0.30 IDLs as direct input, but the conversion route handles them —
-nodes-from-anchor converts the legacy shape too. Convert explicitly, inject the program address
-(legacy IDLs may not declare one), and the codama root works like any other:
+Pre-0.30 IDLs go through the same client — creation converts them internally (nodes-from-anchor
+handles the legacy shape too). One requirement: the program address must resolve — the IDL's own
+`metadata.address` when present, `options.programAddress` otherwise (real `anchor build` 0.29 output
+declares none); neither → typed `IDL_ERROR__PROGRAM_ADDRESS_REQUIRED`:
 
 ```ts
-import { isLegacyAnchorIdl } from '@explorer/idl';
-import { convertToCodama } from '@explorer/idl/anchor';
+import { createIdlClient, isLegacyAnchorIdl } from '@explorer/idl';
 
-isLegacyAnchorIdl(idl); // true → the client will not accept it directly; convert first
+isLegacyAnchorIdl(idl); // true → creation converts it; the address option applies
 
-const [error, root] = convertToCodama(idl);
-if (!error) {
-    // legacy conversions come back with an empty program address — inject it from context
-    const client = createIdlClient({ ...root, program: { ...root.program, publicKey: programAddress } });
-}
+const client = createIdlClient(idl, { programAddress });
+client.instructionName(instruction.data); // works — legacy IDLs declare no discriminators; the conversion derives them
+const decode = client.decodeInstruction(instruction); // lands on the codama arm, like any converted IDL
 ```
+
+The names-only client takes the same option — legacy metainfo is scattered across the JSON, so the
+meta surface also reads the converted root:
+
+```ts
+const meta = createIdlMetaClient(idl, { programAddress });
+```
+
+To run the conversion yourself, `convertToCodama` accepts the legacy shape too; the root comes back
+with an empty program address — inject it before creating the client.
 
 IDLs the conversion route cannot handle get an injected escape hatch — its result lands in the
 anchor arm, for instructions and accounts alike:
