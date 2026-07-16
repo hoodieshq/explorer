@@ -5,9 +5,9 @@
 From the repo root:
 
 ```sh
-pnpm --filter @explorer/idl test        # vitest run (includes type tests)
-pnpm --filter @explorer/idl test:watch  # vitest watch mode
-pnpm --filter @explorer/idl typecheck   # tsc --noEmit
+pnpm --filter @explorer/idl test        # typecheck → unit → integration (over dist) → tree-shake → node-esm
+pnpm --filter @explorer/idl test:watch  # vitest watch mode (unit)
+pnpm --filter @explorer/idl typecheck   # tsc --noEmit (src/tests + build config)
 ```
 
 Running the suite needs **no** Rust/Anchor toolchain: specs consume committed snapshots of Anchor IDLs through the packages in `test-anchor-programs/`. Buildable packages preserve `.` as the live `target/idl/*.json` output, and expose committed snapshots at `./idl` for the raw JSON and `./generated-types` for the companion type module. Static snapshot packages use `.` and `./idl` for the same committed raw JSON. `src/__tests__/fixtures.ts` wraps the commonly used imports as `loadSimpleIdl` / `loadSimpleIdlTyped` / `loadSimple031Idl` / real-world snapshot loaders. The toolchain below is only needed to **regenerate** snapshots after changing Rust programs.
@@ -21,7 +21,7 @@ Running the suite needs **no** Rust/Anchor toolchain: specs consume committed sn
 
 Both implement the same minimal program (one account, one instruction argument, one error, one event), so their IDLs are directly comparable across Anchor versions. Each Anchor package ships committed snapshot entries for test imports: `./idl` — the raw IDL JSON — and `./generated-types` — the generated Anchor companion type module.
 
-The same directory also contains static Anchor snapshot packages for mainnet and stress fixtures (`amm-v3`, `dummy-transfer-hook`, `example-native-token-transfers`, `let-me-buy`, `ntt-transceiver`, `wormhole-governance`). These have no build script; edit the committed JSON/type modules directly when refreshing the fixture. Variant IDLs are exposed with named subpaths such as `./pmp-idl`, `./legacy-idl`, and `./codama`.
+The same directory also contains static Anchor snapshot packages for mainnet and stress fixtures (`amm-v3`, `dummy-transfer-hook`, `example-native-token-transfers`, `let-me-buy`, `ntt-transceiver`, `wormhole-governance`). These have no build script; edit the committed JSON/type modules directly when refreshing the fixture. Variant IDLs are exposed with named subpaths such as `./pmp-idl` and `./codama`.
 
 Anchor fixture packages that need a committed Codama literal opt in with `explorer.codamaFromAnchor` in their `package.json`. Regenerate all opted-in literals from the root package:
 
@@ -69,7 +69,7 @@ The script is named `build:anchor` (not `build`) on purpose: the root `build:pac
 `pnpm -r run build` across `packages/**`, and a `build` script here would drag the Rust/Anchor
 toolchain into every standard build (CI included).
 
-`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and then copies them into the committed snapshots in each test-program package, plus the legacy `__fixtures__/simple*.{json,ts}` mirrors (via `scripts/copy-anchor-artifacts.mjs`). It is a standalone regeneration step, never part of the test pipeline:
+`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and then copies them into the committed snapshots in each test-program package (via `scripts/copy-anchor-artifacts.mjs`). It is a standalone regeneration step, never part of the test pipeline:
 
 ```sh
 pnpm --filter @explorer/idl build:programs   # anchor build + copy into the committed snapshots

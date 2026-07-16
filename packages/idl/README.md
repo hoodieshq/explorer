@@ -5,7 +5,8 @@ standard produced the IDL.
 
 - **Anchor** — modern IDLs (`metadata.spec`), emitted by `anchor build` since 0.30
 - **Codama** — root nodes, as the program-metadata program (PMP) stores them
-- **Legacy Anchor** — pre-0.30 IDLs are recognized and *rejected* with a typed error
+- **Legacy Anchor** — pre-0.30 IDLs are rejected as direct client input (typed error), but convert
+  through the same `convertToCodama` route — nodes-from-anchor handles the legacy shape too
 
 ## Entries
 
@@ -21,8 +22,7 @@ Every entry is side-effect-free and tree-shakeable (gated).
 ## Quick start
 
 `tryCreate*` never throws on untrusted JSON — it returns an error-first tuple. The `error` is a plain
-value: throw it if you prefer exceptions (the one `throw` in this guide), but we suggest branching on
-it, the way every example below does.
+value: branch on it (every example below does), or throw it if you prefer exceptions.
 
 ```ts
 import { isCodamaStandard, isIdlError, IDL_ERROR__UNSUPPORTED_IDL_FORMAT, tryCreateIdlClient } from '@explorer/idl';
@@ -84,9 +84,9 @@ const same: IdlClient = createIdlClient(idl, { provider: codamaProvider() });
 
 ## Decoding instructions
 
-The two-step primitive behind `decodeInstructionData` — decode to a discriminated result, then read
-the payload. Results are discriminated by the producing standard. A miss is
-`{ kind: 'unknown', errors: [] }`; a pipeline failure carries its errors — never a crash:
+The two-step primitive behind `decodeInstructionData` — decode to a result discriminated by the
+producing standard, then read the payload. A miss is `{ kind: 'unknown', errors: [] }`; a pipeline
+failure carries its errors — never a crash:
 
 ```ts
 import { createIdlClient, IdlStandard } from '@explorer/idl';
@@ -205,9 +205,9 @@ const [, data] = client.decodeAccountData(accountData);
 ```
 
 **The decode carries the exact schema.** No type exists for a fetched IDL, but the two-step route
-keeps the whole decode envelope — `unwrap` narrows to the default (codama) arm (or throws a typed
-`IdlError`; other kinds get qualified unwraps as they land) and surfaces the matched schema node, so unknown-program consumers render by node kind,
-never by guessing the value's shape:
+keeps the whole decode envelope — `unwrap` narrows to the default (codama) arm (a different arm
+throws a typed `IdlError`) and surfaces the matched schema node; unknown-program consumers render by
+node kind, never by value shape:
 
 ```ts
 import { unwrap } from '@explorer/idl';
@@ -247,12 +247,11 @@ node.arguments.map(argument => `${argument.name}: ${argument.type.kind}`);
 
 ### Schema-paired entries · unknown programs
 
-**One row per value, each paired with its schema node.** For a program you only learn about at
-runtime there is no payload type to claim — `getDecodedEntries` turns the decode into rows you can
-present anyway: `path` says where the value lives, `node` says what it is, and rendering dispatches
-on `node.kind`, never on the value's JS shape. The traversal is the package's job — defined-type
-links resolved, size wrappers penetrated, options unwrapped, nesting flattened into paths. A
-non-codama arm throws the same typed kind mismatch as `unwrap`:
+**One row per value, each paired with its schema node.** With no payload type to claim,
+`getDecodedEntries` turns the decode into presentable rows: `path` says where the value lives,
+`node` says what it is; rendering dispatches on `node.kind`, never on the value's JS shape. The
+traversal is the package's job — links resolved, size wrappers penetrated, options unwrapped,
+nesting flattened. A non-codama arm throws the same typed kind mismatch as `unwrap`:
 
 ```ts
 import { createIdlClient, findEntryOfKind, getDecodedEntries, joinPath } from '@explorer/idl';
@@ -306,15 +305,27 @@ instead, the conversion error preserved in `recoveredFrom`.
 
 ## Legacy Anchor IDLs
 
-Pre-0.30 IDLs route to consumer-owned decoding; modern IDLs the conversion route cannot
-handle get an injected escape hatch — its result lands in the anchor arm, for instructions and
-accounts alike:
+The client rejects pre-0.30 IDLs as direct input, but the conversion route handles them —
+nodes-from-anchor converts the legacy shape too. Convert explicitly, inject the program address
+(legacy IDLs may not declare one), and the codama root works like any other:
 
 ```ts
 import { isLegacyAnchorIdl } from '@explorer/idl';
+import { convertToCodama } from '@explorer/idl/anchor';
 
-isLegacyAnchorIdl(idl); // true → decode it yourself; the client will not accept it
+isLegacyAnchorIdl(idl); // true → the client will not accept it directly; convert first
 
+const [error, root] = convertToCodama(idl);
+if (!error) {
+    // legacy conversions come back with an empty program address — inject it from context
+    const client = createIdlClient({ ...root, program: { ...root.program, publicKey: programAddress } });
+}
+```
+
+IDLs the conversion route cannot handle get an injected escape hatch — its result lands in the
+anchor arm, for instructions and accounts alike:
+
+```ts
 const client = createIdlClient(idl, {
     fallbackDecoder: {
         decodeAccount: (idl, data) => myCustomAccountDecode(idl, data),
@@ -328,8 +339,7 @@ return `undefined` and it falls through to the `unknown` arm. It never guesses �
 anchor result.
 
 Here all three arms are live — the handler map is worth it: `codama` for instructions the
-conversion decoded, `anchor` for those your fallback decoder rescued, `unknown` for the rest.
-The codama engine is the default, so no provider is passed at the call site:
+conversion decoded, `anchor` for those your fallback decoder rescued, `unknown` for the rest:
 
 ```ts
 const client = createIdlClient(idl, { fallbackDecoder });
@@ -339,14 +349,6 @@ const label = client.decodeInstruction(instruction, {
     anchor: decode => decode.decoded, // rescued by your fallback decoder (decode.recoveredFrom holds bypassed errors)
     unknown: () => undefined,
 });
-```
-
-## Converting Anchor IDLs to Codama
-
-```ts
-import { convertToCodama } from '@explorer/idl/anchor';
-
-const [error, rootNode] = convertToCodama(anchorIdl);
 ```
 
 ## Errors
@@ -392,9 +394,8 @@ too, for skipping the Anchor leg (native programs) or reading a non-canonical PM
 
 Every instruction decode above takes a `@solana/kit` `Instruction` — usually one pulled from a transaction.
 [`@solana/transaction-introspection`](https://www.solanakit.com/docs/advanced-guides/transaction-introspection)
-turns a confirmed transaction into kit `Instruction`s, and `decodeInstruction` *consumes* kit
-`Instruction`s — so the two chain directly. This library never depends on introspection; a consumer
-that already uses it feeds its output straight in:
+turns a confirmed transaction into kit `Instruction`s — exactly what `decodeInstruction` consumes.
+This library never depends on introspection; a consumer that already uses it feeds its output straight in:
 
 ```ts
 import { walkInstructions } from '@solana/transaction-introspection';
@@ -408,14 +409,12 @@ for (const instruction of walkInstructions({ compiledMessage, loadedAddresses, m
 ```
 
 For a single call with no CPI traversal, `getInstructionsFromCompiledTransactionMessage(compiledMessage)`
-resolves the outer instructions from a compiled message alone — no transaction meta needed (v0 messages
-that load accounts from lookup tables still need `loadedAddresses`, which comes from the meta). Either way
-introspection's output is the client's input, so no coupling is introduced. Both routes are executable:
-[`__tests__/transaction-introspection.integration.spec.ts`](./__tests__/transaction-introspection.integration.spec.ts)
-runs them over in-memory transactions, inference intact. Assembling `compiledMessage`, `loadedAddresses`,
-and `meta` from a fetched transaction is introspection's territory — see the
-[introspection guide](https://www.solanakit.com/docs/advanced-guides/transaction-introspection) and the
-[package README](https://github.com/anza-xyz/kit/tree/main/packages/transaction-introspection).
+resolves the outer instructions from a compiled message alone — no meta needed (v0 messages loading
+accounts from lookup tables still need `loadedAddresses`, which comes from the meta). Both routes are
+executable: [`__tests__/transaction-introspection.integration.spec.ts`](./__tests__/transaction-introspection.integration.spec.ts)
+runs them over in-memory transactions, inference intact. Assembling the inputs from a fetched
+transaction is introspection's territory — the [guide](https://www.solanakit.com/docs/advanced-guides/transaction-introspection) and the
+[package README](https://github.com/anza-xyz/kit/tree/main/packages/transaction-introspection) cover it.
 
 ## Development
 
