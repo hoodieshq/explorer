@@ -144,7 +144,8 @@ when a wired `fallbackDecoder.decodeAccount` rescues data the pipeline missed (s
 Two axes decide what the decode routes can type: the IDL's **standard**, and **when** you know the
 program — *build time* (a type is present → static typings) or *runtime* (only the fetched JSON
 exists → payloads type as `unknown`, but the decode carries the exact schema). Every sample below is
-executable: `__tests__/integration/readme-flows.integration.spec.ts` runs them with type assertions.
+executable: [`__tests__/readme-flows.integration.spec.ts`](./__tests__/readme-flows.integration.spec.ts)
+runs them with type assertions.
 
 ### Codama IDLs · build time
 
@@ -408,7 +409,9 @@ for (const instruction of walkInstructions({ compiledMessage, loadedAddresses, m
 
 For a single call with no CPI traversal, `getInstructionsFromCompiledTransactionMessage(compiledMessage)`
 resolves the outer instructions from a compiled message alone — no transaction meta needed. Either way
-introspection's output is the client's input, so no coupling is introduced.
+introspection's output is the client's input, so no coupling is introduced. Both routes are executable:
+[`__tests__/transaction-introspection.integration.spec.ts`](./__tests__/transaction-introspection.integration.spec.ts)
+runs them over in-memory transactions, inference intact.
 
 ## Development
 
