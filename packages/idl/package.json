@@ -69,6 +69,7 @@
         "@explorer/test-idl-program-wormhole-governance": "workspace:*",
         "@solana-program/program-metadata": "0.7.0",
         "@solana-program/token-2022": "0.9.0",
+        "@solana/transaction-introspection": "7.0.0",
         "@vitest/coverage-v8": "catalog:vitest",
         "agadoo": "^3.0.0",
         "codama-fixtures": "https://codeload.github.com/codama-idl/codama/tar.gz/008849ce88472dc1080ed9a71a897b631de82b98",

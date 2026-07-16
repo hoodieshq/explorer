@@ -387,6 +387,29 @@ and throws only on transport failure or abort. With a `fetcher` the `rpc` requir
 `createLatestIdlFetcher(rpc, { anchor, authority })` — the default's building block — is exported
 too, for skipping the Anchor leg (native programs) or reading a non-canonical PMP authority.
 
+## From a transaction
+
+Every decode above takes a `@solana/kit` `Instruction` — usually one pulled from a transaction.
+[`@solana/transaction-introspection`](https://www.solanakit.com/docs/advanced-guides/transaction-introspection)
+turns a confirmed transaction into kit `Instruction`s, and `decodeInstruction` *consumes* kit
+`Instruction`s — so the two chain directly. This library never depends on introspection; a consumer
+that already uses it feeds its output straight in:
+
+```ts
+import { walkInstructions } from '@solana/transaction-introspection';
+
+// walkInstructions yields every instruction of a confirmed transaction — outer calls and their inner
+// CPI results — as kit Instructions (see the introspection guide for assembling its inputs)
+for (const instruction of walkInstructions({ compiledMessage, loadedAddresses, meta })) {
+    const [, data] = client.decodeInstructionData(instruction); // the same call as anywhere else
+    if (data) render(data, instruction.trace); // trace tells you outer[i] from inner[outer/inner]
+}
+```
+
+For a single call with no CPI traversal, `getInstructionsFromCompiledTransactionMessage(compiledMessage)`
+resolves the outer instructions from a compiled message alone — no transaction meta needed. Either way
+introspection's output is the client's input, so no coupling is introduced.
+
 ## Development
 
 ```sh
