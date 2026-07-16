@@ -2,7 +2,7 @@
 // dynamic-client test documents (the `codama-fixtures` sha-pinned tarball, imported at their source
 // revision, never copied) plus the memo PMP snapshot. The convert counterpart is
 // convert-sweep.functional.spec.ts; the typed routes over these documents live in
-// __tests__/codama-inference.spec.ts.
+// __tests__/readme-flows.integration.spec.ts.
 import type { Instruction } from '@solana/kit';
 import { getLastNodeFromPath } from 'codama';
 import associatedTokenAccountIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/associated-token-account-idl.json';

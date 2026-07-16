@@ -1,7 +1,7 @@
 // The @explorer/idl client in action — consumer-style flows over the BUILT package ('@explorer/idl'
 // resolves to dist/ — build first). Creation/summary/naming sections group by client capability;
-// decoding sections group by document flavor (modern Anchor / legacy Anchor / converted / Codama).
-// Runtime flows only — the typed getDecodedData routes are demonstrated in codama-inference.spec.ts and anchor-inference.spec.ts.
+// decoding sections group by document flavor (modern Anchor / converted / Codama).
+// Runtime flows only — the typed routes are demonstrated in readme-flows.integration.spec.ts.
 // All documents are real:
 //   tokenkeg  — SPL Token's PMP-stored Codama root (mainnet snapshot)
 //   converted — the generated Anchor document normalized with nodes-from-anchor
@@ -19,12 +19,10 @@ import {
     type IdlDecodeProvider,
     type IdlError,
     IdlStandard,
-    type InstructionDecode,
     type InstructionDecodeFor,
     isAnchorStandard,
     isCodamaStandard,
     isIdlError,
-    isLegacyAnchorIdl,
     tryCreateIdlClient,
 } from '@explorer/idl';
 // conversion is anchor-input-only — it lives behind its own entry
@@ -42,11 +40,8 @@ import {
     loadLetMeBuyPmpIdl,
     loadSimpleIdl,
     loadTokenkegIdl,
-    loadNtt029Idl,
-    ntt029TransferIx,
     transferIx,
     u64le,
-    undeclaredInstructionData,
 } from '../src/__tests__/fixtures';
 import { unwrap } from '../src/__tests__/unwrap';
 import { fetchAnchorIdl } from './anchor-helpers';
@@ -296,72 +291,6 @@ describe('decoding: modern Anchor documents', () => {
             price: 42n,
             storeName: 'store',
         });
-    });
-
-    /** Case: the accessor composes with handler-map dispatch when each outcome needs its own flow. */
-    it('should compose the accessor with handler-map dispatch when flows differ per outcome', () => {
-        const simple = loadSimpleIdl();
-        const client = createIdlClient(simple);
-
-        // anchor is required (it's in an Anchor client's union) though only a fallback decoder makes it fire; codama runs here
-        const outcome = client.decodeInstruction(incrementIx(simple), {
-            anchor: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'anchor' }),
-            codama: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'codama' }),
-            unknown: decode => ({ data: client.getDecodedData<{ amount: bigint }>(decode), source: 'raw' }),
-        });
-
-        expectTypeOf(outcome).toEqualTypeOf<{ data: { amount: bigint } | undefined; source: string }>();
-        expect(outcome.source).toBe('codama');
-        expect(outcome.data).toMatchObject({ amount: 42n });
-    });
-});
-
-describe('decoding: legacy Anchor documents', () => {
-    // A realistic gap: the program executes an instruction its published IDL does not declare (an
-    // upgrade outran the document). The consumer injects a decoder that knows the missing layout.
-    const AIRDROP_DISCRIMINATOR = undeclaredInstructionData();
-
-    function clientWithFallbackDecoder() {
-        return createIdlClient(loadSimpleIdl(), {
-            fallbackDecoder: {
-                decodeInstruction: (idl, ix) => {
-                    const data = ix.data ? Uint8Array.from(ix.data) : new Uint8Array();
-                    if (!AIRDROP_DISCRIMINATOR.every((byte, i) => data[i] === byte)) return undefined;
-                    const view = new DataView(data.buffer, data.byteOffset + AIRDROP_DISCRIMINATOR.length);
-                    return { amount: view.getBigUint64(0, true), name: 'airdrop' };
-                },
-            },
-        });
-    }
-
-    /** Case: an instruction the published IDL misses is rescued by the injected decoder → anchor arm. */
-    it('should produce the anchor arm through the injected decoder when the document misses', () => {
-        const simple = loadSimpleIdl();
-        const client = clientWithFallbackDecoder();
-        const decode = client.decodeInstruction({
-            accounts: [],
-            data: new Uint8Array([...AIRDROP_DISCRIMINATOR, ...u64le(7n)]),
-            programAddress: address(simple.address),
-        });
-
-        const result = client.getDecodedData<{ amount: bigint; name: string }>(decode);
-
-        expectTypeOf(decode).toEqualTypeOf<InstructionDecode>();
-        expectTypeOf(result).toEqualTypeOf<{ amount: bigint; name: string } | undefined>();
-        expect(decode.kind).toBe(IdlStandard.Anchor);
-        expect(result).toEqual({ amount: 7n, name: 'airdrop' });
-    });
-
-    /** Case: a pre-0.30 document gets a typed refusal, and the guard routes it to consumer-owned decoding. */
-    it('should refuse legacy documents and route them to consumer-owned decoding', () => {
-        // the client refuses with a typed error...
-        const [error] = tryCreateIdlClient(loadNtt029Idl());
-        expect(error?.code).toBe(IDL_ERROR__UNSUPPORTED_IDL_FORMAT);
-
-        // ...the guard identifies the document, and the consumer decodes it themselves
-        // (see legacy-anchor/custom-decoder.spec.ts for a working Borsh-style legacy decoder)
-        expect(isLegacyAnchorIdl(loadNtt029Idl())).toBe(true);
-        expect(ntt029TransferIx.data.length).toBeGreaterThan(8);
     });
 });
 

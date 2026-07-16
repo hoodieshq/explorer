@@ -4,44 +4,65 @@
 // fetched JSON exists → exact schema in the decode, payloads statically unknown).
 //   codama IDLs
 //     build time — 1. the schema as the type source; 2. field-shape cheat sheet; 3. a generated
-//                  client type refines a fetched IDL (AsDecoded bridges the codec view)
-//     runtime    — 4. payloads unknown, values exact; 5. the decode carries the exact schema
+//                  client type refines a fetched IDL (AsDecoded bridges the codec view); 4. a
+//                  PUBLISHED client type through the same bridge; 5. AsDecoded on the instruction
+//                  side; 6. a companion type asserted onto a runtime conversion
+//     runtime    — 7. payloads unknown, values exact; 8. the decode carries the exact schema;
+//                  9. the hand-written claim where codegen is rejected
 //   anchor IDLs (decoded through the same codama engine)
-//     build time — 6. the satellite type anchor emits; 7. the satellite type passed explicitly
-//     runtime    — 8. payloads unknown + the per-call claim; 9. the schema is CREATED from the
+//     build time — 10. the satellite type anchor emits; 11. the satellite type passed explicitly;
+//                  12. the satellite also types account payloads
+//     runtime    — 13. payloads unknown + the per-call claim; 14. the schema is CREATED from the
 //                  anchor JSON by the internal conversion
-//   schema-paired entries (its own section) — 10. getDecodedEntries flattens the codama arm into
-//                  node-paired leaves; 11. one entries shape serves anchor-born programs too
+//   schema-paired entries (its own section) — 15. getDecodedEntries flattens the codama arm into
+//                  node-paired leaves; 16. one entries shape serves anchor-born programs too;
+//                  17. a consumer renderer dispatches on entry node kinds
 // `decodeInstructionData`/`decodeAccountData` are the one-step routes (typed payload as an
 // error-first Result); `unwrap` narrows the two-step route to the default (codama) arm (payload + schema node).
 import {
     type AccountsDataOf,
+    type AnchorIdl,
     type AsDecoded,
+    type CodamaIdl,
     createIdlClient,
+    type DecodedEntry,
     findEntryOfKind,
     getDecodedEntries,
+    getEnumVariantName,
     joinPath,
     unwrap,
 } from '@explorer/idl';
+import { convertToCodama } from '@explorer/idl/anchor';
 import { exampleNativeTokenTransfersIdl } from '@explorer/test-idl-program-example-native-token-transfers/codama';
 import { vaultIdl } from '@explorer/test-idl-program-vault';
 // the wide anchor IDL type is anchor's own — the library's AnchorIdl is a direct alias of it
 import type { Idl } from '@coral-xyz/anchor';
+// real-world interop: a PUBLISHED renderers-js-generated client (type-only import, erased at runtime)
+import type { Multisig as PublishedMultisig } from '@solana-program/token-2022';
+import { address } from '@solana/kit';
+// an IDL renderers-js REJECTS (circular account defaults) — the hand-written claim is the only typed route
+import exampleIdl from 'codama-fixtures/packages/dynamic-client/test/programs/idls/example-idl.json';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 
 import {
     depositIx,
     incrementIx,
+    loadNtt029Idl,
     loadSimpleIdl,
     loadSimpleIdlTyped,
     loadTokenkegIdl,
+    NTT_PROGRAM_ADDRESS,
+    NTT_TRANSFER_BURN_DISCRIMINATOR,
+    type Simple,
     type Simple031,
     transferIx,
+    u64le,
 } from '../src/__tests__/fixtures';
-import { fetchAnchorIdl } from './anchor-helpers';
+import { counterAccountData, fetchAnchorIdl } from './anchor-helpers';
 import { base16, base64, DEFAULT_ADDRESS, encodeAccount } from './codama-helpers';
-// renderers-js output for SPL Token — type-only import, erased at runtime
+// renderers-js output for SPL Token — type-only imports, erased at runtime
 import type { Multisig } from './generated/token-client/accounts/multisig';
+import type { SyncNativeInstructionData } from './generated/token-client/instructions/syncNative';
 
 // a token multisig account value, shared by the fetched-tokenkeg cases
 const MULTISIG = {
@@ -49,6 +70,28 @@ const MULTISIG = {
     m: 1,
     n: 1,
     signers: Array.from({ length: 11 }, () => DEFAULT_ADDRESS),
+};
+
+/** A consumer's per-leaf formatter for the entries renderer case — dispatches on the node kind, never the value shape. */
+const renderEntry = (entry: DecodedEntry): string => {
+    const { node, value } = entry;
+    switch (node.kind) {
+        case 'publicKeyTypeNode':
+            return `address(${String(value)})`;
+        case 'numberTypeNode':
+            return `${node.format}(${String(value)})`;
+        case 'booleanTypeNode':
+            return value ? 'yes' : 'no';
+        case 'bytesTypeNode':
+            // dynamic-parsers hands bytes back as an [encoding, data] tuple
+            return Array.isArray(value) ? `bytes(${String(value[1])})` : String(value);
+        case 'enumTypeNode':
+            // decoded as the variant index — the library names it back from the entry's node
+            return getEnumVariantName(entry) ?? String(value);
+        default:
+            // an option that decoded to None is the only undefined-valued entry
+            return value === undefined ? 'none' : (JSON.stringify(value) ?? String(value));
+    }
 };
 
 describe('README flows: how payload types reach the consumer', () => {
@@ -143,6 +186,80 @@ describe('README flows: how payload types reach the consumer', () => {
                 >();
                 expect(refined).toEqual(MULTISIG);
             });
+
+            it('should reuse a PUBLISHED client type through the same AsDecoded bridge', () => {
+                // nothing generated locally: the payload type ships in a published package
+                // (@solana-program/token-2022) and bridges to parser output the same way
+                const tokenkeg = loadTokenkegIdl();
+                const client = createIdlClient(tokenkeg);
+                const bytes = encodeAccount(tokenkeg, 'multisig', MULTISIG);
+
+                const [, data] = client.decodeAccountData<AsDecoded<PublishedMultisig>>(bytes);
+                //        ^? { isInitialized: boolean; m: number; n: number; signers: string[] } | undefined
+                expectTypeOf(data).toEqualTypeOf<
+                    { isInitialized: boolean; m: number; n: number; signers: string[] } | undefined
+                >();
+                expect(data).toEqual(MULTISIG);
+            });
+
+            it('should bridge instruction data types through AsDecoded too', () => {
+                // the instruction-side twin of the account bridge — same remapping, and the raw IDL
+                // alone decodes hand-built bytes (no codama tooling on the encode side)
+                const tokenkeg = loadTokenkegIdl();
+                const client = createIdlClient(tokenkeg);
+
+                // the IDL declares syncNative as a single u8 discriminator (17) with no other data
+                //        ↓? data: { discriminator: number } | undefined — the bridged instruction data type
+                const [, data] = client.decodeInstructionData<AsDecoded<SyncNativeInstructionData>>({
+                    accounts: [],
+                    data: Uint8Array.from([17]),
+                    programAddress: address(tokenkeg.program.publicKey),
+                });
+                expectTypeOf(data).toEqualTypeOf<{ discriminator: number } | undefined>();
+                expect(data).toEqual({ discriminator: 17 });
+            });
+
+            it('should carry the companion inference when a runtime conversion is asserted as the pre-generated type', () => {
+                // the type was generated in advance from the same document (the NTT codama literal);
+                // the legacy JSON arrives at runtime — convert it, then assert the companion type on the root
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the legacy JSON rides the same cast real consumers use
+                const [, root] = convertToCodama(loadNtt029Idl() as unknown as AnchorIdl);
+                if (!root) throw new Error('the vendored NTT document must convert');
+                // legacy documents carry no program address — the consumer injects it from context
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the companion assertion IS the flow
+                const converted = {
+                    ...root,
+                    program: { ...root.program, publicKey: NTT_PROGRAM_ADDRESS },
+                } as unknown as typeof exampleNativeTokenTransfersIdl;
+                const client = createIdlClient(converted);
+
+                //        ↓? data: a union over all 31 declared instructions | undefined — read off the asserted companion type
+                const [, data] = client.decodeInstructionData({
+                    accounts: [],
+                    // TransferArgs{amount 42, chain 1, 32-byte recipient, no queue}
+                    data: new Uint8Array([
+                        ...NTT_TRANSFER_BURN_DISCRIMINATOR,
+                        ...u64le(42n),
+                        1,
+                        0, // recipientChain.id (u16 le)
+                        ...Array.from({ length: 32 }, () => 7), // recipientAddress
+                        0, // shouldQueue
+                    ]),
+                    programAddress: address(NTT_PROGRAM_ADDRESS),
+                });
+
+                // the compiler guidance is identical to the literal route — the transferBurn member of the union
+                expectTypeOf<Extract<typeof data, { args: { amount: bigint } }>>().toEqualTypeOf<{
+                    args: {
+                        amount: bigint;
+                        recipientAddress: [string, string];
+                        recipientChain: { id: number };
+                        shouldQueue: boolean;
+                    };
+                    discriminator: [string, string];
+                }>();
+                expect(data).toMatchObject({ args: { amount: 42n, recipientChain: { id: 1 }, shouldQueue: false } });
+            });
         });
 
         describe('runtime — only the fetched JSON exists', () => {
@@ -186,6 +303,35 @@ describe('README flows: how payload types reach the consumer', () => {
                 const signers = node.data.fields.find(field => field.name === 'signers');
                 expect(signers?.type.kind === 'arrayTypeNode' && signers.type.item.kind).toBe('publicKeyTypeNode');
             });
+
+            it('should take a hand-written claim where codegen is rejected', () => {
+                // renderers-js refuses this IDL (circular account defaults) — no generated type can
+                // exist, so the per-call claim is the only typed route; the parser decodes it fine
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the imported JSON is a known codama root
+                const idl = exampleIdl as unknown as CodamaIdl;
+                const client = createIdlClient(idl);
+                const bytes = encodeAccount(idl, 'dataAccount1', {
+                    bump: 255,
+                    discriminator: base16('bd16d2a9c3062624'),
+                    input: 0n,
+                    optionalInput: null,
+                });
+
+                //        ↓? data: exactly the hand-written claim | undefined — trusted not verified
+                const [, data] = client.decodeAccountData<{
+                    bump: number;
+                    discriminator: [string, string];
+                    input: bigint;
+                    optionalInput: { __option: 'None' } | { __option: 'Some'; value: string };
+                }>(bytes);
+
+                expect(data).toEqual({
+                    bump: 255,
+                    discriminator: base64('vRbSqcMGJiQ='),
+                    input: 0n,
+                    optionalInput: { __option: 'None' },
+                });
+            });
         });
     });
 
@@ -216,6 +362,19 @@ describe('README flows: how payload types reach the consumer', () => {
 
                 expectTypeOf(data).toEqualTypeOf<{ amount: bigint } | Record<string, never> | undefined>();
                 expect(data).toMatchObject({ amount: 42n });
+            });
+
+            it('should infer account payloads from the satellite type too', async () => {
+                // the satellite carries account structs as well — decodeAccountData infers them the
+                // same way (the generated type's camelCase view matches the decoded keys)
+                const simple = await fetchAnchorIdl<Simple>(loadSimpleIdl);
+                const client = createIdlClient(simple);
+
+                const [, data] = client.decodeAccountData(counterAccountData(simple));
+                //        ^? data: { authority: string; count: bigint } | undefined — read off the satellite's counter account
+
+                expectTypeOf(data).toEqualTypeOf<{ authority: string; count: bigint } | undefined>();
+                expect(data).toMatchObject({ authority: DEFAULT_ADDRESS, count: 7n });
             });
         });
 
@@ -292,6 +451,7 @@ describe('README flows: schema-paired entries for unknown programs', () => {
 
         const decode = client.decodeInstruction(incrementIx(simple));
         const entries = getDecodedEntries(decode);
+        //    ^? DecodedEntry[] — the same shape; the anchor origin is invisible
 
         // the same flattened keys — the anchor origin is invisible in the entries shape
         expect(entries.map(joinPath)).toEqual(['discriminator', 'amount']);
@@ -304,5 +464,47 @@ describe('README flows: schema-paired entries for unknown programs', () => {
         const amount = findEntryOfKind(entries, 'amount', 'numberTypeNode');
         expect(amount?.node.format).toBe('u64');
         expect(amount?.value).toBe(42n); // …so the value arrives in the same runtime shape (bigint)
+    });
+
+    /** Case: a whole consumer renderer — per-leaf formatting keyed by the entry's node kind, nothing else. */
+    it('should drive a renderer from entry node kinds without claiming any payload type', () => {
+        // the library owns the traversal (links, wrappers, options, nesting); the consumer owns only
+        // the per-kind formatting — renderEntry above: a renderField loop with no typeof guessing anywhere
+        const client = createIdlClient(exampleNativeTokenTransfersIdl);
+        const bytes = encodeAccount(exampleNativeTokenTransfersIdl, 'config', {
+            bump: 254,
+            chainId: { id: 1 },
+            custody: DEFAULT_ADDRESS,
+            discriminator: base16('9b0caae01efacc82'),
+            enabledTransceivers: { map: 1n },
+            mint: DEFAULT_ADDRESS,
+            mode: 'burning',
+            nextTransceiverId: 1,
+            owner: DEFAULT_ADDRESS,
+            paused: false,
+            pendingOwner: null,
+            threshold: 1,
+            tokenProgram: DEFAULT_ADDRESS,
+        });
+
+        const entries = getDecodedEntries(client.decodeAccount(bytes));
+        //    ^? DecodedEntry[] — { path, node, value } per leaf; `node` drives the switch above
+        const rendered = entries.map(entry => `${joinPath(entry)}: ${renderEntry(entry)}`);
+
+        expect(rendered).toEqual([
+            'discriminator: bytes(mwyq4B76zII=)',
+            'bump: u8(254)',
+            `owner: address(${DEFAULT_ADDRESS})`,
+            'pendingOwner: none',
+            `mint: address(${DEFAULT_ADDRESS})`,
+            `tokenProgram: address(${DEFAULT_ADDRESS})`,
+            'mode: burning', // decoded as index 1 — the enum node restored the variant name
+            'chainId.id: u16(1)', // nested fields flatten into dot paths
+            'nextTransceiverId: u8(1)',
+            'threshold: u8(1)',
+            'enabledTransceivers.map: u128(1)',
+            'paused: no',
+            `custody: address(${DEFAULT_ADDRESS})`,
+        ]);
     });
 });
