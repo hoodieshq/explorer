@@ -35,8 +35,8 @@ export function Header({ address, account, tokenInfo, isTokenInfoLoading }: Head
     );
 
     return (
-        <div className="mb-8">
-            <div className="flex flex-col items-start gap-4 border-0 border-b border-solid border-dk-gray-700-dark py-6 lg:flex-row lg:items-end lg:justify-between lg:gap-1">
+        <div className="mt-4 mb-3">
+            <div className="flex flex-col items-start gap-4 py-6 lg:flex-row lg:items-end lg:justify-between lg:gap-1">
                 <AccountHeader
                     address={address}
                     account={account}

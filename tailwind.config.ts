@@ -58,10 +58,7 @@ export const dkColors = {
 };
 
 const config: Config = {
-    // storybook-design/ holds the design-prototype slices; they share this Tailwind build
-    // (via app/styles/styles.css), so their classes must be scanned or utilities used only
-    // in a slice (e.g. arbitrary widths) never generate.
-    content: ['./app/**/*.{ts,tsx}', './storybook-design/**/*.{ts,tsx}'],
+    content: ['./app/**/*.{ts,tsx}'],
     plugins: [
         tailwindcssAnimate,
         plugin(({ addUtilities }) => {
@@ -89,11 +86,6 @@ const config: Config = {
                 dk: '0.375rem',
                 'dk-lg': '0.5rem',
                 'dk-pill': '200px',
-            },
-            maxWidth: {
-                // Named column-width caps for constraining content column width. Pair with
-                // `mx-auto w-full` to center. Extend this scale as more constraint sizes appear.
-                col: '960px',
             },
             fontSize: {
                 'dk-xs': '0.625rem',

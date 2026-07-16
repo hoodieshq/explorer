@@ -96,7 +96,7 @@ export function ProgramHeader({
             </div>
 
             <div className="flex-1">
-                <h6 className="uppercase tracking-[0.08em] text-outer-space-300">Program account</h6>
+                <h6 className="uppercase tracking-[0.08em] text-dk-gray-700">Program account</h6>
                 <div className="inline-flex">
                     <h2 className="mb-0">{programName}</h2>
                     {warningChunk}

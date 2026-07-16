@@ -34,8 +34,6 @@ export default tseslint.config(
             '.worktrees/**',
             'storybook-static/**',
             'storybook-static-*/**',
-            'storybook-design/**',
-            'storybook-design-static/**',
             'public/mockServiceWorker.js',
             'next-env.d.ts',
         ],

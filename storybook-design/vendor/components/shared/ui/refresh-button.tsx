@@ -4,19 +4,21 @@ import { RefreshCw } from 'react-feather';
 
 import { refreshAnalytics } from '@/app/shared/lib/analytics';
 
-import { Button } from './button';
+import { Button } from '@/app/components/shared/ui/button';
 
 type Props = {
     analyticsSection: string;
     fetching?: boolean;
     onClick: () => void;
+    className?: string;
 };
 
-export function RefreshButton({ analyticsSection, fetching = false, onClick }: Props) {
+export function RefreshButton({ analyticsSection, fetching = false, onClick, className }: Props) {
     return (
         <Button
             variant="outline"
             size="sm"
+            className={className}
             aria-label="Refresh"
             disabled={fetching}
             onClick={() => {

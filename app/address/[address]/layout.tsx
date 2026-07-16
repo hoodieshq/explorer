@@ -348,9 +348,9 @@ function MoreSection({
 
     return (
         <>
-            <StickyHeader className="mb-10">
+            <StickyHeader>
                 <PageContainer>
-                    <NavigationTabs buildHref={buildHref} tabs={tabs} className="pt-2">
+                    <NavigationTabs buildHref={buildHref} tabs={tabs}>
                         {asyncChildren}
                     </NavigationTabs>
                 </PageContainer>

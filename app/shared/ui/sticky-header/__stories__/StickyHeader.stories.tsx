@@ -37,7 +37,7 @@ export const Default: Story = {
     render: () => (
         <StickyHeader>
             <PageContainer>
-                <BaseNavigationTabs activeValue="" buildHref={buildHref} tabs={TABS} />
+                <BaseNavigationTabs activeValue="" buildHref={buildHref} tabs={TABS} onSelectChange={() => {}} />
             </PageContainer>
         </StickyHeader>
     ),

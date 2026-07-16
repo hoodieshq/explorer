@@ -11,5 +11,4 @@ build/
 .worktrees/
 storybook-static/
 storybook-static-*/
-storybook-design-static/
 public/mockServiceWorker.js

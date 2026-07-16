@@ -19,7 +19,6 @@ const statusOptions = ['active', 'inactive'] as const satisfies readonly BadgeSt
 const variantOptions = [
     'default',
     'destructive',
-    'danger',
     'info',
     'secondary',
     'success',
@@ -37,7 +36,7 @@ const dashkitVariantOptions = [
     'gray',
     'dark',
 ] as const satisfies readonly BadgeVariant[];
-const toneOptions = ['original', 'soft', 'solid'] as const satisfies readonly BadgeTone[];
+const toneOptions = ['soft', 'solid'] as const satisfies readonly BadgeTone[];
 
 const meta: Meta<typeof Badge> = {
     argTypes: {
@@ -149,32 +148,6 @@ export const WithIcon: Story = {
                     </Badge>
                 );
             })}
-        </div>
-    ),
-};
-
-// The exact tw-mode badges used by the Program Account row states (Verified Build /
-// Security.txt) in storybook-design/slices/program-account/UpgradeableProgramSection —
-// they ride the soft tone.
-export const ProgramVerificationStates: Story = {
-    name: 'tw / Program verification states',
-    render: () => (
-        <div className="flex flex-wrap gap-4">
-            <Badge tone="soft" ui="tw" variant="success">
-                Verified
-            </Badge>
-            <Badge tone="soft" ui="tw" variant="warning">
-                Not verified
-            </Badge>
-            <Badge tone="soft" ui="tw" variant="danger">
-                Error
-            </Badge>
-            <Badge tone="soft" ui="tw" variant="success">
-                Included
-            </Badge>
-            <Badge tone="soft" ui="tw" variant="warning">
-                Not included
-            </Badge>
         </div>
     ),
 };

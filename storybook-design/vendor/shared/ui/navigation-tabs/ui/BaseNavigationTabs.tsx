@@ -9,10 +9,9 @@ import {
 } from '@/app/shared/ui/navigation-tabs/model/navigation-tabs-context';
 import { type NavigationTab } from '@/app/shared/ui/navigation-tabs/model/types';
 import { useTabOverflow } from '@/app/shared/ui/navigation-tabs/model/useTabOverflow';
-import { useStickyHeaderHeight } from '@/app/shared/ui/sticky-header/useStickyHeaderHeight';
 
 import { MobileMoreDropdown } from './MobileMoreDropdown';
-import { TabLink } from './TabLink';
+import { TabLink } from '@/app/shared/ui/navigation-tabs/ui/TabLink';
 
 const SCROLL_OFFSET = 10;
 
@@ -21,7 +20,6 @@ export type BaseNavigationTabsProps = {
     buildHref: (path: string) => string;
     children?: React.ReactNode;
     className?: string;
-    onSelectChange?: (path: string) => void;
     onTabClick?: (path: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
     /**
      * Enables scroll-spy mode: active tab tracks scroll position, clicking scrolls smoothly.
@@ -37,7 +35,6 @@ export type BaseNavigationTabsProps = {
 export function BaseNavigationTabs({
     tabs,
     activeValue: activeValueProp,
-    onSelectChange,
     onTabClick: onTabClickProp,
     buildHref,
     children,
@@ -100,7 +97,24 @@ export function BaseNavigationTabs({
         return () => observer.disconnect();
     }, [scrollSpy]);
 
-    useStickyHeaderHeight(wrapperRef, !!scrollSpy);
+    useEffect(() => {
+        if (!scrollSpy) return;
+        const el = wrapperRef.current ?? tablistRef.current;
+        if (!el) return;
+        const update = () => {
+            document.documentElement.style.setProperty(
+                '--sticky-header-height',
+                `${el.getBoundingClientRect().height}px`,
+            );
+        };
+        update();
+        const resizeObserver = new ResizeObserver(update);
+        resizeObserver.observe(el);
+        return () => {
+            resizeObserver.disconnect();
+            document.documentElement.style.removeProperty('--sticky-header-height');
+        };
+    }, [scrollSpy, tablistRef]);
 
     useEffect(() => {
         if (!scrollSpy) return;
@@ -124,7 +138,6 @@ export function BaseNavigationTabs({
 
     const activeValue = scrollSpy ? spyActive : (activeValueProp ?? '');
     const onTabClick = scrollSpy ? scrollSpyTabClick : onTabClickProp;
-    const handleSelectChange = scrollSpy ? scrollToSection : onSelectChange;
 
     const contextValue = useMemo(
         () => ({ activeValue, buildHref, onTabClick, registerTab, renderTabLink: true, staticPaths, unregisterTab }),
@@ -150,7 +163,7 @@ export function BaseNavigationTabs({
                     </div>
                 )}
 
-                {moreTabs.length > 0 && <MobileMoreDropdown tabs={moreTabs} onSelectChange={handleSelectChange} />}
+                {moreTabs.length > 0 && <MobileMoreDropdown tabs={moreTabs} />}
             </div>
 
             {children && (
