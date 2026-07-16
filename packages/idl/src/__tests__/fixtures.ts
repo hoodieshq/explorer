@@ -5,6 +5,7 @@ import exampleNativeTokenTransfersIdl from '@explorer/test-idl-program-example-n
 import type { ExampleNativeTokenTransfers } from '@explorer/test-idl-program-example-native-token-transfers/generated-types';
 import letMeBuyIdl from '@explorer/test-idl-program-let-me-buy/idl';
 import letMeBuyPmpIdl from '@explorer/test-idl-program-let-me-buy/pmp-idl';
+import memoIdl from '@explorer/test-idl-program-memo/idl';
 import simpleIdl from '@explorer/test-idl-program-simple/idl';
 import type { Simple } from '@explorer/test-idl-program-simple/generated-types';
 import simple031Idl from '@explorer/test-idl-program-simple-031/idl';
@@ -23,6 +24,8 @@ export const loadLetMeBuyIdl = (): AnchorIdl => structuredClone(letMeBuyIdl) as 
 export const loadLetMeBuyPmpIdl = (): AnchorIdl => structuredClone(letMeBuyPmpIdl) as AnchorIdl;
 /** SPL Token's PMP-stored Codama root node (mainnet snapshot). */
 export const loadTokenkegIdl = (): CodamaIdl => structuredClone(tokenkegIdl) as unknown as CodamaIdl;
+/** SPL Memo v4's PMP-stored Codama root (mainnet snapshot) — one discriminator-less instruction. */
+export const loadMemoIdl = (): CodamaIdl => structuredClone(memoIdl) as unknown as CodamaIdl;
 /** IDL emitted by `anchor build` (anchor-lang 1.1.2) for `test-anchor-programs/simple`. */
 export const loadSimpleIdl = (): AnchorIdl => structuredClone(simpleIdl) as AnchorIdl;
 /** Same document typed with anchor's companion type — its camelCase view matches decoded payload keys. */
