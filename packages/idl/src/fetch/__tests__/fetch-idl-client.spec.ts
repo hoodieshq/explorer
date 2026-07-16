@@ -30,9 +30,17 @@ import {
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     isIdlError,
 } from '../../errors';
-import { createLatestIdlFetcher, fetchIdlClient } from '../../fetch/index';
-import { incrementIx, loadSimpleIdl, loadTokenkegIdl, transferIx } from '../fixtures';
-import { unwrap } from '../unwrap';
+import {
+    incrementIx,
+    loadNtt029Idl,
+    loadSimpleIdl,
+    loadTokenkegIdl,
+    NTT_PROGRAM_ADDRESS,
+    ntt029TransferIx,
+    transferIx,
+} from '../../__tests__/fixtures';
+import { unwrap } from '../../__tests__/unwrap';
+import { createLatestIdlFetcher, fetchIdlClient } from '../index';
 
 const provider = codamaProvider();
 
@@ -67,13 +75,18 @@ function anchorIdlAccount(idl: object): Uint8Array {
     return Uint8Array.from(data);
 }
 
-/** A canonical PMP `idl` metadata account with direct, uncompressed content (a string stays raw). */
-function pmpIdlAccount(program: Address, idl: object | string, format: Format = Format.Json): Uint8Array {
+/** A PMP `idl` metadata account with direct, uncompressed content (a string stays raw); canonical unless an authority is given. */
+function pmpIdlAccount(
+    program: Address,
+    idl: object | string,
+    format: Format = Format.Json,
+    authority: Address | null = null,
+): Uint8Array {
     const data = new TextEncoder().encode(typeof idl === 'string' ? idl : JSON.stringify(idl));
     return Uint8Array.from(
         getMetadataEncoder().encode({
-            authority: null,
-            canonical: true,
+            authority,
+            canonical: authority === null,
             compression: Compression.None,
             data,
             dataLength: data.length,
@@ -118,6 +131,19 @@ describe('fetchIdlClient', () => {
 
         const [, data] = client.decodeInstructionData<{ amount: bigint }>(transferIx(tokenkeg));
         expect(data).toMatchObject({ amount: 42n });
+    });
+
+    it('should build a client from a fetched legacy IDL using the requested address', async () => {
+        // wormhole NTT publishes a legacy (0.29) IDL on its anchor PDA — the route supplies the
+        // conversion address itself, so the caller never passes it twice
+        const program = address(NTT_PROGRAM_ADDRESS);
+        const rpc = mockRpc({ [await anchorIdlAddress(program)]: anchorIdlAccount(loadNtt029Idl()) });
+
+        const client = unwrap(await fetchIdlClient(NTT_PROGRAM_ADDRESS, { provider, rpc }));
+
+        expect(client.programAddress()).toBe(NTT_PROGRAM_ADDRESS);
+        // names resolve off the converted root — legacy IDLs declare no discriminators
+        expect(client.instructionName(ntt029TransferIx.data)).toBe('Transfer Burn');
     });
 
     it('should reject an IDL declaring a different program address', async () => {
@@ -265,6 +291,18 @@ describe('createLatestIdlFetcher', () => {
         const fetcher = createLatestIdlFetcher(mockRpc({}));
 
         await expect(fetcher('11111111111111111111111111111111')).resolves.toBeUndefined();
+    });
+
+    it('should read the PMP idl metadata under a non-canonical authority', async () => {
+        const tokenkeg = loadTokenkegIdl();
+        const program = address(tokenkeg.program.publicKey);
+        const authority = address(NTT_PROGRAM_ADDRESS); // any address distinct from the canonical (null) authority
+        const [metadataAddress] = await findMetadataPda({ authority, program, seed: 'idl' });
+        const rpc = mockRpc({ [metadataAddress]: pmpIdlAccount(program, tokenkeg, Format.Json, authority) });
+        const fetcher = createLatestIdlFetcher(rpc, { authority });
+
+        // the canonical PDA holds nothing — resolution only succeeds if the option reached the seeds
+        await expect(fetcher(program)).resolves.toMatchObject({ program: { publicKey: program } });
     });
 
     it('should surface a corrupt anchor idl account as the typed parse error', async () => {
