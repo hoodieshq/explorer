@@ -85,14 +85,25 @@ const same: IdlClient = createIdlClient(idl, { provider: codamaProvider() });
 ## Decoding instructions
 
 The two-step primitive behind `decodeInstructionData` — decode to a result discriminated by the
-producing standard, then read the payload. A miss is `{ kind: 'unknown', errors: [] }`; a pipeline
-failure carries its errors — never a crash:
+producing standard (`decode.kind`), then read the payload. A miss is `{ kind: 'unknown', errors: [] }`;
+a pipeline failure carries its errors — never a crash. `unwrap` is the recommended access — it narrows
+to the default (codama) arm and surfaces the payload with its matched schema node, or throws a typed
+`IdlError` for any other arm:
 
 ```ts
-import { createIdlClient, IdlStandard } from '@explorer/idl';
+import { createIdlClient, unwrap } from '@explorer/idl';
 
 const client = createIdlClient(idl);
 const decode = client.decodeInstruction(instruction); // a @solana/kit Instruction
+
+const { data, node } = unwrap(decode); // payload + the matched InstructionNode
+```
+
+The result is still just a discriminated union — branch on `decode.kind` when you want the miss and
+failure arms as values instead of a throw:
+
+```ts
+import { IdlStandard } from '@explorer/idl';
 
 if (decode.kind === IdlStandard.Codama) {
     const args = client.getDecodedData<{ amount: bigint }>(decode); // u64 → bigint, pubkey → base58 string
@@ -116,13 +127,10 @@ arm only fires once a fallback decoder fills it (see [below](#legacy-anchor-idls
 ## Decoding accounts
 
 The account counterpart of `decodeInstruction` — the two-step primitive behind `decodeAccountData`,
-same shape:
+same shape, same `unwrap`:
 
 ```ts
-const decode = client.decodeAccount(accountData);
-if (decode.kind === IdlStandard.Codama) {
-    const account = client.getDecodedData<{ authority: string; count: bigint }>(decode);
-}
+const { data, node } = unwrap(client.decodeAccount(accountData)); // payload + the matched AccountNode
 ```
 
 `decodeAccount` takes the same handler map as `decodeInstruction`. A Codama-root client's map is
