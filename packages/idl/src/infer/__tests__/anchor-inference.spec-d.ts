@@ -22,7 +22,7 @@ describe('sample: Anchor >= 0.30 IDL — native vs nodes-from-anchor', () => {
         if (isAnchorStandard(client)) {
             expectTypeOf(client.idl.instructions).toEqualTypeOf<AnchorIdl['instructions']>();
         }
-        // all three decode arms stay possible (anchor decode with codama fallback)
+        // all three decode arms stay possible (codama decode with the injected anchor fallback)
         expectTypeOf(client.decodeInstruction(anchorIncrementIx)).toEqualTypeOf<InstructionDecode>();
     });
 

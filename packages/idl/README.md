@@ -86,9 +86,11 @@ const same: IdlClient = createIdlClient(idl, { provider: codamaProvider() });
 
 The two-step primitive behind `decodeInstructionData` — decode to a result discriminated by the
 producing standard (`decode.kind`), then read the payload. A miss is `{ kind: 'unknown', errors: [] }`;
-a pipeline failure carries its errors — never a crash. `unwrap` is the recommended access — it narrows
-to the default (codama) arm and surfaces the payload with its matched schema node, or throws a typed
-`IdlError` for any other arm:
+a pipeline failure carries its errors. One deliberate throw remains on this two-step route: an
+instruction whose `programAddress` differs from the IDL's declared address is a wiring bug —
+`IDL_ERROR__IDL_ADDRESS_MISMATCH` (the one-step routes return it as the error value instead).
+`unwrap` is the recommended access — it narrows to the default (codama) arm and surfaces the payload
+with its matched schema node, or throws a typed `IdlError` for any other arm:
 
 ```ts
 import { createIdlClient, unwrap } from '@explorer/idl';

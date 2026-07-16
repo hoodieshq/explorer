@@ -1,9 +1,0 @@
-# Task — Add `getDecodedEntries` schema×value traversal to `@explorer/idl`
-
-**Context.** In the runtime quadrant of `@explorer/idl`, a fetched (wide) IDL decodes payloads as `unknown`; `unwrap` (`packages/idl/src/types.ts`) attaches the matched schema node, and consumers interpret values by walking that node tree. The only walk today is `renderEntry` — demo code inside `__tests__/readme-flows.integration.spec.ts` (the type-acquisition suite was folded into it).
-
-**Problem.** The schema×value traversal is unowned by the library. Pairing each decoded value with its type node is non-trivial: penetrating wrapper nodes (`fixedSize`, `sizePrefix`, amount/dateTime), unwrapping kit `{__option}` objects, resolving `definedTypeLinkNode` against the root, and restoring enum variant names from decoded indices. Every schema-driven consumer must hand-roll this per-kind switch.
-
-**Why to solve.** The explorer's unknown-program display (instruction args, account fields) needs exactly this walk, and a hand-rolled copy in app code would duplicate the kind-switch and drift from the parser's value conventions. Owning it once also enables address extraction from decoded payloads, labeled copy-as-JSON, and field-level account diffing.
-
-**Potential Solution.** Ship `getDecodedEntries(decode)` as a sibling of `getDecodedData`: a sequence of `{ path, node, value }` leaves where the library owns traversal and resolution (the root comes from the decode's own path — no separate IDL argument to mismatch), and presentation stays consumer-side. Rewrite the spec's `renderValue` on top of it as the first consumer, keeping the schema↔value pairing assertions. Revisit the flat-leaf shape against the app's unknown-program display when that work starts — a nested-tree need would be an extension, not a rewrite.

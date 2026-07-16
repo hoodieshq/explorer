@@ -43,6 +43,7 @@ import {
     type InstructionDecodeFor,
     type InstructionHandlers,
     type SupportedIdl,
+    type UnknownArmErrors,
 } from '../types';
 import { incrementIx, loadSimpleIdl, loadTokenkegIdl, type Simple, type Simple031 } from './fixtures';
 
@@ -140,7 +141,7 @@ describe('decode result inference', () => {
                 }>(),
             codama: decode =>
                 expectTypeOf(decode).toEqualTypeOf<{ decoded: CodamaDecodedInstruction; kind: IdlStandard.Codama }>(),
-            unknown: decode => expectTypeOf(decode).toEqualTypeOf<{ errors: readonly IdlError[]; kind: 'unknown' }>(),
+            unknown: decode => expectTypeOf(decode).toEqualTypeOf<{ errors: UnknownArmErrors; kind: 'unknown' }>(),
         });
     });
 
@@ -195,7 +196,7 @@ describe('decoder payload inference', () => {
                 }>(),
             codama: decode =>
                 expectTypeOf(decode).toEqualTypeOf<{ decoded: CodamaDecodedAccount; kind: IdlStandard.Codama }>(),
-            unknown: decode => expectTypeOf(decode).toEqualTypeOf<{ errors: readonly IdlError[]; kind: 'unknown' }>(),
+            unknown: decode => expectTypeOf(decode).toEqualTypeOf<{ errors: UnknownArmErrors; kind: 'unknown' }>(),
         });
     });
 

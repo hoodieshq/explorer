@@ -13,6 +13,8 @@ export default defineConfig({
             // client sources only — specs (colocated `__tests__` included), fixtures, and generated artifacts are not the measured code
             exclude: ['src/**/__tests__/**'],
             include: ['src/**'],
+            // the gate, not a report — the figure decays silently from the first uncovered PR otherwise
+            thresholds: { branches: 100, functions: 100, lines: 100, statements: 100 },
         },
         projects: [
             {

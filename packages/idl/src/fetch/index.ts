@@ -20,7 +20,7 @@ import { fetchPmpIdl } from './pmp.js';
 export type { IdlFetcherRpc };
 
 export type LatestIdlFetcherOptions = {
-    /** Skip the Anchor-PDA leg — native/builtin programs cannot have one and some RPCs throw for the derived PDA. */
+    /** Set `false` to skip the Anchor-PDA leg — native/builtin programs cannot have one and some RPCs throw for the derived PDA. */
     anchor?: boolean;
     /** Non-canonical PMP metadata authority; canonical (`null`) by default. */
     authority?: Address | null;
@@ -29,7 +29,8 @@ export type LatestIdlFetcherOptions = {
 /**
  * A program's "latest" IDL: the PMP `idl` metadata first, the Anchor IDL PDA as the fallback.
  * Absent on both legs resolves `undefined`; corrupt data throws typed `IDL_ERROR__IDL_PARSE_FAILED`
- * without falling through (corruption is surfaced, not masked); the signal reaches every rpc read.
+ * without falling through (corruption is surfaced, not masked). The signal reaches both legs'
+ * account reads; url-sourced PMP payloads go through global fetch and are not signal-bound.
  */
 export function createLatestIdlFetcher(rpc: IdlFetcherRpc, options: LatestIdlFetcherOptions = {}): IdlFetcher {
     const { anchor = true, authority = null } = options;

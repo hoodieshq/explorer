@@ -6,7 +6,8 @@ import type { AnchorV00Idl, AnchorV01Idl, CodamaIdl } from '../types.js';
 
 /**
  * Convert an Anchor IDL — modern or legacy pre-0.30 — into the Codama model (nodes-from-anchor).
- * Error-first; legacy conversions come back with an empty program address — inject it from context.
+ * Error-first; a legacy IDL without `metadata.address` converts with an empty program address —
+ * inject it from context.
  */
 export function convertToCodama(
     idl: AnchorV00Idl | AnchorV01Idl,

@@ -29,9 +29,7 @@ describe('IdlError', () => {
 
     it('should describe unimplemented decode operations', () => {
         const error = new IdlError(IDL_ERROR__DECODE_UNIMPLEMENTED, { operation: 'decode account' });
-        expect(error.message).toBe(
-            'decode account is not implemented yet — lands with the @explorer/idl extraction pieces',
-        );
+        expect(error.message).toBe('decode account is not implemented');
     });
 
     it('should describe IDL fetch failures', () => {

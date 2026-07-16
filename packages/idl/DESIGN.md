@@ -14,14 +14,14 @@ Construction — untrusted input goes error-first, typed input throws; both land
 flowchart TD
     subgraph UNTRUSTED["Untrusted route — error-first"]
         RAW["unknown JSON<br/>(RPC / PMP / upload)"] --> TRY["tryCreateIdlClient(idl)"]
-        TRY -->|"unsupported"| ERR["[IdlError(UNSUPPORTED_IDL_FORMAT), undefined]"]
+        TRY -->|"unsupported / corrupt /<br/>unresolved legacy address"| ERR["[IdlError, undefined]<br/>UNSUPPORTED_IDL_FORMAT |<br/>IDL_PARSE_FAILED | PROGRAM_ADDRESS_REQUIRED"]
     end
     subgraph TRUSTED["Trusted route — throws"]
         TYPED["typed IDL<br/>(AnchorIdl | CodamaIdl | AnchorV00Idl)"]
     end
     TRY -->|"supported / legacy"| CREATE["createIdlClient(idl, options?)"]
     TYPED --> CREATE
-    CREATE -->|"lying type / unresolved<br/>legacy program address"| THROW["throw IdlError"]
+    CREATE -->|"lying type / unresolved<br/>legacy program address"| THROW["throw IdlError<br/>(typed route only — the try* routes<br/>return the tuple instead)"]
     CREATE -->|"legacy (spec 00)"| CONVERT["convertToCodama internally<br/>address: metadata.address → options.programAddress"]
     CONVERT --> CLIENT
     CREATE -->|"codama engine by default<br/>{ provider } swaps it"| CLIENT["IdlClient&lt;T&gt;<br/>metadata + decode surface"]
@@ -29,7 +29,7 @@ flowchart TD
     METACREATE --> META["IdlMetaClient&lt;T&gt;<br/>metadata + names, no decode surface"]
 ```
 
-Instruction decode — one codama-normalized pipeline; the anchor arm exists only via the injected escape hatch:
+Instruction decode — the default codama engine; under it the anchor arm exists only via the injected escape hatch:
 
 ```mermaid
 flowchart TD
@@ -44,7 +44,7 @@ flowchart TD
     PARSE -->|"throws"| COLLECT2["errors += IdlError(INSTRUCTION_DECODE_FAILED)<br/>converted already — a decode failure, not a parse failure"]
     COLLECT --> FALLBACK{"Anchor IDL and<br/>options.fallbackDecoder?.decodeInstruction?"}
     COLLECT2 --> FALLBACK
-    FALLBACK -->|"decoder returns value"| ANCHOR["{ kind: anchor, decoded }<br/>(only producer of this arm)"]
+    FALLBACK -->|"decoder returns value"| ANCHOR["{ kind: anchor, decoded }<br/>(sole producer under the default engine)"]
     FALLBACK -->|"no / returns undefined"| UNKNOWN["{ kind: unknown, errors }<br/>errors empty ⇔ plain miss"]
 ```
 
@@ -55,7 +55,7 @@ Handler maps are total by type; a runtime miss throws `MISSING_DECODE_HANDLER` �
 ## Decisions
 
 - **Codama-normalized single pipeline** — anchor converts (`@codama/nodes-from-anchor`), one engine (`@codama/dynamic-parsers`) decodes everything; two engines would be double maintenance for the same bytes.
-- **Anchor arm = escape hatch only** — the injected `fallbackDecoder` is the sole producer of `{ kind: anchor }`; its payload stays `unknown` so consumers never couple to a library guess; bypassed pipeline errors survive in `recoveredFrom`.
+- **Anchor arm = escape hatch only** — under the default codama engine the injected `fallbackDecoder` is the sole producer of `{ kind: anchor }` (a swapped provider may return it directly); its payload stays `unknown` so consumers never couple to a library guess; bypassed pipeline errors survive in `recoveredFrom`.
 - **Legacy pre-0.30 converts at creation** — recognized (`isLegacyAnchorIdl`), normalized internally via `convertToCodama` (nodes-from-anchor handles both specs) into a codama client; the program address must resolve (IDL `metadata.address` → `options.programAddress` → typed `PROGRAM_ADDRESS_REQUIRED`) because real `anchor build` 0.29 output declares none. Consumer-owned decoders remain for IDLs conversion cannot handle.
 - **Errors are values** — error-first `Result` tuples; decode failures ride the `unknown` arm as coded `IdlError`s (plain miss ⇔ `errors: []`); codes follow `@codama/errors`: stable numbers, typed context, throws split by pipeline stage.
 - **Guards over a `standard` field** — `isAnchorStandard`/`isCodamaStandard` narrow the client; a string field invites untyped branching.

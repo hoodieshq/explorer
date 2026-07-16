@@ -69,8 +69,9 @@ export function matchInstructionName(table: InstructionNameTable, data: Readonly
 
 // Anchor: discriminators are explicit byte arrays at the start of the data.
 function buildAnchorTable(idl: AnchorIdl): InstructionNameEntry[] {
+    // runtime members may lie about the declared shape — an unusable entry is skipped, never a crash
     return (idl.instructions ?? []).flatMap(ix =>
-        ix.discriminator?.length
+        typeof ix.name === 'string' && Array.isArray(ix.discriminator) && ix.discriminator.length
             ? [{ discriminator: Uint8Array.from(ix.discriminator), name: titleCase(ix.name), offset: 0 }]
             : [],
     );
@@ -105,8 +106,9 @@ function getBytesEncoders(): Record<string, Encoder<string>> {
 }
 
 function buildCodamaTable(idl: CodamaIdl): InstructionNameEntry[] {
-    // detection guarantees `program`; a runtime root may still omit the instruction array
+    // detection guarantees `program`; runtime members may still lie — unusable entries are skipped, never a crash
     return (idl.program.instructions ?? []).flatMap(ix => {
+        if (typeof ix.name !== 'string') return [];
         const discriminator = codamaDiscriminator(ix);
         return discriminator ? [{ discriminator, name: titleCase(ix.name), offset: 0 }] : [];
     });
@@ -115,13 +117,13 @@ function buildCodamaTable(idl: CodamaIdl): InstructionNameEntry[] {
 // Single discriminator at offset 0, as a field default or a constant node — covers PMP int fields
 // and the byte defaults rootNodeFromAnchor emits for Anchor discriminators.
 function codamaDiscriminator(ix: InstructionNode): Uint8Array | undefined {
-    const [node, ...rest] = ix.discriminators ?? [];
+    const [node, ...rest] = Array.isArray(ix.discriminators) ? ix.discriminators : [];
     if (!node || rest.length > 0) return undefined;
     if (isNode(node, 'constantDiscriminatorNode')) {
-        return node.offset === 0 ? valueBytes(node.constant.type, node.constant.value) : undefined;
+        return node.offset === 0 && node.constant ? valueBytes(node.constant.type, node.constant.value) : undefined;
     }
     if (!isNode(node, 'fieldDiscriminatorNode') || node.offset !== 0) return undefined;
-    const arg = ix.arguments.find(item => item.name === node.name);
+    const arg = Array.isArray(ix.arguments) ? ix.arguments.find(item => item.name === node.name) : undefined;
     return arg && valueBytes(arg.type, arg.defaultValue);
 }
 

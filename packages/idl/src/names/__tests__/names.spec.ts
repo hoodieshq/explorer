@@ -106,6 +106,19 @@ describe('instruction names (Anchor)', () => {
         } as AnchorIdl;
         expect(buildInstructionNameResolver(noDiscriminators)).toBeUndefined();
     });
+
+    it('should skip instructions whose members lie about the declared shape', () => {
+        const simple = loadSimpleIdl();
+        const lying = {
+            ...simple,
+            instructions: [
+                { accounts: [], args: [], discriminator: [1, 2] }, // no name
+                { accounts: [], args: [], discriminator: 'nope', name: 'bad_disc' }, // non-array discriminator
+                ...simple.instructions,
+            ],
+        } as unknown as AnchorIdl;
+        expect(buildInstructionNameTable(lying)).toHaveLength(simple.instructions.length);
+    });
 });
 
 describe('buildProgramName (Codama)', () => {
@@ -222,5 +235,21 @@ describe('codama discriminator shapes', () => {
         ['an unsupported number format', fieldIx(numberTypeNode('f32'), numberValueNode(1))],
     ])('should skip unresolvable discriminators: %s', (_shape, instruction) => {
         expect(buildInstructionNameTable(rootWith(instruction))).toEqual([]);
+    });
+
+    it('should skip members that lie about the declared shape', () => {
+        const lying = {
+            kind: 'rootNode',
+            program: {
+                instructions: [
+                    { discriminators: {}, name: 'nonArrayDiscriminators' },
+                    { discriminators: [{ kind: 'constantDiscriminatorNode', offset: 0 }], name: 'noConstant' },
+                    { discriminators: [{ kind: 'fieldDiscriminatorNode', name: 'd', offset: 0 }], name: 'noArgs' },
+                    { discriminators: [{ kind: 'fieldDiscriminatorNode', name: 'd', offset: 0 }] }, // nameless
+                ],
+                publicKey: '11111111111111111111111111111111',
+            },
+        } as unknown as SupportedIdl;
+        expect(buildInstructionNameTable(lying)).toEqual([]);
     });
 });

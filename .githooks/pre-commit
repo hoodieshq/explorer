@@ -5,12 +5,6 @@ staged() {
   git diff --cached --name-only --diff-filter=ACMR -z -- \
     '*.ts' '*.tsx' '*.mts' '*.mjs' '*.cjs' '*.js'
 }
-# TODO enable: existence filter guarding amends where the index re-adds paths missing from the worktree
-# staged() {
-#   git diff --cached --name-only --diff-filter=ACMR -z -- \
-#     '*.ts' '*.tsx' '*.mts' '*.mjs' '*.cjs' '*.js' |
-#     xargs -0 sh -c 'for f in "$@"; do if [ -e "$f" ]; then printf "%s\0" "$f"; fi; done' sh
-# }
 
 [ -z "$(staged)" ] && exit 0
 

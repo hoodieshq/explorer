@@ -20,7 +20,15 @@ import {
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     IdlError,
 } from '../errors';
-import { type AnchorIdl, type CodamaIdl, IdlStandard, type InstructionHandlers, type SupportedIdl } from '../types';
+import {
+    type AnchorIdl,
+    type CodamaIdl,
+    type IdlDecodeProvider,
+    IdlStandard,
+    type InstructionHandlers,
+    type SupportedIdl,
+    unknownArm,
+} from '../types';
 import { incrementIx, loadSimpleIdl, loadTokenkegIdl, transferIx, undeclaredInstructionData } from './fixtures';
 
 // passes isAnchorIdl (address + metadata.spec + instructions) but rootNodeFromAnchor rejects the arg type
@@ -153,6 +161,44 @@ describe('tryCreateIdlClient', () => {
         const [error, client] = tryCreateIdlClient(tokenkeg as unknown);
         expect(error).toBeUndefined();
         expect(client?.decodeInstruction(transferIx(tokenkeg)).kind).toBe(IdlStandard.Codama);
+    });
+
+    it('should tolerate guard-passing roots whose members lie about the declared shape', () => {
+        // detection is shallow by design — creation skips lying members instead of crashing
+        const corrupt: unknown = {
+            kind: 'rootNode',
+            program: {
+                accounts: [],
+                definedTypes: [],
+                // a nameless instruction whose field discriminator points at absent arguments
+                instructions: [{ discriminators: [{ kind: 'fieldDiscriminatorNode', name: 'd', offset: 0 }] }],
+                name: 'corrupt',
+                publicKey: '11111111111111111111111111111111',
+                version: '0.0.0',
+            },
+        };
+        const [error, client] = tryCreateIdlClient(corrupt);
+        expect(error).toBeUndefined();
+        expect(client?.instructionName(Uint8Array.from([1]))).toBeUndefined();
+        // decode failures stay values on the unknown arm — never a crash
+        expect(client?.decodeInstruction(brokenIx()).kind).toBe('unknown');
+    });
+
+    it('should fold a creation crash into the typed parse error instead of throwing', () => {
+        // the safety net for lies deeper than the member guards — simulated with a throwing accessor
+        const trap: unknown = {
+            kind: 'rootNode',
+            program: {
+                get instructions(): never {
+                    throw new Error('deep corruption');
+                },
+                publicKey: '11111111111111111111111111111111',
+            },
+        };
+        const [error, client] = tryCreateIdlClient(trap);
+        expect(client).toBeUndefined();
+        expect(error?.code).toBe(IDL_ERROR__IDL_PARSE_FAILED);
+        expect(error?.cause).toMatchObject({ message: 'deep corruption' });
     });
 });
 
@@ -433,6 +479,50 @@ describe('decodeInstructionData / decodeAccountData (combined error-first decode
         const [error, data] = createIdlClient(brokenAnchorIdl()).decodeInstructionData(brokenIx());
         expect(data).toBeUndefined();
         expect(error?.code).toBe(IDL_ERROR__IDL_PARSE_FAILED);
+    });
+
+    it('should surface the account pipeline error for a detected-but-unconvertible document', () => {
+        const [error, data] = createIdlClient(brokenAnchorIdl()).decodeAccountData(missAccountData());
+        expect(data).toBeUndefined();
+        expect(error?.code).toBe(IDL_ERROR__IDL_PARSE_FAILED);
+    });
+
+    it('should report an instruction miss as the decode-failed error even when a kind is asserted', () => {
+        // an unknown-arm decode becomes the decode-failed error — never a mismatch (documented ordering)
+        const tokenkeg = loadTokenkegIdl();
+        const [error, data] = createIdlClient(tokenkeg).decodeInstructionData(
+            { ...transferIx(tokenkeg), data: Uint8Array.from([99, 1, 2]) },
+            IdlStandard.Codama,
+        );
+        expect(data).toBeUndefined();
+        expect(error?.code).toBe(IDL_ERROR__INSTRUCTION_DECODE_FAILED);
+    });
+
+    it('should report an account miss as the decode-failed error even when a kind is asserted', () => {
+        const [error, data] = createIdlClient(loadSimpleIdl()).decodeAccountData(missAccountData(), IdlStandard.Codama);
+        expect(data).toBeUndefined();
+        expect(error?.code).toBe(IDL_ERROR__ACCOUNT_DECODE_FAILED);
+    });
+
+    it('should return the address mismatch as the error value instead of throwing', () => {
+        // the two-step route fails loud on this wiring bug; the one-step route keeps it a value
+        const tokenkeg = loadTokenkegIdl();
+        const foreign = { ...transferIx(tokenkeg), programAddress: address('11111111111111111111111111111111') };
+        const [error, data] = createIdlClient(tokenkeg).decodeInstructionData(foreign);
+        expect(data).toBeUndefined();
+        expect(error?.code).toBe(IDL_ERROR__IDL_ADDRESS_MISMATCH);
+    });
+
+    it('should rethrow non-mismatch engine throws', () => {
+        const engine: IdlDecodeProvider = {
+            decodeAccount: () => unknownArm([]),
+            decodeInstruction: () => {
+                throw new Error('provider failure');
+            },
+        };
+        const simple = loadSimpleIdl();
+        const client = createIdlClient(simple, { provider: engine });
+        expect(() => client.decodeInstructionData(incrementIx(simple))).toThrowError('provider failure');
     });
 });
 

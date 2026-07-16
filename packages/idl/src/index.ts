@@ -91,5 +91,6 @@ export {
     type SupportedIdl,
     type SupportedIdlInput,
     unknownArm,
+    type UnknownArmErrors,
     unwrap,
 } from './types.js';

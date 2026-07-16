@@ -16,12 +16,14 @@ import {
     err,
     IDL_ERROR__ACCOUNT_DECODE_FAILED,
     IDL_ERROR__DECODE_KIND_MISMATCH,
+    IDL_ERROR__IDL_ADDRESS_MISMATCH,
     IDL_ERROR__IDL_PARSE_FAILED,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
     IDL_ERROR__MISSING_DECODE_HANDLER,
     IDL_ERROR__PROGRAM_ADDRESS_REQUIRED,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     IdlError,
+    isIdlError,
     ok,
     type Result,
 } from './errors.js';
@@ -147,7 +149,7 @@ export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClien
      * ```
      */
     decodeInstructionData: <TData = InstructionDataOf<T>>(ix: Instruction, expectedKind?: IdlStandard) => Result<TData>;
-    /** Decoded payload typed from the IDL; `undefined` only for the unknown arm — narrowing `decode.kind` first drops it. */
+    /** Decoded payload typed from the IDL; `undefined` only for the unknown arm — narrowing `decode.kind` first drops it. Anchor-arm payloads are consumer-declared — claim `TData` explicitly (the account/instruction overloads cannot tell those arms apart). */
     getDecodedData: {
         <TData = InstructionDataOf<T>>(decode: Extract<InstructionDecode, { kind: IdlStandard }>): TData;
         <TData = AccountDataOf<T>>(decode: Extract<AccountDecode, { kind: IdlStandard }>): TData;
@@ -224,7 +226,14 @@ export function createIdlClient<T extends SupportedIdlInput>(
         ix: Instruction,
         expectedKind?: IdlStandard,
     ): Result<TData> {
-        const decode = decodeInstruction(ix);
+        let decode: InstructionDecodeFor<T>;
+        try {
+            decode = decodeInstruction(ix);
+        } catch (cause) {
+            // the two-step route fails loud on the wiring bug; the one-step route keeps every outcome a value
+            if (isIdlError(cause, IDL_ERROR__IDL_ADDRESS_MISMATCH)) return err(cause);
+            throw cause;
+        }
         if (decode.kind === 'unknown') {
             // surface the pipeline's own failure rather than masking it; a plain miss gets a fresh error
             return err(
@@ -293,15 +302,24 @@ export function createIdlClient<T extends SupportedIdlInput>(
     };
 }
 
+// Guard-passing input can still lie deeper than detection checks — a creation crash becomes the parse error.
+function tryBuild<T>(build: () => T): Result<T, typeof IDL_ERROR__IDL_PARSE_FAILED> {
+    try {
+        return ok(build());
+    } catch (cause) {
+        return err(new IdlError(IDL_ERROR__IDL_PARSE_FAILED, { cause, operation: 'idl client creation' }));
+    }
+}
+
 /** Detect and wrap untrusted input — error-first result instead of a throw. */
 export function tryCreateIdlClient(idl: unknown, options?: IdlClientOptions): Result<IdlClient, TryCreateIdlErrorCode> {
     if (isLegacyAnchorIdl(idl)) {
         const [error, root] = tryNormalizeLegacyIdl(idl, options?.programAddress);
         if (error) return err(error);
-        return ok(createIdlClient(root, options));
+        return tryBuild(() => createIdlClient(root, options));
     }
     if (!isSupportedIdl(idl)) return err(unsupportedIdl());
-    return ok(createIdlClient(idl, options));
+    return tryBuild(() => createIdlClient(idl, options));
 }
 
 /** {@link createIdlMetaClient} over untrusted input — error-first result instead of a throw. */
@@ -312,10 +330,10 @@ export function tryCreateIdlMetaClient(
     if (isLegacyAnchorIdl(idl)) {
         const [error, root] = tryNormalizeLegacyIdl(idl, options?.programAddress);
         if (error) return err(error);
-        return ok(createIdlMetaClient(root));
+        return tryBuild(() => createIdlMetaClient(root));
     }
     if (!isSupportedIdl(idl)) return err(unsupportedIdl());
-    return ok(createIdlMetaClient(idl));
+    return tryBuild(() => createIdlMetaClient(idl));
 }
 
 export function isAnchorStandard(client: IdlClient): client is IdlClient<AnchorIdl>;

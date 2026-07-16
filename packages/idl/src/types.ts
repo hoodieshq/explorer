@@ -54,21 +54,24 @@ export type CodamaDecodedAccount = NonNullable<ReturnType<typeof parseAccountDat
 export type AnchorDecodedInstruction = unknown;
 export type AnchorDecodedAccount = unknown;
 
+/** Unknown-arm errors — `[]` is a plain miss (no discriminator match); a pipeline failure always carries at least one error. */
+export type UnknownArmErrors = readonly [] | readonly [IdlError, ...IdlError[]];
+
 /**
  * A decoded instruction — discriminated by the standard that produced the decode.
- * Unknown-arm contract: `errors: []` is a plain miss (no discriminator match); non-empty means the
- * pipeline failed on the way. A fallback-decoder rescue keeps the bypassed errors in `recoveredFrom`.
+ * Unknown-arm contract: see {@link UnknownArmErrors}. A fallback-decoder rescue keeps the bypassed
+ * errors in `recoveredFrom`.
  */
 export type InstructionDecode =
     | { kind: IdlStandard.Anchor; decoded: AnchorDecodedInstruction; recoveredFrom?: readonly IdlError[] }
     | { kind: IdlStandard.Codama; decoded: CodamaDecodedInstruction }
-    | { kind: 'unknown'; errors: readonly IdlError[] };
+    | { kind: 'unknown'; errors: UnknownArmErrors };
 
 /** A decoded account — same discrimination, unknown-arm `errors`, and rescue contract as {@link InstructionDecode}. */
 export type AccountDecode =
     | { kind: IdlStandard.Anchor; decoded: AnchorDecodedAccount; recoveredFrom?: readonly IdlError[] }
     | { kind: IdlStandard.Codama; decoded: CodamaDecodedAccount }
-    | { kind: 'unknown'; errors: readonly IdlError[] };
+    | { kind: 'unknown'; errors: UnknownArmErrors };
 
 // Arm constructors — one place owns the `kind` literals and the rescue contract (empty `recoveredFrom` is omitted).
 export function anchorArm<T>(
@@ -84,8 +87,9 @@ export function codamaArm<T>(decoded: T): { decoded: T; kind: IdlStandard.Codama
     return { decoded, kind: IdlStandard.Codama };
 }
 
-export function unknownArm(errors: readonly IdlError[]): { errors: readonly IdlError[]; kind: 'unknown' } {
-    return { errors, kind: 'unknown' };
+export function unknownArm(errors: readonly IdlError[]): { errors: UnknownArmErrors; kind: 'unknown' } {
+    // eslint-disable-next-line typescript/consistent-type-assertions -- the emptiness check is the tuple proof TS cannot make over a plain array
+    return { errors: (errors.length ? errors : []) as UnknownArmErrors, kind: 'unknown' };
 }
 
 /**

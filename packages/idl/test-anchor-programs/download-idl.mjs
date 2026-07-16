@@ -24,7 +24,7 @@ for (const { source, target } of files) {
     console.log('downloaded', target);
 }
 
-// committed .ts snapshots follow the package format; .idl.json stays upstream-byte-identical (oxfmt-ignored)
+// committed .ts snapshots follow the package format; .idl.json stays as written above (minified, not oxfmt'd)
 const formatTargets = downloaded.filter(target => target.endsWith('.ts'));
 if (formatTargets.length) execFileSync('pnpm', ['exec', 'oxfmt', ...formatTargets], { stdio: 'inherit' });
 

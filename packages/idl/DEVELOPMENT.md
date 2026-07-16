@@ -53,9 +53,9 @@ pnpm --filter @explorer/test-idl-program-example-native-token-transfers run gene
 ```
 
 `test-codama-programs/` holds Codama fixtures that need no build — plain data consumed directly.
-Each package ships two entries: `.` — a literal (`as const`) TS module whose type drives the codama
-inference specs — and `./idl` — the raw JSON root node for wide (runtime-shaped) specs. The
-JSON is the source of truth: the literal module is generated from it by
+Packages ship `./idl` — the raw JSON root node for wide (runtime-shaped) specs — and, where a
+literal type drives the inference specs, `.` — an `as const` TS module (`tokenkeg` is raw-JSON-only).
+The JSON is the source of truth: the literal module is generated from it by
 `scripts/generate-codama-literals.mjs` (`pretest` re-runs it), so edits go into the JSON only.
 Each package's `description` says what it snapshots.
 

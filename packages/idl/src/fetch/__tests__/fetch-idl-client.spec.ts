@@ -19,7 +19,7 @@ import {
     getProgramDerivedAddress,
     type Rpc,
 } from '@solana/kit';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { codamaProvider } from '../../codama/index';
 import {
@@ -46,22 +46,28 @@ import { createLatestIdlFetcher, fetchIdlClient } from '../index';
 const provider = codamaProvider();
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the mocked rpc covers exactly the GetAccountInfoApi surface the fetch legs call */
-function mockRpc(accounts: Record<string, Uint8Array>): Rpc<GetAccountInfoApi> {
+function mockRpc(
+    accounts: Record<string, Uint8Array>,
+    onSend?: (config?: { abortSignal?: AbortSignal }) => void,
+): Rpc<GetAccountInfoApi> {
     return {
         getAccountInfo: (accountAddress: string) => ({
-            send: async () => ({
-                context: { slot: 0n },
-                value: accounts[accountAddress]
-                    ? {
-                          data: [Buffer.from(accounts[accountAddress]).toString('base64'), 'base64'],
-                          executable: false,
-                          lamports: 1n,
-                          owner: '11111111111111111111111111111111',
-                          rentEpoch: 0n,
-                          space: BigInt(accounts[accountAddress].length),
-                      }
-                    : null,
-            }),
+            send: async (config?: { abortSignal?: AbortSignal }) => {
+                onSend?.(config);
+                return {
+                    context: { slot: 0n },
+                    value: accounts[accountAddress]
+                        ? {
+                              data: [Buffer.from(accounts[accountAddress]).toString('base64'), 'base64'],
+                              executable: false,
+                              lamports: 1n,
+                              owner: '11111111111111111111111111111111',
+                              rentEpoch: 0n,
+                              space: BigInt(accounts[accountAddress].length),
+                          }
+                        : null,
+                };
+            },
         }),
     } as unknown as Rpc<GetAccountInfoApi>;
 }
@@ -94,6 +100,46 @@ function pmpIdlAccount(
             dataSource: DataSource.Direct,
             encoding: Encoding.Utf8,
             format,
+            mutable: true,
+            program,
+            seed: 'idl',
+        }),
+    );
+}
+
+/** A PMP `idl` metadata account whose payload claims zlib compression but carries garbage bytes. */
+function pmpCorruptIdlAccount(program: Address): Uint8Array {
+    const data = new TextEncoder().encode('not zlib');
+    return Uint8Array.from(
+        getMetadataEncoder().encode({
+            authority: null,
+            canonical: true,
+            compression: Compression.Zlib,
+            data,
+            dataLength: data.length,
+            dataSource: DataSource.Direct,
+            encoding: Encoding.Utf8,
+            format: Format.Json,
+            mutable: true,
+            program,
+            seed: 'idl',
+        }),
+    );
+}
+
+/** A PMP `idl` metadata account whose payload lives behind a URL. */
+function pmpUrlIdlAccount(program: Address, url: string): Uint8Array {
+    const data = new TextEncoder().encode(url);
+    return Uint8Array.from(
+        getMetadataEncoder().encode({
+            authority: null,
+            canonical: true,
+            compression: Compression.None,
+            data,
+            dataLength: data.length,
+            dataSource: DataSource.Url,
+            encoding: Encoding.Utf8,
+            format: Format.Json,
             mutable: true,
             program,
             seed: 'idl',
@@ -292,6 +338,54 @@ describe('createLatestIdlFetcher', () => {
         const fetcher = createLatestIdlFetcher(mockRpc({}));
 
         await expect(fetcher('11111111111111111111111111111111')).resolves.toBeUndefined();
+    });
+
+    it('should surface a corrupt direct PMP payload as the typed parse error', async () => {
+        const tokenkeg = loadTokenkegIdl();
+        const program = address(tokenkeg.program.publicKey);
+        // the metadata decodes fine, but its zlib-claimed payload is garbage — permanent data corruption
+        const rpc = mockRpc({ [await pmpIdlAddress(program)]: pmpCorruptIdlAccount(program) });
+
+        const [error, client] = await fetchIdlClient(program, { rpc });
+
+        expect(client).toBeUndefined();
+        expect(isIdlError(error, IDL_ERROR__IDL_PARSE_FAILED)).toBe(true);
+        expect(error?.context).toMatchObject({ operation: 'pmp idl data' });
+    });
+
+    it('should keep a url-sourced PMP payload failure a transport error', async () => {
+        const tokenkeg = loadTokenkegIdl();
+        const program = address(tokenkeg.program.publicKey);
+        const rpc = mockRpc({ [await pmpIdlAddress(program)]: pmpUrlIdlAccount(program, 'https://idl.invalid/x') });
+        vi.stubGlobal(
+            'fetch',
+            vi.fn(() => Promise.reject(new Error('network down'))),
+        );
+        try {
+            const [error, client] = await fetchIdlClient(program, { rpc });
+
+            expect(client).toBeUndefined();
+            // a url fetch failure is retryable transport, not data corruption
+            expect(isIdlError(error, IDL_ERROR__IDL_FETCH_FAILED)).toBe(true);
+        } finally {
+            vi.unstubAllGlobals();
+        }
+    });
+
+    it('should thread the abort signal into the rpc reads of both legs', async () => {
+        const seen: (AbortSignal | undefined)[] = [];
+        const simple = loadSimpleIdl();
+        const program = address(simple.address);
+        // PMP metadata is absent (first send) and the anchor account resolves (second send)
+        const rpc = mockRpc({ [await anchorIdlAddress(program)]: anchorIdlAccount(simple) }, config =>
+            seen.push(config?.abortSignal),
+        );
+        const controller = new AbortController();
+
+        await createLatestIdlFetcher(rpc)(program, { abortSignal: controller.signal });
+
+        expect(seen.length).toBeGreaterThanOrEqual(2);
+        for (const signal of seen) expect(signal).toBe(controller.signal);
     });
 
     it('should read the PMP idl metadata under a non-canonical authority', async () => {
