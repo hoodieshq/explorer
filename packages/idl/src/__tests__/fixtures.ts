@@ -14,7 +14,7 @@ import type { Simple } from '@explorer/test-idl-program-simple/generated-types';
 import simple031Idl from '@explorer/test-idl-program-simple-031/idl';
 import type { Simple031 } from '@explorer/test-idl-program-simple-031/generated-types';
 import tokenkegIdl from '@explorer/test-idl-program-tokenkeg/idl';
-import { address, type Instruction } from '@solana/kit';
+import { address, getU64Encoder, type Instruction } from '@solana/kit';
 
 import type { Result } from '../errors';
 import type { AnchorIdl, AnchorV00Idl, CodamaIdl, CodamaIdlInput } from '../types';
@@ -46,11 +46,8 @@ export const loadAmmV3Idl = (): AnchorIdl => structuredClone(ammV3Idl) as Anchor
 export const loadNtt029IdlTyped = (): ExampleNativeTokenTransfers =>
     structuredClone(exampleNativeTokenTransfersIdl) as ExampleNativeTokenTransfers;
 
-export const u64le = (value: bigint): number[] => {
-    const bytes = new Uint8Array(8);
-    new DataView(bytes.buffer).setBigUint64(0, value, true);
-    return Array.from(bytes);
-};
+// kit's u64 codec is little-endian — no hand-rolled DataView layout to keep in sync
+export const u64le = (value: bigint): number[] => Array.from(getU64Encoder().encode(value));
 
 /** `increment(amount: 42)` built from the program's own declared discriminator, as a kit instruction. */
 export const incrementIx = (idl: AnchorIdl): Instruction & { accounts: []; data: Uint8Array } => {
