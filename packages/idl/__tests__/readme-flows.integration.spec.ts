@@ -103,7 +103,7 @@ describe('README flows: how payload types reach the consumer', () => {
                 // The RootNode TS variant may already be accessible (shipped by the program, like vaultIdl)
                 // or built in advance — run the anchor→codama conversion at build time and save the result.
                 const client = createIdlClient(vaultIdl);
-                //                             ^? vaultIdl: { readonly kind: "rootNode"; readonly program: { … readonly name: "deposit" … } } — every field is a literal
+                //                             ^? vaultIdl: { readonly kind: "rootNode"; readonly program: { readonly name: "vault"; … instructions: [{ readonly name: "deposit"; … }] } } — every field is a literal
 
                 // the instruction arrives from elsewhere (a transaction) — the fixture builds deposit(42)
                 const [, data] = client.decodeInstructionData(depositIx(vaultIdl));
@@ -220,12 +220,12 @@ describe('README flows: how payload types reach the consumer', () => {
             });
 
             it('should carry the companion inference when a runtime conversion is asserted as the pre-generated type', () => {
-                // the type was generated in advance from the same document (the NTT codama literal);
+                // the type was generated in advance from the same IDL (the NTT codama literal);
                 // the legacy JSON arrives at runtime — convert it, then assert the companion type on the root
                 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the legacy JSON rides the same cast real consumers use
                 const [, root] = convertToCodama(loadNtt029Idl() as unknown as AnchorIdl);
-                if (!root) throw new Error('the vendored NTT document must convert');
-                // legacy documents carry no program address — the consumer injects it from context
+                if (!root) throw new Error('the vendored NTT IDL must convert');
+                // this vendored legacy IDL carries no metadata.address — the consumer injects it from context
                 // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the companion assertion IS the flow
                 const converted = {
                     ...root,

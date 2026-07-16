@@ -1,6 +1,6 @@
 # Task — Add `getDecodedEntries` schema×value traversal to `@explorer/idl`
 
-**Context.** In the runtime quadrant of `@explorer/idl`, a fetched (wide) IDL decodes payloads as `unknown`; `unwrap` (`packages/idl/src/types.ts`) attaches the matched schema node, and consumers interpret values by walking that node tree. The only walk today is `renderValue` — demo code inside `__tests__/integration/type-acquisition.integration.spec.ts:61`.
+**Context.** In the runtime quadrant of `@explorer/idl`, a fetched (wide) IDL decodes payloads as `unknown`; `unwrap` (`packages/idl/src/types.ts`) attaches the matched schema node, and consumers interpret values by walking that node tree. The only walk today is `renderEntry` — demo code inside `__tests__/readme-flows.integration.spec.ts` (the type-acquisition suite was folded into it).
 
 **Problem.** The schema×value traversal is unowned by the library. Pairing each decoded value with its type node is non-trivial: penetrating wrapper nodes (`fixedSize`, `sizePrefix`, amount/dateTime), unwrapping kit `{__option}` objects, resolving `definedTypeLinkNode` against the root, and restoring enum variant names from decoded indices. Every schema-driven consumer must hand-roll this per-kind switch.
 

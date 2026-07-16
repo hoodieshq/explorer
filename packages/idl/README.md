@@ -390,7 +390,7 @@ too, for skipping the Anchor leg (native programs) or reading a non-canonical PM
 
 ## From a transaction
 
-Every decode above takes a `@solana/kit` `Instruction` — usually one pulled from a transaction.
+Every instruction decode above takes a `@solana/kit` `Instruction` — usually one pulled from a transaction.
 [`@solana/transaction-introspection`](https://www.solanakit.com/docs/advanced-guides/transaction-introspection)
 turns a confirmed transaction into kit `Instruction`s, and `decodeInstruction` *consumes* kit
 `Instruction`s — so the two chain directly. This library never depends on introspection; a consumer
@@ -408,10 +408,14 @@ for (const instruction of walkInstructions({ compiledMessage, loadedAddresses, m
 ```
 
 For a single call with no CPI traversal, `getInstructionsFromCompiledTransactionMessage(compiledMessage)`
-resolves the outer instructions from a compiled message alone — no transaction meta needed. Either way
+resolves the outer instructions from a compiled message alone — no transaction meta needed (v0 messages
+that load accounts from lookup tables still need `loadedAddresses`, which comes from the meta). Either way
 introspection's output is the client's input, so no coupling is introduced. Both routes are executable:
 [`__tests__/transaction-introspection.integration.spec.ts`](./__tests__/transaction-introspection.integration.spec.ts)
-runs them over in-memory transactions, inference intact.
+runs them over in-memory transactions, inference intact. Assembling `compiledMessage`, `loadedAddresses`,
+and `meta` from a fetched transaction is introspection's territory — see the
+[introspection guide](https://www.solanakit.com/docs/advanced-guides/transaction-introspection) and the
+[package README](https://github.com/anza-xyz/kit/tree/main/packages/transaction-introspection).
 
 ## Development
 

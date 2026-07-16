@@ -94,7 +94,7 @@ export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClien
      * @example // `expectedKind` asserts the arm — a decode landing elsewhere becomes the error, never the wrong-arm payload
      * const [error, account] = client.decodeAccountData<{ authority: string }>(bytes, IdlStandard.Codama);
      * if (isIdlError(error, IDL_ERROR__DECODE_KIND_MISMATCH)) {
-     *     error.context; // { expected: IdlStandard.Codama, received: 'anchor' | 'unknown' } — what it got instead
+     *     error.context; // { expected: IdlStandard.Codama, received: 'anchor' } — an unknown-arm decode becomes the decode-failed error instead, never a mismatch
      * }
      */
     decodeAccountData: <TData = AccountDataOf<T>>(
