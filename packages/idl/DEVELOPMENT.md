@@ -5,14 +5,16 @@
 From the repo root:
 
 ```sh
-pnpm --filter @explorer/idl configure   # generate codama literals + typed clients, build dist
+pnpm --filter @explorer/idl configure   # full bootstrap: re-download vendored IDLs + generate
+pnpm --filter @explorer/idl generate    # offline: codama literals + typed clients, build dist
 pnpm --filter @explorer/idl test        # typecheck → unit → integration (over dist) → tree-shake → node-esm
 pnpm --filter @explorer/idl test:watch  # vitest watch mode (unit)
 pnpm --filter @explorer/idl typecheck   # tsc --noEmit (src/tests + build config)
 ```
 
-`pretest` runs `configure`, so `test` self-prepares — run `configure` directly when you need fresh
-generated modules and a dist without the suite.
+`pretest` runs `generate` (offline, no network), so `test` self-prepares from committed sources —
+`configure` additionally re-downloads the vendored wormhole IDLs and is for the occasional refresh,
+not every run.
 
 Running the suite needs **no** Rust/Anchor toolchain — specs read committed snapshots through the
 `test-anchor-programs/` packages (`src/__tests__/fixtures.ts` wraps them as `load*` loaders):
@@ -31,7 +33,12 @@ The toolchain below only **regenerates** snapshots after the `.rs` sources chang
 
 Both implement the same minimal program (one account, one instruction argument, one error, one event), so their IDLs are directly comparable across Anchor versions. Each Anchor package ships committed snapshot entries for test imports: `./idl` — the raw IDL JSON — and `./generated-types` — the generated Anchor companion type module.
 
-The same directory also contains static Anchor snapshot packages for mainnet and stress fixtures (`amm-v3`, `dummy-transfer-hook`, `example-native-token-transfers`, `let-me-buy`, `ntt-transceiver`, `wormhole-governance`). These have no build script; edit the committed JSON/type modules directly when refreshing the fixture. Variant IDLs are exposed with named subpaths such as `./pmp-idl` and `./codama`.
+The same directory also contains static Anchor snapshot packages for mainnet and stress fixtures (`amm-v3`, `dummy-transfer-hook`, `example-native-token-transfers`, `let-me-buy`, `ntt-transceiver`, `wormhole-governance`). These have no build script:
+
+- *Wormhole-sourced packages* re-download their snapshots from the upstream repository (`homepage`) with `pnpm run download:idl` (root fan-out: `download:idls`). Sources are declared per file under `explorer.vendoredIdl`; JSON lands minified, companion `.ts` oxfmt'd.
+- *The others* are edited directly when refreshing.
+- Variant IDLs are exposed with named subpaths such as `./pmp-idl`, `./legacy-idl`, and `./codama`.
+- Each package's `description` says what it snapshots.
 
 Anchor fixture packages that need a committed Codama literal opt in with `explorer.codamaFromAnchor` in their `package.json`. Regenerate all opted-in literals from the root package:
 
@@ -50,9 +57,7 @@ Each package ships two entries: `.` — a literal (`as const`) TS module whose t
 inference specs — and `./idl` — the raw JSON root node for wide (runtime-shaped) specs. The
 JSON is the source of truth: the literal module is generated from it by
 `scripts/generate-codama-literals.mjs` (`pretest` re-runs it), so edits go into the JSON only.
-
-- `test-codama-programs/memo` (`@explorer/test-idl-program-memo`) — a real PMP root-node snapshot (single discriminator-less instruction)
-- `test-codama-programs/vault` (`@explorer/test-idl-program-vault`) — a hand-authored minimal root (one instruction, one size-identified account)
+Each package's `description` says what it snapshots.
 
 Ready-made IDLs also come from the `codama-fixtures` devDependency (a pinned tarball of the codama repo): functional specs import its `dynamic-client` test IDLs as-is, and `scripts/generate-codama-types.mjs` renders typed clients from them into `__tests__/generated/`.
 
@@ -79,7 +84,7 @@ The script is named `build:anchor` (not `build`) on purpose: the root `build:pac
 `pnpm -r run build` across `packages/**`, and a `build` script here would drag the Rust/Anchor
 toolchain into every standard build (CI included).
 
-`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and copies them into the committed snapshots (via `scripts/copy-anchor-artifacts.mjs`) — a standalone regeneration step, never part of the test pipeline. Commit the refreshed snapshots; the suite reads those, not the live `target/`. To refresh one Anchor package after building it, run its `copy:artifacts` script.
+`build:programs` compiles each workspace into `target/idl/*.json` + `target/types/*.ts` (both gitignored) and copies them into the committed snapshots (via `test-anchor-programs/copy-anchor-artifacts.mjs`) — a standalone regeneration step, never part of the test pipeline. Commit the refreshed snapshots; the suite reads those, not the live `target/`. To refresh one Anchor package after building it, run its `copy:artifacts` script.
 
 ### Gotchas
 

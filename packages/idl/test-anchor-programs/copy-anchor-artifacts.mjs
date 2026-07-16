@@ -5,11 +5,11 @@
 // Derived Codama literal modules are generated separately by each program's `generate:codama` script.
 import { copyFileSync, existsSync } from 'node:fs';
 
-const ROOT = new URL('../', import.meta.url);
+const ROOT = new URL('./', import.meta.url);
 
 const PROGRAMS = [
     {
-        dir: 'test-anchor-programs/simple',
+        dir: 'simple',
         packageName: '@explorer/test-idl-program-simple',
         snapshots: [
             { from: 'target/idl/simple.json', to: 'simple.idl.json' },
@@ -17,7 +17,7 @@ const PROGRAMS = [
         ],
     },
     {
-        dir: 'test-anchor-programs/simple-031',
+        dir: 'simple-031',
         packageName: '@explorer/test-idl-program-simple-031',
         snapshots: [
             { from: 'target/idl/simple_031.json', to: 'simple_031.idl.json' },
