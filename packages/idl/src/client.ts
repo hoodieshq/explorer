@@ -1,5 +1,6 @@
 import type { Instruction, ReadonlyUint8Array } from '@solana/kit';
 
+import { convertToCodama } from './anchor/convert.js';
 import { codamaProvider } from './codama/index.js';
 import {
     getIdlProgramAddress,
@@ -8,14 +9,17 @@ import {
     getIdlVersion,
     isAnchorIdl,
     isCodamaIdl,
+    isLegacyAnchorIdl,
     isSupportedIdl,
 } from './detect.js';
 import {
     err,
     IDL_ERROR__ACCOUNT_DECODE_FAILED,
     IDL_ERROR__DECODE_KIND_MISMATCH,
+    IDL_ERROR__IDL_PARSE_FAILED,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
     IDL_ERROR__MISSING_DECODE_HANDLER,
+    IDL_ERROR__PROGRAM_ADDRESS_REQUIRED,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     IdlError,
     ok,
@@ -28,6 +32,7 @@ import {
     type AccountDecodeFor,
     type AccountHandlers,
     type AnchorIdl,
+    type AnchorV00Idl,
     type CodamaIdl,
     type FallbackDecoderOptions,
     type IdlDecodeProvider,
@@ -43,7 +48,31 @@ import {
 export type IdlClientOptions = FallbackDecoderOptions & {
     /** Decode engine — the codama engine by default; pass one to swap. */
     provider?: IdlDecodeProvider;
+    /** For legacy (pre-0.30) input whose IDL declares no address — injected into the converted root. */
+    programAddress?: string;
 };
+
+/** Options of the names-only client — only the legacy address injection applies (no decode engine). */
+export type IdlMetaClientOptions = {
+    /** For legacy (pre-0.30) input whose IDL declares no address — injected into the converted root. */
+    programAddress?: string;
+};
+
+type LegacyNormalizeErrorCode = typeof IDL_ERROR__IDL_PARSE_FAILED | typeof IDL_ERROR__PROGRAM_ADDRESS_REQUIRED;
+
+/** Convert a legacy IDL and resolve its program address — the client contract requires one. */
+function tryNormalizeLegacyIdl(
+    idl: AnchorV00Idl,
+    programAddress?: string,
+): Result<CodamaIdl, LegacyNormalizeErrorCode> {
+    const [error, root] = convertToCodama(idl);
+    if (error) return err(error);
+    if (root.program.publicKey) return ok(root);
+    if (!programAddress) return err(new IdlError(IDL_ERROR__PROGRAM_ADDRESS_REQUIRED, { programName: idl.name }));
+    // codama nodes are frozen — spread-copy to inject the address
+    // eslint-disable-next-line typescript/consistent-type-assertions -- the spread keeps the RootNode shape; only publicKey changes
+    return ok({ ...root, program: { ...root.program, publicKey: programAddress } } as CodamaIdl);
+}
 
 /** Engine-free client over one IDL — names and metadata only, no decode surface (see {@link createIdlMetaClient}). */
 export type IdlMetaClient<T extends SupportedIdlInput = SupportedIdl> = {
@@ -128,25 +157,52 @@ export type IdlClient<T extends SupportedIdlInput = SupportedIdl> = IdlMetaClien
 /**
  * Names-and-metadata client for a known-supported IDL — no decode surface, no engine involved;
  * throws on a value that fails runtime detection (lying type) — use {@link tryCreateIdlMetaClient}
- * for untrusted input.
+ * for untrusted input. Legacy (pre-0.30) input converts at creation — its metainfo (and the
+ * sha256-derived discriminators the name table needs) only exists on the converted root.
  */
-export function createIdlMetaClient<T extends SupportedIdlInput>(idl: T): IdlMetaClient<T> {
+export function createIdlMetaClient(idl: AnchorV00Idl, options?: IdlMetaClientOptions): IdlMetaClient<CodamaIdl>;
+export function createIdlMetaClient<T extends SupportedIdlInput>(
+    idl: T,
+    options?: IdlMetaClientOptions,
+): IdlMetaClient<T>;
+export function createIdlMetaClient<T extends SupportedIdlInput>(
+    idl: AnchorV00Idl | T,
+    options: IdlMetaClientOptions = {},
+): IdlMetaClient<CodamaIdl> | IdlMetaClient<T> {
+    if (isLegacyAnchorIdl(idl)) {
+        const [error, root] = tryNormalizeLegacyIdl(idl, options.programAddress);
+        if (error) throw error;
+        return createIdlMetaClient(root);
+    }
     if (!isSupportedIdl(idl)) throw unsupportedIdl();
-    return buildMetaClient(idl, idl);
+    // eslint-disable-next-line typescript/consistent-type-assertions -- isLegacyAnchorIdl excluded the V00 member; TS cannot subtract it from the generic union
+    return buildMetaClient(idl as T, idl);
 }
 
 /**
  * Client for a known-supported IDL; throws on a value that fails runtime detection (lying type) —
  * use {@link tryCreateIdlClient} for untrusted input. Decodes with the codama engine unless
  * `options.provider` swaps it. Assumes the IDL is not mutated after construction
- * (the instruction name table is precomputed).
+ * (the instruction name table is precomputed). Legacy (pre-0.30) input converts at creation and
+ * yields a codama client — pass `options.programAddress` when the IDL declares no address.
  */
-export function createIdlClient<T extends SupportedIdlInput>(idl: T, options: IdlClientOptions = {}): IdlClient<T> {
+export function createIdlClient(idl: AnchorV00Idl, options?: IdlClientOptions): IdlClient<CodamaIdl>;
+export function createIdlClient<T extends SupportedIdlInput>(idl: T, options?: IdlClientOptions): IdlClient<T>;
+export function createIdlClient<T extends SupportedIdlInput>(
+    idl: AnchorV00Idl | T,
+    options: IdlClientOptions = {},
+): IdlClient<CodamaIdl> | IdlClient<T> {
+    if (isLegacyAnchorIdl(idl)) {
+        const [error, root] = tryNormalizeLegacyIdl(idl, options.programAddress);
+        if (error) throw error;
+        return createIdlClient(root, options);
+    }
     if (!isSupportedIdl(idl)) throw unsupportedIdl();
     // the guard's narrowing does not reach the nested function declarations — alias it once
     const supportedIdl: SupportedIdl = idl;
 
-    const metaClient = buildMetaClient(idl, supportedIdl);
+    // eslint-disable-next-line typescript/consistent-type-assertions -- isLegacyAnchorIdl excluded the V00 member; TS cannot subtract it from the generic union
+    const metaClient = buildMetaClient(idl as T, supportedIdl);
     const { provider = codamaProvider(), ...fallbackOptions } = options;
 
     function decodeInstruction(ix: Instruction): InstructionDecodeFor<T>;
@@ -242,13 +298,26 @@ export function createIdlClient<T extends SupportedIdlInput>(idl: T, options: Id
 export function tryCreateIdlClient(
     idl: unknown,
     options?: IdlClientOptions,
-): Result<IdlClient, typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> {
+): Result<IdlClient, LegacyNormalizeErrorCode | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> {
+    if (isLegacyAnchorIdl(idl)) {
+        const [error, root] = tryNormalizeLegacyIdl(idl, options?.programAddress);
+        if (error) return err(error);
+        return ok(createIdlClient(root, options));
+    }
     if (!isSupportedIdl(idl)) return err(unsupportedIdl());
     return ok(createIdlClient(idl, options));
 }
 
 /** {@link createIdlMetaClient} over untrusted input — error-first result instead of a throw. */
-export function tryCreateIdlMetaClient(idl: unknown): Result<IdlMetaClient, typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> {
+export function tryCreateIdlMetaClient(
+    idl: unknown,
+    options?: IdlMetaClientOptions,
+): Result<IdlMetaClient, LegacyNormalizeErrorCode | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> {
+    if (isLegacyAnchorIdl(idl)) {
+        const [error, root] = tryNormalizeLegacyIdl(idl, options?.programAddress);
+        if (error) return err(error);
+        return ok(createIdlMetaClient(root));
+    }
     if (!isSupportedIdl(idl)) return err(unsupportedIdl());
     return ok(createIdlMetaClient(idl));
 }

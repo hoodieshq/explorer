@@ -44,7 +44,7 @@ export function isSupportedIdl(value: unknown): value is SupportedIdl {
     return isCodamaIdl(value) || isAnchorIdl(value);
 }
 
-/** A pre-0.30 Anchor IDL — recognized only so consumers can route it to a custom decoder; the client rejects it. */
+/** A legacy (spec 00, pre-0.30) Anchor IDL — the client converts it at creation (program address required). */
 export function isLegacyAnchorIdl(value: unknown): value is AnchorV00Idl {
     if (isSupportedIdl(value)) return false;
     if (typeof value !== 'object' || value === null) return false;

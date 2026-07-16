@@ -42,6 +42,8 @@ import {
     loadNtt029Idl,
     loadSimpleIdl,
     loadTokenkegIdl,
+    NTT_PROGRAM_ADDRESS,
+    ntt029TransferIx,
     transferIx,
     u64le,
     undeclaredInstructionData,
@@ -384,5 +386,14 @@ describe('built declarations type probe', () => {
     it('should keep the legacy guard exported from the built package', () => {
         expect(isLegacyAnchorIdl(loadNtt029Idl())).toBe(true);
         expect(isLegacyAnchorIdl(loadSimpleIdl())).toBe(false);
+    });
+
+    /** Case: the legacy convert-at-creation route must survive the build — option plumbed, names derived. */
+    it('should keep the legacy creation route working through the built client', () => {
+        const client = createIdlClient(loadNtt029Idl(), { programAddress: NTT_PROGRAM_ADDRESS });
+
+        expect(client.programAddress()).toBe(NTT_PROGRAM_ADDRESS);
+        // legacy IDLs declare no discriminators — the name resolves off the conversion's derived table
+        expect(client.instructionName(ntt029TransferIx.data)).toBe('Transfer Burn');
     });
 });

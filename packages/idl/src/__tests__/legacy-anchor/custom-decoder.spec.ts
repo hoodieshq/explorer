@@ -1,20 +1,13 @@
-// The legacy route: the client refuses the document; the consumer decodes with their own decoder.
+// The consumer-owned decoder route for legacy IDLs — the escape for consumers who skip the
+// client's convert-at-creation path (create-client.spec.ts) or hold IDLs conversion cannot handle.
 import type { Instruction } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 
-import { tryCreateIdlClient } from '../../client';
 import { isLegacyAnchorIdl } from '../../detect';
-import { IDL_ERROR__UNSUPPORTED_IDL_FORMAT } from '../../errors';
 import type { AnchorV00Idl } from '../../types';
 import { loadNtt029Idl, NTT_TRANSFER_BURN_DISCRIMINATOR, ntt029TransferIx } from '../fixtures';
 
 describe('legacy Anchor custom decoder route', () => {
-    it('should refuse the legacy document with a typed error', () => {
-        const [error, client] = tryCreateIdlClient(loadNtt029Idl());
-        expect(client).toBeUndefined();
-        expect(error?.code).toBe(IDL_ERROR__UNSUPPORTED_IDL_FORMAT);
-    });
-
     it('should route the document to a consumer-owned decoder via the guard', () => {
         expect(isLegacyAnchorIdl(loadNtt029Idl())).toBe(true);
         expect(decodeLegacyTransferBurn(loadNtt029Idl(), ntt029TransferIx)).toEqual({

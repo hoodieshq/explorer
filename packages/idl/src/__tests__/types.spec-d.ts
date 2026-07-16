@@ -22,6 +22,7 @@ import {
     IDL_ERROR__ACCOUNT_DECODE_FAILED,
     IDL_ERROR__IDL_PARSE_FAILED,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
+    IDL_ERROR__PROGRAM_ADDRESS_REQUIRED,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
     IdlError,
     isIdlError,
@@ -263,13 +264,14 @@ describe('decoder payload inference', () => {
 });
 
 describe('tryCreateIdlClient inference', () => {
-    it('should return an error-first result declaring the only failure code it can produce', () => {
-        expectTypeOf(tryCreateIdlClient({} as unknown)).toEqualTypeOf<
-            Result<IdlClient, typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT>
-        >();
-        expectTypeOf(tryCreateIdlMetaClient({} as unknown)).toEqualTypeOf<
-            Result<IdlMetaClient, typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT>
-        >();
+    it('should return an error-first result declaring the failure codes it can produce', () => {
+        // unsupported format, plus the legacy route's conversion failure / missing program address
+        type CreateErrorCode =
+            | typeof IDL_ERROR__IDL_PARSE_FAILED
+            | typeof IDL_ERROR__PROGRAM_ADDRESS_REQUIRED
+            | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT;
+        expectTypeOf(tryCreateIdlClient({} as unknown)).toEqualTypeOf<Result<IdlClient, CreateErrorCode>>();
+        expectTypeOf(tryCreateIdlMetaClient({} as unknown)).toEqualTypeOf<Result<IdlMetaClient, CreateErrorCode>>();
     });
 
     it('should narrow the tuple by checking the error slot', () => {
@@ -277,7 +279,11 @@ describe('tryCreateIdlClient inference', () => {
         if (error === undefined) {
             expectTypeOf(client).toEqualTypeOf<IdlClient>();
         } else {
-            expectTypeOf(error).toEqualTypeOf<IdlError<typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT>>();
+            expectTypeOf(error.code).toEqualTypeOf<
+                | typeof IDL_ERROR__IDL_PARSE_FAILED
+                | typeof IDL_ERROR__PROGRAM_ADDRESS_REQUIRED
+                | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT
+            >();
             expectTypeOf(client).toEqualTypeOf<undefined>();
         }
     });

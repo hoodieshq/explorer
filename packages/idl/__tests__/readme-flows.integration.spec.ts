@@ -13,10 +13,11 @@
 //     build time — 10. the satellite type anchor emits; 11. the satellite type passed explicitly;
 //                  12. the satellite also types account payloads
 //     runtime    — 13. payloads unknown + the per-call claim; 14. the schema is CREATED from the
-//                  anchor JSON by the internal conversion
-//   schema-paired entries (its own section) — 15. getDecodedEntries flattens the codama arm into
-//                  node-paired leaves; 16. one entries shape serves anchor-born programs too;
-//                  17. a consumer renderer dispatches on entry node kinds
+//                  anchor JSON by the internal conversion; 15. a legacy (pre-0.30) IDL converts
+//                  at creation (program address required)
+//   schema-paired entries (its own section) — 16. getDecodedEntries flattens the codama arm into
+//                  node-paired leaves; 17. one entries shape serves anchor-born programs too;
+//                  18. a consumer renderer dispatches on entry node kinds
 // `decodeInstructionData`/`decodeAccountData` are the one-step routes (typed payload as an
 // error-first Result); `unwrap` narrows the two-step route to the default (codama) arm (payload + schema node).
 import {
@@ -69,6 +70,20 @@ const MULTISIG = {
     m: 1,
     n: 1,
     signers: Array.from({ length: 11 }, () => DEFAULT_ADDRESS),
+};
+
+/** A complete legacy-NTT transferBurn instruction: TransferArgs{amount 42, chain 1, 32-byte recipient, no queue}. */
+const transferBurnIx = {
+    accounts: [],
+    data: new Uint8Array([
+        ...NTT_TRANSFER_BURN_DISCRIMINATOR,
+        ...u64le(42n),
+        1,
+        0, // recipientChain.id (u16 le)
+        ...Array.from({ length: 32 }, () => 7), // recipientAddress
+        0, // shouldQueue
+    ]),
+    programAddress: address(NTT_PROGRAM_ADDRESS),
 };
 
 /** A consumer's per-leaf formatter for the entries renderer case — dispatches on the node kind, never the value shape. */
@@ -231,20 +246,8 @@ describe('README flows: how payload types reach the consumer', () => {
                 } as unknown as typeof exampleNativeTokenTransfersIdl;
                 const client = createIdlClient(converted);
 
-                //        ↓? data: a union over all 31 declared instructions | undefined — read off the asserted companion type
-                const [, data] = client.decodeInstructionData({
-                    accounts: [],
-                    // TransferArgs{amount 42, chain 1, 32-byte recipient, no queue}
-                    data: new Uint8Array([
-                        ...NTT_TRANSFER_BURN_DISCRIMINATOR,
-                        ...u64le(42n),
-                        1,
-                        0, // recipientChain.id (u16 le)
-                        ...Array.from({ length: 32 }, () => 7), // recipientAddress
-                        0, // shouldQueue
-                    ]),
-                    programAddress: address(NTT_PROGRAM_ADDRESS),
-                });
+                const [, data] = client.decodeInstructionData(transferBurnIx);
+                //        ^? data: a union over all 31 declared instructions | undefined — read off the asserted companion type
 
                 // the compiler guidance is identical to the literal route — the transferBurn member of the union
                 expectTypeOf<Extract<typeof data, { args: { amount: bigint } }>>().toEqualTypeOf<{
@@ -415,6 +418,22 @@ describe('README flows: how payload types reach the consumer', () => {
                     'discriminator: fixedSizeTypeNode',
                     'amount: numberTypeNode',
                 ]);
+            });
+
+            it('should convert a legacy (pre-0.30) IDL at creation when given the program address', () => {
+                // the one-step legacy route: the client converts internally (nodes-from-anchor handles
+                // spec 00 too); legacy IDLs mostly declare no address, so the option supplies it
+                const client = createIdlClient(loadNtt029Idl(), { programAddress: NTT_PROGRAM_ADDRESS });
+                //    ^? IdlClient<CodamaIdl> — the legacy origin is invisible after creation
+
+                const [, data] = client.decodeInstructionData(transferBurnIx);
+                //        ^? data: unknown — a wide legacy IDL carries no literals to read
+                expectTypeOf(data).toBeUnknown();
+                expect(data).toMatchObject({ args: { amount: 42n, recipientChain: { id: 1 }, shouldQueue: false } });
+
+                // the meta surface works off the converted root — legacy declares no discriminators,
+                // the conversion derives them (sha256)
+                expect(client.instructionName(transferBurnIx.data)).toBe('Transfer Burn');
             });
         });
     });

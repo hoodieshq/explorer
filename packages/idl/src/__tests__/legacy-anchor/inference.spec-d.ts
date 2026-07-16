@@ -4,20 +4,32 @@ import { describe, expectTypeOf, it } from 'vitest';
 
 import { createIdlClient, type IdlClient, tryCreateIdlClient } from '../../client';
 import { isLegacyAnchorIdl } from '../../detect';
-import { IDL_ERROR__UNSUPPORTED_IDL_FORMAT, type IdlError } from '../../errors';
-import type { AnchorV00Idl } from '../../types';
+import {
+    IDL_ERROR__IDL_PARSE_FAILED,
+    IDL_ERROR__PROGRAM_ADDRESS_REQUIRED,
+    IDL_ERROR__UNSUPPORTED_IDL_FORMAT,
+    type IdlError,
+} from '../../errors';
+import type { AnchorV00Idl, CodamaIdl } from '../../types';
 import { type ExampleNativeTokenTransfers, loadNtt029Idl, loadNtt029IdlTyped, ntt029TransferIx } from '../fixtures';
 
-describe('sample: legacy Anchor (< 0.30) IDL — custom decoder outside the client', () => {
-    it('should reject a legacy IDL at compile time in the typed constructor', () => {
-        // @ts-expect-error legacy Anchor IDLs are not SupportedIdl — the compiler blocks the client route
-        createIdlClient(loadNtt029IdlTyped());
+describe('sample: legacy Anchor (< 0.30) IDL — converted at creation', () => {
+    it('should type the legacy route as a codama client — the conversion is the implementation detail', () => {
+        const client = createIdlClient(loadNtt029IdlTyped(), { programAddress: '11111111111111111111111111111111' });
+        expectTypeOf(client).toEqualTypeOf<IdlClient<CodamaIdl>>();
     });
 
     it('should force the developer through error handling for untrusted input', () => {
         const [error, client] = tryCreateIdlClient(loadNtt029Idl());
 
-        expectTypeOf(error).toEqualTypeOf<IdlError<typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT> | undefined>();
+        expectTypeOf(error).toEqualTypeOf<
+            | IdlError<
+                  | typeof IDL_ERROR__IDL_PARSE_FAILED
+                  | typeof IDL_ERROR__PROGRAM_ADDRESS_REQUIRED
+                  | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT
+              >
+            | undefined
+        >();
         expectTypeOf(client).toEqualTypeOf<IdlClient | undefined>();
     });
 
