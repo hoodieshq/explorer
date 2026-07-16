@@ -1,5 +1,8 @@
 import { createHash } from 'node:crypto';
 
+import { createProgramClient, type ProgramClient } from '@codama/dynamic-client';
+import { expect } from 'vitest';
+
 import ammV3Idl from '@explorer/test-idl-program-amm-v3/idl';
 import exampleNativeTokenTransfersIdl from '@explorer/test-idl-program-example-native-token-transfers/idl';
 import type { ExampleNativeTokenTransfers } from '@explorer/test-idl-program-example-native-token-transfers/generated-types';
@@ -13,6 +16,7 @@ import type { Simple031 } from '@explorer/test-idl-program-simple-031/generated-
 import tokenkegIdl from '@explorer/test-idl-program-tokenkeg/idl';
 import { address, type Instruction } from '@solana/kit';
 
+import type { Result } from '../errors';
 import type { AnchorIdl, AnchorV00Idl, CodamaIdl, CodamaIdlInput } from '../types';
 
 export type { ExampleNativeTokenTransfers, Simple, Simple031 };
@@ -106,3 +110,36 @@ export const ntt029TransferIx: Instruction & { accounts: []; data: Uint8Array } 
     data: new Uint8Array([...NTT_TRANSFER_BURN_DISCRIMINATOR, ...u64le(42n)]),
     programAddress: address(NTT_PROGRAM_ADDRESS),
 };
+
+// Codama drivers — codama's OWN tooling sits on the encode side, so the engine under test only ever
+// sees what real consumers produce.
+export const DEFAULT_ADDRESS = '11111111111111111111111111111111';
+
+/** The PMP-fetch acquisition route for codama roots: plain untrusted JSON, no anchor client involved. */
+export function fetchedJson(idl: CodamaIdlInput): unknown {
+    return JSON.parse(JSON.stringify(idl));
+}
+
+/** Build the named zero-argument instruction with codama's OWN dynamic client (every account defaulted). */
+export async function buildInstruction(idl: CodamaIdlInput, name: string): Promise<Instruction> {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the input is a known codama root; the branded type is only needed to walk instructions
+    const root = idl as unknown as CodamaIdl;
+    const node = root.program.instructions.find(item => item.name === name);
+    if (!node) throw new Error(`${name} must be declared by the IDL`);
+    const accounts = Object.fromEntries(node.accounts.map(item => [item.name, DEFAULT_ADDRESS]));
+    const built = await createProgramClient<ProgramClient>(root).methods[name]().accounts(accounts).instruction();
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- bridges codama tooling's instruction shape with kit's
+    return built as Instruction;
+}
+
+// Infer the ok-arm value from the whole Result — inferring `T` through the tuple union leaks `undefined`.
+type OkValue<R> = R extends readonly [undefined, infer T] ? T : never;
+
+/** Assert an ok Result (fails the test via `expect` on error) and return its value — NOT the public decode-envelope `unwrap`. */
+export function unwrapResult<R extends Result<unknown>>(result: R): OkValue<R> {
+    const [error, value] = result;
+    expect(error).toBeUndefined();
+    if (value === undefined) throw error ?? new Error('unwrap: expected an ok Result'); // narrows value off undefined
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- the tuple checks above are the narrowing; TS cannot re-prove it through the conditional type
+    return value as OkValue<R>;
+}

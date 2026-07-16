@@ -48,7 +48,7 @@ import {
     u64le,
     undeclaredInstructionData,
 } from '../src/__tests__/fixtures';
-import { unwrap } from '../src/__tests__/unwrap';
+import { unwrapResult } from '../src/__tests__/fixtures';
 import { fetchAnchorIdl } from './anchor-helpers';
 
 const TOKENKEG_ADDRESS = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
@@ -91,7 +91,7 @@ describe('capability: client creation from untrusted IDLs', () => {
         const fetched: unknown = loadTokenkegIdl();
 
         // 2. wrap it — no throw on garbage, a typed error instead
-        const client = unwrap(tryCreateIdlClient(fetched));
+        const client = unwrapResult(tryCreateIdlClient(fetched));
 
         // 3. custom logic via guards (ErrorBoundary/Suspense composition happens out here)
         expect(isCodamaStandard(client)).toBe(true);
@@ -104,7 +104,7 @@ describe('capability: client creation from untrusted IDLs', () => {
 
     /** Case: the identical untrusted flow accepts a real mainnet Anchor IDL. */
     it('should handle a real anchor IDL through the same flow', () => {
-        const client = unwrap(tryCreateIdlClient(loadLetMeBuyIdl()));
+        const client = unwrapResult(tryCreateIdlClient(loadLetMeBuyIdl()));
 
         expect(isCodamaStandard(client)).toBe(false);
         expect(isAnchorStandard(client)).toBe(true);
@@ -136,7 +136,7 @@ describe('capability: engine selection (default codama, swappable)', () => {
     /** Case: the zero-config default-engine path — untrusted input straight to a decoding client. */
     it('should decode untrusted input through the default codama engine', () => {
         const tokenkeg = loadTokenkegIdl();
-        const client = unwrap(tryCreateIdlClient(tokenkeg as unknown));
+        const client = unwrapResult(tryCreateIdlClient(tokenkeg as unknown));
 
         const decode = client.decodeInstruction(transferIx(tokenkeg));
         expect(client.getDecodedData<{ amount: bigint }>(decode)).toMatchObject({ amount: 42n });
@@ -171,7 +171,7 @@ describe('capability: engine selection (default codama, swappable)', () => {
 describe('capability: program summary (address, name, standard)', () => {
     /** Case: address/name/standard read from SPL Token's PMP-stored codama root. */
     it('should summarize SPL Token from its real PMP codama root', () => {
-        const client = unwrap(tryCreateIdlClient(loadTokenkegIdl()));
+        const client = unwrapResult(tryCreateIdlClient(loadTokenkegIdl()));
 
         expect(client.programAddress()).toBe(TOKENKEG_ADDRESS);
         expect(client.programName()).toBe('Token');
@@ -181,9 +181,9 @@ describe('capability: program summary (address, name, standard)', () => {
     /** Case: a nodes-from-anchor conversion result summarizes as a Codama program. */
     it('should summarize the converted Anchor IDL as a Codama program', () => {
         const simple = loadSimpleIdl();
-        const converted = unwrap(convertToCodama(simple));
+        const converted = unwrapResult(convertToCodama(simple));
 
-        const client = unwrap(tryCreateIdlClient(converted));
+        const client = unwrapResult(tryCreateIdlClient(converted));
 
         expect(client.programAddress()).toBe(simple.address);
         expect(client.programName()).toBe('Simple');
@@ -195,7 +195,7 @@ describe('capability: program summary (address, name, standard)', () => {
 
     /** Case: the workspace anchor-lang 1.1.2 program summarizes as Anchor. */
     it('should summarize the modern Anchor program', () => {
-        const client = unwrap(tryCreateIdlClient(loadSimpleIdl()));
+        const client = unwrapResult(tryCreateIdlClient(loadSimpleIdl()));
 
         expect(client.programAddress()).toBe('7u9qtZPjJcQ1jZsZxAGyRM4aGLNXqK5pzawpULopWFqB');
         expect(client.programName()).toBe('Simple');
@@ -206,7 +206,7 @@ describe('capability: program summary (address, name, standard)', () => {
 
     /** Case: the workspace Anchor 0.31 program, fetched through anchor's client, summarizes as Anchor. */
     it('should summarize the Anchor 0.31 program', async () => {
-        const client = unwrap(tryCreateIdlClient(await fetchAnchorIdl()));
+        const client = unwrapResult(tryCreateIdlClient(await fetchAnchorIdl()));
 
         expect(client.programAddress()).toBe('391y4fKGKUEt7n6HuKrkfGYLdkvnk6rvneR7snKe6wzy');
         expect(client.programName()).toBe('Simple 031');
@@ -215,7 +215,7 @@ describe('capability: program summary (address, name, standard)', () => {
 
     /** Case: a mainnet program's IDL from its Anchor PDA leg. */
     it('should summarize the real mainnet Anchor program (let_me_buy, Anchor PDA leg)', () => {
-        const client = unwrap(tryCreateIdlClient(loadLetMeBuyIdl()));
+        const client = unwrapResult(tryCreateIdlClient(loadLetMeBuyIdl()));
 
         expect(client.programAddress()).toBe('BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya');
         expect(client.programName()).toBe('Let Me Buy');
@@ -224,7 +224,7 @@ describe('capability: program summary (address, name, standard)', () => {
 
     /** Case: the same program's PMP leg carries the same Anchor-format IDL. */
     it('should summarize the same program from its PMP leg — Anchor-format there too (PMP is storage, not a format)', () => {
-        const client = unwrap(tryCreateIdlClient(loadLetMeBuyPmpIdl()));
+        const client = unwrapResult(tryCreateIdlClient(loadLetMeBuyPmpIdl()));
 
         expect(client.programAddress()).toBe('BUYuxRfhCMWavaUWxhGtPP3ksKEDZxCD5gzknk3JfAya');
         expect(client.programName()).toBe('Let Me Buy');
@@ -303,7 +303,7 @@ describe('decoding: converted Anchor IDLs (nodes-from-anchor)', () => {
     /** Case: an Anchor IDL converted with the library conversion decodes like a native root. */
     it('should decode through the converted Anchor IDL', () => {
         const simple = loadSimpleIdl();
-        const converted = unwrap(convertToCodama(simple));
+        const converted = unwrapResult(convertToCodama(simple));
 
         // the conversion result is the WIDE CodamaIdl (literal types do not survive a runtime
         // conversion), so the client narrows like a native root and the shape stays per-call

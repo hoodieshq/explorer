@@ -38,8 +38,9 @@ import {
     NTT_PROGRAM_ADDRESS,
     ntt029TransferIx,
     transferIx,
+    unwrapResult,
 } from '../../__tests__/fixtures';
-import { unwrap } from '../../__tests__/unwrap';
+
 import { createLatestIdlFetcher, fetchIdlClient } from '../index';
 
 const provider = codamaProvider();
@@ -122,7 +123,7 @@ async function pmpIdlAddress(program: Address): Promise<Address> {
 describe('fetchIdlClient', () => {
     it('should build a working client from a custom fetcher', async () => {
         const tokenkeg = loadTokenkegIdl();
-        const client = unwrap(
+        const client = unwrapResult(
             await fetchIdlClient(tokenkeg.program.publicKey, {
                 fetcher: async () => JSON.parse(JSON.stringify(tokenkeg)) as unknown,
                 provider,
@@ -139,7 +140,7 @@ describe('fetchIdlClient', () => {
         const program = address(NTT_PROGRAM_ADDRESS);
         const rpc = mockRpc({ [await anchorIdlAddress(program)]: anchorIdlAccount(loadNtt029Idl()) });
 
-        const client = unwrap(await fetchIdlClient(NTT_PROGRAM_ADDRESS, { provider, rpc }));
+        const client = unwrapResult(await fetchIdlClient(NTT_PROGRAM_ADDRESS, { provider, rpc }));
 
         expect(client.programAddress()).toBe(NTT_PROGRAM_ADDRESS);
         // names resolve off the converted root — legacy IDLs declare no discriminators
@@ -163,7 +164,7 @@ describe('fetchIdlClient', () => {
 
     it('should accept a mislabeled IDL when the address check is disabled', async () => {
         const tokenkeg = loadTokenkegIdl();
-        const client = unwrap(
+        const client = unwrapResult(
             await fetchIdlClient('11111111111111111111111111111111', {
                 fetcher: async () => JSON.parse(JSON.stringify(tokenkeg)) as unknown,
                 provider,
@@ -259,7 +260,7 @@ describe('createLatestIdlFetcher', () => {
         const rpc = mockRpc({ [await pmpIdlAddress(program)]: pmpIdlAccount(program, tokenkeg) });
 
         // no provider passed — the codama engine is the default
-        const client = unwrap(await fetchIdlClient(program, { rpc }));
+        const client = unwrapResult(await fetchIdlClient(program, { rpc }));
 
         const [, data] = client.decodeInstructionData<{ amount: bigint }>(transferIx(tokenkeg));
         expect(data).toMatchObject({ amount: 42n });
@@ -270,7 +271,7 @@ describe('createLatestIdlFetcher', () => {
         const program = address(simple.address);
         const rpc = mockRpc({ [await anchorIdlAddress(program)]: anchorIdlAccount(simple) });
 
-        const client = unwrap(await fetchIdlClient(program, { rpc }));
+        const client = unwrapResult(await fetchIdlClient(program, { rpc }));
 
         const [, data] = client.decodeInstructionData<{ amount: bigint }>(incrementIx(simple));
         expect(data).toMatchObject({ amount: 42n });

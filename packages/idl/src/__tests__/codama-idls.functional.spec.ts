@@ -9,10 +9,8 @@ import { describe, expect, it } from 'vitest';
 import { createIdlClient, isCodamaStandard, tryCreateIdlClient } from '../client';
 import { IDL_ERROR__INSTRUCTION_DECODE_FAILED } from '../errors';
 import { IdlStandard } from '../types';
-import { buildInstruction, fetchedJson } from './codama-helpers';
 import { codamaFixtures } from './external-fixtures';
-import { loadMemoIdl } from './fixtures';
-import { unwrap } from './unwrap';
+import { buildInstruction, fetchedJson, loadMemoIdl, unwrapResult } from './fixtures';
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the Instruction cast bridges codama tooling with the client */
 
@@ -39,7 +37,7 @@ describe('functional: codama IDLs (dynamic-client fixtures)', () => {
     describe.each(DECODABLE_IDLS)('$name', ({ load, instruction }) => {
         it('should wrap the untrusted IDL into a codama client', () => {
             const idl = load();
-            const client = unwrap(tryCreateIdlClient(fetchedJson(idl)));
+            const client = unwrapResult(tryCreateIdlClient(fetchedJson(idl)));
 
             expect(isCodamaStandard(client)).toBe(true);
             expect(client.programAddress()).toBe(idl.program.publicKey);
@@ -60,7 +58,7 @@ describe('functional: codama IDLs (dynamic-client fixtures)', () => {
     describe.each(DISCRIMINATOR_LESS_IDLS)('$name', ({ load }) => {
         it('should wrap the untrusted IDL into a codama client', () => {
             const idl = load();
-            const client = unwrap(tryCreateIdlClient(fetchedJson(idl)));
+            const client = unwrapResult(tryCreateIdlClient(fetchedJson(idl)));
 
             expect(isCodamaStandard(client)).toBe(true);
             expect(client.programAddress()).toBe(idl.program.publicKey);

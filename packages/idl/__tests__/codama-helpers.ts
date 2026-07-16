@@ -1,6 +1,6 @@
 // Shared Codama drivers for the __tests__ suites — codama's OWN tooling sits on the encode side, so
 // the package under test only ever sees what real consumers produce. (The functional sweeps' drivers
-// live in src/__tests__/codama-helpers.ts.)
+// live in src/__tests__/fixtures.ts.)
 import { getNodeCodec } from '@codama/dynamic-codecs';
 import type { CodamaIdl, CodamaIdlInput } from '@explorer/idl';
 

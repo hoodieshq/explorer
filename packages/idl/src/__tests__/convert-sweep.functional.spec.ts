@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import { convertToCodama } from '../anchor/convert';
 import type { AnchorIdl } from '../types';
-import { unwrap } from './unwrap';
+import { unwrapResult } from './fixtures';
 
 const PROGRAMS_DIR = fileURLToPath(new URL('../../test-anchor-programs/', import.meta.url));
 
@@ -39,7 +39,7 @@ describe('Anchor fixture conversion sweep', () => {
 
     // legacy (v0.0) documents ride the same cast the runtime route uses
     it.each(anchorDocuments)('should convert $name with nodes-from-anchor', ({ doc }) => {
-        const root = unwrap(convertToCodama(doc as AnchorIdl));
+        const root = unwrapResult(convertToCodama(doc as AnchorIdl));
 
         expect(root.program.instructions.length).toBeGreaterThan(0);
     });
