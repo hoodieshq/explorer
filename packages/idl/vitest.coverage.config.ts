@@ -10,8 +10,8 @@ export default defineConfig({
     test: {
         coverage: {
             enabled: true,
-            // client sources only — specs, fixtures, and generated artifacts are not the measured code
-            exclude: ['src/__tests__/**'],
+            // client sources only — specs (colocated `__tests__` included), fixtures, and generated artifacts are not the measured code
+            exclude: ['src/**/__tests__/**'],
             include: ['src/**'],
         },
         projects: [
@@ -28,6 +28,7 @@ export default defineConfig({
                     alias: [
                         { find: '@explorer/idl/anchor', replacement: src('anchor/index.ts') },
                         { find: '@explorer/idl/codama', replacement: src('codama/index.ts') },
+                        { find: '@explorer/idl/fetch', replacement: src('fetch/index.ts') },
                         { find: '@explorer/idl', replacement: src('index.ts') },
                     ],
                 },
