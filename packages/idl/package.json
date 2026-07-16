@@ -57,6 +57,7 @@
         "@codama/dynamic-client": "0.1.0",
         "@codama/dynamic-codecs": "1.1.30",
         "@codama/renderers-js": "^1.7.0",
+        "@coral-xyz/anchor": "0.30.1",
         "@explorer/test-idl-program-amm-v3": "workspace:*",
         "@explorer/test-idl-program-dummy-transfer-hook": "workspace:*",
         "@explorer/test-idl-program-example-native-token-transfers": "workspace:*",
@@ -86,5 +87,8 @@
         "@solana-program/program-metadata": "^0.7.0",
         "@solana/kit": "^6.5.0",
         "codama": "^1.5.0"
+    },
+    "engines": {
+        "node": ">=18"
     }
 }

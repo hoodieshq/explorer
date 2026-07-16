@@ -1,5 +1,9 @@
 // The fetch entry — resolve a program's IDL by address, whatever standard the program publishes, and
 // build a decode client over it. Subpath-gated so the lean core never loads rpc/PMP machinery.
+import { Buffer } from 'buffer';
+
+// not re-exported from anchor's main entry; the deep import also skips the Program/Provider graph
+import { decodeIdlAccount } from '@coral-xyz/anchor/dist/cjs/idl.js';
 import { fetchMaybeMetadataFromSeeds, Format, unpackAndFetchData } from '@solana-program/program-metadata';
 import {
     type Address,
@@ -80,8 +84,8 @@ export async function fetchIdlClient(
     try {
         idl = await resolveIdl(programAddress, abortSignal ? { abortSignal } : undefined);
     } catch (cause) {
-        // caller-initiated — not a data outcome; the reason, not whatever wrapper the transport rejected with
-        if (abortSignal?.aborted) throw abortSignal.reason ?? cause;
+        // caller-initiated — not a data outcome; the reason (always set once aborted), not whatever wrapper the transport rejected with
+        if (abortSignal?.aborted) throw abortSignal.reason;
         // a leg's own coded error (data corruption → IDL_PARSE_FAILED) — pass it through, don't relabel it a transport failure
         if (isIdlError(cause)) return err(cause);
         return err(new IdlError(IDL_ERROR__IDL_FETCH_FAILED, { cause }));
@@ -119,10 +123,8 @@ async function fetchPmpIdl(
 }
 
 /**
- * Anchor leg — mirrors anchor's `Program.fetchIdl` (idl PDA → account → skip the discriminator and
- * authority header → inflate → parse), kit-native and abortable. Account layout: 8-byte
- * discriminator, 32-byte authority, u32 LE data length, zlib-deflated JSON.
- * Source of parity: `@coral-xyz/anchor` `src/program/index.ts` (`fetchIdl`) + `src/idl.ts` (`idlAddress`/`decodeIdlAccount`).
+ * Anchor leg — mirrors anchor's `Program.fetchIdl` (idl PDA → account → decode → inflate → parse),
+ * kit-native address derivation and abortable rpc reads.
  */
 async function fetchAnchorPdaIdl(rpc: IdlFetcherRpc, program: Address, abortSignal?: AbortSignal): Promise<unknown> {
     const [baseAddress] = await getProgramDerivedAddress({ programAddress: program, seeds: [] });
@@ -131,8 +133,9 @@ async function fetchAnchorPdaIdl(rpc: IdlFetcherRpc, program: Address, abortSign
     if (!value) return undefined;
     const bytes = getBase64Encoder().encode(value.data[0]);
     try {
-        const dataLength = new DataView(bytes.buffer, bytes.byteOffset).getUint32(40, true);
-        const inflated = await inflate(bytes.slice(44, 44 + dataLength));
+        // anchor's own account decoder (authority + deflated data vec) — parity by reuse, not by reimplementing the layout
+        const idlAccount = decodeIdlAccount(Buffer.from(bytes.buffer, bytes.byteOffset + 8, bytes.length - 8));
+        const inflated = await inflate(idlAccount.data);
         return JSON.parse(new TextDecoder().decode(inflated));
     } catch (cause) {
         throw new IdlError(IDL_ERROR__IDL_PARSE_FAILED, { cause, operation: 'anchor idl account data' });
