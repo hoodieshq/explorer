@@ -15,8 +15,8 @@ import React from 'react';
 import { SWRConfig, unstable_serialize } from 'swr';
 
 import { LoadingCard } from '@/app/components/common/LoadingCard';
+import type { SecurityTxtFields } from '@solana/security-txt';
 import type { DomainInfo } from '@/app/entities/domain';
-import type { NeodymeSecurityTXT } from '@/app/features/security-txt/lib/types';
 import { Account, UpgradeableLoaderAccountData } from '@/app/providers/accounts';
 import { type CacheEntry, FetchStatus } from '@/app/providers/cache';
 import type { ClusterState } from '@/app/providers/cluster';
@@ -166,9 +166,9 @@ export const MOCK_RAW_BY_SIGNATURE: Record<string, CacheEntry<RawDetails>> = {
 const SYSTEM_PROGRAM = new PublicKey('11111111111111111111111111111111');
 const MEMO_PROGRAM = new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr');
 
-// Only `transaction.message.instructions` is consumed by getTransactionInstructionNames:
-// each instruction needs a `programId` (PublicKey) and a `parsed.type` string (or a
-// string `parsed` for memos). meta can stay minimal.
+// Only `transaction.message.instructions` is consumed by getInstructionSummaries (via
+// useResolvedInstructionSummaries): each instruction needs a `programId` (PublicKey) and a
+// `parsed.type` string (or a string `parsed` for memos). meta can stay minimal.
 function mockParsedTx(
     instructions: Array<{ programId: PublicKey; parsed: unknown; program?: string }>,
 ): ParsedTransactionWithMeta {
@@ -228,6 +228,7 @@ export function MockProgramAccountProviders({
     history = MOCK_HISTORY,
     raw = MOCK_RAW_BY_SIGNATURE,
     visibility = false,
+    swrFallback,
 }: {
     children: React.ReactNode;
     history?: typeof MOCK_HISTORY;
@@ -239,22 +240,30 @@ export function MockProgramAccountProviders({
     raw?: Record<string, CacheEntry<RawDetails>>;
     /**
      * Wrap in a real `VisibilityProvider` so the per-row `useVisibility` hook flips to
-     * visible and `useInstructionNames` actually fetches. Without it, every row's
+     * visible and the History tab renders resolved rows. Without it, every row's
      * instruction list is stuck on `InstructionListSkeleton` (the "always loading" state).
      */
     visibility?: boolean;
+    /**
+     * Extra SWR fallback entries merged on top of the always-present security.txt seed
+     * (e.g. the squads multisig caches). Lets the program section's `ProgramSecurityTXTBadge`
+     * (now `useSecurityTxt`) resolve without hitting the `/api/security-txt` route.
+     */
+    swrFallback?: Record<string, unknown>;
 }) {
     const body = visibility ? <VisibilityProvider>{children}</VisibilityProvider> : children;
     return (
-        <MockClusterProvider state={devnetClusterState}>
-            <MockTokenInfoBatchProvider>
-                <MockAccountsProvider>
-                    <MockTransactionsProvider raw={raw}>
-                        <MockHistoryProvider history={history}>{body}</MockHistoryProvider>
-                    </MockTransactionsProvider>
-                </MockAccountsProvider>
-            </MockTokenInfoBatchProvider>
-        </MockClusterProvider>
+        <SWRConfig value={{ fallback: { ...SECURITY_SWR_FALLBACK, ...swrFallback } }}>
+            <MockClusterProvider state={devnetClusterState}>
+                <MockTokenInfoBatchProvider>
+                    <MockAccountsProvider>
+                        <MockTransactionsProvider raw={raw}>
+                            <MockHistoryProvider history={history}>{body}</MockHistoryProvider>
+                        </MockTransactionsProvider>
+                    </MockAccountsProvider>
+                </MockTokenInfoBatchProvider>
+            </MockClusterProvider>
+        </SWRConfig>
     );
 }
 
@@ -272,7 +281,7 @@ export const withEmptyHistoryProviders: Decorator = Story => (
 
 /**
  * Renders TransactionHistoryCard with resolved instruction data instead of skeletons:
- *  - `visibility` enables the per-row `useInstructionNames` fetch,
+ *  - `visibility` enables the per-row `useResolvedInstructionSummaries` fetch,
  *  - the `getParsedTransaction` stub returns mock parsed txs so instruction names resolve.
  * Overrides `Connection.prototype.getParsedTransaction` (which `withMockRpc` stubs to
  * undefined), so this must run after `withMockRpc` — place it later in the decorators array.
@@ -307,8 +316,8 @@ export { withMockRpc } from '@storybook-config/responsive-decorators';
 // =============================================================================
 
 // --- Security tab (ProgramSecurityTxtCard) -------------------------------------
-// Neodyme security.txt embedded in program data. Shape: NeodymeSecurityTXT.
-export const MOCK_SECURITY_TXT: NeodymeSecurityTXT = {
+// Parsed security.txt fields (Neodyme subset). Shape: SecurityTxtFields.
+export const MOCK_SECURITY_TXT: SecurityTxtFields = {
     acknowledgements: 'https://example-protocol.io/security/acknowledgements',
     auditors: 'OtterSec, Neodyme',
     contacts: 'email:security@example-protocol.io,telegram:exampleprotocol_security',
@@ -321,6 +330,15 @@ export const MOCK_SECURITY_TXT: NeodymeSecurityTXT = {
     source_code: 'https://github.com/example-protocol/program',
     source_release: 'v1.4.2',
     source_revision: '9f2c1ab',
+};
+
+// Seeds `useSecurityTxt(MOCK_PROGRAM_ADDRESS)` (server path on devnet: SWR key
+// `['security-txt', address, cluster]`) so the program section's `ProgramSecurityTXTBadge`
+// resolves to a populated security.txt ("Included") without hitting the `/api/security-txt`
+// route. Wrapped into `MockProgramAccountProviders` for every program-account story.
+const securityTxtKey = unstable_serialize(['security-txt', MOCK_PROGRAM_ADDRESS, Cluster.Devnet]);
+const SECURITY_SWR_FALLBACK = {
+    [securityTxtKey]: { fields: MOCK_SECURITY_TXT, type: 'pmp' as const },
 };
 
 // --- Verified Build tab (BaseVerifiedBuildCard) --------------------------------
@@ -402,11 +420,9 @@ export const MOCK_MULTISIG_ARGS = { data: MOCK_PARSED_DATA };
 export const withMultisigData: Decorator = Story => {
     Object.assign(Connection.prototype, { getAccountInfo: async () => undefined });
     return (
-        <SWRConfig value={{ fallback: MULTISIG_SWR_FALLBACK }}>
-            <MockProgramAccountProviders>
-                <Story />
-            </MockProgramAccountProviders>
-        </SWRConfig>
+        <MockProgramAccountProviders swrFallback={MULTISIG_SWR_FALLBACK}>
+            <Story />
+        </MockProgramAccountProviders>
     );
 };
 
@@ -434,10 +450,8 @@ export const withTabPreviewData: Decorator = Story => {
         getParsedTransaction: async (signature: string) => MOCK_PARSED_TX_BY_SIGNATURE[signature] ?? null,
     });
     return (
-        <SWRConfig value={{ fallback: MULTISIG_SWR_FALLBACK }}>
-            <MockProgramAccountProviders history={MOCK_HISTORY_WITH_DATA} visibility>
-                <Story />
-            </MockProgramAccountProviders>
-        </SWRConfig>
+        <MockProgramAccountProviders history={MOCK_HISTORY_WITH_DATA} visibility swrFallback={MULTISIG_SWR_FALLBACK}>
+            <Story />
+        </MockProgramAccountProviders>
     );
 };

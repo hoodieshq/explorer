@@ -1,28 +1,22 @@
 import type { PublicKey } from '@solana/web3.js';
-import type { ProgramDataAccountInfo } from '@/app/validators/accounts/upgradeable-program';
 import Link from 'next/link';
 import { ExternalLink } from 'react-feather';
 
 import { Badge } from '@/app/components/shared/ui/badge';
-import { useProgramMetadataSecurityTxt } from '@/app/entities/program-metadata';
-import { useCluster } from '@/app/providers/cluster';
+import { NO_SECURITY_TXT_ERROR } from '@/app/features/security-txt/lib/constants';
+import { useSecurityTxt } from '@/app/features/security-txt';
 import { useClusterPath } from '@/app/utils/url';
-import { fromProgramData } from '@/app/features/security-txt/lib/fromProgramData';
 
-export function ProgramSecurityTXTBadge({
-    programData,
-    programPubkey,
-}: {
-    programData: ProgramDataAccountInfo;
-    programPubkey: PublicKey;
-}) {
-    const { securityTXT, error } = fromProgramData(programData);
+// security.txt now resolves (PMP + Neodyme, both sources unified) via `useSecurityTxt(address)` —
+// the former sync `fromProgramData` parse + separate `useProgramMetadataSecurityTxt` are gone.
+// Mirrors app/features/security-txt/ui/SecurityTXTBadge.tsx.
+export function ProgramSecurityTXTBadge({ programPubkey }: { programPubkey: PublicKey }) {
+    const { securityTxt, isLoading } = useSecurityTxt(programPubkey.toBase58());
     const securityTabPath = useClusterPath({ pathname: `/address/${programPubkey.toBase58()}/security` });
 
-    const { url, cluster } = useCluster();
-    const { programMetadataSecurityTxt } = useProgramMetadataSecurityTxt(programPubkey.toBase58(), url, cluster);
+    if (isLoading) return null;
 
-    const maybeError = securityTXT || programMetadataSecurityTxt ? undefined : error;
+    const maybeError = securityTxt ? undefined : NO_SECURITY_TXT_ERROR;
 
     // Clean design-system (tw) badge; the "Security.txt" link navigates to the security tab.
     return <SecurityTXTBadge error={maybeError} href={securityTabPath} />;

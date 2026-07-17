@@ -16,7 +16,7 @@ import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/provider
 import { RelativeTime } from '@/app/shared/RelativeTime';
 import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
 import { displayTimestampUtc } from '@/app/utils/date';
-import { TransactionInstructionInfo } from '@/app/utils/instruction';
+import type { InstructionSummary } from '@/app/entities/transaction-data';
 import { useClusterPath } from '@/app/utils/url';
 
 import { InstructionList, InstructionListSkeleton } from './InstructionList';
@@ -45,7 +45,7 @@ export function TransactionDetailsDrawer({
     blockTime: number | null | undefined;
     statusClass: string;
     statusText: string;
-    instructionNames: TransactionInstructionInfo[] | null;
+    instructionNames: InstructionSummary[] | undefined;
 }) {
     const txPath = useClusterPath({ pathname: `/tx/${signature}` });
     const blockPath = useClusterPath({ pathname: `/block/${slot}` });
@@ -289,9 +289,9 @@ export function TransactionDetailsDrawer({
                         </DrawerRow>
                         <DrawerRow label="Programs">
                             <div className="tx-instr-inline">
-                                {instructionNames !== null && instructionNames.length > 0 ? (
+                                {instructionNames !== undefined && instructionNames.length > 0 ? (
                                     <InstructionList instructions={instructionNames} />
-                                ) : instructionNames === null ? (
+                                ) : instructionNames === undefined ? (
                                     <InstructionListSkeleton />
                                 ) : (
                                     <span className="text-muted">---</span>

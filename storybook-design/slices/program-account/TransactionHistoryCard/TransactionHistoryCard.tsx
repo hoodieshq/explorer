@@ -28,7 +28,7 @@ import { Card } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
 import { displayTimestampUtc } from '@/app/utils/date';
 
-import { useInstructionNames } from '@/app/features/transaction-history/lib/use-instruction-names';
+import { useResolvedInstructionSummaries } from '@/app/features/transaction-history/model/use-resolved-instruction-summaries';
 
 import { AccountSizeField } from './AccountSizeField';
 import { InstructionList, InstructionListSkeleton } from './InstructionList';
@@ -154,14 +154,16 @@ type TransactionRowProps = {
 
 function TransactionRow({ signature, slot, blockTime, statusClass, statusText, hasTimestamps }: TransactionRowProps) {
     const { isVisible, ref } = useVisibility<HTMLTableRowElement>(true);
-    const instructionNames = useInstructionNames(signature, isVisible);
+    // Per-instruction summaries (program + resolved instruction name) for this signature; the fetch is
+    // gated on row visibility. Returns undefined while loading, [] once fetched with nothing to show.
+    const instructionNames = useResolvedInstructionSummaries(signature, isVisible);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const isMobile = useIsMobileViewport();
 
     const programsBlock =
-        instructionNames !== null && instructionNames.length > 0 ? (
+        instructionNames !== undefined && instructionNames.length > 0 ? (
             <InstructionList instructions={instructionNames} />
-        ) : instructionNames === null ? (
+        ) : instructionNames === undefined ? (
             <InstructionListSkeleton />
         ) : (
             <span className="text-outer-space-300">---</span>

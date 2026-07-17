@@ -4,7 +4,7 @@ import React from 'react';
 
 import { Skeleton } from '@/app/components/shared/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
-import { TransactionInstructionInfo } from '@/app/utils/instruction';
+import type { InstructionSummary } from '@/app/entities/transaction-data';
 
 const INLINE_LIMIT = 3;
 
@@ -14,7 +14,7 @@ const INLINE_LIMIT = 3;
 const OVERFLOW_SPOILER_ENABLED: boolean = false;
 
 type InstructionListProps = {
-    instructions: TransactionInstructionInfo[];
+    instructions: InstructionSummary[];
     /** Optional element appended inline at the end of the first program row. */
     trailingAction?: React.ReactNode;
 };
@@ -40,7 +40,7 @@ export function InstructionList({ instructions, trailingAction }: InstructionLis
     );
 }
 
-function InstructionLine({ instruction, trailing }: { instruction: TransactionInstructionInfo; trailing?: React.ReactNode }) {
+function InstructionLine({ instruction, trailing }: { instruction: InstructionSummary; trailing?: React.ReactNode }) {
     // Inline (not flex): program + instruction need to behave as one text run
     // so they wrap together at the cell boundary rather than each becoming a
     // separately-wrapping flex item with weird gaps between them.
@@ -62,7 +62,7 @@ export function InstructionListSkeleton() {
     );
 }
 
-function OverflowLine({ instructions }: { instructions: TransactionInstructionInfo[] }) {
+function OverflowLine({ instructions }: { instructions: InstructionSummary[] }) {
     return (
         <Tooltip>
             <TooltipTrigger asChild>

@@ -12,19 +12,22 @@ import { type ByteArray, encodeTransactionData as encodeBytes, type EncodingForm
 import React from 'react';
 import { Download } from 'react-feather';
 
+export enum DownloadState {
+    Downloaded = 'downloaded',
+    Idle = 'idle',
+}
+
 import { Logger } from '@/app/shared/lib/logger';
 import { triggerDownloadText } from '@/app/shared/lib/triggerDownload';
 
 const DEFAULT_ENCODINGS: EncodingFormat[] = ['hex', 'base58', 'base64'];
 
-const DefaultTrigger = React.forwardRef<HTMLButtonElement, { disabled: boolean; className?: string }>(
-    ({ disabled, className, ...props }, ref) => (
-        <Button ref={ref} variant="outline" size="sm" className={className} aria-label="Download" disabled={disabled} {...props}>
-            <Download size={12} />
-            <span className="hidden md:inline">Download</span>
-        </Button>
-    ),
-);
+const DefaultTrigger = React.forwardRef<HTMLButtonElement, { disabled: boolean }>(({ disabled, ...props }, ref) => (
+    <Button ref={ref} variant="outline" size="sm" aria-label="Download" disabled={disabled} {...props}>
+        <Download size={12} />
+        <span className="hidden md:inline">Download</span>
+    </Button>
+));
 DefaultTrigger.displayName = 'DefaultTrigger';
 
 export function DownloadDropdown({
@@ -35,8 +38,8 @@ export function DownloadDropdown({
     filename,
     encodings = DEFAULT_ENCODINGS,
     onOpenChange,
+    onDownload,
     children,
-    triggerClassName,
 }: {
     data: ByteArray | undefined;
     loading?: boolean;
@@ -45,14 +48,19 @@ export function DownloadDropdown({
     filename: string;
     encodings?: EncodingFormat[];
     onOpenChange?: (open: boolean) => void;
+    onDownload?: () => void;
     children?: React.ReactNode;
-    triggerClassName?: string;
 }) {
     if (encodings.length <= 1) {
-        const trigger = children ?? <DefaultTrigger disabled={loading || disabled} className={triggerClassName} />;
+        const trigger = children ?? <DefaultTrigger disabled={loading || disabled} />;
         if (React.isValidElement(trigger)) {
             return React.cloneElement(trigger as React.ReactElement<React.ButtonHTMLAttributes<HTMLButtonElement>>, {
-                onClick: () => data && handleDownload(data, encodings[0], filename),
+                onClick: () => {
+                    if (data) {
+                        const ok = handleDownload(data, encodings[0], filename);
+                        if (ok) onDownload?.();
+                    }
+                },
             });
         }
         return trigger;
@@ -60,9 +68,7 @@ export function DownloadDropdown({
 
     return (
         <DropdownMenu onOpenChange={onOpenChange}>
-            <DropdownMenuTrigger asChild>
-                {children ?? <DefaultTrigger disabled={disabled} className={triggerClassName} />}
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger asChild>{children ?? <DefaultTrigger disabled={disabled} />}</DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 {error ? (
                     <DropdownMenuItem disabled>Failed to load data</DropdownMenuItem>
@@ -71,7 +77,12 @@ export function DownloadDropdown({
                         <DropdownMenuItem
                             key={encoding}
                             disabled={loading || !data}
-                            onClick={() => data && handleDownload(data, encoding, filename)}
+                            onClick={() => {
+                                if (data) {
+                                    const ok = handleDownload(data, encoding, filename);
+                                    if (ok) onDownload?.();
+                                }
+                            }}
                         >
                             {loading ? `Loading ${encoding}…` : `Download ${encoding}`}
                         </DropdownMenuItem>
@@ -82,11 +93,13 @@ export function DownloadDropdown({
     );
 }
 
-function handleDownload(data: ByteArray, encoding: EncodingFormat, filename: string) {
+function handleDownload(data: ByteArray, encoding: EncodingFormat, filename: string): boolean {
     try {
         const encoded = encodeBytes(data, encoding);
         triggerDownloadText(encoded, `${filename}_${encoding}.txt`);
+        return true;
     } catch (err) {
         Logger.error(new Error(`Failed to download ${encoding} file`, { cause: err }));
+        return false;
     }
 }

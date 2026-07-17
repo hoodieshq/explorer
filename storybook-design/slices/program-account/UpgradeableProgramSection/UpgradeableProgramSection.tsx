@@ -85,7 +85,7 @@ export function UpgradeableProgramSection({
                         <VerifiedProgramBadge programData={programData} pubkey={account.pubkey} />
                     </KeyValue>
                     <KeyValue label={<ProgramSecurityTXTLabel />} labelWidth={LABEL_WIDTH} row>
-                        <ProgramSecurityTXTBadge programData={programData} programPubkey={account.pubkey} />
+                        <ProgramSecurityTXTBadge programPubkey={account.pubkey} />
                     </KeyValue>
                     <KeyValue label="Last Deployed Slot" labelWidth={LABEL_WIDTH} row>
                         <Slot slot={programData.slot} link />

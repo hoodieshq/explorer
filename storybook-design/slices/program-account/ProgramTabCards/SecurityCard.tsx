@@ -6,8 +6,9 @@ import { Button } from '@/app/components/shared/ui/button';
 import { Alert } from '@/app/shared/ui/Alert';
 import { Logger } from '@/app/shared/lib/logger';
 import { triggerDownload } from '@/app/shared/lib/triggerDownload';
+import type { SecurityTxtFields as NeodymeSecurityTXT } from '@solana/security-txt';
+
 import { PMP_SECURITY_TXT_KEYS } from '@/app/features/security-txt/lib/constants';
-import type { NeodymeSecurityTXT } from '@/app/features/security-txt/lib/types';
 import { ContactInfo, SecurityTxtVersionBadge } from '@/app/features/security-txt/ui/common';
 import { EmptySecurityTxtCard } from '@/app/features/security-txt/ui/EmptySecurityTxtCard';
 import {
