@@ -16,8 +16,16 @@ const alertVariants = cva(['relative', 'rounded-dk', 'border', 'border-solid', '
         { appearance: 'filled', class: 'border-dk-info bg-dk-info text-dk-white', variant: 'info' },
         // Louder pure-red override for flagged-account / scam warnings — see app/scss/_solana.scss `.alert-scam`.
         { appearance: 'filled', class: 'border-[red] bg-[red] text-dk-white', variant: 'scam' },
-        { appearance: 'filled', class: 'border-dk-success-on-dark bg-dk-success-on-dark text-dk-gray-900', variant: 'success' },
-        { appearance: 'filled', class: 'border-dk-warning-on-dark bg-dk-warning-on-dark text-dk-white', variant: 'warning' },
+        {
+            appearance: 'filled',
+            class: 'border-dk-success-on-dark bg-dk-success-on-dark text-dk-gray-900',
+            variant: 'success',
+        },
+        {
+            appearance: 'filled',
+            class: 'border-dk-warning-on-dark bg-dk-warning-on-dark text-dk-white',
+            variant: 'warning',
+        },
         // Outlined — no solid fill; each variant sets its own (transparent or lightly tinted) panel.
         { appearance: 'outlined', class: 'border-dk-danger text-dk-danger', variant: 'danger' },
         { appearance: 'outlined', class: 'border-dk-card-outline-dark', variant: 'default' },
@@ -74,7 +82,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
             className={cn(alertVariants({ appearance, variant }), className)}
             {...props}
         >
-            {icon != null ? (
+            {icon != undefined ? (
                 <div className="flex items-start gap-2.5">
                     <span className="alert-icon mt-[2px] flex shrink-0 items-center" aria-hidden="true">
                         {icon}

@@ -20,8 +20,28 @@ type Variant =
     | 'transparent';
 
 // Variants that each lineage/tone actually defines a style for (others render unstyled).
-const TW_ORIGINAL: Variant[] = ['default', 'secondary', 'success', 'warning', 'info', 'danger', 'destructive', 'transparent'];
-const TW_SOFT: Variant[] = ['default', 'secondary', 'gray', 'dark', 'success', 'warning', 'info', 'danger', 'destructive', 'transparent'];
+const TW_ORIGINAL: Variant[] = [
+    'default',
+    'secondary',
+    'success',
+    'warning',
+    'info',
+    'danger',
+    'destructive',
+    'transparent',
+];
+const TW_SOFT: Variant[] = [
+    'default',
+    'secondary',
+    'gray',
+    'dark',
+    'success',
+    'warning',
+    'info',
+    'danger',
+    'destructive',
+    'transparent',
+];
 const DK_SOFT: Variant[] = ['success', 'info', 'warning', 'danger', 'destructive', 'secondary', 'gray', 'dark'];
 const DK_SOLID: Variant[] = ['success', 'info', 'warning', 'danger', 'destructive', 'secondary', 'dark'];
 
@@ -38,9 +58,10 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function BadgeParameters() {
     return (
-        <div className="mx-auto flex max-w-col flex-col gap-8">
+        <div className="max-w-col mx-auto flex flex-col gap-8">
             <Section title="ui=tw · tone=original · variants">
                 {TW_ORIGINAL.map(v => (
+                    // @ts-expect-error -- `tone="original"` exists on the vendored badge (served by the Storybook vendor-redirect in .storybook/main.ts); tsc resolves the app original, which lacks it
                     <Badge key={v} ui="tw" tone="original" variant={v}>
                         {v}
                     </Badge>

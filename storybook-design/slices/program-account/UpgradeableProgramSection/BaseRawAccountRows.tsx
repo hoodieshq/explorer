@@ -1,11 +1,10 @@
-import type { Account } from '@/app/providers/accounts';
 import { RawDataField } from '@/app/components/shared/RawDataField';
+import type { Account } from '@/app/providers/accounts';
 
 import { KeyValue } from '../../key-value/KeyValue';
-
 import { Address } from './Address';
-import { SolBalance } from './SolBalance';
 import { LABEL_WIDTH } from './constants';
+import { SolBalance } from './SolBalance';
 
 export type BaseRawAccountRowsProps = {
     account: Account;

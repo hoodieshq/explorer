@@ -61,9 +61,7 @@ export function KeyValue({
         <div
             className={cn(
                 'flex border-0 border-b border-solid border-dark-border px-3 py-2 last:border-b-0',
-                row
-                    ? 'flex-row items-baseline gap-dk-4'
-                    : 'flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-dk-4',
+                row ? 'flex-row items-baseline gap-dk-4' : 'flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-dk-4',
                 className,
             )}
         >
@@ -73,13 +71,13 @@ export function KeyValue({
                 min-content, so a long single-word key (e.g. "Acknowledgements") grows the column
                 past `labelWidth` to stay on one line instead of wrapping. */}
             <div className={cn('flex min-w-0 items-start gap-1.5', row ? 'flex-none' : 'sm:flex-none', labelWidth)}>
-                {icon != null && (
+                {icon != undefined && (
                     <Icon size={labelSize} lineBox={lineBox}>
                         {icon}
                     </Icon>
                 )}
                 <Label size={labelSize} lineBox={lineBox}>
-                    {trailingIcon == null
+                    {trailingIcon == undefined
                         ? label
                         : withTrailingIcon(
                               label,
@@ -95,7 +93,7 @@ export function KeyValue({
                     // address/hash with no break points — wraps inside the column instead of
                     // running past the block edge: `anywhere` also lets the flex column shrink
                     // below the token's width (break-word leaves min-content = the whole token).
-                    'flex min-w-0 flex-1 [overflow-wrap:anywhere] text-sm',
+                    'flex min-w-0 flex-1 text-sm [overflow-wrap:anywhere]',
                     align === 'end' && (row ? 'justify-end' : 'sm:justify-end'),
                     valueClassName,
                 )}
@@ -123,6 +121,7 @@ function withTrailingIcon(label: React.ReactNode, icon: React.ReactNode): React.
             </>
         );
     }
+    // eslint-disable-next-line no-restricted-syntax -- concise trailing-whitespace trim before locating the label's last word
     const trimmed = label.replace(/\s+$/, '');
     const cut = trimmed.lastIndexOf(' ');
     if (cut === -1) {

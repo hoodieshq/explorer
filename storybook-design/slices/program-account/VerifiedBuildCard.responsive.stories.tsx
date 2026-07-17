@@ -1,9 +1,8 @@
 import { withViewportFromGlobal } from '@storybook-config/responsive-decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { BaseVerifiedBuildCard } from './ProgramTabCards/VerifiedBuildCard';
-
 import { MOCK_PARSED_DATA, MOCK_VERIFIED_BUILD, withMockProviders } from './mocks';
+import { BaseVerifiedBuildCard } from './ProgramTabCards/VerifiedBuildCard';
 
 const meta = {
     component: BaseVerifiedBuildCard,

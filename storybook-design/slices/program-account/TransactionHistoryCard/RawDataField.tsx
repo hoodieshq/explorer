@@ -29,7 +29,8 @@ const MAX_INLINE_BYTES = 1024;
 // the host background (heavy-metal-900) over its last 28px instead of being cut
 // off by a divider. Inline gradient because this project skips `@tailwind base`,
 // so Tailwind's gradient utilities don't resolve.
-const FADE_TO_BG = 'linear-gradient(to bottom, oklch(21.275% 0.00721 164.22 / 0) 0%, oklch(21.275% 0.00721 164.22) 100%)';
+const FADE_TO_BG =
+    'linear-gradient(to bottom, oklch(21.275% 0.00721 164.22 / 0) 0%, oklch(21.275% 0.00721 164.22) 100%)';
 
 const Spinner = () => (
     <span className="inline-block h-3.5 w-3.5 animate-spin rounded-full border-2 border-outer-space-300 border-t-transparent" />
@@ -62,7 +63,14 @@ export type RawDataFieldProps = {
     bytesPrefix?: string;
 };
 
-export function RawDataField({ data, loading, filename, variant = 'popover', iconOnlyActions, bytesPrefix }: RawDataFieldProps) {
+export function RawDataField({
+    data,
+    loading,
+    filename,
+    variant = 'popover',
+    iconOnlyActions,
+    bytesPrefix,
+}: RawDataFieldProps) {
     const [tab, setTab] = useState<'hex' | 'base64'>('hex');
     const [expanded, setExpanded] = useState(false);
     const [copyState, copy] = useCopyToClipboard();
@@ -116,10 +124,10 @@ export function RawDataField({ data, loading, filename, variant = 'popover', ico
         const clampData = !expanded;
         const tabsList = (
             <TabsList>
-                <TabsTrigger className="!py-0 text-sm flex-1" value="hex">
+                <TabsTrigger className="flex-1 !py-0 text-sm" value="hex">
                     Hex
                 </TabsTrigger>
-                <TabsTrigger className="!py-0 text-sm flex-1" value="base64">
+                <TabsTrigger className="flex-1 !py-0 text-sm" value="base64">
                     Base64
                 </TabsTrigger>
             </TabsList>
@@ -127,12 +135,12 @@ export function RawDataField({ data, loading, filename, variant = 'popover', ico
 
         const byteCount = (
             <span className="whitespace-nowrap text-sm text-white">
-                {data !== undefined && !loading ? (
+                {data !== undefined && !loading && (
                     <>
                         {bytesPrefix && <span className="text-outer-space-300">{bytesPrefix}</span>}
                         {`${data.length} bytes`}
                     </>
-                ) : null}
+                )}
             </span>
         );
 
@@ -153,7 +161,13 @@ export function RawDataField({ data, loading, filename, variant = 'popover', ico
         // where the label would crowd the bar and mismatch the icon-only copy button.
         const downloadButton = (
             <DownloadDropdown filename={filename} data={data} loading={loading} disabled={!hasData} encodings={[tab]}>
-                <Button variant="outline" size="sm" className="border-outer-space-800" aria-label="Download" disabled={!hasData || loading}>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-outer-space-800"
+                    aria-label="Download"
+                    disabled={!hasData || loading}
+                >
                     <Download size={12} />
                 </Button>
             </DownloadDropdown>
@@ -177,6 +191,7 @@ export function RawDataField({ data, loading, filename, variant = 'popover', ico
                             isCopyable={false}
                             rowSize={HEX_ROW_BYTES}
                             align="start"
+                            // @ts-expect-error -- `align`/`wrap` exist on the vendored HexData (served by the Storybook vendor-redirect in .storybook/main.ts); tsc resolves the app original, which lacks them
                             wrap
                         />
                     )}
@@ -218,7 +233,12 @@ export function RawDataField({ data, loading, filename, variant = 'popover', ico
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
                     {hasData && !loading && !tooLarge && (clamped || expanded) ? (
-                        <Button variant="outline" size="sm" className="border-outer-space-800" onClick={() => setExpanded(e => !e)}>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-outer-space-800"
+                            onClick={() => setExpanded(e => !e)}
+                        >
                             <span className="text-outer-space-300">{expanded ? 'Show less' : 'Show more'}</span>
                             <ChevronDown
                                 size={14}
@@ -265,9 +285,21 @@ export function RawDataField({ data, loading, filename, variant = 'popover', ico
                     {data !== undefined && !loading && (
                         <span className="truncate text-sm text-outer-space-300">{data.length} bytes</span>
                     )}
-                    <DownloadDropdown filename={filename} data={data} loading={loading} disabled={!hasData} encodings={[tab]}>
+                    <DownloadDropdown
+                        filename={filename}
+                        data={data}
+                        loading={loading}
+                        disabled={!hasData}
+                        encodings={[tab]}
+                    >
                         {iconOnlyActions ? (
-                            <Button variant="outline" size="sm" className="border-outer-space-800" aria-label="Download" disabled={!hasData || loading}>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="border-outer-space-800"
+                                aria-label="Download"
+                                disabled={!hasData || loading}
+                            >
                                 <Download size={12} />
                             </Button>
                         ) : undefined}
@@ -327,7 +359,12 @@ export function RawDataField({ data, loading, filename, variant = 'popover', ico
 
             {hasMore && !tooLarge && !loading && hasData && (
                 <div className="mt-1 flex justify-center border-t border-outer-space-800 [border-top-style:solid]">
-                    <Button variant="ghost" className="hover:!bg-transparent" size="sm" onClick={() => setExpanded(e => !e)}>
+                    <Button
+                        variant="ghost"
+                        className="hover:!bg-transparent"
+                        size="sm"
+                        onClick={() => setExpanded(e => !e)}
+                    >
                         <span className="text-sm text-outer-space-300">{expanded ? 'Show less' : 'Show more'}</span>
                         <ChevronDown
                             size={14}

@@ -1,5 +1,5 @@
 import { ErrorCard } from '@components/common/ErrorCard';
-import { UpgradeableLoaderAccountData } from '@providers/accounts';
+import { type UpgradeableLoaderAccountData } from '@providers/accounts';
 import { PublicKey } from '@solana/web3.js';
 import Link from 'next/link';
 import React from 'react';
@@ -9,14 +9,18 @@ import { Address } from '@/app/components/common/Address';
 import { LoadingCard } from '@/app/components/common/LoadingCard';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Alert } from '@/app/shared/ui/Alert';
-import { Card, CardBody, CardTitle } from '@/app/shared/ui/Card';
-import { OsecRegistryInfo, VerificationStatus } from '@/app/utils/verified-builds';
+import { CardBody, CardTitle } from '@/app/shared/ui/Card';
+import { type OsecRegistryInfo, VerificationStatus } from '@/app/utils/verified-builds';
 
 import { KeyValue } from '../../key-value/KeyValue';
+import { CopyableCode } from '../CopyableCode/CopyableCode';
 import { LABEL_WIDTH } from '../UpgradeableProgramSection/constants';
 import { SectionCard } from './SectionCard';
-import { CopyableCode } from '../CopyableCode/CopyableCode';
 import { ExternalLinkValue, TextValue } from './values';
+
+/* eslint-disable @typescript-eslint/consistent-type-assertions --
+   Mirrors app (rule-exempt): the row's value is `OsecRegistryInfo[keyof OsecRegistryInfo]` (a union),
+   narrowed to the concrete type via the row's own `type` discriminator, which TS can't infer. */
 
 const VERIFIED_BUILDS_GUIDE = 'https://solana.com/developers/guides/advanced/verified-builds';
 
@@ -76,10 +80,10 @@ export function BaseVerifiedBuildCard({
                 title="Verified Build"
                 noCardMargin
                 note={
+                    // @ts-expect-error -- `appearance` exists on the vendored Alert (served by the Storybook vendor-redirect in .storybook/main.ts); tsc resolves the app original, which lacks it
                     <Alert variant="info" appearance="outlined" icon={<Info size={16} />}>
-                        A verified build badge indicates that this program was built from source code that is
-                        publicly available, but does not imply that this program has been audited. For more details,
-                        refer to the{' '}
+                        A verified build badge indicates that this program was built from source code that is publicly
+                        available, but does not imply that this program has been audited. For more details, refer to the{' '}
                         <a href={VERIFIED_BUILDS_GUIDE} target="_blank" rel="noopener noreferrer">
                             Verified Builds Guide
                             <ExternalLink className="relative -top-0.5 ml-1.5" size={13} />
@@ -173,7 +177,9 @@ function RenderValue({
             return isValidLink(value as string) ? (
                 <ExternalLinkValue url={value as string} mono={mono} />
             ) : (
-                <TextValue mono={mono}>{value && (value as string).length > 1 ? (value as string).trim() : '-'}</TextValue>
+                <TextValue mono={mono}>
+                    {value && (value as string).length > 1 ? (value as string).trim() : '-'}
+                </TextValue>
             );
         case DisplayType.Date:
             return (
@@ -184,7 +190,7 @@ function RenderValue({
         case DisplayType.PublicKey:
             return <Address pubkey={new PublicKey(value as string)} link />;
         default:
-            return null;
+            return undefined;
     }
 }
 

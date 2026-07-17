@@ -2,6 +2,8 @@
 // The program-account page is the /address/[address] route rendered for an
 // executable (bpf-upgradeable-loader) account: Header → UpgradeableLoaderAccountSection
 // → SecurityNotification → History tab (TransactionHistoryCard).
+import type { SecurityTxtFields } from '@solana/security-txt';
+import { Connection, type ParsedTransactionWithMeta, PublicKey, type VersionedMessage } from '@solana/web3.js';
 import { mockAccountHistory, mockConfirmedSignatureInfo } from '@storybook-config/__fixtures__/account-history';
 import { MockAccountsProvider } from '@storybook-config/__mocks__/MockAccountsProvider';
 import { MockClusterProvider } from '@storybook-config/__mocks__/MockClusterProvider';
@@ -10,23 +12,26 @@ import { MockTokenInfoBatchProvider } from '@storybook-config/__mocks__/MockToke
 import { MockTransactionsProvider } from '@storybook-config/__mocks__/MockTransactionsProvider';
 import { nextjsParameters } from '@storybook-config/decorators';
 import type { Decorator } from '@storybook-config/types';
-import { Connection, type ParsedTransactionWithMeta, PublicKey, type VersionedMessage } from '@solana/web3.js';
 import React from 'react';
 import { SWRConfig, unstable_serialize } from 'swr';
 
 import { LoadingCard } from '@/app/components/common/LoadingCard';
-import type { SecurityTxtFields } from '@solana/security-txt';
 import type { DomainInfo } from '@/app/entities/domain';
-import { Account, UpgradeableLoaderAccountData } from '@/app/providers/accounts';
+import { type Account, type UpgradeableLoaderAccountData } from '@/app/providers/accounts';
 import { type CacheEntry, FetchStatus } from '@/app/providers/cache';
 import type { ClusterState } from '@/app/providers/cluster';
+import { SQUADS_V4_ADDRESS } from '@/app/providers/squadsMultisig';
 import type { Details as RawDetails } from '@/app/providers/transactions/raw';
 import { VisibilityProvider } from '@/app/shared/lib/visibility';
-import { type OsecRegistryInfo, VerificationStatus } from '@/app/utils/verified-builds';
 import { Cluster, ClusterStatus, clusterUrl, DEVNET_URL } from '@/app/utils/cluster';
-import { SQUADS_V4_ADDRESS } from '@/app/providers/squadsMultisig';
+import { type OsecRegistryInfo, VerificationStatus } from '@/app/utils/verified-builds';
 
 import { rpcMethodStubs } from '../../decorators';
+
+/* eslint-disable @typescript-eslint/consistent-type-assertions, unicorn/no-null --
+   Mock data mirrors SDK/provider shapes that use `null`: web3.js ConfirmedSignatureInfo.blockTime and
+   TransactionMeta.err are `… | null`, and Connection.getParsedTransaction resolves `… | null`. Partial
+   mock objects are built with `as unknown as T`, and the seeded Anchor IDL fallback is intentionally null. */
 
 export { nextjsParameters };
 
@@ -182,7 +187,11 @@ function mockParsedTx(
 
 const MOCK_PARSED_TX_BY_SIGNATURE: Record<string, ParsedTransactionWithMeta> = {
     [DATA_SIGNATURES.transfer]: mockParsedTx([
-        { parsed: { info: { lamports: 1_500_000_000 }, type: 'transfer' }, program: 'system', programId: SYSTEM_PROGRAM },
+        {
+            parsed: { info: { lamports: 1_500_000_000 }, type: 'transfer' },
+            program: 'system',
+            programId: SYSTEM_PROGRAM,
+        },
     ]),
     [DATA_SIGNATURES.mint]: mockParsedTx([
         { parsed: { info: {}, type: 'mintTo' }, program: 'spl-token', programId: PROGRAM_PUBKEY },
@@ -195,25 +204,13 @@ const MOCK_PARSED_TX_BY_SIGNATURE: Record<string, ParsedTransactionWithMeta> = {
 
 // Devnet: useSquadsMultisigLookup returns null without a real fetch (mainnet would
 // actually query). The address-page program section relies on this behaviour.
+// ClusterState carries `genesisHash` at the top level; the epoch/schedule payload is a separate
+// `ClusterInfo` seeded into useClusterInfo()'s SWR cache (MockClusterProvider's `clusterInfo` prop
+// defaults to it), not part of the state object.
 const devnetClusterState: ClusterState = {
     cluster: Cluster.Devnet,
-    clusterInfo: {
-        epochInfo: {
-            absoluteSlot: 312_456_789n,
-            blockHeight: 295_456_321n,
-            epoch: 520n,
-            slotIndex: 156_789n,
-            slotsInEpoch: 432_000n,
-        },
-        epochSchedule: {
-            firstNormalEpoch: 14n,
-            firstNormalSlot: 524_256n,
-            slotsPerEpoch: 432_000n,
-        },
-        firstAvailableBlock: 0n,
-        genesisHash: 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG',
-    },
     customUrl: DEVNET_URL,
+    genesisHash: 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG',
     status: ClusterStatus.Connected,
 };
 
@@ -399,12 +396,12 @@ const squadsIdlKey = unstable_serialize([
 ]);
 
 const MULTISIG_SWR_FALLBACK = {
+    [squadsIdlKey]: null,
     [squadsLookupKey]: { isSquad: true, multisig: MULTISIG_ACCOUNT.toString(), version: 'v4' },
     [squadsMultisigKey]: {
         multisig: { members: MULTISIG_MEMBERS.map(key => ({ key })), threshold: 2 },
         version: 'v4',
     },
-    [squadsIdlKey]: null,
 };
 
 // Args for ProgramMultisigCard — it reads `data.programData?.authority`.

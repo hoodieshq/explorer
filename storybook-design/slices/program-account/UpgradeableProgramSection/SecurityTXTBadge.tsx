@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { ExternalLink } from 'react-feather';
 
 import { Badge } from '@/app/components/shared/ui/badge';
-import { NO_SECURITY_TXT_ERROR } from '@/app/features/security-txt/lib/constants';
 import { useSecurityTxt } from '@/app/features/security-txt';
+import { NO_SECURITY_TXT_ERROR } from '@/app/features/security-txt/lib/constants';
 import { useClusterPath } from '@/app/utils/url';
 
 // security.txt now resolves (PMP + Neodyme, both sources unified) via `useSecurityTxt(address)` —
@@ -14,7 +14,7 @@ export function ProgramSecurityTXTBadge({ programPubkey }: { programPubkey: Publ
     const { securityTxt, isLoading } = useSecurityTxt(programPubkey.toBase58());
     const securityTabPath = useClusterPath({ pathname: `/address/${programPubkey.toBase58()}/security` });
 
-    if (isLoading) return null;
+    if (isLoading) return undefined;
 
     const maybeError = securityTxt ? undefined : NO_SECURITY_TXT_ERROR;
 

@@ -31,7 +31,7 @@ export function InstructionList({ instructions, trailingAction }: InstructionLis
     const hasMultiple = visible.length + (overflow.length > 0 ? 1 : 0) > 1;
 
     return (
-        <div className={`flex flex-col gap-1${hasMultiple ? ' thc-instr-multi' : ''}`}>
+        <div className={`flex flex-col gap-1${hasMultiple ? 'thc-instr-multi' : ''}`}>
             {visible.map((instruction, i) => (
                 <InstructionLine key={i} instruction={instruction} trailing={i === 0 ? trailingAction : undefined} />
             ))}

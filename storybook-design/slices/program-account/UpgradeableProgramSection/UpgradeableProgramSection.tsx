@@ -1,9 +1,4 @@
 import type { PublicKey } from '@solana/web3.js';
-import { addressLabel } from '@/app/utils/tx';
-import type {
-    ProgramAccountInfo,
-    ProgramDataAccountInfo,
-} from '@/app/validators/accounts/upgradeable-program';
 import Link from 'next/link';
 import React from 'react';
 
@@ -12,19 +7,20 @@ import type { Account } from '@/app/providers/accounts';
 import { useCluster } from '@/app/providers/cluster';
 import { useSquadsMultisigLookup } from '@/app/providers/squadsMultisig';
 import { Cluster } from '@/app/utils/cluster';
+import { addressLabel } from '@/app/utils/tx';
 import { useClusterPath } from '@/app/utils/url';
+import type { ProgramAccountInfo, ProgramDataAccountInfo } from '@/app/validators/accounts/upgradeable-program';
 
 import { KeyValue } from '../../key-value/KeyValue';
-
-import { Address } from './Address';
 import { AccountCard } from './AccountCard';
+import { Address } from './Address';
+import { LABEL_WIDTH } from './constants';
 import { InfoTooltip } from './InfoTooltip';
 import { ProgramSecurityTXTBadge } from './SecurityTXTBadge';
 import { ProgramSecurityTXTLabel } from './SecurityTXTLabel';
 import { Slot } from './Slot';
 import { SolBalance } from './SolBalance';
 import { VerifiedProgramBadge } from './VerifiedProgramBadge';
-import { LABEL_WIDTH } from './constants';
 
 /**
  * "Program Account" — first bordered block on the program-account page.
@@ -72,7 +68,8 @@ export function UpgradeableProgramSection({
             </KeyValue>
             <KeyValue
                 label={`Executable Data${programData === undefined ? ' (Closed)' : ''}`}
-                labelWidth={LABEL_WIDTH} row
+                labelWidth={LABEL_WIDTH}
+                row
             >
                 <Address pubkey={programAccount.programData} link />
             </KeyValue>
@@ -96,9 +93,9 @@ export function UpgradeableProgramSection({
                                 <span className="min-w-0">
                                     <Address pubkey={programData.authority} link />
                                 </span>
-                                {cluster == Cluster.MainnetBeta && squadMapInfo?.isSquad ? (
+                                {cluster == Cluster.MainnetBeta && squadMapInfo?.isSquad && (
                                     <MultisigBadge pubkey={account.pubkey} />
-                                ) : null}
+                                )}
                             </div>
                         </KeyValue>
                     )}

@@ -38,7 +38,7 @@ export function Copyable({ text, children }: { text: string | null; children?: R
     };
 
     function CopyIcon() {
-        return copyStrategy[state] || null;
+        return copyStrategy[state];
     }
 
     let textColor = '';

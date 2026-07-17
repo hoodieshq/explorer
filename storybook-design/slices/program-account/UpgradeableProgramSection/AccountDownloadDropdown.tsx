@@ -9,7 +9,7 @@ export function AccountDownloadDropdown({ pubkey, space }: { pubkey: PublicKey; 
     const address = pubkey.toBase58();
     const { data: rawData, error, mutate, isLoading } = useRawAccountData(address);
 
-    if (space === 0) return null;
+    if (space === 0) return undefined;
 
     return (
         <DownloadDropdown

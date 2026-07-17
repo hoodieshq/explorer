@@ -2,9 +2,8 @@
 import React from 'react';
 import { RefreshCw } from 'react-feather';
 
-import { refreshAnalytics } from '@/app/shared/lib/analytics';
-
 import { Button } from '@/app/components/shared/ui/button';
+import { refreshAnalytics } from '@/app/shared/lib/analytics';
 
 type Props = {
     analyticsSection: string;

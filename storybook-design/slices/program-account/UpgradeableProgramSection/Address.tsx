@@ -1,18 +1,18 @@
 'use client';
 
+import type { PublicKey } from '@solana/web3.js';
 import { cva } from 'class-variance-authority';
 import Link from 'next/link';
 import React, { useRef, useState } from 'react';
 
+import { useMidTruncation } from '@/app/components/common/useMidTruncation';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
 import { cn } from '@/app/components/shared/utils';
-import { useMidTruncation } from '@/app/components/common/useMidTruncation';
-import { EditIcon, useNickname } from '@/app/features/nicknames';
-import { useVisibility } from '@/app/shared/lib/visibility';
 import { useTokenMetadata } from '@/app/entities/nft';
 import { useTokenInfo } from '@/app/entities/token-info';
+import { EditIcon, useNickname } from '@/app/features/nicknames';
 import { useCluster } from '@/app/providers/cluster';
-import type { PublicKey } from '@solana/web3.js';
+import { useVisibility } from '@/app/shared/lib/visibility';
 import { displayAddress, type TokenLabelInfo } from '@/app/utils/tx';
 import { useClusterPath } from '@/app/utils/url';
 
@@ -57,7 +57,7 @@ export function Address({
     'aria-label': ariaLabel,
 }: Props) {
     const address = pubkey.toBase58();
-    const { cluster, clusterInfo } = useCluster();
+    const { cluster, genesisHash } = useCluster();
     const addressPath = useClusterPath({ pathname: `/address/${address}` });
     const [showNicknameEditor, setShowNicknameEditor] = useState(false);
     const nickname = useNickname(address);
@@ -73,7 +73,7 @@ export function Address({
     }
 
     const shouldFetchTokenInfo = fetchTokenLabelInfo && isVisible;
-    const tokenInfo = useTokenInfo(shouldFetchTokenInfo, address, cluster, clusterInfo?.genesisHash);
+    const tokenInfo = useTokenInfo(shouldFetchTokenInfo, address, cluster, genesisHash);
     if (tokenInfo) {
         addressLabel = displayAddress(address, cluster, tokenInfo);
     }
@@ -98,14 +98,14 @@ export function Address({
     const handleMouseEnter = (text: string) => {
         const elements = document.querySelectorAll(`[data-address="${text}"]`);
         elements.forEach(el => {
-            (el as HTMLElement).classList.add('address-highlight');
+            el.classList.add('address-highlight');
         });
     };
 
     const handleMouseLeave = (text: string) => {
         const elements = document.querySelectorAll(`[data-address="${text}"]`);
         elements.forEach(el => {
-            (el as HTMLElement).classList.remove('address-highlight');
+            el.classList.remove('address-highlight');
         });
     };
 

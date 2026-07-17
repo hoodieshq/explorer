@@ -46,7 +46,9 @@ export const Stack: Story = {
             <KeyValue label="Balance (SOL)" labelWidth="w-44" row>
                 <span className="font-mono">◎5.542247638</span>
             </KeyValue>
-            <KeyValue label="Executable" labelWidth="w-44" row>Yes</KeyValue>
+            <KeyValue label="Executable" labelWidth="w-44" row>
+                Yes
+            </KeyValue>
             <KeyValue label="Verified Build" labelWidth="w-44" row>
                 <span className="rounded bg-dk-warning-on-dark/20 px-2 py-0.5 text-dk-warning-on-dark">
                     Program Not Verified

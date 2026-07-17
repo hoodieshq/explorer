@@ -8,9 +8,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/app/components/shared/ui/button';
+import { getNickname, MAX_NICKNAME_LENGTH, removeNickname, setNickname } from '@/app/features/nicknames/lib/nicknames';
 import { Card, CardBody, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { FormControl } from '@/app/shared/ui/FormControl';
-import { getNickname, MAX_NICKNAME_LENGTH, removeNickname, setNickname } from '@/app/features/nicknames/lib/nicknames';
 
 type Props = {
     address: string;

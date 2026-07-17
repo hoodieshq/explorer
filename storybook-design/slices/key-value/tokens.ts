@@ -14,9 +14,9 @@ export type LineBox = 16 | 20 | 24 | 32 | 36 | 40;
 // specimen): 13→14, 15→16, 17→18, 10→12, ties rounding up so the scale stays monotonic.
 //   s → text-xs (12/16),  m → text-sm (14/20),  l → text-base (16/24),  xl → text-lg (18/28)
 export const LABEL_FONT: Record<LabelSize, { fontSize: number; lineHeight: number }> = {
-    s: { fontSize: 12, lineHeight: 16 },
-    m: { fontSize: 14, lineHeight: 20 },
     l: { fontSize: 16, lineHeight: 24 },
+    m: { fontSize: 14, lineHeight: 20 },
+    s: { fontSize: 12, lineHeight: 16 },
     xl: { fontSize: 18, lineHeight: 28 },
 };
 
@@ -28,10 +28,10 @@ export const LABEL_FONT: Record<LabelSize, { fontSize: number; lineHeight: numbe
 // fits (line-box must be ≥ its Tailwind line-height).
 //   line-box 16 → only s (16) fits; m/l/xl are omitted. xl (line-height 28) starts at line-box 32.
 export const LABEL_SHIM: Record<LabelSize, Partial<Record<LineBox, [number, number]>>> = {
-    xl: { 32: [1, 3], 36: [3, 5], 40: [5, 7] },
     l: { 24: [0, 0], 32: [4, 4], 36: [6, 6], 40: [8, 8] },
     m: { 20: [0, 0], 24: [3, 1], 32: [7, 5], 36: [9, 7], 40: [11, 9] },
     s: { 16: [0, 0], 20: [3, 1], 24: [5, 3], 32: [9, 7], 36: [11, 9], 40: [13, 11] },
+    xl: { 32: [1, 3], 36: [3, 5], 40: [5, 7] },
 };
 
 // --- Icon tokens ---------------------------------------------------------------
@@ -43,9 +43,9 @@ export const LABEL_SHIM: Record<LabelSize, Partial<Record<LineBox, [number, numb
 // the smallest even ≥ label font + 1, so the icon stays ~1 step above the (Tailwind) label font.
 //   s → 14,  m → 16,  l → 18,  xl → 20
 export const ICON_SIZE: Record<LabelSize, number> = {
-    s: 14,
-    m: 16,
     l: 18,
+    m: 16,
+    s: 14,
     xl: 20,
 };
 
@@ -58,10 +58,10 @@ export const ICON_SIZE: Record<LabelSize, number> = {
 // − 0.35·fontSize − ICON_SIZE/2, rounded); verify/tune in the `Icon` grid story like LABEL_SHIM.
 // Same Partial rule: a size only lists line-boxes whose box is ≥ its icon size.
 export const ICON_SHIM: Record<LabelSize, Partial<Record<LineBox, [number, number]>>> = {
-    xl: { 20: [0, 0], 24: [1, 3], 32: [5, 7], 36: [7, 9], 40: [9, 11] },
     l: { 20: [0, 2], 24: [2, 4], 32: [6, 8], 36: [8, 10], 40: [10, 12] },
     m: { 16: [0, 0], 20: [2, 2], 24: [4, 4], 32: [8, 8], 36: [10, 10], 40: [12, 12] },
     s: { 16: [2, 0], 20: [4, 2], 24: [6, 4], 32: [10, 8], 36: [12, 10], 40: [14, 12] },
+    xl: { 20: [0, 0], 24: [1, 3], 32: [5, 7], 36: [7, 9], 40: [9, 11] },
 };
 
 // `vertical-align` offset (px, positive = raised) for an icon flowing *inline* after the label
@@ -71,8 +71,8 @@ export const ICON_SHIM: Record<LabelSize, Partial<Record<LineBox, [number, numbe
 // the icon's optical center lands on the text's (≈ capHeight/2 above baseline):
 //   raise = capHeight/2 − ICON_SIZE/2  (capHeight≈0.7·fontSize). Tune in the `Icon` inline story.
 export const ICON_INLINE_ALIGN: Record<LabelSize, number> = {
-    s: -3,
-    m: -3,
     l: -3.5,
+    m: -3,
+    s: -3,
     xl: -3.5,
 };

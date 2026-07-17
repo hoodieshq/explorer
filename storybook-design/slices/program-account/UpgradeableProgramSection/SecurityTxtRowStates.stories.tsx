@@ -11,7 +11,7 @@ import { ProgramSecurityTXTLabel } from './SecurityTXTLabel';
 // ProgramSecurityTXTBadge maps any decode/fetch failure onto the error case.)
 const STATES: { name: string; error?: string }[] = [
     { name: 'included' },
-    { name: 'error — "Program has no security.txt"', error: 'Program has no security.txt' },
+    { error: 'Program has no security.txt', name: 'error — "Program has no security.txt"' },
 ];
 
 // Placeholder security-tab href for the presentational badge (no router in the isolated gallery).
@@ -23,7 +23,7 @@ const SECURITY_TAB_HREF = '#';
  */
 function SecurityTxtRowStates() {
     return (
-        <div className="mx-auto flex w-full max-w-col flex-col gap-6">
+        <div className="max-w-col mx-auto flex w-full flex-col gap-6">
             {STATES.map(({ name, error }) => (
                 <div key={name}>
                     <p className="mb-2 text-xs uppercase tracking-wide text-outer-space-300">{name}</p>

@@ -33,14 +33,26 @@ export function VerifiedBuildBadge({ state, size = 'xs' }: { state: VerifiedBuil
     }
     if (state === 'not-mainnet') {
         return (
-            <Badge className="relative -top-0.5 justify-start whitespace-normal text-left" size={size} tone="soft" ui="tw" variant="warning">
+            <Badge
+                className="relative -top-0.5 justify-start whitespace-normal text-left"
+                size={size}
+                tone="soft"
+                ui="tw"
+                variant="warning"
+            >
                 Verified Builds only available on Mainnet
             </Badge>
         );
     }
     if (state === 'error') {
         return (
-            <Badge className="relative -top-0.5 justify-start whitespace-normal text-left" size={size} tone="soft" ui="tw" variant="warning">
+            <Badge
+                className="relative -top-0.5 justify-start whitespace-normal text-left"
+                size={size}
+                tone="soft"
+                ui="tw"
+                variant="warning"
+            >
                 Error fetching verified build information
             </Badge>
         );

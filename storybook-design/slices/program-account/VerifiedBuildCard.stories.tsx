@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { BaseVerifiedBuildCard } from './ProgramTabCards/VerifiedBuildCard';
-
 import { MOCK_PARSED_DATA, MOCK_VERIFIED_BUILD, withMockProviders } from './mocks';
+import { BaseVerifiedBuildCard } from './ProgramTabCards/VerifiedBuildCard';
 
 // Verified Build tab content. The top-level VerifiedBuildCard fetches the osec.io
 // registry via useVerifiedProgram; we render the exported presentational variant

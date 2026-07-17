@@ -1,8 +1,7 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { ProgramSecurityTxtCard } from './ProgramTabCards/SecurityCard';
-
 import { MOCK_PROGRAM_ADDRESS, MOCK_SECURITY_TXT, withMockProviders } from './mocks';
+import { ProgramSecurityTxtCard } from './ProgramTabCards/SecurityCard';
 
 // Security tab content. The top-level SecurityCard parses security.txt out of the
 // program's on-chain binary; we render the exported presentational variant instead

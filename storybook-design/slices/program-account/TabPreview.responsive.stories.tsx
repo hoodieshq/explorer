@@ -3,23 +3,17 @@ import type { Meta, StoryObj } from '@storybook-config/types';
 import React, { Suspense } from 'react';
 
 import { ClusterStatusButton } from '@/app/components/ClusterStatusButton';
+import { LoadingCard } from '@/app/components/common/LoadingCard';
 import { Footer } from '@/app/components/Footer';
 import { Header } from '@/app/components/Header';
 import { MessageBanner } from '@/app/components/MessageBanner';
 import { Navbar } from '@/app/components/Navbar';
-import { LoadingCard } from '@/app/components/common/LoadingCard';
 import { SearchBar } from '@/app/features/search';
 import { SecurityNotification } from '@/app/features/security-txt';
-import { BaseNavigationTabs } from '@/app/shared/ui/navigation-tabs/ui/BaseNavigationTabs';
 import { type NavigationTab } from '@/app/shared/ui/navigation-tabs';
+import { BaseNavigationTabs } from '@/app/shared/ui/navigation-tabs/ui/BaseNavigationTabs';
 import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
 import { StickyHeader } from '@/app/shared/ui/sticky-header/StickyHeader';
-
-import { BaseDomainsCard } from './ProgramTabCards/DomainsCard';
-import { ProgramMultisigCard } from './ProgramTabCards/ProgramMultisigCard';
-import { ProgramSecurityTxtCard } from './ProgramTabCards/SecurityCard';
-import { BaseVerifiedBuildCard } from './ProgramTabCards/VerifiedBuildCard';
-import { TransactionHistoryCard } from './TransactionHistoryCard/TransactionHistoryCard';
 
 import {
     MOCK_DOMAINS,
@@ -32,6 +26,11 @@ import {
     nextjsParameters,
     withTabPreviewData,
 } from './mocks';
+import { BaseDomainsCard } from './ProgramTabCards/DomainsCard';
+import { ProgramMultisigCard } from './ProgramTabCards/ProgramMultisigCard';
+import { ProgramSecurityTxtCard } from './ProgramTabCards/SecurityCard';
+import { BaseVerifiedBuildCard } from './ProgramTabCards/VerifiedBuildCard';
+import { TransactionHistoryCard } from './TransactionHistoryCard/TransactionHistoryCard';
 import { UpgradeableProgramSection } from './UpgradeableProgramSection/UpgradeableProgramSection';
 
 const programAccountInfo =
@@ -49,12 +48,12 @@ function PageShell({ children }: { children: React.ReactNode }) {
                 </Navbar>
                 <MessageBanner />
                 <PageContainer className="my-3 xl:hidden">
-                    <div className="mx-auto w-full max-w-col">
+                    <div className="max-w-col mx-auto w-full">
                         <SearchBar />
                     </div>
                 </PageContainer>
                 <PageContainer className="my-3 lg:hidden">
-                    <div className="mx-auto w-full max-w-col">
+                    <div className="max-w-col mx-auto w-full">
                         <ClusterStatusButton />
                     </div>
                 </PageContainer>
@@ -88,7 +87,9 @@ function TabPanel({ active, address }: { active: PreviewPath; address: string })
                 />
             );
         case 'verified-build':
-            return <BaseVerifiedBuildCard data={MOCK_PARSED_DATA} isLoading={false} registryInfo={MOCK_VERIFIED_BUILD} />;
+            return (
+                <BaseVerifiedBuildCard data={MOCK_PARSED_DATA} isLoading={false} registryInfo={MOCK_VERIFIED_BUILD} />
+            );
         case 'program-multisig':
             return <ProgramMultisigCard data={MOCK_PARSED_DATA} />;
         case 'domains':
@@ -105,7 +106,7 @@ function TabPreviewContent({ address }: { address: string }) {
     return (
         <PageContainer variant="pulled-up">
             <Suspense fallback={<LoadingCard />}>
-                <div className="mx-auto w-full max-w-col">
+                <div className="max-w-col mx-auto w-full">
                     <Header address={address} account={MOCK_PROGRAM_ACCOUNT} isTokenInfoLoading={false} />
                     <UpgradeableProgramSection
                         account={MOCK_SECTION_ARGS.account}
@@ -114,9 +115,9 @@ function TabPreviewContent({ address }: { address: string }) {
                     />
                 </div>
                 <SecurityNotification parsedData={MOCK_PARSED_DATA} address={address} />
-                <StickyHeader className="mb-10 mx-auto w-full max-w-col">
+                <StickyHeader className="max-w-col mx-auto mb-10 w-full">
                     <PageContainer>
-                        <div className="mx-auto w-full max-w-col">
+                        <div className="max-w-col mx-auto w-full">
                             <BaseNavigationTabs
                                 tabs={PREVIEW_TABS}
                                 activeValue={active}
@@ -127,7 +128,7 @@ function TabPreviewContent({ address }: { address: string }) {
                         </div>
                     </PageContainer>
                 </StickyHeader>
-                <div className="mx-auto w-full max-w-col">
+                <div className="max-w-col mx-auto w-full">
                     <TabPanel active={active} address={address} />
                 </div>
             </Suspense>
@@ -140,10 +141,7 @@ const meta = {
     // withTabPreviewData is self-contained (base RPC stubs + mock getParsedTransaction/
     // getAccountInfo + providers); adding withMockRpc as a sibling races it and blanks
     // the History rows' instructions, so it's intentionally omitted.
-    decorators: [
-        withTabPreviewData,
-        withViewportFromGlobal,
-    ],
+    decorators: [withTabPreviewData, withViewportFromGlobal],
     parameters: {
         ...nextjsParameters,
         layout: 'fullscreen',

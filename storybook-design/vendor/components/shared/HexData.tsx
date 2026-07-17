@@ -3,9 +3,8 @@ import { Copyable } from '@components/common/Copyable';
 import { cva } from 'class-variance-authority';
 import React, { useEffect, useRef, useState } from 'react';
 
-import { ByteArray, toHex } from '@/app/shared/lib/bytes';
-
 import { cn } from '@/app/components/shared/utils';
+import { type ByteArray, toHex } from '@/app/shared/lib/bytes';
 
 export type HexSpan = { text: string; variant: 'primary' | 'secondary' | 'secondary-old' };
 export type HexRow = HexSpan[];
@@ -216,7 +215,7 @@ function WrapContent({
                         data-hex-group
                         className={cn(
                             'mr-3 inline-block whitespace-nowrap',
-                            hexSpanVariants({ tone: i % cols % 2 === 0 ? first : second }),
+                            hexSpanVariants({ tone: (i % cols) % 2 === 0 ? first : second }),
                         )}
                     >
                         {span.text}

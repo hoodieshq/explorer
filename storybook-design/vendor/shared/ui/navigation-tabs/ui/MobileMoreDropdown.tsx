@@ -8,7 +8,6 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/shared
 import { cn } from '@/app/components/shared/utils';
 import { useNavigationTabsContext } from '@/app/shared/ui/navigation-tabs/model/navigation-tabs-context';
 import { type NavigationTab } from '@/app/shared/ui/navigation-tabs/model/types';
-
 import { tabLinkClassName } from '@/app/shared/ui/navigation-tabs/ui/TabLink';
 
 type MobileMoreDropdownProps = {

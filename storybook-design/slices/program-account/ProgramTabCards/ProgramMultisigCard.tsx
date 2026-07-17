@@ -4,7 +4,7 @@ import React, { Suspense } from 'react';
 
 import { Address } from '@/app/components/common/Address';
 import { LoadingCard } from '@/app/components/common/LoadingCard';
-import { UpgradeableLoaderAccountData } from '@/app/providers/accounts';
+import { type UpgradeableLoaderAccountData } from '@/app/providers/accounts';
 import { useCluster } from '@/app/providers/cluster';
 import {
     SQUADS_V3_ADDRESS,
@@ -67,7 +67,7 @@ function ProgramMultisigCardInner({ programAuthority }: { programAuthority: Publ
                 />
             </KeyValue>
             <KeyValue label="Multisig Account" labelWidth={LABEL_WIDTH} row>
-                {squadMapInfo?.isSquad ? <Address pubkey={new PublicKey(squadMapInfo.multisig)} link /> : null}
+                {squadMapInfo?.isSquad && <Address pubkey={new PublicKey(squadMapInfo.multisig)} link />}
             </KeyValue>
             <KeyValue label="Multisig Approval Threshold" labelWidth={LABEL_WIDTH} row>
                 {squadInfo?.multisig.threshold}

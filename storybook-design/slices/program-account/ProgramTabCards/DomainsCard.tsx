@@ -19,7 +19,7 @@ export function BaseDomainsCard({ domains }: { domains: DomainInfo[] }) {
         () =>
             domains
                 .map(domain => ({ ...domain, pubkey: tryPublicKey(domain.address) }))
-                .filter((d): d is DomainInfo & { pubkey: PublicKey } => d.pubkey !== null),
+                .filter((d): d is DomainInfo & { pubkey: PublicKey } => d.pubkey !== undefined),
         [domains],
     );
 
@@ -34,10 +34,10 @@ export function BaseDomainsCard({ domains }: { domains: DomainInfo[] }) {
     );
 }
 
-function tryPublicKey(address: string): PublicKey | null {
+function tryPublicKey(address: string): PublicKey | undefined {
     try {
         return new PublicKey(address);
     } catch {
-        return null;
+        return undefined;
     }
 }

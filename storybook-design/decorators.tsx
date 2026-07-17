@@ -35,7 +35,7 @@ export const rpcMethodStubs: Record<string, unknown> = {
  * way in isolation without hardcoding the value itself.
  */
 export const withColumnWidth: Decorator = Story => (
-    <div className="mx-auto w-full max-w-col">
+    <div className="max-w-col mx-auto w-full">
         <Story />
     </div>
 );

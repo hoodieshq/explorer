@@ -11,12 +11,12 @@ import { ArrowRight, CheckCircle, Copy, X } from 'react-feather';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { Dialog, DialogOverlay, DialogPortal, DialogTitle } from '@/app/components/shared/ui/dialog';
+import type { InstructionSummary } from '@/app/entities/transaction-data';
 import { FetchStatus } from '@/app/providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
-import { RelativeTime } from '@/app/shared/RelativeTime';
 import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
+import { RelativeTime } from '@/app/shared/RelativeTime';
 import { displayTimestampUtc } from '@/app/utils/date';
-import type { InstructionSummary } from '@/app/entities/transaction-data';
 import { useClusterPath } from '@/app/utils/url';
 
 import { InstructionList, InstructionListSkeleton } from './InstructionList';
@@ -55,7 +55,7 @@ export function TransactionDetailsDrawer({
     // Swipe-to-dismiss: drag the header down and release past a threshold to close.
     // Pointer (not touch) events so it works with mouse + touch alike; pointer
     // capture keeps move/up firing even once the pointer leaves the grab zone.
-    const dragStartY = useRef<number | null>(null);
+    const dragStartY = useRef<number | undefined>(undefined);
     const [dragY, setDragY] = useState(0);
     const [dragging, setDragging] = useState(false);
     const handleDragStart = (e: React.PointerEvent) => {
@@ -64,14 +64,14 @@ export function TransactionDetailsDrawer({
         e.currentTarget.setPointerCapture(e.pointerId);
     };
     const handleDragMove = (e: React.PointerEvent) => {
-        if (dragStartY.current === null) return;
+        if (dragStartY.current === undefined) return;
         // Downward only — negative deltas (dragging up) are clamped to 0.
         setDragY(Math.max(0, e.clientY - dragStartY.current));
     };
     const handleDragEnd = (e: React.PointerEvent) => {
-        if (dragStartY.current === null) return;
+        if (dragStartY.current === undefined) return;
         if (dragY > 80) onOpenChange(false);
-        dragStartY.current = null;
+        dragStartY.current = undefined;
         setDragging(false);
         setDragY(0);
         if (e.currentTarget.hasPointerCapture(e.pointerId)) e.currentTarget.releasePointerCapture(e.pointerId);
@@ -104,7 +104,7 @@ export function TransactionDetailsDrawer({
         dragStartY.current = e.clientY;
     };
     const handleContentDragMove = (e: React.PointerEvent) => {
-        if (dragStartY.current === null) return;
+        if (dragStartY.current === undefined) return;
         const delta = e.clientY - dragStartY.current;
         if (!dragging) {
             // Begin a sheet-drag only on downward movement while still at the top.
@@ -113,7 +113,7 @@ export function TransactionDetailsDrawer({
                 e.currentTarget.setPointerCapture(e.pointerId);
             } else {
                 // Upward, or the content has scrolled — let native scroll take over.
-                dragStartY.current = null;
+                dragStartY.current = undefined;
                 return;
             }
         }
@@ -136,7 +136,7 @@ export function TransactionDetailsDrawer({
     // fires for these, so the bottom fade would otherwise be stale.
     useEffect(() => {
         updateFades();
-    }, [open, transactionData, instructionNames]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [open, transactionData, instructionNames]);
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,16 +145,8 @@ export function TransactionDetailsDrawer({
                 {/* Bottom drawer: override Dialog's centred placement. */}
                 <DialogPrimitive.Content
                     // Don't auto-focus the first focusable element (the copy button) on open.
-                    onOpenAutoFocus={(e) => e.preventDefault()}
-                    className="
-                        tx-drawer
-                        fixed z-50
-                        left-0 right-0 top-auto bottom-0
-                        flex max-h-[85vh] w-full max-w-none flex-col
-                        rounded-t-2xl rounded-b-none
-                        border-0 border-t border-solid border-dark-border
-                        bg-heavy-metal-900
-                    "
+                    onOpenAutoFocus={e => e.preventDefault()}
+                    className="tx-drawer fixed bottom-0 left-0 right-0 top-auto z-50 flex max-h-[85vh] w-full max-w-none flex-col rounded-b-none rounded-t-2xl border-0 border-t border-solid border-dark-border bg-heavy-metal-900"
                     style={{
                         transform: `translateY(${dragY}px)`,
                         transition: dragging ? 'none' : 'transform 0.2s ease-out',
@@ -165,7 +157,7 @@ export function TransactionDetailsDrawer({
                         area, so the top of the drawer always closes on a downward drag even
                         after the content below has been scrolled. */}
                     <div
-                        className="shrink-0 cursor-grab pt-3 pb-3"
+                        className="shrink-0 cursor-grab pb-3 pt-3"
                         style={{ touchAction: 'none' }}
                         onPointerDown={handleDragStart}
                         onPointerMove={handleDragMove}
@@ -185,138 +177,147 @@ export function TransactionDetailsDrawer({
                         positioned over the scroll region without disturbing the
                         drawer's own `fixed` placement. */}
                     <div className="relative flex min-h-0 flex-1 flex-col">
-                    {/* Top fade overlay: sits at the top of the scroll region, pointer-through,
+                        {/* Top fade overlay: sits at the top of the scroll region, pointer-through,
                         eases in as content scrolls up so it disappears under a soft gradient
                         instead of a hard edge. */}
-                    <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6"
-                        style={{
-                            opacity: topFade,
-                            transition: 'opacity 0.15s ease-out',
-                            background:
-                                'linear-gradient(to bottom, oklch(21.275% 0.00721 164.22), transparent)',
-                        }}
-                    />
+                        <div
+                            aria-hidden
+                            className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6"
+                            style={{
+                                background: 'linear-gradient(to bottom, oklch(21.275% 0.00721 164.22), transparent)',
+                                opacity: topFade,
+                                transition: 'opacity 0.15s ease-out',
+                            }}
+                        />
 
-                    {/* Bottom fade overlay: mirror of the top one, sits above the button
+                        {/* Bottom fade overlay: mirror of the top one, sits above the button
                         block and eases out as the content reaches the end. */}
-                    <div
-                        aria-hidden
-                        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6"
-                        style={{
-                            opacity: bottomFade,
-                            transition: 'opacity 0.15s ease-out',
-                            background:
-                                'linear-gradient(to top, oklch(21.275% 0.00721 164.22), transparent)',
-                        }}
-                    />
+                        <div
+                            aria-hidden
+                            className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6"
+                            style={{
+                                background: 'linear-gradient(to top, oklch(21.275% 0.00721 164.22), transparent)',
+                                opacity: bottomFade,
+                                transition: 'opacity 0.15s ease-out',
+                            }}
+                        />
 
-                    <div
-                        ref={scrollRef}
-                        className="min-h-0 flex-1 overflow-y-auto px-4 pb-4"
-                        style={{ overscrollBehavior: 'contain' }}
-                        onScroll={updateFades}
-                        onPointerDown={handleContentDragStart}
-                        onPointerMove={handleContentDragMove}
-                        onPointerUp={handleDragEnd}
-                        onPointerCancel={handleDragEnd}
-                    >
-                        <DialogTitle className="!mt-0 text-base !text-outer-space-300">Transaction</DialogTitle>
+                        <div
+                            ref={scrollRef}
+                            className="min-h-0 flex-1 overflow-y-auto px-4 pb-4"
+                            style={{ overscrollBehavior: 'contain' }}
+                            onScroll={updateFades}
+                            onPointerDown={handleContentDragStart}
+                            onPointerMove={handleContentDragMove}
+                            onPointerUp={handleDragEnd}
+                            onPointerCancel={handleDragEnd}
+                        >
+                            <DialogTitle className="!mt-0 text-base !text-outer-space-300">Transaction</DialogTitle>
 
-                        {/* Big signature; the status badge drops to its own line below, with a
+                            {/* Big signature; the status badge drops to its own line below, with a
                             copy button pinned to the end of that line and aligned to the bottom. */}
-                        <div className="mt-2 flex items-end gap-4 pb-2 text-white">
-                            <div className="min-w-0 flex-1">
-                                <span className="break-all font-mono text-xl">{signature}</span>
-                                <div className="mt-1">
-                                    <Badge ui="dashkit" tone="soft" variant={statusClass as 'success' | 'warning'}>
-                                        {statusText}
-                                    </Badge>
+                            <div className="mt-2 flex items-end gap-4 pb-2 text-white">
+                                <div className="min-w-0 flex-1">
+                                    <span className="break-all font-mono text-xl">{signature}</span>
+                                    <div className="mt-1">
+                                        <Badge
+                                            ui="dashkit"
+                                            tone="soft"
+                                            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- statusClass is a Bootstrap-derived 'success'|'warning' value widened to string upstream
+                                            variant={statusClass as 'success' | 'warning'}
+                                        >
+                                            {statusText}
+                                        </Badge>
+                                    </div>
                                 </div>
-                            </div>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="my-[-4px] border-outer-space-800"
-                                aria-label={copyState === 'copied' ? 'Copied signature' : 'Copy signature'}
-                                onClick={() => copy(signature)}
-                            >
-                                {copyState === 'copied' ? (
-                                    <CheckCircle size={12} className="text-dk-info" />
-                                ) : (
-                                    <Copy size={12} />
-                                )}
-                            </Button>
-                        </div>
-
-                    <hr className="mt-0 mb-0 border-0 border-t border-solid border-dark-border" />
-
-                    {/* Property table — each row carries a top border. */}
-                    <div className="flex flex-col text-sm">
-                        {blockTime && (
-                            <DrawerRow label="Time" alignTop>
-                                <div className="flex flex-col">
-                                    <span className="text-white">{displayTimestampUtc(blockTime * 1000, true)}</span>
-                                    {/* Relative age (e.g. "about 2 years ago") under the absolute UTC time. */}
-                                    <span className="text-white">
-                                        <RelativeTime date={blockTime * 1000} />
-                                    </span>
-                                </div>
-                            </DrawerRow>
-                        )}
-                        <DrawerRow
-                            label="Block"
-                            trailing={
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="relative top-[1px] my-[-4px] border-outer-space-800"
-                                    aria-label={blockCopyState === 'copied' ? 'Copied block number' : 'Copy block number'}
-                                    onClick={() => copyBlock(slot.toString())}
+                                    className="my-[-4px] border-outer-space-800"
+                                    aria-label={copyState === 'copied' ? 'Copied signature' : 'Copy signature'}
+                                    onClick={() => copy(signature)}
                                 >
-                                    {blockCopyState === 'copied' ? (
+                                    {copyState === 'copied' ? (
                                         <CheckCircle size={12} className="text-dk-info" />
                                     ) : (
                                         <Copy size={12} />
                                     )}
                                 </Button>
-                            }
-                        >
-                            <Link href={blockPath} className="font-mono text-sm">
-                                {slot.toLocaleString('en-US')}
-                            </Link>
-                        </DrawerRow>
-                        <DrawerRow label="Programs">
-                            <div className="tx-instr-inline">
-                                {instructionNames !== undefined && instructionNames.length > 0 ? (
-                                    <InstructionList instructions={instructionNames} />
-                                ) : instructionNames === undefined ? (
-                                    <InstructionListSkeleton />
-                                ) : (
-                                    <span className="text-muted">---</span>
-                                )}
                             </div>
-                        </DrawerRow>
-                        {/* No separate "Size (bytes)" label — the raw-data field carries its own
+
+                            <hr className="mb-0 mt-0 border-0 border-t border-solid border-dark-border" />
+
+                            {/* Property table — each row carries a top border. */}
+                            <div className="flex flex-col text-sm">
+                                {blockTime && (
+                                    <DrawerRow label="Time" alignTop>
+                                        <div className="flex flex-col">
+                                            <span className="text-white">
+                                                {displayTimestampUtc(blockTime * 1000, true)}
+                                            </span>
+                                            {/* Relative age (e.g. "about 2 years ago") under the absolute UTC time. */}
+                                            <span className="text-white">
+                                                <RelativeTime date={blockTime * 1000} />
+                                            </span>
+                                        </div>
+                                    </DrawerRow>
+                                )}
+                                <DrawerRow
+                                    label="Block"
+                                    trailing={
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="relative top-[1px] my-[-4px] border-outer-space-800"
+                                            aria-label={
+                                                blockCopyState === 'copied'
+                                                    ? 'Copied block number'
+                                                    : 'Copy block number'
+                                            }
+                                            onClick={() => copyBlock(slot.toString())}
+                                        >
+                                            {blockCopyState === 'copied' ? (
+                                                <CheckCircle size={12} className="text-dk-info" />
+                                            ) : (
+                                                <Copy size={12} />
+                                            )}
+                                        </Button>
+                                    }
+                                >
+                                    <Link href={blockPath} className="font-mono text-sm">
+                                        {slot.toLocaleString('en-US')}
+                                    </Link>
+                                </DrawerRow>
+                                <DrawerRow label="Programs">
+                                    <div className="tx-instr-inline">
+                                        {instructionNames !== undefined && instructionNames.length > 0 ? (
+                                            <InstructionList instructions={instructionNames} />
+                                        ) : instructionNames === undefined ? (
+                                            <InstructionListSkeleton />
+                                        ) : (
+                                            <span className="text-muted">---</span>
+                                        )}
+                                    </div>
+                                </DrawerRow>
+                                {/* No separate "Size (bytes)" label — the raw-data field carries its own
                             "Size" caption before the byte count. Full-width stacked row. */}
-                        <div className="flex flex-col gap-2 pt-2 pb-1 border-0 border-b border-solid border-dark-border">
-                            <div className="min-w-0 text-white">
-                                <RawDataField
-                                    data={transactionData}
-                                    loading={rawDetails === undefined || rawLoading}
-                                    filename={signature}
-                                    variant="embedded"
-                                    bytesPrefix="Size "
-                                />
+                                <div className="flex flex-col gap-2 border-0 border-b border-solid border-dark-border pb-1 pt-2">
+                                    <div className="min-w-0 text-white">
+                                        <RawDataField
+                                            data={transactionData}
+                                            loading={rawDetails === undefined || rawLoading}
+                                            filename={signature}
+                                            variant="embedded"
+                                            bytesPrefix="Size "
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    </div>
-                    </div>
 
                     {/* Primary action buttons — pinned below the scroll region, never scroll. */}
-                    <div className="grid shrink-0 grid-cols-3 gap-2 px-4 pt-5 pb-4">
+                    <div className="grid shrink-0 grid-cols-3 gap-2 px-4 pb-4 pt-5">
                         <ActionTile
                             icon={
                                 copyState === 'copied' ? (
@@ -351,11 +352,7 @@ function DrawerRow({
 }) {
     return (
         <div
-            className={`
-                flex gap-4 py-2
-                border-0 border-b border-solid border-dark-border
-                ${alignTop ? 'items-start' : 'items-baseline'}
-            `}
+            className={`flex gap-4 border-0 border-b border-solid border-dark-border py-2 ${alignTop ? 'items-start' : 'items-baseline'} `}
         >
             <span className="min-w-[5rem] text-outer-space-300">{label}</span>
             <span className="min-w-0 flex-1 text-white">{children}</span>

@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { UpgradeableProgramSection } from './UpgradeableProgramSection';
 import { MOCK_PROGRAM_ACCOUNT, MOCK_PROGRAM_DATA, MOCK_SECTION_ARGS, withMockProviders, withSuspense } from './mocks';
+import { UpgradeableProgramSection } from './UpgradeableProgramSection';
 
 // MOCK_SECTION_ARGS.parsedData is always the `program` variant in this fixture.
 const programAccount =

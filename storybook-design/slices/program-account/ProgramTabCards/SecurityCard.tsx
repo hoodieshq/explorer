@@ -1,13 +1,9 @@
+import type { SecurityTxtFields as NeodymeSecurityTXT } from '@solana/security-txt';
 import React, { useMemo } from 'react';
-import { AlertCircle, Download } from 'react-feather';
 import { ErrorBoundary } from 'react-error-boundary';
+import { AlertCircle, Download } from 'react-feather';
 
 import { Button } from '@/app/components/shared/ui/button';
-import { Alert } from '@/app/shared/ui/Alert';
-import { Logger } from '@/app/shared/lib/logger';
-import { triggerDownload } from '@/app/shared/lib/triggerDownload';
-import type { SecurityTxtFields as NeodymeSecurityTXT } from '@solana/security-txt';
-
 import { PMP_SECURITY_TXT_KEYS } from '@/app/features/security-txt/lib/constants';
 import { ContactInfo, SecurityTxtVersionBadge } from '@/app/features/security-txt/ui/common';
 import { EmptySecurityTxtCard } from '@/app/features/security-txt/ui/EmptySecurityTxtCard';
@@ -18,11 +14,19 @@ import {
     securityTxtDataToBase64,
     tryParseContactString,
 } from '@/app/features/security-txt/ui/utils';
+import { Logger } from '@/app/shared/lib/logger';
+import { triggerDownload } from '@/app/shared/lib/triggerDownload';
+import { Alert } from '@/app/shared/ui/Alert';
 
 import { KeyValue } from '../../key-value/KeyValue';
 import { LABEL_WIDTH } from '../UpgradeableProgramSection/constants';
 import { SectionCard } from './SectionCard';
 import { CodeBlock, ExternalLinkValue, StackedList, TextValue } from './values';
+
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/consistent-type-assertions --
+   Mirrors app/features/security-txt (which is exempt from these rules): a Program-Metadata (PMP)
+   security.txt is arbitrary JSON, so its values are typed `any` and narrowed at runtime via
+   isString/isValidLink/Array.isArray, and Neodyme fields are read through `keyof` index casts. */
 
 /**
  * "Security.txt" tab — redesigned in the spirit of UpgradeableProgramSection. Both the
@@ -56,7 +60,7 @@ export function ProgramSecurityTxtCard({
         <PmpSecurityTxtRows data={pmpSecurityTxt} />
     ) : programDataSecurityTxt ? (
         <NeodymeSecurityTxtRows data={programDataSecurityTxt} />
-    ) : null;
+    ) : undefined;
 
     return (
         <SectionCard
@@ -78,9 +82,7 @@ export function ProgramSecurityTxtCard({
                     onClick={() =>
                         triggerDownload(downloadData, `${programAddress}-security-txt.json`, {
                             type: 'application/json',
-                        }).catch(err =>
-                            Logger.error(new Error('Failed to download security.txt', { cause: err })),
-                        )
+                        }).catch(err => Logger.error(new Error('Failed to download security.txt', { cause: err })))
                     }
                 >
                     <Download size={12} />
@@ -88,14 +90,13 @@ export function ProgramSecurityTxtCard({
                 </Button>
             }
             note={
+                // @ts-expect-error -- `appearance` exists on the vendored Alert (served by the Storybook vendor-redirect in .storybook/main.ts); tsc resolves the app original, which lacks it
                 <Alert variant="warning" appearance="outlined" icon={<AlertCircle size={16} />}>
                     Note that this is self-reported by the author of the program and might not be accurate
                 </Alert>
             }
         >
-            <ErrorBoundary
-                fallback={<div className="px-3 py-2 text-center">Invalid security.txt</div>}
-            >
+            <ErrorBoundary fallback={<div className="px-3 py-2 text-center">Invalid security.txt</div>}>
                 {rows}
             </ErrorBoundary>
         </SectionCard>
@@ -148,9 +149,17 @@ function NeodymeValue({ value, type, mono }: { value: string; type: NeodymeType;
         case NeodymeType.Date:
             return <TextValue mono={mono}>{value}</TextValue>;
         case NeodymeType.URL:
-            return isValidLink(value) ? <ExternalLinkValue url={value} mono={mono} /> : <TextValue mono={mono}>{value}</TextValue>;
+            return isValidLink(value) ? (
+                <ExternalLinkValue url={value} mono={mono} />
+            ) : (
+                <TextValue mono={mono}>{value}</TextValue>
+            );
         case NeodymeType.PGP:
-            return isValidLink(value) ? <ExternalLinkValue url={value} mono={mono} /> : <CodeBlock mono={mono}>{value}</CodeBlock>;
+            return isValidLink(value) ? (
+                <ExternalLinkValue url={value} mono={mono} />
+            ) : (
+                <CodeBlock mono={mono}>{value}</CodeBlock>
+            );
         case NeodymeType.Contacts:
             return (
                 <StackedList mono={mono}>
@@ -178,7 +187,7 @@ function NeodymeValue({ value, type, mono }: { value: string; type: NeodymeType;
                 </StackedList>
             );
         default:
-            return null;
+            return undefined;
     }
 }
 

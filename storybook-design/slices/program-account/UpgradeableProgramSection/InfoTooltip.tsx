@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { type ReactNode } from 'react';
 import { HelpCircle } from 'react-feather';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
@@ -58,6 +58,7 @@ export function InfoTooltip({ bottom, right, text, children, withHelpIcon = true
     // `white-space: nowrap` run is the only reliable way to forbid that break (a WORD JOINER is
     // ignored across the element boundary). Earlier words still wrap on their spaces as normal.
     if (typeof children === 'string') {
+        // eslint-disable-next-line no-restricted-syntax -- concise trailing-whitespace trim before locating the label's last word
         const trimmed = children.replace(/\s+$/, '');
         const cut = trimmed.lastIndexOf(' ');
         if (cut === -1) {

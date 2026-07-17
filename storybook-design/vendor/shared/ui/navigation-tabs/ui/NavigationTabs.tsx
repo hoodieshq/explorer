@@ -19,12 +19,7 @@ export function NavigationTabs({ buildHref, tabs, children, className }: Navigat
     const activeValue = segment ?? '';
 
     return (
-        <BaseNavigationTabs
-            tabs={tabs}
-            activeValue={activeValue}
-            buildHref={buildHref}
-            className={className}
-        >
+        <BaseNavigationTabs tabs={tabs} activeValue={activeValue} buildHref={buildHref} className={className}>
             {children}
         </BaseNavigationTabs>
     );

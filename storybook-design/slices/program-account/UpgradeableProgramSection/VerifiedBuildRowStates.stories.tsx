@@ -26,7 +26,7 @@ const STATES: VerifiedBuildState[] = ['verified', 'not-verified', 'loading', 'er
  */
 function VerifiedBuildRowStates() {
     return (
-        <div className="mx-auto flex w-full max-w-col flex-col gap-6">
+        <div className="max-w-col mx-auto flex w-full flex-col gap-6">
             {STATES.map(state => (
                 <div key={state}>
                     <p className="mb-2 text-xs uppercase tracking-wide text-outer-space-300">{state}</p>

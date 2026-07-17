@@ -54,6 +54,7 @@ export function DownloadDropdown({
     if (encodings.length <= 1) {
         const trigger = children ?? <DefaultTrigger disabled={loading || disabled} />;
         if (React.isValidElement(trigger)) {
+            // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- cloneElement needs the trigger typed with button props to inject onClick
             return React.cloneElement(trigger as React.ReactElement<React.ButtonHTMLAttributes<HTMLButtonElement>>, {
                 onClick: () => {
                     if (data) {

@@ -9,9 +9,9 @@ import {
 } from '@/app/shared/ui/navigation-tabs/model/navigation-tabs-context';
 import { type NavigationTab } from '@/app/shared/ui/navigation-tabs/model/types';
 import { useTabOverflow } from '@/app/shared/ui/navigation-tabs/model/useTabOverflow';
+import { TabLink } from '@/app/shared/ui/navigation-tabs/ui/TabLink';
 
 import { MobileMoreDropdown } from './MobileMoreDropdown';
-import { TabLink } from '@/app/shared/ui/navigation-tabs/ui/TabLink';
 
 const SCROLL_OFFSET = 10;
 
@@ -67,6 +67,7 @@ export function BaseNavigationTabs({
             let el: HTMLElement | null = target;
             while (el) {
                 naturalTop += el.offsetTop;
+                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- offsetParent is typed Element|null; cast to HTMLElement to keep summing offsetTop up the chain
                 el = el.offsetParent as HTMLElement | null;
             }
             window.scrollTo({

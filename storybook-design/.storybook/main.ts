@@ -5,7 +5,7 @@ import type { StorybookConfig } from '@storybook/nextjs-vite';
 import autoprefixer from 'autoprefixer';
 import postcssImport from 'postcss-import';
 import tailwindcss from 'tailwindcss';
-import type { AliasOptions } from 'vite';
+import type { AliasOptions, Plugin } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -46,21 +46,19 @@ const VENDORED_RELPATHS = [
 
 const APP_ROOT = path.resolve(__dirname, '../../app');
 const VENDOR_ROOT = path.resolve(__dirname, '../vendor');
-const VENDOR_MAP = new Map(
-    VENDORED_RELPATHS.map(rel => [path.join(APP_ROOT, rel), path.join(VENDOR_ROOT, rel)]),
-);
+const VENDOR_MAP = new Map(VENDORED_RELPATHS.map(rel => [path.join(APP_ROOT, rel), path.join(VENDOR_ROOT, rel)]));
 
-function redirectVendoredPlugin() {
+function redirectVendoredPlugin(): Plugin {
     return {
         name: 'design-slice:redirect-vendored',
-        enforce: 'pre' as const,
-        async resolveId(this: any, source: string, importer: string | undefined, options: any) {
+        enforce: 'pre',
+        async resolveId(source, importer, options) {
             // Let the rest of the pipeline resolve to a real path first (skipSelf avoids recursion).
             const resolved = await this.resolve(source, importer, { ...options, skipSelf: true });
-            if (!resolved) return null;
+            if (!resolved) return undefined;
             const cleanId = resolved.id.split('?')[0];
             const vendored = VENDOR_MAP.get(cleanId);
-            return vendored ? { ...resolved, id: vendored } : null;
+            return vendored ? { ...resolved, id: vendored } : undefined;
         },
     };
 }
@@ -108,6 +106,7 @@ const config: StorybookConfig = {
                         replacement: path.resolve(__dirname, '../../.storybook/__mocks__/@bundlr-network/client.ts'),
                     },
                     {
+                        // eslint-disable-next-line no-restricted-syntax -- Vite alias matches the nftoken-hooks specifier by regex to redirect it to the Storybook mock
                         find: /^\.\/nftoken-hooks(?:\.tsx?)?$/,
                         replacement: path.resolve(__dirname, '../../.storybook/__mocks__/nftoken-hooks.tsx'),
                     },

@@ -9,6 +9,8 @@
 // the `e-` Tailwind prefix is dropped, and the mobile stacked-card transformation
 // lives in the scoped ./transaction-history.css (all selectors under
 // `.transaction-history-card`, so nothing leaks into other slices).
+import './transaction-history.css';
+
 import { PublicKey } from '@solana/web3.js';
 import React, { useEffect, useMemo, useState } from 'react';
 
@@ -19,6 +21,7 @@ import { Signature } from '@/app/components/common/Signature';
 import { Slot } from '@/app/components/common/Slot';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
+import { useResolvedInstructionSummaries } from '@/app/features/transaction-history/model/use-resolved-instruction-summaries';
 import { useAccountHistory, useFetchAccountHistory } from '@/app/providers/accounts/history';
 import { FetchStatus } from '@/app/providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
@@ -28,12 +31,9 @@ import { Card } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
 import { displayTimestampUtc } from '@/app/utils/date';
 
-import { useResolvedInstructionSummaries } from '@/app/features/transaction-history/model/use-resolved-instruction-summaries';
-
 import { AccountSizeField } from './AccountSizeField';
 import { InstructionList, InstructionListSkeleton } from './InstructionList';
 import { TransactionDetailsDrawer } from './TransactionDetailsDrawer';
-import './transaction-history.css';
 
 // Tracks whether the viewport matches `(max-width: 767.98px)`. Gates the mobile-only
 // TransactionDetailsDrawer so desktop row clicks don't pop the drawer open.
@@ -71,7 +71,7 @@ export function TransactionHistoryCard({ address }: { address: string }) {
     }, [address]); // eslint-disable-line react-hooks/exhaustive-deps
 
     if (!history) {
-        return null;
+        return undefined;
     }
 
     if (history?.data === undefined) {
@@ -86,17 +86,19 @@ export function TransactionHistoryCard({ address }: { address: string }) {
     // No rows → an empty account whose history is fully fetched. Hide the header
     // (nothing to label) and give the footer message room to breathe.
     const isEmpty = transactionRows.length === 0;
-    const detailsList: React.ReactNode[] = transactionRows.map(({ slot, signature, blockTime, statusClass, statusText }) => (
-        <TransactionRow
-            key={signature}
-            signature={signature}
-            slot={slot}
-            blockTime={blockTime}
-            statusClass={statusClass}
-            statusText={statusText}
-            hasTimestamps={hasTimestamps}
-        />
-    ));
+    const detailsList: React.ReactNode[] = transactionRows.map(
+        ({ slot, signature, blockTime, statusClass, statusText }) => (
+            <TransactionRow
+                key={signature}
+                signature={signature}
+                slot={slot}
+                blockTime={blockTime}
+                statusClass={statusClass}
+                statusText={statusText}
+                hasTimestamps={hasTimestamps}
+            />
+        ),
+    );
 
     const fetching = history.status === FetchStatus.Fetching;
     return (
@@ -116,14 +118,16 @@ export function TransactionHistoryCard({ address }: { address: string }) {
                                     </BaseTable.HeaderCell>
                                 )}
                                 <BaseTable.HeaderCell className="w-[19%] min-w-[150px]">Block</BaseTable.HeaderCell>
-                                <BaseTable.HeaderCell className="w-[16%] min-w-[120px]">Size (bytes)</BaseTable.HeaderCell>
+                                <BaseTable.HeaderCell className="w-[16%] min-w-[120px]">
+                                    Size (bytes)
+                                </BaseTable.HeaderCell>
                                 <BaseTable.HeaderCell className="thc-progs-col">Programs</BaseTable.HeaderCell>
                             </BaseTable.Row>
                         </BaseTable.Head>
                     )}
                     <BaseTable.Body>{detailsList}</BaseTable.Body>
                 </BaseTable>
-                <div className={`thc-footer${isEmpty ? ' thc-footer--empty' : ''}`}>
+                <div className={`thc-footer${isEmpty ? 'thc-footer--empty' : ''}`}>
                     {history.data.foundOldest ? (
                         <div className="text-center text-dk-gray-700">Fetched full history</div>
                     ) : (
@@ -171,7 +175,7 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
 
     const handleRowClick = (e: React.MouseEvent) => {
         // Skip the drawer when the user actually clicked a real link/button in the row.
-        if ((e.target as HTMLElement).closest('a, button')) return;
+        if (e.target instanceof HTMLElement && e.target.closest('a, button')) return;
         if (isMobile) setDrawerOpen(true);
     };
 
@@ -191,6 +195,7 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
                             <Badge
                                 ui="dashkit"
                                 tone="soft"
+                                // eslint-disable-next-line @typescript-eslint/consistent-type-assertions -- statusClass is a Bootstrap-derived 'success'|'warning' value widened to string by getTransactionRows
                                 variant={statusClass as 'success' | 'warning'}
                                 className="tx-status-badge"
                             >
@@ -234,7 +239,7 @@ function TransactionRow({ signature, slot, blockTime, statusClass, statusText, h
                 {/* Size (bytes) is hidden on mobile — the drawer carries its own size row
                     plus the raw-data view. */}
                 {!isMobile && (
-                    <BaseTable.Cell className="w-px tx-raw-data-cell" data-label="Size (bytes)">
+                    <BaseTable.Cell className="tx-raw-data-cell w-px" data-label="Size (bytes)">
                         <TransactionRawDataSize signature={signature} />
                     </BaseTable.Cell>
                 )}
