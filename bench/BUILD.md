@@ -41,6 +41,7 @@
 | Dynamic | `/api/sns-domains/[address]` | — | — |
 | Dynamic | `/api/token-image/[mintAddress]` | — | — |
 | Dynamic | `/api/token-info` | — | — |
+| Dynamic | `/api/token-market-data/[address]` | — | — |
 | Dynamic | `/api/verification/bluprynt/[mintAddress]` | — | — |
 | Dynamic | `/api/verification/coingecko/[address]` | — | — |
 | Dynamic | `/api/verification/jupiter/[mintAddress]` | — | — |
@@ -51,10 +52,11 @@
 | Dynamic | `/block/[slot]/rewards` | 210 kB | 1.24 MB |
 | Dynamic | `/epoch/[epoch]` | 10 kB | 1.04 MB |
 | Static | `/feature-gates` | 50 kB | 1.07 MB |
+| Dynamic | `/mcp` | — | — |
 | Dynamic | `/og/feature-gate/[address]` | — | — |
 | Dynamic | `/og/receipt/[signature]` | — | — |
 | Static | `/opengraph-image.png` | — | — |
-| Static | `/tos` | 890 B | 1.03 MB |
-| Dynamic | `/tx/[signature]` | 500 kB | 1.51 MB |
-| Dynamic | `/tx/[signature]/inspect` | 370 kB | 1.39 MB |
-| Static | `/tx/inspector` | 370 kB | 1.39 MB |
+| Static | `/tos` | 880 B | 1.04 MB |
+| Dynamic | `/tx/[signature]` | 440 kB | 1.46 MB |
+| Dynamic | `/tx/[signature]/inspect` | 360 kB | 1.38 MB |
+| Static | `/tx/inspector` | 360 kB | 1.38 MB |
