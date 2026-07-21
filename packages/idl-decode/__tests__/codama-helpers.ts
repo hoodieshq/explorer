@@ -2,7 +2,7 @@
 // the package under test only ever sees what real consumers produce. (The functional sweeps' drivers
 // live in src/__tests__/fixtures.ts.)
 import { getNodeCodec } from '@codama/dynamic-codecs';
-import type { CodamaIdl, CodamaIdlInput } from '@explorer/idl';
+import type { CodamaIdl, CodamaIdlInput } from '@explorer/idl-decode';
 
 /* eslint-disable @typescript-eslint/consistent-type-assertions -- the inputs are known codama roots (detection is re-proven per test); the NodePath cast bridges codama tooling with the client */
 export const DEFAULT_ADDRESS = '11111111111111111111111111111111';

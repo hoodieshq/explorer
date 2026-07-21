@@ -31,8 +31,8 @@ import {
     getEnumVariantName,
     joinPath,
     unwrap,
-} from '@explorer/idl';
-import { convertToCodama } from '@explorer/idl/anchor';
+} from '@explorer/idl-decode';
+import { convertToCodama } from '@explorer/idl-decode/anchor';
 import { exampleNativeTokenTransfersIdl } from '@explorer/test-idl-program-example-native-token-transfers/codama';
 import { vaultIdl } from '@explorer/test-idl-program-vault';
 // the wide anchor IDL type is anchor's own — the library's AnchorIdl is a direct alias of it

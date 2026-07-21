@@ -1,4 +1,4 @@
-// The @explorer/idl client in action — consumer-style flows over the BUILT package ('@explorer/idl'
+// The @explorer/idl-decode client in action — consumer-style flows over the BUILT package ('@explorer/idl-decode'
 // resolves to dist/ — build first). Creation/summary/naming sections group by client capability;
 // decoding sections group by IDL flavor (modern Anchor / converted / Codama).
 // Runtime flows over real IDLs — the typed acquisition routes are demonstrated in readme-flows.integration.spec.ts.
@@ -25,10 +25,10 @@ import {
     isIdlError,
     isLegacyAnchorIdl,
     tryCreateIdlClient,
-} from '@explorer/idl';
+} from '@explorer/idl-decode';
 // conversion is anchor-input-only — it lives behind its own entry
-import { convertToCodama } from '@explorer/idl/anchor';
-import { codamaProvider } from '@explorer/idl/codama';
+import { convertToCodama } from '@explorer/idl-decode/anchor';
+import { codamaProvider } from '@explorer/idl-decode/codama';
 // a literal `as const` codama root — its literal type drives zero-generic inference
 import { vaultIdl } from '@explorer/test-idl-program-vault';
 import { address, type Instruction } from '@solana/kit';

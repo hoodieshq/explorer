@@ -1,4 +1,3 @@
-// TODO(@hoodieshq): rename the package to @explorer/idl-decode — the lib is about DECODING data with IDLs, not about IDLs themselves.
 // Main entry — the client decodes with the codama engine by default ('./codama' exports the pieces
 // for explicit wiring or a custom provider).
 export {

@@ -139,7 +139,7 @@ export type AccountHandlers<T extends SupportedIdlInput, R> = {
 /**
  * Loads a program's raw IDL JSON by address, whatever its source. Resolves `undefined` when the
  * program has no IDL; throws only on transport failure or abort — a blip stays retryable, never
- * mistaken for "no IDL". Reference implementation: `createLatestIdlFetcher` ('@explorer/idl/fetch').
+ * mistaken for "no IDL". Reference implementation: `createLatestIdlFetcher` ('@explorer/idl-decode/fetch').
  */
 export type IdlFetcher = (programAddress: string, config?: { abortSignal?: AbortSignal }) => Promise<unknown>;
 
@@ -158,7 +158,7 @@ export type FallbackDecoderOptions = {
 
 /**
  * A decode engine bound to the client — receives the client's IDL per call. The codama engine is
- * the default ('@explorer/idl/codama' ships it standalone); payload TYPES derive from the IDL type
+ * the default ('@explorer/idl-decode/codama' ships it standalone); payload TYPES derive from the IDL type
  * (src/infer), never from the provider.
  */
 export type IdlDecodeProvider = {

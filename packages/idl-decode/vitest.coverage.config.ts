@@ -28,10 +28,10 @@ export default defineConfig({
             {
                 resolve: {
                     alias: [
-                        { find: '@explorer/idl/anchor', replacement: src('anchor/index.ts') },
-                        { find: '@explorer/idl/codama', replacement: src('codama/index.ts') },
-                        { find: '@explorer/idl/fetch', replacement: src('fetch/index.ts') },
-                        { find: '@explorer/idl', replacement: src('index.ts') },
+                        { find: '@explorer/idl-decode/anchor', replacement: src('anchor/index.ts') },
+                        { find: '@explorer/idl-decode/codama', replacement: src('codama/index.ts') },
+                        { find: '@explorer/idl-decode/fetch', replacement: src('fetch/index.ts') },
+                        { find: '@explorer/idl-decode', replacement: src('index.ts') },
                     ],
                 },
                 test: { include: ['__tests__/**/*.spec.ts'], name: 'integration' },

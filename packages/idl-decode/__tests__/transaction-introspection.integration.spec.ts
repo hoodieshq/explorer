@@ -3,7 +3,7 @@
 // Instructions — so introspection output feeds it directly, no dependency taken (the package is a
 // devDependency here only, to prove the seam). Every transaction below is assembled and compiled
 // in memory, so the suite issues no RPC call. README section: "From a transaction".
-import { createIdlClient } from '@explorer/idl';
+import { createIdlClient } from '@explorer/idl-decode';
 import { vaultIdl } from '@explorer/test-idl-program-vault';
 import {
     appendTransactionMessageInstruction,

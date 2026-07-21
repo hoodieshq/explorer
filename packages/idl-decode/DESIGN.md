@@ -1,4 +1,4 @@
-# @explorer/idl — Design
+# @explorer/idl-decode — Design
 
 One typed, standard-aware client over a program IDL: modern Anchor (>= 0.30) and Codama roots decode
 through a single pipeline; legacy pre-0.30 Anchor converts at creation (program address required).

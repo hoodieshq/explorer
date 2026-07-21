@@ -1,5 +1,5 @@
 // Shared Anchor drivers for the __tests__ suites — real workspace-program IDLs on the encode side.
-import type { AnchorIdl } from '@explorer/idl';
+import type { AnchorIdl } from '@explorer/idl-decode';
 import { Program, type Provider } from '@coral-xyz/anchor';
 import { deflateSync } from 'node:zlib';
 

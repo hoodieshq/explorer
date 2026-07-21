@@ -5,11 +5,11 @@
 From the repo root:
 
 ```sh
-pnpm --filter @explorer/idl configure   # full bootstrap: re-download vendored IDLs + generate
-pnpm --filter @explorer/idl generate    # offline: codama literals + typed clients, build dist
-pnpm --filter @explorer/idl test        # typecheck → unit → integration (over dist) → tree-shake → node-esm
-pnpm --filter @explorer/idl test:watch  # vitest watch mode (unit)
-pnpm --filter @explorer/idl typecheck   # tsc --noEmit (src/tests + build config)
+pnpm --filter @explorer/idl-decode configure   # full bootstrap: re-download vendored IDLs + generate
+pnpm --filter @explorer/idl-decode generate    # offline: codama literals + typed clients, build dist
+pnpm --filter @explorer/idl-decode test        # typecheck → unit → integration (over dist) → tree-shake → node-esm
+pnpm --filter @explorer/idl-decode test:watch  # vitest watch mode (unit)
+pnpm --filter @explorer/idl-decode typecheck   # tsc --noEmit (src/tests + build config)
 ```
 
 `pretest` runs `generate` (offline, no network), so `test` self-prepares from committed sources —
@@ -43,7 +43,7 @@ The same directory also contains static Anchor snapshot packages for mainnet and
 Anchor fixture packages that need a committed Codama literal opt in with `explorer.codamaFromAnchor` in their `package.json`. Regenerate all opted-in literals from the root package:
 
 ```sh
-pnpm --filter @explorer/idl run generate:anchor-codama
+pnpm --filter @explorer/idl-decode run generate:anchor-codama
 ```
 
 or regenerate one package:
@@ -70,7 +70,7 @@ Prerequisites:
 Build both programs:
 
 ```sh
-pnpm --filter @explorer/idl build:programs
+pnpm --filter @explorer/idl-decode build:programs
 ```
 
 or one at a time:

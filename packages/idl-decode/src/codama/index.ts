@@ -1,4 +1,4 @@
-// The codama decode engine ('@explorer/idl/codama') — the client's default; exported here for
+// The codama decode engine ('@explorer/idl-decode/codama') — the client's default; exported here for
 // explicit wiring (a custom provider composes over the decode functions).
 import type { IdlDecodeProvider } from '../types.js';
 
