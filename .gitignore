@@ -49,6 +49,7 @@ packages/*/dist
 *storybook.log
 /storybook-static/
 /storybook-static-*/
+storybook-design/storybook-static/
 
 # Sentry Config File
 .env.sentry-build-plugin

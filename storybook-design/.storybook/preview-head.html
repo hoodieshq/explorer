@@ -1,0 +1,11 @@
+<!-- The autodocs Story/Canvas render window (.docs-story) isn't painted by the backgrounds addon,
+     so it shows the white docs frame. `--sb-doc-bg` mirrors the selected background (set by the
+     SelectedBackgroundBridge decorator in ../../.storybook/create-preview). Fall back to the spec
+     dark canvas — heavy-metal-900 (≈ #161A18) — so the render window stays dark even before a
+     background is chosen. Mirrors ../../.storybook/preview-head.html, which the design config-dir
+     doesn't inherit. -->
+<style>
+    .docs-story {
+        background-color: var(--sb-doc-bg, oklch(21.275% 0.00721 164.22));
+    }
+</style>
