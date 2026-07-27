@@ -1,0 +1,143 @@
+name: Storybook VR Baseline
+
+# Manual-only by design: a per-SHA ~55MB baseline on every master merge would churn the repo's 10GB
+# Actions-cache pool. Dispatch on master after notable UI merges, allowlist changes, or cache eviction.
+on:
+  workflow_dispatch:
+
+env:
+  PNPM_CACHE_FOLDER: ~/.pnpm-store
+  SENTRY_TELEMETRY_DISABLE: true
+  STORYBOOK_DISABLE_TELEMETRY: 1
+
+jobs:
+  read-nvmrc:
+    runs-on: ubuntu-latest
+    outputs:
+      node-version: ${{ steps.nvmrc.outputs.NODE_VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: |
+            .nvmrc
+          sparse-checkout-cone-mode: false
+
+      - name: Read .nvmrc
+        id: nvmrc
+        run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_OUTPUT
+
+  Storybook-VR-Baseline:
+    needs: read-nvmrc
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    # pnpm-sb / pw-mnt affixes are shared with the CI Storybook jobs on purpose: the install and browser
+    # set are identical, and separate affixes would duplicate multi-GB entries in the 10GB cache pool.
+    env:
+      PNPM_CACHE_AFFIX: pnpm-sb
+      PLAYWRIGHT_CACHE_AFFIX: pw-mnt
+      PLAYWRIGHT_BROWSERS_PATH: /mnt/cache/ms-playwright
+      SBVR_BASELINE_DIR: /mnt/sbvr/baseline
+      # invoked via node, not `pnpm exec`: the repo's .pnpmfile.cjs prints a banner to stdout that would
+      # corrupt the cache-key command substitution and the diff step-summary markdown.
+      SBVR_CLI: node packages/story-automation/dist/cli.js
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Prepare cache dirs on the scratch disk
+        run: |
+          sudo mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" "$SBVR_BASELINE_DIR"
+          sudo chown -R "$(id -u):$(id -g)" "$PLAYWRIGHT_BROWSERS_PATH" "$SBVR_BASELINE_DIR"
+
+      - name: Install package manager
+        uses: pnpm/action-setup@v4
+
+      - name: Setup pnpm config
+        run: pnpm config set store-dir ${{ env.PNPM_CACHE_FOLDER }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ needs.read-nvmrc.outputs.node-version }}
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.PNPM_CACHE_FOLDER }}
+          key: ${{ runner.os }}-${{ env.PNPM_CACHE_AFFIX }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.PNPM_CACHE_AFFIX }}-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        id: playwright_cache
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: ${{ runner.os }}-${{ env.PLAYWRIGHT_CACHE_AFFIX }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.PLAYWRIGHT_CACHE_AFFIX }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prune pnpm store
+        run: pnpm store prune
+
+      - name: Install Playwright browsers
+        if: steps.playwright_cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps only
+        if: steps.playwright_cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      # ImageOS (Ubuntu major = font stack) and the chromium build revision are the two environment inputs
+      # that change rendered pixels; ImageVersion is deliberately excluded (weekly staggered rollouts flap keys).
+      - name: Compute baseline cache key
+        id: vr_key
+        run: |
+          pnpm --filter @explorer/story-automation build
+          echo "image=$ImageOS" >> $GITHUB_OUTPUT
+          echo "chromium=$($SBVR_CLI chromium-revision)" >> $GITHUB_OUTPUT
+
+      - name: Baseline cache
+        uses: actions/cache@v5
+        id: baseline_cache
+        with:
+          path: ${{ env.SBVR_BASELINE_DIR }}
+          key: sbvr-baseline-v1-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-${{ github.sha }}
+
+      - name: Build workspace packages
+        if: steps.baseline_cache.outputs.cache-hit != 'true'
+        run: pnpm build:packages
+
+      - name: Build Storybook
+        if: steps.baseline_cache.outputs.cache-hit != 'true'
+        run: pnpm build-sb
+
+      - name: Capture baseline screenshots
+        if: steps.baseline_cache.outputs.cache-hit != 'true'
+        run: $SBVR_CLI capture --static-dir storybook-static --out "$SBVR_BASELINE_DIR" --parallel 6
+
+      - name: Write baseline metadata
+        if: steps.baseline_cache.outputs.cache-hit != 'true'
+        run: |
+          cat > "$SBVR_BASELINE_DIR/baseline-meta.json" <<EOF
+          {
+              "sha": "${{ github.sha }}",
+              "imageOS": "$ImageOS",
+              "imageVersion": "$ImageVersion",
+              "chromiumRevision": "${{ steps.vr_key.outputs.chromium }}",
+              "capturedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          }
+          EOF
+          echo "Baseline for ${{ github.sha }} captured ($(ls "$SBVR_BASELINE_DIR" | grep -c '\.png$') stories)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Note existing baseline
+        if: steps.baseline_cache.outputs.cache-hit == 'true'
+        run: echo "Baseline for ${{ github.sha }} already cached — nothing to do" >> $GITHUB_STEP_SUMMARY

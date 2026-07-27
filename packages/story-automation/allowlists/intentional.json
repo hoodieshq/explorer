@@ -1,0 +1,5 @@
+{
+    "note": "User-approved intentional visual changes not yet reflected in the master baseline. Entries here are temporary by design: once the change merges and the baseline workflow is re-dispatched, the drift disappears and the entry must be removed. Record the approval reason per id in `reasons`.",
+    "reasons": {},
+    "ids": []
+}

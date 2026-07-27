@@ -145,6 +145,7 @@
         "@eslint-community/eslint-plugin-eslint-comments": "4.5.0",
         "@eslint/eslintrc": "3.3.1",
         "@eslint/js": "9.39.4",
+        "@explorer/story-automation": "workspace:*",
         "@fission-ai/openspec": "1.3.1",
         "@mdx-js/react": "3.1.0",
         "@playwright/test": "1.57.0",
