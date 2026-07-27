@@ -218,3 +218,145 @@ jobs:
         env:
           STORYBOOK_DISABLE_TELEMETRY: ${{ env.STORYBOOK_DISABLE_TELEMETRY }}
         run: pnpm test:sb
+
+  Storybook-Visual-Regression:
+    needs: read-nvmrc
+    # Master-based PRs only: baselines are captured from master (storybook-vr-baseline.yaml), so a
+    # development-targeted PR would silently diff against the wrong branch.
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Advisory by decision: drift shows as a red check but never blocks the PR.
+    continue-on-error: true
+
+    # pnpm-sb / pw-mnt affixes shared with Storybook-Smoke-Tests on purpose — identical install and browser
+    # set; separate affixes would duplicate multi-GB entries in the 10GB cache pool.
+    env:
+      PNPM_CACHE_AFFIX: pnpm-sb
+      PLAYWRIGHT_CACHE_AFFIX: pw-mnt
+      PLAYWRIGHT_BROWSERS_PATH: /mnt/cache/ms-playwright
+      SBVR_BASELINE_DIR: /mnt/sbvr/baseline
+      SBVR_CURRENT_DIR: /mnt/sbvr/current
+      SBVR_DIFF_DIR: /mnt/sbvr/diff
+      # invoked via node, not `pnpm exec`: the repo's .pnpmfile.cjs prints a banner to stdout that would
+      # corrupt the cache-key command substitution and the diff step-summary markdown.
+      SBVR_CLI: node packages/story-automation/dist/cli.js
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Prepare cache dirs on the scratch disk
+        run: |
+          sudo mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" "$SBVR_BASELINE_DIR" "$SBVR_CURRENT_DIR" "$SBVR_DIFF_DIR"
+          sudo chown -R "$(id -u):$(id -g)" "$PLAYWRIGHT_BROWSERS_PATH" /mnt/sbvr
+
+      - name: Install package manager
+        uses: pnpm/action-setup@v4
+
+      - name: Setup pnpm config
+        run: pnpm config set store-dir ${{ env.PNPM_CACHE_FOLDER }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ needs.read-nvmrc.outputs.node-version }}
+          cache: 'pnpm'
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Cache pnpm store
+        uses: actions/cache@v5
+        with:
+          path: ${{ env.PNPM_CACHE_FOLDER }}
+          key: ${{ runner.os }}-${{ env.PNPM_CACHE_AFFIX }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.PNPM_CACHE_AFFIX }}-
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v5
+        id: playwright_cache
+        with:
+          path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
+          key: ${{ runner.os }}-${{ env.PLAYWRIGHT_CACHE_AFFIX }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ env.PLAYWRIGHT_CACHE_AFFIX }}-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Prune pnpm store
+        run: pnpm store prune
+
+      - name: Install Playwright browsers
+        if: steps.playwright_cache.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps only
+        if: steps.playwright_cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      # ImageOS (Ubuntu major = font stack) and the chromium build revision are the two environment inputs
+      # that change rendered pixels; ImageVersion is deliberately excluded (weekly staggered rollouts flap keys).
+      # merge_base = the base-branch head the PR is measured against (payload base.sha, no deep clone needed).
+      # Exact-SHA baseline hits are rare anyway (dispatch-only baselines) — the prefix restore-key is the real path.
+      - name: Compute baseline cache key
+        id: vr_key
+        run: |
+          pnpm --filter @explorer/story-automation build
+          echo "image=$ImageOS" >> $GITHUB_OUTPUT
+          echo "chromium=$($SBVR_CLI chromium-revision)" >> $GITHUB_OUTPUT
+          echo "merge_base=${{ github.event.pull_request.base.sha }}" >> $GITHUB_OUTPUT
+
+      # Restore-only: PR runs must never save branch-scoped baseline copies into the shared cache pool.
+      - name: Restore baseline
+        uses: actions/cache/restore@v5
+        id: baseline_restore
+        with:
+          path: ${{ env.SBVR_BASELINE_DIR }}
+          key: sbvr-baseline-v1-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-${{ steps.vr_key.outputs.merge_base }}
+          restore-keys: |
+            sbvr-baseline-v1-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-
+
+      - name: Note missing baseline
+        if: steps.baseline_restore.outputs.cache-matched-key == ''
+        run: |
+          {
+            echo "### Storybook visual regression"
+            echo ""
+            echo "Skipped: no baseline cached for \`sbvr-baseline-v1-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-\`."
+            echo "Dispatch the **Storybook VR Baseline** workflow on \`master\` to build one."
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Build workspace packages
+        if: steps.baseline_restore.outputs.cache-matched-key != ''
+        run: pnpm build:packages
+
+      - name: Build Storybook
+        if: steps.baseline_restore.outputs.cache-matched-key != ''
+        run: pnpm build-sb
+
+      - name: Capture PR screenshots
+        if: steps.baseline_restore.outputs.cache-matched-key != ''
+        run: $SBVR_CLI capture --static-dir storybook-static --out "$SBVR_CURRENT_DIR" --parallel 6
+
+      - name: Pixel diff against baseline
+        id: vr_diff
+        if: steps.baseline_restore.outputs.cache-matched-key != ''
+        run: |
+          $SBVR_CLI diff \
+            --baseline "$SBVR_BASELINE_DIR" \
+            --current "$SBVR_CURRENT_DIR" \
+            --triplets "$SBVR_DIFF_DIR" \
+            --allowlist packages/story-automation/allowlists/flaky.json \
+            --allowlist packages/story-automation/allowlists/intentional.json \
+            --merge-base "${{ steps.vr_key.outputs.merge_base }}" \
+            --summary-md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload drift triplets
+        if: failure() && steps.vr_diff.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbvr-diff-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
+          path: ${{ env.SBVR_DIFF_DIR }}
+          retention-days: 14
+          if-no-files-found: ignore

@@ -1,0 +1,41 @@
+{
+    "name": "@explorer/story-automation",
+    "version": "0.0.0",
+    "private": true,
+    "type": "module",
+    "bin": {
+        "story-automation": "./bin/story-automation.js"
+    },
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js",
+            "default": "./dist/index.js"
+        }
+    },
+    "files": [
+        "bin",
+        "dist",
+        "allowlists"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "typecheck": "tsc --noEmit"
+    },
+    "dependencies": {
+        "pixelmatch": "7.1.0",
+        "pngjs": "7.0.0",
+        "sirv": "3.0.2"
+    },
+    "devDependencies": {
+        "@types/node": "22.15.3",
+        "@types/pngjs": "6.0.5",
+        "typescript": "catalog:tooling",
+        "vitest": "catalog:vitest"
+    },
+    "peerDependencies": {
+        "playwright": "^1.57.0"
+    }
+}
