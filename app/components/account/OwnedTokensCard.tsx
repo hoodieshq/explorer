@@ -4,12 +4,8 @@ import { Address } from '@components/common/Address';
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
 import { cn } from '@components/shared/utils';
-import {
-    TokenInfoWithPubkey,
-    useAccountOwnedTokens,
-    useFetchAccountOwnedTokens,
-    useScaledUiAmountForMint,
-} from '@providers/accounts/tokens';
+import { deriveScaledUiAmountMultiplier } from '@entities/token-info';
+import { TokenInfoWithPubkey, useAccountOwnedTokens, useFetchAccountOwnedTokens } from '@providers/accounts/tokens';
 import { FetchStatus } from '@providers/cache';
 import { PublicKey } from '@solana/web3.js';
 import { BigNumber } from 'bignumber.js';
@@ -68,9 +64,6 @@ export function OwnedTokensCard({ address }: { address: string }) {
         return <ErrorCard retry={refresh} retryText="Try Again" text={'No token holdings found'} />;
     }
 
-    if (tokens.length > 100) {
-        return <ErrorCard text="Token holdings are not available for accounts with over 100 token accounts" />;
-    }
     const showLogos = tokens.some(t => t.logoURI !== undefined);
 
     return (
@@ -121,6 +114,7 @@ type MappedToken = {
     name?: string;
     pubkey?: string;
     rawAmount: string;
+    scaledUiAmountMultiplier: string;
     symbol?: string;
 };
 
@@ -155,6 +149,11 @@ function HoldingsDetail({
                 name,
                 pubkey: pubkey.toBase58(),
                 rawAmount,
+                scaledUiAmountMultiplier: deriveScaledUiAmountMultiplier(
+                    rawAmount,
+                    decimals,
+                    token.tokenAmount.uiAmountString,
+                ),
                 symbol,
             });
         });
@@ -205,6 +204,11 @@ function HoldingsSummary({
                 logoURI,
                 name,
                 rawAmount: token.tokenAmount.amount,
+                scaledUiAmountMultiplier: deriveScaledUiAmountMultiplier(
+                    token.tokenAmount.amount,
+                    token.tokenAmount.decimals,
+                    token.tokenAmount.uiAmountString,
+                ),
                 symbol,
             });
         }
@@ -236,8 +240,6 @@ type TokenRowProps = {
 };
 
 function TokenRow({ mintAddress, token, showLogo, showAccountAddress }: TokenRowProps) {
-    const [_, scaledUiAmountMultiplier] = useScaledUiAmountForMint(mintAddress, token.rawAmount);
-
     return (
         <tr>
             {showLogo && (
@@ -263,7 +265,7 @@ function TokenRow({ mintAddress, token, showLogo, showAccountAddress }: TokenRow
                 {token.amount} {token.symbol}
                 <ScaledUiAmountMultiplierTooltip
                     rawAmount={normalizeTokenAmount(Number(token.rawAmount), token.decimals || 0).toString()}
-                    scaledUiAmountMultiplier={scaledUiAmountMultiplier}
+                    scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}
                 />
             </td>
         </tr>

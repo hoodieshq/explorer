@@ -1,5 +1,7 @@
 'use client';
 
+import { getTokenInfos } from '@entities/token-info/lib/fetch-token-mints';
+import type { TokenInfo } from '@entities/token-info/lib/types';
 import { useAccountInfo, useFetchAccountInfo } from '@providers/accounts';
 import * as Cache from '@providers/cache';
 import { ActionType, FetchStatus } from '@providers/cache';
@@ -11,7 +13,7 @@ import React from 'react';
 import { create } from 'superstruct';
 
 import { Logger } from '@/app/shared/lib/logger';
-import { getCurrentTokenScaledUiAmountMultiplier, getTokenInfos } from '@/app/utils/token-info';
+import { getCurrentTokenScaledUiAmountMultiplier } from '@/app/utils/token-info';
 import { MintAccountInfo } from '@/app/validators/accounts/token';
 
 export type TokenInfoWithPubkey = {
@@ -85,32 +87,37 @@ async function fetchAccountTokens(dispatch: Dispatch, pubkey: PublicKey, cluster
                 return { info, pubkey: accountInfo.pubkey };
             });
 
-        // Fetch symbols and logos for tokens
-        const tokenMintInfos = await getTokenInfos(
-            tokens.map(t => t.info.mint),
-            cluster,
-            url,
-        );
-        if (tokenMintInfos) {
-            const mappedTokenInfos = Object.fromEntries(
-                tokenMintInfos.map(t => [
-                    t.address,
-                    {
-                        logoURI: t.logoURI,
-                        name: t.name,
-                        symbol: t.symbol,
-                    },
-                ]),
+        // Fetch symbols and logos - best-effort: holdings must render even if enrichment fails.
+        let tokenMintInfos: TokenInfo[] = [];
+        try {
+            tokenMintInfos = await getTokenInfos(
+                tokens.map(t => t.info.mint.toBase58()),
+                cluster,
             );
-            tokens.forEach(t => {
-                const tokenInfo = mappedTokenInfos[t.info.mint.toString()];
-                if (tokenInfo) {
-                    t.logoURI = tokenInfo.logoURI ?? undefined;
-                    t.symbol = tokenInfo.symbol;
-                    t.name = tokenInfo.name;
-                }
-            });
+        } catch (error) {
+            if (cluster !== Cluster.Custom) {
+                Logger.error(new Error("Failed to fetch token infos", { cause: error }), { url });
+            }
         }
+
+        const mappedTokenInfos = Object.fromEntries(
+            tokenMintInfos.map(t => [
+                t.address,
+                {
+                    logoURI: t.logoURI,
+                    name: t.name,
+                    symbol: t.symbol,
+                },
+            ]),
+        );
+        tokens.forEach(t => {
+            const tokenInfo = mappedTokenInfos[t.info.mint.toString()];
+            if (tokenInfo) {
+                t.logoURI = tokenInfo.logoURI ?? undefined;
+                t.symbol = tokenInfo.symbol;
+                t.name = tokenInfo.name;
+            }
+        });
 
         data = {
             tokens,
@@ -118,7 +125,7 @@ async function fetchAccountTokens(dispatch: Dispatch, pubkey: PublicKey, cluster
         status = FetchStatus.Fetched;
     } catch (error) {
         if (cluster !== Cluster.Custom) {
-            Logger.error(error, { url });
+            Logger.error(new Error("Failed to fetch token accounts", { cause: error }), { url });
         }
         status = FetchStatus.FetchFailed;
     }
