@@ -48,9 +48,27 @@ const NOISE_SVG =
     "<rect width='100%' height='100%' filter='url(#n)'/>" +
     '</svg>';
 
+// A second, sparser filter layered on top of NOISE_SVG: scattered brighter specks. A high-frequency
+// turbulence is recoloured to the accent green (#1dd79b), but the alpha threshold (`0.9·sum − 1.75`)
+// only lets the highest turbulence values through, so just a few pixels light up — the rest stay
+// transparent and reveal the base noise below. Offset -1.75 vs -1.55 makes visible specks ~20× rarer
+// (measured: 0.14% vs 2.87% of pixels above a visible-alpha cutoff).
+const NOISE_SPARKLE_SVG =
+    "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'>" +
+    "<filter id='s' color-interpolation-filters='sRGB'>" +
+    "<feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='11' stitchTiles='stitch'/>" +
+    // rows 1-3: constant accent green #1dd79b (0.114, 0.843, 0.608). Row 4: sparse alpha threshold.
+    "<feColorMatrix type='matrix' values='0 0 0 0 0.114 0 0 0 0 0.843 0 0 0 0 0.608 0.9 0.9 0.9 0 -1.75'/>" +
+    '</filter>' +
+    "<rect width='100%' height='100%' filter='url(#s)'/>" +
+    '</svg>';
+
 const SIM_ZONE_STYLE: React.CSSProperties = {
     backgroundColor: '#141816',
-    backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(NOISE_SVG)}")`,
+    // Sparkle layer first (topmost), then the base noise beneath it.
+    backgroundImage:
+        `url("data:image/svg+xml,${encodeURIComponent(NOISE_SPARKLE_SVG)}"), ` +
+        `url("data:image/svg+xml,${encodeURIComponent(NOISE_SVG)}")`,
 };
 
 // Enhancements-only breakdown of the simulation. Where the shared SimulatorCard packs everything
@@ -98,13 +116,13 @@ export function SimulationSections({
                 <section id="simulation" style={anchorStyle} aria-label="Simulation" className="flex flex-col gap-3">
                     <h2 className="m-0 text-lg font-normal text-white">Simulation</h2>
                     {/* Guidance stays between the heading and the button at all times — it is not
-                        cleared once a simulation has run. */}
-                    <ul className="m-0 list-disc space-y-1 pl-5 text-sm text-outer-space-300">
-                        <li>
+                        cleared once a simulation has run. Plain sentences, no bulleted list. */}
+                    <div className="m-0 space-y-1 text-sm text-outer-space-300">
+                        <p className="m-0">
                             Simulation is free and will run this transaction against the latest confirmed ledger state.
-                        </li>
-                        <li>No state changes will be persisted and all signature checks will be disabled.</li>
-                    </ul>
+                        </p>
+                        <p className="m-0">No state changes will be persisted and all signature checks will be disabled.</p>
+                    </div>
                     <div>
                         {/* Brand-green (accent) fill. The label is always "Simulate" (never swapped for
                             "Retry"); while a run is in flight the label is hidden — kept in flow so the

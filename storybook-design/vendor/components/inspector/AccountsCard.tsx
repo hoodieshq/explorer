@@ -18,27 +18,24 @@ import { toHex } from '@/app/shared/lib/bytes';
 import { Section } from '../../shared/ui/Section';
 import { AddressFromLookupTableWithContext } from './AddressWithContext';
 
-// Column geometry lifted from the transaction-page Accounts block, with the balance-change
-// column dropped and `Owned by` / `Size` columns added. Mobile keeps `balance` / `size` stacked
-// at the top of a trailing column (the address cell spans both rows) and drops `owned` into its
-// own row underneath the address + badge line; desktop lays everything out in a single 5-column row.
-const ROW_GRID = cn(
-    'px-3 py-2.5',
-    'grid items-start gap-x-0 gap-y-0.5 whitespace-nowrap text-sm md:gap-y-0 lg:gap-x-5 landscape:gap-x-5',
-    'grid-cols-[minmax(auto,1.75rem)_1fr_auto]',
-    'lg:grid-cols-[minmax(auto,1.25rem)_1fr_minmax(auto,180px)_minmax(auto,160px)_minmax(auto,110px)]',
-    'landscape:grid-cols-[minmax(auto,1.25rem)_1fr_minmax(auto,180px)_minmax(auto,160px)_minmax(auto,110px)]',
-    "[grid-template-areas:'number_address_balance'_'number_address_size'_'number_owned_.']",
-    "lg:[grid-template-areas:'number_address_owned_balance_size']",
-    "landscape:[grid-template-areas:'number_address_owned_balance_size']",
+// Desktop-only grid (lg+): a single 5-column row driven by the header labels. Below lg the row uses
+// the Tokens-block mobile layout instead (see AccountRowLayout).
+const ROW_GRID_DESKTOP = cn(
+    'hidden min-h-9 px-3 py-2.5 md:px-4 lg:grid',
+    'items-start gap-x-5 whitespace-nowrap text-sm',
+    "[grid-template-areas:'number_address_owned_balance_size']",
+    'grid-cols-[minmax(auto,1.25rem)_1fr_minmax(auto,180px)_minmax(auto,160px)_minmax(auto,110px)]',
 );
 
-// 12px horizontal / 8px vertical padding, matching the DENSE_ROW_PADDING headers used by the
-// other tables on the inspector page (Signatures, SOL Balance Changes, Address Table Lookups).
+// Fixed-width per-row field label for the mobile layout — copied verbatim from the Tokens block so
+// the two lists read identically (fixed label column, left-aligned values, plain — not uppercase).
+const MOBILE_LABEL = 'w-16 shrink-0 text-outer-space-300';
+
+// Header row (lg+ only), matching the Tokens-block header padding/typography.
 const HEADER_GRID = cn(
-    'hidden px-3 py-2 lg:grid landscape:grid',
+    'hidden px-3 py-1.5 md:px-4 lg:grid',
     'grid-cols-[minmax(auto,1.25rem)_1fr_minmax(auto,180px)_minmax(auto,160px)_minmax(auto,110px)] gap-5',
-    'text-xs uppercase tracking-[0.08em] text-outer-space-300',
+    'text-xs uppercase text-outer-space-300',
     'border-1 border-b border-white/10 [border-bottom-style:solid]',
 );
 
@@ -151,13 +148,13 @@ export function AccountsCard({ message }: { message: VersionedMessage }) {
             <div className={HEADER_GRID}>
                 <div>#</div>
                 <div>Address</div>
-                <div>Owned by</div>
+                <div>Owner</div>
                 <div className="text-right">Post Balance (SOL)</div>
                 <div className="text-right">Size</div>
             </div>
             {accountRows}
             {!loading && totalAccountSize > 0 && (
-                <div className="ml-7 flex items-baseline gap-2 px-3 py-2 text-sm text-outer-space-300 lg:ml-10">
+                <div className="flex items-baseline gap-2 px-3 py-2 text-sm text-outer-space-300 lg:ml-10">
                     <div className="flex flex-col">
                         <span className="text-sm uppercase leading-none">Total Account Size:</span>
                         <span className="text-[10px] leading-none">reflects current state</span>
@@ -300,15 +297,46 @@ function AccountRowLayout({
 
     return (
         <div className="border-1 border-b border-white/10 [border-bottom-style:solid] last:border-b-0">
-            <div className={ROW_GRID}>
-                <div className="mr-2 text-outer-space-300 [grid-area:number] lg:mr-0">{index + 1}</div>
+            {/* Mobile layout (mirrors the Tokens block): fixed-width labels, left-aligned values,
+                every row labelled, and the ordinal number top-right (no leading #). */}
+            <div className="flex flex-col gap-1 px-3 py-3 text-sm md:px-4 lg:hidden">
+                <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 items-start gap-2">
+                        <span className={MOBILE_LABEL}>Address</span>
+                        <div className="min-w-0">
+                            {addressSlot}
+                            {/* Badge line collapses (incl. its top margin) when a row has no tags. */}
+                            <span className="mt-1 flex flex-wrap items-center gap-1 empty:hidden">{badges}</span>
+                        </div>
+                    </div>
+                    <span className="shrink-0 text-outer-space-300">{index + 1}</span>
+                </div>
+                <div className="flex items-start gap-2">
+                    <span className={MOBILE_LABEL}>Owner</span>
+                    <span className="min-w-0">{ownedNode}</span>
+                </div>
+                {balanceNode && (
+                    <div className="flex items-start gap-2">
+                        <span className={MOBILE_LABEL}>Balance</span>
+                        <span className="min-w-0">{balanceNode}</span>
+                    </div>
+                )}
+                {sizeNode && (
+                    <div className="flex items-start gap-2">
+                        <span className={MOBILE_LABEL}>Size</span>
+                        <span className="min-w-0">{sizeNode}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Desktop layout (lg+): 5-column grid driven by the header. */}
+            <div className={ROW_GRID_DESKTOP}>
+                <div className="text-outer-space-300 [grid-area:number]">{index + 1}</div>
                 <div className="min-w-0 [grid-area:address]">
                     {addressSlot}
-                    {/* Badge line collapses entirely (incl. its top margin) when a row has no tags,
-                        so tag-less rows hug their content and stay shorter than tagged ones. */}
                     <span className="mt-1 flex flex-wrap items-center gap-1 empty:hidden">{badges}</span>
                 </div>
-                <div className="mt-1 justify-self-start [grid-area:owned] lg:mt-0 landscape:mt-0">{ownedNode}</div>
+                <div className="justify-self-start [grid-area:owned]">{ownedNode}</div>
                 <div className="justify-self-end [grid-area:balance]">{balanceNode}</div>
                 <div className="justify-self-end [grid-area:size]">{sizeNode}</div>
             </div>

@@ -230,6 +230,7 @@ function LoadedView({
                             onTabClick={path => scrollToSection(path)}
                             onSelectChange={scrollToSection}
                             tabs={tabs}
+                            disabledHint="Run the simulation to load this tab's content."
                         />
                     </div>
                 </div>

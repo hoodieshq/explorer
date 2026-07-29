@@ -26,6 +26,8 @@ export type BaseNavigationTabsProps = {
     buildHref: (path: string) => string;
     children?: React.ReactNode;
     className?: string;
+    // Hover tooltip shown on disabled tabs (e.g. the gated simulation-derived tabs before a run).
+    disabledHint?: React.ReactNode;
     onSelectChange?: (path: string) => void;
     onTabClick?: (path: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
     scrollSpy?: boolean;
@@ -41,6 +43,7 @@ export function BaseNavigationTabs({
     buildHref,
     children,
     className,
+    disabledHint,
     scrollSpy,
     wrapperClassName,
 }: BaseNavigationTabsProps) {
@@ -140,7 +143,13 @@ export function BaseNavigationTabs({
                 className={cn('inline-flex w-full gap-[18px] overflow-hidden', className)}
             >
                 {visibleTabs.map(tab => (
-                    <TabLink key={tab.path} path={tab.path} title={tab.title} disabled={disabledPaths.has(tab.path)} />
+                    <TabLink
+                        key={tab.path}
+                        path={tab.path}
+                        title={tab.title}
+                        disabled={disabledPaths.has(tab.path)}
+                        disabledHint={disabledHint}
+                    />
                 ))}
 
                 {measuring && allTabs.length > 0 && (

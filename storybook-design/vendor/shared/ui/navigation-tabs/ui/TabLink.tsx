@@ -1,11 +1,13 @@
 'use client';
 
 // Vendored copy of app/shared/ui/navigation-tabs/ui/TabLink.tsx with a `disabled` state added:
-// a disabled tab renders as a dimmed, non-interactive <span> (no link, no scroll handler). Context,
-// styling and the active/inactive behaviour otherwise mirror the app original.
+// a disabled tab renders as a dimmed, non-interactive <span> (no link, no scroll handler), optionally
+// wrapped in a hover tooltip (`disabledHint`). Context, styling and the active/inactive behaviour
+// otherwise mirror the app original.
 import Link from 'next/link';
 import React from 'react';
 
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
 import { cn } from '@/app/components/shared/utils';
 import { useNavigationTabsContext } from '@/app/shared/ui/navigation-tabs/model/navigation-tabs-context';
 
@@ -24,17 +26,20 @@ export function TabLink({
     title,
     className,
     disabled,
+    disabledHint,
 }: {
     path: string;
     title: string;
     className?: string;
     disabled?: boolean;
+    // Tooltip shown on hover over a disabled tab (e.g. "run a simulation to load this tab").
+    disabledHint?: React.ReactNode;
 }) {
     const ctx = useNavigationTabsContext();
     const isActive = path === ctx.activeValue;
 
     if (disabled) {
-        return (
+        const span = (
             <span
                 role="tab"
                 aria-disabled="true"
@@ -43,6 +48,13 @@ export function TabLink({
             >
                 {title}
             </span>
+        );
+        if (!disabledHint) return span;
+        return (
+            <Tooltip>
+                <TooltipTrigger asChild>{span}</TooltipTrigger>
+                <TooltipContent side="bottom">{disabledHint}</TooltipContent>
+            </Tooltip>
         );
     }
 
