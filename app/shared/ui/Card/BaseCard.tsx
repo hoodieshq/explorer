@@ -47,37 +47,13 @@ const BaseCard = React.forwardRef<HTMLDivElement, BaseCardProps>(
 );
 BaseCard.displayName = 'BaseCard';
 
-// `placement` decides whether the header sits inside the card ("card", the default every existing
-// callsite gets) or is lifted out above it ("section"). The "card" look differs by `ui`, so it lives
-// in compoundVariants keyed by (ui, placement); "section" is pure Tailwind and lineage-independent
-// (no dk-* tokens, no `ui` required), so it lives directly on the `placement` variant.
 const headerVariants = cva([], {
-    compoundVariants: [
-        {
-            class: 'flex h-[60px] items-center border-0 border-b border-solid border-dark-border px-dk-4 py-3 [&>:first-child]:flex-1',
-            placement: 'card',
-            ui: 'dashkit',
-        },
-        {
-            class: 'flex flex-col space-y-1.5 p-6',
-            placement: 'card',
-            ui: 'tw',
-        },
-    ],
-    defaultVariants: { placement: 'card', ui: 'tw' },
+    defaultVariants: { ui: 'tw' },
     variants: {
-        placement: {
-            card: '',
-            // Lifted out above the card: no divider, no fixed height (hugs content), no padding, a
-            // text-lg title, and a 12px (mb-3) gap down to the card. That 12px is the only gap between
-            // the header and the card border; the card's own content inset (e.g. the table's top p-4)
-            // sits below the border. The `m-0` reset keeps the 12px exact regardless of the title's own
-            // margins (e.g. a bare <h3>'s user-agent margin).
-            section: 'mb-3 flex items-center [&>:first-child]:m-0 [&>:first-child]:flex-1 [&>:first-child]:text-lg',
-        },
         ui: {
-            dashkit: '',
-            tw: '',
+            dashkit:
+                'flex h-[60px] items-center border-0 border-b border-solid border-dark-border px-dk-4 py-3 [&>:first-child]:flex-1',
+            tw: 'flex flex-col space-y-1.5 p-6',
         },
     },
 });
@@ -86,12 +62,11 @@ interface UIPropOverride {
     ui?: UI;
 }
 
-const BaseCardHeader = React.forwardRef<
-    HTMLDivElement,
-    React.HTMLAttributes<HTMLDivElement> & UIPropOverride & Pick<VariantProps<typeof headerVariants>, 'placement'>
->(({ className, placement, ui, ...props }, ref) => (
-    <div ref={ref} className={cn(headerVariants({ placement, ui }), className)} {...props} />
-));
+const BaseCardHeader = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement> & UIPropOverride>(
+    ({ className, ui, ...props }, ref) => (
+        <div ref={ref} className={cn(headerVariants({ ui: ui }), className)} {...props} />
+    ),
+);
 BaseCardHeader.displayName = 'BaseCardHeader';
 
 const bodyVariants = cva([], {

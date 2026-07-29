@@ -19,35 +19,31 @@ export function BaseDomainsCard({ domains }: { domains: DomainInfo[] }) {
     );
 
     return (
-        <>
-            <CardHeader placement="section">
+        <Card ui="dashkit">
+            <CardHeader ui="dashkit">
                 <CardTitle as="h3" ui="dashkit">
                     Owned Domain Names
                 </CardTitle>
             </CardHeader>
-            <Card ui="dashkit">
-                <BaseTable ui="dashkit" variant="card" nowrap>
-                    <BaseTable.Head>
-                        <BaseTable.Row>
-                            <BaseTable.HeaderCell className="text-dk-gray-700">Domain Name</BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell className="text-dk-gray-700">
-                                Name Service Account
-                            </BaseTable.HeaderCell>
+            <BaseTable ui="dashkit" variant="card" nowrap>
+                <BaseTable.Head>
+                    <BaseTable.Row>
+                        <BaseTable.HeaderCell className="text-dk-gray-700">Domain Name</BaseTable.HeaderCell>
+                        <BaseTable.HeaderCell className="text-dk-gray-700">Name Service Account</BaseTable.HeaderCell>
+                    </BaseTable.Row>
+                </BaseTable.Head>
+                <BaseTable.Body>
+                    {validDomains.map(domain => (
+                        <BaseTable.Row key={domain.address}>
+                            <BaseTable.Cell>{domain.name}</BaseTable.Cell>
+                            <BaseTable.Cell>
+                                <Address pubkey={domain.pubkey} link />
+                            </BaseTable.Cell>
                         </BaseTable.Row>
-                    </BaseTable.Head>
-                    <BaseTable.Body>
-                        {validDomains.map(domain => (
-                            <BaseTable.Row key={domain.address}>
-                                <BaseTable.Cell>{domain.name}</BaseTable.Cell>
-                                <BaseTable.Cell>
-                                    <Address pubkey={domain.pubkey} link />
-                                </BaseTable.Cell>
-                            </BaseTable.Row>
-                        ))}
-                    </BaseTable.Body>
-                </BaseTable>
-            </Card>
-        </>
+                    ))}
+                </BaseTable.Body>
+            </BaseTable>
+        </Card>
     );
 }
 
