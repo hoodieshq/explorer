@@ -2,7 +2,7 @@ import { formatInstructionLogs } from '@entities/compute-unit';
 import { type useCluster } from '@providers/cluster';
 import type { VersionedMessage } from '@solana/web3.js';
 import type { InstructionLogs } from '@utils/program-logs';
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 
 // Deep import: upstream this comes from the `@features/transaction` barrel, which does not
 // re-export CollapsibleSection at HEAD.
@@ -16,6 +16,8 @@ type SimulatorCUProfilingCardProps = {
     unitsConsumed?: number;
     cluster: ReturnType<typeof useCluster>['cluster'];
     epoch: bigint;
+    // Section title. Defaults to 'CU profiling' so the Default inspector page is unaffected.
+    title?: ReactNode;
 };
 
 export function SimulatorCUProfilingCard({
@@ -24,6 +26,7 @@ export function SimulatorCUProfilingCard({
     unitsConsumed,
     cluster,
     epoch,
+    title = 'CU profiling',
 }: SimulatorCUProfilingCardProps) {
     const instructionsForCU = useMemo(() => {
         const instructions = message.compiledInstructions.map(ix => ({
@@ -42,7 +45,7 @@ export function SimulatorCUProfilingCard({
     if (instructionsForCU.length === 0) return null;
 
     return (
-        <CollapsibleSection title="CU profiling">
+        <CollapsibleSection title={title}>
             <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} headerless />
         </CollapsibleSection>
     );

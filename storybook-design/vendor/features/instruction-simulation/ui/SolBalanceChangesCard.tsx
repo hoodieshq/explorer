@@ -2,8 +2,10 @@ import { Address } from '@components/common/Address';
 import { BalanceDelta } from '@components/common/BalanceDelta';
 import { SolBalance } from '@components/common/SolBalance';
 import { cn } from '@components/shared/utils';
+import type { ReactNode } from 'react';
 
 import type { SolBalanceChange } from '@/app/features/instruction-simulation/lib/types';
+import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
 
 import { Section } from '../../../shared/ui/Section';
 
@@ -30,9 +32,22 @@ const HEADER_GRID = cn(
     'border-1 border-b border-white/10 [border-bottom-style:solid]',
 );
 
-export function SolBalanceChangesCard({ balanceChanges }: { balanceChanges: SolBalanceChange[] }) {
+export function SolBalanceChangesCard({
+    balanceChanges,
+    title = 'SOL Balance Changes',
+    collapsible = false,
+}: {
+    balanceChanges: SolBalanceChange[];
+    title?: ReactNode;
+    // Render inside a collapsible section (used by the Enhancements page) instead of the plain
+    // Section. Defaults to `false` so the Default inspector page is unaffected.
+    collapsible?: boolean;
+}) {
+    // Section and CollapsibleSection share the same `title` + `children` shape; the only difference
+    // is the expand/collapse control CollapsibleSection adds.
+    const Wrapper = collapsible ? CollapsibleSection : Section;
     return (
-        <Section title="SOL Balance Changes">
+        <Wrapper title={title}>
             <div className={HEADER_GRID}>
                 <div>#</div>
                 <div>Address</div>
@@ -58,6 +73,6 @@ export function SolBalanceChangesCard({ balanceChanges }: { balanceChanges: SolB
                     </div>
                 </div>
             ))}
-        </Section>
+        </Wrapper>
     );
 }

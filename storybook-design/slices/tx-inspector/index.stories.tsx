@@ -11,6 +11,7 @@ import { Navbar } from '@/app/components/Navbar';
 import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
 
 import { TransactionInspectorPage } from '../../vendor/components/inspector/InspectorPage';
+import { TransactionInspectorPageEnhancements } from '../../vendor/components/inspector/InspectorPageEnhancements';
 import { DEFAULT_HANDLERS, nextjsParameters, SIGNATURE, withInspectorProviders } from './mocks';
 
 /** Mirrors app/layout.tsx shell exactly. Re-read layout.tsx before each use — it may change. */
@@ -41,6 +42,12 @@ function PageContent({ signature }: { signature: string }) {
     return <TransactionInspectorPage signature={signature} showTokenBalanceChanges={false} />;
 }
 
+/** Enhancements copy of the page body — renders its own isolated composition
+ *  (InspectorPageEnhancements) so design changes here never affect the Default story. */
+function PageContentEnhancements({ signature }: { signature: string }) {
+    return <TransactionInspectorPageEnhancements signature={signature} showTokenBalanceChanges={false} />;
+}
+
 const meta = {
     component: PageContent,
     decorators: [withInspectorProviders],
@@ -60,6 +67,19 @@ export const Default: Story = {
     render: args => (
         <PageShell>
             <PageContent {...args} />
+        </PageShell>
+    ),
+};
+
+/** Independent copy of the page for iterating on design enhancements. It renders its own composition
+ *  root (InspectorPageEnhancements), so changes made here never affect Default. To enhance a section,
+ *  add a `*.enhancements.tsx` variant next to the vendor component and wire it into
+ *  InspectorPageEnhancements — Default keeps using the originals. */
+export const Enhancements: Story = {
+    args: { signature: SIGNATURE },
+    render: args => (
+        <PageShell>
+            <PageContentEnhancements {...args} />
         </PageShell>
     ),
 };
