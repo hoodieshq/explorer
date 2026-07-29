@@ -92,12 +92,12 @@ export function createPreview({ mswEnabled }: { mswEnabled: boolean }): Preview 
             // NOTE: Storybook 10 reads `options`, not `viewports` — using the wrong key silently falls back to MINIMAL_VIEWPORTS.
             viewport: {
                 options: {
-                    bsLg: { name: 'lg·992', styles: { height: '768px', width: '992px' }, type: 'desktop' },
-                    bsMd: { name: 'md·768', styles: { height: '1024px', width: '768px' }, type: 'tablet' },
-                    bsSm: { name: 'sm·576', styles: { height: '812px', width: '576px' }, type: 'mobile' },
-                    bsXl: { name: 'xl·1200', styles: { height: '900px', width: '1200px' }, type: 'desktop' },
-                    bsXs: { name: 'xs·375', styles: { height: '667px', width: '375px' }, type: 'mobile' },
-                    bsXxl: { name: 'xxl·1400', styles: { height: '900px', width: '1400px' }, type: 'desktop' },
+                    bsLg: { name: 'lg·993', styles: { height: '768px', width: '993px' }, type: 'desktop' },
+                    bsMd: { name: 'md·769', styles: { height: '1024px', width: '769px' }, type: 'tablet' },
+                    bsSm: { name: 'sm·577', styles: { height: '812px', width: '577px' }, type: 'mobile' },
+                    bsXl: { name: 'xl·1201', styles: { height: '900px', width: '1201px' }, type: 'desktop' },
+                    bsXs: { name: 'xs·376', styles: { height: '667px', width: '376px' }, type: 'mobile' },
+                    bsXxl: { name: 'xxl·1401', styles: { height: '900px', width: '1401px' }, type: 'desktop' },
                     ...INITIAL_VIEWPORTS,
                 },
             },
