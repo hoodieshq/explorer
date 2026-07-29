@@ -97,6 +97,42 @@ export const DashkitBodyWithoutPadding: Story = {
     ),
 };
 
+// The header's `placement` decides where the title lives. Toggle it in the Controls panel:
+//   - "card" (default): the in-card header — bottom divider, fixed 60px height, dashkit dk-* tokens.
+//   - "section": lifted out above the card — pure Tailwind (no dk-*, no `ui`), no divider, hugs its
+//     content, sizes its first child to text-lg, with a 12px (mb-3) gap down to the card (that 12px is
+//     the only gap to the card border; the card's own content inset sits inside, below the border).
+export const HeaderPlacement: StoryObj<typeof BaseCardHeader> = {
+    argTypes: {
+        placement: { control: 'inline-radio', options: ['card', 'section'] },
+    },
+    args: { placement: 'card' },
+    render: ({ placement }) =>
+        placement === 'section' ? (
+            <div>
+                <BaseCardHeader placement="section">
+                    <BaseCardTitle as="h3">Section heading</BaseCardTitle>
+                </BaseCardHeader>
+                <BaseCard ui="dashkit">
+                    <BaseCardBody ui="dashkit">
+                        <p className="m-0">section — 12px gap above the card; the body inset sits inside it.</p>
+                    </BaseCardBody>
+                </BaseCard>
+            </div>
+        ) : (
+            <BaseCard ui="dashkit">
+                <BaseCardHeader ui="dashkit" placement="card">
+                    <BaseCardTitle ui="dashkit" as="h3">
+                        Card header
+                    </BaseCardTitle>
+                </BaseCardHeader>
+                <BaseCardBody ui="dashkit">
+                    <p className="m-0">card — the default in-card header with a bottom divider.</p>
+                </BaseCardBody>
+            </BaseCard>
+        ),
+};
+
 export const TwDefault: Story = {
     args: { ui: 'tw', variant: 'default' },
     render: args => (
