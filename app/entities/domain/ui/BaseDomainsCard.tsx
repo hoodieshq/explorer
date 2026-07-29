@@ -12,11 +12,24 @@ import { BaseTable } from '@/app/shared/ui/Table';
 
 import { DomainInfo } from '../model/types';
 
+type ValidDomain = DomainInfo & { pubkey: PublicKey };
+
+// Column labels shared by both layouts so the header copy can't drift between table and grid.
+const COLUMNS = ['Domain', 'Name Service Account'] as const;
+
+export type DomainsLayout = 'table' | 'grid';
+
 // Collapsible section mirroring @features/transaction's CollapsibleSection: heading lifted out above
 // the card + a chevron toggle + the grid `1fr`/`0fr` height animation. Rebuilt locally on shared
 // primitives because FSD forbids entity → feature imports; drop this in favour of a shared
 // CollapsibleSection once that lands (the `dk-*` header work is shelved on commit f2950869).
-export function BaseDomainsCard({ domains }: { domains: DomainInfo[] }) {
+//
+// `layout` picks how the domain list is rendered inside the card:
+// - `table` (default) — the shared `<BaseTable>` (a real `<table>`).
+// - `grid` — a CSS-grid list built from `div`s, mirroring the transaction page's Accounts/Token
+//   Balances tables. Desktop visuals are identical to `table`; the internals differ so the two can
+//   diverge on mobile later.
+export function BaseDomainsCard({ domains, layout = 'table' }: { domains: DomainInfo[]; layout?: DomainsLayout }) {
     const [expanded, setExpanded] = useState(true);
     const headingId = useId();
 
@@ -24,7 +37,7 @@ export function BaseDomainsCard({ domains }: { domains: DomainInfo[] }) {
         () =>
             domains
                 .map(domain => ({ ...domain, pubkey: tryPublicKey(domain.address) }))
-                .filter((d): d is DomainInfo & { pubkey: PublicKey } => d.pubkey !== null),
+                .filter((d): d is ValidDomain => d.pubkey !== null),
         [domains],
     );
 
@@ -59,33 +72,80 @@ export function BaseDomainsCard({ domains }: { domains: DomainInfo[] }) {
                 )}
             >
                 <div className="overflow-hidden">
-                    <Card ui="dashkit">
-                        <BaseTable ui="dashkit" variant="card" nowrap>
-                            <BaseTable.Head>
-                                <BaseTable.Row>
-                                    <BaseTable.HeaderCell className="text-dk-gray-700">
-                                        Domain Name
-                                    </BaseTable.HeaderCell>
-                                    <BaseTable.HeaderCell className="text-dk-gray-700">
-                                        Name Service Account
-                                    </BaseTable.HeaderCell>
-                                </BaseTable.Row>
-                            </BaseTable.Head>
-                            <BaseTable.Body>
-                                {validDomains.map(domain => (
-                                    <BaseTable.Row key={domain.address}>
-                                        <BaseTable.Cell>{domain.name}</BaseTable.Cell>
-                                        <BaseTable.Cell>
-                                            <Address pubkey={domain.pubkey} link />
-                                        </BaseTable.Cell>
-                                    </BaseTable.Row>
-                                ))}
-                            </BaseTable.Body>
-                        </BaseTable>
-                    </Card>
+                    {/* The grid layout is the Tailwind path (tight tw card); the table layout keeps its
+                        original dashkit surface so its `#282d2b` row separators stay unchanged. */}
+                    {layout === 'grid' ? (
+                        // Surface matched to the transaction Tokens/Accounts card, in pure Tailwind: bg
+                        // `outer-space-900` equals `#1e2423` (dashkit `dk-gray-800-dark`); `border-outer-space-800`
+                        // gives the card the same tone as the row separators; `rounded-lg` is the 8px radius.
+                        // BaseCard uses `cnPrefixed` (tailwind-merge), so these override the tw variant's defaults.
+                        <Card variant="tight" className="rounded-lg border-outer-space-800 bg-outer-space-900">
+                            <DomainsGrid domains={validDomains} />
+                        </Card>
+                    ) : (
+                        <Card ui="dashkit">
+                            <DomainsTable domains={validDomains} />
+                        </Card>
+                    )}
                 </div>
             </div>
         </section>
+    );
+}
+
+// `<table>` layout — the shared BaseTable (dashkit `ui="dashkit"`, `#282d2b` separators) with the
+// `subtle` head/body styling.
+function DomainsTable({ domains }: { domains: ValidDomain[] }) {
+    return (
+        <BaseTable ui="dashkit" variant="card" head="subtle" body="subtle" nowrap>
+            <BaseTable.Head>
+                <BaseTable.Row>
+                    {COLUMNS.map(label => (
+                        <BaseTable.HeaderCell key={label}>{label}</BaseTable.HeaderCell>
+                    ))}
+                </BaseTable.Row>
+            </BaseTable.Head>
+            <BaseTable.Body>
+                {domains.map(domain => (
+                    <BaseTable.Row key={domain.address}>
+                        <BaseTable.Cell>{domain.name}</BaseTable.Cell>
+                        <BaseTable.Cell>
+                            <Address pubkey={domain.pubkey} link />
+                        </BaseTable.Cell>
+                    </BaseTable.Row>
+                ))}
+            </BaseTable.Body>
+        </BaseTable>
+    );
+}
+
+// CSS-grid layout — a single 2-column grid so columns stay aligned across header and rows the way a
+// `<table>`'s shared columns do. The domain column is `clamp(120px, 25%, 200px)`; the account column
+// takes the rest (`1fr`). Pure Tailwind, matching the transaction page's Accounts/Token Balances
+// tables: muted uppercase `text-xs` header, `text-sm` body, `outer-space-800` row separators (same tone
+// as the card border), transparent (card-matching) background, 8px/12px padding.
+const GRID_HEADER_CELL = 'flex items-center whitespace-nowrap px-3 py-2 text-xs uppercase text-outer-space-300';
+const GRID_BODY_CELL = 'flex items-center whitespace-nowrap border-t border-solid border-outer-space-800 px-3 py-2';
+
+function DomainsGrid({ domains }: { domains: ValidDomain[] }) {
+    return (
+        <div className="w-full overflow-x-auto text-sm text-white">
+            <div className="grid min-w-full grid-cols-[clamp(120px,25%,200px)_1fr]">
+                {COLUMNS.map(label => (
+                    <div key={label} className={GRID_HEADER_CELL}>
+                        {label}
+                    </div>
+                ))}
+                {domains.map(domain => (
+                    <React.Fragment key={domain.address}>
+                        <div className={GRID_BODY_CELL}>{domain.name}</div>
+                        <div className={GRID_BODY_CELL}>
+                            <Address pubkey={domain.pubkey} link />
+                        </div>
+                    </React.Fragment>
+                ))}
+            </div>
+        </div>
     );
 }
 

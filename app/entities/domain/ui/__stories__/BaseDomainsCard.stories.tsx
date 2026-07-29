@@ -5,6 +5,14 @@ import { expect, within } from 'storybook/test';
 import { BaseDomainsCard } from '../BaseDomainsCard';
 
 const meta = {
+    argTypes: {
+        layout: {
+            control: 'inline-radio',
+            description:
+                'Inner list rendering. `table` uses the shared `<BaseTable>`; `grid` uses a CSS-grid built from `div`s (desktop-identical, diverges on mobile later).',
+            options: ['table', 'grid'],
+        },
+    },
     component: BaseDomainsCard,
     decorators: [withClusterAndAccounts, withTokenInfoBatch],
     parameters: {
@@ -21,8 +29,8 @@ const meta = {
                     '- `<section aria-labelledby>` + `<h2 className="m-0 text-lg font-normal text-white">` — the section heading lifted out above the card, tied to the region via a `useId` id. Mirrors the transaction page\'s `CollapsibleSection`, rebuilt locally because FSD forbids `entity → feature` imports.',
                     '- [Button](?path=/docs/components-shared-button--docs) (`variant="outline" size="sm"`) — the collapse/expand toggle: a rotating `ChevronDown` plus a `Collapse`/`Expand` label on `md+`, with `aria-expanded` reflecting state.',
                     '- Collapse animation — a `grid` wrapper toggling `grid-rows-[1fr]` ↔ `grid-rows-[0fr]` around an `overflow-hidden` child, so the table animates open/closed without fixed heights.',
-                    '- [Card](?path=/docs/components-shared-card-basecard--docs) (`ui="dashkit"`) — the surface holding the table: rounded, bordered, shadowed, with the standard `mb-6` spacing.',
-                    '- [BaseTable](?path=/docs/components-shared-table-basetable--docs) (`ui="dashkit" variant="card" nowrap`) — the domain list: `Head`/`HeaderCell` for the "Domain Name" and "Name Service Account" columns, `Body`/`Row`/`Cell` for each domain.',
+                    '- [Card](?path=/docs/components-shared-card-basecard--docs) — the surface holding the list. `grid` sits on a Tailwind `variant="tight"` card; `table` keeps its original `ui="dashkit"` card so the `#282d2b` separators stay unchanged.',
+                    '- Domain list (`layout` prop) — `table` uses [BaseTable](?path=/docs/components-shared-table-basetable--docs) (`ui="dashkit" variant="card" head/body="subtle" nowrap`); `grid` uses a pure-Tailwind CSS grid (`clamp(120px,25%,200px) 1fr`) mirroring the transaction Accounts/Token Balances tables. Columns: "Domain" and "Name Service Account".',
                     '- [Address](?path=/docs/components-common-address--docs) (`link`) — fills the "Name Service Account" cell, rendering each domain\'s pubkey as a linked, copyable address with a tooltip.',
                     '- [LoadingCard](?path=/docs/components-common-loadingcard--docs) / [ErrorCard](?path=/docs/components-common-errorcard--docs) — not part of this card; rendered by the wrapping `DomainsCard` for the loading and error states.',
                 ].join('\n'),
@@ -53,6 +61,25 @@ export const MultipleDomains: Story = {
             { address: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', name: 'bob.sol' },
             { address: 'Sysvar1111111111111111111111111111111111111', name: 'charlie.ans' },
         ],
+    },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        expect(canvas.getByText('example.sol')).toBeInTheDocument();
+        expect(canvas.getByText('bob.sol')).toBeInTheDocument();
+        expect(canvas.getByText('charlie.ans')).toBeInTheDocument();
+    },
+};
+
+// `layout="grid"` renders the same list as a CSS grid instead of a `<table>`. Desktop visuals match
+// the table stories above; the internals differ so mobile can diverge later. Flip the `layout` control.
+export const GridLayout: Story = {
+    args: {
+        domains: [
+            { address: '5ASxtmcPKDeD8NoE5QpskizPokqDdX1qHFiqZb1spLdo', name: 'example.sol' },
+            { address: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', name: 'bob.sol' },
+            { address: 'Sysvar1111111111111111111111111111111111111', name: 'charlie.ans' },
+        ],
+        layout: 'grid',
     },
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
