@@ -42,7 +42,11 @@ export interface BaseCardProps extends React.HTMLAttributes<HTMLDivElement>, Var
 
 const BaseCard = React.forwardRef<HTMLDivElement, BaseCardProps>(
     ({ className, flex, marginBottom, ui, variant, ...props }, ref) => (
-        <div ref={ref} className={cnPrefixed(cardVariants({ flex, marginBottom, ui, variant }), className)} {...props} />
+        <div
+            ref={ref}
+            className={cnPrefixed(cardVariants({ flex, marginBottom, ui, variant }), className)}
+            {...props}
+        />
     ),
 );
 BaseCard.displayName = 'BaseCard';
