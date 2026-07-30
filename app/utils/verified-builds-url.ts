@@ -28,6 +28,16 @@ export function composeOnchainRepoUrl(gitUrl: string | undefined, commit: string
     return safeRepoUrl(composed);
 }
 
+// Link to the OSEC build job that produced a resolved build. `build_id` from `/resolve-hash` is the
+// job id, so `<registry>/job/<build_id>` is the authoritative record for that build — it reports
+// `status: "completed"` alongside the `executable_hash` it produced. The registry base is
+// cluster-specific, so callers pass the URL from `getOsecRegistryUrl`; a cluster without a registry
+// yields no link.
+export function composeBuildJobUrl(registryUrl: string | undefined, buildId: string): string | undefined {
+    if (!registryUrl || !buildId) return undefined;
+    return `${trimTrailingSlashes(registryUrl)}/job/${buildId}`;
+}
+
 // Trim trailing slashes so a composed `<repo>/tree/<sha>` link has no `//` and labels read cleanly.
 export function trimTrailingSlashes(value: string): string {
     let result = value;

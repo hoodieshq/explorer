@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+    composeBuildJobUrl,
     composeOnchainRepoUrl,
     normalizeRepoUrl,
     repoLabel,
@@ -130,6 +131,32 @@ describe('composeOnchainRepoUrl', () => {
         it(`should ${scenario}`, () => {
             expect(composeOnchainRepoUrl(gitUrl, commit)).toBeUndefined();
         });
+    });
+});
+
+describe('composeBuildJobUrl', () => {
+    const BUILD_ID = 'ff360053-d4af-4e75-ab62-a0119231d01d';
+
+    it('should compose the job URL from the registry base and build id', () => {
+        expect(composeBuildJobUrl('https://verify.osec.io', BUILD_ID)).toBe(`https://verify.osec.io/job/${BUILD_ID}`);
+    });
+
+    it('should use the devnet registry base when given one', () => {
+        expect(composeBuildJobUrl('https://verify-devnet.osec.io', BUILD_ID)).toBe(
+            `https://verify-devnet.osec.io/job/${BUILD_ID}`,
+        );
+    });
+
+    it('should not double the slash when the registry base has a trailing slash', () => {
+        expect(composeBuildJobUrl('https://verify.osec.io/', BUILD_ID)).toBe(`https://verify.osec.io/job/${BUILD_ID}`);
+    });
+
+    it('should return undefined when the cluster has no registry', () => {
+        expect(composeBuildJobUrl(undefined, BUILD_ID)).toBeUndefined();
+    });
+
+    it('should return undefined when the build id is empty', () => {
+        expect(composeBuildJobUrl('https://verify.osec.io', '')).toBeUndefined();
     });
 });
 

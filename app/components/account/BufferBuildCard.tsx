@@ -15,12 +15,13 @@ import { ExpandInfoButton } from '@/app/shared/ui/ExpandInfoButton';
 import { BaseTable } from '@/app/shared/ui/Table';
 import {
     dedupeAndSortBuilds,
+    getOsecRegistryUrl,
     hashProgramBuffer,
     type OsecBuild,
-    supportsVerifiedBuilds,
     useResolveBuildsByHash,
 } from '@/app/utils/verified-builds';
 import {
+    composeBuildJobUrl,
     composeOnchainRepoUrl,
     repoLabel,
     trimTrailingSlashes,
@@ -33,7 +34,7 @@ import { Copyable } from '../common/Copyable';
 import { LoadingCard } from '../common/LoadingCard';
 
 // Total column count (incl. the mobile-only toggle) for the expanded detail row's colSpan.
-const COLUMN_COUNT = 7;
+const COLUMN_COUNT = 8;
 
 // Container: resolves the builds that produced a program buffer's staged binary and renders them.
 // A buffer has no program id to look up in the OSEC registry, so we hash its bytes with the same
@@ -49,7 +50,7 @@ export function BufferBuildCard({ buffer }: { buffer: ProgramBufferAccountInfo; 
             bufferHash={bufferHash}
             isLoading={isLoading}
             error={Boolean(error)}
-            clusterSupported={supportsVerifiedBuilds(cluster)}
+            registryUrl={getOsecRegistryUrl(cluster)}
         />
     );
 }
@@ -60,17 +61,17 @@ export function BaseBufferBuildCard({
     bufferHash,
     isLoading,
     error,
-    // OSEC hosts no registry for Testnet/Custom, so no resolve-hash lookup happens there. Defaults
-    // to true so stories and tests that exercise the build states need not opt in.
-    clusterSupported = true,
+    // The cluster's OSEC registry base, used to link each row to its build job. `undefined` means the
+    // cluster has no registry (Testnet/Custom), so no lookup ran and the card says so.
+    registryUrl,
 }: {
     builds: OsecBuild[] | undefined;
     bufferHash: string | undefined;
     isLoading: boolean;
     error: boolean;
-    clusterSupported?: boolean;
+    registryUrl: string | undefined;
 }) {
-    if (!clusterSupported) {
+    if (!registryUrl) {
         return (
             <Card ui="dashkit">
                 <CardBody ui="dashkit" className="text-center">
@@ -120,12 +121,33 @@ export function BaseBufferBuildCard({
                 </a>
                 .
             </Alert>
+            <BufferHashSummary buildCount={orderedBuilds.length} bufferHash={bufferHash} />
             <TableCardBodyHeaded layout="expanded" headerComponent={<BufferBuildHeader />}>
                 {orderedBuilds.map(build => (
-                    <BufferBuildRow key={build.build_id} build={build} />
+                    <BufferBuildRow key={build.build_id} build={build} registryUrl={registryUrl} />
                 ))}
             </TableCardBodyHeaded>
         </Card>
+    );
+}
+
+// States the build -> hash relationship the table rows encode: `/resolve-hash` only returns completed
+// builds whose compiled output hashes to this buffer's binary, so every row below is a build that
+// produced exactly this hash. The hash is shown here because it appears nowhere else on the page.
+function BufferHashSummary({ buildCount, bufferHash }: { buildCount: number; bufferHash: string }) {
+    return (
+        <div className="mb-1.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-3 text-sm">
+            <span>
+                {buildCount === 1 ? '1 completed build' : `${buildCount} completed builds`} produced this buffer&apos;s
+                binary.
+            </span>
+            <span className="whitespace-nowrap">
+                <span className="text-dark-muted-foreground">Buffer hash: </span>
+                <Copyable text={bufferHash}>
+                    <span className="font-mono">{abbreviateHash(bufferHash)}</span>
+                </Copyable>
+            </span>
+        </div>
     );
 }
 
@@ -145,14 +167,18 @@ function BufferBuildHeader() {
             <BaseTable.HeaderCell className="hidden whitespace-nowrap text-right lg:table-cell">
                 Date
             </BaseTable.HeaderCell>
+            <BaseTable.HeaderCell className="hidden whitespace-nowrap text-right lg:table-cell">
+                Job
+            </BaseTable.HeaderCell>
             <BaseTable.HeaderCell className="w-10 lg:hidden" aria-label="Toggle details" />
         </BaseTable.Row>
     );
 }
 
-function BufferBuildRow({ build }: { build: OsecBuild }) {
+function BufferBuildRow({ build, registryUrl }: { build: OsecBuild; registryUrl: string | undefined }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const detailId = `buffer-build-detail-${build.build_id}`;
+    const jobUrl = composeBuildJobUrl(registryUrl, build.build_id);
 
     return (
         <Fragment>
@@ -174,6 +200,9 @@ function BufferBuildRow({ build }: { build: OsecBuild }) {
                 </BaseTable.Cell>
                 <BaseTable.Cell className="hidden whitespace-nowrap text-right font-mono lg:table-cell">
                     {formatCompletedAt(build.completed_at)}
+                </BaseTable.Cell>
+                <BaseTable.Cell className="hidden whitespace-nowrap text-right lg:table-cell">
+                    <JobContent buildId={build.build_id} jobUrl={jobUrl} />
                 </BaseTable.Cell>
                 <BaseTable.Cell className="text-right lg:hidden">
                     <ExpandInfoButton
@@ -198,6 +227,9 @@ function BufferBuildRow({ build }: { build: OsecBuild }) {
                             </DetailItem>
                             <DetailItem label="Date">
                                 <span className="font-mono">{formatCompletedAt(build.completed_at)}</span>
+                            </DetailItem>
+                            <DetailItem label="Job">
+                                <JobContent buildId={build.build_id} jobUrl={jobUrl} />
                             </DetailItem>
                         </div>
                     </BaseTable.Cell>
@@ -259,6 +291,39 @@ function MatchesDeployedBadge({ value }: { value: boolean }) {
     );
 }
 
+// The OSEC job record for this build. It is a JSON API response rather than a rendered page, so the
+// link is labelled with the job id and marked external; it reports `status: "completed"` and the
+// `executable_hash` the build produced, which is the primary evidence behind the row.
+function JobContent({ buildId, jobUrl }: { buildId: string; jobUrl: string | undefined }) {
+    if (!buildId) return <>-</>;
+
+    // The id is a UUID; its first group is enough to identify the job in the row, with the full id
+    // available on hover and via copy.
+    const label = buildId.split('-')[0] || buildId;
+
+    // No link when the cluster has no registry to resolve the job against; the id is still copyable.
+    if (!jobUrl) {
+        return (
+            <Copyable text={buildId}>
+                <span className="font-mono">{label}</span>
+            </Copyable>
+        );
+    }
+
+    return (
+        <a className="font-mono" href={jobUrl} target="_blank" rel="noopener noreferrer" title={`Build job ${buildId}`}>
+            {label}
+            <ExternalLink className="ml-1.5 inline-block align-text-top" size={13} />
+        </a>
+    );
+}
+
 function formatCompletedAt(completedAt: string): string {
     return new Date(completedAt).toUTCString();
+}
+
+// Head/tail elision for a 64-char sha256, so the hash stays recognisable without dominating the row.
+function abbreviateHash(hash: string): string {
+    if (hash.length <= 20) return hash;
+    return `${hash.slice(0, 8)}…${hash.slice(-8)}`;
 }

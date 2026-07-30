@@ -9,6 +9,9 @@ import { BaseBufferBuildCard } from '../BufferBuildCard';
 // the buffer and calls `/resolve-hash`; Base takes the resolved builds as props so stories drive
 // every state without the network.
 
+// Mainnet registry base, so the per-row Job links resolve in the story canvas.
+const OSEC_REGISTRY_URL = 'https://verify.osec.io';
+
 const BUFFER_HASH = '70386b8957a11985ca67032d98bfa39c6d11c1c5e87b6a32b386611ea3b39b96';
 
 // Two real builds returned by `/resolve-hash` for BUFFER_HASH: same program/repo, distinct commits.
@@ -56,6 +59,7 @@ export const MultipleBuilds: Story = {
         builds: [TRUSTED_BUILD, TRUSTED_BUILD_OLDER, UNTRUSTED_BUILD],
         error: false,
         isLoading: false,
+        registryUrl: OSEC_REGISTRY_URL,
     },
 };
 
@@ -65,6 +69,7 @@ export const SingleBuild: Story = {
         builds: [TRUSTED_BUILD],
         error: false,
         isLoading: false,
+        registryUrl: OSEC_REGISTRY_URL,
     },
 };
 
@@ -74,6 +79,7 @@ export const NoBuilds: Story = {
         builds: [],
         error: false,
         isLoading: false,
+        registryUrl: OSEC_REGISTRY_URL,
     },
 };
 
@@ -83,6 +89,7 @@ export const Loading: Story = {
         builds: undefined,
         error: false,
         isLoading: true,
+        registryUrl: OSEC_REGISTRY_URL,
     },
 };
 
@@ -92,6 +99,7 @@ export const Error: Story = {
         builds: undefined,
         error: true,
         isLoading: false,
+        registryUrl: OSEC_REGISTRY_URL,
     },
 };
 
@@ -101,8 +109,8 @@ export const ClusterUnsupported: Story = {
     args: {
         bufferHash: BUFFER_HASH,
         builds: undefined,
-        clusterSupported: false,
         error: false,
         isLoading: false,
+        registryUrl: undefined,
     },
 };
