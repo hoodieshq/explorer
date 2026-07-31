@@ -36,10 +36,15 @@ Key facts:
 - `unpackDirectData({data, encoding, compression}) -> string` - SYNC, no RPC (`uncompress -> decode`). Does NOT
   consume `format` - JSON/YAML/TOML rendering is the explorer's job (the enum only classifies content).
 - `unpackAndFetchData({rpc, dataSource, data, encoding, compression}) -> Promise<string>` - handles
-  Direct/Url/External (needs a `@solana/kit` `Rpc<GetAccountInfoApi>`). See the single-RPC-stack decision in 5.
+  Direct/Url/External (needs a `@solana/kit` `Rpc<GetAccountInfoApi>`). Its inflate is UNBOUNDED and its Url fetch
+  is unguarded, so it is NOT used on the buffer/External/Url paths (see 6 and the single-RPC-stack decision in 7).
 - Typed decoders `getSetDataInstructionDataDecoder()`, `getInitializeInstructionDataDecoder()`,
   `getWriteInstructionDataDecoder()` - decode raw ix bytes to numeric enums + a typed `Option<bytes>`.
-- `pako@2.1.0` (zlib/gzip) runs under the hood. WARNING: inflate is unbounded - cap it (see 6, decompression bomb).
+- `pako@2.1.0` (zlib/gzip) runs under the hood of `uncompressData`. WARNING: its inflate is UNBOUNDED. Safe as-is
+  ONLY for INLINE bytes (tx-bounded to ~1 KB -> <=~1 MB inflated: P1 Direct-inline and the P4 URL pointer). For
+  BUFFER-sourced (P2) or FETCHED External (P3) bytes the compressed input is not tx-bounded, so decompression MUST
+  run through a self-owned bounded inflate (see 6). `decodeData` and `uncompressData` are exported, so the encoding
+  step can be reused after the bounded decompress.
 
 `bytes.ts` has no base58 helper - base58 decode comes from the library (`decodeData`) / kit, not from
 `app/shared/lib/bytes.ts`.
@@ -63,10 +68,11 @@ bytes) and `parsedIx.accounts` (addresses).
 import {
   Encoding, Compression, Format, DataSource,
   getSetDataInstructionDataDecoder, getInitializeInstructionDataDecoder,
-  unpackDirectData,   // SYNC: Direct decode, no RPC (uncompress -> decode). Does not consume `format`.
-  unpackAndFetchData, // async: ONE call for Direct | Url | External (needs a kit Rpc). See RPC-stack decision (7).
+  unpackDirectData, // SYNC inline decode (uncompress -> decode). Safe as-is for tx-bounded inline bytes. No `format`.
+  decodeData,       // exported encoding step (hex/utf8/base58/base64); reused after a self-owned bounded decompress.
 } from '@solana-program/program-metadata';
 import { unwrapOption } from '@solana/kit';
+import pako from 'pako';
 
 type DecodeConfig = {
   encoding: Encoding; // None(hex) | Utf8 | Base58 | Base64
@@ -77,20 +83,42 @@ type DecodeConfig = {
 
 type DecodedContent = { text: string; format: Format; truncated: boolean };
 
-// rawData = inline arg bytes (Direct) OR reconstructed buffer body (buffer-sourced, see 4).
-// Direct is SYNC and needs NO RPC:
-function decodeDirect(rawData: Uint8Array, config: DecodeConfig): DecodedContent {
+class PayloadTooLargeError extends Error {}
+
+// Provenance decides the guard (see 6). INLINE bytes are tx-bounded (~1 KB -> <=~1 MB), so the library's
+// unpackDirectData is safe as-is. Used by P1 Direct-inline and the P4 URL-pointer decode. SYNC, no RPC.
+function decodeInline(rawData: Uint8Array, config: DecodeConfig): DecodedContent {
   const text = unpackDirectData({ data: rawData, encoding: config.encoding, compression: config.compression });
-  return { text, format: config.format, truncated: false }; // caller enforces size caps before/after
+  return { text, format: config.format, truncated: false }; // caller still enforces the render-size cap
 }
 
-// Url | External need the network. Prefer ONE rpc stack (see 7). unpackAndFetchData wants a kit Rpc.
-async function decodeFetched(rawData: Uint8Array, config: DecodeConfig, rpc: Rpc<GetAccountInfoApi>) {
-  const text = await unpackAndFetchData({
-    rpc, dataSource: config.dataSource, data: rawData,
-    encoding: config.encoding, compression: config.compression,
-  });
-  return { text, format: config.format, truncated: false };
+// BUFFER-sourced (P2) or FETCHED External (P3) bytes are NOT tx-bounded, so own the decompress with a bounded
+// pako.Inflate, then reuse the exported decodeData for the encoding step. `cap` == the max render size.
+function boundedUncompress(data: Uint8Array, compression: Compression, cap: number): Uint8Array {
+  if (compression === Compression.None) return data;
+  const inflator = new pako.Inflate({ windowBits: 47 }); // 47 = auto-detect zlib + gzip header
+  let total = 0;
+  inflator.onData = (chunk: Uint8Array) => {
+    total += chunk.length;
+    if (total > cap) throw new PayloadTooLargeError(); // pako calls onData per 16 KB and does NOT catch -> aborts inflate
+    inflator.chunks.push(chunk); // keep default accumulation so onEnd glues the result
+  };
+  inflator.push(data, true); // may throw PayloadTooLargeError; caller renders HexData + "too large" on catch
+  if (inflator.err) throw new Error(inflator.msg);
+  return inflator.result as Uint8Array;
+}
+
+function decodeBounded(rawData: Uint8Array, config: DecodeConfig, cap: number): DecodedContent {
+  const raw = boundedUncompress(rawData, config.compression, cap);
+  return { text: decodeData(raw, config.encoding), format: config.format, truncated: false };
+}
+
+// P3 External: fetch the referenced account (bounded, see 5/6), slice, then decode via the bounded path above.
+// Do NOT delegate to unpackAndFetchData - its inflate is unbounded and its fetch is unguarded (see 6, and 7's
+// single-RPC-stack decision). P4 Url differs: compression applies to the POINTER (decodeInline), `format` to the
+// fetched body, which is guarded by the fetch size/timeout cap, not pako.
+function decodeFetchedExternal(fetchedSlice: Uint8Array, config: DecodeConfig, cap: number): DecodedContent {
+  return decodeBounded(fetchedSlice, config, cap);
 }
 
 // JSON/YAML/TOML/None
@@ -332,10 +360,15 @@ Correctness:
   and would discard the correctly-parsed accounts + args (swap the WHOLE card to "unknown").
 
 Security:
-- Decompression bomb: `uncompressData` runs `pako` inflate with NO output bound - a few-KB payload can inflate to
-  gigabytes and freeze the tab. `pako` is in no render path today, so there is no guard to inherit. Bound it
-  (chunked `pako.Inflate` aborting at ~1-2 MB) + a `data_length` pre-check; on exceed render `HexData` + a
-  "payload too large" note with a download affordance.
+- Decompression bomb: `uncompressData` runs pako inflate/ungzip with NO output bound - a few-KB compressed payload
+  can inflate to gigabytes and freeze the tab. `pako` is in no render path today, so there is no guard to inherit.
+  PROVENANCE decides the guard: INLINE bytes are tx-bounded (~1 KB -> <=~1 MB), so P1 Direct-inline and the P4 URL
+  pointer call `unpackDirectData` directly. BUFFER-sourced (P2) and FETCHED External (P3) bytes are NOT tx-bounded,
+  so those paths decompress through a bounded `pako.Inflate` whose `onData` accumulates output and THROWS past the
+  cap - pako calls `onData` once per 16 KB inside a single `push` and does not catch it, so the throw aborts the
+  inflate loop (stops CPU work, not just accumulation) - then hand the bytes to the exported `decodeData`. A
+  compressed-size / `data_length` pre-check bounds the INPUT only, not the inflated output, so it is a cheap
+  early-out, not the guard. On exceed: render `HexData` + a "payload too large" note with a download affordance.
 - Untrusted content: `JSON.parse` only for `Format=Json` (size-capped); YAML/TOML/text as plain text (no parser,
   no new attack surface). Keep the no-`dangerouslySetInnerHTML` invariant. Enforce a max render size.
 - Url: fetch only `http(s):` URLs (render other schemes as plain text, never fetch), cap response size, set a

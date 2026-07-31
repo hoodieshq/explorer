@@ -1,7 +1,8 @@
 ## ADDED Requirements
 
-> Scope: P1 (Direct-inline) behavior plus the cross-cutting guards (local error fallback, bounded decompression)
-> and the analytics event. P2/P3/P4 requirements live in sibling capabilities
+> Scope: P1 (Direct-inline) behavior plus the cross-cutting guards (local error fallback, render-size cap) and the
+> analytics event. The unbounded-inflate (decompression-bomb) guard lives in P2/P3, where buffer-sourced/fetched
+> bytes are not transaction-size bounded. P2/P3/P4 requirements live in sibling capabilities
 > `p2-program-metadata-buffer-reconstruction`, `p3-program-metadata-external-source`, and
 > `p4-program-metadata-url-source`; implementation still lands per phase - see `design.md`.
 
@@ -18,10 +19,10 @@ raw instruction bytes with the library's typed decoders, not by mapping Codama-p
 - **THEN** the card SHALL render a "decoded" section/tab showing the pretty-printed JSON
 - **AND** SHALL also show the raw encoded bytes (hex/base64) alongside the decoded output
 
-#### Scenario: payload is compressed (done by unpackDirectData, uncompressData, unpackAndFetchData)
+#### Scenario: an inline payload is compressed
 
 - **WHEN** the instruction's `compression` is `Gzip` or `Zlib`
-- **THEN** the payload SHALL be decompressed before decoding
+- **THEN** the inline payload (transaction-size bounded) SHALL be decompressed before decoding
 - **AND** the decoded string SHALL be rendered (JSON pretty-printed, other formats verbatim)
 
 #### Scenario: encoding is None
@@ -57,16 +58,18 @@ the card-level error boundary that would replace the whole card with the Unknown
 - **THEN** the Decoded Content section/tab SHALL render the raw hex view plus an inline error note
 - **AND** the instruction's account table and argument table SHALL still render unchanged
 
-### Requirement: compressed payloads MUST be decompressed under a hard size bound
+### Requirement: rendered decoded content MUST be size-capped
 
-Decompression of an on-chain payload MUST enforce a maximum output size, and on exceeding it MUST render the raw
-hex view plus an oversized-payload affordance instead of the decoded content.
+The decoded content rendered into the card MUST be bounded by a maximum render size, and on exceeding it MUST
+render the raw hex view plus an oversized-payload affordance instead of the full decoded document. Inline Direct
+payloads are already transaction-size bounded, so P1 needs no decompression-output bound - the unbounded-inflate
+guard lives in P2/P3, where buffer-sourced or fetched bytes are not transaction-bounded.
 
-#### Scenario: a decompression bomb exceeds the cap
+#### Scenario: decoded content exceeds the render cap
 
-- **WHEN** decompressing a payload would produce output larger than the configured cap
-- **THEN** decompression SHALL be aborted before exhausting memory
-- **AND** the section SHALL render the raw hex view plus a "payload too large" note with a download affordance
+- **WHEN** the decoded document is larger than the configured render cap
+- **THEN** the card SHALL NOT render the full decoded content
+- **AND** SHALL render the raw hex view plus a "payload too large" note with a download affordance
 
 ### Requirement: decoding PMP buffer content MUST emit a GA analytics event
 

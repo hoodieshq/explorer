@@ -75,6 +75,19 @@ pathological buffer cannot hang the UI or exhaust the RPC endpoint.
 - **THEN** fetching SHALL stop at the cap
 - **AND** the incomplete state SHALL be surfaced rather than fetching unbounded pages
 
+### Requirement: decompressing a reconstructed payload MUST be output-bounded
+
+When a reconstructed buffer payload is compressed (`Gzip`/`Zlib`), decompression MUST enforce a maximum output size
+and abort before exhausting memory, because a reconstructed buffer - unlike an inline `data` argument - is not
+bounded by the transaction size. On exceeding the bound the card MUST render the raw hex view plus an
+oversized-payload affordance instead of the decoded document.
+
+#### Scenario: a reconstructed payload is a decompression bomb
+
+- **WHEN** decompressing the reconstructed bytes would produce output larger than the configured cap
+- **THEN** decompression SHALL be aborted before exhausting memory
+- **AND** the card SHALL render the raw hex view plus a "payload too large" note with a download affordance
+
 ### Requirement: reconstruction MUST be path-independent (fast path and fallback agree)
 
 Buffer reconstruction MUST produce byte-identical results whether it uses the Triton/Helius

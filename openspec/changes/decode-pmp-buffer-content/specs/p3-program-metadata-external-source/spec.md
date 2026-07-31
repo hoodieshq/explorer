@@ -57,3 +57,16 @@ the pointer and an explicit unavailable state rather than blanking or throwing t
 - **WHEN** fetching `ExternalData.address` returns no account
 - **THEN** the card SHALL show the `ExternalData` pointer and a "referenced account unavailable" note
 - **AND** the instruction's account and argument tables SHALL still render
+
+### Requirement: decompressing a fetched External payload MUST be output-bounded
+
+When an External payload is compressed (`Gzip`/`Zlib`), decompression of the fetched account bytes MUST enforce a
+maximum output size and abort before exhausting memory. The resolved-length bound caps the compressed INPUT only,
+not the decompressed OUTPUT, so both bounds apply. On exceeding the output bound the card MUST show the pointer
+plus an oversized-payload affordance instead of the decoded content.
+
+#### Scenario: a fetched External payload is a decompression bomb
+
+- **WHEN** decompressing the fetched account bytes would produce output larger than the configured cap
+- **THEN** decompression SHALL be aborted before exhausting memory
+- **AND** the card SHALL show the `ExternalData` pointer plus a "payload too large" note with a download affordance
