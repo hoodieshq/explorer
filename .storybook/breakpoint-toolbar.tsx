@@ -10,6 +10,7 @@ const TOOL_ID = `${ADDON_ID}/tool`;
 
 // Must match the bsXxx keys in preview.tsx viewport.options
 export const BREAKPOINTS = [
+    { key: 'bsXxs', label: 'xxs·321' },
     { key: 'bsXs', label: 'xs·376' },
     { key: 'bsSm', label: 'sm·577' },
     { key: 'bsMd', label: 'md·769' },

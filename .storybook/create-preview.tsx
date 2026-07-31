@@ -87,7 +87,7 @@ export function createPreview({ mswEnabled }: { mswEnabled: boolean }): Preview 
                 },
             },
             // Bootstrap 5 breakpoint presets — consumed by the breakpoint toolbar.
-            // Keys (bsXs … bsXxl) must match the BREAKPOINTS array in .storybook/breakpoint-toolbar.tsx.
+            // Keys (bsXxs … bsXxl) must match the BREAKPOINTS array in .storybook/breakpoint-toolbar.tsx.
             // INITIAL_VIEWPORTS spread included so responsive stories (iphonex, ipad …) resize correctly in story view.
             // NOTE: Storybook 10 reads `options`, not `viewports` — using the wrong key silently falls back to MINIMAL_VIEWPORTS.
             viewport: {
@@ -98,6 +98,7 @@ export function createPreview({ mswEnabled }: { mswEnabled: boolean }): Preview 
                     bsXl: { name: 'xl·1201', styles: { height: '900px', width: '1201px' }, type: 'desktop' },
                     bsXs: { name: 'xs·376', styles: { height: '667px', width: '376px' }, type: 'mobile' },
                     bsXxl: { name: 'xxl·1401', styles: { height: '900px', width: '1401px' }, type: 'desktop' },
+                    bsXxs: { name: 'xxs·321', styles: { height: '568px', width: '321px' }, type: 'mobile' },
                     ...INITIAL_VIEWPORTS,
                 },
             },
