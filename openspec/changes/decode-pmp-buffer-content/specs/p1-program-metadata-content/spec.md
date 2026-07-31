@@ -1,7 +1,8 @@
 ## ADDED Requirements
 
-> Scope: P1 (Direct-inline) behavior plus the two cross-cutting guards. P2/P3/P4 requirements live in sibling
-> capabilities `p2-program-metadata-buffer-reconstruction`, `p3-program-metadata-external-source`, and
+> Scope: P1 (Direct-inline) behavior plus the cross-cutting guards (local error fallback, bounded decompression)
+> and the analytics event. P2/P3/P4 requirements live in sibling capabilities
+> `p2-program-metadata-buffer-reconstruction`, `p3-program-metadata-external-source`, and
 > `p4-program-metadata-url-source`; implementation still lands per phase - see `design.md`.
 
 ### Requirement: Direct inline (Direct) PMP payloads provided by ix data argument SHALL be decoded and rendered as content
@@ -66,3 +67,28 @@ hex view plus an oversized-payload affordance instead of the decoded content.
 - **WHEN** decompressing a payload would produce output larger than the configured cap
 - **THEN** decompression SHALL be aborted before exhausting memory
 - **AND** the section SHALL render the raw hex view plus a "payload too large" note with a download affordance
+
+### Requirement: decoding PMP buffer content MUST emit a GA analytics event
+
+Decoding PMP buffer content MUST emit a Google Analytics event through the shared `trackEvent`
+(`app/shared/lib/analytics`) when the user triggers the "Decode" action and when a payload is decoded, so feature
+usage is measurable. The event MUST fire client-side only, MUST distinguish reconstructed/fetched sources from
+inline decoding, and MUST NOT add its own consent check (the shared helper and the GA slot already gate on
+consent, environment, and SSR).
+
+#### Scenario: the user triggers the Decode action
+
+- **WHEN** the user clicks "Decode" for a buffer, External, or Url payload
+- **THEN** a GA event SHALL be emitted identifying the `instruction` and the `source` (`buffer`/`external`/`url`)
+
+#### Scenario: a payload is decoded
+
+- **WHEN** decoding, reconstruction, or fetch resolves
+- **THEN** a GA event SHALL be emitted carrying the `outcome` (`decoded`/`incomplete`/`failed`) and the `source`
+- **AND** the `source` SHALL let `inline` decoding be told apart from `buffer`/`external`/`url`
+
+#### Scenario: analytics is unavailable
+
+- **WHEN** the card renders on the server, without analytics consent, or with no measurement id configured
+- **THEN** no event SHALL be emitted
+- **AND** no error SHALL be thrown or surfaced to the user

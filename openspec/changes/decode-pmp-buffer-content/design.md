@@ -405,3 +405,18 @@ exists in `app/features/decode-instruction-with-idl/ui/__stories__/IdlInstructio
 `reconstructBuffer(writes) -> bytes` and `decode(config, bytes) -> string` as RPC-free pure functions and unit-test
 them directly: out-of-order, overlapping, gap, reused-buffer, truncated-history, 96-byte-shift, and
 decompression-cap fixtures. Mock `Connection` for the SWR hook.
+
+## 10. Analytics (GA)
+
+Intent + constraints only - the concrete module and final event names/params are fixed at planning/implementation.
+
+Goal: measure whether people use the decoded-content feature. Fire GA events through the shared
+`trackEvent(name, params)` (`app/shared/lib/analytics`), mirroring the feature-local analytics module pattern
+(`app/features/idl/interactive-idl/lib/analytics.ts`, and shared `refresh.ts`/`receipt.ts`).
+
+Events (names/params final at implementation):
+- `pmp_decode_clicked` - user clicks "Decode" (P2/P3/P4). Params: `instruction`, `source`.
+- `pmp_decode_completed` - decode/reconstruction/fetch resolves. Params: `instruction`, `source`, `format`,
+  `outcome`. The `source` (`inline` vs `buffer`/`external`/`url`) distinguishes "just parsed" from "reconstructed".
+
+Test by mocking `trackEvent` and asserting the event name + params.

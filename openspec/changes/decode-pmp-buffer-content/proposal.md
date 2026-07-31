@@ -71,6 +71,11 @@ content paths are in scope - the ordering isolates risk, it is not a scope cut.
 - **New units.** Pure `decodePmpPayload(bytes, config) -> string` and `reconstructBuffer(writes, dataLength) ->
   bytes` helpers (RPC-free, unit-testable), a new SWR fetch hook, and a "Decoded Content" UI section. Their FSD
   placement is OPEN (see `design.md`).
+- **Analytics (GA).** Fire a Google Analytics event via the shared `trackEvent` (`app/shared/lib/analytics`) when
+  the user triggers Decode (`pmp_decode_clicked`) and when it resolves (`pmp_decode_completed`, with `instruction`
+  / `source` / `format` / `outcome`), following the interactive-IDL feature-local analytics pattern. The `source`
+  param distinguishes reconstructed/fetched from just-parsed. This is how we measure whether the feature is used.
+  No new deps - reuses the existing consent-gated GA wiring.
 
 The `specs/` deltas cover all four phases, one capability each: `p1-program-metadata-content` (P1),
 `p2-program-metadata-buffer-reconstruction` (P2), `p3-program-metadata-external-source` (P3), and
@@ -98,6 +103,8 @@ the single-RPC-stack choice.
 - **Testability.** The pure decode + reconstruct functions are unit-testable without live RPC (out-of-order,
   overlapping, gap, reused-buffer, truncated-history, 96-byte-shift, decompression-cap fixtures). A ready fixture
   exists: `app/features/decode-instruction-with-idl/ui/__stories__/IdlInstructionCard.stories.tsx` feeds real PMP
-  bytes through the decode path.
+  bytes through the decode path. Analytics is tested by mocking `trackEvent` and asserting the event name + params.
+- **Analytics.** One feature-local analytics module (mirroring `interactive-idl/lib/analytics.ts`) firing
+  `pmp_decode_*` events through the shared consent-gated `trackEvent`.
 - **Open decisions** (FSD placement, UI layout, single RPC stack) are called out in `design.md` and settled at
   planning time. This proposal states the direction and the accepted trade-offs, not the final module layout.
