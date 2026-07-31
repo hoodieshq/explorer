@@ -22,16 +22,28 @@ The `Url`/`External` + buffer combinations are drawn for completeness but are un
 
 - `decode-ix` - decode raw ix bytes with the typed decoder (`getSetData`/`getInitialize`/`getWrite...DataDecoder`)
   into config (`encoding`, `compression`, `format`, `dataSource`) + `data` (Option bytes).
-- `unpack(bytes)` - `uncompress(compression)` then `decode(encoding)` into a string. This is `unpackDirectData`.
-- `reconstruct(acc)` - `getSignaturesForAddress` + `getTransaction`, replay `write` chunks offset-patched up to the
-  viewed slot, into bytes (P2). Runs behind the Decode button.
-- `parse-external(bytes)` - decode the `ExternalData{address, offset, length}` pointer (plain struct, no unpack).
-- `fetch-account(address)` - `getAccountInfo` then slice `[offset, offset+length)` (whole account when length 0).
+- `unpack(bytes)` - `uncompress(compression)` then `decode(encoding)` into a string. This is `unpackDirectData` for
+  transaction-bounded INLINE bytes. Buffer-sourced (P2) and fetched External (P3) bytes go through the
+  output-bounded inflate instead, then the same `decodeData` encoding step (`design.md` §3 and §6).
+- `reconstruct(acc)` - `getSignaturesForAddress` + `getTransaction` (or the Triton `getTransactionsForAddress` fast
+  path), replay `write` chunks offset-patched in execution order up to the viewed transaction's EXECUTION POSITION
+  (slot, transactionIndex, intra-tx ix index), into bytes (P2). Runs behind the Decode button. A same-slot
+  transaction the fallback cannot order against the viewed one is excluded and flagged. It also DERIVES
+  `data_length` from BOUNDS - a lower bound from a forward size replay, an upper bound from the account's
+  rent-exempt balance - and reports `complete` only where the two meet with clean coverage, so a pruned tail can
+  neither shrink the target nor pass as complete (`design.md` §4.2). When the viewed tx is the metadata account's
+  current state, a live read of that account supersedes this step entirely.
+- `parse-external(bytes)` - decode the exactly-40-byte `ExternalData{address, offset, length}` pointer with
+  `unpackExternalData` (plain struct, no unpack).
+- `fetch-account(address)` - `getAccountInfo` with a bounded `dataSlice`, then slice `[offset, offset+length)` (whole
+  account when `length` is absent, which is how an all-zeroes length field decodes).
 - `fetch-url(url)` - `fetch(url)` then read text, guarded (http(s)-only, size cap, timeout, prefer server proxy).
 - `render(str, format)` - JSON pretty-print / YAML / TOML / text verbatim / hex.
 
-Note: the SDK's `unpackAndFetchData` already encapsulates the whole stage 2 (`Direct` | `Url` | `External`) in one
-call when given a kit `Rpc`. Stage 1 buffer reconstruction is ours to build.
+Note: the SDK's `unpackAndFetchData` looks like it encapsulates the whole of stage 2, but only its `Direct` branch
+is usable. Its `Url` fetch is unguarded and its `External` branch fetches unsliced, throws on a missing account, and
+inflates unbounded, so `fetch-account`/`fetch-url` are hand-rolled (see `design.md` §2). Stage 1 buffer
+reconstruction is ours to build either way.
 
 ---
 
@@ -39,12 +51,12 @@ call when given a kit `Rpc`. Stage 1 buffer reconstruction is ours to build.
 
 ```mermaid
 flowchart TD
-    S["PMP setData ix"] --> DEC["decode-ix: encoding, compression, format, dataSource, data"]
+    S["PMP setData ix"] --> Q0{"ix data length"}
+    Q0 -->|"4 bytes (no dataSource)"| H["header-only hint update: nothing new to decode"]
+    Q0 -->|"5+ bytes"| DEC["decode-ix: encoding, compression, format, dataSource, data"]
     DEC --> Q1{"inline data present?"}
     Q1 -->|yes| B1["bytes = inline data arg (0 RPC)"]
-    Q1 -->|no| Q2{"buffer acc idx2"}
-    Q2 -->|"not PMP id"| B2["reconstruct(foreign buffer) up to viewedSlot (P2)"]
-    Q2 -->|"== PMP id"| H["header-only hint update: nothing new to decode"]
+    Q1 -->|"no (buffer acc idx2 != PMP id)"| B2["reconstruct(foreign buffer) up to the viewed position (P2)"]
     B1 --> DS{"dataSource"}
     B2 --> DS
     DS -->|Direct| D1["unpack = content"]
@@ -59,11 +71,14 @@ One-line action lists:
 
 - Direct + data arg: `decode-ix` -> `unpack(data)` -> `render`. 0 RPC.
 - Direct + buffer acc: `decode-ix` -> `reconstruct(buffer)` -> `unpack` -> `render`. Behind Decode button.
-- External + data arg: `decode-ix` -> `parse-external(data)` -> `fetch-account` -> `unpack(slice)` -> `render`. Behind Decode.
-- External + buffer acc: `decode-ix` -> `reconstruct(buffer)` -> `parse-external` -> `fetch-account` -> `unpack(slice)` -> `render`. Rare/unused.
+- External + data arg: `decode-ix` -> `parse-external(data)` -> `fetch-account` -> `unpack(slice)` -> `render`.
+  Behind Decode.
+- External + buffer acc: `decode-ix` -> `reconstruct(buffer)` -> `parse-external` -> `fetch-account` ->
+  `unpack(slice)` -> `render`. Rare/unused.
 - Url + data arg: `decode-ix` -> `unpack(data)` = URL -> `fetch-url` -> `render(body, format)`. Behind Decode, guarded.
 - Url + buffer acc: `decode-ix` -> `reconstruct(buffer)` -> `unpack` = URL -> `fetch-url` -> `render`. Rare/unused.
-- Header-only (data empty, buffer == PMP id): `decode-ix` -> show updated hints, nothing to decode.
+- Header-only (4-byte ix data, no `dataSource` byte): read the three hints directly, show them, nothing to decode.
+  The typed `setData` decoder cannot decode this shape, so guard on the length before calling it.
 
 ---
 
@@ -77,7 +92,7 @@ flowchart TD
     S["PMP initialize ix"] --> DEC["decode-ix: seed, encoding, compression, format, dataSource, data"]
     DEC --> Q1{"inline data present?"}
     Q1 -->|yes| B1["bytes = inline data arg (0 RPC)"]
-    Q1 -->|"no (in-place)"| B2["reconstruct(metadata PDA accounts[0]) up to viewedSlot (P2)"]
+    Q1 -->|"no (in-place)"| B2["reconstruct(metadata PDA accounts[0]) up to the viewed position (P2)"]
     B1 --> DS{"dataSource"}
     B2 --> DS
     DS -->|Direct| D1["unpack = content"]
@@ -92,8 +107,10 @@ One-line action lists:
 
 - Direct + data arg: `decode-ix` -> `unpack(data)` -> `render`. 0 RPC.
 - Direct + in-place: `decode-ix` -> `reconstruct(metadataPda)` -> `unpack` -> `render`. Behind Decode button.
-- External + data arg: `decode-ix` -> `parse-external(data)` -> `fetch-account` -> `unpack(slice)` -> `render`. Behind Decode.
-- External + in-place: `decode-ix` -> `reconstruct(metadataPda)` -> `parse-external` -> `fetch-account` -> `unpack(slice)` -> `render`. Rare/unused.
+- External + data arg: `decode-ix` -> `parse-external(data)` -> `fetch-account` -> `unpack(slice)` -> `render`.
+  Behind Decode.
+- External + in-place: `decode-ix` -> `reconstruct(metadataPda)` -> `parse-external` -> `fetch-account` ->
+  `unpack(slice)` -> `render`. Rare/unused.
 - Url + data arg: `decode-ix` -> `unpack(data)` = URL -> `fetch-url` -> `render(body, format)`. Behind Decode, guarded.
 - Url + in-place: `decode-ix` -> `reconstruct(metadataPda)` -> `unpack` = URL -> `fetch-url` -> `render`. Rare/unused.
 
@@ -116,3 +133,7 @@ One-line action lists:
 
 - Inline chunk: `decode-ix` -> show `offset` + raw chunk (hex/base64). 0 RPC. No content decode.
 - From sourceBuffer (data empty, idx2 set): `decode-ix` -> show `sourceBuffer` address + note. No reconstruction here.
+
+The same shape matters inside P2 replay: such a `write` copies the whole source buffer body, so its bytes are not in
+the transaction and the range it covers is unrecoverable - `[offset, dataLength)` when a length is derived, an
+unbounded tail from `offset` when none is, never a zero-length range. Reconstruction marks it, it does not patch it.

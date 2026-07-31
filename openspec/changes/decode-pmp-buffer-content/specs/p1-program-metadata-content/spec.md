@@ -1,17 +1,28 @@
 ## ADDED Requirements
 
 > Scope: P1 (Direct-inline) behavior plus the cross-cutting guards (local error fallback, render-size cap) and the
-> analytics event. The unbounded-inflate (decompression-bomb) guard lives in P2/P3, where buffer-sourced/fetched
+> inline analytics event. The unbounded-inflate (decompression-bomb) guard lives in P2/P3, where buffer-sourced/fetched
 > bytes are not transaction-size bounded. P2/P3/P4 requirements live in sibling capabilities
 > `p2-program-metadata-buffer-reconstruction`, `p3-program-metadata-external-source`, and
-> `p4-program-metadata-url-source`; implementation still lands per phase - see `design.md`.
+> `p4-program-metadata-url-source`. Implementation still lands per phase - see `design.md`.
 
-### Requirement: Direct inline (Direct) PMP payloads provided by ix data argument SHALL be decoded and rendered as content
+### Requirement: inline (Direct) PMP payloads carried by the ix data argument SHALL be decoded and rendered
 
-The instruction card SHALL decode the inline `data` of a `setData` or `initialize` instruction whose `dataSource`
-is `Direct`, applying the on-chain `encoding` and `compression`, and render the decoded document alongside the raw
-bytes. The decode config (`encoding`, `compression`, `format`, `dataSource`, `data`) MUST be read by decoding the
-raw instruction bytes with the library's typed decoders, not by mapping Codama-parsed argument strings.
+Where the instruction card renders a decoded PMP `setData` or `initialize`, the card SHALL decode the inline `data`
+when `dataSource` is `Direct`, applying the on-chain `encoding` and `compression`, and render the decoded document
+alongside the raw bytes. The decode config (`encoding`, `compression`, `format`, `dataSource`, `data`) MUST be read by
+decoding the raw instruction bytes with the library's typed decoders, not by mapping Codama-parsed argument strings.
+Because `setData` carries `dataSource` as an optional trailing byte that the typed decoder requires, the config decode
+MUST branch on the instruction data length before invoking that decoder.
+
+Two limits of the chosen integration point are not resolved by this requirement, and both depend on the open decision
+in `design.md` section 7:
+
+- a 4-byte header-only `setData` never reaches a decoded card at all, because the Codama dynamic parser throws on the
+  missing mandatory `dataSource` field and the card falls through to the Unknown fallback, so the length branch above
+  cannot run there and the header-only scenario below is only reachable once that decision lands
+- the card path is gated on runtime PMP IDL resolution, while P1 needs no IDL, since the typed decoders ship in the
+  installed package, so an IDL-free decode also depends on that decision
 
 #### Scenario: `setData` carries an inline Direct JSON document
 
@@ -29,6 +40,13 @@ raw instruction bytes with the library's typed decoders, not by mapping Codama-p
 
 - **WHEN** the instruction's `encoding` is `None`
 - **THEN** the payload SHALL be rendered as hex, not as text
+
+#### Scenario: `setData` carries only the header hints
+
+- **WHEN** a `setData` instruction's data is 4 bytes (`discriminator`, `encoding`, `compression`, `format`), the
+  header-only shape that carries neither `dataSource` nor a payload
+- **THEN** the card SHALL render the updated hints and state that this instruction carries no new payload
+- **AND** SHALL NOT surface a decode failure, since the typed `setData` decoder cannot decode that shape
 
 ### Requirement: `write` instructions SHALL display the carried chunk without reconstruction
 
@@ -60,35 +78,36 @@ the card-level error boundary that would replace the whole card with the Unknown
 
 ### Requirement: rendered decoded content MUST be size-capped
 
-The decoded content rendered into the card MUST be bounded by a maximum render size, and on exceeding it MUST
-render the raw hex view plus an oversized-payload affordance instead of the full decoded document. Inline Direct
-payloads are already transaction-size bounded, so P1 needs no decompression-output bound - the unbounded-inflate
-guard lives in P2/P3, where buffer-sourced or fetched bytes are not transaction-bounded.
+The decoded content rendered into the card MUST be bounded by the configurable render cap
+`PMP_DECODED_RENDER_CAP_BYTES` (default 256 KB), and on exceeding it MUST render a bounded preview instead of the full
+decoded document. The preview is the first `PMP_DECODED_RENDER_CAP_BYTES` bytes as hex, the payload's total byte count,
+and a download affordance for the full bytes. `HexData` cannot serve as that fallback on its own, because at
+`truncate: false` it renders every byte, which is the cost being avoided, and at `truncate: true` it shows only 8 head
+plus 8 tail bytes, which is not a usable view of the payload. Inline Direct payloads are already transaction-size
+bounded, so P1 needs no decompression-output bound - the unbounded-inflate guard lives in P2/P3, where buffer-sourced
+or fetched bytes are not transaction-bounded.
 
 #### Scenario: decoded content exceeds the render cap
 
-- **WHEN** the decoded document is larger than the configured render cap
+- **WHEN** the decoded document is larger than `PMP_DECODED_RENDER_CAP_BYTES`
 - **THEN** the card SHALL NOT render the full decoded content
-- **AND** SHALL render the raw hex view plus a "payload too large" note with a download affordance
+- **AND** SHALL render a hex view of the first `PMP_DECODED_RENDER_CAP_BYTES` bytes, the payload's total byte count,
+  and a "payload too large" note with a download affordance for the full bytes
 
-### Requirement: decoding PMP buffer content MUST emit a GA analytics event
+### Requirement: decoding an inline PMP payload MUST emit a GA analytics event
 
-Decoding PMP buffer content MUST emit a Google Analytics event through the shared `trackEvent`
-(`app/shared/lib/analytics`) when the user triggers the "Decode" action and when a payload is decoded, so feature
-usage is measurable. The event MUST fire client-side only, MUST distinguish reconstructed/fetched sources from
-inline decoding, and MUST NOT add its own consent check (the shared helper and the GA slot already gate on
-consent, environment, and SSR).
+Decoding an inline PMP payload MUST emit a Google Analytics event through the shared `trackEvent`
+(`app/shared/lib/analytics`) so feature usage is measurable. The event MUST fire client-side only, MUST carry
+`source = inline` so inline decoding can be told apart from the `buffer`/`external`/`url` sources that P2/P3/P4 add,
+and MUST NOT add its own consent check (the shared helper and the GA slot already gate on consent, environment, and
+SSR). P1 has no "Decode" action, that trigger first exists in P2, so P1 emits on the inline decode only. P2, P3 and P4
+each own the event for their own Decode trigger and outcome, and P2 owns the outcome vocabulary.
 
-#### Scenario: the user triggers the Decode action
+#### Scenario: an inline payload is decoded
 
-- **WHEN** the user clicks "Decode" for a buffer, External, or Url payload
-- **THEN** a GA event SHALL be emitted identifying the `instruction` and the `source` (`buffer`/`external`/`url`)
-
-#### Scenario: a payload is decoded
-
-- **WHEN** decoding, reconstruction, or fetch resolves
-- **THEN** a GA event SHALL be emitted carrying the `outcome` (`decoded`/`incomplete`/`failed`) and the `source`
-- **AND** the `source` SHALL let `inline` decoding be told apart from `buffer`/`external`/`url`
+- **WHEN** an inline Direct payload decodes on the instruction card
+- **THEN** a GA event SHALL be emitted identifying the `instruction` and carrying `source = inline`
+- **AND** the event's `outcome` SHALL be `decoded`, or `failed` when the local decode fallback is taken
 
 #### Scenario: analytics is unavailable
 
