@@ -4,6 +4,7 @@ import { INITIAL_VIEWPORTS } from 'storybook/viewport';
 
 import { rubikFont } from '@/app/styles';
 
+import { BREAKPOINT_VIEWPORTS } from './breakpoints';
 import type { Preview } from './types';
 
 // Storybook serialises story args with JSON.stringify (for the controls panel and inter-frame
@@ -86,19 +87,12 @@ export function createPreview({ mswEnabled }: { mswEnabled: boolean }): Preview 
                     return 0;
                 },
             },
-            // Bootstrap 5 breakpoint presets — consumed by the breakpoint toolbar.
-            // Keys (bsXxs … bsXxl) must match the BREAKPOINTS array in .storybook/breakpoint-toolbar.tsx.
+            // Breakpoint presets generated from tailwind.config `breakpoints` (see ./breakpoints).
             // INITIAL_VIEWPORTS spread included so responsive stories (iphonex, ipad …) resize correctly in story view.
             // NOTE: Storybook 10 reads `options`, not `viewports` — using the wrong key silently falls back to MINIMAL_VIEWPORTS.
             viewport: {
                 options: {
-                    bsLg: { name: 'lg·993', styles: { height: '768px', width: '993px' }, type: 'desktop' },
-                    bsMd: { name: 'md·769', styles: { height: '1024px', width: '769px' }, type: 'tablet' },
-                    bsSm: { name: 'sm·577', styles: { height: '812px', width: '577px' }, type: 'mobile' },
-                    bsXl: { name: 'xl·1201', styles: { height: '900px', width: '1201px' }, type: 'desktop' },
-                    bsXs: { name: 'xs·376', styles: { height: '667px', width: '376px' }, type: 'mobile' },
-                    bsXxl: { name: 'xxl·1401', styles: { height: '900px', width: '1401px' }, type: 'desktop' },
-                    bsXxs: { name: 'xxs·321', styles: { height: '568px', width: '321px' }, type: 'mobile' },
+                    ...BREAKPOINT_VIEWPORTS,
                     ...INITIAL_VIEWPORTS,
                 },
             },
