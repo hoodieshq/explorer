@@ -132,6 +132,20 @@ describe('decodePmpPayload', () => {
         });
     });
 
+    it('should not apply the unpack limit to an uncompressed payload', () => {
+        // `uncompressData` hands `Compression.None` input straight back, so there is nothing to unpack and nothing
+        // for the limit to guard. Such a payload has to reach its encoding budget rather than be refused here.
+        const result = decodePmpPayload({
+            config: { compression: Compression.None, encoding: Encoding.Utf8, format: Format.None },
+            data: new Uint8Array(PMP_MAX_PACKED_INPUT_BYTES + 1),
+        });
+
+        // What makes this discriminating: the fixture sits between the two limits, past the unpack limit and inside
+        // the Utf8 budget. Fails if they are ever moved so close together that it no longer does.
+        expect(PMP_MAX_PACKED_INPUT_BYTES).toBeLessThan(PMP_DECODE_BUDGET_BYTES[Encoding.Utf8]);
+        expect(result.kind).toBe('decoded');
+    });
+
     it('should report failed with a reason when the compressed stream is corrupt', () => {
         // `uncompressData` surfaces pako's failure by throwing a bare STRING, not an Error, so the reason
         // extraction has to handle a non-Error throw. This test is the guard for that.
@@ -204,6 +218,43 @@ describe('decodePmpPayload', () => {
         expect(Logger.debug).toHaveBeenCalledWith(expect.stringContaining('Format.Json'), expect.anything());
         expect(Logger.error).not.toHaveBeenCalled();
         expect(Logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should report zero bytes as empty rather than as a successful blank document', () => {
+        // Every encoding decodes nothing to the empty string, so without this state the card renders an empty
+        // `pre` styled exactly like a real document. Checked per encoding because each has its own decoder.
+        for (const encoding of [Encoding.None, Encoding.Utf8, Encoding.Base58, Encoding.Base64]) {
+            const result = decodePmpPayload({
+                config: { compression: Compression.None, encoding, format: Format.Json },
+                data: new Uint8Array(0),
+            });
+
+            expect(result).toEqual({ kind: 'empty' });
+        }
+    });
+
+    it('should report zero bytes as empty even when the hints declare a compression', () => {
+        // pako throws on an empty stream, so without the pre-unpack check an account that simply holds nothing
+        // comes back as `failed` with a corrupt-header reason, which reads as data loss rather than emptiness.
+        const result = decodePmpPayload({
+            config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
+            data: new Uint8Array(0),
+        });
+
+        expect(result).toEqual({ kind: 'empty' });
+    });
+
+    it('should report a real stream that decompresses to nothing as empty', () => {
+        // A gzip of an empty document is 20 actual bytes, so the pre-unpack check cannot see this one - only the
+        // post-unpack check catches it. Built with the library's own producer to prove the shape is reachable.
+        const packed = pack('', Compression.Gzip);
+        const result = decodePmpPayload({
+            config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
+            data: packed,
+        });
+
+        expect(packed.length).toBeGreaterThan(0);
+        expect(result).toEqual({ kind: 'empty' });
     });
 
     it('should log nothing at all when the payload decodes', () => {

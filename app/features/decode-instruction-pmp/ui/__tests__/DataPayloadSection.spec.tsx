@@ -386,6 +386,19 @@ describe('DataPayloadSection', () => {
         expect(screen.getByRole('tab', { name: 'Raw' })).toBeInTheDocument();
     });
 
+    it('should say the payload is empty rather than render a blank document', () => {
+        // `allocate` with no `write` yet leaves a live 96-byte buffer: header, no body. Every encoding decodes zero
+        // bytes to the empty string, so this used to open the Decoded panel on an empty `pre` that looked like a
+        // document the reader had to scroll for. Lamports are non-zero, so this is NOT the closed-account shape.
+        mockUseAccountInfo.mockReturnValue(fetchedEntry(bufferAccountData(new Uint8Array(0))));
+        renderSection(DEFERRED_SET_DATA);
+
+        expect(screen.getByTestId('pmp-payload-empty')).toHaveTextContent(/payload is empty/i);
+        expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-account-absent')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-decode-error')).not.toBeInTheDocument();
+    });
+
     it('should say the account is gone rather than fail when the buffer was closed', () => {
         // The provider's closed-account shape, and the common outcome on a historical setData: the client closes
         // the source buffer in the same flow to reclaim its rent.

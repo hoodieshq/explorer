@@ -1,5 +1,4 @@
-import { decodeData, uncompressData } from '@solana-program/program-metadata';
-import { Format } from '@solana-program/program-metadata';
+import { Compression, decodeData, Format, uncompressData } from '@solana-program/program-metadata';
 
 import { Logger } from '@/app/shared/lib/logger';
 
@@ -12,13 +11,17 @@ import type { PmpDecodeConfig, PmpDecodedPayload } from './types';
  * without losing its accounts and config tables.
  *
  * Two bounds apply, because they guard different costs:
- * - `PMP_MAX_PACKED_INPUT_BYTES` on the PACKED bytes, before `uncompressData` sees them at all.
+ * - `PMP_MAX_PACKED_INPUT_BYTES` on the PACKED bytes of a COMPRESSED payload, before `uncompressData` sees them at
+ *   all, because a small deflate stream can inflate into hundreds of megabytes.
  * - the per-encoding budget on the DECOMPRESSED bytes, checked BEFORE the encoding step so an oversized payload is
  *   never handed to `decodeData` or `JSON.parse`. That is the cost the budget exists to avoid, and it is where the
  *   render stays responsive: with `Encoding.Base58` the decode is quadratic. See `PMP_DECODE_BUDGET_BYTES`.
  *
  * `cap` overrides the per-encoding budget for the whole call. It exists so tests and stories can reach the guard
  * states without building a fixture hundreds of kilobytes wide.
+ *
+ * Zero payload bytes come back as `empty`, never as `decoded`. Every encoding decodes nothing to the empty string,
+ * which would otherwise render as a blank document styled exactly like a successful one.
  */
 export function decodePmpPayload({
     config,
@@ -33,8 +36,14 @@ export function decodePmpPayload({
 
     // Outside the `try` on purpose: a length comparison cannot throw, and putting it here makes it obvious that
     // nothing has touched the packed bytes yet.
-    if (data.length > PMP_MAX_PACKED_INPUT_BYTES) {
+    if (config.compression !== Compression.None && data.length > PMP_MAX_PACKED_INPUT_BYTES) {
         return { kind: 'packed-oversized', length: data.length, limit: PMP_MAX_PACKED_INPUT_BYTES };
+    }
+
+    // Checked before the unpack, not just after it: pako throws on an empty stream, so a declared compression would
+    // otherwise report an account that simply holds nothing as a corrupt one.
+    if (data.length === 0) {
+        return { kind: 'empty' };
     }
 
     try {
@@ -43,6 +52,10 @@ export function decodePmpPayload({
         const bytes = uncompressData(data, config.compression);
         if (bytes.length > budget) {
             return { budget, bytes: bytes.subarray(), kind: 'oversized' };
+        }
+
+        if (bytes.length === 0) {
+            return { kind: 'empty' };
         }
 
         const text = decodeData(bytes, config.encoding);
@@ -78,7 +91,7 @@ function toDecodeFailureReason(error: unknown): string {
 
 /**
  * Renders an already-decoded payload string for display.
- * Only `Json` is is re-serialised with indentation so a minified document is readable.
+ * Only `Json` is re-serialised with indentation so a minified document is readable.
  * Yaml/Toml/None stay verbatim - no parser library is pulled in.
  */
 export function toDocumentText(text: string, format: Format): string {

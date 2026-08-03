@@ -209,6 +209,38 @@ describe('decodePmpBufferAccount', () => {
         );
     });
 
+    it('should report a header-only Buffer account as an empty payload, not a blank document', () => {
+        // `allocate` leaves exactly this: 96 bytes of header, discriminator Buffer, no body yet. It clears the
+        // short-account guard, and the remainder decoder hands back zero bytes.
+        const account = bufferAccount(new Uint8Array(0));
+
+        expect(account).toHaveLength(96);
+        expect(read(account)).toMatchObject({ kind: 'payload', payload: { kind: 'empty' } });
+    });
+
+    it('should report a Metadata account whose dataLength is zero as an empty payload', () => {
+        const result = read(metadataAccount({ body: new Uint8Array(0) }));
+
+        expect(result).toMatchObject({ account: 'metadata', kind: 'payload', payload: { kind: 'empty' } });
+    });
+
+    it('should report a dataLength that runs past the account body to Sentry and render what exists', () => {
+        const body = pack(DOC, Compression.None);
+        // The header claims 500 bytes on an account that holds `body.length`. `subarray` clamps rather than
+        // throwing, so nothing else would notice.
+        const result = read(metadataAccount({ body, dataLength: 500 }));
+
+        expect(Logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('dataLength runs past'),
+            expect.objectContaining({
+                sentry: true,
+                sentryExtras: expect.objectContaining({ available: body.length, dataLength: 500 }),
+            }),
+        );
+        // Clamped, not lost: the bytes that do exist still decode.
+        expect(result).toMatchObject({ kind: 'payload', payload: { kind: 'decoded', text: DOC_PRETTY } });
+    });
+
     it('should log nothing when an account decodes', () => {
         read(bufferAccount(pack(DOC, Compression.None)));
 

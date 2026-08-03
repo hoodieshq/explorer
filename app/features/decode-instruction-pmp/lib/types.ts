@@ -43,20 +43,24 @@ export type PmpContentInstruction =
 export type PmpPayloadInstruction = Extract<PmpContentInstruction, { kind: 'setData' | 'initialize' }>;
 
 /**
- * Result of decoding an inline payload. Three guard states, and none of them may throw out to the card or render as
- * a successful document:
+ * Result of decoding an inline payload. Four non-document states, and none of them may throw out to the card or
+ * render as a successful document:
  * - `oversized` is past the decode budget for its encoding. It carries the full decompressed bytes and no text,
  *   because nothing above the budget is decoded at all, so copy and download still work. `budget` is carried
  *   because it now varies by encoding, and the alert has to say which limit was hit.
  * - `packed-oversized` was refused BEFORE unpacking, so unlike `oversized` there are no decompressed bytes to
  *   offer: they were never produced. Only the still-packed bytes the caller already had exist.
  * - `failed` is a malformed stream or a payload that does not match its declared encoding.
+ * - `empty` is zero payload bytes, which every encoding decodes to the empty string. An ordinary state, not a
+ *   failure: an allocated-but-unwritten buffer reads this way. It carries nothing because there is nothing to
+ *   carry, and it exists so `decoded` can never mean a blank document - see `decodePmpPayload`.
  *
  * `text` is display-ready: a `Json` payload arrives pretty-printed, everything else verbatim. The card renders it
  * as-is, so nothing downstream has to know which format produced it.
  */
 export type PmpDecodedPayload =
     | { kind: 'decoded'; text: string; bytes: Uint8Array }
+    | { kind: 'empty' }
     | { kind: 'oversized'; bytes: Uint8Array; budget: number }
     | { kind: 'packed-oversized'; length: number; limit: number }
     | { kind: 'failed'; reason: string };

@@ -51,9 +51,12 @@ export const PMP_DECODE_BUDGET_BYTES: Record<Encoding, number> = {
 };
 
 /**
- * Ceiling on the PACKED payload, checked before it is unpacked at all.
+ * Ceiling on the PACKED payload, checked before it is unpacked at all. Applies only to a COMPRESSED payload:
+ * `Compression.None` hands the input straight back, so there is nothing to bound on that path.
+ *
+ * The number comes from deflate's expansion ratio, not from the payload sizes we expect.
  */
-export const PMP_MAX_PACKED_INPUT_BYTES = 1024 * 1024;
+export const PMP_MAX_PACKED_INPUT_BYTES = 64 * 1024;
 
 /** Download base names. `DownloadDropdown` appends `_<encoding>.txt`, so no extension belongs here. */
 export const PMP_RAW_DOWNLOAD_FILENAME = 'pmp-payload-raw';

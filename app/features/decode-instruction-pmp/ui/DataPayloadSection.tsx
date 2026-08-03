@@ -303,6 +303,14 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
         );
     }
 
+    if (decoded.kind === 'empty') {
+        return (
+            <Alert variant="default" data-testid="pmp-payload-empty" className="!mb-0">
+                The payload is empty.
+            </Alert>
+        );
+    }
+
     // Plain text rather than a JSON viewer: the common payload is a program IDL, and react-json-view is not
     // virtualized, so an interactive tree costs thousands of nodes per card. A Json payload arrives already
     // pretty-printed from `toDocumentText`, so every format renders through this one node.
