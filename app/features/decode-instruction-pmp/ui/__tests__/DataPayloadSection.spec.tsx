@@ -35,14 +35,6 @@ vi.mock('@providers/accounts', () => ({
     useFetchAccountInfo: () => mockFetchAccountInfo,
 }));
 
-// The real viewer is a next/dynamic import with ssr: false, so it resolves asynchronously and would force every
-// assertion to be awaited. Stub it the way MetadataCard.spec.tsx does, which is the established pattern.
-vi.mock('@/app/components/common/JsonViewer', () => ({
-    SolarizedJsonViewer: ({ src }: { src: unknown }) => (
-        <div data-testid="json-viewer">{JSON.stringify(src, null, 2)}</div>
-    ),
-}));
-
 vi.mock('@/app/components/common/Address', () => ({
     Address: ({ pubkey }: { pubkey: { toBase58(): string } }) => <div data-testid="address">{pubkey.toBase58()}</div>,
 }));
@@ -114,7 +106,7 @@ describe('DataPayloadSection', () => {
         mockUseAccountInfo.mockReset().mockReturnValue(undefined);
     });
 
-    it('should render an inline Direct JSON payload through the JSON viewer', async () => {
+    it('should render an inline Direct JSON payload as a pretty-printed document', async () => {
         renderSection({
             config: JSON_CONFIG,
             dataSource: DataSource.Direct,
@@ -123,10 +115,12 @@ describe('DataPayloadSection', () => {
         });
         await openDecodedTab();
 
-        const viewer = screen.getByTestId('json-viewer');
-        expect(viewer).toHaveTextContent('company');
-        expect(viewer).toHaveTextContent('1.0.0');
-        expect(screen.getByTestId('pmp-decoded-json')).toBeInTheDocument();
+        const decoded = screen.getByTestId('pmp-decoded-text');
+        expect(decoded).toHaveTextContent('company');
+        expect(decoded).toHaveTextContent('1.0.0');
+        // Pretty-printed rather than echoed back verbatim, which is what separates a parsed document from the
+        // verbatim-text fallback a Json payload lands on when its bytes do not parse.
+        expect(decoded.textContent).toContain('\n  "name": "company"');
     });
 
     it('should also offer the raw encoded bytes on a Raw tab', async () => {
@@ -156,10 +150,10 @@ describe('DataPayloadSection', () => {
         });
         await openDecodedTab();
 
-        expect(screen.getByTestId('json-viewer')).toHaveTextContent('1.0.0');
+        expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('1.0.0');
     });
 
-    it('should render a Yaml payload as verbatim text rather than through the viewer', async () => {
+    it('should render a Yaml payload as verbatim text rather than as a parsed document', async () => {
         renderSection({
             config: { compression: Compression.None, encoding: Encoding.Utf8, format: Format.Yaml },
             dataSource: DataSource.Direct,
@@ -169,7 +163,6 @@ describe('DataPayloadSection', () => {
         await openDecodedTab();
 
         expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('name: company');
-        expect(screen.queryByTestId('json-viewer')).not.toBeInTheDocument();
     });
 
     it('should render an Encoding None payload as hex text rather than as characters', async () => {
@@ -194,7 +187,6 @@ describe('DataPayloadSection', () => {
         await openDecodedTab();
 
         expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('{not json');
-        expect(screen.queryByTestId('json-viewer')).not.toBeInTheDocument();
     });
 
     it('should state that a header-only setData carries no new payload without surfacing a decode failure', () => {
@@ -202,7 +194,6 @@ describe('DataPayloadSection', () => {
 
         expect(screen.getByTestId('pmp-header-only-note')).toBeInTheDocument();
         expect(screen.queryByTestId('pmp-decode-error')).not.toBeInTheDocument();
-        expect(screen.queryByTestId('pmp-decoded-json')).not.toBeInTheDocument();
         expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
     });
 
@@ -243,7 +234,7 @@ describe('DataPayloadSection', () => {
         // already names it, so the section stays a plain bytes view rather than repeating the same fact.
         expect(screen.getByTestId('pmp-payload-raw')).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: 'Decoded' })).toBeInTheDocument();
-        expect(screen.queryByTestId('pmp-decoded-json')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
     });
 
     it('should render a Url payload pointer as decoded text without resolving it', async () => {
@@ -271,7 +262,7 @@ describe('DataPayloadSection', () => {
         await openDecodedTab();
 
         expect(screen.getByTestId('pmp-decode-error')).toHaveTextContent('incorrect header check');
-        expect(screen.queryByTestId('pmp-decoded-json')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
         // The failed panel no longer repeats a raw view of its own - Raw is a sibling tab, so the bytes stay one
         // click away. Assert the escape hatch is still reachable rather than that it is mounted right now.
         expect(screen.getByRole('tab', { name: 'Raw' })).toBeInTheDocument();
@@ -294,7 +285,7 @@ describe('DataPayloadSection', () => {
         // The DECOMPRESSED size, which is what the cap is measured on - the on-chain payload here is 2048 bytes
         // uncompressed, so the two happen to match, but the number reported is the decoded one.
         expect(oversized).toHaveTextContent('2048 bytes');
-        expect(screen.queryByTestId('pmp-decoded-json')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
         // The panel carries its OWN copy/download over the decompressed bytes. The sibling Raw tab is not a
         // substitute: that one serves the on-chain payload, so for a compressed document it would hand back the
         // compressed bytes. Without this the Alert's "Copy or download it instead" would point at nothing.
@@ -372,8 +363,7 @@ describe('DataPayloadSection', () => {
         renderSection(DEFERRED_SET_DATA);
 
         // Account content opens on the DECODED panel, unlike an inline payload, which opens Raw.
-        expect(screen.getByTestId('pmp-decoded-json')).toHaveTextContent('"name": "company"');
-        expect(screen.getByTestId('pmp-account-current-state-note')).toHaveTextContent(/current on-chain content/i);
+        expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('"name": "company"');
         expect(screen.getByRole('tab', { name: 'Raw' })).toBeInTheDocument();
     });
 
@@ -394,7 +384,7 @@ describe('DataPayloadSection', () => {
         renderSection(DEFERRED_SET_DATA);
 
         expect(screen.getByTestId('pmp-account-unreadable')).toHaveTextContent(BUFFER_ADDRESS);
-        expect(screen.queryByTestId('pmp-decoded-json')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
     });
 
     it('should surface an RPC failure as its own state', () => {

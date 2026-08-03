@@ -25,13 +25,6 @@ export const PMP_CODAMA_PROGRAM_NAME = 'ProgramMetadata';
  */
 export const PMP_DECODED_RENDER_CAP_BYTES = 256 * 1024;
 
-/**
- * Depth at which the decoded JSON tree starts collapsed. `@microlink/react-json-view` is not virtualized and the
- * common payload is a program IDL, so an expanded root would render thousands of nodes. The IDL page collapses
- * for the same reason.
- */
-export const PMP_JSON_COLLAPSE_DEPTH = 1;
-
 /** Download base names. `DownloadDropdown` appends `_<encoding>.txt`, so no extension belongs here. */
 export const PMP_RAW_DOWNLOAD_FILENAME = 'pmp-payload-raw';
 export const PMP_DECODED_DOWNLOAD_FILENAME = 'pmp-payload-decoded';

@@ -150,7 +150,7 @@ function WriteRows({ content }: { content: Extract<PmpContentInstruction, { kind
             {/* The wire `offset` is LOGICAL, 0-based inside the payload. The 96-byte header offset is a raw
                 account-slicing detail and must not be added here. */}
             <ValueRow testId="pmp-write-offset" label="Offset" value={String(content.offset)} />
-            {/* `&&` guards rather than a ternary chain: `unicorn/no-null` forbids a `null` tail in production. */}
+
             {content.chunk !== undefined && (
                 <BaseTable.Row data-testid="pmp-write-chunk">
                     <BaseTable.Cell colSpan={CARD_TABLE_COLUMNS}>
@@ -161,6 +161,7 @@ function WriteRows({ content }: { content: Extract<PmpContentInstruction, { kind
                     </BaseTable.Cell>
                 </BaseTable.Row>
             )}
+
             {content.chunk === undefined && content.sourceBuffer !== undefined && (
                 <BaseTable.Row data-testid="pmp-write-source-buffer">
                     <BaseTable.Cell>Source Buffer</BaseTable.Cell>

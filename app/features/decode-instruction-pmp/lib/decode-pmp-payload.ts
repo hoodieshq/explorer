@@ -1,7 +1,7 @@
 import { decodeData, uncompressData } from '@solana-program/program-metadata';
+import { Format } from '@solana-program/program-metadata';
 
 import { PMP_DECODED_RENDER_CAP_BYTES } from './constants';
-import { toDecodedDocument } from './to-decoded-document';
 import type { PmpDecodeConfig, PmpDecodedPayload } from './types';
 
 /**
@@ -34,7 +34,7 @@ export function decodePmpPayload({
             return { kind: 'failed', reason: `unsupported encoding (${config.encoding})` };
         }
 
-        return { bytes: bytes.subarray(), document: toDecodedDocument(text, config.format), kind: 'decoded' };
+        return { bytes: bytes.subarray(), kind: 'decoded', text: toDocumentText(text, config.format) };
     } catch (error) {
         return { kind: 'failed', reason: toDecodeFailureReason(error) };
     }
@@ -45,4 +45,21 @@ function toDecodeFailureReason(error: unknown): string {
     if (typeof error === 'string') return error;
     if (error instanceof Error) return error.message;
     return 'unknown decode error';
+}
+
+/**
+ * Renders an already-decoded payload string for display.
+ * Only `Json` is is re-serialised with indentation so a minified document is readable.
+ * Yaml/Toml/None stay verbatim - no parser library is pulled in.
+ */
+export function toDocumentText(text: string, format: Format): string {
+    if (format !== Format.Json) {
+        return text;
+    }
+    try {
+        // Every JSON value stringifies back to a string, scalars included, so no shape needs special-casing.
+        return JSON.stringify(JSON.parse(text), undefined, 2);
+    } catch {
+        return text;
+    }
 }

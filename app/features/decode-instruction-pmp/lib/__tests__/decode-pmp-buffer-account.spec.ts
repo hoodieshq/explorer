@@ -20,7 +20,8 @@ const PROGRAM = '4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw' as Address;
 const AUTHORITY = '2mWhJDFtX2LGKggEPVhznvs8cPzy5HM8HhsVPj5YxqA8' as Address;
 
 const DOC = '{"name":"company","version":"1.0.0"}';
-const DOC_VALUE = { name: 'company', version: '1.0.0' };
+/** The same document as `DOC`, indented - a `Format.Json` payload is re-serialised before it reaches the card. */
+const DOC_PRETTY = '{\n  "name": "company",\n  "version": "1.0.0"\n}';
 
 /** The instruction's hints. A Buffer account is decoded with these, a Metadata account with its own. */
 const IX_CONFIG: PmpDecodeConfig = { compression: Compression.None, encoding: Encoding.Utf8, format: Format.Json };
@@ -81,7 +82,7 @@ describe('decodePmpBufferAccount', () => {
             body: expect.any(Uint8Array),
             config: IX_CONFIG,
             kind: 'payload',
-            payload: expect.objectContaining({ document: { kind: 'json', value: DOC_VALUE }, kind: 'decoded' }),
+            payload: expect.objectContaining({ kind: 'decoded', text: DOC_PRETTY }),
         });
     });
 
@@ -91,10 +92,7 @@ describe('decodePmpBufferAccount', () => {
             config: { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json },
         });
 
-        expect(result.kind === 'payload' && result.payload).toMatchObject({
-            document: { kind: 'json', value: DOC_VALUE },
-            kind: 'decoded',
-        });
+        expect(result.kind === 'payload' && result.payload).toMatchObject({ kind: 'decoded', text: DOC_PRETTY });
     });
 
     it('should decode a Metadata account with the account hints rather than the instruction hints', () => {
@@ -107,7 +105,7 @@ describe('decodePmpBufferAccount', () => {
             account: 'metadata',
             config: accountConfig,
             kind: 'payload',
-            payload: { document: { kind: 'json', value: DOC_VALUE }, kind: 'decoded' },
+            payload: { kind: 'decoded', text: DOC_PRETTY },
         });
     });
 
@@ -118,10 +116,7 @@ describe('decodePmpBufferAccount', () => {
         const result = read(metadataAccount({ body: concat([body, new Uint8Array(512)]), dataLength: body.length }));
 
         expect(result.kind === 'payload' && result.body).toEqual(body);
-        expect(result.kind === 'payload' && result.payload).toMatchObject({
-            document: { kind: 'json', value: DOC_VALUE },
-            kind: 'decoded',
-        });
+        expect(result.kind === 'payload' && result.payload).toMatchObject({ kind: 'decoded', text: DOC_PRETTY });
     });
 
     it('should report absent for the closed-account shape the provider hands back', () => {

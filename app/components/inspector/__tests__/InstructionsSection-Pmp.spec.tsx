@@ -47,14 +47,6 @@ vi.mock('next/link', () => ({
     default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
 }));
 
-// The decoded-JSON viewer is a next/dynamic ssr:false import, so it resolves asynchronously and would make this
-// spec's assertions racy. Stub it, as MetadataCard.spec.tsx does. The decode path itself is still real.
-vi.mock('@/app/components/common/JsonViewer', () => ({
-    SolarizedJsonViewer: ({ src }: { src: unknown }) => (
-        <div data-testid="json-viewer">{JSON.stringify(src, null, 2)}</div>
-    ),
-}));
-
 function renderMessage(message: MessageV0) {
     return render(
         <ScrollAnchorProvider>
@@ -105,7 +97,7 @@ describe('Inspector InstructionsSection with a Program Metadata instruction', ()
         // in the DOM once the reader switches.
         await userEvent.click(screen.getByRole('tab', { name: 'Decoded' }));
 
-        expect(screen.getByTestId('json-viewer')).toHaveTextContent('company');
+        expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('company');
     });
 
     test('should leave a housekeeping instruction to the existing tiers', async () => {

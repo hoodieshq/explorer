@@ -1,10 +1,13 @@
 import { PmpDetailsCard } from '@features/decode-instruction-pmp';
+import type { Account, State } from '@providers/accounts';
+import { FetchStatus } from '@providers/cache';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
     Compression,
     DataSource,
     Encoding,
     Format,
+    getBufferEncoder,
     getInitializeInstructionDataEncoder,
     getSetDataInstructionDataEncoder,
     getWriteInstructionDataEncoder,
@@ -182,4 +185,89 @@ export const WriteChunk: Story = {
             3,
         ),
     },
+};
+
+// ===== setData sourced from a buffer account =====
+//
+// `data` is empty, so the payload is not in the instruction - it is in the buffer at account index 2, which the
+// card reads on render. `makeIx` hands out random keys, so these stories pin index 2 to a fixed address the mock
+// accounts cache can be seeded against.
+
+const BUFFER_ADDRESS = 'BUFFer1111111111111111111111111111111111111';
+
+/** A `setData` carrying no inline bytes, naming `BUFFER_ADDRESS` as its source buffer. */
+function setDataFromBufferIx({ compression, format }: { compression: Compression; format: Format }) {
+    const ix = makeIx(
+        getSetDataInstructionDataEncoder().encode({
+            compression,
+            // Empty rather than absent: `data` is a REMAINDER option, so both encode to no bytes, which is
+            // exactly the on-chain shape that means "the payload lives in the buffer account".
+            data: new Uint8Array(0),
+            dataSource: DataSource.Direct,
+            encoding: Encoding.Utf8,
+            format,
+        }) as Uint8Array,
+        5,
+    );
+    ix.keys[2].pubkey = new PublicKey(BUFFER_ADDRESS);
+    return ix;
+}
+
+/** The library's own encoder, so the fixture carries the real 96-byte Buffer header. */
+function bufferAccountEntry(content: string, compression: Compression): State['entries'] {
+    const packed = packDirectData({ compression, content, encoding: Encoding.Utf8 });
+    const raw = getBufferEncoder().encode({
+        authority: PROGRAM_METADATA_PROGRAM_ADDRESS,
+        canonical: true,
+        data: packed.data,
+        program: PROGRAM_METADATA_PROGRAM_ADDRESS,
+        seed: 'idl',
+    }) as Uint8Array;
+
+    const data: Account = {
+        data: { raw },
+        executable: false,
+        lamports: 2_000_000,
+        owner: PROGRAM_ID,
+        pubkey: new PublicKey(BUFFER_ADDRESS),
+        space: raw.length,
+    };
+    return { [BUFFER_ADDRESS]: { data, status: FetchStatus.Fetched } };
+}
+
+export const SetDataFromBufferDecoded: Story = {
+    args: { ...baseArgs, ix: setDataFromBufferIx({ compression: Compression.Zlib, format: Format.Json }) },
+    parameters: { accounts: bufferAccountEntry(IDL_DOC, Compression.Zlib) },
+};
+
+// The buffer is still live, but holds bytes that are not the Zlib stream its instruction hints promise.
+export const SetDataFromBufferDecodeFailure: Story = {
+    args: { ...baseArgs, ix: setDataFromBufferIx({ compression: Compression.Zlib, format: Format.Json }) },
+    parameters: { accounts: bufferAccountEntry(IDL_DOC, Compression.None) },
+};
+
+// The common outcome on a historical transaction: the client closes the source buffer in the same flow to
+// reclaim its rent, so there is nothing left to read. The provider models that as zero lamports and no bytes.
+export const SetDataFromBufferClosed: Story = {
+    args: { ...baseArgs, ix: setDataFromBufferIx({ compression: Compression.Zlib, format: Format.Json }) },
+    parameters: {
+        accounts: {
+            [BUFFER_ADDRESS]: {
+                data: {
+                    data: { raw: new Uint8Array(0) },
+                    executable: false,
+                    lamports: 0,
+                    owner: PROGRAM_ID,
+                    pubkey: new PublicKey(BUFFER_ADDRESS),
+                    space: 0,
+                },
+                status: FetchStatus.Fetched,
+            },
+        } satisfies State['entries'],
+    },
+};
+
+// No cache entry at all, and the mock fetcher is a no-op, so the card stays in its reading state.
+export const SetDataFromBufferLoading: Story = {
+    args: { ...baseArgs, ix: setDataFromBufferIx({ compression: Compression.Zlib, format: Format.Json }) },
 };

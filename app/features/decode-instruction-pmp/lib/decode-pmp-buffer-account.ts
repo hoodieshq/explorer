@@ -35,12 +35,14 @@ export function decodePmpBufferAccount({
 
     if (owner !== PMP_ADDRESS) {
         return {
-            kind: 'unreadable', reason: `the account is owned by ${owner}, not the Program Metadata Program`
+            kind: 'unreadable',
+            reason: `the account is owned by ${owner}, not the Program Metadata Program`,
         };
     }
     if (data === undefined || data.length < PMP_ACCOUNT_HEADER_LEN) {
         return {
-            kind: 'unreadable', reason: `the account is shorter than the ${PMP_ACCOUNT_HEADER_LEN}-byte header`
+            kind: 'unreadable',
+            reason: `the account is shorter than the ${PMP_ACCOUNT_HEADER_LEN}-byte header`,
         };
     }
 
@@ -49,18 +51,19 @@ export function decodePmpBufferAccount({
             case AccountDiscriminator.Buffer:
                 // A buffer has no length field: its body runs to the end of the account, which is what the
                 // remainder decoder hands back.
-                return toContent('buffer', config, getBufferDecoder().decode(data).data, cap);
+                const bufferData = getBufferDecoder().decode(data).data;
+                return decodeAccountContent('buffer', config, bufferData, cap);
             case AccountDiscriminator.Metadata: {
                 const metadata = getMetadataDecoder().decode(data);
                 // The `data` field is a REMAINDER, so an account grown by `extend` and never trimmed carries
                 // slack past the payload. `dataLength` is what the program itself treats as the payload.
-                const body = metadata.data.subarray(0, metadata.dataLength);
+                const bufferData = metadata.data.subarray(0, metadata.dataLength);
                 const accountConfig = {
                     compression: metadata.compression,
                     encoding: metadata.encoding,
                     format: metadata.format,
                 };
-                return toContent('metadata', accountConfig, body, cap);
+                return decodeAccountContent('metadata', accountConfig, bufferData, cap);
             }
             default:
                 // AccountDiscriminator.Empty, or a byte the enum does not cover at all. Reading either as a
@@ -77,14 +80,15 @@ export function decodePmpBufferAccount({
  * slice of it is a `Buffer` sitting at an offset into Node's shared allocation pool - which would leak that
  * pool's lifetime and `Buffer`'s own `toJSON` into everything downstream, exactly as the inline path avoids.
  */
-function toContent(
+function decodeAccountContent(
     account: PmpAccountKind,
     config: PmpDecodeConfig,
-    body: ReadonlyUint8Array,
+    data: ReadonlyUint8Array,
     cap: number | undefined,
 ): PmpAccountContent {
-    const data = bytes(body);
-    return { account, body: data, config, kind: 'payload', payload: decodePmpPayload({ cap, config, data }) };
+    const body = bytes(data);
+    const payload = decodePmpPayload({ cap, config, data: body });
+    return { account, body, config, kind: 'payload', payload };
 }
 
 /** The generated decoders throw plain Errors, but pako (reached via `decodePmpPayload`) throws bare strings. */

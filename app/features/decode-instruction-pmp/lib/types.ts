@@ -43,20 +43,15 @@ export type PmpContentInstruction =
 export type PmpPayloadInstruction = Extract<PmpContentInstruction, { kind: 'setData' | 'initialize' }>;
 
 /**
- * How the decoded payload should be presented. `json` carries the PARSED value for `SolarizedJsonViewer`, which
- * needs an object rather than a string. Everything else is verbatim text in a `<pre>`, including a `Format.Json`
- * payload whose bytes do not actually parse, and a `Format.Json` payload that parses to a scalar (the viewer
- * requires an object or array root).
- */
-export type PmpDecodedDocument = { kind: 'json'; value: object } | { kind: 'text'; text: string };
-
-/**
  * Result of decoding an inline payload. `oversized` and `failed` are the two guard states the p1 spec requires:
  * neither may throw out to the card, and neither may render as a successful document. `oversized` carries the
- * full decompressed bytes and no document, because nothing above the cap is decoded at all.
+ * full decompressed bytes and no text, because nothing above the cap is decoded at all.
+ *
+ * `text` is display-ready: a `Json` payload arrives pretty-printed, everything else verbatim. The card renders it
+ * as-is, so nothing downstream has to know which format produced it.
  */
 export type PmpDecodedPayload =
-    | { kind: 'decoded'; document: PmpDecodedDocument; bytes: Uint8Array }
+    | { kind: 'decoded'; text: string; bytes: Uint8Array }
     | { kind: 'oversized'; bytes: Uint8Array }
     | { kind: 'failed'; reason: string };
 

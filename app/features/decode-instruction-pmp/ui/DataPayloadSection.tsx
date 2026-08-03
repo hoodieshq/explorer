@@ -4,7 +4,6 @@ import { DataSource } from '@solana-program/program-metadata';
 import React from 'react';
 
 import { Address } from '@/app/components/common/Address';
-import { SolarizedJsonViewer } from '@/app/components/common/JsonViewer';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/shared/ui/tabs';
 import { Alert } from '@/app/shared/ui/Alert';
 import { BaseTable } from '@/app/shared/ui/Table';
@@ -17,7 +16,6 @@ import {
     PMP_DECODED_DOWNLOAD_FILENAME,
     PMP_DECODED_RENDER_CAP_BYTES,
     PMP_FORMAT_ANALYTICS_NAMES,
-    PMP_JSON_COLLAPSE_DEPTH,
     PMP_RAW_DOWNLOAD_FILENAME,
 } from '../lib/constants';
 import { decodePmpPayload } from '../lib/decode-pmp-payload';
@@ -116,7 +114,7 @@ function AccountSourceSection({ content, dataSource }: { content: PmpPayloadInst
 
     return (
         <div className="flex flex-col gap-0">
-            <Alert variant="default" data-testid="pmp-deferred-source-note" className="!mb-0">
+            <Alert variant="default" data-testid="pmp-deferred-source-note" className="!mb-0 pl-0">
                 <div className="flex w-full flex-row items-center gap-2">
                     <span>The payload was written to the {label} account</span>
                     <Address noNicknameEditing pubkey={new PublicKey(account)} link raw />
@@ -174,7 +172,7 @@ function AccountContentBody({
 }) {
     if (result.kind === 'absent') {
         return (
-            <Alert variant="default" data-testid="pmp-account-absent" className="!mb-0">
+            <Alert variant="warning" data-testid="pmp-account-absent" className="!mb-0">
                 Account does not exist on chain.
             </Alert>
         );
@@ -275,30 +273,16 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
         );
     }
 
-    if (decoded.document.kind === 'json') {
-        return (
-            // `.string-value` is emitted by react-json-view - the arbitrary variant scopes break-all to its
-            // descendants only, matching how MetadataCard and AttestationDataCard wrap the same viewer.
-            <div data-testid="pmp-decoded-json" className="[&_.string-value]:break-all">
-                <SolarizedJsonViewer
-                    src={decoded.document.value}
-                    collapsed={PMP_JSON_COLLAPSE_DEPTH}
-                    name={false}
-                    enableClipboard={true}
-                    displayObjectSize={false}
-                    displayDataTypes={false}
-                />
-            </div>
-        );
-    }
-
+    // Plain text rather than a JSON viewer: the common payload is a program IDL, and react-json-view is not
+    // virtualized, so an interactive tree costs thousands of nodes per card. A Json payload arrives already
+    // pretty-printed from `toDocumentText`, so every format renders through this one node.
     // TODO: resolve DataSource.URL and DataSource.Externals lands in a later milestone. Currently only text url gets rendered.
     return (
         <pre
             data-testid="pmp-decoded-text"
             className="mb-0 max-h-80 overflow-auto whitespace-pre-wrap break-words bg-heavy-metal-900 p-3 text-left text-xs"
         >
-            {decoded.document.text}
+            {decoded.text}
         </pre>
     );
 }

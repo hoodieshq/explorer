@@ -19,13 +19,6 @@ import { PmpDetailsCard } from '../PmpDetailsCard';
 
 vi.mock('@/app/shared/lib/analytics', () => ({ trackEvent: vi.fn() }));
 
-// See DataPayloadSection.spec.tsx: the real viewer is a next/dynamic ssr:false import, so it resolves async.
-vi.mock('@/app/components/common/JsonViewer', () => ({
-    SolarizedJsonViewer: ({ src }: { src: unknown }) => (
-        <div data-testid="json-viewer">{JSON.stringify(src, null, 2)}</div>
-    ),
-}));
-
 vi.mock('@/app/components/instruction/InstructionCard', () => ({
     InstructionCard: ({ children, title }: { children: React.ReactNode; title: string }) => (
         <div data-testid="instruction-card">
@@ -99,7 +92,7 @@ describe('PmpDetailsCard', () => {
         expect(screen.getByTestId('pmp-config-compression')).toHaveTextContent('Zlib');
         expect(screen.getByTestId('pmp-config-format')).toHaveTextContent('JSON');
         expect(screen.getByTestId('pmp-config-data-source')).toHaveTextContent('Direct');
-        expect(screen.getByTestId('json-viewer')).toHaveTextContent('company');
+        expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('company');
     });
 
     it('should render the updated hints and the header-only note for a 4-byte setData', () => {
@@ -130,7 +123,7 @@ describe('PmpDetailsCard', () => {
         expect(screen.getByTestId('instruction-card-title')).toHaveTextContent('ProgramMetadata: Initialize');
         expect(screen.getByTestId('pmp-config-seed')).toHaveTextContent('idl');
         expect(screen.getByTestId('account-row-4')).toHaveTextContent('System');
-        expect(screen.getByTestId('json-viewer')).toHaveTextContent('1.0.0');
+        expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('1.0.0');
     });
 
     it('should show a Write card with its offset and raw chunk and no decoded document', () => {
@@ -149,7 +142,7 @@ describe('PmpDetailsCard', () => {
         // RawDataField owns the hex grid and the byte count inside the Chunk row.
         expect(screen.getByTestId('pmp-write-chunk')).toHaveTextContent('de ad');
         expect(screen.getByTestId('pmp-write-chunk')).toHaveTextContent('2 bytes');
-        expect(screen.queryByTestId('json-viewer')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
         expect(screen.queryByTestId('pmp-payload-section')).not.toBeInTheDocument();
     });
 

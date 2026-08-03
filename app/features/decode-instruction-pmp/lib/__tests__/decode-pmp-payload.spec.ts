@@ -5,7 +5,8 @@ import { PMP_DECODED_RENDER_CAP_BYTES } from '../constants';
 import { decodePmpPayload } from '../decode-pmp-payload';
 
 const DOC = '{"name":"company","version":"1.0.0"}';
-const DOC_VALUE = { name: 'company', version: '1.0.0' };
+/** The same document as `DOC`, indented - a `Format.Json` payload is re-serialised before it reaches the card. */
+const DOC_PRETTY = '{\n  "name": "company",\n  "version": "1.0.0"\n}';
 
 // `packDirectData` is the library's own producer, so every fixture below is a byte-exact round trip of what the
 // canonical client puts on chain. Its `encoding` argument INTERPRETS the content string, so Utf8 is the only
@@ -15,7 +16,7 @@ function pack(content: string, compression: Compression): Uint8Array {
 }
 
 describe('decodePmpPayload', () => {
-    it('should decode an uncompressed UTF-8 JSON payload into a parsed document', () => {
+    it('should decode an uncompressed UTF-8 JSON payload into a pretty-printed document', () => {
         const result = decodePmpPayload({
             config: { compression: Compression.None, encoding: Encoding.Utf8, format: Format.Json },
             data: pack(DOC, Compression.None),
@@ -23,8 +24,8 @@ describe('decodePmpPayload', () => {
 
         expect(result).toEqual({
             bytes: expect.any(Uint8Array),
-            document: { kind: 'json', value: DOC_VALUE },
             kind: 'decoded',
+            text: DOC_PRETTY,
         });
     });
 
@@ -34,7 +35,7 @@ describe('decodePmpPayload', () => {
             data: pack(DOC, Compression.Zlib),
         });
 
-        expect(result.kind === 'decoded' && result.document).toEqual({ kind: 'json', value: DOC_VALUE });
+        expect(result.kind === 'decoded' && result.text).toEqual(DOC_PRETTY);
     });
 
     it('should decompress a Gzip payload before decoding', () => {
@@ -43,7 +44,7 @@ describe('decodePmpPayload', () => {
             data: pack('name: company\n', Compression.Gzip),
         });
 
-        expect(result.kind === 'decoded' && result.document).toEqual({ kind: 'text', text: 'name: company\n' });
+        expect(result.kind === 'decoded' && result.text).toEqual('name: company\n');
     });
 
     it('should render Encoding None as hex rather than as text', () => {
@@ -52,7 +53,7 @@ describe('decodePmpPayload', () => {
             data: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
         });
 
-        expect(result.kind === 'decoded' && result.document).toEqual({ kind: 'text', text: 'deadbeef' });
+        expect(result.kind === 'decoded' && result.text).toEqual('deadbeef');
     });
 
     it('should report oversized with the full decompressed bytes when the payload exceeds the cap', () => {

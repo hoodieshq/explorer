@@ -81,14 +81,6 @@ vi.mock('next/link', () => ({
     default: ({ children, href }: { children: React.ReactNode; href: string }) => <a href={href}>{children}</a>,
 }));
 
-// The decoded-JSON viewer is a next/dynamic ssr:false import, so it resolves asynchronously and would make this
-// spec's assertions racy. Stub it, as MetadataCard.spec.tsx does. The decode path itself is still real.
-vi.mock('@/app/components/common/JsonViewer', () => ({
-    SolarizedJsonViewer: ({ src }: { src: unknown }) => (
-        <div data-testid="json-viewer">{JSON.stringify(src, null, 2)}</div>
-    ),
-}));
-
 // Override only the two cache reads the section makes. `importOriginal` keeps `TransactionsProvider` real, so the
 // raw-details context the InstructionCard reads is still there.
 vi.mock('@providers/transactions', async importOriginal => ({
@@ -121,6 +113,6 @@ describe('Transaction page InstructionsSection with a Program Metadata instructi
         // in the DOM once the reader switches.
         await userEvent.click(screen.getByRole('tab', { name: 'Decoded' }));
 
-        expect(screen.getByTestId('json-viewer')).toHaveTextContent('company');
+        expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('company');
     });
 });
