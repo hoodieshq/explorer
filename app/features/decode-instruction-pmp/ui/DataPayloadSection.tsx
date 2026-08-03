@@ -4,6 +4,7 @@ import { DataSource } from '@solana-program/program-metadata';
 import React from 'react';
 
 import { Address } from '@/app/components/common/Address';
+import { Copyable } from '@/app/components/common/Copyable';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/shared/ui/tabs';
 import { Alert } from '@/app/shared/ui/Alert';
 import { BaseTable } from '@/app/shared/ui/Table';
@@ -305,12 +306,17 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
     // pretty-printed from `toDocumentText`, so every format renders through this one node.
     // TODO: follow a `DataSource.Url` or `DataSource.External` pointer. Today its bytes render as text, unresolved.
     return (
-        <pre
-            data-testid="pmp-decoded-text"
-            className="mb-0 max-h-80 overflow-auto whitespace-pre-wrap break-words bg-heavy-metal-900 p-3 text-left text-xs"
-        >
-            {decoded.text}
-        </pre>
+        <div className="relative">
+            <div className="absolute right-2 top-2 z-10" data-testid="pmp-decoded-copy">
+                <Copyable text={decoded.text} />
+            </div>
+            <pre
+                data-testid="pmp-decoded-text"
+                className="mb-0 max-h-80 overflow-auto whitespace-pre-wrap break-words bg-heavy-metal-900 p-3 pr-8 text-left text-xs"
+            >
+                {decoded.text}
+            </pre>
+        </div>
     );
 }
 
