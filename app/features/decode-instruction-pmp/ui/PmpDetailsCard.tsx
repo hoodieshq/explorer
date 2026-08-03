@@ -30,7 +30,7 @@ type PmpDetailsCardProps = {
     ix: TransactionInstruction;
     index: number;
     result: SignatureResult;
-    innerCards?: JSX.Element[];
+    innerCards?: React.ReactNode[];
     childIndex?: number;
     InstructionCardComponent?: React.FC<Parameters<typeof InstructionCard>[0]>;
     /**

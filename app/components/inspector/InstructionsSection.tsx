@@ -135,6 +135,7 @@ function InspectorInstructionCard({
                 ix={ix}
                 index={index}
                 result={INSPECTOR_RESULT}
+                innerCards={innerCards}
                 InstructionCardComponent={BaseInstructionCard}
                 // The card cannot import the IDL feature (boundaries/dependencies), so this surface decides what
                 // a non-content PMP instruction falls back to. Same two outcomes as before the branch existed.
@@ -148,7 +149,12 @@ function InspectorInstructionCard({
                             signature={INSPECTOR_SIGNATURE}
                         />
                     ) : (
-                        <UnknownDetailsCard index={index} ix={ix} programName={programName} />
+                        <UnknownDetailsCard
+                            index={index}
+                            ix={ix}
+                            programName={programName}
+                            innerCards={innerCards}
+                        />
                     )
                 }
             />
