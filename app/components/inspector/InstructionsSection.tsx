@@ -1,4 +1,5 @@
 import { BaseInstructionCard } from '@components/common/BaseInstructionCard';
+import { type InstructionSurface, InstructionSurfaceProvider } from '@entities/instruction-card';
 import { isParsedInstruction, toParsedTransaction, useInstructionParser } from '@entities/instruction-parser';
 import { AssociatedTokenDetailsCard } from '@features/decode-instruction-associated-token';
 import { LighthouseDetailsCard } from '@features/decode-instruction-lighthouse';
@@ -33,6 +34,16 @@ import { UnknownDetailsCard } from './UnknownDetailsCard';
 
 const INSPECTOR_RESULT = { err: null };
 const INSPECTOR_SIGNATURE = '';
+
+const INSPECTOR_SURFACE: InstructionSurface = {
+    // The inspector resolves an address against the transaction under inspection
+    // rather than linking out to its account page.
+    Address: AddressWithContextCell,
+    Shell: InspectorInstructionCardComponent,
+    result: INSPECTOR_RESULT,
+    // `InspectorInstructionCard` renders its own Program row, so the fields must not.
+    showProgramField: false,
+};
 
 export function InstructionsSection({
     message,
@@ -78,7 +89,7 @@ export function InstructionsSection({
         : {};
 
     return (
-        <>
+        <InstructionSurfaceProvider surface={INSPECTOR_SURFACE}>
             {transactionMessage.instructions.map((ix, index) => {
                 const batchInnerCards = batchByIndex[index]?.map((innerIx, childIndex) => (
                     <ErrorBoundary key={childIndex} fallback={null}>
@@ -96,7 +107,7 @@ export function InstructionsSection({
                     />
                 );
             })}
-        </>
+        </InstructionSurfaceProvider>
     );
 }
 
