@@ -42,7 +42,8 @@ export function DataPayloadSection({ content, cap }: { content: PmpPayloadInstru
 
     // Decoded for every payload, not just `Direct`: `Url` and `External` also get the Decoded/Raw tabs, where the
     // decoded panel applies the instruction's own encoding/compression hints to the POINTER bytes. That is a local
-    // decode, not pointer resolution - nothing is fetched and no account is read, which stays P3/P4 work.
+    // decode, not pointer resolution - nothing is fetched and no account is read. Following the pointer is not
+    // done here at all, so a `Url` payload shows the url and stops there.
     const decoded = React.useMemo(
         () => (payload ? decodePmpPayload({ cap, config, data: payload }) : undefined),
         [cap, config, payload],
@@ -115,7 +116,7 @@ function AccountSourceSection({
     dataSource: DataSource;
 }) {
     const account = content.kind === 'setData' ? content.sourceBuffer : content.metadataAccount;
-    const label = content.kind === 'setData' ? 'Source buffer' : 'Metadata account';
+    const label = content.kind === 'setData' ? 'Source buffer account' : 'Metadata account';
 
     if (!account) {
         return (
@@ -129,7 +130,7 @@ function AccountSourceSection({
         <div className="flex flex-col gap-0">
             <Alert variant="default" data-testid="pmp-deferred-source-note" className="!mb-0 pl-0">
                 <div className="flex w-full flex-row items-center gap-2">
-                    <span>The payload was written to the {label} account</span>
+                    <span>The payload was written to the {label}</span>
                     <Address noNicknameEditing pubkey={new PublicKey(account)} link raw />
                 </div>
             </Alert>
@@ -305,7 +306,7 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
     // Plain text rather than a JSON viewer: the common payload is a program IDL, and react-json-view is not
     // virtualized, so an interactive tree costs thousands of nodes per card. A Json payload arrives already
     // pretty-printed from `toDocumentText`, so every format renders through this one node.
-    // TODO: resolve DataSource.URL and DataSource.Externals lands in a later milestone. Currently only text url gets rendered.
+    // TODO: follow a `DataSource.Url` or `DataSource.External` pointer. Today its bytes render as text, unresolved.
     return (
         <pre
             data-testid="pmp-decoded-text"

@@ -53,8 +53,6 @@ type PmpDetailsCardProps = {
  * housekeeping instructions, renders `fallback`, which is what those instructions got before this card existed.
  */
 export function PmpDetailsCard({ fallback, ...props }: PmpDetailsCardProps) {
-    // The payload decode already degrades locally rather than throwing, so this boundary only ever catches an
-    // unexpected failure in the tables above it. It must never be the path a decode failure takes.
     return (
         <ErrorBoundary fallback={<>{fallback}</>}>
             <PmpDetailsCardBody {...props} fallback={fallback} />

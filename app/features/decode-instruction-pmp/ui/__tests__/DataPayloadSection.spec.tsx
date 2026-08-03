@@ -205,7 +205,7 @@ describe('DataPayloadSection', () => {
             sourceBuffer: '4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw',
         });
 
-        expect(screen.getByTestId('pmp-deferred-source-note')).toBeInTheDocument();
+        expect(screen.getByText('The payload was written to the Source buffer account')).toBeInTheDocument();
         expect(screen.getByTestId('address')).toHaveTextContent('4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw');
     });
 
@@ -218,7 +218,7 @@ describe('DataPayloadSection', () => {
             seed: 'idl',
         });
 
-        expect(screen.getByTestId('pmp-deferred-source-note')).toBeInTheDocument();
+        expect(screen.getByText('The payload was written to the Metadata account')).toBeInTheDocument();
         expect(screen.getByTestId('address')).toHaveTextContent('2mWhJDFtX2LGKggEPVhznvs8cPzy5HM8HhsVPj5YxqA8');
     });
 

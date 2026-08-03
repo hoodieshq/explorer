@@ -223,12 +223,6 @@ describe('decodePmpContentInstruction', () => {
     });
 
     it('should return undefined for a setData whose enum byte is out of range', () => {
-        // Pins an ACCEPTED limitation rather than desired behaviour. `format = 7` makes the typed decoder throw
-        // ("Enum discriminator out of range. Expected a number in [0-3], got 7"), so the instruction falls
-        // through to the IDL tier and then to Unknown, and the reader loses accounts and hints that were
-        // themselves decodable. The `Unknown (n)` label fallbacks in the card's ConfigRows do NOT cover this
-        // path - they only ever fire for the 4-byte header-only shape, which reads its hint bytes raw. Handling
-        // it would mean hand-decoding the header on a decoder failure, which is out of scope for P1.
         const valid = getSetDataInstructionDataEncoder().encode({
             compression: Compression.None,
             data: DOC_BYTES,

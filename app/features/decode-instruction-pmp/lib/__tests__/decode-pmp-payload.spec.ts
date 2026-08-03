@@ -155,9 +155,6 @@ describe('decodePmpPayload', () => {
     });
 
     it('should report failed rather than an empty document when the encoding value is out of range', () => {
-        // `decodeData(_, 99)` returns undefined for the same missing-default-arm reason. Without the explicit
-        // guard this comes back as `{ kind: 'decoded' }` carrying an empty document, which would render as a
-        // blank successful decode. P2 reads the config from an account header, so it can reach this.
         const result = decodePmpPayload({
             config: { compression: Compression.None, encoding: 99 as Encoding, format: Format.None },
             data: new Uint8Array([1, 2, 3]),

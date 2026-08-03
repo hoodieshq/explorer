@@ -171,10 +171,6 @@ describe('PmpDetailsCard', () => {
         expect(screen.queryByTestId('instruction-card')).not.toBeInTheDocument();
     });
 
-    // This is the card-level guarantee the p1 spec's decode-failure scenario is actually about: "the
-    // instruction's account table and argument table SHALL still render unchanged". Task 4 proves the fallback
-    // renders inside the section, and the first test here proves the tables render on the happy path, but only
-    // this case proves BOTH hold at once - that the failure never reaches the ErrorBoundary and swaps the card.
     it('should keep the account and config tables when the payload fails to decode', async () => {
         const ix = makeIx(
             getSetDataInstructionDataEncoder().encode({
