@@ -48,7 +48,7 @@
 | Dynamic | `/api/verification/jupiter/[mintAddress]` | — | — |
 | Dynamic | `/api/verification/rugcheck/[mintAddress]` | — | — |
 | Dynamic | `/block/[slot]` | 220 kB | 1.25 MB |
-| Dynamic | `/block/[slot]/accounts` | 220 kB | 1.24 MB |
+| Dynamic | `/block/[slot]/accounts` | 210 kB | 1.24 MB |
 | Dynamic | `/block/[slot]/programs` | 210 kB | 1.24 MB |
 | Dynamic | `/block/[slot]/rewards` | 210 kB | 1.24 MB |
 | Dynamic | `/epoch/[epoch]` | 10 kB | 1.04 MB |
@@ -58,6 +58,6 @@
 | Dynamic | `/og/receipt/[signature]` | — | — |
 | Static | `/opengraph-image.png` | — | — |
 | Static | `/tos` | 880 B | 1.04 MB |
-| Dynamic | `/tx/[signature]` | 450 kB | 1.47 MB |
-| Dynamic | `/tx/[signature]/inspect` | 360 kB | 1.38 MB |
-| Static | `/tx/inspector` | 360 kB | 1.38 MB |
+| Dynamic | `/tx/[signature]` | 480 kB | 1.50 MB |
+| Dynamic | `/tx/[signature]/inspect` | 400 kB | 1.42 MB |
+| Static | `/tx/inspector` | 400 kB | 1.42 MB |
