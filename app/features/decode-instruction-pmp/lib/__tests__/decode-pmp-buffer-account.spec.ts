@@ -8,9 +8,10 @@ import {
     getMetadataEncoder,
     packDirectData,
 } from '@solana-program/program-metadata';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { concat } from '@/app/shared/lib/bytes';
+import { Logger } from '@/app/shared/lib/logger';
 
 import { PMP_ADDRESS } from '../constants';
 import { decodePmpBufferAccount } from '../decode-pmp-buffer-account';
@@ -74,6 +75,11 @@ function read(data: Uint8Array | undefined, overrides: { lamports?: number; owne
 }
 
 describe('decodePmpBufferAccount', () => {
+    // The Logger is a global no-op mock (test-setup.specs.ts), so these read the calls the decode makes.
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     it('should decode a Buffer account body with the instruction hints', () => {
         const result = read(bufferAccount(pack(DOC, Compression.None)));
 
@@ -166,6 +172,48 @@ describe('decodePmpBufferAccount', () => {
         });
 
         expect(result).toMatchObject({ kind: 'payload', payload: { kind: 'failed' } });
+    });
+
+    it('should not report an Empty discriminator, which is an ordinary allocated-but-unwritten account', () => {
+        const empty = bufferAccount(pack(DOC, Compression.None));
+        empty[0] = 0; // AccountDiscriminator.Empty
+
+        read(empty);
+
+        expect(Logger.warn).not.toHaveBeenCalled();
+        expect(Logger.error).not.toHaveBeenCalled();
+    });
+
+    it('should report a discriminator outside the enum to Sentry, since it means an unknown account layout', () => {
+        const unknown = bufferAccount(pack(DOC, Compression.None));
+        unknown[0] = 9; // past every variant AccountDiscriminator defines
+
+        expect(read(unknown)).toEqual({ kind: 'unreadable', reason: expect.stringContaining('discriminator 9') });
+        expect(Logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('unknown PMP account discriminator'),
+            expect.objectContaining({ sentry: true, sentryExtras: expect.objectContaining({ discriminator: 9 }) }),
+        );
+    });
+
+    it('should report a decoder throw to Sentry with the original error as the cause', () => {
+        const account = metadataAccount({ body: pack(DOC, Compression.None) });
+        account[83] = 9; // the `encoding` byte, past every variant the enum defines
+
+        read(account);
+
+        // Only the PMP program writes these headers and it validates its own enums, so an out-of-range hint means
+        // the layout this slice decodes has drifted from the program's - that is ours, so it goes to Sentry.
+        expect(Logger.error).toHaveBeenCalledWith(
+            expect.objectContaining({ cause: expect.any(Error) }),
+            expect.objectContaining({ sentry: true, sentryExtras: expect.objectContaining({ discriminator: 2 }) }),
+        );
+    });
+
+    it('should log nothing when an account decodes', () => {
+        read(bufferAccount(pack(DOC, Compression.None)));
+
+        expect(Logger.warn).not.toHaveBeenCalled();
+        expect(Logger.error).not.toHaveBeenCalled();
     });
 
     it('should report the payload oversized above the render cap without decoding it', () => {

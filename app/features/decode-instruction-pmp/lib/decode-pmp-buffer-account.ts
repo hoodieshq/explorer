@@ -2,6 +2,7 @@ import type { ReadonlyUint8Array } from '@solana/kit';
 import { AccountDiscriminator, getBufferDecoder, getMetadataDecoder } from '@solana-program/program-metadata';
 
 import { bytes } from '@/app/shared/lib/bytes';
+import { Logger } from '@/app/shared/lib/logger';
 
 import { PMP_ACCOUNT_HEADER_LEN, PMP_ADDRESS } from './constants';
 import { decodePmpPayload } from './decode-pmp-payload';
@@ -70,14 +71,28 @@ export function decodePmpBufferAccount({
                 };
                 return decodeAccountContent('metadata', accountConfig, bufferData, cap);
             }
+            case AccountDiscriminator.Empty:
+                // Allocated and not written yet. An ordinary state, so it is reported to the reader and nowhere
+                // else - but reading it as a payload would still decode padding as content.
+                return noPayloadContent(data[0]);
             default:
-                // AccountDiscriminator.Empty, or a byte the enum does not cover at all. Reading either as a
-                // payload would decode padding as content.
-                return { kind: 'unreadable', reason: `the account holds no PMP payload (discriminator ${data[0]})` };
+                Logger.warn('[pmp:decode-account] unknown PMP account discriminator', {
+                    sentry: true,
+                    sentryExtras: { discriminator: data[0], length: data.length },
+                });
+                return noPayloadContent(data[0]);
         }
     } catch (error) {
+        Logger.error(new Error('[pmp:decode-account] PMP account decode error', { cause: error }), {
+            sentry: true,
+            sentryExtras: { discriminator: data[0], length: data.length },
+        });
         return { kind: 'unreadable', reason: toReason(error) };
     }
+}
+
+function noPayloadContent(discriminator: number): PmpAccountContent {
+    return { kind: 'unreadable', reason: `the account holds no PMP payload (discriminator ${discriminator})` };
 }
 
 /**

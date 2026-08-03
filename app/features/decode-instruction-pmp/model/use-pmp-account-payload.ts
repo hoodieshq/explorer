@@ -16,13 +16,18 @@ export type PmpAccountPayloadState =
  *
  * `config` must be referentially stable (pass the memoised instruction's own `config`), because it keys the
  * decode memo and a fresh object per render would re-decompress the payload on every render.
+ *
+ * `cap` overrides the per-encoding decode budget and is forwarded verbatim, so this path and the inline one are
+ * bounded by the same rule.
  */
 export function usePmpAccountPayload({
     address,
     config,
+    cap,
 }: {
     address: string;
     config: PmpDecodeConfig;
+    cap?: number;
 }): PmpAccountPayloadState {
     const fetchAccountInfo = useFetchAccountInfo();
     const entry = useAccountInfo(address);
@@ -48,9 +53,10 @@ export function usePmpAccountPayload({
         return {
             content: decodePmpBufferAccount({
                 account: { data: data.raw, lamports, owner: owner.toBase58() },
+                cap,
                 config,
             }),
             status: 'ready',
         };
-    }, [config, entry, needsBytes]);
+    }, [cap, config, entry, needsBytes]);
 }

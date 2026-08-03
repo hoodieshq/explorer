@@ -17,7 +17,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { trackEvent } from '@/app/shared/lib/analytics';
 
-import { PMP_ADDRESS } from '../../lib/constants';
+import { PMP_ADDRESS, PMP_MAX_PACKED_INPUT_BYTES } from '../../lib/constants';
 import type { PmpPayloadInstruction } from '../../lib/types';
 import { DataPayloadSection } from '../DataPayloadSection';
 
@@ -291,6 +291,25 @@ describe('DataPayloadSection', () => {
         // compressed bytes. Without this the Alert's "Copy or download it instead" would point at nothing.
         expect(oversized).toHaveTextContent(/use download\/copy/i);
         expect(screen.getByLabelText('Download')).toBeInTheDocument();
+    });
+
+    it('should promise no download when the packed payload is past the unpack limit', async () => {
+        // What separates this from `oversized`: the payload was refused before unpacking, so no decompressed bytes
+        // exist to copy or download. The panel must not offer an affordance it cannot honour.
+        renderSection({
+            config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
+            dataSource: DataSource.Direct,
+            kind: 'setData',
+            payload: new Uint8Array(PMP_MAX_PACKED_INPUT_BYTES + 1),
+        });
+        await openDecodedTab();
+
+        expect(screen.getByTestId('pmp-payload-packed-oversized')).toHaveTextContent(/limit for unpacking/i);
+        expect(screen.queryByTestId('pmp-payload-oversized')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
+        // Radix unmounts the inactive panel, so the Raw tab's own download is not in the DOM either - the only
+        // Download control that could match here would be one this panel rendered, and it must not render one.
+        expect(screen.queryByLabelText('Download')).not.toBeInTheDocument();
     });
 
     it('should emit a tab analytics event when the reader opens the decoded tab', async () => {

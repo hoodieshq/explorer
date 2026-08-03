@@ -14,7 +14,6 @@ import {
     PMP_ANALYTICS_IX_NAMES,
     PMP_DATA_SOURCE_ANALYTICS_NAMES,
     PMP_DECODED_DOWNLOAD_FILENAME,
-    PMP_DECODED_RENDER_CAP_BYTES,
     PMP_FORMAT_ANALYTICS_NAMES,
     PMP_RAW_DOWNLOAD_FILENAME,
 } from '../lib/constants';
@@ -33,14 +32,12 @@ const CARD_TABLE_COLUMNS = 3;
  *
  * Raw bytes always go through `RawDataField`, which owns the hex/base64 tabs, the byte count, copy, download,
  * show-more and its own too-large guard. Nothing here reimplements those.
+ *
+ * `cap` overrides the per-encoding decode budget on BOTH the inline and the account path. Left undefined in the
+ * app, so each encoding gets the budget measured for it, and set by tests and stories that need a guard state
+ * without a fixture hundreds of kilobytes wide.
  */
-export function DataPayloadSection({
-    content,
-    cap = PMP_DECODED_RENDER_CAP_BYTES,
-}: {
-    content: PmpPayloadInstruction;
-    cap?: number;
-}) {
+export function DataPayloadSection({ content, cap }: { content: PmpPayloadInstruction; cap?: number }) {
     const { config, payload } = content;
 
     // Decoded for every payload, not just `Direct`: `Url` and `External` also get the Decoded/Raw tabs, where the
@@ -55,14 +52,22 @@ export function DataPayloadSection({
         <>
             <BaseTable.Row>
                 <BaseTable.Cell colSpan={CARD_TABLE_COLUMNS} data-testid="pmp-payload-section">
-                    <PayloadBody content={content} decoded={decoded} />
+                    <PayloadBody cap={cap} content={content} decoded={decoded} />
                 </BaseTable.Cell>
             </BaseTable.Row>
         </>
     );
 }
 
-function PayloadBody({ content, decoded }: { content: PmpPayloadInstruction; decoded: PmpDecodedPayload | undefined }) {
+function PayloadBody({
+    cap,
+    content,
+    decoded,
+}: {
+    cap: number | undefined;
+    content: PmpPayloadInstruction;
+    decoded: PmpDecodedPayload | undefined;
+}) {
     const { dataSource } = content;
 
     // A 4-byte header-only setData updates the hints and leaves the stored bytes alone - not "no data", and not a decode failure.
@@ -77,7 +82,7 @@ function PayloadBody({ content, decoded }: { content: PmpPayloadInstruction; dec
     }
 
     if (content.payload === undefined) {
-        return <AccountSourceSection content={content} dataSource={dataSource} />;
+        return <AccountSourceSection cap={cap} content={content} dataSource={dataSource} />;
     }
 
     // A payload is present, which is exactly what the memo in the parent decodes on, so `decoded` is always set
@@ -100,7 +105,15 @@ function PayloadBody({ content, decoded }: { content: PmpPayloadInstruction; dec
  * setData from a foreign buffer, or initialize in-place: the bytes are not in this transaction, they are in the
  * account this instruction points at. That account can be read, so the section names it and reads it.
  */
-function AccountSourceSection({ content, dataSource }: { content: PmpPayloadInstruction; dataSource: DataSource }) {
+function AccountSourceSection({
+    cap,
+    content,
+    dataSource,
+}: {
+    cap: number | undefined;
+    content: PmpPayloadInstruction;
+    dataSource: DataSource;
+}) {
     const account = content.kind === 'setData' ? content.sourceBuffer : content.metadataAccount;
     const label = content.kind === 'setData' ? 'Source buffer' : 'Metadata account';
 
@@ -120,7 +133,7 @@ function AccountSourceSection({ content, dataSource }: { content: PmpPayloadInst
                     <Address noNicknameEditing pubkey={new PublicKey(account)} link raw />
                 </div>
             </Alert>
-            <AccountPayload account={account} content={content} dataSource={dataSource} />
+            <AccountPayload account={account} cap={cap} content={content} dataSource={dataSource} />
         </div>
     );
 }
@@ -131,16 +144,18 @@ function AccountSourceSection({ content, dataSource }: { content: PmpPayloadInst
  */
 function AccountPayload({
     account,
+    cap,
     content,
     dataSource,
 }: {
     account: string;
+    cap: number | undefined;
     content: PmpPayloadInstruction;
     dataSource: DataSource;
 }) {
     // `content.config` comes from the card's own `decodePmpContentInstruction` memo, so it is referentially
     // stable across renders, which is what keeps the hook from re-decoding the payload on every render.
-    const state = usePmpAccountPayload({ address: account, config: content.config });
+    const state = usePmpAccountPayload({ address: account, cap, config: content.config });
 
     if (state.status === 'loading') {
         return (
@@ -258,16 +273,30 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
         );
     }
 
+    // Refused before unpacking, so there are no decompressed bytes to offer and no download to promise. The
+    // sibling Raw tab still has the payload as stored, which is the only thing that exists for this state.
+    if (decoded.kind === 'packed-oversized') {
+        return (
+            <div className="flex flex-col gap-0" data-testid="pmp-payload-packed-oversized">
+                <Alert variant="warning" className="!mb-0">
+                    Stored payload is {decoded.length} bytes, past the {decoded.limit}-byte limit for unpacking.
+                </Alert>
+            </div>
+        );
+    }
+
     if (decoded.kind === 'oversized') {
         return (
             <div className="flex flex-col gap-0" data-testid="pmp-payload-oversized">
                 <Alert variant="warning" className="!mb-0">
-                    Payload too large to render ({decoded.bytes.length} bytes). Copy or download it instead.
+                    Payload too large to render ({decoded.bytes.length} bytes, limit {decoded.budget}). Copy or download
+                    it instead.
                 </Alert>
                 {/* The DECOMPRESSED bytes, which the sibling Raw tab cannot give you: that tab shows the on-chain
                     payload, so for a compressed document it hands back the compressed bytes. This is the only
-                    route to the actual document once it is over the cap, which is what makes the copy/download
-                    the Alert promises real. RawDataField's own 1 KB guard means nothing this big is inlined. */}
+                    route to the actual document once it is over the budget, which is what makes the copy/download
+                    the Alert promises real. RawDataField renders a "too large" notice above its own inline
+                    threshold, so nothing this big is shown as text - copy and download still cover it. */}
                 <RawDataField data={decoded.bytes} filename={PMP_DECODED_DOWNLOAD_FILENAME} />
             </div>
         );

@@ -19,11 +19,41 @@ export const PMP_ADDRESS: string = PROGRAM_METADATA_PROGRAM_ADDRESS;
 export const PMP_CODAMA_PROGRAM_NAME = 'ProgramMetadata';
 
 /**
- * Render cap for decoded content, per the p1 spec. Above it the card renders a bounded raw view plus a
- * download affordance instead of the full document. Measured on the DECOMPRESSED payload bytes, so an
- * oversized payload is never handed to `decodeData` or `JSON.parse` at all.
+ * Render cap for decoded content, shared by the three encodings whose decode cost is linear. Above it the card
+ * renders a bounded raw view plus a download affordance instead of the full document. Measured on the
+ * DECOMPRESSED payload bytes, so an oversized payload is never handed to `decodeData` or `JSON.parse` at all.
  */
 export const PMP_DECODED_RENDER_CAP_BYTES = 256 * 1024;
+
+/**
+ * Decode budget per encoding, because the four encodings do not cost the same per byte.
+ *
+ * `decodeData(bytes, Encoding.Base58)` resolves to `getBase58Decoder()`, which folds the whole payload into one
+ * BigInt and divides it down digit by digit, so it is QUADRATIC in the byte length. Measured against the installed
+ * `@solana/codecs-strings`:
+ *
+ *      4 KB ->   26 ms       16 KB ->  427 ms       64 KB -> 7065 ms
+ *      8 KB ->  101 ms       32 KB -> 1746 ms
+ *
+ * At the shared render cap that is minutes of blocked main thread, and the decode runs synchronously inside a
+ * render memo, so nothing can paint while it runs. 16 KB is a deliberate pick: about 430 ms worst case, a visible
+ * stall rather than a freeze. Do NOT raise it casually - the cost grows with the SQUARE of the budget, so doubling
+ * it quadruples the stall.
+ *
+ * A `Record` keyed by the library enum rather than a lookup with a default, so a new variant breaks the build here
+ * instead of silently inheriting a budget that was never measured for it.
+ */
+export const PMP_DECODE_BUDGET_BYTES: Record<Encoding, number> = {
+    [Encoding.Base58]: 16 * 1024,
+    [Encoding.Base64]: PMP_DECODED_RENDER_CAP_BYTES,
+    [Encoding.None]: PMP_DECODED_RENDER_CAP_BYTES,
+    [Encoding.Utf8]: PMP_DECODED_RENDER_CAP_BYTES,
+};
+
+/**
+ * Ceiling on the PACKED payload, checked before it is unpacked at all.
+ */
+export const PMP_MAX_PACKED_INPUT_BYTES = 1024 * 1024;
 
 /** Download base names. `DownloadDropdown` appends `_<encoding>.txt`, so no extension belongs here. */
 export const PMP_RAW_DOWNLOAD_FILENAME = 'pmp-payload-raw';
@@ -94,7 +124,7 @@ export const PMP_ANALYTICS_IX_NAMES = {
 } as const;
 
 /**
- * Instruction account order, verified against the generated client's `getXInstruction` builders (design 1).
+ * Instruction account order, verified against the generated client's `getXInstruction` builders.
  * These are FINAL row labels, rendered verbatim. They carry Codama's own capitalisation (first letter upper,
  * no word split) so a `setData` card labels its accounts exactly like the `allocate` card next to it, which
  * `CodamaInstructionCard` builds with `charAt(0).toUpperCase() + slice(1)`.

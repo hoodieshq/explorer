@@ -1,7 +1,9 @@
 import { Compression, Encoding, Format, packDirectData } from '@solana-program/program-metadata';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { PMP_DECODED_RENDER_CAP_BYTES } from '../constants';
+import { Logger } from '@/app/shared/lib/logger';
+
+import { PMP_DECODE_BUDGET_BYTES, PMP_DECODED_RENDER_CAP_BYTES, PMP_MAX_PACKED_INPUT_BYTES } from '../constants';
 import { decodePmpPayload } from '../decode-pmp-payload';
 
 const DOC = '{"name":"company","version":"1.0.0"}';
@@ -16,6 +18,11 @@ function pack(content: string, compression: Compression): Uint8Array {
 }
 
 describe('decodePmpPayload', () => {
+    // The Logger is a global no-op mock (test-setup.specs.ts), so these read the calls the decode makes.
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     it('should decode an uncompressed UTF-8 JSON payload into a pretty-printed document', () => {
         const result = decodePmpPayload({
             config: { compression: Compression.None, encoding: Encoding.Utf8, format: Format.Json },
@@ -77,13 +84,52 @@ describe('decodePmpPayload', () => {
         expect(result.kind).toBe('decoded');
     });
 
-    it('should default the cap to PMP_DECODED_RENDER_CAP_BYTES', () => {
+    it('should default a linear encoding to the shared render cap', () => {
         const result = decodePmpPayload({
             config: { compression: Compression.None, encoding: Encoding.None, format: Format.None },
             data: new Uint8Array(PMP_DECODED_RENDER_CAP_BYTES + 1),
         });
 
-        expect(result.kind).toBe('oversized');
+        expect(result).toMatchObject({ budget: PMP_DECODED_RENDER_CAP_BYTES, kind: 'oversized' });
+    });
+
+    it('should hold Base58 to a budget well below the shared render cap', () => {
+        // `getBase58Decoder()` folds the payload into one BigInt and divides it down, so its cost grows with the
+        // SQUARE of the length: at the shared cap a base58 payload blocks the render for minutes. Anything past the
+        // base58 budget has to come back oversized rather than reaching `decodeData`.
+        const budget = PMP_DECODE_BUDGET_BYTES[Encoding.Base58];
+        const result = decodePmpPayload({
+            config: { compression: Compression.None, encoding: Encoding.Base58, format: Format.None },
+            data: new Uint8Array(budget + 1),
+        });
+
+        // Fails if the two are ever collapsed back into one global cap.
+        expect(budget).toBeLessThan(PMP_DECODED_RENDER_CAP_BYTES);
+        expect(result).toMatchObject({ budget, kind: 'oversized' });
+    });
+
+    it('should still decode a Base58 payload that sits inside its budget', () => {
+        const result = decodePmpPayload({
+            config: { compression: Compression.None, encoding: Encoding.Base58, format: Format.None },
+            data: new Uint8Array([1, 2, 3, 4]),
+        });
+
+        expect(result.kind).toBe('decoded');
+    });
+
+    it('should refuse a packed payload past the unpack limit without decompressing it', () => {
+        // Deliberately not a valid stream: reaching `uncompressData` at all would throw and come back as `failed`,
+        // so `packed-oversized` proves the length check ran BEFORE the unpack.
+        const result = decodePmpPayload({
+            config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
+            data: new Uint8Array(PMP_MAX_PACKED_INPUT_BYTES + 1),
+        });
+
+        expect(result).toEqual({
+            kind: 'packed-oversized',
+            length: PMP_MAX_PACKED_INPUT_BYTES + 1,
+            limit: PMP_MAX_PACKED_INPUT_BYTES,
+        });
     });
 
     it('should report failed with a reason when the compressed stream is corrupt', () => {
@@ -118,5 +164,59 @@ describe('decodePmpPayload', () => {
         });
 
         expect(result).toEqual({ kind: 'failed', reason: 'unsupported encoding (99)' });
+    });
+
+    it('should report a non-string decode result to Sentry, because only our own drift produces it', () => {
+        decodePmpPayload({
+            config: { compression: Compression.None, encoding: 99 as Encoding, format: Format.None },
+            data: new Uint8Array([1, 2, 3]),
+        });
+
+        // The encoding value has to ride in `sentryExtras`: plain context fields never leave the console, and the
+        // console is suppressed in the browser.
+        expect(Logger.warn).toHaveBeenCalledWith(
+            expect.stringContaining('non-string'),
+            expect.objectContaining({ sentry: true, sentryExtras: expect.objectContaining({ encoding: 99 }) }),
+        );
+    });
+
+    it('should log a payload that fails its own hints without reporting it to Sentry', () => {
+        decodePmpPayload({
+            config: { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json },
+            data: new Uint8Array([1, 2, 3, 4]),
+        });
+
+        // pako throws a bare string, so the cause is what carries it - `reason` alone would lose the throw site.
+        expect(Logger.error).toHaveBeenCalledWith(
+            expect.objectContaining({ cause: 'incorrect header check' }),
+            expect.objectContaining({ reason: 'incorrect header check' }),
+        );
+        // Malformed chain data is not an incident, and the `Url`/`External` panels reach this state by design, so
+        // an event per render would be pure noise. Fails if `sentry: true` is ever added here.
+        expect(Logger.error).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ sentry: true }));
+    });
+
+    it('should log at debug when a Json payload does not parse as JSON', () => {
+        const result = decodePmpPayload({
+            config: { compression: Compression.None, encoding: Encoding.Utf8, format: Format.Json },
+            data: pack('not json', Compression.None),
+        });
+
+        // The text still renders verbatim, so this is a hint/content mismatch rather than a decode failure.
+        expect(result.kind === 'decoded' && result.text).toEqual('not json');
+        expect(Logger.debug).toHaveBeenCalledWith(expect.stringContaining('Format.Json'), expect.anything());
+        expect(Logger.error).not.toHaveBeenCalled();
+        expect(Logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should log nothing at all when the payload decodes', () => {
+        decodePmpPayload({
+            config: { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json },
+            data: pack(DOC, Compression.Zlib),
+        });
+
+        expect(Logger.debug).not.toHaveBeenCalled();
+        expect(Logger.warn).not.toHaveBeenCalled();
+        expect(Logger.error).not.toHaveBeenCalled();
     });
 });

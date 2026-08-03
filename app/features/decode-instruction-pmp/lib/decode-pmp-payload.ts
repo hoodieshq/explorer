@@ -1,42 +1,71 @@
 import { decodeData, uncompressData } from '@solana-program/program-metadata';
 import { Format } from '@solana-program/program-metadata';
 
-import { PMP_DECODED_RENDER_CAP_BYTES } from './constants';
+import { Logger } from '@/app/shared/lib/logger';
+
+import { PMP_DECODE_BUDGET_BYTES, PMP_MAX_PACKED_INPUT_BYTES } from './constants';
 import type { PmpDecodeConfig, PmpDecodedPayload } from './types';
 
 /**
- * Decodes an inline PMP payload: decompress, enforce the render cap, then decode per `encoding` and present per
+ * Decodes an inline PMP payload: decompress, enforce the decode budget, then decode per `encoding` and present per
  * `format`. Never throws - every failure comes back as `{ kind: 'failed' }` so the card can degrade locally
  * without losing its accounts and config tables.
  *
- * The cap is measured on the DECOMPRESSED bytes and checked BEFORE the encoding step, so an oversized payload is
- * never handed to `decodeData` or `JSON.parse`. That is the cost the cap exists to avoid.
+ * Two bounds apply, because they guard different costs:
+ * - `PMP_MAX_PACKED_INPUT_BYTES` on the PACKED bytes, before `uncompressData` sees them at all.
+ * - the per-encoding budget on the DECOMPRESSED bytes, checked BEFORE the encoding step so an oversized payload is
+ *   never handed to `decodeData` or `JSON.parse`. That is the cost the budget exists to avoid, and it is where the
+ *   render stays responsive: with `Encoding.Base58` the decode is quadratic. See `PMP_DECODE_BUDGET_BYTES`.
+ *
+ * `cap` overrides the per-encoding budget for the whole call. It exists so tests and stories can reach the guard
+ * states without building a fixture hundreds of kilobytes wide.
  */
 export function decodePmpPayload({
     config,
     data,
-    cap = PMP_DECODED_RENDER_CAP_BYTES,
+    cap,
 }: {
     config: PmpDecodeConfig;
     data: Uint8Array;
     cap?: number;
 }): PmpDecodedPayload {
+    const budget = cap ?? PMP_DECODE_BUDGET_BYTES[config.encoding];
+
+    // Outside the `try` on purpose: a length comparison cannot throw, and putting it here makes it obvious that
+    // nothing has touched the packed bytes yet.
+    if (data.length > PMP_MAX_PACKED_INPUT_BYTES) {
+        return { kind: 'packed-oversized', length: data.length, limit: PMP_MAX_PACKED_INPUT_BYTES };
+    }
+
     try {
         // `uncompressData` is typed ReadonlyUint8Array but returns the input by reference for Compression.None
         // and a real Uint8Array from pako otherwise, so this is a view cast rather than a copy.
         const bytes = uncompressData(data, config.compression);
-        if (bytes.length > cap) {
-            return { bytes: bytes.subarray(), kind: 'oversized' };
+        if (bytes.length > budget) {
+            return { budget, bytes: bytes.subarray(), kind: 'oversized' };
         }
 
         const text = decodeData(bytes, config.encoding);
         if (typeof text !== 'string') {
+            // No validated config can reach this: both entry points narrow `encoding` to the library enum first.
+            // If it fires, `Encoding` grew a variant whose decoder returns something other than a string, and
+            // every card holding that encoding renders a decode failure. Reported, because it is our drift.
+            Logger.warn('[pmp:decode-payload] decodeData returned a non-string for a declared encoding', {
+                sentry: true,
+                sentryExtras: { compression: config.compression, encoding: config.encoding },
+            });
             return { kind: 'failed', reason: `unsupported encoding (${config.encoding})` };
         }
 
         return { bytes: bytes.subarray(), kind: 'decoded', text: toDocumentText(text, config.format) };
     } catch (error) {
-        return { kind: 'failed', reason: toDecodeFailureReason(error) };
+        const reason = toDecodeFailureReason(error);
+        Logger.error(new Error('[pmp:decode-payload] failed to decode', { cause: error }), {
+            compression: config.compression,
+            encoding: config.encoding,
+            reason,
+        });
+        return { kind: 'failed', reason };
     }
 }
 
@@ -59,7 +88,8 @@ export function toDocumentText(text: string, format: Format): string {
     try {
         // Every JSON value stringifies back to a string, scalars included, so no shape needs special-casing.
         return JSON.stringify(JSON.parse(text), undefined, 2);
-    } catch {
+    } catch (error) {
+        Logger.debug('[pmp:decode-payload] payload declares Format.Json but does not parse as JSON', { error });
         return text;
     }
 }
