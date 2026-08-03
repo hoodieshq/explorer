@@ -33,6 +33,7 @@ import {
 } from '@explorer/decoder-serum/detection';
 import { AssociatedTokenDetailsCard } from '@features/decode-instruction-associated-token';
 import { isLighthouseInstruction, LighthouseDetailsCard } from '@features/decode-instruction-lighthouse';
+import { isProgramMetadataInstruction, PmpDetailsCard } from '@features/decode-instruction-pmp';
 import { IdlInstructionCard, useIdlInstructionDecode } from '@features/decode-instruction-with-idl';
 import { MetaplexTokenMetadataDetailsCard } from '@features/mpl-token-metadata';
 import { isStakeInstruction, RawStakeDetailsCard, StakeDetailsCard } from '@features/stake';
@@ -354,6 +355,26 @@ function InstructionCard({
             <ErrorBoundary fallback={<UnknownDetailsCard {...props} />} key={key}>
                 <MetaplexTokenMetadataDetailsCard {...props} />
             </ErrorBoundary>
+        );
+    }
+    // PMP owns every instruction on its program id: `setData`/`initialize`/`write` render decoded content from
+    // the bundled typed decoders (no IDL needed), and the housekeeping instructions delegate to the IDL tier
+    // from inside the card. Must sit before the generic idlDecode tier so it wins for the content instructions.
+    if (isProgramMetadataInstruction(transactionIx)) {
+        return (
+            <PmpDetailsCard
+                key={key}
+                {...props}
+                // The card cannot import the IDL feature (boundaries/dependencies), so this surface decides what
+                // a non-content PMP instruction falls back to. Same two outcomes as before the branch existed.
+                fallback={
+                    idlDecode ? (
+                        <IdlInstructionCard decoded={idlDecode} {...props} />
+                    ) : (
+                        <UnknownDetailsCard {...props} />
+                    )
+                }
+            />
         );
     }
     if (idlDecode) {
