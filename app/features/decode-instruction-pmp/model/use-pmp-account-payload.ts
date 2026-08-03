@@ -27,15 +27,21 @@ export function usePmpAccountPayload({
     const fetchAccountInfo = useFetchAccountInfo();
     const entry = useAccountInfo(address);
 
+    // Cached is not the same as cached WITH BYTES: all three fetch modes share one slot per address, and the
+    // inspector fills it in `skip` mode, which stores none. Re-requesting settles, because a `raw` fetch always
+    // stores bytes.
+    const needsBytes =
+        entry === undefined || (entry.status === FetchStatus.Fetched && entry.data?.data.raw === undefined);
+
     React.useEffect(() => {
-        // `entry` guards the re-request: the provider keeps a Fetching entry from the first call onwards, so this
-        // fires once per address rather than on every render until the response lands.
-        if (entry !== undefined) return;
+        if (!needsBytes) return;
         fetchAccountInfo(new PublicKey(address), 'raw');
-    }, [address, entry, fetchAccountInfo]);
+    }, [address, fetchAccountInfo, needsBytes]);
 
     return React.useMemo(() => {
-        if (entry === undefined || entry.status === FetchStatus.Fetching) return { status: 'loading' };
+        // `needsBytes` covers both "nothing cached yet" and "cached without bytes"; the effect above is already
+        // requesting them, so both read as loading rather than as a decode of an entry that has nothing to decode.
+        if (needsBytes || entry === undefined || entry.status === FetchStatus.Fetching) return { status: 'loading' };
         if (entry.status === FetchStatus.FetchFailed || entry.data === undefined) return { status: 'failed' };
 
         const { data, lamports, owner } = entry.data;
@@ -46,5 +52,5 @@ export function usePmpAccountPayload({
             }),
             status: 'ready',
         };
-    }, [config, entry]);
+    }, [config, entry, needsBytes]);
 }

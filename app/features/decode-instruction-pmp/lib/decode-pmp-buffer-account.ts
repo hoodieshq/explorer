@@ -39,7 +39,12 @@ export function decodePmpBufferAccount({
             reason: `the account is owned by ${owner}, not the Program Metadata Program`,
         };
     }
-    if (data === undefined || data.length < PMP_ACCOUNT_HEADER_LEN) {
+
+    if (data === undefined) {
+        return { kind: 'unreadable', reason: 'the account was fetched without its data' };
+    }
+
+    if (data.length < PMP_ACCOUNT_HEADER_LEN) {
         return {
             kind: 'unreadable',
             reason: `the account is shorter than the ${PMP_ACCOUNT_HEADER_LEN}-byte header`,

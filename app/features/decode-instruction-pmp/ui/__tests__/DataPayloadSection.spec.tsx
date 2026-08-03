@@ -387,6 +387,19 @@ describe('DataPayloadSection', () => {
         expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
     });
 
+    it('should request the bytes when the cached entry was fetched without them', () => {
+        // The inspector fetches every account in the message in `skip` mode (`AddressWithContext`), which caches
+        // the account with no bytes under the same key this hook reads. Decoding that entry reported a live
+        // buffer as "shorter than the 96-byte header", intermittently, depending on which fetch settled last.
+        mockUseAccountInfo.mockReturnValue(fetchedEntry(undefined, { lamports: 2_000_000 }));
+        renderSection(DEFERRED_SET_DATA);
+
+        expect(mockFetchAccountInfo).toHaveBeenCalledTimes(1);
+        expect(mockFetchAccountInfo.mock.calls[0][1]).toBe('raw');
+        expect(screen.getByTestId('pmp-account-loading')).toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-account-unreadable')).not.toBeInTheDocument();
+    });
+
     it('should surface an RPC failure as its own state', () => {
         mockUseAccountInfo.mockReturnValue({ status: FetchStatus.FetchFailed });
         renderSection(DEFERRED_SET_DATA);

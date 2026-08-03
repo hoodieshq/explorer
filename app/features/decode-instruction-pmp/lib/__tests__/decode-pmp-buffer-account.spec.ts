@@ -134,6 +134,15 @@ describe('decodePmpBufferAccount', () => {
         expect(read(new Uint8Array(95))).toEqual({ kind: 'unreadable', reason: expect.stringContaining('96-byte') });
     });
 
+    it('should not call a live account short when it was fetched without its data', () => {
+        // The provider caches by address across three fetch modes, and a `skip` fetch stores an account with no
+        // bytes. That is an absent FETCH, not an absent or short ACCOUNT, so it must not claim a length.
+        const result = read(undefined, { lamports: 2_000_000 });
+
+        expect(result).toEqual({ kind: 'unreadable', reason: expect.stringContaining('without its data') });
+        expect(result.kind === 'unreadable' && result.reason).not.toContain('96-byte');
+    });
+
     it('should report unreadable for a discriminator that carries no payload', () => {
         const empty = bufferAccount(pack(DOC, Compression.None));
         empty[0] = 0; // AccountDiscriminator.Empty
