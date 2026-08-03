@@ -1,4 +1,5 @@
 import {
+    ACCOUNT_HEADER_LENGTH,
     Compression,
     DataSource,
     Encoding,
@@ -35,6 +36,16 @@ export const PMP_JSON_COLLAPSE_DEPTH = 1;
 export const PMP_RAW_DOWNLOAD_FILENAME = 'pmp-payload-raw';
 export const PMP_DECODED_DOWNLOAD_FILENAME = 'pmp-payload-decoded';
 export const PMP_WRITE_CHUNK_DOWNLOAD_FILENAME = 'pmp-write-chunk';
+export const PMP_ACCOUNT_RAW_DOWNLOAD_FILENAME = 'pmp-account-raw';
+
+/**
+ * Both PMP account layouts put the payload body at byte 96, so anything shorter cannot carry one.
+ *
+ * Buffer:   disc [0,1) program [1,33) authority [33,65) canonical [65,66) seed [66,82) padding [82,96)
+ * Metadata: disc [0,1) program [1,33) authority [33,65) mutable [65,66) canonical [66,67) seed [67,83)
+ *           encoding [83,84) compression [84,85) format [85,86) dataSource [86,87) dataLength [87,91) padding [91,96)
+ */
+export const PMP_ACCOUNT_HEADER_LEN: number = ACCOUNT_HEADER_LENGTH;
 
 /** setData carries `dataSource` as an optional trailing byte, so 4 bytes is the header-only hint-update shape. */
 export const HEADER_ONLY_SET_DATA_LEN = 4;

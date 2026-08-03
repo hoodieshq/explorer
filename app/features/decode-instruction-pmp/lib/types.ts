@@ -16,7 +16,7 @@ export type PmpContentInstruction =
           config: PmpDecodeConfig;
           /** Absent on the 4-byte header-only shape, which carries no `dataSource` byte and no payload. */
           dataSource?: DataSource;
-          /** Absent on the header-only shape and when the bytes live in `sourceBuffer` (reconstruction is milestone P2). */
+          /** Absent on the header-only shape and when the bytes live in `sourceBuffer`, which is read on demand. */
           payload?: Uint8Array;
           /** Account index 2 when it is not the program id, meaning the bytes come from a foreign buffer. */
           sourceBuffer?: string;
@@ -26,7 +26,7 @@ export type PmpContentInstruction =
           config: PmpDecodeConfig;
           dataSource: DataSource;
           seed: string;
-          /** Absent on the in-place path, where the bytes were pre-written to the metadata PDA (P2). */
+          /** Absent on the in-place path, where the bytes were pre-written to the metadata PDA and are read there. */
           payload?: Uint8Array;
           /** Account index 0, the metadata PDA that the in-place path pre-wrote. */
           metadataAccount?: string;
@@ -59,3 +59,35 @@ export type PmpDecodedPayload =
     | { kind: 'decoded'; document: PmpDecodedDocument; bytes: Uint8Array }
     | { kind: 'oversized'; bytes: Uint8Array }
     | { kind: 'failed'; reason: string };
+
+/** Which PMP account layout the body was read from. A Buffer carries no hints of its own, a Metadata does. */
+export type PmpAccountKind = 'buffer' | 'metadata';
+
+/**
+ * The minimal account shape the pure account decoder needs, so `lib/` stays free of the accounts provider.
+ * `owner` is base58 and `data` is the account's RAW bytes, header included.
+ */
+export type PmpAccountSnapshot = {
+    owner: string;
+    lamports: number;
+    data: Uint8Array | undefined;
+};
+
+/**
+ * Result of reading a payload from the account the instruction points at, rather than from the instruction.
+ *
+ * `absent` is an ordinary outcome, not an error: the canonical client closes a `setData` source buffer right
+ * after the instruction to reclaim its rent, so a historical transaction's buffer is normally gone.
+ */
+export type PmpAccountContent =
+    | { kind: 'absent' }
+    | { kind: 'unreadable'; reason: string }
+    | {
+          kind: 'payload';
+          account: PmpAccountKind;
+          /** The hints the body was decoded with: a Metadata account's own, or the instruction's for a Buffer. */
+          config: PmpDecodeConfig;
+          /** The account body as stored, before decompression - what the Raw tab shows. */
+          body: Uint8Array;
+          payload: PmpDecodedPayload;
+      };

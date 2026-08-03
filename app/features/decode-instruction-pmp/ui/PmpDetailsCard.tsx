@@ -21,9 +21,9 @@ import {
 } from '../lib/constants';
 import { decodePmpContentInstruction } from '../lib/decode-pmp-instruction';
 import type { PmpContentInstruction, PmpPayloadInstruction } from '../lib/types';
-import { PmpPayloadSection } from './PmpPayloadSection';
+import { DataPayloadSection } from './DataPayloadSection';
 
-/** The card table has three columns, matching PmpPayloadSection's own constant. */
+/** The card table has three columns, matching DataPayloadSection's own constant. */
 const CARD_TABLE_COLUMNS = 3;
 
 type PmpDetailsCardProps = {
@@ -100,7 +100,7 @@ function PmpDetailsCardBody({
             ) : (
                 <>
                     <ConfigRows content={content} />
-                    <PmpPayloadSection content={content} />
+                    <DataPayloadSection content={content} />
                 </>
             )}
         </InstructionCardComponent>
