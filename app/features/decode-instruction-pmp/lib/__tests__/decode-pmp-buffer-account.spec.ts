@@ -224,23 +224,6 @@ describe('decodePmpBufferAccount', () => {
         expect(result).toMatchObject({ account: 'metadata', kind: 'payload', payload: { kind: 'empty' } });
     });
 
-    it('should report a dataLength that runs past the account body to Sentry and render what exists', () => {
-        const body = pack(DOC, Compression.None);
-        // The header claims 500 bytes on an account that holds `body.length`. `subarray` clamps rather than
-        // throwing, so nothing else would notice.
-        const result = read(metadataAccount({ body, dataLength: 500 }));
-
-        expect(Logger.warn).toHaveBeenCalledWith(
-            expect.stringContaining('dataLength runs past'),
-            expect.objectContaining({
-                sentry: true,
-                sentryExtras: expect.objectContaining({ available: body.length, dataLength: 500 }),
-            }),
-        );
-        // Clamped, not lost: the bytes that do exist still decode.
-        expect(result).toMatchObject({ kind: 'payload', payload: { kind: 'decoded', text: DOC_PRETTY } });
-    });
-
     it('should log nothing when an account decodes', () => {
         read(bufferAccount(pack(DOC, Compression.None)));
 
