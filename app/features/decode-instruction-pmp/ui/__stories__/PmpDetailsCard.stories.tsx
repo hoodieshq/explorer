@@ -187,6 +187,13 @@ export const WriteChunk: Story = {
     },
 };
 
+export const WriteFromBuffer: Story = {
+    args: {
+        ...baseArgs,
+        ix: makeIx(getWriteInstructionDataEncoder().encode({ offset: 0 }) as Uint8Array, 3),
+    },
+};
+
 // ===== setData sourced from a buffer account =====
 //
 // `data` is empty, so the payload is not in the instruction - it is in the buffer at account index 2, which the
