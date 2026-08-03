@@ -54,11 +54,12 @@ export function decodePmpBufferAccount({
 
     try {
         switch (data[0]) {
-            case AccountDiscriminator.Buffer:
+            case AccountDiscriminator.Buffer: {
                 // A buffer has no length field: its body runs to the end of the account, which is what the
                 // remainder decoder hands back.
                 const bufferData = getBufferDecoder().decode(data).data;
                 return decodeAccountContent('buffer', config, bufferData, cap);
+            }
             case AccountDiscriminator.Metadata: {
                 const metadata = getMetadataDecoder().decode(data);
                 // The `data` field is a REMAINDER, so an account grown by `extend` and never trimmed carries
@@ -71,16 +72,18 @@ export function decodePmpBufferAccount({
                 };
                 return decodeAccountContent('metadata', accountConfig, bufferData, cap);
             }
-            case AccountDiscriminator.Empty:
+            case AccountDiscriminator.Empty: {
                 // Allocated and not written yet. An ordinary state, so it is reported to the reader and nowhere
                 // else - but reading it as a payload would still decode padding as content.
                 return noPayloadContent(data[0]);
-            default:
+            }
+            default: {
                 Logger.warn('[pmp:decode-account] unknown PMP account discriminator', {
                     sentry: true,
                     sentryExtras: { discriminator: data[0], length: data.length },
                 });
                 return noPayloadContent(data[0]);
+            }
         }
     } catch (error) {
         Logger.error(new Error('[pmp:decode-account] PMP account decode error', { cause: error }), {

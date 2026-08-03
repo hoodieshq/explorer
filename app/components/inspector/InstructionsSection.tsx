@@ -149,12 +149,7 @@ function InspectorInstructionCard({
                             signature={INSPECTOR_SIGNATURE}
                         />
                     ) : (
-                        <UnknownDetailsCard
-                            index={index}
-                            ix={ix}
-                            programName={programName}
-                            innerCards={innerCards}
-                        />
+                        <UnknownDetailsCard index={index} ix={ix} programName={programName} innerCards={innerCards} />
                     )
                 }
             />
