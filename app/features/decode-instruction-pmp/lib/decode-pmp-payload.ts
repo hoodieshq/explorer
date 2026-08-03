@@ -11,8 +11,6 @@ import type { PmpDecodeConfig, PmpDecodedPayload } from './types';
  *
  * The cap is measured on the DECOMPRESSED bytes and checked BEFORE the encoding step, so an oversized payload is
  * never handed to `decodeData` or `JSON.parse`. That is the cost the cap exists to avoid.
- *
- * TODO: scope is inline bytes only, which are transaction-size bounded, so the library's unbounded pako inflate is safe here. Buffer-sourced (milestone P2) and fetched (milestone P3) bytes are NOT bounded and need the output-bounded inflate.
  */
 export function decodePmpPayload({
     config,
@@ -30,14 +28,12 @@ export function decodePmpPayload({
         if (bytes.length > cap) {
             return { bytes: bytes.subarray(), kind: 'oversized' };
         }
+
         const text = decodeData(bytes, config.encoding);
-        // `decodeData`'s switch has no default arm, so an out-of-range `encoding` returns undefined instead of
-        // throwing, and `toDecodedDocument(undefined, ...)` would then report a successful decode of an empty
-        // document. Unreachable in P1, because the typed instruction decoder rejects a bad enum byte first
-        // ("Enum discriminator out of range"), but P2 reads the config from an account header where it is not.
         if (typeof text !== 'string') {
             return { kind: 'failed', reason: `unsupported encoding (${config.encoding})` };
         }
+
         return { bytes: bytes.subarray(), document: toDecodedDocument(text, config.format), kind: 'decoded' };
     } catch (error) {
         return { kind: 'failed', reason: toDecodeFailureReason(error) };

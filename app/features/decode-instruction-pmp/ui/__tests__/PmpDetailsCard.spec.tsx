@@ -19,7 +19,7 @@ import { PmpDetailsCard } from '../PmpDetailsCard';
 
 vi.mock('@/app/shared/lib/analytics', () => ({ trackEvent: vi.fn() }));
 
-// See PmpPayloadSection.spec.tsx: the real viewer is a next/dynamic ssr:false import, so it resolves async.
+// See DataPayloadSection.spec.tsx: the real viewer is a next/dynamic ssr:false import, so it resolves async.
 vi.mock('@/app/components/common/JsonViewer', () => ({
     SolarizedJsonViewer: ({ src }: { src: unknown }) => (
         <div data-testid="json-viewer">{JSON.stringify(src, null, 2)}</div>
@@ -67,7 +67,7 @@ function renderCard(ix: TransactionInstruction) {
     );
 }
 
-/** The payload section opens on the Raw tab and Radix unmounts the inactive panel. See PmpPayloadSection.spec. */
+/** The payload section opens on the Raw tab and Radix unmounts the inactive panel. See DataPayloadSection.spec. */
 async function openDecodedTab() {
     await userEvent.click(screen.getByRole('tab', { name: 'Decoded' }));
 }

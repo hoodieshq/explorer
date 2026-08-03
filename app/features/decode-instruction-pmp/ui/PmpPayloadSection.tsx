@@ -11,6 +11,7 @@ import { BaseTable } from '@/app/shared/ui/Table';
 
 import { pmpAnalytics } from '../lib/analytics';
 import {
+    PMP_ACCOUNT_RAW_DOWNLOAD_FILENAME,
     PMP_ANALYTICS_IX_NAMES,
     PMP_DATA_SOURCE_ANALYTICS_NAMES,
     PMP_DECODED_DOWNLOAD_FILENAME,
@@ -20,7 +21,8 @@ import {
     PMP_RAW_DOWNLOAD_FILENAME,
 } from '../lib/constants';
 import { decodePmpPayload } from '../lib/decode-pmp-payload';
-import type { PmpDecodedPayload, PmpPayloadInstruction } from '../lib/types';
+import type { PmpAccountContent, PmpDecodedPayload, PmpPayloadInstruction } from '../lib/types';
+import { usePmpAccountPayload } from '../model/use-pmp-account-payload';
 
 /** The card table has three columns, so every row in this section spans all of them. */
 const CARD_TABLE_COLUMNS = 3;
@@ -34,7 +36,7 @@ const CARD_TABLE_COLUMNS = 3;
  * Raw bytes always go through `RawDataField`, which owns the hex/base64 tabs, the byte count, copy, download,
  * show-more and its own too-large guard. Nothing here reimplements those.
  */
-export function PmpPayloadSection({
+export function DataPayloadSection({
     content,
     cap = PMP_DECODED_RENDER_CAP_BYTES,
 }: {
@@ -70,14 +72,14 @@ function PayloadBody({ content, decoded }: { content: PmpPayloadInstruction; dec
     // `initialize` carries `dataSource` as a fixed struct field, so its decode always produces one.
     if (dataSource === undefined) {
         return (
-            <Alert variant="default" data-testid="pmp-header-only-note" className="mb-0">
+            <Alert variant="default" data-testid="pmp-header-only-note" className="!mb-0">
                 This instruction updates the encoding, compression and format hints only. It carries no new payload.
             </Alert>
         );
     }
 
     if (content.payload === undefined) {
-        return <DeferredSourceNote content={content} />;
+        return <AccountSourceSection content={content} dataSource={dataSource} />;
     }
 
     // A payload is present, which is exactly what the memo in the parent decodes on, so `decoded` is always set
@@ -85,42 +87,138 @@ function PayloadBody({ content, decoded }: { content: PmpPayloadInstruction; dec
     // the impossible state must not cross a component boundary.
     if (!decoded) return <></>;
 
-    return <DecodedTabs content={content} dataSource={dataSource} decoded={decoded} payload={content.payload} />;
+    return (
+        <DecodedTabs
+            content={content}
+            dataSource={dataSource}
+            decoded={decoded}
+            payload={content.payload}
+            source="instruction"
+        />
+    );
 }
 
-/** setData from a foreign buffer, or initialize in-place: the bytes are not in this transaction (P2 territory). */
-function DeferredSourceNote({ content }: { content: PmpPayloadInstruction }) {
+/**
+ * setData from a foreign buffer, or initialize in-place: the bytes are not in this transaction, they are in the
+ * account this instruction points at. That account can be read, so the section names it and reads it.
+ */
+function AccountSourceSection({ content, dataSource }: { content: PmpPayloadInstruction; dataSource: DataSource }) {
     const account = content.kind === 'setData' ? content.sourceBuffer : content.metadataAccount;
     const label = content.kind === 'setData' ? 'Source buffer' : 'Metadata account';
 
     if (!account) {
         return (
-            <Alert variant="default" data-testid="pmp-deferred-source-note" className="mb-0">
+            <Alert variant="default" data-testid="pmp-deferred-source-note" className="!mb-0">
                 This instruction carries no payload bytes.
             </Alert>
         );
     }
 
     return (
-        <Alert variant="default" data-testid="pmp-deferred-source-note" className="mb-0">
-            <div className="flex w-full flex-row items-center gap-1.5">
-                <span>The payload was written to the {label} account</span>
-                <Address noNicknameEditing pubkey={new PublicKey(account)} link raw />
-            </div>
-        </Alert>
+        <div className="flex flex-col gap-0">
+            <Alert variant="default" data-testid="pmp-deferred-source-note" className="!mb-0">
+                <div className="flex w-full flex-row items-center gap-2">
+                    <span>The payload was written to the {label} account</span>
+                    <Address noNicknameEditing pubkey={new PublicKey(account)} link raw />
+                </div>
+            </Alert>
+            <AccountPayload account={account} content={content} dataSource={dataSource} />
+        </div>
     );
 }
 
+/**
+ * Reads what the referenced account holds RIGHT NOW, on render.
+ * Deliberately not a reconstruction of what the viewed transaction wrote, no write-history replay.
+ */
+function AccountPayload({
+    account,
+    content,
+    dataSource,
+}: {
+    account: string;
+    content: PmpPayloadInstruction;
+    dataSource: DataSource;
+}) {
+    // `content.config` comes from the card's own `decodePmpContentInstruction` memo, so it is referentially
+    // stable across renders, which is what keeps the hook from re-decoding the payload on every render.
+    const state = usePmpAccountPayload({ address: account, config: content.config });
+
+    if (state.status === 'loading') {
+        return (
+            <span data-testid="pmp-account-loading" className="text-xs text-neutral-500">
+                Reading account...
+            </span>
+        );
+    }
+
+    if (state.status === 'failed') {
+        return (
+            <Alert variant="warning" data-testid="pmp-account-failed" className="!mb-0">
+                Could not read this account. The RPC request failed.
+            </Alert>
+        );
+    }
+
+    return <AccountContentBody content={content} dataSource={dataSource} result={state.content} />;
+}
+
+function AccountContentBody({
+    content,
+    dataSource,
+    result,
+}: {
+    content: PmpPayloadInstruction;
+    dataSource: DataSource;
+    result: PmpAccountContent;
+}) {
+    if (result.kind === 'absent') {
+        return (
+            <Alert variant="default" data-testid="pmp-account-absent" className="!mb-0">
+                Account does not exist on chain.
+            </Alert>
+        );
+    }
+
+    if (result.kind === 'unreadable') {
+        return (
+            <Alert variant="warning" data-testid="pmp-account-unreadable" className="!mb-0">
+                Could not read account content: {result.reason}.
+            </Alert>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-0">
+            <DecodedTabs
+                content={content}
+                dataSource={dataSource}
+                decoded={result.payload}
+                payload={result.body}
+                source="account"
+            />
+        </div>
+    );
+}
+
+/**
+ * `source` says where `payload` came from, and it settles which panel opens first: the instruction's own bytes
+ * are already on screen unasked, so they open Raw, while account content was fetched on an explicit request for
+ * the decoded document and opens Decoded. It also rides along on the tab event, so the two panels' switch counts
+ * stay separable despite their different starting tabs.
+ */
 function DecodedTabs({
     content,
     dataSource,
     decoded,
     payload,
+    source,
 }: {
     content: PmpPayloadInstruction;
     dataSource: DataSource;
     decoded: PmpDecodedPayload;
     payload: Uint8Array;
+    source: 'account' | 'instruction';
 }) {
     // `onValueChange` fires only on a reader-initiated switch, never for the tab selected on mount, so the
     // default panel produces no event. Radix hands back a plain string, so narrow it to the tracked union.
@@ -130,18 +228,19 @@ function DecodedTabs({
             dataSource: PMP_DATA_SOURCE_ANALYTICS_NAMES[dataSource],
             format: PMP_FORMAT_ANALYTICS_NAMES[content.config.format],
             instruction: PMP_ANALYTICS_IX_NAMES[content.kind],
+            source,
             tab: value,
         });
     };
 
     return (
-        <Tabs defaultValue="raw" onValueChange={handleTabChange}>
+        <Tabs defaultValue={source === 'account' ? 'decoded' : 'raw'} onValueChange={handleTabChange}>
             <TabsList>
                 <TabsTrigger value="raw">Raw</TabsTrigger>
                 <TabsTrigger value="decoded">Decoded</TabsTrigger>
             </TabsList>
             <TabsContent value="raw" className="pt-3">
-                <RawBytes payload={payload} />
+                <RawBytes payload={payload} source={source} />
             </TabsContent>
             <TabsContent value="decoded" className="pt-3">
                 <DecodedBody decoded={decoded} />
@@ -153,8 +252,8 @@ function DecodedTabs({
 function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
     if (decoded.kind === 'failed') {
         return (
-            <div className="flex flex-col gap-3">
-                <Alert variant="warning" data-testid="pmp-decode-error" className="mb-0">
+            <div className="flex flex-col gap-0">
+                <Alert variant="warning" data-testid="pmp-decode-error" className="!mb-0">
                     Could not decode this payload: {decoded.reason}
                 </Alert>
             </div>
@@ -163,8 +262,8 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
 
     if (decoded.kind === 'oversized') {
         return (
-            <div className="flex flex-col gap-3" data-testid="pmp-payload-oversized">
-                <Alert variant="warning" className="mb-0">
+            <div className="flex flex-col gap-0" data-testid="pmp-payload-oversized">
+                <Alert variant="warning" className="!mb-0">
                     Payload too large to render ({decoded.bytes.length} bytes). Copy or download it instead.
                 </Alert>
                 {/* The DECOMPRESSED bytes, which the sibling Raw tab cannot give you: that tab shows the on-chain
@@ -193,8 +292,7 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
         );
     }
 
-    // TODO: resolving DataSource.URL and DataSource.Externals lands in a later milestone.
-    // Currently text url gets rendered.
+    // TODO: resolve DataSource.URL and DataSource.Externals lands in a later milestone. Currently only text url gets rendered.
     return (
         <pre
             data-testid="pmp-decoded-text"
@@ -206,10 +304,14 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
 }
 
 /** Thin wrapper so the section's own test id sits on a stable node around the shared field. */
-function RawBytes({ payload }: { payload: Uint8Array }) {
+function RawBytes({ payload, source }: { payload: Uint8Array; source: 'account' | 'instruction' }) {
+    const isAccount = source === 'account';
     return (
-        <div data-testid="pmp-payload-raw">
-            <RawDataField data={payload} filename={PMP_RAW_DOWNLOAD_FILENAME} />
+        <div data-testid={isAccount ? 'pmp-account-raw' : 'pmp-payload-raw'}>
+            <RawDataField
+                data={payload}
+                filename={isAccount ? PMP_ACCOUNT_RAW_DOWNLOAD_FILENAME : PMP_RAW_DOWNLOAD_FILENAME}
+            />
         </div>
     );
 }

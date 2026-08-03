@@ -1,0 +1,177 @@
+import type { Address } from '@solana/kit';
+import {
+    Compression,
+    DataSource,
+    Encoding,
+    Format,
+    getBufferEncoder,
+    getMetadataEncoder,
+    packDirectData,
+} from '@solana-program/program-metadata';
+import { describe, expect, it } from 'vitest';
+
+import { concat } from '@/app/shared/lib/bytes';
+
+import { PMP_ADDRESS } from '../constants';
+import { decodePmpBufferAccount } from '../decode-pmp-buffer-account';
+import type { PmpDecodeConfig } from '../types';
+
+const PROGRAM = '4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw' as Address;
+const AUTHORITY = '2mWhJDFtX2LGKggEPVhznvs8cPzy5HM8HhsVPj5YxqA8' as Address;
+
+const DOC = '{"name":"company","version":"1.0.0"}';
+const DOC_VALUE = { name: 'company', version: '1.0.0' };
+
+/** The instruction's hints. A Buffer account is decoded with these, a Metadata account with its own. */
+const IX_CONFIG: PmpDecodeConfig = { compression: Compression.None, encoding: Encoding.Utf8, format: Format.Json };
+
+/** The library's own producer, so every body below is a byte-exact round trip of what the client puts on chain. */
+function pack(content: string, compression: Compression): Uint8Array {
+    return packDirectData({ compression, content, encoding: Encoding.Utf8 }).data as Uint8Array;
+}
+
+/** Both encoders inject their own discriminator, so these fixtures carry the real 96-byte header. */
+function bufferAccount(body: Uint8Array): Uint8Array {
+    return getBufferEncoder().encode({
+        authority: AUTHORITY,
+        canonical: true,
+        data: body,
+        program: PROGRAM,
+        seed: 'idl',
+    }) as Uint8Array;
+}
+
+function metadataAccount({
+    body,
+    config = IX_CONFIG,
+    dataLength,
+}: {
+    body: Uint8Array;
+    config?: PmpDecodeConfig;
+    dataLength?: number;
+}): Uint8Array {
+    return getMetadataEncoder().encode({
+        authority: AUTHORITY,
+        canonical: true,
+        compression: config.compression,
+        data: body,
+        dataLength: dataLength ?? body.length,
+        dataSource: DataSource.Direct,
+        encoding: config.encoding,
+        format: config.format,
+        mutable: true,
+        program: PROGRAM,
+        seed: 'idl',
+    }) as Uint8Array;
+}
+
+function read(data: Uint8Array | undefined, overrides: { lamports?: number; owner?: string } = {}) {
+    return decodePmpBufferAccount({
+        account: { data, lamports: overrides.lamports ?? 1_000_000, owner: overrides.owner ?? PMP_ADDRESS },
+        config: IX_CONFIG,
+    });
+}
+
+describe('decodePmpBufferAccount', () => {
+    it('should decode a Buffer account body with the instruction hints', () => {
+        const result = read(bufferAccount(pack(DOC, Compression.None)));
+
+        expect(result).toEqual({
+            account: 'buffer',
+            body: expect.any(Uint8Array),
+            config: IX_CONFIG,
+            kind: 'payload',
+            payload: expect.objectContaining({ document: { kind: 'json', value: DOC_VALUE }, kind: 'decoded' }),
+        });
+    });
+
+    it('should decompress a Buffer account body when the instruction says it is compressed', () => {
+        const result = decodePmpBufferAccount({
+            account: { data: bufferAccount(pack(DOC, Compression.Zlib)), lamports: 1, owner: PMP_ADDRESS },
+            config: { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json },
+        });
+
+        expect(result.kind === 'payload' && result.payload).toMatchObject({
+            document: { kind: 'json', value: DOC_VALUE },
+            kind: 'decoded',
+        });
+    });
+
+    it('should decode a Metadata account with the account hints rather than the instruction hints', () => {
+        // The account is Zlib, the instruction claims None. Decoding with the instruction's hints would hand raw
+        // deflate bytes to the UTF-8 step, so a correct document proves the account's own header won.
+        const accountConfig = { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json };
+        const result = read(metadataAccount({ body: pack(DOC, Compression.Zlib), config: accountConfig }));
+
+        expect(result).toMatchObject({
+            account: 'metadata',
+            config: accountConfig,
+            kind: 'payload',
+            payload: { document: { kind: 'json', value: DOC_VALUE }, kind: 'decoded' },
+        });
+    });
+
+    it('should ignore the slack an untrimmed extend leaves past dataLength', () => {
+        const body = pack(DOC, Compression.None);
+        // `data` is a remainder field, so an account grown by `extend` and never trimmed hands back the padding
+        // too. Only `dataLength` bytes are the payload.
+        const result = read(metadataAccount({ body: concat([body, new Uint8Array(512)]), dataLength: body.length }));
+
+        expect(result.kind === 'payload' && result.body).toEqual(body);
+        expect(result.kind === 'payload' && result.payload).toMatchObject({
+            document: { kind: 'json', value: DOC_VALUE },
+            kind: 'decoded',
+        });
+    });
+
+    it('should report absent for the closed-account shape the provider hands back', () => {
+        expect(read(new Uint8Array(0), { lamports: 0 })).toEqual({ kind: 'absent' });
+        expect(read(undefined, { lamports: 0 })).toEqual({ kind: 'absent' });
+    });
+
+    it('should report unreadable when the account is not owned by the Program Metadata Program', () => {
+        const result = read(bufferAccount(pack(DOC, Compression.None)), { owner: PROGRAM });
+
+        expect(result).toEqual({ kind: 'unreadable', reason: expect.stringContaining(PROGRAM) });
+    });
+
+    it('should report unreadable when the account is shorter than the header', () => {
+        expect(read(new Uint8Array(95))).toEqual({ kind: 'unreadable', reason: expect.stringContaining('96-byte') });
+    });
+
+    it('should report unreadable for a discriminator that carries no payload', () => {
+        const empty = bufferAccount(pack(DOC, Compression.None));
+        empty[0] = 0; // AccountDiscriminator.Empty
+
+        expect(read(empty)).toEqual({ kind: 'unreadable', reason: expect.stringContaining('discriminator 0') });
+    });
+
+    it('should report unreadable when a Metadata header carries an out-of-range hint', () => {
+        const account = metadataAccount({ body: pack(DOC, Compression.None) });
+        account[83] = 9; // the `encoding` byte, past every variant the enum defines
+
+        expect(read(account)).toEqual({ kind: 'unreadable', reason: expect.any(String) });
+    });
+
+    it('should surface a body that does not decode as a payload failure, not an unreadable account', () => {
+        // The account itself parses fine - it is the CONTENT that is not the zlib stream the hints promise. That
+        // distinction is what the UI renders differently, so it must survive here.
+        const result = decodePmpBufferAccount({
+            account: { data: bufferAccount(new Uint8Array([1, 2, 3, 4])), lamports: 1, owner: PMP_ADDRESS },
+            config: { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json },
+        });
+
+        expect(result).toMatchObject({ kind: 'payload', payload: { kind: 'failed' } });
+    });
+
+    it('should report the payload oversized above the render cap without decoding it', () => {
+        const body = pack('a'.repeat(4096), Compression.None);
+        const result = decodePmpBufferAccount({
+            account: { data: bufferAccount(body), lamports: 1, owner: PMP_ADDRESS },
+            cap: 1024,
+            config: { compression: Compression.None, encoding: Encoding.Utf8, format: Format.None },
+        });
+
+        expect(result).toMatchObject({ kind: 'payload', payload: { kind: 'oversized' } });
+    });
+});

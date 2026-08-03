@@ -1,15 +1,39 @@
 /* eslint-disable no-restricted-syntax -- test assertions use RegExp for pattern matching */
-import { Compression, DataSource, Encoding, Format, packDirectData } from '@solana-program/program-metadata';
+import type { Account } from '@providers/accounts';
+import { FetchStatus } from '@providers/cache';
+import type { Address } from '@solana/kit';
+import { PublicKey } from '@solana/web3.js';
+import {
+    Compression,
+    DataSource,
+    Encoding,
+    Format,
+    getBufferEncoder,
+    packDirectData,
+} from '@solana-program/program-metadata';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { trackEvent } from '@/app/shared/lib/analytics';
 
+import { PMP_ADDRESS } from '../../lib/constants';
 import type { PmpPayloadInstruction } from '../../lib/types';
-import { PmpPayloadSection } from '../PmpPayloadSection';
+import { DataPayloadSection } from '../DataPayloadSection';
 
 vi.mock('@/app/shared/lib/analytics', () => ({ trackEvent: vi.fn() }));
+
+// The on-demand account read goes through the shared accounts provider, so the section is exercised against a
+// controllable cache entry rather than a live RPC.
+const { mockFetchAccountInfo, mockUseAccountInfo } = vi.hoisted(() => ({
+    mockFetchAccountInfo: vi.fn(),
+    mockUseAccountInfo: vi.fn(),
+}));
+
+vi.mock('@providers/accounts', () => ({
+    useAccountInfo: mockUseAccountInfo,
+    useFetchAccountInfo: () => mockFetchAccountInfo,
+}));
 
 // The real viewer is a next/dynamic import with ssr: false, so it resolves asynchronously and would force every
 // assertion to be awaited. Stub it the way MetadataCard.spec.tsx does, which is the established pattern.
@@ -33,13 +57,45 @@ function renderSection(content: PmpPayloadInstruction, cap?: number) {
     return render(
         <table>
             <tbody>
-                <PmpPayloadSection content={content} cap={cap} />
+                <DataPayloadSection content={content} cap={cap} />
             </tbody>
         </table>,
     );
 }
 
 const JSON_CONFIG = { compression: Compression.None, encoding: Encoding.Utf8, format: Format.Json };
+
+const BUFFER_ADDRESS = '4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw';
+
+/** A `setData` whose bytes live in a foreign buffer, which is the shape that offers the account read. */
+const DEFERRED_SET_DATA: PmpPayloadInstruction = {
+    config: JSON_CONFIG,
+    dataSource: DataSource.Direct,
+    kind: 'setData',
+    sourceBuffer: BUFFER_ADDRESS,
+};
+
+/** The library's own encoder, so the fixture carries the real 96-byte Buffer header. */
+function bufferAccountData(body: Uint8Array): Uint8Array {
+    return getBufferEncoder().encode({
+        authority: BUFFER_ADDRESS as Address,
+        canonical: true,
+        data: body,
+        program: BUFFER_ADDRESS as Address,
+        seed: 'idl',
+    }) as Uint8Array;
+}
+
+function fetchedEntry(raw: Uint8Array | undefined, overrides: { lamports?: number; owner?: string } = {}) {
+    const data: Account = {
+        data: { raw },
+        executable: false,
+        lamports: overrides.lamports ?? 1_000_000,
+        owner: new PublicKey(overrides.owner ?? PMP_ADDRESS),
+        pubkey: new PublicKey(BUFFER_ADDRESS),
+    };
+    return { data, status: FetchStatus.Fetched };
+}
 
 /**
  * The section opens on the Raw tab and Radix unmounts the inactive panel, so nothing decoded is in the DOM until
@@ -49,9 +105,13 @@ async function openDecodedTab() {
     await userEvent.click(screen.getByRole('tab', { name: 'Decoded' }));
 }
 
-describe('PmpPayloadSection', () => {
+describe('DataPayloadSection', () => {
     beforeEach(() => {
         vi.mocked(trackEvent).mockClear();
+        mockFetchAccountInfo.mockClear();
+        // Nothing in the cache, which is the state every test starts from - a test that needs a resolved read
+        // sets its own return value.
+        mockUseAccountInfo.mockReset().mockReturnValue(undefined);
     });
 
     it('should render an inline Direct JSON payload through the JSON viewer', async () => {
@@ -256,6 +316,7 @@ describe('PmpPayloadSection', () => {
             data_source: 'direct',
             format: 'json',
             instruction: 'set_data',
+            source: 'instruction',
             tab: 'decoded',
         });
     });
@@ -292,5 +353,68 @@ describe('PmpPayloadSection', () => {
         renderSection({ config: JSON_CONFIG, kind: 'setData' });
 
         expect(trackEvent).not.toHaveBeenCalled();
+    });
+
+    it('should read the referenced account on render, as raw bytes', () => {
+        renderSection(DEFERRED_SET_DATA);
+
+        expect(mockFetchAccountInfo).toHaveBeenCalledTimes(1);
+        const [pubkey, dataMode] = mockFetchAccountInfo.mock.calls[0];
+        expect(pubkey.toBase58()).toBe(BUFFER_ADDRESS);
+        // `raw` and not `parsed`: the provider only keeps raw bytes for accounts it could not parse natively, and
+        // a PMP buffer has to arrive as bytes for the generated decoder to see its header at all.
+        expect(dataMode).toBe('raw');
+        expect(screen.getByTestId('pmp-account-loading')).toBeInTheDocument();
+    });
+
+    it('should decode the referenced buffer content once the read resolves', () => {
+        mockUseAccountInfo.mockReturnValue(fetchedEntry(bufferAccountData(pack(DOC, Compression.None))));
+        renderSection(DEFERRED_SET_DATA);
+
+        // Account content opens on the DECODED panel, unlike an inline payload, which opens Raw.
+        expect(screen.getByTestId('pmp-decoded-json')).toHaveTextContent('"name": "company"');
+        expect(screen.getByTestId('pmp-account-current-state-note')).toHaveTextContent(/current on-chain content/i);
+        expect(screen.getByRole('tab', { name: 'Raw' })).toBeInTheDocument();
+    });
+
+    it('should say the account is gone rather than fail when the buffer was closed', () => {
+        // The provider's closed-account shape, and the common outcome on a historical setData: the client closes
+        // the source buffer in the same flow to reclaim its rent.
+        mockUseAccountInfo.mockReturnValue(fetchedEntry(new Uint8Array(0), { lamports: 0 }));
+        renderSection(DEFERRED_SET_DATA);
+
+        expect(screen.getByTestId('pmp-account-absent')).toHaveTextContent(/does not exist on chain/i);
+        expect(screen.queryByTestId('pmp-account-unreadable')).not.toBeInTheDocument();
+    });
+
+    it('should warn when the referenced account is not owned by the Program Metadata Program', () => {
+        mockUseAccountInfo.mockReturnValue(
+            fetchedEntry(bufferAccountData(pack(DOC, Compression.None)), { owner: BUFFER_ADDRESS }),
+        );
+        renderSection(DEFERRED_SET_DATA);
+
+        expect(screen.getByTestId('pmp-account-unreadable')).toHaveTextContent(BUFFER_ADDRESS);
+        expect(screen.queryByTestId('pmp-decoded-json')).not.toBeInTheDocument();
+    });
+
+    it('should surface an RPC failure as its own state', () => {
+        mockUseAccountInfo.mockReturnValue({ status: FetchStatus.FetchFailed });
+        renderSection(DEFERRED_SET_DATA);
+
+        expect(screen.getByTestId('pmp-account-failed')).toBeInTheDocument();
+    });
+
+    it('should mark a tab switch on account content as its own source', async () => {
+        mockUseAccountInfo.mockReturnValue(fetchedEntry(bufferAccountData(pack(DOC, Compression.None))));
+        renderSection(DEFERRED_SET_DATA);
+
+        await userEvent.click(screen.getByRole('tab', { name: 'Raw' }));
+
+        // Without `source` the account panel's switches would be indistinguishable from the inline panel's, which
+        // matters because the two open on opposite default tabs.
+        expect(trackEvent).toHaveBeenCalledWith(
+            'pmp_data_tab_opened',
+            expect.objectContaining({ source: 'account', tab: 'raw' }),
+        );
     });
 });
