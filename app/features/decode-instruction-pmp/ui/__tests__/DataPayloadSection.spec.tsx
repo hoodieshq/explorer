@@ -13,11 +13,12 @@ import {
 } from '@solana-program/program-metadata';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { gzip } from 'pako';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { trackEvent } from '@/app/shared/lib/analytics';
 
-import { PMP_ADDRESS, PMP_MAX_PACKED_INPUT_BYTES } from '../../lib/constants';
+import { PMP_ADDRESS } from '../../lib/constants';
 import type { PmpPayloadInstruction } from '../../lib/types';
 import { DataPayloadSection } from '../DataPayloadSection';
 
@@ -293,18 +294,18 @@ describe('DataPayloadSection', () => {
         expect(screen.getByLabelText('Download')).toBeInTheDocument();
     });
 
-    it('should promise no download when the packed payload is past the unpack limit', async () => {
-        // What separates this from `oversized`: the payload was refused before unpacking, so no decompressed bytes
-        // exist to copy or download. The panel must not offer an affordance it cannot honour.
+    it('should promise no download when the payload expands past the unpack limit', async () => {
+        // What separates this from `oversized`: the unpack was abandoned, so no decompressed bytes exist to copy or
+        // download. The panel must not offer an affordance it cannot honour.
         renderSection({
             config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
             dataSource: DataSource.Direct,
             kind: 'setData',
-            payload: new Uint8Array(PMP_MAX_PACKED_INPUT_BYTES + 1),
+            payload: gzip(new Uint8Array(2 * 1024 * 1024)),
         });
         await openDecodedTab();
 
-        expect(screen.getByTestId('pmp-payload-packed-oversized')).toHaveTextContent(/limit for unpacking/i);
+        expect(screen.getByTestId('pmp-payload-unpack-overflow')).toHaveTextContent(/limit for unpacking/i);
         expect(screen.queryByTestId('pmp-payload-oversized')).not.toBeInTheDocument();
         expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
         // Radix unmounts the inactive panel, so the Raw tab's own download is not in the DOM either - the only
@@ -377,21 +378,22 @@ describe('DataPayloadSection', () => {
         expect(screen.getByTestId('pmp-account-loading')).toBeInTheDocument();
     });
 
-    it('should decode the referenced buffer content once the read resolves', () => {
+    it('should decode the referenced buffer content once the read resolves', async () => {
         mockUseAccountInfo.mockReturnValue(fetchedEntry(bufferAccountData(pack(DOC, Compression.None))));
         renderSection(DEFERRED_SET_DATA);
+        await openDecodedTab();
 
-        // Account content opens on the DECODED panel, unlike an inline payload, which opens Raw.
         expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('"name": "company"');
         expect(screen.getByRole('tab', { name: 'Raw' })).toBeInTheDocument();
     });
 
-    it('should say the payload is empty rather than render a blank document', () => {
+    it('should say the payload is empty rather than render a blank document', async () => {
         // `allocate` with no `write` yet leaves a live 96-byte buffer: header, no body. Every encoding decodes zero
-        // bytes to the empty string, so this used to open the Decoded panel on an empty `pre` that looked like a
-        // document the reader had to scroll for. Lamports are non-zero, so this is NOT the closed-account shape.
+        // bytes to the empty string, so the Decoded panel used to hold an empty `pre` that looked like a document
+        // the reader had to scroll for. Lamports are non-zero, so this is NOT the closed-account shape.
         mockUseAccountInfo.mockReturnValue(fetchedEntry(bufferAccountData(new Uint8Array(0))));
         renderSection(DEFERRED_SET_DATA);
+        await openDecodedTab();
 
         expect(screen.getByTestId('pmp-payload-empty')).toHaveTextContent(/payload is empty/i);
         expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
@@ -443,13 +445,12 @@ describe('DataPayloadSection', () => {
         mockUseAccountInfo.mockReturnValue(fetchedEntry(bufferAccountData(pack(DOC, Compression.None))));
         renderSection(DEFERRED_SET_DATA);
 
-        await userEvent.click(screen.getByRole('tab', { name: 'Raw' }));
+        await openDecodedTab();
 
-        // Without `source` the account panel's switches would be indistinguishable from the inline panel's, which
-        // matters because the two open on opposite default tabs.
+        // Without `source` the account panel's switches would be indistinguishable from the inline panel's.
         expect(trackEvent).toHaveBeenCalledWith(
             'pmp_data_tab_opened',
-            expect.objectContaining({ source: 'account', tab: 'raw' }),
+            expect.objectContaining({ source: 'account', tab: 'decoded' }),
         );
     });
 });

@@ -51,12 +51,14 @@ export const PMP_DECODE_BUDGET_BYTES: Record<Encoding, number> = {
 };
 
 /**
- * Ceiling on the PACKED payload, checked before it is unpacked at all. Applies only to a COMPRESSED payload:
- * `Compression.None` hands the input straight back, so there is nothing to bound on that path.
+ * Ceiling on the DECOMPRESSED output, enforced DURING the unpack rather than after it: `inflateBounded` stops the
+ * stream as soon as the running total passes this, so peak allocation is this plus one 64 KB pako chunk. Applies
+ * only to a COMPRESSED payload - `Compression.None` unpacks nothing, so there is nothing to bound on that path.
  *
- * The number comes from deflate's expansion ratio, not from the payload sizes we expect.
+ * Deliberately above every per-encoding budget, so a payload between its budget and this limit still reaches
+ * `oversized`, which carries the decompressed bytes for copy and download. Only past this are there no bytes.
  */
-export const PMP_MAX_PACKED_INPUT_BYTES = 64 * 1024;
+export const PMP_MAX_UNPACKED_BYTES = 1024 * 1024;
 
 /** Download base names. `DownloadDropdown` appends `_<encoding>.txt`, so no extension belongs here. */
 export const PMP_RAW_DOWNLOAD_FILENAME = 'pmp-payload-raw';

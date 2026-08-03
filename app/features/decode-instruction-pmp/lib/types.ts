@@ -48,8 +48,8 @@ export type PmpPayloadInstruction = Extract<PmpContentInstruction, { kind: 'setD
  * - `oversized` is past the decode budget for its encoding. It carries the full decompressed bytes and no text,
  *   because nothing above the budget is decoded at all, so copy and download still work. `budget` is carried
  *   because it now varies by encoding, and the alert has to say which limit was hit.
- * - `packed-oversized` was refused BEFORE unpacking, so unlike `oversized` there are no decompressed bytes to
- *   offer: they were never produced. Only the still-packed bytes the caller already had exist.
+ * - `unpack-overflow` was abandoned mid-unpack once its output passed the unpack ceiling, so unlike `oversized`
+ *   there are no decompressed bytes to offer: they were never produced. Only the still-packed bytes exist.
  * - `failed` is a malformed stream or a payload that does not match its declared encoding.
  * - `empty` is zero payload bytes, which every encoding decodes to the empty string. An ordinary state, not a
  *   failure: an allocated-but-unwritten buffer reads this way. It carries nothing because there is nothing to
@@ -62,7 +62,7 @@ export type PmpDecodedPayload =
     | { kind: 'decoded'; text: string; bytes: Uint8Array }
     | { kind: 'empty' }
     | { kind: 'oversized'; bytes: Uint8Array; budget: number }
-    | { kind: 'packed-oversized'; length: number; limit: number }
+    | { kind: 'unpack-overflow'; limit: number }
     | { kind: 'failed'; reason: string };
 
 /** Which PMP account layout the body was read from. A Buffer carries no hints of its own, a Metadata does. */

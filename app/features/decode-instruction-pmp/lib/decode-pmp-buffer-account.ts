@@ -114,7 +114,7 @@ function decodeAccountContent(
     return { account, body, config, kind: 'payload', payload };
 }
 
-/** The generated decoders throw plain Errors, but pako (reached via `decodePmpPayload`) throws bare strings. */
+/** The generated decoders throw plain Errors, but a non-Error throw stays handled rather than read as `undefined`. */
 function toReason(error: unknown): string {
     if (typeof error === 'string') return error;
     if (error instanceof Error) return error.message;

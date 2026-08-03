@@ -1,9 +1,10 @@
 import { Compression, Encoding, Format, packDirectData } from '@solana-program/program-metadata';
+import { gzip } from 'pako';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '@/app/shared/lib/logger';
 
-import { PMP_DECODE_BUDGET_BYTES, PMP_DECODED_RENDER_CAP_BYTES, PMP_MAX_PACKED_INPUT_BYTES } from '../constants';
+import { PMP_DECODE_BUDGET_BYTES, PMP_DECODED_RENDER_CAP_BYTES, PMP_MAX_UNPACKED_BYTES } from '../constants';
 import { decodePmpPayload } from '../decode-pmp-payload';
 
 const DOC = '{"name":"company","version":"1.0.0"}';
@@ -117,38 +118,36 @@ describe('decodePmpPayload', () => {
         expect(result.kind).toBe('decoded');
     });
 
-    it('should refuse a packed payload past the unpack limit without decompressing it', () => {
-        // Deliberately not a valid stream: reaching `uncompressData` at all would throw and come back as `failed`,
-        // so `packed-oversized` proves the length check ran BEFORE the unpack.
+    it('should abandon a payload that expands past the unpack ceiling', () => {
         const result = decodePmpPayload({
             config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
-            data: new Uint8Array(PMP_MAX_PACKED_INPUT_BYTES + 1),
+            data: gzip(new Uint8Array(2 * PMP_MAX_UNPACKED_BYTES)),
         });
 
-        expect(result).toEqual({
-            kind: 'packed-oversized',
-            length: PMP_MAX_PACKED_INPUT_BYTES + 1,
-            limit: PMP_MAX_PACKED_INPUT_BYTES,
-        });
+        expect(result).toEqual({ kind: 'unpack-overflow', limit: PMP_MAX_UNPACKED_BYTES });
     });
 
-    it('should not apply the unpack limit to an uncompressed payload', () => {
-        // `uncompressData` hands `Compression.None` input straight back, so there is nothing to unpack and nothing
-        // for the limit to guard. Such a payload has to reach its encoding budget rather than be refused here.
+    it('should not apply the unpack ceiling to an uncompressed payload', () => {
         const result = decodePmpPayload({
             config: { compression: Compression.None, encoding: Encoding.Utf8, format: Format.None },
-            data: new Uint8Array(PMP_MAX_PACKED_INPUT_BYTES + 1),
+            data: new Uint8Array(PMP_MAX_UNPACKED_BYTES + 1),
         });
 
-        // What makes this discriminating: the fixture sits between the two limits, past the unpack limit and inside
-        // the Utf8 budget. Fails if they are ever moved so close together that it no longer does.
-        expect(PMP_MAX_PACKED_INPUT_BYTES).toBeLessThan(PMP_DECODE_BUDGET_BYTES[Encoding.Utf8]);
-        expect(result.kind).toBe('decoded');
+        expect(result).toMatchObject({ budget: PMP_DECODE_BUDGET_BYTES[Encoding.Utf8], kind: 'oversized' });
+    });
+
+    it('should unpack a payload that sits exactly at the unpack ceiling', () => {
+        const result = decodePmpPayload({
+            cap: 1024,
+            config: { compression: Compression.Gzip, encoding: Encoding.None, format: Format.None },
+            data: gzip(new Uint8Array(PMP_MAX_UNPACKED_BYTES)),
+        });
+
+        expect(result).toMatchObject({ kind: 'oversized' });
+        expect(result.kind === 'oversized' && result.bytes.length).toBe(PMP_MAX_UNPACKED_BYTES);
     });
 
     it('should report failed with a reason when the compressed stream is corrupt', () => {
-        // `uncompressData` surfaces pako's failure by throwing a bare STRING, not an Error, so the reason
-        // extraction has to handle a non-Error throw. This test is the guard for that.
         const result = decodePmpPayload({
             config: { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json },
             data: new Uint8Array([1, 2, 3, 4]),
@@ -157,9 +156,26 @@ describe('decodePmpPayload', () => {
         expect(result).toEqual({ kind: 'failed', reason: 'incorrect header check' });
     });
 
+    it('should report a truncated stream as incomplete rather than as an internal error', () => {
+        const truncated = gzip(new Uint8Array(300 * 1024));
+        const result = decodePmpPayload({
+            config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
+            data: truncated.subarray(0, Math.floor(truncated.length * 0.6)),
+        });
+
+        expect(result).toEqual({ kind: 'failed', reason: 'the compressed stream is incomplete' });
+    });
+
+    it('should report a stream carrying nothing but a header as incomplete', () => {
+        const result = decodePmpPayload({
+            config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
+            data: gzip(new Uint8Array(64)).subarray(0, 10),
+        });
+
+        expect(result).toEqual({ kind: 'failed', reason: 'the compressed stream is incomplete' });
+    });
+
     it('should report failed rather than throwing when the compression value is out of range', () => {
-        // `uncompressData`'s switch has no default arm, so an out-of-range value returns undefined and the
-        // length check then throws a TypeError. The catch has to swallow that too.
         const result = decodePmpPayload({
             config: { compression: 99 as Compression, encoding: Encoding.Utf8, format: Format.Json },
             data: new Uint8Array([1, 2, 3]),
@@ -197,9 +213,9 @@ describe('decodePmpPayload', () => {
             data: new Uint8Array([1, 2, 3, 4]),
         });
 
-        // pako throws a bare string, so the cause is what carries it - `reason` alone would lose the throw site.
+        // The unpack returns its failure rather than throwing it, so `reason` is what carries pako's message now.
         expect(Logger.error).toHaveBeenCalledWith(
-            expect.objectContaining({ cause: 'incorrect header check' }),
+            expect.objectContaining({ message: expect.stringContaining('failed to unpack') }),
             expect.objectContaining({ reason: 'incorrect header check' }),
         );
         // Malformed chain data is not an incident, and the `Url`/`External` panels reach this state by design, so
@@ -234,8 +250,6 @@ describe('decodePmpPayload', () => {
     });
 
     it('should report zero bytes as empty even when the hints declare a compression', () => {
-        // pako throws on an empty stream, so without the pre-unpack check an account that simply holds nothing
-        // comes back as `failed` with a corrupt-header reason, which reads as data loss rather than emptiness.
         const result = decodePmpPayload({
             config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
             data: new Uint8Array(0),
@@ -245,8 +259,6 @@ describe('decodePmpPayload', () => {
     });
 
     it('should report a real stream that decompresses to nothing as empty', () => {
-        // A gzip of an empty document is 20 actual bytes, so the pre-unpack check cannot see this one - only the
-        // post-unpack check catches it. Built with the library's own producer to prove the shape is reachable.
         const packed = pack('', Compression.Gzip);
         const result = decodePmpPayload({
             config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },

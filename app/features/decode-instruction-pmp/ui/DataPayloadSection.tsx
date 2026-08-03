@@ -215,12 +215,6 @@ function AccountContentBody({
     );
 }
 
-/**
- * `source` says where `payload` came from, and it settles which panel opens first: the instruction's own bytes
- * are already on screen unasked, so they open Raw, while account content was fetched on an explicit request for
- * the decoded document and opens Decoded. It also rides along on the tab event, so the two panels' switch counts
- * stay separable despite their different starting tabs.
- */
 function DecodedTabs({
     content,
     dataSource,
@@ -248,7 +242,7 @@ function DecodedTabs({
     };
 
     return (
-        <Tabs defaultValue={source === 'account' ? 'decoded' : 'raw'} onValueChange={handleTabChange}>
+        <Tabs defaultValue="raw" onValueChange={handleTabChange}>
             <TabsList>
                 <TabsTrigger value="raw">Raw</TabsTrigger>
                 <TabsTrigger value="decoded">Decoded</TabsTrigger>
@@ -274,13 +268,13 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
         );
     }
 
-    // Refused before unpacking, so there are no decompressed bytes to offer and no download to promise. The
-    // sibling Raw tab still has the payload as stored, which is the only thing that exists for this state.
-    if (decoded.kind === 'packed-oversized') {
+    // Abandoned mid-unpack, so there are no decompressed bytes to offer and no download to promise. The sibling
+    // Raw tab still has the payload as stored, which is the only thing that exists for this state.
+    if (decoded.kind === 'unpack-overflow') {
         return (
-            <div className="flex flex-col gap-0" data-testid="pmp-payload-packed-oversized">
+            <div className="flex flex-col gap-0" data-testid="pmp-payload-unpack-overflow">
                 <Alert variant="warning" className="!mb-0">
-                    Stored payload is {decoded.length} bytes, past the {decoded.limit}-byte limit for unpacking.
+                    Payload expands past the {decoded.limit}-byte limit for unpacking.
                 </Alert>
             </div>
         );
@@ -293,11 +287,6 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
                     Payload too large to render ({decoded.bytes.length} bytes, limit {decoded.budget}). Copy or download
                     it instead.
                 </Alert>
-                {/* The DECOMPRESSED bytes, which the sibling Raw tab cannot give you: that tab shows the on-chain
-                    payload, so for a compressed document it hands back the compressed bytes. This is the only
-                    route to the actual document once it is over the budget, which is what makes the copy/download
-                    the Alert promises real. RawDataField renders a "too large" notice above its own inline
-                    threshold, so nothing this big is shown as text - copy and download still cover it. */}
                 <RawDataField data={decoded.bytes} filename={PMP_DECODED_DOWNLOAD_FILENAME} />
             </div>
         );
