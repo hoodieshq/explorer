@@ -1,0 +1,61 @@
+import type { Compression, DataSource, Encoding, Format } from '@solana-program/program-metadata';
+/** The three decode hints `setData` and `initialize` carry on the wire. `format` classifies, it does not decode. */
+export type PmpDecodeConfig = {
+    encoding: Encoding;
+    compression: Compression;
+    format: Format;
+};
+
+/**
+ * The content-carrying PMP instructions. The six housekeeping instructions (allocate, setAuthority,
+ * setImmutable, trim, extend, close) never produce one of these - they fall through to the IDL card.
+ */
+export type PmpContentInstruction =
+    | {
+          kind: 'setData';
+          config: PmpDecodeConfig;
+          /** Absent on the 4-byte header-only shape, which carries no `dataSource` byte and no payload. */
+          dataSource?: DataSource;
+          /** Absent on the header-only shape and when the bytes live in `sourceBuffer` (reconstruction is milestone P2). */
+          payload?: Uint8Array;
+          /** Account index 2 when it is not the program id, meaning the bytes come from a foreign buffer. */
+          sourceBuffer?: string;
+      }
+    | {
+          kind: 'initialize';
+          config: PmpDecodeConfig;
+          dataSource: DataSource;
+          seed: string;
+          /** Absent on the in-place path, where the bytes were pre-written to the metadata PDA (P2). */
+          payload?: Uint8Array;
+          /** Account index 0, the metadata PDA that the in-place path pre-wrote. */
+          metadataAccount?: string;
+      }
+    | {
+          kind: 'write';
+          offset: number;
+          /** Absent when the chunk was copied from `sourceBuffer`, whose bytes are not in this transaction. */
+          chunk?: Uint8Array;
+          sourceBuffer?: string;
+      };
+
+/** The two instructions that carry decode hints, so the only two that can produce a decoded document. */
+export type PmpPayloadInstruction = Extract<PmpContentInstruction, { kind: 'setData' | 'initialize' }>;
+
+/**
+ * How the decoded payload should be presented. `json` carries the PARSED value for `SolarizedJsonViewer`, which
+ * needs an object rather than a string. Everything else is verbatim text in a `<pre>`, including a `Format.Json`
+ * payload whose bytes do not actually parse, and a `Format.Json` payload that parses to a scalar (the viewer
+ * requires an object or array root).
+ */
+export type PmpDecodedDocument = { kind: 'json'; value: object } | { kind: 'text'; text: string };
+
+/**
+ * Result of decoding an inline payload. `oversized` and `failed` are the two guard states the p1 spec requires:
+ * neither may throw out to the card, and neither may render as a successful document. `oversized` carries the
+ * full decompressed bytes and no document, because nothing above the cap is decoded at all.
+ */
+export type PmpDecodedPayload =
+    | { kind: 'decoded'; document: PmpDecodedDocument; bytes: Uint8Array }
+    | { kind: 'oversized'; bytes: Uint8Array }
+    | { kind: 'failed'; reason: string };
