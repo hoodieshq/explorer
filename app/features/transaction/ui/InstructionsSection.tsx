@@ -33,7 +33,7 @@ import {
 } from '@explorer/decoder-serum/detection';
 import { AssociatedTokenDetailsCard } from '@features/decode-instruction-associated-token';
 import { isLighthouseInstruction, LighthouseDetailsCard } from '@features/decode-instruction-lighthouse';
-import { isProgramMetadataInstruction, PmpDetailsCard } from '@features/decode-instruction-pmp';
+import { isProgramMetadataInstruction } from '@features/decode-instruction-pmp/detection';
 import { IdlInstructionCard, useIdlInstructionDecode } from '@features/decode-instruction-with-idl';
 import { MetaplexTokenMetadataDetailsCard } from '@features/mpl-token-metadata';
 import { isStakeInstruction, RawStakeDetailsCard, StakeDetailsCard } from '@features/stake';
@@ -71,6 +71,14 @@ const SerumDetailsCard = dynamic(
     () => import('@features/instruction-program-serum').then(mod => mod.SerumDetailsCard),
     { ssr: false },
 );
+
+// The PMP card carries the generated client plus pako/yaml/smol-toml (~35 kB gzip), which only a transaction that
+// actually touches the program needs. `isProgramMetadataInstruction` comes from the light `/detection` entry so
+// the branch above can stay static.
+const PmpDetailsCard = dynamic(() => import('@features/decode-instruction-pmp').then(mod => mod.PmpDetailsCard), {
+    loading: () => <LoadingCard />,
+    ssr: false,
+});
 
 export type InstructionDetailsProps = {
     tx: ParsedTransaction;

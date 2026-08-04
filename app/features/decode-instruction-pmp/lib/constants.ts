@@ -1,14 +1,10 @@
-import {
-    ACCOUNT_HEADER_LENGTH,
-    Compression,
-    DataSource,
-    Encoding,
-    Format,
-    PROGRAM_METADATA_PROGRAM_ADDRESS,
-} from '@solana-program/program-metadata';
+import { ACCOUNT_HEADER_LENGTH, Compression, DataSource, Encoding, Format } from '@solana-program/program-metadata';
 
-/** The PMP program id, re-exported from the library so the guard cannot drift from the decoders. */
-export const PMP_ADDRESS: string = PROGRAM_METADATA_PROGRAM_ADDRESS;
+/**
+ * Re-exported for the decode modules alongside, which already pull the library. The definition lives in its own
+ * library-free module so the detection path can reach it without the client - see `program-address.ts`.
+ */
+export { PMP_ADDRESS } from './program-address';
 
 /**
  * Program label for the card title and the Program row, matching what `CodamaInstructionCard` derives from the

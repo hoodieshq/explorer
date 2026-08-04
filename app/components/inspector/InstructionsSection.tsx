@@ -2,7 +2,7 @@ import { BaseInstructionCard } from '@components/common/BaseInstructionCard';
 import { isParsedInstruction, toParsedTransaction, useInstructionParser } from '@entities/instruction-parser';
 import { AssociatedTokenDetailsCard } from '@features/decode-instruction-associated-token';
 import { LighthouseDetailsCard } from '@features/decode-instruction-lighthouse';
-import { isProgramMetadataInstruction, PmpDetailsCard } from '@features/decode-instruction-pmp';
+import { isProgramMetadataInstruction } from '@features/decode-instruction-pmp/detection';
 import { IdlInstructionCard, useIdlInstructionDecode } from '@features/decode-instruction-with-idl';
 import { MetaplexTokenMetadataDetailsCard } from '@features/mpl-token-metadata';
 import { useCluster } from '@providers/cluster';
@@ -15,6 +15,7 @@ import {
     type VersionedMessage,
 } from '@solana/web3.js';
 import { getProgramName } from '@utils/tx';
+import dynamic from 'next/dynamic';
 import React, { useMemo } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
@@ -34,6 +35,14 @@ import { UnknownDetailsCard } from './UnknownDetailsCard';
 
 const INSPECTOR_RESULT = { err: null };
 const INSPECTOR_SIGNATURE = '';
+
+// The PMP card carries the generated client plus pako/yaml/smol-toml (~35 kB gzip), which only a transaction that
+// actually touches the program needs. `isProgramMetadataInstruction` comes from the light `/detection` entry so
+// the branch below can stay static.
+const PmpDetailsCard = dynamic(() => import('@features/decode-instruction-pmp').then(mod => mod.PmpDetailsCard), {
+    loading: () => <LoadingCard />,
+    ssr: false,
+});
 
 export function InstructionsSection({
     message,
