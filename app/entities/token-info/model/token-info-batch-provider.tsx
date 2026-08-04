@@ -106,7 +106,9 @@ export function TokenInfoBatchProvider({ children }: { children: React.ReactNode
             const tracked = trackKey(cluster, genesisHash, address);
             if (resolved.current.has(tracked) || inFlight.current.has(tracked)) return;
 
-            pending.current.set(address, { address, cluster, genesisHash });
+            // Keyed by the tracked key, not the bare address: the same mint requested for two networks inside the
+            // batching window must stay two distinct entries, otherwise one network's request is silently dropped.
+            pending.current.set(tracked, { address, cluster, genesisHash });
 
             if (timer.current) clearTimeout(timer.current);
             timer.current = setTimeout(flush, BATCH_DELAY_MS);

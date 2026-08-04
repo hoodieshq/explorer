@@ -58,19 +58,20 @@ export type TokenBalancesCardInnerProps = {
 };
 
 export function TokenBalancesCardInner({ rows }: TokenBalancesCardInnerProps) {
-    const { cluster } = useCluster();
+    const { cluster, genesisHash } = useCluster();
     const [tokenSymbols, setTokenSymbols] = useState<Map<string, string>>(new Map());
     const mintKey = rows.map(r => r.mint).join(',');
 
+    // genesisHash is required to derive a chainId on Custom/Simd296 clusters - without it getTokenInfos returns [].
     useAsyncEffect(
         async isMounted => {
             const mints = rows.map(r => r.mint);
-            const tokens = await getTokenInfos(mints, cluster);
+            const tokens = await getTokenInfos(mints, cluster, genesisHash);
             if (isMounted()) {
                 setTokenSymbols(new Map(tokens.map(t => [t.address, t.symbol])));
             }
         },
-        [mintKey],
+        [mintKey, cluster, genesisHash],
     );
 
     return (

@@ -85,3 +85,46 @@ describe('should skip already-resolved token-info requests', () => {
         expect(getTokenInfosMock).toHaveBeenCalledTimes(2);
     });
 });
+
+function MultiNetworkRequester() {
+    const request = useTokenInfoBatch();
+    React.useEffect(() => {
+        request(MINT, Cluster.MainnetBeta, 'genesis-main');
+        request(MINT, Cluster.Devnet, 'genesis-dev');
+    }, [request]);
+    return null;
+}
+
+describe('should keep pending token-info requests distinct per network', () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => {
+        vi.clearAllMocks();
+        vi.useRealTimers();
+    });
+
+    it('should fetch the same mint for both networks requested inside one batching window', async () => {
+        render(
+            <TokenInfoBatchProvider>
+                <MultiNetworkRequester />
+            </TokenInfoBatchProvider>,
+        );
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(200);
+        });
+
+        // One POST per network - keying `pending` by bare address would drop the mainnet request entirely.
+        expect(getTokenInfosMock).toHaveBeenCalledTimes(2);
+        expect(getTokenInfosMock).toHaveBeenCalledWith(
+            [MINT],
+            Cluster.MainnetBeta,
+            'genesis-main',
+            expect.objectContaining({ onError: expect.any(Function) }),
+        );
+        expect(getTokenInfosMock).toHaveBeenCalledWith(
+            [MINT],
+            Cluster.Devnet,
+            'genesis-dev',
+            expect.objectContaining({ onError: expect.any(Function) }),
+        );
+    });
+});

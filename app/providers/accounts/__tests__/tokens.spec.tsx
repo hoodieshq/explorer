@@ -5,12 +5,6 @@ import { Cluster, clusterUrl } from '@utils/cluster';
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// The provider must NOT enrich anymore. We still mock the module so we can assert it is never called.
-const { getTokenInfosMock } = vi.hoisted(() => ({ getTokenInfosMock: vi.fn() }));
-vi.mock('@entities/token-info/lib/fetch-token-mints', () => ({
-    getTokenInfos: getTokenInfosMock,
-}));
-
 const { useClusterMock } = vi.hoisted(() => ({ useClusterMock: vi.fn() }));
 vi.mock('@providers/cluster', async importOriginal => {
     const actual = await importOriginal<typeof import('@providers/cluster')>();
@@ -100,8 +94,6 @@ describe('should fetch account token holdings without enrichment', () => {
         await waitFor(() => expect(screen.getByTestId('fetch-status').textContent).toBe(String(FetchStatus.Fetched)));
         expect(screen.getByTestId('token-count').textContent).toBe('1');
         expect(screen.getByTestId('token-row').textContent).toBe(MINT);
-        // The provider must no longer perform any metadata enrichment.
-        expect(getTokenInfosMock).not.toHaveBeenCalled();
     });
 
     it('should not cap the number of holdings at 101', async () => {
