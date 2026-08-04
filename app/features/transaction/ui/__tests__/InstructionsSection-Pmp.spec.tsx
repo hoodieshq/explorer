@@ -1,6 +1,7 @@
 /* eslint-disable no-restricted-syntax -- test assertions use RegExp for pattern matching */
+import { DEFAULT_SIGNATURE, gen } from '@__fixtures__/gen';
 import { PMP_ADDRESS } from '@features/decode-instruction-pmp';
-import { Keypair, type ParsedTransaction, PublicKey } from '@solana/web3.js';
+import { type ParsedTransaction, PublicKey } from '@solana/web3.js';
 import {
     Compression,
     DataSource,
@@ -23,9 +24,9 @@ import { instructionParserDispatcher } from '@/app/tx/instruction-parser-dispatc
 
 import { InstructionsSection } from '../InstructionsSection';
 
-const SIGNATURE = '5dakXwp5QTySbvc6P1Wp9MLZubnnG4R1Dh6cWSgNv6w1xt2JMsTp7EZvWEUxk9YLbJZHG97TT3jMVJ4yMTXKjM2L';
-const METADATA = Keypair.generate().publicKey;
-const AUTHORITY = Keypair.generate().publicKey;
+const SIGNATURE = DEFAULT_SIGNATURE;
+const AUTHORITY = gen.publicKey(0);
+const METADATA = gen.publicKey(2);
 
 const SET_DATA = getSetDataInstructionDataEncoder().encode({
     compression: Compression.None,

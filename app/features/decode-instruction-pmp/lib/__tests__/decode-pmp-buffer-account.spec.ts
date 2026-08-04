@@ -1,3 +1,4 @@
+import { gen } from '@__fixtures__/gen';
 import type { Address } from '@solana/kit';
 import {
     Compression,
@@ -17,8 +18,8 @@ import { PMP_ADDRESS } from '../constants';
 import { decodePmpBufferAccount } from '../decode-pmp-buffer-account';
 import type { PmpDecodeConfig } from '../types';
 
-const PROGRAM = '4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw' as Address;
-const AUTHORITY = '2mWhJDFtX2LGKggEPVhznvs8cPzy5HM8HhsVPj5YxqA8' as Address;
+const PROGRAM = gen.address(1) as Address;
+const AUTHORITY = gen.address(2) as Address;
 
 const DOC = '{"name":"company","version":"1.0.0"}';
 /** The same document as `DOC`, indented - a `Format.Json` payload is re-serialised before it reaches the card. */

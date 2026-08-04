@@ -1,3 +1,4 @@
+import { gen } from '@__fixtures__/gen';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
     Compression,
@@ -41,9 +42,9 @@ vi.mock('@/app/components/common/Copyable', () => ({
 }));
 
 const PMP = new PublicKey(PMP_ADDRESS);
-const AUTHORITY = new PublicKey('6Le7uLy8Y2JvCq5x5huvF3pSQBvP1Y6W325wNpFz4s4u');
-const METADATA_PDA = new PublicKey('2mWhJDFtX2LGKggEPVhznvs8cPzy5HM8HhsVPj5YxqA8');
-const FOREIGN_BUFFER = new PublicKey('4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw');
+const AUTHORITY = gen.publicKey(0);
+const FOREIGN_BUFFER = gen.publicKey(1);
+const METADATA_PDA = gen.publicKey(2);
 const DOC = '{"name":"company","version":"1.0.0"}';
 
 function makeIx(data: Uint8Array, accounts: PublicKey[]): TransactionInstruction {

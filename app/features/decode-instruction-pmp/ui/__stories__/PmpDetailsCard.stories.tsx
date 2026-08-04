@@ -1,3 +1,4 @@
+import { gen } from '@__fixtures__/gen';
 import { PmpDetailsCard } from '@features/decode-instruction-pmp';
 import type { Account, State } from '@providers/accounts';
 import { FetchStatus } from '@providers/cache';
@@ -31,14 +32,15 @@ const IDL_DOC = JSON.stringify({
     version: '1.0.0',
 });
 
-// Account addresses are labelled positionally from the card's static name table, so any keys work here.
+// Account addresses are labelled positionally from the card's static name table, so any keys work here. Seeded
+// so the rendered addresses stay pixel-stable across runs.
 function makeIx(data: Uint8Array, accountCount: number): TransactionInstruction {
     return new TransactionInstruction({
         data: Buffer.from(data),
-        keys: Array.from({ length: accountCount }, () => ({
+        keys: Array.from({ length: accountCount }, (_, index) => ({
             isSigner: false,
             isWritable: true,
-            pubkey: PublicKey.unique(),
+            pubkey: gen.publicKey(index),
         })),
         programId: PROGRAM_ID,
     });
@@ -197,10 +199,9 @@ export const WriteFromBuffer: Story = {
 // ===== setData sourced from a buffer account =====
 //
 // `data` is empty, so the payload is not in the instruction - it is in the buffer at account index 2, which the
-// card reads on render. `makeIx` hands out random keys, so these stories pin index 2 to a fixed address the mock
-// accounts cache can be seeded against.
+// card reads on render. These stories pin index 2 to a legible address the mock accounts cache is seeded against.
 
-const BUFFER_ADDRESS = 'BUFFer1111111111111111111111111111111111111';
+const BUFFER_ADDRESS = gen.vanityAddress('BUFFer');
 
 /** A `setData` carrying no inline bytes, naming `BUFFER_ADDRESS` as its source buffer. */
 function setDataFromBufferIx({ compression, format }: { compression: Compression; format: Format }) {

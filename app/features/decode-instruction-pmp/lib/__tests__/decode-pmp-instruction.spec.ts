@@ -1,3 +1,4 @@
+import { gen } from '@__fixtures__/gen';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import {
     Compression,
@@ -16,8 +17,8 @@ import { decodePmpContentInstruction } from '../decode-pmp-instruction';
 import { isProgramMetadataInstruction } from '../is-program-metadata-instruction';
 
 const PMP = new PublicKey(PMP_ADDRESS);
-const FOREIGN_BUFFER = new PublicKey('4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw');
-const METADATA_PDA = new PublicKey('2mWhJDFtX2LGKggEPVhznvs8cPzy5HM8HhsVPj5YxqA8');
+const FOREIGN_BUFFER = gen.publicKey(1);
+const METADATA_PDA = gen.publicKey(2);
 // `Uint8Array.from` is load-bearing, not redundant: under jsdom `TextEncoder` returns a Uint8Array built with a
 // DIFFERENT realm's constructor, and Vitest's `toEqual` compares prototypes, so a bare `encode()` result never
 // deep-equals a same-realm Uint8Array ("Compared values have no visual difference"). Re-wrap to this realm.
@@ -40,7 +41,7 @@ describe('isProgramMetadataInstruction', () => {
         const ix = new TransactionInstruction({
             data: Buffer.from([0]),
             keys: [],
-            programId: new PublicKey('11111111111111111111111111111111'),
+            programId: PublicKey.default,
         });
 
         expect(isProgramMetadataInstruction(ix)).toBe(false);

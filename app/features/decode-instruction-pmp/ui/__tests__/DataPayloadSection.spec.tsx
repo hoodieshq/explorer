@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax -- test assertions use RegExp for pattern matching */
+import { gen } from '@__fixtures__/gen';
 import type { Account } from '@providers/accounts';
 import { FetchStatus } from '@providers/cache';
 import type { Address } from '@solana/kit';
@@ -58,7 +59,8 @@ function renderSection(content: PmpPayloadInstruction, cap?: number) {
 
 const JSON_CONFIG = { compression: Compression.None, encoding: Encoding.Utf8, format: Format.Json };
 
-const BUFFER_ADDRESS = '4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw';
+const BUFFER_ADDRESS = gen.address(1);
+const METADATA_ADDRESS = gen.address(2);
 
 /** A `setData` whose bytes live in a foreign buffer, which is the shape that offers the account read. */
 const DEFERRED_SET_DATA: PmpPayloadInstruction = {
@@ -203,11 +205,11 @@ describe('DataPayloadSection', () => {
             config: JSON_CONFIG,
             dataSource: DataSource.Direct,
             kind: 'setData',
-            sourceBuffer: '4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw',
+            sourceBuffer: BUFFER_ADDRESS,
         });
 
         expect(screen.getByText('The payload was written to the Source buffer account')).toBeInTheDocument();
-        expect(screen.getByTestId('address')).toHaveTextContent('4wBqpZM9xaSheZzJSMawUKKwhdpChKbZ5eu5ky4Vigw');
+        expect(screen.getByTestId('address')).toHaveTextContent(BUFFER_ADDRESS);
     });
 
     it('should show the metadata account when initialize is the in-place shape', () => {
@@ -215,12 +217,12 @@ describe('DataPayloadSection', () => {
             config: JSON_CONFIG,
             dataSource: DataSource.Direct,
             kind: 'initialize',
-            metadataAccount: '2mWhJDFtX2LGKggEPVhznvs8cPzy5HM8HhsVPj5YxqA8',
+            metadataAccount: METADATA_ADDRESS,
             seed: 'idl',
         });
 
         expect(screen.getByText('The payload was written to the Metadata account')).toBeInTheDocument();
-        expect(screen.getByTestId('address')).toHaveTextContent('2mWhJDFtX2LGKggEPVhznvs8cPzy5HM8HhsVPj5YxqA8');
+        expect(screen.getByTestId('address')).toHaveTextContent(METADATA_ADDRESS);
     });
 
     it('should render an External payload through the same tabs, opening on the raw bytes', () => {

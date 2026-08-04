@@ -1,6 +1,7 @@
 /* eslint-disable no-restricted-syntax -- test assertions use RegExp for pattern matching */
+import { gen } from '@__fixtures__/gen';
 import { PMP_ADDRESS } from '@features/decode-instruction-pmp';
-import { Keypair, type MessageV0, PublicKey, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
+import { type MessageV0, PublicKey, TransactionInstruction, TransactionMessage } from '@solana/web3.js';
 import {
     Compression,
     DataSource,
@@ -67,14 +68,14 @@ function buildMessage(data: Uint8Array): MessageV0 {
     const ix = new TransactionInstruction({
         data: Buffer.from(data),
         keys: [
-            { isSigner: false, isWritable: true, pubkey: Keypair.generate().publicKey },
-            { isSigner: false, isWritable: false, pubkey: Keypair.generate().publicKey },
+            { isSigner: false, isWritable: true, pubkey: gen.publicKey(2) },
+            { isSigner: false, isWritable: false, pubkey: gen.publicKey(3) },
         ],
         programId: new PublicKey(PMP_ADDRESS),
     });
     return new TransactionMessage({
         instructions: [ix],
-        payerKey: Keypair.generate().publicKey,
+        payerKey: gen.publicKey(0),
         recentBlockhash: PublicKey.default.toBase58(),
     }).compileToV0Message();
 }
