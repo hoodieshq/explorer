@@ -283,7 +283,7 @@ function DecodedBody({ decoded }: { decoded: PmpDecodedPayload }) {
 
     if (decoded.kind === 'oversized') {
         return (
-            <div className="flex flex-col gap-0" data-testid="pmp-payload-oversized">
+            <div className="flex flex-col gap-3" data-testid="pmp-payload-oversized">
                 <Alert variant="warning" className="!mb-0">
                     Payload too large to render ({decoded.bytes.length} bytes, limit {decoded.budget}). Copy or download
                     it instead.
