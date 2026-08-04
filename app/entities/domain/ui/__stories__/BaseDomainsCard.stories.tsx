@@ -44,6 +44,20 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// Real long domain owned by Fw1ETanDZafof7xEULsnq9UY6o71Tpds89tNwPkWLb1v — its on-chain name-account
+// key derived the same way as the app's fetch path. Hoisted so args and the `play` assertion share one
+// source of truth for the (verbose) name.
+const LONG_DOMAIN = {
+    address: 'EXNHvjcrDi4hM634GxZsEGC5i9xhcuFqcPSTAY9XSXvb',
+    name: 'thisisaverylongdomainnamemainlyusedforfunctionaltesting.sol',
+};
+// Synthetic name ~4× longer (the real label repeated four times) — no such domain is registered, so
+// the address is a placeholder; it exists purely to see how an extreme value wraps/contains.
+const EXTRA_LONG_DOMAIN = {
+    address: 'So11111111111111111111111111111111111111112',
+    name: 'thisisaverylongdomainnamemainlyusedforfunctionaltestingthisisaverylongdomainnamemainlyusedforfunctionaltestingthisisaverylongdomainnamemainlyusedforfunctionaltestingthisisaverylongdomainnamemainlyusedforfunctionaltesting.sol',
+};
+
 export const SingleDomain: Story = {
     args: {
         domains: [{ address: '5ASxtmcPKDeD8NoE5QpskizPokqDdX1qHFiqZb1spLdo', name: 'example.sol' }],
@@ -60,6 +74,8 @@ export const MultipleDomains: Story = {
             { address: '5ASxtmcPKDeD8NoE5QpskizPokqDdX1qHFiqZb1spLdo', name: 'example.sol' },
             { address: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', name: 'bob.sol' },
             { address: 'Sysvar1111111111111111111111111111111111111', name: 'charlie.ans' },
+            LONG_DOMAIN,
+            EXTRA_LONG_DOMAIN,
         ],
     },
     play: async ({ canvasElement }) => {
@@ -67,6 +83,8 @@ export const MultipleDomains: Story = {
         expect(canvas.getByText('example.sol')).toBeInTheDocument();
         expect(canvas.getByText('bob.sol')).toBeInTheDocument();
         expect(canvas.getByText('charlie.ans')).toBeInTheDocument();
+        expect(canvas.getByText(LONG_DOMAIN.name)).toBeInTheDocument();
+        expect(canvas.getByText(EXTRA_LONG_DOMAIN.name)).toBeInTheDocument();
     },
 };
 
@@ -78,6 +96,8 @@ export const GridLayout: Story = {
             { address: '5ASxtmcPKDeD8NoE5QpskizPokqDdX1qHFiqZb1spLdo', name: 'example.sol' },
             { address: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', name: 'bob.sol' },
             { address: 'Sysvar1111111111111111111111111111111111111', name: 'charlie.ans' },
+            LONG_DOMAIN,
+            EXTRA_LONG_DOMAIN,
         ],
         layout: 'grid',
     },
@@ -86,5 +106,7 @@ export const GridLayout: Story = {
         expect(canvas.getByText('example.sol')).toBeInTheDocument();
         expect(canvas.getByText('bob.sol')).toBeInTheDocument();
         expect(canvas.getByText('charlie.ans')).toBeInTheDocument();
+        expect(canvas.getByText(LONG_DOMAIN.name)).toBeInTheDocument();
+        expect(canvas.getByText(EXTRA_LONG_DOMAIN.name)).toBeInTheDocument();
     },
 };
