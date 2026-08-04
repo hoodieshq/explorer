@@ -47,7 +47,7 @@ function makeParsedTokenAccount(pubkey: PublicKey) {
     };
 }
 
-function Harness() {
+function TestComponent() {
     const entry = useAccountOwnedTokens(OWNER);
     const fetchTokens = useFetchAccountOwnedTokens();
     React.useEffect(() => {
@@ -93,7 +93,7 @@ describe('should fetch account token holdings without enrichment', () => {
 
         render(
             <TokensProvider>
-                <Harness />
+                <TestComponent />
             </TokensProvider>,
         );
 
@@ -114,7 +114,7 @@ describe('should fetch account token holdings without enrichment', () => {
 
         render(
             <TokensProvider>
-                <Harness />
+                <TestComponent />
             </TokensProvider>,
         );
 

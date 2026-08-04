@@ -91,7 +91,6 @@ export function TokenInfoBatchProvider({ children }: { children: React.ReactNode
                 for (const missing of addressSet) {
                     mutate(getTokenInfoSwrKey(missing, cluster, genesisHash), undefined, false);
                 }
-                // Definitive answer written for every requested address - never re-enqueue it.
                 tracked.forEach(t => resolved.current.add(t));
             } catch (e) {
                 Logger.error(new Error('[token-info] Batch fetch failed', { cause: e }));

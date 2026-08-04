@@ -14,8 +14,23 @@ type MockTokenInfoBatchProviderProps = {
 /**
  * Mock provider for Storybook stories that replaces TokenInfoBatchProvider.
  *
- * By default it is a no-op (no network, no SWR writes). Pass `infos` to seed the SWR cache for requested
- * mints so lazy consumers like OwnedTokensCard show symbols and logos without a backend.
+ * Provides a no-op implementation of the token info batch context
+ * without making network requests.
+ *
+ * @example
+ * ```tsx
+ * import { MockTokenInfoBatchProvider } from '../../../../../.storybook/__mocks__/MockTokenInfoBatchProvider';
+ *
+ * const meta = {
+ *     decorators: [
+ *         Story => (
+ *             <MockTokenInfoBatchProvider>
+ *                 <Story />
+ *             </MockTokenInfoBatchProvider>
+ *         ),
+ *     ],
+ * };
+ * ```
  */
 export function MockTokenInfoBatchProvider({ children, infos }: MockTokenInfoBatchProviderProps) {
     const requestTokenInfo = useCallback(

@@ -311,8 +311,8 @@ function TokenHistoryTable({ tokens }: { tokens: TokenInfoWithPubkey[] }) {
 }
 
 // Resolves one mint's label through the shared token-info batch provider (the same cache the holdings rows use).
-// Fetches on mount and coalesces with the holdings fetch into one batched POST. The cache-aware provider
-// (Task 5, optimization) then skips this mint on any later re-request (filter change, holdings Load More).
+// Fetches on mount and coalesces with the holdings fetch into one batched POST.
+// The cache-aware provider then skips this mint on any later re-request (filter change, holdings Load More).
 function TokenFilterLabel({ mint }: { mint: string }) {
     const { cluster, genesisHash } = useCluster();
     const info = useTokenInfo(true, mint, cluster, genesisHash);
@@ -336,8 +336,6 @@ export function FilterDropdown({ filter, tokens }: FilterProps) {
         [currentPathname, currentSearchParams],
     );
 
-    // Unique held mints in first-seen order. Labels resolve per option via TokenFilterLabel - no bulk
-    // fetch here, so mints shared with the holdings list reuse the same batched request and cache.
     const filterOptions = React.useMemo(
         () => [ALL_TOKENS, ...new Set(tokens.map(token => token.info.mint.toBase58()))],
         [tokens],

@@ -78,17 +78,16 @@ function makeEntry() {
 }
 
 describe('should render OwnedTokensCard with lazy per-row enrichment', () => {
+    beforeEach(() => {
+        useClusterMock.mockReturnValue({ cluster: Cluster.MainnetBeta, genesisHash: 'genesis', url: 'http://rpc' });
+        useAccountOwnedTokensMock.mockReturnValue(makeEntry());
+    });
+
     afterEach(() => {
         vi.clearAllMocks();
     });
 
-    function setup() {
-        useClusterMock.mockReturnValue({ cluster: Cluster.MainnetBeta, genesisHash: 'genesis', url: 'http://rpc' });
-        useAccountOwnedTokensMock.mockReturnValue(makeEntry());
-    }
-
     it('should render the symbol and logo from useTokenInfo and pass fetchTokenLabelInfo to the mint Address', () => {
-        setup();
         useTokenInfoMock.mockReturnValue({
             address: MINT,
             decimals: 6,
@@ -113,7 +112,6 @@ describe('should render OwnedTokensCard with lazy per-row enrichment', () => {
     });
 
     it('should still render the logo column with a fallback when token info is unavailable', () => {
-        setup();
         useTokenInfoMock.mockReturnValue(undefined);
 
         render(<OwnedTokensCard address={OWNER} />);
