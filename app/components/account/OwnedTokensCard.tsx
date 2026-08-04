@@ -20,7 +20,6 @@ import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/comp
 import { ProxiedImage } from '@/app/features/metadata';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
-import { normalizeTokenAmount } from '@/app/utils';
 
 type Display = 'summary' | 'detail' | null;
 
@@ -124,12 +123,14 @@ function HoldingsDetail({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[
             const mintAddress = token.mint.toBase58();
             const existingToken = tokensMap.get(mintAddress);
 
-            const rawAmount = token.tokenAmount.amount;
             const decimals = token.tokenAmount.decimals;
             let amount = token.tokenAmount.uiAmountString;
+            // Accumulated alongside `amount` so the tooltip's pre-scaling value matches the total the row renders.
+            let rawAmount = token.tokenAmount.amount;
 
             if (existingToken) {
                 amount = new BigNumber(existingToken.amount).plus(token.tokenAmount.uiAmountString).toString();
+                rawAmount = new BigNumber(existingToken.rawAmount).plus(token.tokenAmount.amount).toString();
             }
 
             tokensMap.set(mintAddress, {
@@ -137,8 +138,9 @@ function HoldingsDetail({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[
                 decimals,
                 pubkey: pubkey.toBase58(),
                 rawAmount,
+                // Multiplier is a per-mint ratio, so one account's raw/ui pair is enough to derive it.
                 scaledUiAmountMultiplier: deriveScaledUiAmountMultiplier(
-                    rawAmount,
+                    token.tokenAmount.amount,
                     decimals,
                     token.tokenAmount.uiAmountString,
                 ),
@@ -164,17 +166,21 @@ function HoldingsSummary({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey
         const tokensMap = new Map<string, MappedToken>();
         for (const { info: token } of tokens) {
             const mintAddress = token.mint.toBase58();
-            const totalByMint = tokensMap.get(mintAddress)?.amount;
+            const existingToken = tokensMap.get(mintAddress);
 
             let amount = token.tokenAmount.uiAmountString;
-            if (totalByMint !== undefined) {
-                amount = new BigNumber(totalByMint).plus(token.tokenAmount.uiAmountString).toString();
+            // Accumulated alongside `amount` so the tooltip's pre-scaling value matches the total the row renders.
+            let rawAmount = token.tokenAmount.amount;
+            if (existingToken) {
+                amount = new BigNumber(existingToken.amount).plus(token.tokenAmount.uiAmountString).toString();
+                rawAmount = new BigNumber(existingToken.rawAmount).plus(token.tokenAmount.amount).toString();
             }
 
             tokensMap.set(mintAddress, {
                 amount,
                 decimals: token.tokenAmount.decimals,
-                rawAmount: token.tokenAmount.amount,
+                rawAmount,
+                // Multiplier is a per-mint ratio, so one account's raw/ui pair is enough to derive it.
                 scaledUiAmountMultiplier: deriveScaledUiAmountMultiplier(
                     token.tokenAmount.amount,
                     token.tokenAmount.decimals,
@@ -232,7 +238,7 @@ function TokenRow({ mintAddress, token, showAccountAddress }: TokenRowProps) {
             <td>
                 {token.amount} {tokenInfo?.symbol}
                 <ScaledUiAmountMultiplierTooltip
-                    rawAmount={normalizeTokenAmount(Number(token.rawAmount), token.decimals || 0).toString()}
+                    rawAmount={new BigNumber(token.rawAmount).shiftedBy(-(token.decimals || 0)).toString()}
                     scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}
                 />
             </td>

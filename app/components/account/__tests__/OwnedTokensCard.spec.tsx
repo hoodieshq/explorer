@@ -5,11 +5,16 @@ import { Cluster } from '@utils/cluster';
 import React from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-// next/navigation is used by OwnedTokensCard's display dropdown.
+// next/navigation is used by OwnedTokensCard's display dropdown, which selects the summary vs detail body.
+const { useSearchParamsMock } = vi.hoisted(() => ({ useSearchParamsMock: vi.fn() }));
 vi.mock('next/navigation', () => ({
     usePathname: vi.fn(() => '/address/x/tokens'),
-    useSearchParams: vi.fn(() => ({ get: vi.fn(() => null), has: vi.fn(), toString: () => '' })),
+    useSearchParams: useSearchParamsMock,
 }));
+
+function searchParams(display: string | null) {
+    return { get: vi.fn(() => display), has: vi.fn(), toString: () => '' };
+}
 
 const { useAccountOwnedTokensMock, useFetchAccountOwnedTokensMock } = vi.hoisted(() => ({
     useAccountOwnedTokensMock: vi.fn(),
@@ -54,33 +59,48 @@ vi.mock('@/app/features/metadata', () => ({
     ),
 }));
 
+// Stub the tooltip to echo its props - Radix only mounts content on hover, and the values are what we assert on.
+vi.mock('@components/account/token-extensions/ScaledUiAmountMultiplierTooltip', () => ({
+    default: ({ rawAmount, scaledUiAmountMultiplier }: any) => (
+        <span data-testid="scaled-tooltip" data-multiplier={scaledUiAmountMultiplier} data-raw-amount={rawAmount} />
+    ),
+}));
+
 import { OwnedTokensCard } from '../OwnedTokensCard';
 
 const OWNER = '11111111111111111111111111111111';
 const MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const LOGO = 'https://example.test/usdc.png';
+const TOKEN_ACCOUNT_A = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
+const TOKEN_ACCOUNT_B = 'SysvarC1ock11111111111111111111111111111111';
+
+type TokenAmount = { amount: string; decimals: number; uiAmountString: string };
+
+function makeTokenAccount(tokenAmount: TokenAmount, pubkey: string = TOKEN_ACCOUNT_A) {
+    return { info: { mint: new PublicKey(MINT), tokenAmount }, pubkey: new PublicKey(pubkey) };
+}
+
+// One mint held in two accounts, each scaled by 2: the row totals 8, so the tooltip must show 4 pre-scaling.
+function twoAccountsOfOneMint() {
+    return makeEntryWith([
+        makeTokenAccount({ amount: '1000000', decimals: 6, uiAmountString: '2' }, TOKEN_ACCOUNT_A),
+        makeTokenAccount({ amount: '3000000', decimals: 6, uiAmountString: '6' }, TOKEN_ACCOUNT_B),
+    ]);
+}
+
+function makeEntryWith(tokens: ReturnType<typeof makeTokenAccount>[]) {
+    return { data: { tokens }, status: FetchStatus.Fetched };
+}
 
 function makeEntry() {
-    return {
-        data: {
-            tokens: [
-                {
-                    info: {
-                        mint: new PublicKey(MINT),
-                        tokenAmount: { amount: '1234560000', decimals: 6, uiAmountString: '1234.56' },
-                    },
-                    pubkey: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
-                },
-            ],
-        },
-        status: FetchStatus.Fetched,
-    };
+    return makeEntryWith([makeTokenAccount({ amount: '1234560000', decimals: 6, uiAmountString: '1234.56' })]);
 }
 
 describe('should render OwnedTokensCard with lazy per-row enrichment', () => {
     beforeEach(() => {
         useClusterMock.mockReturnValue({ cluster: Cluster.MainnetBeta, genesisHash: 'genesis', url: 'http://rpc' });
         useAccountOwnedTokensMock.mockReturnValue(makeEntry());
+        useSearchParamsMock.mockReturnValue(searchParams(null));
     });
 
     afterEach(() => {
@@ -121,5 +141,46 @@ describe('should render OwnedTokensCard with lazy per-row enrichment', () => {
         expect(logo.getAttribute('data-uri')).toBe('');
         // No symbol text when info is missing.
         expect(screen.queryByText('USDC')).not.toBeInTheDocument();
+    });
+
+    it('should render the pre-scaling raw amount without u64 precision loss', () => {
+        useTokenInfoMock.mockReturnValue(undefined);
+        // 2^53 + 1 base units: Number() rounds this to ...992, dropping the trailing 3 from the displayed amount.
+        useAccountOwnedTokensMock.mockReturnValue(
+            makeEntryWith([
+                makeTokenAccount({ amount: '9007199254740993', decimals: 6, uiAmountString: '18014398509.481986' }),
+            ]),
+        );
+
+        render(<OwnedTokensCard address={OWNER} />);
+
+        const tooltip = screen.getByTestId('scaled-tooltip');
+        expect(tooltip.getAttribute('data-multiplier')).toBe('2');
+        expect(tooltip.getAttribute('data-raw-amount')).toBe('9007199254.740993');
+    });
+
+    it('should sum rawAmount across token accounts of the same mint in summary display', () => {
+        useTokenInfoMock.mockReturnValue(undefined);
+        useAccountOwnedTokensMock.mockReturnValue(twoAccountsOfOneMint());
+
+        render(<OwnedTokensCard address={OWNER} />);
+
+        expect(screen.getByText('8')).toBeInTheDocument();
+        const tooltip = screen.getByTestId('scaled-tooltip');
+        expect(tooltip.getAttribute('data-multiplier')).toBe('2');
+        expect(tooltip.getAttribute('data-raw-amount')).toBe('4');
+    });
+
+    it('should sum rawAmount across token accounts of the same mint in detail display', () => {
+        useTokenInfoMock.mockReturnValue(undefined);
+        useSearchParamsMock.mockReturnValue(searchParams('detail'));
+        useAccountOwnedTokensMock.mockReturnValue(twoAccountsOfOneMint());
+
+        render(<OwnedTokensCard address={OWNER} />);
+
+        expect(screen.getByText('8')).toBeInTheDocument();
+        const tooltip = screen.getByTestId('scaled-tooltip');
+        expect(tooltip.getAttribute('data-multiplier')).toBe('2');
+        expect(tooltip.getAttribute('data-raw-amount')).toBe('4');
     });
 });
