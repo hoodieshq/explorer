@@ -240,7 +240,7 @@ export function AccountsCard({ signature }: SignatureProps) {
             {!loading && totalAccountSize > 0 && (
                 <div
                     className={cn(
-                        'grid items-start px-3 py-2.5 text-sm text-outer-space-300',
+                        'grid items-start px-3 py-3 text-sm text-outer-space-300',
                         GRID_GAP_X,
                         MOBILE_GRID_TEMPLATE,
                         DESKTOP_GRID_TEMPLATE,

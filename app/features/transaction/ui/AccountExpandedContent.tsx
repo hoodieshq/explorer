@@ -48,7 +48,7 @@ export function AccountExpandedContentInner({ accountInfo, accountInfoLoading, a
     return (
         <div
             className={cn(
-                'pt-2.5',
+                'pt-1',
                 flat ? 'pb-2.5' : cn('grid items-start px-3 pb-8', GRID_GAP_X, MOBILE_GRID_TEMPLATE, DESKTOP_GRID_TEMPLATE),
             )}
         >
@@ -97,7 +97,7 @@ export function AccountExpandedContent({ accountInfo, accountInfoLoading, addres
         return (
             <div
                 className={cn(
-                    'pt-2.5',
+                    'pt-1',
                     flat
                         ? 'pb-2.5'
                         : cn('grid items-start px-3 pb-8', GRID_GAP_X, MOBILE_GRID_TEMPLATE, DESKTOP_GRID_TEMPLATE),
