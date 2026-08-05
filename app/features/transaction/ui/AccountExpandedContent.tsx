@@ -12,12 +12,7 @@ import { Code, Info } from 'react-feather';
 
 import { DetailRow, FlatContext } from './AccountExpandedLayout';
 import { ParsedSection } from './AccountExpandedSections';
-import {
-    CONTENT_COL_SPAN,
-    DESKTOP_GRID_TEMPLATE,
-    GRID_GAP_X,
-    MOBILE_GRID_TEMPLATE,
-} from './accountsTableGrid';
+import { CONTENT_COL_SPAN, DESKTOP_GRID_TEMPLATE, GRID_GAP_X, MOBILE_GRID_TEMPLATE } from './accountsTableGrid';
 
 type InnerProps = {
     accountInfo?: AccountInfo;
@@ -49,7 +44,9 @@ export function AccountExpandedContentInner({ accountInfo, accountInfoLoading, a
         <div
             className={cn(
                 'pt-1',
-                flat ? 'pb-2.5' : cn('grid items-start px-3 pb-8', GRID_GAP_X, MOBILE_GRID_TEMPLATE, DESKTOP_GRID_TEMPLATE),
+                flat
+                    ? 'pb-2.5'
+                    : cn('grid items-start px-3 pb-8', GRID_GAP_X, MOBILE_GRID_TEMPLATE, DESKTOP_GRID_TEMPLATE),
             )}
         >
             {!flat && <div />}
@@ -73,9 +70,7 @@ export function AccountExpandedContentInner({ accountInfo, accountInfoLoading, a
                     )}
                 >
                     <Info size={16} className="shrink-0" />
-                    <span>
-                        Current account data. This data may have been different at the time of the transaction.
-                    </span>
+                    <span>Current account data. This data may have been different at the time of the transaction.</span>
                 </div>
             </div>
         </div>
@@ -132,7 +127,9 @@ export function AccountExpandedContent({ accountInfo, accountInfoLoading, addres
             <div
                 className={cn(
                     'py-3 text-sm text-outer-space-300',
-                    flat ? 'px-4' : cn('grid items-start px-3', GRID_GAP_X, MOBILE_GRID_TEMPLATE, DESKTOP_GRID_TEMPLATE),
+                    flat
+                        ? 'px-4'
+                        : cn('grid items-start px-3', GRID_GAP_X, MOBILE_GRID_TEMPLATE, DESKTOP_GRID_TEMPLATE),
                 )}
             >
                 {!flat && <div />}
