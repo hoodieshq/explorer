@@ -70,7 +70,7 @@ export function AccountDetailSlideover({
                             </div>
                             {nickname && <span className="break-all text-sm text-outer-space-300">{address}</span>}
                         </div>
-                        <div className="flex">
+                        <div className="flex flex-wrap gap-1">
                             <AccountBadges index={index} account={account} message={message} pubkey={pubkey} />
                         </div>
                     </div>
