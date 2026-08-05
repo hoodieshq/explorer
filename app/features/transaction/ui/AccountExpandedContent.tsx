@@ -32,7 +32,7 @@ export function AccountExpandedContentInner({ accountInfo, accountInfoLoading, a
         accountInfo && accountInfo.size > 0 ? (
             <Popover>
                 <PopoverTrigger asChild>
-                    <Button variant="ghost" className="h-auto !p-0 !text-sm">
+                    <Button variant="ghost" className="h-auto !items-baseline !p-0 !text-sm">
                         <Code size={11} />
                         <span>{accountInfo.size.toLocaleString('en-US')} byte(s)</span>
                     </Button>
