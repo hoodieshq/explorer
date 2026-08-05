@@ -5,14 +5,6 @@ import { expect, within } from 'storybook/test';
 import { BaseDomainsCard } from '../BaseDomainsCard';
 
 const meta = {
-    argTypes: {
-        layout: {
-            control: 'inline-radio',
-            description:
-                'Inner list rendering. `table` uses the shared `<BaseTable>`; `grid` uses a CSS-grid built from `div`s (desktop-identical, diverges on mobile later).',
-            options: ['table', 'grid'],
-        },
-    },
     component: BaseDomainsCard,
     decorators: [withClusterAndAccounts, withTokenInfoBatch],
     parameters: {
@@ -21,16 +13,16 @@ const meta = {
             description: {
                 component: [
                     "Presentational card rendering an account's domains as a collapsible section — the heading",
-                    'is lifted out above the card and a toggle collapses the table. This component only supplies',
+                    'is lifted out above the card and a toggle collapses the list. This component only supplies',
                     'the copy and the per-row data; everything else is composed from the shared primitives below.',
                     '',
                     '## References',
                     '',
-                    '- `<section aria-labelledby>` + `<h2 className="m-0 text-lg font-normal text-white">` — the section heading lifted out above the card, tied to the region via a `useId` id. Mirrors the transaction page\'s `CollapsibleSection`, rebuilt locally because FSD forbids `entity → feature` imports.',
-                    '- [Button](?path=/docs/components-shared-button--docs) (`variant="outline" size="sm"`) — the collapse/expand toggle: a rotating `ChevronDown` plus a `Collapse`/`Expand` label on `md+`, with `aria-expanded` reflecting state.',
-                    '- Collapse animation — a `grid` wrapper toggling `grid-rows-[1fr]` ↔ `grid-rows-[0fr]` around an `overflow-hidden` child, so the table animates open/closed without fixed heights.',
-                    '- [Card](?path=/docs/components-shared-card-basecard--docs) — the surface holding the list. `grid` sits on a Tailwind `variant="tight"` card; `table` keeps its original `ui="dashkit"` card so the `#282d2b` separators stay unchanged.',
-                    '- Domain list (`layout` prop) — `table` uses [BaseTable](?path=/docs/components-shared-table-basetable--docs) (`ui="dashkit" variant="card" head/body="subtle" nowrap`); `grid` uses a pure-Tailwind CSS grid (`clamp(120px,25%,200px) 1fr`) mirroring the transaction Accounts/Token Balances tables. Columns: "Domain" and "Name Service Account".',
+                    '- [CollapsibleSection](?path=/docs/components-shared-collapsiblesection--docs) — the shared collapsible wrapper: a `<section aria-labelledby>` with the heading (`<h2 className="m-0 text-lg font-normal text-white">`) lifted out above the surface, a `Collapse`/`Expand` toggle, and the height animation. Passed `className=""` so the surface comes from the `<Card>` below (the same pattern the transaction `InstructionsSection` uses).',
+                    '- [Button](?path=/docs/components-shared-button--docs) (`variant="outline" size="sm"`) — the collapse/expand toggle inside `CollapsibleSection`: a rotating `ChevronDown` plus a `Collapse`/`Expand` label on `md+`, with `aria-expanded` reflecting state.',
+                    '- Collapse animation — a `grid` wrapper toggling `grid-rows-[1fr]` ↔ `grid-rows-[0fr]` around an `overflow-hidden` child, so the list animates open/closed without fixed heights.',
+                    '- [Card](?path=/docs/components-shared-card-basecard--docs) — the surface holding the list: a Tailwind `variant="tight"` card.',
+                    '- Domain list — a pure-Tailwind CSS grid (`clamp(120px,25%,200px) 1fr`) built from `div`s, mirroring the transaction Accounts/Token Balances tables. Columns: "Domain" and "Name Service Account".',
                     '- [Address](?path=/docs/components-common-address--docs) (`link`) — fills the "Name Service Account" cell, rendering each domain\'s pubkey as a linked, copyable address with a tooltip.',
                     '- [LoadingCard](?path=/docs/components-common-loadingcard--docs) / [ErrorCard](?path=/docs/components-common-errorcard--docs) — not part of this card; rendered by the wrapping `DomainsCard` for the loading and error states.',
                 ].join('\n'),
@@ -77,29 +69,6 @@ export const MultipleDomains: Story = {
             LONG_DOMAIN,
             EXTRA_LONG_DOMAIN,
         ],
-    },
-    play: async ({ canvasElement }) => {
-        const canvas = within(canvasElement);
-        expect(canvas.getByText('example.sol')).toBeInTheDocument();
-        expect(canvas.getByText('bob.sol')).toBeInTheDocument();
-        expect(canvas.getByText('charlie.ans')).toBeInTheDocument();
-        expect(canvas.getByText(LONG_DOMAIN.name)).toBeInTheDocument();
-        expect(canvas.getByText(EXTRA_LONG_DOMAIN.name)).toBeInTheDocument();
-    },
-};
-
-// `layout="grid"` renders the same list as a CSS grid instead of a `<table>`. Desktop visuals match
-// the table stories above; the internals differ so mobile can diverge later. Flip the `layout` control.
-export const GridLayout: Story = {
-    args: {
-        domains: [
-            { address: '5ASxtmcPKDeD8NoE5QpskizPokqDdX1qHFiqZb1spLdo', name: 'example.sol' },
-            { address: 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA', name: 'bob.sol' },
-            { address: 'Sysvar1111111111111111111111111111111111111', name: 'charlie.ans' },
-            LONG_DOMAIN,
-            EXTRA_LONG_DOMAIN,
-        ],
-        layout: 'grid',
     },
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);

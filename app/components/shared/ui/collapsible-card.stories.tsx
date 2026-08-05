@@ -1,11 +1,27 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
 
-import { Card } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 import { Badge } from './badge';
 import { Button } from './button';
 import { CollapsibleCard } from './collapsible-card';
+
+const meta: Meta<typeof CollapsibleCard> = {
+    argTypes: {
+        collapsible: {
+            control: 'boolean',
+        },
+        defaultExpanded: {
+            control: 'boolean',
+        },
+    },
+    component: CollapsibleCard,
+    tags: ['autodocs', 'test'],
+    title: 'Components/Shared/CollapsibleCard',
+};
+
+export default meta;
+type Story = StoryObj<typeof meta>;
 
 const SampleContent = () => (
     <BaseTable ui="dashkit" variant="card" nowrap>
@@ -32,82 +48,64 @@ const SampleContent = () => (
     </BaseTable>
 );
 
-const meta: Meta<typeof CollapsibleCard> = {
-    argTypes: {
-        collapsible: {
-            control: 'boolean',
-        },
-        defaultExpanded: {
-            control: 'boolean',
-        },
-        headingPlacement: {
-            control: 'inline-radio',
-            options: ['inside', 'lifted'],
-        },
-    },
-    args: {
-        title: 'Account List (3)',
-    },
-    component: CollapsibleCard,
-    // Args-driven so the controls (headingPlacement, collapsible, …) actually re-render the card. In
-    // `lifted` mode `children` supply their own surface, so wrap the sample in a `Card`; `inside` already
-    // renders inside its own card, so the bare table is enough.
-    render: ({ headingPlacement, ...args }) => (
-        <CollapsibleCard {...args} headingPlacement={headingPlacement}>
-            {headingPlacement === 'lifted' ? (
-                <Card ui="dashkit">
-                    <SampleContent />
-                </Card>
-            ) : (
-                <SampleContent />
-            )}
+export const Default: Story = {
+    args: {} as never,
+    render: () => (
+        <CollapsibleCard title="Account List (3)">
+            <SampleContent />
         </CollapsibleCard>
     ),
-    tags: ['autodocs', 'test'],
-    title: 'Components/Shared/CollapsibleCard',
 };
 
-export default meta;
-type Story = StoryObj<typeof meta>;
-
-export const Default: Story = {};
-
 export const StartsCollapsed: Story = {
-    args: { defaultExpanded: false },
+    args: {} as never,
+    render: () => (
+        <CollapsibleCard title="Account List (3)" defaultExpanded={false}>
+            <SampleContent />
+        </CollapsibleCard>
+    ),
 };
 
 export const WithHeaderButtons: Story = {
-    args: {
-        headerButtons: (
-            <Button ui="dashkit" variant="white" size="sm" className="mr-1.5 flex items-center">
-                Raw
-            </Button>
-        ),
-        title: 'Account Input(s) (3)',
-    },
+    args: {} as never,
+    render: () => (
+        <CollapsibleCard
+            title="Account Input(s) (3)"
+            headerButtons={
+                <Button ui="dashkit" variant="white" size="sm" className="mr-1.5 flex items-center">
+                    Raw
+                </Button>
+            }
+        >
+            <SampleContent />
+        </CollapsibleCard>
+    ),
 };
 
 export const NonCollapsible: Story = {
-    args: { collapsible: false, title: 'Token Balances' },
-};
-
-// `headingPlacement="lifted"` moves the title into an `<h2>` above the surface (a `<section>` with the
-// toggle in the heading row) and lets `children` bring their own card — here a dashkit `Card`. This is
-// the shape the domains card and the transaction `CollapsibleSection` share. Flip the `headingPlacement`
-// control on any story to compare.
-export const Lifted: Story = {
-    args: { headingPlacement: 'lifted', title: 'Owned Domain Names' },
+    args: {} as never,
+    render: () => (
+        <CollapsibleCard title="Token Balances" collapsible={false}>
+            <SampleContent />
+        </CollapsibleCard>
+    ),
 };
 
 export const WithBadgeTitle: Story = {
-    args: {
-        title: (
-            <>
-                <Badge ui="dashkit" variant="success" className="mr-1.5">
-                    #1
-                </Badge>
-                Token Program: Transfer
-            </>
-        ),
-    },
+    args: {} as never,
+    render: () => (
+        <CollapsibleCard
+            collapsible
+            title={
+                <>
+                    <Badge ui="dashkit" variant="success" className="mr-1.5">
+                        #1
+                    </Badge>
+                    Token Program: Transfer
+                </>
+            }
+        >
+            <SampleContent />
+        </CollapsibleCard>
+    ),
 };
