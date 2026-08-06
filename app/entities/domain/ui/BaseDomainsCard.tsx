@@ -47,7 +47,7 @@ export function BaseDomainsCard({ domains }: { domains: DomainInfo[] }) {
 // CSS-grid layout — a single 2-column grid so columns stay aligned across header and rows the way a
 // `<table>`'s shared columns do. Pure Tailwind, matching the transaction page's Accounts/Token Balances
 // tables: muted uppercase `text-xs` header, `text-sm` body, `outer-space-800` row separators (same tone
-// as the card border), transparent (card-matching) background, 8px/12px padding.
+// as the card border), transparent (card-matching) background, 10px/12px padding.
 //
 // Domain column sizing — responsive, no JS. The account column always keeps the rest (`1fr`).
 // - Mobile (xs, sm — below `md`): content-aware within a px band. `fit-content(clamp(200px,50%,400px))`
@@ -57,10 +57,10 @@ export function BaseDomainsCard({ domains }: { domains: DomainInfo[] }) {
 // - Tablet (md, lg) + desktop (xl, xxl): a fixed 25% band `clamp(120px,25%,240px)` — no content growth;
 //   the name wraps (`break-all`) inside it. Both tiers match, so one `md:` rule covers md→xxl; split it
 //   out (add an `xl:` variant) if desktop ever needs to diverge.
-const GRID_HEADER_CELL = 'flex items-center whitespace-nowrap px-3 py-2 text-xs uppercase text-outer-space-300';
+const GRID_HEADER_CELL = 'flex items-center whitespace-nowrap px-3 py-2.5 text-xs uppercase text-outer-space-300';
 // Shared body-cell styling. `min-width` is set per cell below (a floor on the name, `0` on the account)
 // so it isn't baked in here — `cn` is clsx, so a base `min-w-*` couldn't be overridden per cell.
-const GRID_BODY_CELL = 'flex items-start border-t border-solid border-outer-space-800 px-3 py-2';
+const GRID_BODY_CELL = 'flex items-start border-t border-solid border-outer-space-800 px-3 py-2.5';
 const GRID_DOMAIN_FLOOR = 'min-w-[clamp(120px,25%,240px)]';
 
 function DomainsGrid({ domains }: { domains: ValidDomain[] }) {
