@@ -24,7 +24,7 @@ export default function BlockRewardsTabClient({ params: { slot } }: Props) {
         }
     }, [slotNumber, status]); // eslint-disable-line react-hooks/exhaustive-deps
     if (confirmedBlock?.data?.block) {
-        return <BlockRewardsCard block={confirmedBlock.data.block} />;
+        return <BlockRewardsCard block={confirmedBlock.data.block} variant="collapsible" />;
     }
     return null;
 }

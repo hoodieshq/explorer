@@ -4,6 +4,14 @@ import type { Meta, StoryObj } from '@storybook-config/types';
 import { BlockRewardsCard } from '../BlockRewardsCard';
 
 const meta: Meta<typeof BlockRewardsCard> = {
+    argTypes: {
+        variant: {
+            control: 'inline-radio',
+            description:
+                "'default' — original Dashkit table; 'collapsible' — domains-card style (heading lifted out above a collapsible section, tight card surface, CSS-grid body).",
+            options: ['default', 'collapsible'],
+        },
+    },
     component: BlockRewardsCard,
     decorators: [withCluster, withTokenInfoBatch],
     parameters: nextjsParameters,
@@ -39,14 +47,33 @@ const sampleReward = (i: number) => ({
     rewardType: i % 2 === 0 ? 'Staking' : 'Voting',
 });
 
+const rewards = (n: number) => ({ rewards: Array.from({ length: n }, (_, i) => sampleReward(i)) }) as any;
+
+// Original Dashkit table.
 export const WithRewards: Story = {
     args: {
-        block: { rewards: Array.from({ length: 8 }, (_, i) => sampleReward(i)) } as any,
+        block: rewards(8),
     },
 };
 
 export const WithManyRewards: Story = {
     args: {
-        block: { rewards: Array.from({ length: 25 }, (_, i) => sampleReward(i)) } as any,
+        block: rewards(25),
+    },
+};
+
+// Domains-card style (PR #115): heading lifted out above a collapsible section, tight card surface,
+// CSS-grid body on lg+ and a stacked, labelled layout below lg.
+export const Collapsible: Story = {
+    args: {
+        block: rewards(8),
+        variant: 'collapsible',
+    },
+};
+
+export const CollapsibleWithManyRewards: Story = {
+    args: {
+        block: rewards(25),
+        variant: 'collapsible',
     },
 };

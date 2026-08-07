@@ -2,14 +2,22 @@
 
 import { Signature } from '@components/common/Signature';
 import { Slot } from '@components/common/Slot';
+import { cn } from '@components/shared/utils';
 import { HistoryCardFooter, HistoryCardHeader } from '@shared/ui/HistoryCard';
 import { displayTimestampUtc, unixTimestampToMs } from '@utils/date';
-import { type ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 
 import { Badge } from '@/app/components/shared/ui/badge';
 import { RelativeTime } from '@/app/shared/RelativeTime';
 import { Card } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
+
+// Design variant, switchable via prop:
+//   - 'default' — the original Dashkit table (Signature / Block / Age / Timestamp / Result / Raw Data).
+//   - 'grid'    — the rearranged CSS-grid layout: the Result badge moves inline next to the signature
+//                 (instructions below), Age + Timestamp collapse into one "Time" column, and Block /
+//                 Size keep their own columns. Every field from the row model still gets a column.
+export type TransactionHistoryVariant = 'default' | 'grid';
 
 export type TransactionHistoryRowView = {
     signature: string;
@@ -30,6 +38,7 @@ export type BaseTransactionHistoryCardProps = {
     onLoadMore: () => void;
     headerActions?: ReactNode;
     headerSubRow?: ReactNode;
+    variant?: TransactionHistoryVariant;
 };
 
 export function BaseTransactionHistoryCard({
@@ -40,6 +49,7 @@ export function BaseTransactionHistoryCard({
     onLoadMore,
     headerActions,
     headerSubRow,
+    variant = 'default',
 }: BaseTransactionHistoryCardProps) {
     const hasTimestamps = rows.some(row => row.blockTime);
 
@@ -53,6 +63,9 @@ export function BaseTransactionHistoryCard({
                 actions={headerActions}
                 subHeader={headerSubRow}
             />
+            {variant === 'grid' ? (
+                <TransactionGrid rows={rows} />
+            ) : (
             <BaseTable ui="dashkit" variant="card" nowrap>
                 <BaseTable.Head>
                     <BaseTable.Row>
@@ -76,6 +89,7 @@ export function BaseTransactionHistoryCard({
                     ))}
                 </BaseTable.Body>
             </BaseTable>
+            )}
             <HistoryCardFooter fetching={fetching} foundOldest={foundOldest} loadMore={onLoadMore} />
         </Card>
     );
@@ -124,5 +138,80 @@ function TransactionRow({
             </BaseTable.Cell>
             <BaseTable.Cell>{rawDataCell}</BaseTable.Cell>
         </BaseTable.Row>
+    );
+}
+
+// Signature takes the slack; Time / Block / Size are capped. Header + rows share this template so
+// columns stay aligned. Inline (not a `grid-cols-[…]` class) so the Storybook JIT can't purge it.
+const GRID_TEMPLATE: React.CSSProperties = {
+    gridTemplateColumns: 'minmax(240px,1fr) minmax(auto,17rem) minmax(auto,11rem) minmax(auto,7rem)',
+};
+const GRID_HEADERS = ['Transaction Signature', 'Time', 'Block', 'Size (Bytes)'] as const;
+
+// 'grid' variant — the screenshot layout. Header and every row are separate CSS grids sharing the same
+// inline column template, stacked in a fixed-min-width track that scrolls horizontally on narrow
+// screens — so the columns stay aligned like a table (same approach as the block grid cards).
+function TransactionGrid({ rows }: { rows: TransactionHistoryRowView[] }) {
+    return (
+        <div className="overflow-x-auto text-sm text-white">
+            <div style={{ minWidth: '760px' }}>
+                <div
+                    style={GRID_TEMPLATE}
+                    className="grid gap-5 border-0 border-b border-solid border-dark-border px-4 py-2.5 text-xs uppercase text-dk-gray-700"
+                >
+                    {GRID_HEADERS.map(label => (
+                        <div key={label}>{label}</div>
+                    ))}
+                </div>
+                {rows.map(row => (
+                    <TransactionGridRow key={row.signature} row={row} />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function TransactionGridRow({
+    row: { signature, slot, blockTime, status, instructionsCell, rawDataCell },
+}: {
+    row: TransactionHistoryRowView;
+}) {
+    return (
+        <div
+            style={GRID_TEMPLATE}
+            className={cn(
+                'grid items-start gap-5 px-4 py-3',
+                'border-0 border-b border-solid border-dark-border last:border-b-0',
+            )}
+        >
+            <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                    <Signature signature={signature} link />
+                    <Badge ui="dashkit" variant={STATUS_BADGE[status].variant}>
+                        {STATUS_BADGE[status].label}
+                    </Badge>
+                </div>
+                {instructionsCell}
+            </div>
+
+            <div className="min-w-0">
+                {blockTime ? (
+                    <div className="flex flex-col">
+                        <span>{displayTimestampUtc(unixTimestampToMs(blockTime), true)}</span>
+                        <span className="text-dk-gray-700">
+                            <RelativeTime date={unixTimestampToMs(blockTime)} />
+                        </span>
+                    </div>
+                ) : (
+                    '---'
+                )}
+            </div>
+
+            <div className="min-w-0">
+                <Slot slot={slot} link />
+            </div>
+
+            <div className="min-w-0">{rawDataCell}</div>
+        </div>
     );
 }
