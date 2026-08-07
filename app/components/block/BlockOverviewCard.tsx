@@ -202,7 +202,7 @@ export function BlockOverviewCard({
                     </Row>
                 )}
                 <Row divider>
-                    <Label>Total Compute Units Consumed</Label>
+                    <Label>Total CUs Consumed</Label>
                     <Value>{totalCUs.toLocaleString()}</Value>
                 </Row>
                 <Row divider>
