@@ -98,16 +98,19 @@ export function BlockHistoryCard({
     const { cluster } = useCluster();
 
     // Sort is driven by a URL param; the grid variant's sortable headers push through here. Passing no
-    // key clears the sort (the "#" header's reset behaviour).
+    // key clears the sort (the "#" header's reset back to index order). We build the URL from a copy of the
+    // current params so a `delete` actually drops `sort` — `pickClusterParams` only ever adds/overrides
+    // keys, so routing the reset through it would leave the stale `sort` in place.
     const pushSort = React.useCallback(
         (sortKey?: string) => {
-            const additionalParams = new URLSearchParams(currentSearchParams?.toString());
+            const nextParams = new URLSearchParams(currentSearchParams?.toString());
             if (sortKey) {
-                additionalParams.set('sort', sortKey);
+                nextParams.set('sort', sortKey);
             } else {
-                additionalParams.delete('sort');
+                nextParams.delete('sort');
             }
-            router.push(pickClusterParams(currentPathname, currentSearchParams, additionalParams));
+            const queryString = nextParams.toString();
+            router.push(`${currentPathname}${queryString ? `?${queryString}` : ''}`);
         },
         [currentPathname, currentSearchParams, router],
     );
@@ -321,16 +324,7 @@ export function BlockHistoryCard({
                 <BaseTable ui="dashkit" variant="card" nowrap>
                     <BaseTable.Head>
                         <BaseTable.Row>
-                            <BaseTable.HeaderCell
-                                className="cursor-pointer text-dk-gray-700"
-                                onClick={() => {
-                                    const additionalParams = new URLSearchParams(currentSearchParams?.toString());
-                                    additionalParams.delete('sort');
-                                    router.push(
-                                        pickClusterParams(currentPathname, currentSearchParams, additionalParams),
-                                    );
-                                }}
-                            >
+                            <BaseTable.HeaderCell className="cursor-pointer text-dk-gray-700" onClick={() => pushSort()}>
                                 #
                             </BaseTable.HeaderCell>
                             <BaseTable.HeaderCell className="text-dk-gray-700">Result</BaseTable.HeaderCell>
@@ -359,7 +353,7 @@ export function BlockHistoryCard({
                                     );
                                 }}
                             >
-                                Reserved CUs
+                                CUs Reserved
                             </BaseTable.HeaderCell>
                             {showComputeUnits && (
                                 <BaseTable.HeaderCell
@@ -372,7 +366,7 @@ export function BlockHistoryCard({
                                         );
                                     }}
                                 >
-                                    Compute
+                                    CUs Consumed
                                 </BaseTable.HeaderCell>
                             )}
                             <BaseTable.HeaderCell
@@ -503,18 +497,18 @@ function BlockHistoryGrid({
     // exists when compute data is available. Following the transaction-history card, Result (badge) sits
     // inline with the signature and the invoked programs stack beneath it — so neither gets its own column.
     const gridStyle: React.CSSProperties = {
-        gridTemplateColumns: `minmax(auto,1.25rem) minmax(0,1fr) minmax(auto,6rem) minmax(auto,6rem) ${
-            showComputeUnits ? 'minmax(auto,4rem) ' : ''
+        gridTemplateColumns: `minmax(auto,2.5rem) minmax(0,1fr) minmax(auto,7rem) minmax(auto,6rem) ${
+            showComputeUnits ? 'minmax(auto,6rem) ' : ''
         }minmax(auto,4rem)`,
     };
 
     const headers: { label: string; numeric?: boolean; onClick?: () => void }[] = [
         { label: '#', onClick: () => onSort() },
-        { label: 'Transaction Signature' },
+        { label: 'Signature / Programs' },
         { label: 'Fee', numeric: true, onClick: () => onSort('fee') },
-        { label: 'Reserved CUs', numeric: true, onClick: () => onSort('reservedCUs') },
-        ...(showComputeUnits ? [{ label: 'Compute', numeric: true, onClick: () => onSort('compute') }] : []),
-        { label: 'Txn Cost', numeric: true, onClick: () => onSort('txnCost') },
+        { label: 'CUs Reserved', numeric: true, onClick: () => onSort('reservedCUs') },
+        ...(showComputeUnits ? [{ label: 'CUs Consumed', numeric: true, onClick: () => onSort('compute') }] : []),
+        { label: 'Cost', numeric: true, onClick: () => onSort('txnCost') },
     ];
 
     return (
@@ -585,7 +579,7 @@ function BlockHistoryGridRow({
     // invoked programs stack directly beneath it (`signatureBlock`); on mobile they move to their own
     // labelled "Programs" field, so here the header stays on its own.
     const signatureHeader = (
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="min-w-0">{signatureNode}</span>
             {badge}
         </div>
@@ -608,9 +602,9 @@ function BlockHistoryGridRow({
                     <div className="pr-10">{signatureHeader}</div>
                 </BlockHistoryMobileField>
                 <BlockHistoryMobileField label="Fee">{feeNode}</BlockHistoryMobileField>
-                <BlockHistoryMobileField label="Reserved CUs">{reserved}</BlockHistoryMobileField>
-                {showComputeUnits && <BlockHistoryMobileField label="Compute">{compute}</BlockHistoryMobileField>}
-                <BlockHistoryMobileField label="Txn Cost">{txnCost}</BlockHistoryMobileField>
+                <BlockHistoryMobileField label="CUs Reserved">{reserved}</BlockHistoryMobileField>
+                {showComputeUnits && <BlockHistoryMobileField label="CUs Consumed">{compute}</BlockHistoryMobileField>}
+                <BlockHistoryMobileField label="Cost">{txnCost}</BlockHistoryMobileField>
                 <BlockHistoryMobileField label="Programs" align="start">
                     {invokedNode}
                 </BlockHistoryMobileField>
@@ -712,7 +706,7 @@ const FilterDropdown = ({ filter, invokedPrograms, totalTransactionCount }: Filt
                     {currentFilterOption.name} <ChevronDown className="align-text-top" size={13} />
                 </Button>
             </DropdownToggle>
-            <DropdownMenu align="end" className="max-h-80 overflow-y-auto">
+            <DropdownMenu align="end" className="max-h-80 overflow-y-auto !border-white/20">
                 {filterOptions.map(({ name, programId, transactionCount }) => (
                     <FilterLink
                         currentFilter={filter}
@@ -752,7 +746,15 @@ function FilterLink({
     }, [currentPathname, currentSearchParams, name, programId]);
     return (
         <DropdownItem asChild className={cn(programId === currentFilter && 'active')} key={programId}>
-            <Link href={href}>{`${name} (${transactionCount})`}</Link>
+            <Link href={href} className="relative">
+                {programId === currentFilter && (
+                    <span
+                        aria-hidden
+                        className="absolute left-2.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-current"
+                    />
+                )}
+                {`${name} (${transactionCount})`}
+            </Link>
         </DropdownItem>
     );
 }
