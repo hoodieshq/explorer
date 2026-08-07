@@ -18,11 +18,23 @@ import { ChevronDown } from 'react-feather';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/components/shared/ui/dropdown';
+import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
 import { invariant } from '@/app/shared/lib/invariant';
 import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 const PAGE_SIZE = 25;
+
+// Design variant, switchable via prop (see the other block cards for the same pattern):
+//   - 'default'     — the original Dashkit table.
+//   - 'collapsible' — the domains-card treatment (PR #115): the title lifted out above a collapsible
+//                     section (filter dropdown kept as its action), list on a `tight` card surface,
+//                     CSS-grid body on `lg+` and a stacked, labelled layout below `lg`. Sorting and
+//                     "Load More" are preserved.
+export type BlockHistoryVariant = 'default' | 'collapsible';
+
+// Surface matched to the transaction tables (see BaseDomainsCard) — set on a `variant="tight"` Card.
+const TIGHT_CARD = 'overflow-hidden rounded-lg border-outer-space-800 bg-outer-space-900';
 
 const useQueryProgramFilter = (query: ReadonlyURLSearchParams): string => {
     const filter = query.get('filter');
@@ -62,7 +74,15 @@ type TransactionWithInvocations = {
     logTruncated: boolean;
 };
 
-export function BlockHistoryCard({ block, epoch }: { block: BlockWithV1; epoch: bigint | undefined }) {
+export function BlockHistoryCard({
+    block,
+    epoch,
+    variant = 'default',
+}: {
+    block: BlockWithV1;
+    epoch: bigint | undefined;
+    variant?: BlockHistoryVariant;
+}) {
     const [numDisplayed, setNumDisplayed] = React.useState(PAGE_SIZE);
     const currentPathname = usePathname();
     const currentSearchParams = useSearchParams();
@@ -72,6 +92,21 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockWithV1; epoch: 
     const router = useRouter();
     const { cluster } = useCluster();
     const buildClusterPath = useBuildClusterPath();
+
+    // Sort is driven by a URL param; the grid variant's sortable headers push through here. Passing no
+    // key clears the sort (the "#" header's reset behaviour).
+    const pushSort = React.useCallback(
+        (sortKey?: string) => {
+            const additionalParams = new URLSearchParams(currentSearchParams?.toString());
+            if (sortKey) {
+                additionalParams.set('sort', sortKey);
+            } else {
+                additionalParams.delete('sort');
+            }
+            router.push(pickClusterParams(currentPathname, currentSearchParams, additionalParams));
+        },
+        [currentPathname, currentSearchParams, router],
+    );
 
     const { transactions, invokedPrograms } = React.useMemo(() => {
         const invokedPrograms = new Map<string, number>();
@@ -195,6 +230,59 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockWithV1; epoch: 
         title = `Block Transactions (${filteredTransactions.length})`;
     } else {
         title = `Filtered Block Transactions (${filteredTransactions.length}/${transactions.length})`;
+    }
+
+    if (variant === 'collapsible') {
+        const visible = filteredTransactions.slice(0, numDisplayed);
+        const hasMore = filteredTransactions.length > numDisplayed;
+        const emptyFilterMessage =
+            accountFilter === null && programFilter === HIDE_VOTES
+                ? "This block doesn't contain any non-vote transactions"
+                : 'No transactions found with this filter';
+
+        return (
+            <CollapsibleSection
+                title={title}
+                className=""
+                actions={
+                    <FilterDropdown
+                        filter={programFilter}
+                        invokedPrograms={invokedPrograms}
+                        totalTransactionCount={transactions.length}
+                    />
+                }
+            >
+                <div className="flex flex-col gap-3">
+                    {accountFilter !== null && (
+                        <div className="text-sm text-white">
+                            Showing transactions which load account:
+                            <span className="ml-1.5 inline-block align-middle">
+                                <Address pubkey={accountFilter} link />
+                            </span>
+                        </div>
+                    )}
+                    <Card variant="tight" className={TIGHT_CARD}>
+                        {filteredTransactions.length === 0 ? (
+                            <div className="px-4 py-3 text-sm text-white">{emptyFilterMessage}</div>
+                        ) : (
+                            <BlockHistoryGrid rows={visible} showComputeUnits={showComputeUnits} onSort={pushSort} />
+                        )}
+                        {hasMore && (
+                            <div className="border-t border-solid border-white/10 px-3 py-4 md:px-4">
+                                <Button
+                                    ui="dashkit"
+                                    variant="primary"
+                                    className="w-full"
+                                    onClick={() => setNumDisplayed(displayed => displayed + PAGE_SIZE)}
+                                >
+                                    Load More
+                                </Button>
+                            </div>
+                        )}
+                    </Card>
+                </div>
+            </CollapsibleSection>
+        );
     }
 
     return (
@@ -374,6 +462,156 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockWithV1; epoch: 
                 </CardFooter>
             )}
         </Card>
+    );
+}
+
+// Domain status → badge label/variant. Mirrors the default table's inline mapping.
+const HISTORY_STATUS = {
+    failed: { label: 'Failed', variant: 'warning' },
+    success: { label: 'Success', variant: 'success' },
+} as const;
+
+const numberFmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
+
+// Domains-card style — a CSS grid on lg+, stacked labelled rows below lg. Sortable numeric headers push
+// the sort through `onSort` (same URL-param mechanism as the default table).
+function BlockHistoryGrid({
+    rows,
+    showComputeUnits,
+    onSort,
+}: {
+    rows: TransactionWithInvocations[];
+    showComputeUnits: boolean;
+    onSort: (sortKey?: string) => void;
+}) {
+    // Signature takes the slack; the rest are capped. Inline (not a `grid-cols-[…]` class) so the
+    // Storybook JIT can't purge it. The Compute column only exists when compute data is available.
+    // Following the transaction-history card, Result (badge) sits inline with the signature and the
+    // invoked programs stack beneath it — so neither gets its own column.
+    const gridStyle: React.CSSProperties = {
+        gridTemplateColumns: `minmax(auto,1.25rem) minmax(0,1fr) minmax(auto,7rem) minmax(auto,8rem) ${
+            showComputeUnits ? 'minmax(auto,8rem) ' : ''
+        }minmax(auto,7rem)`,
+    };
+
+    const headers: { label: string; numeric?: boolean; onClick?: () => void }[] = [
+        { label: '#', onClick: () => onSort() },
+        { label: 'Transaction Signature' },
+        { label: 'Fee', numeric: true, onClick: () => onSort('fee') },
+        { label: 'Reserved CUs', numeric: true, onClick: () => onSort('reservedCUs') },
+        ...(showComputeUnits ? [{ label: 'Compute', numeric: true, onClick: () => onSort('compute') }] : []),
+        { label: 'Txn Cost', numeric: true, onClick: () => onSort('txnCost') },
+    ];
+
+    return (
+        <div className="text-sm text-white">
+            <div
+                style={gridStyle}
+                className="hidden gap-4 border-b border-solid border-white/10 px-4 py-2.5 text-xs uppercase text-outer-space-300 lg:grid"
+            >
+                {headers.map(header => (
+                    <div
+                        key={header.label}
+                        className={cn(header.numeric && 'text-right', header.onClick && 'cursor-pointer select-none')}
+                        onClick={header.onClick}
+                    >
+                        {header.label}
+                    </div>
+                ))}
+            </div>
+            {rows.map((tx, i) => (
+                <BlockHistoryGridRow key={i} tx={tx} showComputeUnits={showComputeUnits} gridStyle={gridStyle} />
+            ))}
+        </div>
+    );
+}
+
+function BlockHistoryGridRow({
+    tx,
+    showComputeUnits,
+    gridStyle,
+}: {
+    tx: TransactionWithInvocations;
+    showComputeUnits: boolean;
+    gridStyle: React.CSSProperties;
+}) {
+    const failed = Boolean(tx.meta?.err) || !tx.signature;
+    const status = failed ? HISTORY_STATUS.failed : HISTORY_STATUS.success;
+    const badge = (
+        <Badge ui="dashkit" variant={status.variant}>
+            {status.label}
+        </Badge>
+    );
+    const signatureNode = tx.signature ? <Signature signature={tx.signature} link /> : '-';
+    const feeNode = tx.meta !== null ? <SolBalance lamports={tx.meta.fee} /> : 'Unknown';
+    const reserved = tx.reservedComputeUnits !== undefined ? numberFmt(tx.reservedComputeUnits) : 'Unknown';
+    const compute = `${tx.logTruncated ? '>' : ''}${tx.computeUnits !== undefined ? numberFmt(tx.computeUnits) : 'Unknown'}`;
+    const txnCost = tx.costUnits !== undefined ? numberFmt(tx.costUnits) : 'Unknown';
+    const entries = Array.from(tx.invocations.entries());
+    entries.sort();
+    const invokedNode =
+        entries.length === 0 ? (
+            'NA'
+        ) : (
+            // Two-column grid so the "N ×" counters share one right-aligned column (any width) and every
+            // program name lines up in the next — stays aligned no matter how large the count grows.
+            // `tabular-nums` keeps multi-digit counts from jittering. Inline grid template so the
+            // Storybook JIT can't purge it.
+            <div className="grid items-center gap-x-1.5 gap-y-0.5" style={{ gridTemplateColumns: 'auto 1fr' }}>
+                {entries.map(([programId, count]) => (
+                    <React.Fragment key={programId}>
+                        <span className="text-right tabular-nums text-outer-space-300">{count} ×</span>
+                        <Address pubkey={new PublicKey(programId)} link />
+                    </React.Fragment>
+                ))}
+            </div>
+        );
+
+    // Signature block: signature with the Result badge to its right, invoked programs stacked beneath —
+    // mirroring the transaction-history card (signature + status inline, instructions below).
+    const signatureBlock = (
+        <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+                <span className="min-w-0">{signatureNode}</span>
+                {badge}
+            </div>
+            <div className="mt-1">{invokedNode}</div>
+        </div>
+    );
+
+    return (
+        <div className="border-b border-solid border-white/10 last:border-b-0">
+            {/* Mobile / tablet — stacked, labelled rows. */}
+            <div className="flex flex-col gap-1.5 px-4 py-3 lg:hidden">
+                <div className="flex items-start gap-2">
+                    <span className="shrink-0 text-outer-space-300">#{tx.index + 1}</span>
+                    {signatureBlock}
+                </div>
+                <BlockHistoryMobileField label="Fee">{feeNode}</BlockHistoryMobileField>
+                <BlockHistoryMobileField label="Reserved CUs">{reserved}</BlockHistoryMobileField>
+                {showComputeUnits && <BlockHistoryMobileField label="Compute">{compute}</BlockHistoryMobileField>}
+                <BlockHistoryMobileField label="Txn Cost">{txnCost}</BlockHistoryMobileField>
+            </div>
+
+            {/* Desktop grid row. */}
+            <div style={gridStyle} className="hidden items-start gap-4 px-4 py-3 lg:grid">
+                <div className="text-outer-space-300">{tx.index + 1}</div>
+                {signatureBlock}
+                <div className="text-right">{feeNode}</div>
+                <div className="text-right">{reserved}</div>
+                {showComputeUnits && <div className="text-right">{compute}</div>}
+                <div className="text-right">{txnCost}</div>
+            </div>
+        </div>
+    );
+}
+
+function BlockHistoryMobileField({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div className="flex items-center gap-2">
+            <span className="w-32 shrink-0 text-outer-space-300">{label}</span>
+            <span className="min-w-0">{children}</span>
+        </div>
     );
 }
 

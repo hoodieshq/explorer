@@ -1,14 +1,37 @@
 import { Address } from '@components/common/Address';
 import { TableCardBody } from '@components/common/TableCardBody';
+import { cn } from '@components/shared/utils';
 import type { BlockWithV1 } from '@entities/block-data';
 import { PublicKey } from '@solana/web3.js';
 import React from 'react';
 
+import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
 import { invariant } from '@/app/shared/lib/invariant';
 import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
 
-export function BlockProgramsCard({ block }: { block: BlockWithV1 }) {
+// Design variant, switchable via prop (see BlockRewardsCard for the same pattern):
+//   - 'default'     — the original Dashkit cards + table.
+//   - 'collapsible' — the domains-card treatment (PR #115): each heading lifted out above a collapsible
+//                     section, list on a `tight` card surface, CSS-grid body on `lg+` and a stacked,
+//                     labelled layout below `lg`.
+export type BlockProgramsVariant = 'default' | 'collapsible';
+
+// Surface matched to the transaction tables (see BaseDomainsCard) — set on a `variant="tight"` Card.
+const TIGHT_CARD = 'overflow-hidden rounded-lg border-outer-space-800 bg-outer-space-900';
+
+type ProgramStats = {
+    ixFrequency: Map<string, number>;
+    programEntries: [string, number][];
+    showSuccessRate: boolean;
+    totalInstructions: number;
+    totalTransactions: number;
+    txSuccesses: Map<string, number>;
+};
+
+// Aggregates program usage across a block's transactions. Unchanged from the original inline body —
+// only lifted into a helper so both variants render from the same numbers.
+function computeProgramStats(block: BlockWithV1): ProgramStats {
     const totalTransactions = block.transactions.length;
     const txSuccesses = new Map<string, number>();
     const txFrequency = new Map<string, number>();
@@ -61,6 +84,35 @@ export function BlockProgramsCard({ block }: { block: BlockWithV1 }) {
     });
 
     const showSuccessRate = block.transactions.every(tx => tx.meta !== null);
+    return { ixFrequency, programEntries, showSuccessRate, totalInstructions, totalTransactions, txSuccesses };
+}
+
+export function BlockProgramsCard({
+    block,
+    variant = 'default',
+}: {
+    block: BlockWithV1;
+    variant?: BlockProgramsVariant;
+}) {
+    const stats = computeProgramStats(block);
+
+    if (variant === 'collapsible') {
+        // gap-6 (24px) between the two sections matches the spacing between instruction blocks on the
+        // transaction page (each is a dashkit `CollapsibleCard` carrying the default `mb-6`).
+        return (
+            <div className="flex flex-col gap-6">
+                <ProgramStatsCollapsible stats={stats} />
+                <ProgramsCollapsible stats={stats} />
+            </div>
+        );
+    }
+
+    return <ProgramsDefault stats={stats} />;
+}
+
+// Original design — two Dashkit cards.
+function ProgramsDefault({ stats }: { stats: ProgramStats }) {
+    const { ixFrequency, programEntries, showSuccessRate, totalInstructions, totalTransactions, txSuccesses } = stats;
     return (
         <>
             <Card ui="dashkit">
@@ -122,5 +174,152 @@ export function BlockProgramsCard({ block }: { block: BlockWithV1 }) {
                 </BaseTable>
             </Card>
         </>
+    );
+}
+
+// Domains-card style — "Block Program Stats" as label/value rows on a tight surface. Rows use the
+// same grid key/value shape as BlockOverviewCard (fixed `clamp(100px,25%,200px)` label column, `1fr`
+// mono value that wraps) so the block page's overview-style rows stay consistent.
+function ProgramStatsCollapsible({ stats }: { stats: ProgramStats }) {
+    const rows: [string, number][] = [
+        ['Unique Programs', stats.programEntries.length],
+        ['Total Instructions', stats.totalInstructions],
+    ];
+    return (
+        <CollapsibleSection title="Block Program Stats" collapsible={false} className="">
+            <Card variant="tight" className={TIGHT_CARD}>
+                {rows.map(([label, value], i) => (
+                    <div
+                        key={label}
+                        className={cn(
+                            'grid min-h-9 grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2 px-3 py-2.5 md:px-4',
+                            i < rows.length - 1 && 'border-1 border-b border-white/10 [border-bottom-style:solid]',
+                        )}
+                    >
+                        <div className="flex flex-wrap items-center gap-1 overflow-hidden text-sm text-outer-space-300">
+                            {label}
+                        </div>
+                        <div className="break-all font-mono text-sm text-white">{value}</div>
+                    </div>
+                ))}
+            </Card>
+        </CollapsibleSection>
+    );
+}
+
+// Muted uppercase header cell + body cell, matching the transaction tables / BaseDomainsCard grid.
+const GRID_HEADER_CELL = 'text-xs uppercase text-outer-space-300';
+
+// A merged numeric cell: a count and (optionally) its percentage as two fixed-width mono parts. The
+// count holds 6 characters; the percentage holds 7 (enough for `100.00%`), so figures line up
+// regardless of magnitude.
+function MergedFigure({ count, percent }: { count: string; percent?: string }) {
+    return (
+        <div className="flex justify-end gap-3 font-mono">
+            <span className="text-right" style={{ width: '6ch' }}>
+                {count}
+            </span>
+            {percent !== undefined && (
+                <span className="text-right text-outer-space-300" style={{ width: '7ch' }}>
+                    {percent}
+                </span>
+            )}
+        </div>
+    );
+}
+
+// Domains-card style — "Block Programs" as a CSS grid on lg+, stacked labelled rows below lg.
+function ProgramsCollapsible({ stats }: { stats: ProgramStats }) {
+    const { ixFrequency, programEntries, showSuccessRate, totalInstructions, totalTransactions, txSuccesses } = stats;
+
+    // Program takes the slack; the count+percentage columns are a fixed 8.5rem track wide enough for a
+    // merged pair (see MergedFigure), while the single-value Success Rate column is narrower (5rem).
+    // Fixed (not `auto`) so the header and each row — which are separate grids — resolve identical
+    // track widths, keeping the right edges of the headers and values on the same vertical. Header +
+    // rows share this template. Inline (not a `grid-cols-[…]` class) so the Storybook JIT can't purge it.
+    const gridStyle: React.CSSProperties = {
+        gridTemplateColumns: `minmax(0,1fr) 8.5rem 8.5rem${showSuccessRate ? ' 5rem' : ''}`,
+    };
+    const headers = ['Program', 'Transactions, % of total', 'Instructions, % of total'];
+    if (showSuccessRate) headers.push('Success Rate');
+
+    return (
+        <CollapsibleSection title="Block Programs" collapsible={false} className="">
+            <Card variant="tight" className={TIGHT_CARD}>
+                <div className="text-sm text-white">
+                    <div
+                        style={gridStyle}
+                        className={cn(
+                            'hidden gap-5 px-3 py-2.5 md:grid md:px-4',
+                            'border-b border-solid border-white/10',
+                            GRID_HEADER_CELL,
+                        )}
+                    >
+                        {headers.map((label, i) => (
+                            <div key={i} className={cn(i > 0 && 'text-right')}>
+                                {label}
+                            </div>
+                        ))}
+                    </div>
+
+                    {programEntries.map(([programId, txFreq]) => {
+                        const ixFreq = ixFrequency.get(programId) as number;
+                        const successes = txSuccesses.get(programId) || 0;
+                        const txPct = `${((100 * txFreq) / totalTransactions).toFixed(2)}%`;
+                        const ixPct = `${((100 * ixFreq) / totalInstructions).toFixed(2)}%`;
+                        const successRate = showSuccessRate ? `${((100 * successes) / txFreq).toFixed(0)}%` : undefined;
+                        const fields: { count: string; label: string; pct?: string }[] = [
+                            { count: `${txFreq}`, label: 'Transactions', pct: txPct },
+                            { count: `${ixFreq}`, label: 'Instructions', pct: ixPct },
+                        ];
+                        if (successRate !== undefined) {
+                            fields.push({ count: successRate, label: 'Success Rate' });
+                        }
+                        return (
+                            <div
+                                key={programId}
+                                className="border-b border-solid border-white/10 last:border-b-0"
+                            >
+                                {/* Mobile / tablet — stacked, labelled rows. Label column uses the same
+                                    clamp(100px,25%,200px) ratio as the Overview section (ProgramStatsCollapsible). */}
+                                <div className="flex flex-col gap-1 px-3 py-3 md:hidden">
+                                    <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-center gap-2">
+                                        <span className="text-outer-space-300">Program</span>
+                                        <Address pubkey={new PublicKey(programId)} link />
+                                    </div>
+                                    {fields.map((f, i) => (
+                                        <div
+                                            key={i}
+                                            className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-center gap-2"
+                                        >
+                                            <span className="text-outer-space-300">{f.label}</span>
+                                            <span>
+                                                {f.count}
+                                                {f.pct !== undefined && (
+                                                    <span className="text-outer-space-300"> {f.pct} of Total</span>
+                                                )}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Desktop grid row. */}
+                                <div
+                                    style={gridStyle}
+                                    className="hidden items-start gap-5 px-3 py-2.5 md:grid md:px-4"
+                                >
+                                    <div className="min-w-0">
+                                        <Address pubkey={new PublicKey(programId)} link />
+                                    </div>
+                                    <MergedFigure count={`${txFreq}`} percent={txPct} />
+                                    <MergedFigure count={`${ixFreq}`} percent={ixPct} />
+                                    {successRate !== undefined && <MergedFigure count={successRate} />}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </Card>
+        </CollapsibleSection>
     );
 }
