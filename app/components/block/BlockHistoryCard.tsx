@@ -29,7 +29,7 @@ const PAGE_SIZE = 25;
 //   - 'default'     — the original Dashkit table.
 //   - 'collapsible' — the domains-card treatment (PR #115): the title lifted out above a collapsible
 //                     section (filter dropdown kept as its action), list on a `tight` card surface,
-//                     CSS-grid body on `lg+` and a stacked, labelled layout below `lg`. Sorting and
+//                     CSS-grid body on `md+` and a stacked, labelled layout below `md`. Sorting and
 //                     "Load More" are preserved.
 export type BlockHistoryVariant = 'default' | 'collapsible';
 
@@ -473,7 +473,7 @@ const HISTORY_STATUS = {
 
 const numberFmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
 
-// Domains-card style — a CSS grid on lg+, stacked labelled rows below lg. Sortable numeric headers push
+// Domains-card style — a CSS grid on md+, stacked labelled rows below md. Sortable numeric headers push
 // the sort through `onSort` (same URL-param mechanism as the default table).
 function BlockHistoryGrid({
     rows,
@@ -484,14 +484,14 @@ function BlockHistoryGrid({
     showComputeUnits: boolean;
     onSort: (sortKey?: string) => void;
 }) {
-    // Signature takes the slack; the rest are capped. Inline (not a `grid-cols-[…]` class) so the
-    // Storybook JIT can't purge it. The Compute column only exists when compute data is available.
-    // Following the transaction-history card, Result (badge) sits inline with the signature and the
-    // invoked programs stack beneath it — so neither gets its own column.
+    // Signature takes the slack; the numeric columns are capped tight (≈ content + ~1rem of headroom).
+    // Inline (not a `grid-cols-[…]` class) so the Storybook JIT can't purge it. The Compute column only
+    // exists when compute data is available. Following the transaction-history card, Result (badge) sits
+    // inline with the signature and the invoked programs stack beneath it — so neither gets its own column.
     const gridStyle: React.CSSProperties = {
-        gridTemplateColumns: `minmax(auto,1.25rem) minmax(0,1fr) minmax(auto,7rem) minmax(auto,8rem) ${
-            showComputeUnits ? 'minmax(auto,8rem) ' : ''
-        }minmax(auto,7rem)`,
+        gridTemplateColumns: `minmax(auto,1.25rem) minmax(0,1fr) minmax(auto,6rem) minmax(auto,6rem) ${
+            showComputeUnits ? 'minmax(auto,4rem) ' : ''
+        }minmax(auto,4rem)`,
     };
 
     const headers: { label: string; numeric?: boolean; onClick?: () => void }[] = [
@@ -507,7 +507,7 @@ function BlockHistoryGrid({
         <div className="text-sm text-white">
             <div
                 style={gridStyle}
-                className="hidden gap-4 border-b border-solid border-white/10 px-4 py-2.5 text-xs uppercase text-outer-space-300 lg:grid"
+                className="hidden gap-4 border-b border-solid border-white/10 px-4 py-2.5 text-xs uppercase text-outer-space-300 md:grid"
             >
                 {headers.map(header => (
                     <div
@@ -560,41 +560,50 @@ function BlockHistoryGridRow({
             <div className="grid items-center gap-x-1.5 gap-y-0.5" style={{ gridTemplateColumns: 'auto 1fr' }}>
                 {entries.map(([programId, count]) => (
                     <React.Fragment key={programId}>
-                        <span className="text-right tabular-nums text-outer-space-300">{count} ×</span>
+                        <span className="whitespace-nowrap text-right tabular-nums text-outer-space-300">{count} ×</span>
                         <Address pubkey={new PublicKey(programId)} link />
                     </React.Fragment>
                 ))}
             </div>
         );
 
-    // Signature block: signature with the Result badge to its right, invoked programs stacked beneath —
-    // mirroring the transaction-history card (signature + status inline, instructions below).
+    // Signature with the Result badge to its right — mirroring the transaction-history card. On desktop the
+    // invoked programs stack directly beneath it (`signatureBlock`); on mobile they move to their own
+    // labelled "Programs" field, so here the header stays on its own.
+    const signatureHeader = (
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <span className="min-w-0">{signatureNode}</span>
+            {badge}
+        </div>
+    );
     const signatureBlock = (
         <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-                <span className="min-w-0">{signatureNode}</span>
-                {badge}
-            </div>
+            {signatureHeader}
             <div className="mt-1">{invokedNode}</div>
         </div>
     );
 
     return (
         <div className="border-b border-solid border-white/10 last:border-b-0">
-            {/* Mobile / tablet — stacked, labelled rows. */}
-            <div className="flex flex-col gap-1.5 px-4 py-3 lg:hidden">
-                <div className="flex items-start gap-2">
-                    <span className="shrink-0 text-outer-space-300">#{tx.index + 1}</span>
-                    {signatureBlock}
-                </div>
+            {/* Mobile — stacked, labelled rows matching the Overview card's key/value grid; the index sits
+                in the top-right corner (like the transaction-page account card) and the invoked programs
+                get their own labelled field. */}
+            <div className="relative flex flex-col gap-1.5 px-4 py-3 md:hidden">
+                <span className="absolute right-4 top-3 text-outer-space-300">#{tx.index + 1}</span>
+                <BlockHistoryMobileField label="Signature">
+                    <div className="pr-10">{signatureHeader}</div>
+                </BlockHistoryMobileField>
                 <BlockHistoryMobileField label="Fee">{feeNode}</BlockHistoryMobileField>
                 <BlockHistoryMobileField label="Reserved CUs">{reserved}</BlockHistoryMobileField>
                 {showComputeUnits && <BlockHistoryMobileField label="Compute">{compute}</BlockHistoryMobileField>}
                 <BlockHistoryMobileField label="Txn Cost">{txnCost}</BlockHistoryMobileField>
+                <BlockHistoryMobileField label="Programs" align="start">
+                    {invokedNode}
+                </BlockHistoryMobileField>
             </div>
 
             {/* Desktop grid row. */}
-            <div style={gridStyle} className="hidden items-start gap-4 px-4 py-3 lg:grid">
+            <div style={gridStyle} className="hidden items-start gap-4 px-4 py-3 md:grid">
                 <div className="text-outer-space-300">{tx.index + 1}</div>
                 {signatureBlock}
                 <div className="text-right">{feeNode}</div>
@@ -606,10 +615,24 @@ function BlockHistoryGridRow({
     );
 }
 
-function BlockHistoryMobileField({ label, children }: { label: string; children: React.ReactNode }) {
+function BlockHistoryMobileField({
+    label,
+    children,
+    align = 'baseline',
+}: {
+    label: string;
+    children: React.ReactNode;
+    align?: 'baseline' | 'start';
+}) {
+    // Label column width mirrors the Overview card's key/value grid so the two cards line up.
     return (
-        <div className="flex items-center gap-2">
-            <span className="w-32 shrink-0 text-outer-space-300">{label}</span>
+        <div
+            className={cn(
+                'grid grid-cols-[clamp(100px,25%,200px)_1fr] gap-2',
+                align === 'start' ? 'items-start' : 'items-baseline',
+            )}
+        >
+            <span className="text-outer-space-300">{label}</span>
             <span className="min-w-0">{children}</span>
         </div>
     );
