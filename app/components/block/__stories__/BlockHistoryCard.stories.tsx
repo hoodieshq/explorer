@@ -32,10 +32,27 @@ const VOTE_INDEX = 3;
 // base58-decode, so these render as `Sig0…0000` style links.
 const signatureFor = (i: number) => `Sig${i}HistoryCardStoryPlaceholderSignatureForStorybookRendering0000000000000${i}`;
 
+// Standard-shaped program logs so `parseProgramLogs` can extract compute units. Each invocation emits the
+// runtime's invoke / consumed / success triplet; the consumed amount varies per program and position so
+// per-row Compute totals differ. A failed tx ends its last instruction with an error line instead of
+// success. Only when *every* rendered tx yields compute units does the optional Compute column appear.
+function logsForTx(programIdxs: number[], failed: boolean): string[] {
+    const logs: string[] = [];
+    programIdxs.forEach((idx, n) => {
+        const id = PROGRAM_IDS[idx];
+        const consumed = 450 + (((idx + 1) * (n + 1) * 175) % 4_000);
+        const isLast = n === programIdxs.length - 1;
+        logs.push(`Program ${id} invoke [1]`);
+        logs.push(`Program ${id} consumed ${consumed} of 200000 compute units`);
+        logs.push(failed && isLast ? `Program ${id} failed: custom program error: 0x1` : `Program ${id} success`);
+    });
+    return logs;
+}
+
 // Minimal stand-in for a VersionedBlockResponse — only the shape BlockHistoryCard reads. Every 4th tx
 // fails; each invokes a rotating primary program, and every 3rd also invokes a second one, so the
-// filter dropdown and the "Invoked Programs" column show a realistic spread. Logs are omitted, so the
-// optional Compute column stays hidden (its data comes from parsed program logs).
+// filter dropdown and the "Invoked Programs" column show a realistic spread. Each tx also carries program
+// logs so the optional Compute column (its data comes from parsed program logs) is populated.
 function makeBlock(txCount: number): VersionedBlockResponse {
     const keys = PROGRAM_IDS.map(id => new PublicKey(id));
     const accountKeys = {
@@ -60,7 +77,7 @@ function makeBlock(txCount: number): VersionedBlockResponse {
                 err: failed ? { InstructionError: [0, 'Custom'] } : null,
                 fee: 5_000,
                 innerInstructions: [],
-                logMessages: [],
+                logMessages: logsForTx(programIdxs, failed),
             },
             transaction: {
                 message: {
@@ -105,7 +122,7 @@ export const ManyTransactions: Story = {
 };
 
 // Domains-card style (PR #115): title lifted out above a collapsible section (filter kept as its
-// action), tight card surface, CSS-grid body on lg+ and a stacked, labelled layout below lg.
+// action), tight card surface, CSS-grid body on md+ and a stacked, labelled layout below md.
 export const Collapsible: Story = {
     args: { block: makeBlock(8), epoch: 500n, variant: 'collapsible' },
 };
