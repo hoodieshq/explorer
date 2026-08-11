@@ -5,6 +5,7 @@ import { useClusterPath } from '@utils/url';
 import Link from 'next/link';
 import React from 'react';
 
+import { HeaderLabel } from '@/app/components/block/BlockProgramsCard';
 import { Button } from '@/app/components/shared/ui/button';
 import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
 import { invariant } from '@/app/shared/lib/invariant';
@@ -178,11 +179,27 @@ function StatsRow({
     );
 }
 
-// Program takes the slack; the numeric columns are capped. Header + rows share this template so
-// columns stay aligned. Inline (not a `grid-cols-[…]` class) so the Storybook JIT can't purge it.
+// Account takes the slack; the numeric columns are capped. The last column pairs Total with its % of
+// transactions in one wider track (Block Programs style). Header + rows share this template so columns
+// stay aligned. Inline (not a `grid-cols-[…]` class) so the Storybook JIT can't purge it.
 const ACCOUNTS_GRID: React.CSSProperties = {
-    gridTemplateColumns: 'minmax(0,1fr) repeat(3, minmax(auto,5rem)) minmax(auto,7.5rem)',
+    gridTemplateColumns: 'minmax(0,1fr) repeat(2, minmax(auto,5rem)) minmax(auto,8.5rem)',
 };
+
+// Merged numeric cell mirroring the Block Programs card: a count and its percentage as two fixed-width
+// parts (count bright, percentage muted) so figures line up. `tabular-nums` aligns digits in the sans face.
+function MergedFigure({ count, percent }: { count: string; percent: string }) {
+    return (
+        <div className="flex justify-end gap-1 tabular-nums">
+            <span className="text-right" style={{ width: '6ch' }}>
+                {count}
+            </span>
+            <span className="text-right text-outer-space-300" style={{ width: '7ch' }}>
+                {percent}
+            </span>
+        </div>
+    );
+}
 
 // Domains-card style — a CSS grid on lg+, stacked labelled rows below lg.
 function AccountsGrid({
@@ -198,7 +215,15 @@ function AccountsGrid({
     hasMore: boolean;
     onLoadMore: () => void;
 }) {
-    const headers = ['Account', 'Read-Write', 'Read-Only', 'Total', '% of Transactions'];
+    // Header reads a plain "Total" — the % lives in the cells, not the header — but carries an info icon
+    // with a hover explanation. Phrasing mirrors the Block Programs headers for consistency across tabs.
+    const totalHelp = `Share of the block's ${totalTransactions.toLocaleString('en-US')} processed transactions that used this account.`;
+    const headers: { label: string; help?: string }[] = [
+        { label: 'Account' },
+        { label: 'Read-Write' },
+        { label: 'Read-Only' },
+        { help: totalHelp, label: 'Total' },
+    ];
     return (
         <div className="text-sm text-white">
             <div
@@ -209,9 +234,9 @@ function AccountsGrid({
                     'text-xs uppercase text-outer-space-300',
                 )}
             >
-                {headers.map((label, i) => (
+                {headers.map((h, i) => (
                     <div key={i} className={cn(i > 0 && 'text-right')}>
-                        {label}
+                        <HeaderLabel help={h.help} label={h.label} />
                     </div>
                 ))}
             </div>
@@ -255,11 +280,12 @@ function AccountsGridRow({
         additionalParams: new URLSearchParams(`accountFilter=${address}&filter=all`),
         pathname: `/block/${blockSlot}`,
     });
-    const fields = [
+    const total = writes + reads;
+    const totalPct = `${((100 * total) / totalTransactions).toFixed(2)}%`;
+    // Read-Write / Read-Only are single values; Total carries its % of transactions in the same cell.
+    const plainFields = [
         { label: 'Read-Write', value: `${writes}` },
         { label: 'Read-Only', value: `${reads}` },
-        { label: 'Total', value: `${writes + reads}` },
-        { label: '% of Transactions', value: `${((100 * (writes + reads)) / totalTransactions).toFixed(2)}%` },
     ];
     return (
         <div className="border-b border-solid border-white/10 last:border-b-0">
@@ -271,12 +297,19 @@ function AccountsGridRow({
                         <Address pubkey={new PublicKey(address)} />
                     </Link>
                 </div>
-                {fields.map((f, i) => (
+                {plainFields.map((f, i) => (
                     <div key={i} className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2">
                         <span className="text-outer-space-300">{f.label}</span>
                         <span>{f.value}</span>
                     </div>
                 ))}
+                <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2">
+                    <span className="text-outer-space-300">Total</span>
+                    <span>
+                        {total}
+                        <span className="text-outer-space-300"> {totalPct} of transactions</span>
+                    </span>
+                </div>
             </div>
 
             {/* Desktop grid row. */}
@@ -286,11 +319,12 @@ function AccountsGridRow({
                         <Address pubkey={new PublicKey(address)} />
                     </Link>
                 </div>
-                {fields.map((f, i) => (
+                {plainFields.map((f, i) => (
                     <div key={i} className="text-right">
                         {f.value}
                     </div>
                 ))}
+                <MergedFigure count={`${total}`} percent={totalPct} />
             </div>
         </div>
     );

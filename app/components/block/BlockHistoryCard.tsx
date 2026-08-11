@@ -18,7 +18,7 @@ import { pickClusterParams } from '@utils/url';
 import Link from 'next/link';
 import { ReadonlyURLSearchParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useMemo } from 'react';
-import { ChevronDown } from 'react-feather';
+import { ChevronDown, ChevronUp } from 'react-feather';
 
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
@@ -59,13 +59,32 @@ const useQueryAccountFilter = (query: ReadonlyURLSearchParams): PublicKey | null
 };
 
 type SortMode = 'index' | 'compute' | 'txnCost' | 'fee' | 'reservedCUs';
-const useQuerySort = (query: ReadonlyURLSearchParams): SortMode => {
+type SortDirection = 'asc' | 'desc';
+
+// Each column's natural first-click direction — index reads low→high, the numeric columns high→low.
+const DEFAULT_DIRECTION: Record<SortMode, SortDirection> = {
+    compute: 'desc',
+    fee: 'desc',
+    index: 'asc',
+    reservedCUs: 'desc',
+    txnCost: 'desc',
+};
+
+const useQuerySort = (query: ReadonlyURLSearchParams): { mode: SortMode; direction: SortDirection } => {
     const sort = query.get('sort');
-    if (sort === 'compute') return 'compute';
-    if (sort === 'txnCost') return 'txnCost';
-    if (sort === 'fee') return 'fee';
-    if (sort === 'reservedCUs') return 'reservedCUs';
-    return 'index';
+    const mode: SortMode =
+        sort === 'compute'
+            ? 'compute'
+            : sort === 'txnCost'
+              ? 'txnCost'
+              : sort === 'fee'
+                ? 'fee'
+                : sort === 'reservedCUs'
+                  ? 'reservedCUs'
+                  : 'index';
+    const dir = query.get('dir');
+    const direction: SortDirection = dir === 'asc' || dir === 'desc' ? dir : DEFAULT_DIRECTION[mode];
+    return { direction, mode };
 };
 
 type TransactionWithInvocations = {
@@ -93,26 +112,37 @@ export function BlockHistoryCard({
     const currentSearchParams = useSearchParams();
     const programFilter = useQueryProgramFilter(currentSearchParams);
     const accountFilter = useQueryAccountFilter(currentSearchParams);
-    const sortMode = useQuerySort(currentSearchParams);
+    const { direction: sortDirection, mode: sortMode } = useQuerySort(currentSearchParams);
     const router = useRouter();
     const { cluster } = useCluster();
 
-    // Sort is driven by a URL param; the grid variant's sortable headers push through here. Passing no
-    // key clears the sort (the "#" header's reset back to index order). We build the URL from a copy of the
-    // current params so a `delete` actually drops `sort` — `pickClusterParams` only ever adds/overrides
-    // keys, so routing the reset through it would leave the stale `sort` in place.
+    // Sort is driven by URL params (`sort` + `dir`); the grid variant's sortable headers push through here.
+    // Clicking the active column flips its direction; clicking another column selects it at its natural
+    // default direction. `index` ascending is the default view, so it's written as no params (clean URL);
+    // passing no key clears the sort entirely (the old table's "#" reset). We build the URL from a copy of
+    // the current params so a `delete` actually drops the keys — `pickClusterParams` only adds/overrides.
     const pushSort = React.useCallback(
-        (sortKey?: string) => {
+        (sortKey?: SortMode) => {
             const nextParams = new URLSearchParams(currentSearchParams?.toString());
-            if (sortKey) {
+            const nextDirection: SortDirection =
+                sortKey && sortKey === sortMode
+                    ? sortDirection === 'asc'
+                        ? 'desc'
+                        : 'asc'
+                    : sortKey
+                      ? DEFAULT_DIRECTION[sortKey]
+                      : 'asc';
+            if (sortKey && !(sortKey === 'index' && nextDirection === 'asc')) {
                 nextParams.set('sort', sortKey);
+                nextParams.set('dir', nextDirection);
             } else {
                 nextParams.delete('sort');
+                nextParams.delete('dir');
             }
             const queryString = nextParams.toString();
             router.push(`${currentPathname}${queryString ? `?${queryString}` : ''}`);
         },
-        [currentPathname, currentSearchParams, router],
+        [currentPathname, currentSearchParams, router, sortMode, sortDirection],
     );
 
     const { transactions, invokedPrograms } = React.useMemo(() => {
@@ -215,18 +245,22 @@ export function BlockHistoryCard({
 
         const showComputeUnits = filteredTxs.every(tx => tx.computeUnits !== undefined);
 
-        if (sortMode === 'compute' && showComputeUnits) {
-            filteredTxs.sort((a, b) => (b.computeUnits ?? 0) - (a.computeUnits ?? 0));
+        // Base comparators are ascending; `dir` flips them so a repeat click reverses the order.
+        const dir = sortDirection === 'asc' ? 1 : -1;
+        if (sortMode === 'index') {
+            filteredTxs.sort((a, b) => dir * (a.index - b.index));
+        } else if (sortMode === 'compute' && showComputeUnits) {
+            filteredTxs.sort((a, b) => dir * ((a.computeUnits ?? 0) - (b.computeUnits ?? 0)));
         } else if (sortMode === 'txnCost') {
-            filteredTxs.sort((a, b) => (b.costUnits ?? 0) - (a.costUnits ?? 0));
+            filteredTxs.sort((a, b) => dir * ((a.costUnits ?? 0) - (b.costUnits ?? 0)));
         } else if (sortMode === 'fee') {
-            filteredTxs.sort((a, b) => (b.meta?.fee || 0) - (a.meta?.fee || 0));
+            filteredTxs.sort((a, b) => dir * ((a.meta?.fee || 0) - (b.meta?.fee || 0)));
         } else if (sortMode === 'reservedCUs') {
-            filteredTxs.sort((a, b) => (b.reservedComputeUnits || 0) - (a.reservedComputeUnits || 0));
+            filteredTxs.sort((a, b) => dir * ((a.reservedComputeUnits || 0) - (b.reservedComputeUnits || 0)));
         }
 
         return [filteredTxs, showComputeUnits];
-    }, [block.transactions, transactions, programFilter, accountFilter, sortMode]);
+    }, [block.transactions, transactions, programFilter, accountFilter, sortMode, sortDirection]);
 
     if (transactions.length === 0) {
         return <ErrorCard text="This block has no transactions" />;
@@ -272,7 +306,13 @@ export function BlockHistoryCard({
                         {filteredTransactions.length === 0 ? (
                             <div className="px-4 py-3 text-sm text-white">{emptyFilterMessage}</div>
                         ) : (
-                            <BlockHistoryGrid rows={visible} showComputeUnits={showComputeUnits} onSort={pushSort} />
+                            <BlockHistoryGrid
+                                rows={visible}
+                                showComputeUnits={showComputeUnits}
+                                onSort={pushSort}
+                                sortMode={sortMode}
+                                sortDirection={sortDirection}
+                            />
                         )}
                         {hasMore && (
                             <div className="border-t border-solid border-white/10 px-3 py-4 md:px-4">
@@ -481,35 +521,70 @@ const HISTORY_STATUS = {
 
 const numberFmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
 
+// Sort affordance for a header: a dim up/down chevron pair signals the column is clickable; on the
+// active column the arrow for the current direction lights up bright white (the other stays dim).
+// The chevron stack is taller than the header text, so it's absolutely positioned inside a text-height
+// box — it never grows the row. `-translate-y-[calc(50%+1px)]` centres it, then nudges it 1px higher.
+function SortIndicator({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
+    return (
+        <span className="relative inline-block h-4 w-3 align-top">
+            <span className="absolute inset-x-0 top-1/2 flex -translate-y-[calc(50%+1px)] flex-col items-center leading-none">
+                <ChevronUp
+                    size={11}
+                    strokeWidth={2.5}
+                    className={active && direction === 'asc' ? 'text-white' : 'text-outer-space-300'}
+                />
+                <ChevronDown
+                    size={11}
+                    strokeWidth={2.5}
+                    className={cn('-mt-1', active && direction === 'desc' ? 'text-white' : 'text-outer-space-300')}
+                />
+            </span>
+        </span>
+    );
+}
+
 // Domains-card style — a CSS grid on md+, stacked labelled rows below md. Sortable numeric headers push
 // the sort through `onSort` (same URL-param mechanism as the default table).
 function BlockHistoryGrid({
     rows,
     showComputeUnits,
     onSort,
+    sortMode,
+    sortDirection,
 }: {
     rows: TransactionWithInvocations[];
     showComputeUnits: boolean;
-    onSort: (sortKey?: string) => void;
+    onSort: (sortKey?: SortMode) => void;
+    sortMode: SortMode;
+    sortDirection: SortDirection;
 }) {
     // Signature takes the slack; the numeric columns are capped tight (≈ content + ~1rem of headroom).
     // Inline (not a `grid-cols-[…]` class) so the Storybook JIT can't purge it. The Compute column only
     // exists when compute data is available. Following the transaction-history card, Result (badge) sits
     // inline with the signature and the invoked programs stack beneath it — so neither gets its own column.
+    // CU columns are wide enough to hold "CUs Consumed"/"CUs Reserved" + the sort chevrons on one line;
+    // Cost gets a touch more room for its chevrons too.
     const gridStyle: React.CSSProperties = {
-        gridTemplateColumns: `minmax(auto,2.5rem) minmax(0,1fr) minmax(auto,7rem) minmax(auto,6rem) ${
-            showComputeUnits ? 'minmax(auto,6rem) ' : ''
+        gridTemplateColumns: `minmax(auto,2.5rem) minmax(0,1fr) minmax(auto,7rem) minmax(auto,7.5rem) ${
+            showComputeUnits ? 'minmax(auto,7.5rem) ' : ''
         }minmax(auto,4rem)`,
     };
 
-    const headers: { label: string; numeric?: boolean; onClick?: () => void }[] = [
-        { label: '#', onClick: () => onSort() },
+    // `sortKey` maps the header to the URL sort param (undefined = not sortable). The active column's
+    // SortIndicator reflects the live `sortDirection`; inactive sortable columns show a dim chevron pair.
+    const headers: { label: string; numeric?: boolean; sortKey?: SortMode }[] = [
+        { label: '#', sortKey: 'index' },
         { label: 'Signature / Programs' },
-        { label: 'Fee', numeric: true, onClick: () => onSort('fee') },
-        { label: 'CUs Reserved', numeric: true, onClick: () => onSort('reservedCUs') },
-        ...(showComputeUnits ? [{ label: 'CUs Consumed', numeric: true, onClick: () => onSort('compute') }] : []),
-        { label: 'Cost', numeric: true, onClick: () => onSort('txnCost') },
+        { label: 'Fee', numeric: true, sortKey: 'fee' },
     ];
+    if (showComputeUnits) {
+        headers.push({ label: 'CUs Consumed', numeric: true, sortKey: 'compute' });
+    }
+    headers.push(
+        { label: 'CUs Reserved', numeric: true, sortKey: 'reservedCUs' },
+        { label: 'Cost', numeric: true, sortKey: 'txnCost' },
+    );
 
     return (
         <div className="text-sm text-white">
@@ -517,15 +592,34 @@ function BlockHistoryGrid({
                 style={gridStyle}
                 className="hidden gap-4 border-b border-solid border-white/10 px-4 py-2.5 text-xs uppercase text-outer-space-300 md:grid"
             >
-                {headers.map(header => (
-                    <div
-                        key={header.label}
-                        className={cn(header.numeric && 'text-right', header.onClick && 'cursor-pointer select-none')}
-                        onClick={header.onClick}
-                    >
-                        {header.label}
-                    </div>
-                ))}
+                {headers.map(header => {
+                    const sortable = header.sortKey !== undefined;
+                    const active = sortable && sortMode === header.sortKey;
+                    return (
+                        <div
+                            key={header.label}
+                            className={cn(
+                                header.numeric && 'text-right',
+                                sortable && 'cursor-pointer select-none',
+                                active && 'text-white',
+                            )}
+                            onClick={sortable ? () => onSort(header.sortKey) : undefined}
+                        >
+                            {/* For right-aligned numeric columns the indicator goes to the LEFT of the label so
+                                the label's right edge still lines up exactly with the values below; the "#"
+                                column (left-aligned) keeps it on the right. */}
+                            <span className="inline-flex items-center gap-1">
+                                {sortable && header.numeric && (
+                                    <SortIndicator active={active} direction={active ? sortDirection : 'desc'} />
+                                )}
+                                {header.label}
+                                {sortable && !header.numeric && (
+                                    <SortIndicator active={active} direction={active ? sortDirection : 'desc'} />
+                                )}
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
             {rows.map((tx, i) => (
                 <BlockHistoryGridRow key={i} tx={tx} showComputeUnits={showComputeUnits} gridStyle={gridStyle} />
@@ -602,8 +696,8 @@ function BlockHistoryGridRow({
                     <div className="pr-10">{signatureHeader}</div>
                 </BlockHistoryMobileField>
                 <BlockHistoryMobileField label="Fee">{feeNode}</BlockHistoryMobileField>
-                <BlockHistoryMobileField label="CUs Reserved">{reserved}</BlockHistoryMobileField>
                 {showComputeUnits && <BlockHistoryMobileField label="CUs Consumed">{compute}</BlockHistoryMobileField>}
+                <BlockHistoryMobileField label="CUs Reserved">{reserved}</BlockHistoryMobileField>
                 <BlockHistoryMobileField label="Cost">{txnCost}</BlockHistoryMobileField>
                 <BlockHistoryMobileField label="Programs" align="start">
                     {invokedNode}
@@ -615,8 +709,8 @@ function BlockHistoryGridRow({
                 <div className="text-outer-space-300">{tx.index + 1}</div>
                 {signatureBlock}
                 <div className="text-right">{feeNode}</div>
-                <div className="text-right">{reserved}</div>
                 {showComputeUnits && <div className="text-right">{compute}</div>}
+                <div className="text-right">{reserved}</div>
                 <div className="text-right">{txnCost}</div>
             </div>
         </div>
