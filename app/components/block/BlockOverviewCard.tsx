@@ -193,28 +193,28 @@ export function BlockOverviewCard({
                 )}
                 <Row divider>
                     <Label>Processed Transactions</Label>
-                    <Value>{block.transactions.length}</Value>
+                    <Value mono={false}>{block.transactions.length}</Value>
                 </Row>
                 {showSuccessfulCount && (
                     <Row divider>
                         <Label>Successful Transactions</Label>
-                        <Value>{successfulTxs.length}</Value>
+                        <Value mono={false}>{successfulTxs.length}</Value>
                     </Row>
                 )}
                 <Row divider>
                     <Label>Total CUs Consumed</Label>
-                    <Value>{totalCUs.toLocaleString()}</Value>
+                    <Value mono={false}>{totalCUs.toLocaleString()}</Value>
                 </Row>
                 <Row divider>
                     <Label>Transaction Cost Utilization</Label>
-                    <Value>
+                    <Value mono={false}>
                         {totalCostUnits.toLocaleString()} / {maxComputeUnits.toLocaleString()} (
                         {Math.round((totalCostUnits / maxComputeUnits) * 100)}%)
                     </Value>
                 </Row>
                 <Row>
                     <Label>Reserved Compute Units</Label>
-                    <Value>
+                    <Value mono={false}>
                         {totalRequestedCUs.toLocaleString()} / {maxComputeUnits.toLocaleString()} (
                         {Math.round((totalRequestedCUs / maxComputeUnits) * 100)}%)
                     </Value>

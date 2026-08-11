@@ -4,8 +4,11 @@ import { cn } from '@components/shared/utils';
 import type { BlockWithV1 } from '@entities/block-data';
 import { PublicKey } from '@solana/web3.js';
 import React from 'react';
+import { HelpCircle } from 'react-feather';
 
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
 import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
+import { Chip } from '@/app/features/transaction/ui/ProgramLogSection';
 import { invariant } from '@/app/shared/lib/invariant';
 import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
@@ -90,9 +93,16 @@ function computeProgramStats(block: BlockWithV1): ProgramStats {
 export function BlockProgramsCard({
     block,
     variant = 'default',
+    programsVariant = '1',
 }: {
     block: BlockWithV1;
     variant?: BlockProgramsVariant;
+    /**
+     * Initial design variant for the collapsible "Block Programs" table ('1' | '2' | '2a'). Switchable
+     * live on the page via the chip toggle in the section header; this only seeds the starting selection.
+     * Distinct from `variant`, which picks the overall layout (Dashkit vs. domains-card).
+     */
+    programsVariant?: string;
 }) {
     const stats = computeProgramStats(block);
 
@@ -102,7 +112,7 @@ export function BlockProgramsCard({
         return (
             <div className="flex flex-col gap-6">
                 <ProgramStatsCollapsible stats={stats} />
-                <ProgramsCollapsible stats={stats} />
+                <ProgramsCollapsible stats={stats} initialVariant={programsVariant} />
             </div>
         );
     }
@@ -124,11 +134,11 @@ function ProgramsDefault({ stats }: { stats: ProgramStats }) {
                 <TableCardBody>
                     <BaseTable.Row>
                         <BaseTable.Cell className="w-full">Unique Programs Count</BaseTable.Cell>
-                        <BaseTable.Cell className="text-right font-mono">{programEntries.length}</BaseTable.Cell>
+                        <BaseTable.Cell className="text-right tabular-nums">{programEntries.length}</BaseTable.Cell>
                     </BaseTable.Row>
                     <BaseTable.Row>
                         <BaseTable.Cell className="w-full">Total Instructions</BaseTable.Cell>
-                        <BaseTable.Cell className="text-right font-mono">{totalInstructions}</BaseTable.Cell>
+                        <BaseTable.Cell className="text-right tabular-nums">{totalInstructions}</BaseTable.Cell>
                     </BaseTable.Row>
                 </TableCardBody>
             </Card>
@@ -199,7 +209,7 @@ function ProgramStatsCollapsible({ stats }: { stats: ProgramStats }) {
                         <div className="flex flex-wrap items-center gap-1 overflow-hidden text-sm text-outer-space-300">
                             {label}
                         </div>
-                        <div className="break-all font-mono text-sm text-white">{value}</div>
+                        <div className="break-all text-sm text-white">{value}</div>
                     </div>
                 ))}
             </Card>
@@ -210,12 +220,32 @@ function ProgramStatsCollapsible({ stats }: { stats: ProgramStats }) {
 // Muted uppercase header cell + body cell, matching the transaction tables / BaseDomainsCard grid.
 const GRID_HEADER_CELL = 'text-xs uppercase text-outer-space-300';
 
+// Column header label; when `help` is set it carries a help icon and a hover explanation. The icon is
+// inline (not a flex item) so a long label like "Transactions, % of total" wraps naturally and the icon
+// trails the last word ("total") instead of being pushed onto its own line.
+export function HeaderLabel({ label, help }: { label: string; help?: string }) {
+    if (!help) {
+        return <>{label}</>;
+    }
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <span className="cursor-help">
+                    {label}
+                    <HelpCircle size={14} className="ml-1 inline align-text-bottom" />
+                </span>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-72 normal-case">{help}</TooltipContent>
+        </Tooltip>
+    );
+}
+
 // A merged numeric cell: a count and (optionally) its percentage as two fixed-width mono parts. The
 // count holds 6 characters; the percentage holds 7 (enough for `100.00%`), so figures line up
 // regardless of magnitude.
 function MergedFigure({ count, percent }: { count: string; percent?: string }) {
     return (
-        <div className="flex justify-end gap-3 font-mono">
+        <div className="flex justify-end gap-1 tabular-nums">
             <span className="text-right" style={{ width: '6ch' }}>
                 {count}
             </span>
@@ -228,9 +258,42 @@ function MergedFigure({ count, percent }: { count: string; percent?: string }) {
     );
 }
 
+// Design variants for the "Block Programs" table, surfaced as on-page chips (1, 2, …) in the section
+// header — the slot where the collapse toggle normally sits.
+const PROGRAMS_VARIANT_IDS = ['1', '2', '2a'] as const;
+
+// Bracketed figure for variants 2 / 2a — a count and its percentage on one right-aligned mono line.
+//   - Variant 2  (swapped=false): bright count, muted "(percent)" ("of total" dropped on desktop).
+//   - Variant 2a (swapped=true):  bright "percent", muted "(count)" — the two are swapped and the
+//                                  emphasis flips onto the percentage ("of total" dropped on desktop).
+function BracketedFigure({ count, percent, swapped }: { count: string; percent: string; swapped?: boolean }) {
+    return (
+        <div className="text-right tabular-nums">
+            {swapped ? (
+                <>
+                    {percent}
+                    <span className="text-outer-space-300"> ({count})</span>
+                </>
+            ) : (
+                <>
+                    {count}
+                    <span className="text-outer-space-300"> ({percent})</span>
+                </>
+            )}
+        </div>
+    );
+}
+
 // Domains-card style — "Block Programs" as a CSS grid on lg+, stacked labelled rows below lg.
-function ProgramsCollapsible({ stats }: { stats: ProgramStats }) {
+function ProgramsCollapsible({ stats, initialVariant }: { stats: ProgramStats; initialVariant: string }) {
     const { ixFrequency, programEntries, showSuccessRate, totalInstructions, totalTransactions, txSuccesses } = stats;
+    const [pv, setPv] = React.useState(initialVariant);
+
+    // Variants 2 / 2a fold each percentage into its count via parentheses (BracketedFigure), so the
+    // header sheds the ", % of total" suffix; the Success Rate column stays, but its header drops "Rate".
+    // Variant 2a additionally swaps count/percentage and flips the emphasis onto the percentage.
+    const bracketed = pv === '2' || pv === '2a';
+    const swapped = pv === '2a';
 
     // Program takes the slack; the count+percentage columns are a fixed 8.5rem track wide enough for a
     // merged pair (see MergedFigure), while the single-value Success Rate column is narrower (5rem).
@@ -240,11 +303,29 @@ function ProgramsCollapsible({ stats }: { stats: ProgramStats }) {
     const gridStyle: React.CSSProperties = {
         gridTemplateColumns: `minmax(0,1fr) 8.5rem 8.5rem${showSuccessRate ? ' 5rem' : ''}`,
     };
-    const headers = ['Program', 'Transactions, % of total', 'Instructions, % of total'];
-    if (showSuccessRate) headers.push('Success Rate');
+    const figureHeader = (base: string) => (bracketed ? base : `${base}, % of total`);
+    // Denominators shown in the page's top block — surfaced here in the header hover explanations.
+    const txPctHelp = `Share of the block's ${totalTransactions.toLocaleString('en-US')} processed transactions that invoked this program.`;
+    const ixPctHelp = `Share of the block's ${totalInstructions.toLocaleString('en-US')} total instructions that invoked this program.`;
+    const successHelp = "Share of this program's transactions that succeeded (no error).";
+    const headers: { label: string; help?: string }[] = [
+        { label: 'Program' },
+        { help: txPctHelp, label: figureHeader('Transactions') },
+        { help: ixPctHelp, label: figureHeader('Instructions') },
+    ];
+    if (showSuccessRate) headers.push({ help: successHelp, label: bracketed ? 'Success' : 'Success Rate' });
 
     return (
-        <CollapsibleSection title="Block Programs" collapsible={false} className="">
+        <CollapsibleSection
+            title="Block Programs"
+            collapsible={false}
+            className=""
+            actions={PROGRAMS_VARIANT_IDS.map(v => (
+                <Chip key={v} active={pv === v} onClick={() => setPv(v)}>
+                    {v}
+                </Chip>
+            ))}
+        >
             <Card variant="tight" className={TIGHT_CARD}>
                 <div className="text-sm text-white">
                     <div
@@ -255,9 +336,9 @@ function ProgramsCollapsible({ stats }: { stats: ProgramStats }) {
                             GRID_HEADER_CELL,
                         )}
                     >
-                        {headers.map((label, i) => (
+                        {headers.map((h, i) => (
                             <div key={i} className={cn(i > 0 && 'text-right')}>
-                                {label}
+                                <HeaderLabel help={h.help} label={h.label} />
                             </div>
                         ))}
                     </div>
@@ -267,13 +348,15 @@ function ProgramsCollapsible({ stats }: { stats: ProgramStats }) {
                         const successes = txSuccesses.get(programId) || 0;
                         const txPct = `${((100 * txFreq) / totalTransactions).toFixed(2)}%`;
                         const ixPct = `${((100 * ixFreq) / totalInstructions).toFixed(2)}%`;
-                        const successRate = showSuccessRate ? `${((100 * successes) / txFreq).toFixed(0)}%` : undefined;
+                        const successRate = showSuccessRate
+                            ? `${((100 * successes) / txFreq).toFixed(0)}%`
+                            : undefined;
                         const fields: { count: string; label: string; pct?: string }[] = [
                             { count: `${txFreq}`, label: 'Transactions', pct: txPct },
                             { count: `${ixFreq}`, label: 'Instructions', pct: ixPct },
                         ];
                         if (successRate !== undefined) {
-                            fields.push({ count: successRate, label: 'Success Rate' });
+                            fields.push({ count: successRate, label: bracketed ? 'Success' : 'Success Rate' });
                         }
                         return (
                             <div
@@ -294,9 +377,23 @@ function ProgramsCollapsible({ stats }: { stats: ProgramStats }) {
                                         >
                                             <span className="text-outer-space-300">{f.label}</span>
                                             <span>
-                                                {f.count}
-                                                {f.pct !== undefined && (
-                                                    <span className="text-outer-space-300"> {f.pct} of Total</span>
+                                                {f.pct === undefined ? (
+                                                    f.count
+                                                ) : swapped ? (
+                                                    <>
+                                                        {f.pct}
+                                                        <span className="text-outer-space-300"> ({f.count})</span>
+                                                    </>
+                                                ) : bracketed ? (
+                                                    <>
+                                                        {f.count}
+                                                        <span className="text-outer-space-300"> ({f.pct} of Total)</span>
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        {f.count}
+                                                        <span className="text-outer-space-300"> {f.pct} of Total</span>
+                                                    </>
                                                 )}
                                             </span>
                                         </div>
@@ -311,9 +408,19 @@ function ProgramsCollapsible({ stats }: { stats: ProgramStats }) {
                                     <div className="min-w-0">
                                         <Address pubkey={new PublicKey(programId)} link />
                                     </div>
-                                    <MergedFigure count={`${txFreq}`} percent={txPct} />
-                                    <MergedFigure count={`${ixFreq}`} percent={ixPct} />
-                                    {successRate !== undefined && <MergedFigure count={successRate} />}
+                                    {bracketed ? (
+                                        <>
+                                            <BracketedFigure count={`${txFreq}`} percent={txPct} swapped={swapped} />
+                                            <BracketedFigure count={`${ixFreq}`} percent={ixPct} swapped={swapped} />
+                                            {successRate !== undefined && <MergedFigure count={successRate} />}
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MergedFigure count={`${txFreq}`} percent={txPct} />
+                                            <MergedFigure count={`${ixFreq}`} percent={ixPct} />
+                                            {successRate !== undefined && <MergedFigure count={successRate} />}
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         );

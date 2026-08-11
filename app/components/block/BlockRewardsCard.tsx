@@ -63,7 +63,7 @@ function DashkitRewards({ rewards }: { rewards: Reward[] }) {
                         <BaseTable.HeaderCell className="text-dk-gray-700">Address</BaseTable.HeaderCell>
                         <BaseTable.HeaderCell className="text-dk-gray-700">Type</BaseTable.HeaderCell>
                         <BaseTable.HeaderCell className="text-dk-gray-700">Amount</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">New Balance</BaseTable.HeaderCell>
+                        <BaseTable.HeaderCell className="text-dk-gray-700">Post Balance</BaseTable.HeaderCell>
                         <BaseTable.HeaderCell className="text-dk-gray-700">Percent Change</BaseTable.HeaderCell>
                     </BaseTable.Row>
                 </BaseTable.Head>
@@ -110,7 +110,7 @@ function DashkitRewards({ rewards }: { rewards: Reward[] }) {
 }
 
 // Column labels, kept in one place so the desktop header and the mobile row labels can't drift.
-const COLUMNS = ['Address', 'Type', 'Amount', 'New Balance', '% Change'] as const;
+const COLUMNS = ['Address', 'Type', 'Amount', 'Post Balance', '% Change'] as const;
 
 // Address takes the slack (`1fr`); the numeric columns are capped so long balances don't push the
 // address column to nothing. Header and every row share this template so columns stay aligned.
@@ -118,7 +118,7 @@ const COLUMNS = ['Address', 'Type', 'Amount', 'New Balance', '% Change'] as cons
 // doesn't always emit a brand-new arbitrary grid template picked up from a fresh file — the class
 // silently no-ops and every column collapses into one. Inline `gridTemplateColumns` can't be purged.
 const GRID_TEMPLATE: React.CSSProperties = {
-    gridTemplateColumns: 'minmax(0,1fr) minmax(auto,4rem) minmax(auto,6.5rem) minmax(auto,7.5rem) minmax(auto,7.5rem)',
+    gridTemplateColumns: 'minmax(0,1fr) minmax(auto,4rem) minmax(auto,6.5rem) minmax(auto,8.5rem) minmax(auto,7.5rem)',
 };
 
 // Mirrors the original card's math: share of the pre-reward balance that this reward moved.
@@ -177,7 +177,7 @@ function RewardsGrid({ rewards }: { rewards: Reward[] }) {
                                 <SolBalance lamports={reward.lamports} />
                             </div>
                             <div className="flex items-center gap-2">
-                                <span className="w-28 shrink-0 text-outer-space-300">New Balance</span>
+                                <span className="w-28 shrink-0 text-outer-space-300">Post Balance</span>
                                 {reward.postBalance ? <SolBalance lamports={reward.postBalance} /> : <span>-</span>}
                             </div>
                             <div className="flex items-center gap-2">
