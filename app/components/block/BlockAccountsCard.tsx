@@ -294,7 +294,7 @@ function AccountsGridRow({
             <div className="flex flex-col gap-1 px-3 py-3 md:px-4 md:hidden">
                 <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2">
                     <span className="text-outer-space-300">Account</span>
-                    <Link href={accountPath}>
+                    <Link href={accountPath} className="block min-w-0">
                         <Address pubkey={new PublicKey(address)} />
                     </Link>
                 </div>
@@ -308,7 +308,7 @@ function AccountsGridRow({
                     <span className="text-outer-space-300">Total</span>
                     <span>
                         {total}
-                        <span className="text-outer-space-300"> {totalPct} of transactions</span>
+                        <span className="text-outer-space-300"> {totalPct} of block transactions</span>
                     </span>
                 </div>
             </div>
@@ -316,7 +316,7 @@ function AccountsGridRow({
             {/* Desktop grid row. */}
             <div style={ACCOUNTS_GRID} className="hidden items-start gap-5 px-3 py-2.5 md:px-4 md:grid">
                 <div className="min-w-0">
-                    <Link href={accountPath}>
+                    <Link href={accountPath} className="block min-w-0">
                         <Address pubkey={new PublicKey(address)} />
                     </Link>
                 </div>
