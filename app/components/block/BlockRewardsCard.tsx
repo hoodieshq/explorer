@@ -36,7 +36,7 @@ export function BlockRewardsCard({
     if (variant === 'collapsible') {
         return (
             <CollapsibleSection title="Block Rewards" className="">
-                <Card variant="tight" className="overflow-hidden rounded-lg border-outer-space-800 bg-outer-space-900">
+                <Card variant="tight" className="overflow-hidden !rounded-lg border-outer-space-800 bg-outer-space-900">
                     <RewardsGrid rewards={block.rewards} />
                 </Card>
             </CollapsibleSection>
@@ -142,7 +142,7 @@ function RewardsGrid({ rewards }: { rewards: Reward[] }) {
             <div
                 style={GRID_TEMPLATE}
                 className={cn(
-                    'hidden gap-5 px-3 py-2.5 md:px-4 md:grid',
+                    'hidden gap-5 px-3 py-2.5 md:grid md:px-4',
                     'text-xs uppercase text-outer-space-300',
                     'border-b border-solid border-white/10',
                 )}
@@ -163,7 +163,7 @@ function RewardsGrid({ rewards }: { rewards: Reward[] }) {
                         className="border-b border-solid border-white/10 last:border-b-0"
                     >
                         {/* Mobile / tablet — stacked, labelled rows (block page has to fit five columns). */}
-                        <div className="flex flex-col gap-1 px-3 py-3 md:px-4 md:hidden">
+                        <div className="flex flex-col gap-1 px-3 py-3 md:hidden md:px-4">
                             <div className="flex items-center gap-2">
                                 <span className="w-28 shrink-0 text-outer-space-300">Address</span>
                                 <Address pubkey={pubkey} link />
@@ -187,10 +187,7 @@ function RewardsGrid({ rewards }: { rewards: Reward[] }) {
                         </div>
 
                         {/* Desktop grid row. */}
-                        <div
-                            style={GRID_TEMPLATE}
-                            className="hidden items-start gap-5 px-3 py-2.5 md:px-4 md:grid"
-                        >
+                        <div style={GRID_TEMPLATE} className="hidden items-start gap-5 px-3 py-2.5 md:grid md:px-4">
                             <div className="min-w-0">
                                 <Address pubkey={pubkey} link />
                             </div>

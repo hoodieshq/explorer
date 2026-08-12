@@ -21,7 +21,8 @@ import { BaseTable } from '@/app/shared/ui/Table';
 export type BlockProgramsVariant = 'default' | 'collapsible';
 
 // Surface matched to the transaction tables (see BaseDomainsCard) — set on a `variant="tight"` Card.
-const TIGHT_CARD = 'overflow-hidden rounded-lg border-outer-space-800 bg-outer-space-900';
+// `!rounded-lg` (8px) forces the radius over the tw base's `rounded-xl` (12px) — see BlockHistoryCard.
+const TIGHT_CARD = 'overflow-hidden !rounded-lg border-outer-space-800 bg-outer-space-900';
 
 type ProgramStats = {
     ixFrequency: Map<string, number>;
@@ -348,9 +349,7 @@ function ProgramsCollapsible({ stats, initialVariant }: { stats: ProgramStats; i
                         const successes = txSuccesses.get(programId) || 0;
                         const txPct = `${((100 * txFreq) / totalTransactions).toFixed(2)}%`;
                         const ixPct = `${((100 * ixFreq) / totalInstructions).toFixed(2)}%`;
-                        const successRate = showSuccessRate
-                            ? `${((100 * successes) / txFreq).toFixed(0)}%`
-                            : undefined;
+                        const successRate = showSuccessRate ? `${((100 * successes) / txFreq).toFixed(0)}%` : undefined;
                         const fields: { count: string; label: string; pct?: string }[] = [
                             { count: `${txFreq}`, label: 'Transactions', pct: txPct },
                             { count: `${ixFreq}`, label: 'Instructions', pct: ixPct },
@@ -359,10 +358,7 @@ function ProgramsCollapsible({ stats, initialVariant }: { stats: ProgramStats; i
                             fields.push({ count: successRate, label: bracketed ? 'Success' : 'Success Rate' });
                         }
                         return (
-                            <div
-                                key={programId}
-                                className="border-b border-solid border-white/10 last:border-b-0"
-                            >
+                            <div key={programId} className="border-b border-solid border-white/10 last:border-b-0">
                                 {/* Mobile / tablet — stacked, labelled rows. Label column uses the same
                                     clamp(100px,25%,200px) ratio as the Overview section (ProgramStatsCollapsible). */}
                                 <div className="flex flex-col gap-1 px-3 py-3 md:hidden">
@@ -387,7 +383,10 @@ function ProgramsCollapsible({ stats, initialVariant }: { stats: ProgramStats; i
                                                 ) : bracketed ? (
                                                     <>
                                                         {f.count}
-                                                        <span className="text-outer-space-300"> ({f.pct} of Total)</span>
+                                                        <span className="text-outer-space-300">
+                                                            {' '}
+                                                            ({f.pct} of Total)
+                                                        </span>
                                                     </>
                                                 ) : (
                                                     <>
@@ -401,10 +400,7 @@ function ProgramsCollapsible({ stats, initialVariant }: { stats: ProgramStats; i
                                 </div>
 
                                 {/* Desktop grid row. */}
-                                <div
-                                    style={gridStyle}
-                                    className="hidden items-start gap-5 px-3 py-2.5 md:grid md:px-4"
-                                >
+                                <div style={gridStyle} className="hidden items-start gap-5 px-3 py-2.5 md:grid md:px-4">
                                     <div className="min-w-0">
                                         <Address pubkey={new PublicKey(programId)} link />
                                     </div>

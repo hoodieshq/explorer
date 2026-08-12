@@ -48,9 +48,17 @@ function Label({ children, className, ...props }: React.HTMLAttributes<HTMLDivEl
 // `mono` toggles the monospace face — on for hashes/addresses/numbers, off for prose like dates.
 // (cn is plain clsx here, so an added `font-sans` wouldn't reliably beat a hardcoded `font-mono`;
 // omitting `font-mono` and inheriting the sans default is the robust way to opt out.)
-function Value({ children, className, mono = true, ...props }: React.HTMLAttributes<HTMLDivElement> & { mono?: boolean }) {
+// `breakAll` lets a long unbreakable token (a hash) wrap anywhere instead of forcing horizontal
+// scroll; turn it off for space-separated prose/numbers so words wrap whole, only at the spaces.
+function Value({
+    children,
+    className,
+    mono = true,
+    breakAll = true,
+    ...props
+}: React.HTMLAttributes<HTMLDivElement> & { mono?: boolean; breakAll?: boolean }) {
     return (
-        <div className={cn('break-all text-sm text-white', mono && 'font-mono', className)} {...props}>
+        <div className={cn('text-sm text-white', breakAll && 'break-all', mono && 'font-mono', className)} {...props}>
             {children}
         </div>
     );
@@ -207,14 +215,14 @@ export function BlockOverviewCard({
                 </Row>
                 <Row divider>
                     <Label>Transaction Cost Utilization</Label>
-                    <Value mono={false}>
+                    <Value mono={false} breakAll={false}>
                         {totalCostUnits.toLocaleString()} / {maxComputeUnits.toLocaleString()} (
                         {Math.round((totalCostUnits / maxComputeUnits) * 100)}%)
                     </Value>
                 </Row>
                 <Row>
                     <Label>Reserved Compute Units</Label>
-                    <Value mono={false}>
+                    <Value mono={false} breakAll={false}>
                         {totalRequestedCUs.toLocaleString()} / {maxComputeUnits.toLocaleString()} (
                         {Math.round((totalRequestedCUs / maxComputeUnits) * 100)}%)
                     </Value>

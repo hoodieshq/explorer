@@ -66,29 +66,31 @@ export function BaseTransactionHistoryCard({
             {variant === 'grid' ? (
                 <TransactionGrid rows={rows} />
             ) : (
-            <BaseTable ui="dashkit" variant="card" nowrap>
-                <BaseTable.Head>
-                    <BaseTable.Row>
-                        <BaseTable.HeaderCell className="w-px text-dk-gray-700">
-                            Transaction Signature
-                        </BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="w-px text-dk-gray-700">Block</BaseTable.HeaderCell>
-                        {hasTimestamps && (
-                            <>
-                                <BaseTable.HeaderCell className="w-px text-dk-gray-700">Age</BaseTable.HeaderCell>
-                                <BaseTable.HeaderCell className="w-px text-dk-gray-700">Timestamp</BaseTable.HeaderCell>
-                            </>
-                        )}
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Result</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Raw Data</BaseTable.HeaderCell>
-                    </BaseTable.Row>
-                </BaseTable.Head>
-                <BaseTable.Body>
-                    {rows.map(row => (
-                        <TransactionRow key={row.signature} row={row} hasTimestamps={hasTimestamps} />
-                    ))}
-                </BaseTable.Body>
-            </BaseTable>
+                <BaseTable ui="dashkit" variant="card" nowrap>
+                    <BaseTable.Head>
+                        <BaseTable.Row>
+                            <BaseTable.HeaderCell className="w-px text-dk-gray-700">
+                                Transaction Signature
+                            </BaseTable.HeaderCell>
+                            <BaseTable.HeaderCell className="w-px text-dk-gray-700">Block</BaseTable.HeaderCell>
+                            {hasTimestamps && (
+                                <>
+                                    <BaseTable.HeaderCell className="w-px text-dk-gray-700">Age</BaseTable.HeaderCell>
+                                    <BaseTable.HeaderCell className="w-px text-dk-gray-700">
+                                        Timestamp
+                                    </BaseTable.HeaderCell>
+                                </>
+                            )}
+                            <BaseTable.HeaderCell className="text-dk-gray-700">Result</BaseTable.HeaderCell>
+                            <BaseTable.HeaderCell className="text-dk-gray-700">Raw Data</BaseTable.HeaderCell>
+                        </BaseTable.Row>
+                    </BaseTable.Head>
+                    <BaseTable.Body>
+                        {rows.map(row => (
+                            <TransactionRow key={row.signature} row={row} hasTimestamps={hasTimestamps} />
+                        ))}
+                    </BaseTable.Body>
+                </BaseTable>
             )}
             <HistoryCardFooter fetching={fetching} foundOldest={foundOldest} loadMore={onLoadMore} />
         </Card>
