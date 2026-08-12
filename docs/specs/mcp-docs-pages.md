@@ -1,6 +1,6 @@
 ---
 feature: mcp-docs-pages
-status: building         # draft | approved | building | shipped
+status: building # draft | approved | building | shipped
 owner: Alexey Stulikov
 figma: n/a — visual reference is https://mcp.solana.com/ (sizes, accents, section order); styles come from the Explorer palette
 updated: 2026-08-12
@@ -14,11 +14,11 @@ The Explorer ships an MCP server (`/mcp`), but nothing in the product reveals it
 
 ## 2. Who this is for
 
-| Persona | Context | What they need from this flow |
-| --- | --- | --- |
-| AI-assisted developer | Uses Claude Code / Cursor / Codex / Windsurf / VS Code, wants on-chain data in their agent | Copy-paste setup for their client, agent-instructions block, understanding of what `inspect_entity` returns |
-| Deployment owner / ops | Runs an Explorer deployment, decides whether to expose MCP | Enabling steps, access control (keys, IP blocklist), RPC quota isolation, telemetry knobs — and why each exists |
-| Curious Explorer visitor | Landed from the header, does not know what MCP is | A fast answer to "what is this and is it for me" without reading a reference manual |
+| Persona                  | Context                                                                                    | What they need from this flow                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| AI-assisted developer    | Uses Claude Code / Cursor / Codex / Windsurf / VS Code, wants on-chain data in their agent | Copy-paste setup for their client, agent-instructions block, understanding of what `inspect_entity` returns     |
+| Deployment owner / ops   | Runs an Explorer deployment, decides whether to expose MCP                                 | Enabling steps, access control (keys, IP blocklist), RPC quota isolation, telemetry knobs — and why each exists |
+| Curious Explorer visitor | Landed from the header, does not know what MCP is                                          | A fast answer to "what is this and is it for me" without reading a reference manual                             |
 
 ## 3. What we're validating
 
@@ -46,11 +46,11 @@ The Explorer ships an MCP server (`/mcp`), but nothing in the product reveals it
 
 ## 5. Screens
 
-| # | Screen | Route | Reference | Status |
-| --- | --- | --- | --- | --- |
-| 1 | Header entry "MCP" | all pages (Navbar) | Feature Gates item as pattern | not started |
-| 2 | MCP overview | `/mcp/docs` | mcp.solana.com landing structure | not started |
-| 3 | MCP advanced reference | `/mcp/docs/advanced` | MCP-ADVANCED.md content | not started |
+| #   | Screen                 | Route                | Reference                        | Status      |
+| --- | ---------------------- | -------------------- | -------------------------------- | ----------- |
+| 1   | Header entry "MCP"     | all pages (Navbar)   | Feature Gates item as pattern    | not started |
+| 2   | MCP overview           | `/mcp/docs`          | mcp.solana.com landing structure | not started |
+| 3   | MCP advanced reference | `/mcp/docs/advanced` | MCP-ADVANCED.md content          | not started |
 
 ## 6. Primary flow map
 
@@ -80,11 +80,11 @@ flowchart TD
 
 Static content pages — no loading/empty/error states. The only stateful element is the per-client switcher in the overview's Setup section (Tabs candidate): one client's config visible at a time.
 
-| Screen | Loading | Empty | Error | Partial | Success |
-| --- | --- | --- | --- | --- | --- |
-| Header entry | n/a | n/a | n/a | n/a | active-state highlight on `/mcp/docs*` |
-| Overview | n/a (static) | n/a | n/a | n/a | rendered |
-| Advanced | n/a (static) | n/a | n/a | n/a | rendered, anchors resolvable |
+| Screen       | Loading      | Empty | Error | Partial | Success                                |
+| ------------ | ------------ | ----- | ----- | ------- | -------------------------------------- |
+| Header entry | n/a          | n/a   | n/a   | n/a     | active-state highlight on `/mcp/docs*` |
+| Overview     | n/a (static) | n/a   | n/a   | n/a     | rendered                               |
+| Advanced     | n/a (static) | n/a   | n/a   | n/a     | rendered, anchors resolvable           |
 
 ## 9. Async and system sequence
 
@@ -92,11 +92,11 @@ Skipped — no async behavior; all content is static.
 
 ## 10. Data
 
-| Field | Type | Source in prototype | Notes |
-| --- | --- | --- | --- |
-| Page copy | static | `MCP.md` / `MCP-ADVANCED.md` drafts, hand-translated into TSX | TSX is the source of truth; the `.md` drafts stay out of the repo |
-| Endpoint URL in snippets | string, dynamic | `window.location.origin` on the client; `<deployment>` placeholder as SSR/no-JS fallback | Visitor sees a copy-ready config for the deployment they are on |
-| Client configs (5 tools) | static snippets | MCP.md Setup section | Copyable |
+| Field                    | Type            | Source in prototype                                                                      | Notes                                                             |
+| ------------------------ | --------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| Page copy                | static          | `MCP.md` / `MCP-ADVANCED.md` drafts, hand-translated into TSX                            | TSX is the source of truth; the `.md` drafts stay out of the repo |
+| Endpoint URL in snippets | string, dynamic | `window.location.origin` on the client; `<deployment>` placeholder as SSR/no-JS fallback | Visitor sees a copy-ready config for the deployment they are on   |
+| Client configs (5 tools) | static snippets | MCP.md Setup section                                                                     | Copyable                                                          |
 
 **Fixture rule:** placeholder data only — snippets show `<key>` / `<deployment>`, never real access keys.
 
@@ -108,14 +108,14 @@ Skipped — no async behavior; all content is static.
 
 ## 12. Copy
 
-| Location | Text | Notes |
-| --- | --- | --- |
-| Navbar item | `MCP` | Final |
-| Overview title | `Explorer MCP` | |
-| Overview subtitle | `Live on-chain data for coding agents` | Mirrors MCP.md lead |
-| Chunk card, each | `<chunk title>` + one line "who it's for" + one line "what it gives" | Distilled from MCP-ADVANCED.md "why" notes |
-| Advanced title | `Advanced configuration & reference` | |
-| All content | English | Repo rule: everything user-facing in English |
+| Location          | Text                                                                 | Notes                                        |
+| ----------------- | -------------------------------------------------------------------- | -------------------------------------------- |
+| Navbar item       | `MCP`                                                                | Final                                        |
+| Overview title    | `Explorer MCP`                                                       |                                              |
+| Overview subtitle | `Live on-chain data for coding agents`                               | Mirrors MCP.md lead                          |
+| Chunk card, each  | `<chunk title>` + one line "who it's for" + one line "what it gives" | Distilled from MCP-ADVANCED.md "why" notes   |
+| Advanced title    | `Advanced configuration & reference`                                 |                                              |
+| All content       | English                                                              | Repo rule: everything user-facing in English |
 
 ## 13. Acceptance criteria
 
@@ -132,17 +132,17 @@ Skipped — no async behavior; all content is static.
 
 All resolved 2026-08-12:
 
-| # | Question | Decision |
-| --- | --- | --- |
-| 1 | Chunk presentation on the overview | Essentials (setup, agent instructions) inline and immediately visible; specific chunks as cards linking to `/mcp/docs/advanced#anchor` |
-| 2 | Content source | Hand-written TSX; `MCP.md`/`MCP-ADVANCED.md` remain uncommitted drafts |
-| 3 | Navbar label | `MCP` |
-| 4 | Cluster-aware paths | Yes — `useClusterPath`, consistent with Feature Gates and Inspector |
-| 5 | Deployment URL in snippets | Dynamic `window.location.origin`; `<deployment>` placeholder as SSR/no-JS fallback |
+| #   | Question                           | Decision                                                                                                                               |
+| --- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Chunk presentation on the overview | Essentials (setup, agent instructions) inline and immediately visible; specific chunks as cards linking to `/mcp/docs/advanced#anchor` |
+| 2   | Content source                     | Hand-written TSX; `MCP.md`/`MCP-ADVANCED.md` remain uncommitted drafts                                                                 |
+| 3   | Navbar label                       | `MCP`                                                                                                                                  |
+| 4   | Cluster-aware paths                | Yes — `useClusterPath`, consistent with Feature Gates and Inspector                                                                    |
+| 5   | Deployment URL in snippets         | Dynamic `window.location.origin`; `<deployment>` placeholder as SSR/no-JS fallback                                                     |
 
 ## 15. Changelog
 
-| Date | Change | Why |
-| --- | --- | --- |
-| 2026-08-12 | Initial draft | Bootstrap for HOO-1081 before implementation |
-| 2026-08-12 | Resolved all §14 questions; overview keeps essentials inline, specifics link to advanced; TSX content; dynamic host in snippets | Interview with owner |
+| Date       | Change                                                                                                                          | Why                                          |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
+| 2026-08-12 | Initial draft                                                                                                                   | Bootstrap for HOO-1081 before implementation |
+| 2026-08-12 | Resolved all §14 questions; overview keeps essentials inline, specifics link to advanced; TSX content; dynamic host in snippets | Interview with owner                         |

@@ -5,12 +5,7 @@ import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, Minus, Plus, Tool } from 'react-feather';
 
-import {
-    Accordion,
-    AccordionContent,
-    AccordionItem,
-    AccordionTrigger,
-} from '@/app/components/shared/ui/accordion';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/app/components/shared/ui/accordion';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/shared/ui/tabs';
@@ -181,35 +176,35 @@ export function McpDocsOverviewView() {
             </SectionTitle>
             <DocCard className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
                 <Tabs value={client} onValueChange={setClient}>
-                <TabsList
-                    style={{ display: 'flex' }}
-                    className="-mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto border-b border-white/10 px-4 sm:-mx-6 sm:px-6"
-                >
-                    {SETUP_CLIENTS.map(({ id, label }) => (
-                        <TabsTrigger key={id} value={id} className="shrink-0 whitespace-nowrap">
-                            {label}
-                        </TabsTrigger>
+                    <TabsList
+                        style={{ display: 'flex' }}
+                        className="-mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto border-b border-white/10 px-4 sm:-mx-6 sm:px-6"
+                    >
+                        {SETUP_CLIENTS.map(({ id, label }) => (
+                            <TabsTrigger key={id} value={id} className="shrink-0 whitespace-nowrap">
+                                {label}
+                            </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    {SETUP_CLIENTS.map(setupClient => (
+                        <TabsContent key={setupClient.id} value={setupClient.id}>
+                            <p className="mb-3 mt-0 text-sm text-neutral-300">{setupClient.where}</p>
+                            <CodeBlock code={setupClient.snippet(origin)} />
+                            <p className="mb-0 mt-3 text-sm leading-relaxed text-neutral-300">
+                                <span className="font-medium text-neutral-300">Verify:</span> {setupClient.verify}
+                            </p>
+                        </TabsContent>
                     ))}
-                </TabsList>
-                {SETUP_CLIENTS.map(setupClient => (
-                    <TabsContent key={setupClient.id} value={setupClient.id}>
-                        <p className="mb-3 mt-0 text-sm text-neutral-300">{setupClient.where}</p>
-                        <CodeBlock code={setupClient.snippet(origin)} />
-                        <p className="mb-0 mt-3 text-sm leading-relaxed text-neutral-300">
-                            <span className="font-medium text-neutral-300">Verify:</span> {setupClient.verify}
-                        </p>
-                    </TabsContent>
-                ))}
                 </Tabs>
                 <p className="mb-0 mt-4 text-sm leading-relaxed text-neutral-300">
-                Connecting to a preview deployment? Previews need one extra header —{' '}
-                <Link
-                    href={`${advancedPath}#preview-deployments`}
-                    className="text-dark-accent no-underline hover:underline"
-                >
-                    see preview deployments
-                </Link>
-                .
+                    Connecting to a preview deployment? Previews need one extra header —{' '}
+                    <Link
+                        href={`${advancedPath}#preview-deployments`}
+                        className="text-dark-accent no-underline hover:underline"
+                    >
+                        see preview deployments
+                    </Link>
+                    .
                 </p>
             </DocCard>
 
@@ -242,11 +237,7 @@ export function McpDocsOverviewView() {
             </SectionTitle>
             <div className="grid gap-3 sm:grid-cols-2">
                 {ADVANCED_CHUNKS.map(chunk => (
-                    <Link
-                        key={chunk.anchor}
-                        href={`${advancedPath}#${chunk.anchor}`}
-                        className="group no-underline"
-                    >
+                    <Link key={chunk.anchor} href={`${advancedPath}#${chunk.anchor}`} className="group no-underline">
                         <DocCard transparent className="h-full transition-colors group-hover:border-dark-accent">
                             <div className="flex h-full flex-col p-4 sm:p-6">
                                 <div className="mb-2 flex items-center justify-between gap-2">

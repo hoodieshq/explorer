@@ -49,7 +49,7 @@ export function CodeBlock({
             </button>
             <pre
                 className={cn(
-                    'm-0 whitespace-pre-wrap [overflow-wrap:anywhere] font-mono text-xs leading-relaxed text-neutral-200',
+                    'm-0 whitespace-pre-wrap font-mono text-xs leading-relaxed text-neutral-200 [overflow-wrap:anywhere]',
                     // Flush segments sit inside a p-6 card section — match its padding.
                     variant === 'flush' ? 'p-4 pr-10 sm:p-6 sm:pr-10' : 'p-4 pr-10',
                 )}
