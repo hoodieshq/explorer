@@ -9,6 +9,8 @@ type CollapsibleSectionProps = {
     id?: string;
     title: ReactNode;
     actions?: ReactNode;
+    /** Full-width content stacked under the title row, inside the same (always-visible) title group. */
+    belowTitle?: ReactNode;
     children: ReactNode;
     defaultExpanded?: boolean;
     /** When false, the collapse toggle is hidden and the body is always shown. Defaults to true. */
@@ -22,6 +24,7 @@ export function CollapsibleSection({
     id,
     title,
     actions,
+    belowTitle,
     children,
     defaultExpanded = true,
     collapsible = true,
@@ -37,12 +40,24 @@ export function CollapsibleSection({
 
     return (
         <section id={id} aria-labelledby={headingId} className={cn('flex flex-col gap-3', sectionClassName)}>
+            {/* Header block: the title (plus optional `belowTitle`) forms the first column; the actions and
+                collapse toggle form a second column that `titleClassName` can bottom-align (`items-end`).
+                Without `belowTitle` the title stays a direct child so existing sections are untouched. */}
             <div data-section-title className={cn('flex items-center justify-between', titleClassName)}>
-                <h2 id={headingId} className="m-0 text-lg font-normal text-white">
-                    {title}
-                </h2>
+                {belowTitle ? (
+                    <div className="flex min-w-0 flex-col gap-2">
+                        <h2 id={headingId} className="m-0 text-lg font-normal text-white">
+                            {title}
+                        </h2>
+                        {belowTitle}
+                    </div>
+                ) : (
+                    <h2 id={headingId} className="m-0 text-lg font-normal text-white">
+                        {title}
+                    </h2>
+                )}
                 {(collapsible || actions) && (
-                    <div className="flex items-center gap-1">
+                    <div className="flex shrink-0 items-center gap-1">
                         {actions && <div className="flex shrink-0 gap-1">{actions}</div>}
                         {collapsible && (
                             <Button

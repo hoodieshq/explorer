@@ -18,11 +18,12 @@ import { pickClusterParams } from '@utils/url';
 import Link from 'next/link';
 import { ReadonlyURLSearchParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useMemo } from 'react';
-import { ChevronDown, ChevronUp } from 'react-feather';
+import { ChevronDown, ChevronUp, Filter, Search, X } from 'react-feather';
 
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/components/shared/ui/dropdown';
+import { Input } from '@/app/components/shared/ui/input';
 import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
 import { invariant } from '@/app/shared/lib/invariant';
 import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@/app/shared/ui/Card';
@@ -39,7 +40,10 @@ const PAGE_SIZE = 25;
 export type BlockHistoryVariant = 'default' | 'collapsible';
 
 // Surface matched to the transaction tables (see BaseDomainsCard) — set on a `variant="tight"` Card.
-const TIGHT_CARD = 'overflow-hidden rounded-lg border-outer-space-800 bg-outer-space-900';
+// `!rounded-lg` (8px) forces the radius over the tw base's `rounded-xl` (12px): without Preflight the
+// two utilities collide and source order — not class order — would otherwise leave the card at 12px,
+// out of step with the dashkit cards (Overview / transaction page) that sit at 8px.
+const TIGHT_CARD = 'overflow-hidden !rounded-lg border-outer-space-800 bg-outer-space-900';
 
 const useQueryProgramFilter = (query: ReadonlyURLSearchParams): string => {
     const filter = query.get('filter');
@@ -262,6 +266,15 @@ export function BlockHistoryCard({
         return [filteredTxs, showComputeUnits];
     }, [block.transactions, transactions, programFilter, accountFilter, sortMode, sortDirection]);
 
+    // Shared by the filter dropdown (menu options + active row) and the removable chip below the title.
+    // "Set" means anything other than "All Transactions": the empty-param default ("All Except Votes")
+    // already hides votes, so it counts as an active filter — clearing the chip lands on "All Transactions".
+    const filterModel = React.useMemo(
+        () => buildFilterModel(programFilter, invokedPrograms, cluster, transactions.length),
+        [programFilter, invokedPrograms, cluster, transactions.length],
+    );
+    const isProgramFilterSet = programFilter !== ALL_TRANSACTIONS;
+
     if (transactions.length === 0) {
         return <ErrorCard text="This block has no transactions" />;
     }
@@ -283,13 +296,40 @@ export function BlockHistoryCard({
 
         return (
             <CollapsibleSection
-                title={title}
+                // The record count rides in the title as a muted, smaller run — "N filtered records" when a
+                // filter is active, otherwise "N records".
+                title={
+                    <>
+                        {/* Gap lives on the title (`mr-2`), not the count, so when the count wraps to its own
+                            line it sits flush-left under the title instead of indented. */}
+                        <span className="mr-2">Block Transactions</span>
+                        {/* `inline-block` makes the count an atomic unit: it stays on one line and wraps to
+                            the next line whole when it can't sit beside the title; its width is measured
+                            against the full container, so words only break once the block itself overflows. */}
+                        <span className="inline-block text-sm font-normal text-outer-space-300">
+                            {filteredTransactions.length}{' '}
+                            {isProgramFilterSet || accountFilter !== null ? 'filtered records' : 'records'}
+                        </span>
+                    </>
+                }
                 className=""
+                // Buttons form the second column, bottom-aligned; `gap-4` keeps the chip off them.
+                titleClassName="!items-end gap-4"
+                // Only the active-filter chip sits under the title now. `-mt-1` trims 4px off the title
+                // column's 8px gap (bringing the count text closer); `mb-0.5` adds 2px under the chip on
+                // top of the section's own 12px gap to the table.
+                belowTitle={
+                    isProgramFilterSet ? (
+                        <div className="-mt-1 mb-0.5 flex flex-wrap items-center gap-2">
+                            <FilterChip label={filterModel.current.name} />
+                        </div>
+                    ) : undefined
+                }
                 actions={
                     <FilterDropdown
-                        filter={programFilter}
-                        invokedPrograms={invokedPrograms}
-                        totalTransactionCount={transactions.length}
+                        options={filterModel.options}
+                        currentFilter={programFilter}
+                        isFilterSet={isProgramFilterSet}
                     />
                 }
             >
@@ -339,11 +379,17 @@ export function BlockHistoryCard({
                     {title}
                 </CardTitle>
                 <FilterDropdown
-                    filter={programFilter}
-                    invokedPrograms={invokedPrograms}
-                    totalTransactionCount={transactions.length}
-                ></FilterDropdown>
+                    options={filterModel.options}
+                    currentFilter={programFilter}
+                    isFilterSet={isProgramFilterSet}
+                />
             </CardHeader>
+
+            {isProgramFilterSet && (
+                <CardBody ui="dashkit">
+                    <FilterChip label={filterModel.current.name} />
+                </CardBody>
+            )}
 
             {accountFilter !== null && (
                 <CardBody ui="dashkit">
@@ -364,7 +410,10 @@ export function BlockHistoryCard({
                 <BaseTable ui="dashkit" variant="card" nowrap>
                     <BaseTable.Head>
                         <BaseTable.Row>
-                            <BaseTable.HeaderCell className="cursor-pointer text-dk-gray-700" onClick={() => pushSort()}>
+                            <BaseTable.HeaderCell
+                                className="cursor-pointer text-dk-gray-700"
+                                onClick={() => pushSort()}
+                            >
                                 #
                             </BaseTable.HeaderCell>
                             <BaseTable.HeaderCell className="text-dk-gray-700">Result</BaseTable.HeaderCell>
@@ -523,12 +572,14 @@ const numberFmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
 
 // Sort affordance for a header: a dim up/down chevron pair signals the column is clickable; on the
 // active column the arrow for the current direction lights up bright white (the other stays dim).
-// The chevron stack is taller than the header text, so it's absolutely positioned inside a text-height
-// box — it never grows the row. `-translate-y-[calc(50%+1px)]` centres it, then nudges it 1px higher.
+// The chevron stack is taller than the header text, so it's absolutely positioned inside a box whose
+// height matches the header line (`h-4` = text-xs line-height) and centred — it never grows the row,
+// and the top/bottom overflow stays symmetric so the header's own padding reads even. The box is `w-1`
+// (narrower than the glyphs) so the chevrons overflow it and centre tightly under the label.
 function SortIndicator({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
     return (
-        <span className="relative inline-block h-4 w-3 align-top">
-            <span className="absolute inset-x-0 top-1/2 flex -translate-y-[calc(50%+1px)] flex-col items-center leading-none">
+        <span className="relative inline-block h-4 w-1">
+            <span className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center leading-none">
                 <ChevronUp
                     size={11}
                     strokeWidth={2.5}
@@ -605,15 +656,11 @@ function BlockHistoryGrid({
                             )}
                             onClick={sortable ? () => onSort(header.sortKey) : undefined}
                         >
-                            {/* For right-aligned numeric columns the indicator goes to the LEFT of the label so
-                                the label's right edge still lines up exactly with the values below; the "#"
-                                column (left-aligned) keeps it on the right. */}
-                            <span className="inline-flex items-center gap-1">
-                                {sortable && header.numeric && (
-                                    <SortIndicator active={active} direction={active ? sortDirection : 'desc'} />
-                                )}
+                            {/* The chevron pair always follows the label (right-aligned numeric columns keep it
+                                to the right of the label too). */}
+                            <span className="inline-flex items-center gap-2">
                                 {header.label}
-                                {sortable && !header.numeric && (
+                                {sortable && (
                                     <SortIndicator active={active} direction={active ? sortDirection : 'desc'} />
                                 )}
                             </span>
@@ -662,7 +709,9 @@ function BlockHistoryGridRow({
             <div className="grid items-center gap-x-1.5 gap-y-0.5" style={{ gridTemplateColumns: 'auto 1fr' }}>
                 {entries.map(([programId, count]) => (
                     <React.Fragment key={programId}>
-                        <span className="whitespace-nowrap text-right tabular-nums text-outer-space-300">{count} ×</span>
+                        <span className="whitespace-nowrap text-right tabular-nums text-outer-space-300">
+                            {count} ×
+                        </span>
                         <Address pubkey={new PublicKey(programId)} link />
                     </React.Fragment>
                 ))}
@@ -740,12 +789,6 @@ function BlockHistoryMobileField({
     );
 }
 
-type FilterProps = {
-    filter: string;
-    invokedPrograms: Map<string, number>;
-    totalTransactionCount: number;
-};
-
 const ALL_TRANSACTIONS = 'all';
 const HIDE_VOTES = '';
 
@@ -755,37 +798,38 @@ type FilterOption = {
     transactionCount: number;
 };
 
-const FilterDropdown = ({ filter, invokedPrograms, totalTransactionCount }: FilterProps) => {
-    const { cluster } = useCluster();
+// Builds the dropdown's option list plus the currently-active option. Kept as a plain function (not a
+// component) so both the dropdown and the removable chip below the title work off the same model.
+// "All Except Votes" is the empty-param default; "All Transactions" is the "no filter" state.
+function buildFilterModel(
+    filter: string,
+    invokedPrograms: Map<string, number>,
+    cluster: Parameters<typeof displayAddress>[1],
+    totalTransactionCount: number,
+): { current: FilterOption; options: FilterOption[] } {
     const defaultFilterOption: FilterOption = {
         name: 'All Except Votes',
         programId: HIDE_VOTES,
         transactionCount: totalTransactionCount - (invokedPrograms.get(VOTE_PROGRAM_ID.toBase58()) || 0),
     };
-
     const allTransactionsOption: FilterOption = {
         name: 'All Transactions',
         programId: ALL_TRANSACTIONS,
         transactionCount: totalTransactionCount,
     };
 
-    let currentFilterOption = filter !== ALL_TRANSACTIONS ? defaultFilterOption : allTransactionsOption;
-
-    const filterOptions: FilterOption[] = [defaultFilterOption, allTransactionsOption];
+    let current = filter === ALL_TRANSACTIONS ? allTransactionsOption : defaultFilterOption;
+    const options: FilterOption[] = [defaultFilterOption, allTransactionsOption];
 
     invokedPrograms.forEach((transactionCount, programId) => {
-        const name = displayAddress(programId, cluster);
+        const option: FilterOption = { name: displayAddress(programId, cluster), programId, transactionCount };
         if (filter === programId) {
-            currentFilterOption = {
-                name: `${name} Transactions (${transactionCount})`,
-                programId,
-                transactionCount,
-            };
+            current = option;
         }
-        filterOptions.push({ name, programId, transactionCount });
+        options.push(option);
     });
 
-    filterOptions.sort((a, b) => {
+    options.sort((a, b) => {
         if (a.transactionCount !== b.transactionCount) {
             return b.transactionCount - a.transactionCount;
         } else {
@@ -793,27 +837,105 @@ const FilterDropdown = ({ filter, invokedPrograms, totalTransactionCount }: Filt
         }
     });
 
+    return { current, options };
+}
+
+const FilterDropdown = ({
+    options,
+    currentFilter,
+    isFilterSet,
+}: {
+    options: FilterOption[];
+    currentFilter: string;
+    isFilterSet: boolean;
+}) => {
+    const [query, setQuery] = React.useState('');
+    const trimmed = query.trim().toLowerCase();
+    const visibleOptions = trimmed === '' ? options : options.filter(o => o.name.toLowerCase().includes(trimmed));
+
     return (
         <Dropdown className="mr-1.5">
             <DropdownToggle asChild>
-                <Button ui="dashkit" variant="white" size="sm" type="button">
-                    {currentFilterOption.name} <ChevronDown className="align-text-top" size={13} />
+                {/* Icon-only below md; the label appears from md up. The dot marks an active filter. */}
+                <Button ui="dashkit" variant="white" size="sm" type="button" className="relative" aria-label="Filters">
+                    <Filter size={13} className="relative top-0.5 inline align-text-top md:mr-1.5" />
+                    <span className="hidden md:inline">Filters</span>
+                    {isFilterSet && (
+                        // `bg-accent` (≈ accent-600) is the dot; the ring is `accent-700`, the next darker
+                        // step in the tw palette, so the badge reads as a two-tone green.
+                        <span
+                            aria-hidden
+                            className="absolute -right-[3px] -top-[3px] h-2.5 w-2.5 rounded-full border border-solid border-accent-700 bg-accent"
+                        />
+                    )}
                 </Button>
             </DropdownToggle>
-            <DropdownMenu align="end" className="max-h-80 overflow-y-auto !border-white/20">
-                {filterOptions.map(({ name, programId, transactionCount }) => (
-                    <FilterLink
-                        currentFilter={filter}
-                        key={programId}
-                        name={name}
-                        programId={programId}
-                        transactionCount={transactionCount}
-                    />
-                ))}
+            <DropdownMenu align="end" className="mt-0.5 w-[280px] !border-white/20">
+                {/* `-mt-2` cancels the menu's base `py-2` (8px) above the field so the search box sits 10px
+                    from every edge — otherwise the menu's top padding stacks with this container's. */}
+                <div className="-mt-2 p-2.5">
+                    <div className="relative">
+                        <Search
+                            size={13}
+                            className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-outer-space-300"
+                        />
+                        <Input
+                            variant="dark"
+                            value={query}
+                            onChange={event => setQuery(event.target.value)}
+                            placeholder="Program"
+                            // Height comes from the base py-2.5 (10px) alone — a fixed height would add to
+                            // the padding under Storybook's content-box (no Preflight) and read as > 10px.
+                            className="!h-auto pl-8"
+                        />
+                    </div>
+                </div>
+                <div className="max-h-72 overflow-y-auto">
+                    {visibleOptions.length === 0 ? (
+                        <div className="px-6 py-1.5 text-dk-base text-dark-muted-foreground">No matches</div>
+                    ) : (
+                        visibleOptions.map(({ name, programId, transactionCount }) => (
+                            <FilterLink
+                                currentFilter={currentFilter}
+                                key={programId}
+                                name={name}
+                                programId={programId}
+                                transactionCount={transactionCount}
+                            />
+                        ))
+                    )}
+                </div>
             </DropdownMenu>
         </Dropdown>
     );
 };
+
+// The active filter shown as a removable chip below the block title. Clearing it resets to
+// "All Transactions" (the "no filter" state), so the trailing param lands on `filter=all`.
+function FilterChip({ label }: { label: string }) {
+    const currentSearchParams = useSearchParams();
+    const currentPathname = usePathname();
+    const resetHref = useMemo(() => {
+        const params = new URLSearchParams(currentSearchParams?.toString());
+        params.set('filter', ALL_TRANSACTIONS);
+        const nextQueryString = params.toString();
+        return `${currentPathname}${nextQueryString ? `?${nextQueryString}` : ''}`;
+    }, [currentPathname, currentSearchParams]);
+
+    return (
+        <div className="inline-flex max-w-full items-center rounded-full border border-solid border-outer-space-800 bg-outer-space-900 py-0.5 pl-2.5 pr-0.5 text-sm text-white">
+            <span className="mr-1.5 shrink-0 text-outer-space-300">Program</span>
+            <span className="min-w-0 truncate">{label}</span>
+            <Link
+                href={resetHref}
+                aria-label="Clear filter"
+                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-outer-space-300 hover:bg-white/10 hover:text-white"
+            >
+                <X size={13} />
+            </Link>
+        </div>
+    );
+}
 
 function FilterLink({
     currentFilter,
@@ -830,16 +952,21 @@ function FilterLink({
     const currentPathname = usePathname();
     const href = useMemo(() => {
         const params = new URLSearchParams(currentSearchParams?.toString());
-        if (name === HIDE_VOTES) {
+        if (programId === HIDE_VOTES) {
             params.delete('filter');
         } else {
             params.set('filter', programId);
         }
         const nextQueryString = params.toString();
         return `${currentPathname}${nextQueryString ? `?${nextQueryString}` : ''}`;
-    }, [currentPathname, currentSearchParams, name, programId]);
+    }, [currentPathname, currentSearchParams, programId]);
     return (
-        <DropdownItem asChild className={cn(programId === currentFilter && 'active')} key={programId}>
+        <DropdownItem
+            asChild
+            // Fixed-width menu: long program names wrap instead of widening it (override the base nowrap).
+            className={cn('!whitespace-normal break-words', programId === currentFilter && 'active')}
+            key={programId}
+        >
             <Link href={href} className="relative">
                 {programId === currentFilter && (
                     <span

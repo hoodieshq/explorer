@@ -25,7 +25,8 @@ type AccountStats = {
 export type BlockAccountsVariant = 'default' | 'collapsible';
 
 // Surface matched to the transaction tables (see BaseDomainsCard) — set on a `variant="tight"` Card.
-const TIGHT_CARD = 'overflow-hidden rounded-lg border-outer-space-800 bg-outer-space-900';
+// `!rounded-lg` (8px) forces the radius over the tw base's `rounded-xl` (12px) — see BlockHistoryCard.
+const TIGHT_CARD = 'overflow-hidden !rounded-lg border-outer-space-800 bg-outer-space-900';
 
 const PAGE_SIZE = 25;
 
@@ -229,7 +230,7 @@ function AccountsGrid({
             <div
                 style={ACCOUNTS_GRID}
                 className={cn(
-                    'hidden gap-5 px-3 py-2.5 md:px-4 md:grid',
+                    'hidden gap-5 px-3 py-2.5 md:grid md:px-4',
                     'border-b border-solid border-white/10',
                     'text-xs uppercase text-outer-space-300',
                 )}
@@ -290,7 +291,7 @@ function AccountsGridRow({
     return (
         <div className="border-b border-solid border-white/10 last:border-b-0">
             {/* Mobile / tablet — stacked, labelled rows. Label column matches BlockOverviewCard. */}
-            <div className="flex flex-col gap-1 px-3 py-3 md:px-4 md:hidden">
+            <div className="flex flex-col gap-1 px-3 py-3 md:hidden md:px-4">
                 <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2">
                     <span className="text-outer-space-300">Account</span>
                     <Link href={accountPath} className="block min-w-0">
@@ -313,7 +314,7 @@ function AccountsGridRow({
             </div>
 
             {/* Desktop grid row. */}
-            <div style={ACCOUNTS_GRID} className="hidden items-start gap-5 px-3 py-2.5 md:px-4 md:grid">
+            <div style={ACCOUNTS_GRID} className="hidden items-start gap-5 px-3 py-2.5 md:grid md:px-4">
                 <div className="min-w-0">
                     <Link href={accountPath} className="block min-w-0">
                         <Address pubkey={new PublicKey(address)} />
