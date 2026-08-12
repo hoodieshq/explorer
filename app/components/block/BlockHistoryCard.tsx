@@ -123,19 +123,21 @@ export function BlockHistoryCard({
     // Sort is driven by URL params (`sort` + `dir`); the grid variant's sortable headers push through here.
     // Clicking the active column flips its direction; clicking another column selects it at its natural
     // default direction. `index` ascending is the default view, so it's written as no params (clean URL);
-    // passing no key clears the sort entirely (the old table's "#" reset). We build the URL from a copy of
-    // the current params so a `delete` actually drops the keys — `pickClusterParams` only adds/overrides.
+    // passing no key clears the sort entirely (the old table's "#" reset). The mobile sort menu passes an
+    // explicit direction (its rows are per-direction) which short-circuits the toggle. We build the URL
+    // from a copy of the current params so a `delete` drops the keys — `pickClusterParams` only overrides.
     const pushSort = React.useCallback(
-        (sortKey?: SortMode) => {
+        (sortKey?: SortMode, explicitDirection?: SortDirection) => {
             const nextParams = new URLSearchParams(currentSearchParams?.toString());
             const nextDirection: SortDirection =
-                sortKey && sortKey === sortMode
+                explicitDirection ??
+                (sortKey && sortKey === sortMode
                     ? sortDirection === 'asc'
                         ? 'desc'
                         : 'asc'
                     : sortKey
                       ? DEFAULT_DIRECTION[sortKey]
-                      : 'asc';
+                      : 'asc');
             if (sortKey && !(sortKey === 'index' && nextDirection === 'asc')) {
                 nextParams.set('sort', sortKey);
                 nextParams.set('dir', nextDirection);
@@ -326,11 +328,21 @@ export function BlockHistoryCard({
                     ) : undefined
                 }
                 actions={
-                    <FilterDropdown
-                        options={filterModel.options}
-                        currentFilter={programFilter}
-                        isFilterSet={isProgramFilterSet}
-                    />
+                    <>
+                        {/* Mobile-only: the grid's sort headers are hidden below md, so surface them here,
+                            to the left of the filter. */}
+                        <SortDropdown
+                            showComputeUnits={showComputeUnits}
+                            sortMode={sortMode}
+                            sortDirection={sortDirection}
+                            onSort={pushSort}
+                        />
+                        <FilterDropdown
+                            options={filterModel.options}
+                            currentFilter={programFilter}
+                            isFilterSet={isProgramFilterSet}
+                        />
+                    </>
                 }
             >
                 <div className="flex flex-col gap-3">
@@ -905,6 +917,102 @@ const FilterDropdown = ({
                         ))
                     )}
                 </div>
+            </DropdownMenu>
+        </Dropdown>
+    );
+};
+
+// Sortable columns in header order, mirroring the grid's clickable headers (Compute only when its data
+// exists). The nouns fill the "Lowest …" / "Highest …" sort-menu labels.
+const SORT_NOUNS: Record<SortMode, string> = {
+    compute: 'CUs consumed',
+    fee: 'fee',
+    index: 'index',
+    reservedCUs: 'CUs reserved',
+    txnCost: 'cost',
+};
+
+function sortModes(showComputeUnits: boolean): SortMode[] {
+    return ['index', 'fee', ...(showComputeUnits ? (['compute'] as const) : []), 'reservedCUs', 'txnCost'];
+}
+
+// The two-glyph indicator used in the sort menu: the arrow for this row's direction takes the row's text
+// colour (`text-current`), the other stays a dimmer, darker grey.
+function SortOptionGlyph({ direction }: { direction: SortDirection }) {
+    return (
+        <span aria-hidden className="relative inline-block h-4 w-2 align-text-top">
+            <span className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center leading-none">
+                <ChevronUp
+                    size={11}
+                    strokeWidth={2.5}
+                    className={direction === 'asc' ? 'text-current' : 'text-outer-space-600'}
+                />
+                <ChevronDown
+                    size={11}
+                    strokeWidth={2.5}
+                    className={cn('-mt-1', direction === 'desc' ? 'text-current' : 'text-outer-space-600')}
+                />
+            </span>
+        </span>
+    );
+}
+
+// Mobile-only counterpart to the grid's sortable headers (hidden below md): a "Filters"-style button
+// opening every sort column split into its two directions ("Lowest …" ascending, "Highest …" descending).
+// Each row pushes an explicit direction through the same `onSort` (pushSort) path the headers use.
+const SortDropdown = ({
+    showComputeUnits,
+    sortMode,
+    sortDirection,
+    onSort,
+}: {
+    showComputeUnits: boolean;
+    sortMode: SortMode;
+    sortDirection: SortDirection;
+    onSort: (sortKey: SortMode, direction: SortDirection) => void;
+}) => {
+    const options = sortModes(showComputeUnits).flatMap(mode => [
+        { direction: 'asc' as SortDirection, label: `Lowest ${SORT_NOUNS[mode]}`, mode },
+        { direction: 'desc' as SortDirection, label: `Highest ${SORT_NOUNS[mode]}`, mode },
+    ]);
+
+    return (
+        <Dropdown className="mr-1.5 md:hidden">
+            <DropdownToggle asChild>
+                <Button ui="dashkit" variant="white" size="sm" type="button" aria-label="Sort">
+                    {/* Up/down chevron pair — the same sort motif the table headers carry. */}
+                    <span aria-hidden className="relative inline-block h-4 w-3 align-text-top">
+                        <span className="absolute inset-x-0 top-1/2 flex -translate-y-1/2 flex-col items-center leading-none">
+                            <ChevronUp size={11} strokeWidth={2.5} />
+                            <ChevronDown size={11} strokeWidth={2.5} className="-mt-1" />
+                        </span>
+                    </span>
+                </Button>
+            </DropdownToggle>
+            <DropdownMenu align="end" className="mt-0.5 w-[220px] !border-white/20">
+                {options.map(({ direction, label, mode }) => {
+                    const active = sortMode === mode && sortDirection === direction;
+                    return (
+                        <DropdownItem
+                            key={`${mode}-${direction}`}
+                            role="button"
+                            onClick={() => onSort(mode, direction)}
+                            className={cn('relative cursor-pointer', active && 'active')}
+                        >
+                            {active && (
+                                <span
+                                    aria-hidden
+                                    className="absolute left-2.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full bg-current"
+                                />
+                            )}
+                            {/* Glyph sits right after the label, not pushed to the row's end. */}
+                            <span className="inline-flex items-center gap-1.5">
+                                {label}
+                                <SortOptionGlyph direction={direction} />
+                            </span>
+                        </DropdownItem>
+                    );
+                })}
             </DropdownMenu>
         </Dropdown>
     );
