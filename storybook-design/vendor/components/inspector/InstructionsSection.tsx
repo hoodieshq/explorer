@@ -2,6 +2,7 @@
    from these rules by the TODO allowlists in eslint.config.mjs, which only match app/**. */
 import { BaseInstructionCard } from '@components/common/BaseInstructionCard';
 import { isParsedInstruction, toParsedTransaction, useInstructionParser } from '@entities/instruction-parser';
+import { AssociatedTokenDetailsCard } from '@features/decode-instruction-associated-token';
 import { LighthouseDetailsCard } from '@features/decode-instruction-lighthouse';
 import { IdlInstructionCard, useIdlInstructionDecode } from '@features/decode-instruction-with-idl';
 import { MetaplexTokenMetadataDetailsCard } from '@features/mpl-token-metadata';
@@ -23,7 +24,6 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { ErrorCard } from '@/app/components/common/ErrorCard';
 import { InspectorInstructionCard as InspectorInstructionCardComponent } from '@/app/components/common/InspectorInstructionCard';
 import { LoadingCard } from '@/app/components/common/LoadingCard';
-import { AssociatedTokenDetailsCard } from '@features/decode-instruction-associated-token';
 import { AddressWithContextCell } from '@/app/components/inspector/AddressWithContextCell';
 import { UnknownDetailsCard } from '@/app/components/inspector/UnknownDetailsCard';
 import { BpfUpgradeableLoaderDetailsCard } from '@/app/components/instruction/bpf-upgradeable-loader/BpfUpgradeableLoaderDetailsCard';
