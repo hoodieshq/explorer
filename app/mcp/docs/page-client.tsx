@@ -9,12 +9,17 @@ import {
 
 export default function McpDocsPageClient() {
     const [version, setVersion] = useMcpDocsVersion();
-    return (
-        <>
-            <div className="mx-auto w-full max-w-3xl px-4 pt-6">
-                <VersionSwitcher value={version} onChange={setVersion} />
-            </div>
-            {version === 'v2' ? <McpDocsOverviewViewV2 /> : <McpDocsOverviewView />}
-        </>
-    );
+
+    // The v1 prototype is hidden behind the #v1 hash; only there does the switcher show up.
+    if (version === 'v1') {
+        return (
+            <>
+                <div className="mx-auto w-full max-w-3xl px-4 pt-6">
+                    <VersionSwitcher value={version} onChange={setVersion} />
+                </div>
+                <McpDocsOverviewView />
+            </>
+        );
+    }
+    return <McpDocsOverviewViewV2 />;
 }

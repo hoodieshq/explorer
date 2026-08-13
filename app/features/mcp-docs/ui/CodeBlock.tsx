@@ -39,7 +39,8 @@ export function CodeBlock({
                 aria-label="Copy to clipboard"
                 onClick={() => copy(code)}
                 className={cn(
-                    'absolute right-2 top-2 cursor-pointer rounded border-0 bg-transparent p-1.5',
+                    // `flex` collapses the svg's inline line box, keeping the button square.
+                    'absolute right-3 top-3 flex cursor-pointer rounded border-0 bg-transparent p-1.5',
                     'text-neutral-500 hover:bg-heavy-metal-800 hover:text-neutral-200',
                     state === 'copied' && 'text-dark-accent hover:text-dark-accent',
                     state === 'errored' && 'text-red-500 hover:text-red-500',

@@ -1,43 +1,218 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Minus, Plus, Tool } from 'react-feather';
+import React, { useEffect, useRef, useState } from 'react';
+import { Check, Copy, Minus, Plus, Tool, X, XCircle } from 'react-feather';
 
 import { Button } from '@/app/components/shared/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/shared/ui/tabs';
 import { cn } from '@/app/components/shared/utils';
+import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
 
 import { AGENT_INSTRUCTIONS_SNIPPET, AGENT_INSTRUCTIONS_TARGETS, SETUP_CLIENTS_OPEN } from '../lib/setup-clients';
 import { useDeploymentOrigin } from '../lib/useDeploymentOrigin';
 import { CodeBlock } from './CodeBlock';
+import { CopyableEndpoint } from './CopyableEndpoint';
 import { DocCard } from './DocCard';
 import { InlineCode } from './DocSection';
 
-// Real entities only (customer feedback: "make the example actual examples").
-const EXAMPLES = [
+/** Table inside an example answer, mirroring the tables the agent printed. */
+function AnswerTable({ head, rows }: { head: string[]; rows: string[][] }) {
+    return (
+        <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-xs">
+                <thead>
+                    <tr>
+                        {head.map(title => (
+                            <th
+                                key={title}
+                                className="border border-solid border-white/10 px-2.5 py-1.5 text-left font-medium text-neutral-400"
+                            >
+                                {title}
+                            </th>
+                        ))}
+                    </tr>
+                </thead>
+                <tbody>
+                    {rows.map(row => (
+                        <tr key={row[0]}>
+                            {row.map(cell => (
+                                <td
+                                    key={cell}
+                                    className="border border-solid border-white/10 px-2.5 py-1.5 align-top text-neutral-300 [overflow-wrap:anywhere]"
+                                >
+                                    {cell}
+                                </td>
+                            ))}
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+/** Bold intra-answer heading, standing in for the terminal's highlighted lines. */
+function AnswerHeading({ children }: { children: React.ReactNode }) {
+    return <p className="m-0 font-medium text-white">{children}</p>;
+}
+
+// Real conversations with a coding agent connected to this MCP server, shortened
+// without losing the facts; the long tails sit in `more` behind "Expand message".
+const EXAMPLES: { answer: React.ReactNode; label: string; more?: React.ReactNode; question: string; tool: string }[] = [
     {
-        answer: 'USDC — an spl-token:mint with 6 decimals and variable supply. The mint authority (BJE5MMbq…5ruG) is still active and a freeze authority (7dGbd2QZ…Crar) is set.',
+        answer: (
+            <>
+                <p className="m-0">{'USDC (EPjFWdd5...) — SPL Token mint on mainnet-beta:'}</p>
+                <AnswerTable
+                    head={['Field', 'Value']}
+                    rows={[
+                        ['Mint authority', 'BJE5MMbqXjVwjAF7oxwPYXnTXDyspzZyt4vwenNw5ruG'],
+                        ['Supply', '7748676460441051 raw → 7,748,676,460.441051 USDC'],
+                        ['Decimals', '6'],
+                    ]}
+                />
+                <p className="m-0">
+                    {
+                        'Supply is variable (mint authority present); freeze authority is 7dGbd2QZcCKcTndnHcTL8q7SMVXAkp688NTQYwrRCrar.'
+                    }
+                </p>
+            </>
+        ),
         label: 'Token mint',
         question: 'What are the mint authority, supply and decimals of EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v?',
         tool: 'inspect_entity',
     },
     {
-        answer: 'SQDS4ep6…pCf is an upgradeable program (bpf-upgradeable-loader). The payload names its upgrade authority and last deploy slot, and reports the on-chain Anchor IDL it publishes.',
+        answer: (
+            <>
+                <p className="m-0">
+                    {'Squads Multisig Program (SQDS4ep65T...) — BPF upgradeable-loader program on mainnet-beta.'}
+                </p>
+                <p className="m-0">
+                    {
+                        'Upgradeable: no — upgrade_authority: null, the authority was revoked, so the program is frozen. Last deployed at slot 302582236; executable data lives at Fy3YMJCvwbAXUgUM5b91ucUVA3jYzwWLHL3MwBqKsh8n.'
+                    }
+                </p>
+                <p className="m-0">
+                    {
+                        'IDL: yes — published on-chain via Anchor, served as Codama, program name "Squads Multisig Program".'
+                    }
+                </p>
+                <p className="m-0">
+                    {
+                        'Extras: a verified build against Squads-Protocol/v4 @ 2a47b4c (signer sqdcVVoTcKZjXU8yPUwKFbGx1Hig1rhbWJQtMRXp2E1) and an embedded security.txt — audited by OtterSec and Neodyme, contact security@sqds.io.'
+                    }
+                </p>
+            </>
+        ),
         label: 'Program inspection',
         question: 'Inspect SQDS4ep65T869zMMBKyuUq6aD6EgTu8psMjkvj52pCf — is it upgradeable and does it publish an IDL?',
         tool: 'inspect_entity',
     },
     {
-        answer: 'Every instruction comes back decoded — program name, typed args and accounts — with inner instructions nested under their parent. Programs publishing an on-chain IDL decode through it; token instructions decode through bundled parsers; the rest stay labeled raw.',
+        answer: (
+            <>
+                <p className="m-0">
+                    {
+                        'A v0 message, success, finalized at slot 439023338. One signer: EVybKZ6kp8CccQSkcAdfsstG5aX8mbQQC6jrKTcuFhVp. Fee 5000 lamports, CU consumed 67888; 53 accounts total, 34 pulled in from 5 address lookup tables.'
+                    }
+                </p>
+                <p className="m-0">
+                    {
+                        'There are no inner instructions — anywhere: three invoke [1] lines in the logs and no [2] depth at all. That is the most interesting fact in this transaction.'
+                    }
+                </p>
+            </>
+        ),
         label: 'Transaction walkthrough',
+        more: (
+            <>
+                <AnswerHeading>Instruction 1 — ComputeBudget</AnswerHeading>
+                <p className="m-0">
+                    {
+                        'SetComputeUnitLimit, value 600,000. No SetComputeUnitPrice anywhere, so no priority fee — the 5000 lamport fee is base fee only.'
+                    }
+                </p>
+                <AnswerHeading>Instruction 2 — System transfer</AnswerHeading>
+                <p className="m-0">
+                    {
+                        'system::transfer, 1002 lamports from EVybKZ6k… (the signer) → Cw8CFyM9FkoMi7K7Crf6HNQqf4uEMzpKw6QNghXLvLkY. Trivially small, and not a Jito tip pattern.'
+                    }
+                </p>
+                <AnswerHeading>
+                    Instruction 3 — unknown program 8GCr9711iFUmGdW4vPGoBYHoLEACKHKY8aycYNuxViXk
+                </AnswerHeading>
+                <p className="m-0">
+                    {
+                        'The whole payload of the transaction: 53 account references, 154 bytes of data, 67,588 CU consumed. Not decodable — the program is unverified and publishes no IDL (authority 2zYaeycd8jK1RjH9ZXLTHJp13xjmdC5FhPpSWtZrsXwp, deployed at slot 436916586), so the instruction stays raw.'
+                    }
+                </p>
+                <p className="m-0">
+                    {
+                        'The account list still talks: LBUZKhRxPF3XUpBCjp4YzTKgLccjZhTSDM9YuVaPwxo (Meteora DLMM), pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA (PumpSwap AMM) plus pfeeUxB6… (PumpSwap fee config), full token infra, and pool/vault-looking accounts from the lookup tables — a multi-venue swap router shape.'
+                    }
+                </p>
+                <AnswerHeading>The thing worth flagging</AnswerHeading>
+                <p className="m-0">
+                    {
+                        'A 53-account instruction touching two AMM programs issued zero CPIs — it burned 67.5k CU reading accounts and returned success without invoking Token, Meteora, or PumpSwap even once. The consistent read (inference, not proof) is an arbitrage/MEV bot: load candidate pools, compute profitability on-chain, exit cleanly when the opportunity is not there. For certainty you would need the program source or a dump of its executable data (FkFnystz3DzSqDr3o64nLsUkecA9dvd9nNTrHZZBCtwQ).'
+                    }
+                </p>
+                <p className="m-0">
+                    {
+                        'The 154-byte payload has no recognizable Anchor discriminator; two constants stand out — e8764817 = 390,000,000 (0.39 SOL if lamports) and a trailing f64 1.0, which reads like a threshold/slippage parameter.'
+                    }
+                </p>
+            </>
+        ),
         question:
-            'Walk me through this transaction signature instruction by instruction, including inner instructions.',
+            'Walk me through this transaction signature 3MVAxtaFp76y23DBd3MdXTEjpzH8zFtVB1HtVdYSKqZPpx1R9gEkDXCF9bX26vkAvyerz2K54eMCFF7cPpkzArM1 instruction by instruction, including inner instructions.',
         tool: 'inspect_entity',
     },
     {
-        answer: 'The mint payload lists each parsed Token-2022 extension with its current config and its authority, so you can tell which knobs are still live and who holds them.',
+        answer: (
+            <>
+                <p className="m-0">
+                    {
+                        '"Sent from my Pumpfun App" (App) — Token-2022 mint, 6 decimals, supply 912,905,455.031061 App, fixed.'
+                    }
+                </p>
+                <p className="m-0">{'Only two extensions, and nobody can change any of them:'}</p>
+                <AnswerTable
+                    head={['Extension', 'Current state', 'Who can change it']}
+                    rows={[
+                        ['metadataPointer', 'points at the mint itself', 'authority: null — nobody'],
+                        [
+                            'tokenMetadata',
+                            'name "Sent from my Pumpfun App", symbol "App", uri, no additional fields',
+                            'updateAuthority: null — nobody',
+                        ],
+                    ]}
+                />
+            </>
+        ),
         label: 'Token-2022 extensions',
-        question: 'Which Token-2022 extensions are enabled on this mint, and who can still change them?',
+        more: (
+            <>
+                <p className="m-0">
+                    {
+                        'Mint and freeze authorities are also null (supply_type: fixed), and the extensions that carry real issuer power are simply absent: no permanentDelegate, no transferHook, no transferFeeConfig, no confidential-transfer config. There is no key anywhere with authority over this mint.'
+                    }
+                </p>
+                <p className="m-0">
+                    {
+                        'Two caveats before reading that as "safe": the on-chain metadata pointer is frozen, but it points at https://md.sdfgsdfsdf.uk/metadata/XGrhDXnd — whoever controls that domain can change the name, image and description at any time; and mint-level renunciation says nothing about liquidity or holder concentration — no authority to rug the mint ≠ no way to rug.'
+                    }
+                </p>
+                <p className="m-0">
+                    {
+                        'Incidentally, this mint appeared in the transaction above — one of the read-only accounts pulled in from lookup table BMAAGcWbUNNVE15DpETYXBW7L1Ba4jqq1JywECkzNLSW in instruction 3, consistent with scanning pools for this token and finding nothing worth executing.'
+                    }
+                </p>
+            </>
+        ),
+        question:
+            'Which Token-2022 extensions are enabled on this mint 49nkLrXi8nCZBVKsShDNasEtPe4Vn1mx9Xbr3kTa8pTL, and who can still change them?',
         tool: 'inspect_entity',
     },
 ];
@@ -75,6 +250,7 @@ export function McpDocsOverviewViewV2() {
     const origin = useDeploymentOrigin();
     const [client, setClient] = useState(SETUP_CLIENTS_OPEN[0].id);
     const [status, setStatus] = useState<EndpointStatus>({ state: 'checking' });
+    const [showHowToRun, setShowHowToRun] = useState(false);
 
     // Live health probe: any non-503 answer from /mcp means the endpoint is up.
     useEffect(() => {
@@ -114,10 +290,10 @@ export function McpDocsOverviewViewV2() {
             <DocCard transparent className="mb-12">
                 <div className="grid gap-x-8 gap-y-4 p-4 sm:grid-cols-2 sm:p-6">
                     <HeroFact label="Status">
-                        <StatusValue status={status} />
+                        <StatusValue status={status} onShowHowToRun={() => setShowHowToRun(true)} />
                     </HeroFact>
                     <HeroFact label="Endpoint">
-                        <span className="font-mono text-xs">{origin}/mcp</span>
+                        <CopyableEndpoint url={`${origin}/mcp`} />
                     </HeroFact>
                     <HeroFact label="Transport">
                         <span className="font-mono text-xs">Streamable HTTP, stateless</span>
@@ -132,6 +308,9 @@ export function McpDocsOverviewViewV2() {
                         <span className="font-mono text-xs">inspect_entity · ping</span>
                     </HeroFact>
                 </div>
+                {status.state === 'disabled' && showHowToRun && (
+                    <HowToRunHint origin={origin} onClose={() => setShowHowToRun(false)} />
+                )}
             </DocCard>
 
             {/* Setup */}
@@ -335,7 +514,80 @@ function ToolParam({ name, required, children }: { name: string; required?: bool
     );
 }
 
-function StatusValue({ status }: { status: EndpointStatus }) {
+/** Prompt for a coding agent that enables the endpoint — mirrors the steps shown in the hint. */
+function buildHowToRunPrompt(origin: string): string {
+    return [
+        `Enable the MCP endpoint of this Solana Explorer deployment (${origin}). The /mcp route answers 503 until it is explicitly enabled; all MCP configuration is environment-only (see .env.example).`,
+        '',
+        '1. Set MCP_ENDPOINT_ENABLED=true in the deployment environment — anything else keeps the endpoint disabled.',
+        '2. Optionally set MCP_ACCESS_KEYS (comma-separated bearer keys; unset means open access) and MCP_BLOCKED_IPS (comma-separated IPs rejected with 403).',
+        '3. The variables are read once at startup: on Vercel add them in Project Settings → Environment Variables and redeploy; for a local checkout put them in .env.local and restart the dev server.',
+        `4. Verify: GET ${origin}/mcp must stop answering 503, and an MCP client pointed at ${origin}/mcp should list the inspect_entity and ping tools.`,
+    ].join('\n');
+}
+
+/** Shown only when the live probe actually got a 503 (or could not reach /mcp at all). */
+function HowToRunHint({ onClose, origin }: { onClose: () => void; origin: string }) {
+    const [copyState, copy] = useCopyToClipboard(1000);
+
+    const copyIcon = {
+        copied: <Check size={14} aria-hidden />,
+        copy: <Copy size={14} aria-hidden />,
+        errored: <XCircle size={14} aria-hidden />,
+    }[copyState];
+
+    return (
+        <div className="border-0 border-t border-solid border-white/10 p-4 sm:p-6">
+            <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="m-0 text-sm font-medium text-white">How to run</h3>
+                <button
+                    type="button"
+                    aria-label="Close"
+                    onClick={onClose}
+                    className="flex cursor-pointer rounded border-0 bg-transparent p-1 text-neutral-500 hover:bg-heavy-metal-800 hover:text-neutral-200"
+                >
+                    <X size={14} aria-hidden />
+                </button>
+            </div>
+            <p className="mb-3 mt-0 text-sm leading-relaxed text-neutral-300">
+                The endpoint is opt-in by design — this deployment keeps <InlineCode>/mcp</InlineCode> answering{' '}
+                <InlineCode>503</InlineCode> until it is enabled explicitly:
+            </p>
+            <ol className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm leading-relaxed text-neutral-300">
+                <li>
+                    1. Set <InlineCode>MCP_ENDPOINT_ENABLED=true</InlineCode> in the deployment environment — anything
+                    else keeps the endpoint disabled. All MCP configuration is environment-only (see{' '}
+                    <InlineCode>.env.example</InlineCode>).
+                </li>
+                <li>
+                    2. Optionally set <InlineCode>MCP_ACCESS_KEYS</InlineCode> (comma-separated bearer keys; unset means
+                    open access) and <InlineCode>MCP_BLOCKED_IPS</InlineCode>.
+                </li>
+                <li>
+                    3. The variables are read once at startup: on Vercel add them in Project Settings → Environment
+                    Variables and redeploy; locally put them in <InlineCode>.env.local</InlineCode> and restart the dev
+                    server.
+                </li>
+                <li>4. Reload this page — Status flips to Ready.</li>
+            </ol>
+            <button
+                type="button"
+                onClick={() => copy(buildHowToRunPrompt(origin))}
+                className={cn(
+                    'mt-4 flex cursor-pointer items-center gap-1.5 rounded border border-solid border-white/10 bg-transparent px-2.5 py-1.5',
+                    'text-xs font-medium text-neutral-200 hover:bg-heavy-metal-800',
+                    copyState === 'copied' && 'text-dark-accent',
+                    copyState === 'errored' && 'text-red-500',
+                )}
+            >
+                {copyIcon}
+                {copyState === 'copied' ? 'Copied' : 'Copy prompt'}
+            </button>
+        </div>
+    );
+}
+
+function StatusValue({ onShowHowToRun, status }: { onShowHowToRun: () => void; status: EndpointStatus }) {
     if (status.state === 'checking') {
         return <span className="text-neutral-500">Checking…</span>;
     }
@@ -344,6 +596,13 @@ function StatusValue({ status }: { status: EndpointStatus }) {
             <span className="flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-neutral-500" aria-hidden />
                 Disabled
+                <button
+                    type="button"
+                    onClick={onShowHowToRun}
+                    className="cursor-pointer border-0 bg-transparent p-0 text-xs font-medium text-dark-accent hover:underline"
+                >
+                    How to run
+                </button>
             </span>
         );
     }
@@ -368,31 +627,53 @@ const EXAMPLE_ROTATION_MS = 6000;
 
 /**
  * Chat-app layout: example titles as a "chat list" beside a vertical divider,
- * the selected conversation on the right. Auto-advances; hover pauses; a click
- * selects. Conversations are stacked in one grid cell so the card keeps the
- * height of the tallest one.
+ * the selected conversation on the right. Auto-advances; hovering the card
+ * pauses the rotation, and any tap/click (a chat or "Expand message") parks it
+ * until the section scrolls out of view — important on touch devices with no
+ * hover. Long conversations start collapsed behind "Expand message" and
+ * collapse again on every conversation change.
  */
 function ExamplesCarousel() {
     const [index, setIndex] = useState(0);
-    const [paused, setPaused] = useState(false);
+    const [hovered, setHovered] = useState(false);
+    const [engaged, setEngaged] = useState(false);
+    const [expanded, setExpanded] = useState(false);
+    const rootRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
-        if (paused) {
+        if (hovered || engaged) {
             return;
         }
         const timer = setInterval(() => setIndex(current => (current + 1) % EXAMPLES.length), EXAMPLE_ROTATION_MS);
         return () => clearInterval(timer);
-        // `index` restarts the timer after a manual selection so the next auto-advance waits a full period.
-    }, [paused, index]);
+        // `index` restarts the timer after an auto-advance so every conversation gets a full period.
+    }, [hovered, engaged, index]);
+
+    // Every newly shown conversation starts collapsed — including returning to one expanded before.
+    useEffect(() => setExpanded(false), [index]);
+
+    // A tap/click parks the rotation; leaving the viewport re-arms it.
+    useEffect(() => {
+        if (!engaged || rootRef.current === null) {
+            return;
+        }
+        const observer = new IntersectionObserver(([entry]) => {
+            if (!entry.isIntersecting) {
+                setEngaged(false);
+            }
+        });
+        observer.observe(rootRef.current);
+        return () => observer.disconnect();
+    }, [engaged]);
 
     return (
         <DocCard
             transparent
             className="mb-12 overflow-hidden"
-            onMouseEnter={() => setPaused(true)}
-            onMouseLeave={() => setPaused(false)}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
         >
-            <div className="flex flex-col sm:flex-row">
+            <div ref={rootRef} className="flex flex-col sm:flex-row">
                 {/* Chat list */}
                 <div
                     role="tablist"
@@ -407,7 +688,12 @@ function ExamplesCarousel() {
                                 type="button"
                                 role="tab"
                                 aria-selected={active}
-                                onClick={() => setIndex(exampleIndex)}
+                                onClick={() => {
+                                    setIndex(exampleIndex);
+                                    // Re-selecting the current chat won't change `index` — collapse explicitly.
+                                    setExpanded(false);
+                                    setEngaged(true);
+                                }}
                                 className={cn(
                                     'cursor-pointer border-0 bg-transparent px-4 py-2.5 text-left text-sm sm:py-3',
                                     'border-solid transition-colors',
@@ -424,8 +710,9 @@ function ExamplesCarousel() {
                     })}
                 </div>
 
-                {/* Conversation view */}
-                <div className="grid min-w-0 grow">
+                {/* Conversation view: the active conversation defines the height (no inner scroll);
+                    inactive ones sit absolutely on top of it, kept mounted for the cross-fade. */}
+                <div className="relative min-w-0 grow">
                     {EXAMPLES.map((example, exampleIndex) => {
                         const active = exampleIndex === index;
                         return (
@@ -433,11 +720,13 @@ function ExamplesCarousel() {
                                 key={example.label}
                                 aria-hidden={!active}
                                 className={cn(
-                                    'col-start-1 row-start-1 flex flex-col justify-end gap-2 p-4 transition-opacity duration-500 sm:p-6',
-                                    active ? 'opacity-100' : 'pointer-events-none opacity-0',
+                                    'flex flex-col gap-2 p-4 transition-opacity duration-500 sm:p-6',
+                                    active
+                                        ? 'opacity-100'
+                                        : 'pointer-events-none absolute inset-0 overflow-hidden opacity-0',
                                 )}
                             >
-                                <div className="max-w-[85%] self-end rounded-2xl rounded-br-md border border-solid border-white/10 bg-white/10 px-4 py-2.5 text-sm leading-relaxed text-white">
+                                <div className="max-w-[85%] self-end rounded-2xl rounded-br-md border border-solid border-white/10 bg-white/10 px-4 py-2.5 text-sm leading-relaxed text-white [overflow-wrap:anywhere]">
                                     {example.question}
                                 </div>
                                 <div className="flex items-center gap-1.5 self-start px-1 text-xs text-neutral-500">
@@ -447,8 +736,21 @@ function ExamplesCarousel() {
                                         Explorer MCP
                                     </span>
                                 </div>
-                                <div className="max-w-[85%] self-start rounded-2xl rounded-bl-md border border-solid border-white/10 bg-white/5 px-4 py-2.5 text-sm leading-relaxed text-neutral-300">
+                                <div className="flex max-w-[85%] flex-col gap-3 self-start rounded-2xl rounded-bl-md border border-solid border-white/10 bg-white/5 px-4 py-2.5 text-sm leading-relaxed text-neutral-300 [overflow-wrap:anywhere]">
                                     {example.answer}
+                                    {expanded && example.more}
+                                    {example.more !== undefined && !expanded && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setExpanded(true);
+                                                setEngaged(true);
+                                            }}
+                                            className="cursor-pointer self-start border-0 bg-transparent p-0 text-xs font-medium text-dark-accent hover:underline"
+                                        >
+                                            Expand message
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         );

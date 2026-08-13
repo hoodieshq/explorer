@@ -15,6 +15,7 @@ import { ADVANCED_CHUNKS } from '../lib/advanced-chunks';
 import { AGENT_INSTRUCTIONS_SNIPPET, AGENT_INSTRUCTIONS_TARGETS, SETUP_CLIENTS } from '../lib/setup-clients';
 import { useDeploymentOrigin } from '../lib/useDeploymentOrigin';
 import { CodeBlock } from './CodeBlock';
+import { CopyableEndpoint } from './CopyableEndpoint';
 import { DocCard } from './DocCard';
 import { InlineCode } from './DocSection';
 
@@ -109,7 +110,7 @@ export function McpDocsOverviewView() {
             <DocCard transparent className="mb-12">
                 <div className="grid gap-x-8 gap-y-4 p-4 sm:grid-cols-2 sm:p-6">
                     <HeroFact label="Endpoint">
-                        <span className="font-mono text-xs">{origin}/mcp</span>
+                        <CopyableEndpoint url={`${origin}/mcp`} />
                     </HeroFact>
                     <HeroFact label="Transport">
                         <span className="font-mono text-xs">Streamable HTTP, stateless</span>

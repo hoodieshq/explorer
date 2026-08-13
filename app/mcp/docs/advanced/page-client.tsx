@@ -2,30 +2,27 @@
 
 import { useClusterPath } from '@utils/url';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
 
-import { McpDocsAdvancedView, useMcpDocsVersion, VersionSwitcher } from '@/app/features/mcp-docs';
+import { McpDocsAdvancedView, VersionSwitcher } from '@/app/features/mcp-docs';
 
+// The advanced reference is part of the hidden v1 prototype: nothing on the
+// shipped v2 page links here, and this page's hash is taken by its own section
+// anchors, so it renders unconditionally. The switcher only offers the way out.
 export default function McpDocsAdvancedPageClient() {
-    const [version, setVersion] = useMcpDocsVersion();
     const router = useRouter();
     const overviewPath = useClusterPath({ pathname: '/mcp/docs' });
-
-    // V2 has no advanced page — the tool reference lives on the overview.
-    useEffect(() => {
-        if (version === 'v2') {
-            router.replace(overviewPath);
-        }
-    }, [version, overviewPath, router]);
-
-    if (version === 'v2') {
-        return undefined;
-    }
 
     return (
         <>
             <div className="mx-auto w-full max-w-5xl px-4 pt-6">
-                <VersionSwitcher value={version} onChange={setVersion} />
+                <VersionSwitcher
+                    value="v1"
+                    onChange={version => {
+                        if (version === 'v2') {
+                            router.push(overviewPath);
+                        }
+                    }}
+                />
             </div>
             <McpDocsAdvancedView />
         </>

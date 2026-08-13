@@ -51,7 +51,8 @@ export function McpDocsAdvancedView() {
                     className="shrink-0 self-start rounded-xl border border-solid border-white/10 p-2 sm:sticky sm:top-6"
                 >
                     <Link
-                        href={overviewPath}
+                        // The advanced reference belongs to the v1 prototype — return to the v1 overview.
+                        href={`${overviewPath}#v1`}
                         className="flex items-center gap-2 rounded px-3 py-2 text-sm text-neutral-400 no-underline hover:bg-heavy-metal-900 hover:text-white"
                     >
                         <ArrowLeft size={14} aria-hidden />
