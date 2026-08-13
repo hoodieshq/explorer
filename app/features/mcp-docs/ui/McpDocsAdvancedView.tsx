@@ -48,7 +48,7 @@ export function McpDocsAdvancedView() {
             <div className="flex flex-col gap-8 sm:flex-row">
                 <nav
                     aria-label="Sections"
-                    className="shrink-0 self-start rounded-xl border border-solid border-white/10 p-2 sm:sticky sm:top-6 sm:w-60"
+                    className="shrink-0 self-start rounded-xl border border-solid border-white/10 p-2 sm:sticky sm:top-6"
                 >
                     <Link
                         href={overviewPath}
@@ -67,7 +67,7 @@ export function McpDocsAdvancedView() {
                                     type="button"
                                     onClick={() => select(chunk.anchor)}
                                     className={cn(
-                                        'cursor-pointer rounded border-0 px-3 py-2 text-left text-sm transition-colors',
+                                        'cursor-pointer rounded border-0 px-3 py-2 text-left text-sm transition-colors sm:whitespace-nowrap',
                                         isActive
                                             ? 'bg-heavy-metal-900 text-white'
                                             : 'bg-transparent text-neutral-400 hover:bg-heavy-metal-900 hover:text-neutral-200',
