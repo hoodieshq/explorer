@@ -23,7 +23,7 @@ const twVariantOptions = [
 
 type TwVariant = (typeof twVariantOptions)[number];
 
-const sizeOptions = ['default', 'sm', 'lg', 'icon', 'compact'] as const satisfies readonly ButtonSize[];
+const sizeOptions = ['default', 'sm', 'lg', 'icon', 'compact', 'tile'] as const satisfies readonly ButtonSize[];
 
 // Dashkit migration shim — emits raw Bootstrap `.btn` + `.btn-<variant>` classes via `ui="dashkit"`.
 // Stays until consumers migrate to the OKLCH-flavored `ui="tw"` surface.
@@ -175,6 +175,7 @@ export const VariantsBySize: Story = {
             icon: 'Icon',
             lg: 'Large',
             sm: 'Small',
+            tile: 'Tile',
         };
 
         return (

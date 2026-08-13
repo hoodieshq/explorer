@@ -8,14 +8,16 @@ import { addons, types, useGlobals } from 'storybook/manager-api';
 const ADDON_ID = 'explorer/breakpoint-toolbar';
 const TOOL_ID = `${ADDON_ID}/tool`;
 
-// Must match the bsXxx keys in preview.tsx viewport.options
+// Must match the bsXxx keys + widths in preview.tsx viewport.options.
+// Widths are the raw breakpoint value + 1px (see getScreenDim in tailwind.config), so each chip
+// lands exactly where its breakpoint activates.
 export const BREAKPOINTS = [
-    { key: 'bsXs', label: 'xs·375' },
-    { key: 'bsSm', label: 'sm·576' },
-    { key: 'bsMd', label: 'md·768' },
-    { key: 'bsLg', label: 'lg·992' },
-    { key: 'bsXl', label: 'xl·1200' },
-    { key: 'bsXxl', label: 'xxl·1400' },
+    { key: 'bsXs', label: 'xs·376' },
+    { key: 'bsSm', label: 'sm·577' },
+    { key: 'bsMd', label: 'md·769' },
+    { key: 'bsLg', label: 'lg·993' },
+    { key: 'bsXl', label: 'xl·1201' },
+    { key: 'bsXxl', label: 'xxl·1401' },
 ] as const;
 
 function BreakpointTool() {

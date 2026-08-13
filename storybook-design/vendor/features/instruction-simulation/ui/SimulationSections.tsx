@@ -11,6 +11,7 @@ import { Card, CardBody } from '@/app/shared/ui/Card';
 
 import { ProgramLogsCardBody } from '../../../components/ProgramLogsCardBody';
 import { DENSE_ROW_PADDING } from '../../../shared/ui/Table/dense-row-padding';
+import { LastSimulatedAt } from './LastSimulatedAt';
 import { SimulatorCUProfilingCard } from './SimulatorCUProfilingCard';
 import { SolBalanceChangesCard } from './SolBalanceChangesCard';
 
@@ -22,7 +23,7 @@ function SimulatedTitle({ children }: { children: React.ReactNode }) {
     return (
         <span className="inline-flex items-center gap-1.5">
             {children}
-            <Badge ui="dashkit" className="border border-solid border-accent/50 !text-[10px] text-accent">
+            <Badge ui="dashkit" className="border-accent/50 border border-solid !text-[10px] text-accent">
                 Simulated
             </Badge>
         </span>
@@ -30,46 +31,90 @@ function SimulatedTitle({ children }: { children: React.ReactNode }) {
 }
 
 // White-noise surface behind the simulation zone: every pixel is a random blend between the app's
-// standard background (#141816) and the zone green (#14261e). An SVG `feTurbulence` generates fine
-// grain, `feColorMatrix` recolours it to a constant green with a noisy alpha (alpha = luminance of
-// the turbulence), and it's layered over the standard-background base — so the alpha noise fades each
-// pixel between the two colours. Only the padding/gaps show it; the cards keep their own surface.
-const NOISE_SVG =
-    "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'>" +
-    // color-interpolation-filters='sRGB': without it SVG filters composite in linearRGB, which
-    // lightens midtones and pushed the blend brighter than the green endpoint. sRGB keeps the range
-    // exactly between the two colours below.
-    "<filter id='n' color-interpolation-filters='sRGB'>" +
-    "<feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/>" +
-    // rows 1-3: constant green #14261e (0.078, 0.149, 0.118) — the lightest pixel. Row 4: alpha from
-    // the turbulence luminance, mean ~0.5, so most pixels sit between #141816 (base) and the green.
-    "<feColorMatrix type='matrix' values='0 0 0 0 0.078 0 0 0 0 0.149 0 0 0 0 0.118 0.5 0.5 0.5 0 -0.25'/>" +
-    '</filter>' +
-    "<rect width='100%' height='100%' filter='url(#n)'/>" +
-    '</svg>';
+// standard background (#141816) and a constant "tint" colour, with sparse brighter "sparkle" specks
+// on top. An SVG `feTurbulence` generates fine grain, `feColorMatrix` recolours it to the constant
+// colour with a noisy alpha (alpha = luminance of the turbulence), and it's layered over the base — so
+// the alpha noise fades each pixel between the two colours. Only the padding/gaps show it; the cards
+// keep their own surface. Colours are fractional sRGB triples [r, g, b]. Exposed as a factory so a
+// variant can reuse the exact same grain at a different hue (see the Match-to-TX-view failure zone,
+// which is luminance-matched to this green so only the hue differs).
+type Rgb = [number, number, number];
 
-// A second, sparser filter layered on top of NOISE_SVG: scattered brighter specks. A high-frequency
-// turbulence is recoloured to the accent green (#1dd79b), but the alpha threshold (`0.9·sum − 1.75`)
-// only lets the highest turbulence values through, so just a few pixels light up — the rest stay
-// transparent and reveal the base noise below. Offset -1.75 vs -1.55 makes visible specks ~20× rarer
-// (measured: 0.14% vs 2.87% of pixels above a visible-alpha cutoff).
-const NOISE_SPARKLE_SVG =
-    "<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'>" +
-    "<filter id='s' color-interpolation-filters='sRGB'>" +
-    "<feTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='2' seed='11' stitchTiles='stitch'/>" +
-    // rows 1-3: constant accent green #1dd79b (0.114, 0.843, 0.608). Row 4: sparse alpha threshold.
-    "<feColorMatrix type='matrix' values='0 0 0 0 0.114 0 0 0 0 0.843 0 0 0 0 0.608 0.9 0.9 0.9 0 -1.75'/>" +
-    '</filter>' +
-    "<rect width='100%' height='100%' filter='url(#s)'/>" +
-    '</svg>';
+function noiseLayer({
+    id,
+    baseFrequency,
+    numOctaves,
+    seed,
+    color: [r, g, b],
+    alphaRow,
+}: {
+    id: string;
+    baseFrequency: string;
+    numOctaves: string;
+    seed?: string;
+    color: Rgb;
+    alphaRow: string;
+}): string {
+    const seedAttr = seed === undefined ? '' : ` seed='${seed}'`;
+    // color-interpolation-filters='sRGB': without it SVG filters composite in linearRGB, which lightens
+    // midtones and pushes the blend brighter than the tint endpoint. sRGB keeps the range exactly
+    // between the base and the tint colour. feColorMatrix rows 1-3 set the constant colour; row 4
+    // derives the alpha from the turbulence luminance.
+    return (
+        `<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'>` +
+        `<filter id='${id}' color-interpolation-filters='sRGB'>` +
+        `<feTurbulence type='fractalNoise' baseFrequency='${baseFrequency}' numOctaves='${numOctaves}'${seedAttr} stitchTiles='stitch'/>` +
+        `<feColorMatrix type='matrix' values='0 0 0 0 ${r} 0 0 0 0 ${g} 0 0 0 0 ${b} ${alphaRow}'/>` +
+        `</filter>` +
+        `<rect width='100%' height='100%' filter='url(#${id})'/>` +
+        `</svg>`
+    );
+}
 
-const SIM_ZONE_STYLE: React.CSSProperties = {
-    backgroundColor: '#141816',
-    // Sparkle layer first (topmost), then the base noise beneath it.
-    backgroundImage:
-        `url("data:image/svg+xml,${encodeURIComponent(NOISE_SPARKLE_SVG)}"), ` +
-        `url("data:image/svg+xml,${encodeURIComponent(NOISE_SVG)}")`,
-};
+export function buildSimZoneStyle({
+    base,
+    tint,
+    sparkle,
+}: {
+    base: string;
+    tint: Rgb;
+    sparkle: Rgb;
+}): React.CSSProperties {
+    // Base noise: mean alpha ~0.5 so most pixels sit between the base and the tint.
+    const noise = noiseLayer({
+        alphaRow: '0.5 0.5 0.5 0 -0.25',
+        baseFrequency: '0.9',
+        color: tint,
+        id: 'n',
+        numOctaves: '3',
+    });
+    // Sparkle: a sparser, higher-frequency layer; the alpha threshold (`0.9·sum − 1.75`) only lets the
+    // highest turbulence values through, so just a few pixels light up and the rest reveal the noise
+    // below. Offset -1.75 vs -1.55 makes visible specks ~20× rarer.
+    const sparkleLayer = noiseLayer({
+        alphaRow: '0.9 0.9 0.9 0 -1.75',
+        baseFrequency: '1.1',
+        color: sparkle,
+        id: 's',
+        numOctaves: '2',
+        seed: '11',
+    });
+    return {
+        backgroundColor: base,
+        // Sparkle layer first (topmost), then the base noise beneath it.
+        backgroundImage:
+            `url("data:image/svg+xml,${encodeURIComponent(sparkleLayer)}"), ` +
+            `url("data:image/svg+xml,${encodeURIComponent(noise)}")`,
+    };
+}
+
+// The zone green: base #141816 blended toward the tint green #14261e, with accent-green (#1dd79b)
+// sparkles.
+export const SIM_ZONE_STYLE: React.CSSProperties = buildSimZoneStyle({
+    base: '#141816',
+    sparkle: [0.114, 0.843, 0.608],
+    tint: [0.078, 0.149, 0.118],
+});
 
 // Enhancements-only breakdown of the simulation. Where the shared SimulatorCard packs everything
 // under one "Simulation" section, here each block is its own top-level section so it can be a tab
@@ -121,12 +166,15 @@ export function SimulationSections({
                         <p className="m-0">
                             Simulation is free and will run this transaction against the latest confirmed ledger state.
                         </p>
-                        <p className="m-0">No state changes will be persisted and all signature checks will be disabled.</p>
+                        <p className="m-0">
+                            No state changes will be persisted and all signature checks will be disabled.
+                        </p>
                     </div>
-                    <div>
+                    <div className="flex flex-wrap items-center gap-3">
                         {/* Brand-green (accent) fill. The label is always "Simulate" (never swapped for
                             "Retry"); while a run is in flight the label is hidden — kept in flow so the
-                            button keeps its exact size — and a spinner is overlaid centred on top. */}
+                            button keeps its exact size — and a spinner is overlaid centred on top. The
+                            last-run time sits inline beside the button, vertically centred. */}
                         <Button
                             variant="accent"
                             size="default"
@@ -145,10 +193,11 @@ export function SimulationSections({
                                 </span>
                             )}
                         </Button>
+                        <LastSimulatedAt simulation={simulation} />
                     </div>
                     {simulation.status === 'error' && (
                         <Card ui="dashkit">
-                            <CardBody ui="dashkit">
+                            <CardBody ui="dashkit" className="!p-3">
                                 <div>
                                     Simulation Failure:
                                     <span className="ml-2 text-yellow-500">{simulation.error}</span>

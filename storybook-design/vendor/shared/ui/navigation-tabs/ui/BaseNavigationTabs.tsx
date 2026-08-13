@@ -1,10 +1,15 @@
 'use client';
 
-// Vendored copy of app/shared/ui/navigation-tabs/ui/BaseNavigationTabs.tsx. Only change: tabs may
-// carry `disabled` (see vendored ../model/types) — disabled tabs render dimmed and non-interactive
-// (in the bar via the vendored TabLink, in the overflow menu via the vendored MobileMoreDropdown).
-// Everything else (overflow measurement, scrollSpy, sticky wrapper) mirrors the app original, which
-// stays unchanged; context/useTabOverflow/useStickyHeaderHeight are imported from app unmodified.
+// Vendored copy of app/shared/ui/navigation-tabs/ui/BaseNavigationTabs.tsx. Changes vs the app
+// original:
+//   1. tabs may carry `disabled` (see vendored ../model/types) — disabled tabs render dimmed and
+//      non-interactive (in the bar via the vendored TabLink, in the overflow menu via the vendored
+//      MobileMoreDropdown).
+//   2. the "stuck" shadow is derived from the bar's vertical position in the scroll handler instead of
+//      an IntersectionObserver (threshold 1). The observer never reached ratio 1 for a full-bleed
+//      100vw bar, so the shadow was pinned on permanently.
+// Everything else (overflow measurement, scrollSpy layout, sticky wrapper) mirrors the app original;
+// context/useTabOverflow/useStickyHeaderHeight are imported from app unmodified.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { cn } from '@/app/components/shared/utils';
@@ -70,10 +75,10 @@ export function BaseNavigationTabs({
             if (!target || !headerEl) return;
             const offset = headerEl.getBoundingClientRect().height;
             let naturalTop = 0;
-            let el: HTMLElement | null = target;
+            let el: HTMLElement | undefined = target;
             while (el) {
                 naturalTop += el.offsetTop;
-                el = el.offsetParent as HTMLElement | null;
+                el = el.offsetParent instanceof HTMLElement ? el.offsetParent : undefined;
             }
             window.scrollTo({
                 behavior: 'smooth',
@@ -91,24 +96,19 @@ export function BaseNavigationTabs({
         [scrollToSection],
     );
 
-    useEffect(() => {
-        if (!scrollSpy) return;
-        const el = wrapperRef.current;
-        if (!el) return;
-        const observer = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting), {
-            rootMargin: '-1px 0px 0px 0px',
-            threshold: [1],
-        });
-        observer.observe(el);
-        return () => observer.disconnect();
-    }, [scrollSpy]);
-
     useStickyHeaderHeight(wrapperRef, !!scrollSpy);
 
     useEffect(() => {
         if (!scrollSpy) return;
         const update = () => {
-            const tabHeight = (wrapperRef.current ?? tablistRef.current)?.getBoundingClientRect().height ?? 0;
+            const rect = wrapperRef.current?.getBoundingClientRect();
+            // Stuck = the sticky bar has reached the top of the viewport (top: 0). Deriving this from
+            // the vertical position — rather than an IntersectionObserver with threshold 1 — keeps the
+            // shadow correct even when the bar is full-bleed (100vw): a hairline of horizontal overflow
+            // would otherwise drop the intersection ratio below 1 and pin `stuck` on permanently.
+            if (rect) setStuck(rect.top <= 0);
+
+            const tabHeight = rect?.height ?? tablistRef.current?.getBoundingClientRect().height ?? 0;
             const threshold = window.scrollY + tabHeight + window.innerHeight * 0.3;
             let active = tabs[0]?.path ?? '';
             for (const tab of tabs) {
@@ -159,7 +159,11 @@ export function BaseNavigationTabs({
                 )}
 
                 {moreTabs.length > 0 && (
-                    <MobileMoreDropdown tabs={moreTabs} onSelectChange={handleSelectChange} disabledPaths={disabledPaths} />
+                    <MobileMoreDropdown
+                        tabs={moreTabs}
+                        onSelectChange={handleSelectChange}
+                        disabledPaths={disabledPaths}
+                    />
                 )}
             </div>
 

@@ -18,6 +18,9 @@ type SimulatorCUProfilingCardProps = {
     epoch: bigint;
     // Section title. Defaults to 'CU profiling' so the Default inspector page is unaffected.
     title?: ReactNode;
+    // Optional override for the card surface className. Left undefined the CollapsibleSection keeps its
+    // default dashkit card (so the Default / Enhancements pages are unaffected).
+    className?: string;
 };
 
 export function SimulatorCUProfilingCard({
@@ -27,6 +30,7 @@ export function SimulatorCUProfilingCard({
     cluster,
     epoch,
     title = 'CU profiling',
+    className,
 }: SimulatorCUProfilingCardProps) {
     const instructionsForCU = useMemo(() => {
         const instructions = message.compiledInstructions.map(ix => ({
@@ -45,7 +49,7 @@ export function SimulatorCUProfilingCard({
     if (instructionsForCU.length === 0) return null;
 
     return (
-        <CollapsibleSection title={title}>
+        <CollapsibleSection title={title} {...(className ? { className } : {})}>
             <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} headerless />
         </CollapsibleSection>
     );

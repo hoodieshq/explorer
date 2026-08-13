@@ -144,7 +144,7 @@ export function AccountsCard({ message }: { message: VersionedMessage }) {
     }
 
     return (
-        <Section title={`Account List (${numAccounts})`}>
+        <Section title={`Account List ${numAccounts}`}>
             <div className={HEADER_GRID}>
                 <div>#</div>
                 <div>Address</div>

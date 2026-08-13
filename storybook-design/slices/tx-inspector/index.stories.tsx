@@ -12,6 +12,7 @@ import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
 
 import { TransactionInspectorPage } from '../../vendor/components/inspector/InspectorPage';
 import { TransactionInspectorPageEnhancements } from '../../vendor/components/inspector/InspectorPageEnhancements';
+import { TransactionInspectorPageMatchToTxView } from '../../vendor/components/inspector/InspectorPageMatchToTxView';
 import { DEFAULT_HANDLERS, nextjsParameters, SIGNATURE, withInspectorProviders } from './mocks';
 
 /** Mirrors app/layout.tsx shell exactly. Re-read layout.tsx before each use — it may change. */
@@ -48,6 +49,12 @@ function PageContentEnhancements({ signature }: { signature: string }) {
     return <TransactionInspectorPageEnhancements signature={signature} showTokenBalanceChanges={false} />;
 }
 
+/** Match to TX view copy of the page body — renders its own isolated composition
+ *  (InspectorPageMatchToTxView) so design changes here never affect Default or Enhancements. */
+function PageContentMatchToTxView({ signature }: { signature: string }) {
+    return <TransactionInspectorPageMatchToTxView signature={signature} showTokenBalanceChanges={false} />;
+}
+
 const meta = {
     component: PageContent,
     decorators: [withInspectorProviders],
@@ -80,6 +87,20 @@ export const Enhancements: Story = {
     render: args => (
         <PageShell>
             <PageContentEnhancements {...args} />
+        </PageShell>
+    ),
+};
+
+/** Independent copy of the page for iterating the design toward the transaction details (TX) view.
+ *  It renders its own composition root (InspectorPageMatchToTxView), so changes made here never affect
+ *  Default or Enhancements. To change a section only here, add a `*.match-to-tx-view.tsx` variant next
+ *  to the vendor component and wire it into InspectorPageMatchToTxView — the other stories keep using
+ *  their own originals. */
+export const Match_to_TX_view: Story = {
+    args: { signature: SIGNATURE },
+    render: args => (
+        <PageShell>
+            <PageContentMatchToTxView {...args} />
         </PageShell>
     ),
 };

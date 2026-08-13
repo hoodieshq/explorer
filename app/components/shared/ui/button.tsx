@@ -29,6 +29,8 @@ const buttonVariants = cva([], {
         { class: 'h-7 w-7', size: 'icon', ui: 'tw' },
         { class: 'h-10 px-8', size: 'lg', ui: 'tw' },
         { class: 'h-7 px-2 text-xs', size: 'sm', ui: 'tw' },
+        // Tall icon-over-label action tile (e.g. slideover footer actions).
+        { class: 'h-16 flex-col gap-1 rounded-lg px-2 text-xs [&_svg]:size-4', size: 'tile', ui: 'tw' },
         { class: 'border-0 bg-accent text-gray-900 hover:bg-accent/90', ui: 'tw', variant: 'accent' },
         {
             class: 'border border-outer-space-800 bg-outer-space-900 text-neutral-200 rounded-sm leading-none tracking-[-0.44px]',
@@ -151,7 +153,7 @@ const buttonVariants = cva([], {
     },
     variants: {
         active: { false: '', true: '' },
-        size: { compact: '', default: '', icon: '', lg: '', sm: '' },
+        size: { compact: '', default: '', icon: '', lg: '', sm: '', tile: '' },
         ui: { dashkit: '', tw: '' },
         variant: {
             accent: '',

@@ -1,11 +1,16 @@
 'use client';
 
-// Independent composition root for the "Enhancements" tx-inspector page. It re-implements only the
-// signature (permalink) path of InspectorPage — the sole path the design slice renders — so the
-// Enhancements page owns its own page wrapper, PermalinkView, LoadedView and OverviewCard. Leaf
-// sections (SimulatorCard, AccountsCard, …) are the shared vendor components for now; to enhance one
-// without affecting Default, add a `*.enhancements.tsx` variant and swap its import in here only.
-// Nothing that Default renders is touched.
+// Independent composition root for the "Match to TX view" tx-inspector page. It re-implements the
+// signature (permalink) path of InspectorPage and is arranged to MATCH THE TRANSACTION DETAILS PAGE
+// (app/tx/[signature]/page-client.tsx) in structure and block layout:
+//   Overview (= Summary)  →  scroll-spy tab bar  →  full-width stack (Signatures, Accounts, Address
+//   Lookups, SOL Balance Changes = Tokens)  →  a full-bleed two-column "Programs & Logs" row at xxl:
+//   Instructions (Programs) on the left, and the Simulation control + Logs + CU profiling in the
+//   sticky right column.
+// The simulation is deliberately moved into the right column so it lives TOGETHER with the logs it
+// produces — mirroring the TX page's ProgramLogSection + CUProfilingSection sticky panel.
+// Everything Default and Enhancements render is untouched: the simulation zone pieces used here come
+// from a private `*.match-to-tx-view` module, not the shared SimulationSections.
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
 import { SolBalance } from '@components/common/SolBalance';
@@ -23,23 +28,24 @@ import { Button } from '@/app/components/shared/ui/button';
 import { useSimulation } from '@/app/features/instruction-simulation/model/use-simulation';
 import { useCluster } from '@/app/providers/cluster';
 import { DownloadDropdown } from '@/app/shared/components/DownloadDropdown';
+import { useBreakpoint } from '@/app/shared/lib/use-breakpoint';
 import { Card } from '@/app/shared/ui/Card';
-import { StickyHeader } from '@/app/shared/ui/sticky-header/StickyHeader';
 import { useClusterPath } from '@/app/utils/url';
 
-import { SimulationSections } from '../../features/instruction-simulation/ui/SimulationSections';
+import { SimulationLogsPanel } from '../../features/instruction-simulation/ui/SimulationLogsPanel.match-to-tx-view';
 // Vendored BaseNavigationTabs (adds `disabled` tab support) — the app original can't render the
-// disabled Logs / CU profiling / SOL Balance Changes tabs shown before a simulation runs.
+// disabled Logs / CU profiling tabs shown before a simulation runs.
 import { BaseNavigationTabs } from '../../shared/ui/navigation-tabs/ui/BaseNavigationTabs';
 import { PageContainer } from '../../shared/ui/page-container/PageContainer';
-import { AccountsCard } from './AccountsCard';
+// Merged Account List (SOL Balance Changes folded in as a "Change" column) — a Match-to-TX-view fork.
+import { AccountsCard } from './AccountsCard.match-to-tx-view';
 import { AddressTableLookupsCard } from './AddressTableLookupsCard';
 import { AddressWithContext, createFeePayerValidator } from './AddressWithContext';
 import type { TransactionData } from './InspectorPage';
 import { InstructionsSection } from './InstructionsSection';
 import { TransactionSignatures } from './SignaturesCard';
 
-export function TransactionInspectorPageEnhancements({
+export function TransactionInspectorPageMatchToTxView({
     signature,
     showTokenBalanceChanges,
 }: {
@@ -110,63 +116,38 @@ function PermalinkView({
     return <LoadedView transaction={tx} onClear={reset} showTokenBalanceChanges={showTokenBalanceChanges} />;
 }
 
-// Tab bar sections (everything below Overview). `path` doubles as the anchor id on the matching
-// section wrapper, so `buildHref` (`#<path>`) scrolls to it. `gated` tabs (the simulation-derived
-// Logs / CU profiling / SOL Balance Changes) are shown disabled until a simulation has run.
-const BASE_TABS: { path: string; title: string; gated?: boolean; requiresSignatures?: boolean }[] = [
-    { path: 'simulation', title: 'Simulation' },
-    { gated: true, path: 'logs', title: 'Logs' },
-    { gated: true, path: 'cu-profiling', title: 'CU profiling' },
-    { gated: true, path: 'sol-balance-changes', title: 'SOL Balance Changes' },
+// Tab bar sections. `path` doubles as the anchor id on the matching section wrapper, so scroll-spy can
+// track it and clicking scrolls to it. `gated` tabs (the simulation-derived Logs / CU profiling) are
+// shown disabled until a simulation has run. `merged` tabs collapse into the single "Programs & Logs"
+// tab on the xxl two-column layout (mirrors the TX details page, which merges its Programs and Logs
+// tabs when they sit side by side). SOL Balance Changes has no tab of its own — it is merged into the
+// Accounts table as a "Change" column.
+const BASE_TABS: {
+    path: string;
+    title: string;
+    gated?: boolean;
+    merged?: boolean;
+    requiresSignatures?: boolean;
+}[] = [
     { path: 'signatures', requiresSignatures: true, title: 'Signatures' },
     { path: 'accounts', title: 'Accounts' },
-    { path: 'address-lookups', title: 'Address Lookups' },
-    { path: 'instructions', title: 'Instructions' },
+    { merged: true, path: 'programs', title: 'Programs' },
+    { merged: true, path: 'simulation', title: 'Simulation' },
+    { gated: true, merged: true, path: 'logs', title: 'Logs' },
+    { gated: true, merged: true, path: 'cu-profiling', title: 'CU profiling' },
 ];
-
-// Highlights the tab whose section is currently pinned under the sticky bar as the page scrolls.
-// active = the last section whose top has passed just below the bar (bar height + a small band).
-// We replicate this here (rather than use BaseNavigationTabs' own scrollSpy) to keep the StickyHeader
-// layout, and use a small fixed band instead of scrollSpy's 30%-of-viewport threshold, which is too
-// large for this page's short sections (Signatures/Address Lookups) and would skip past them. The
-// sticky bar height comes from --sticky-header-height, which StickyHeader publishes.
-const SPY_BAND = 32;
-function useScrollSpy(tabs: { path: string }[]) {
-    const paths = React.useMemo(() => tabs.map(t => t.path), [tabs]);
-    const [active, setActive] = React.useState(() => paths[0] ?? '');
-
-    React.useEffect(() => {
-        const update = () => {
-            const bar =
-                parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sticky-header-height')) || 0;
-            const threshold = window.scrollY + bar + SPY_BAND;
-            let current = paths[0] ?? '';
-            for (const path of paths) {
-                const el = document.getElementById(path);
-                if (el && el.getBoundingClientRect().top + window.scrollY <= threshold) {
-                    current = path;
-                }
-            }
-            setActive(current);
-        };
-        window.addEventListener('scroll', update, { passive: true });
-        update();
-        return () => window.removeEventListener('scroll', update);
-    }, [paths]);
-
-    return active;
-}
 
 function LoadedView({
     transaction,
     onClear,
-    showTokenBalanceChanges,
+    showTokenBalanceChanges: _showTokenBalanceChanges,
 }: {
     transaction: TransactionData;
     onClear: () => void;
     showTokenBalanceChanges: boolean;
 }) {
     const { message, rawMessage, signatures, accountBalances, compiledInnerInstructions } = transaction;
+    const { isXxl } = useBreakpoint();
 
     const fetchAccountInfo = useFetchAccountInfo();
     React.useEffect(() => {
@@ -176,95 +157,68 @@ function LoadedView({
     }, [message, fetchAccountInfo]);
 
     // Simulation state is owned here (not inside a section) so the tab bar can gate the
-    // simulation-derived tabs until it resolves, and SimulationSections can render off the same state.
+    // simulation-derived tabs until it resolves, and the panels can render off the same state.
     const simulation = useSimulation(message, accountBalances);
     const simDone = simulation.status === 'done';
 
     const hasSignatures = Boolean(signatures);
-    const tabs = React.useMemo(
-        () =>
-            BASE_TABS.filter(t => !(t.requiresSignatures && !hasSignatures)).map(t => ({
-                disabled: Boolean(t.gated) && !simDone,
-                path: t.path,
-                title: t.title,
-            })),
-        [hasSignatures, simDone],
-    );
+    // Build the tab list. On xxl the Programs / Simulation / Logs / CU profiling tabs sit in the
+    // side-by-side row, so they collapse into a single "Programs & Logs" tab (the `programs` anchor)
+    // and the rest are dropped — exactly how the TX page merges Programs & Logs when side by side.
+    const tabs = React.useMemo(() => {
+        const visible = BASE_TABS.filter(t => !(t.requiresSignatures && !hasSignatures));
+        const forXxl = visible
+            .filter(t => !(t.merged && t.path !== 'programs'))
+            .map(t => (t.path === 'programs' ? { ...t, title: 'Programs & Logs' } : t));
+        return (isXxl ? forXxl : visible).map(t => ({
+            disabled: Boolean(t.gated) && !simDone,
+            path: t.path,
+            title: t.title,
+        }));
+    }, [hasSignatures, isXxl, simDone]);
 
-    // Active tab follows the scroll position.
-    const activeTab = useScrollSpy(tabs);
-
-    // TabLink renders a Next.js <Link scroll={false}>, so a plain click never scrolls — we drive the
-    // scroll ourselves. scrollIntoView honours each section's scroll-margin-top (below), which offsets
-    // by the sticky tab bar's height (StickyHeader publishes it as --sticky-header-height) so the
-    // target lands just under the bar instead of behind it.
-    const scrollToSection = React.useCallback((path: string) => {
-        document.getElementById(path)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, []);
-
-    // Overview stays above the tab bar; the tab bar (subscriptions-slice layout: StickyHeader whose
-    // `-mx-3` full-bleed is restored with `px-3` and re-centred on the 960px content column) navigates
+    // Overview stays above the tab bar; the scroll-spy tab bar (same styling as the TX page) navigates
     // the sections below it. Block spacing mirrors the transaction details page.
     return (
         <>
             <OverviewCard message={message} raw={rawMessage} onClear={onClear} />
-            {/* `ml-[calc(50%-50vw)] w-screen` makes the bar (its bg + bottom border) full-bleed to the
-                viewport edges even when unstuck — StickyHeader only does that itself once stuck (inline
-                style, which wins there), so unstuck the underline would otherwise stop at the content
-                column. `overflow-x-clip` trims the extra 12px that StickyHeader's unstuck inner `-mx-3`
-                would push past the now-100vw bar (which would otherwise cause a horizontal scrollbar);
-                clip keeps sticky working and leaves the vertical axis visible for the overflow menu. */}
-            <StickyHeader className="ml-[calc(50%-50vw)] mt-9 w-screen overflow-x-clip lg:mt-12">
-                {/* The inner `ml-[calc(50%-50vw)] w-screen` re-anchors the tab column to the viewport,
-                    neutralising StickyHeader's own `-mx-3` (applied only when unstuck). On desktop that
-                    -12px shift is absorbed by the 960px column's auto side-margins, but on mobile there
-                    are none, so the tabs would otherwise sit flush against the screen edge instead of on
-                    the page gutter. Re-anchoring first, then re-centring the 960px + px-3 column, keeps
-                    the tabs on the same gutter as every page block in BOTH stuck and unstuck states —
-                    while the bar's bg + bottom border stay full-bleed to the edges. */}
-                <div className="ml-[calc(50%-50vw)] w-screen">
-                    <div className="mx-auto w-full max-w-[960px] px-3">
-                        <BaseNavigationTabs
-                            activeValue={activeTab}
-                            buildHref={path => `#${path}`}
-                            onTabClick={path => scrollToSection(path)}
-                            onSelectChange={scrollToSection}
-                            tabs={tabs}
-                            disabledHint="Run the simulation to load this tab's content."
-                        />
-                    </div>
-                </div>
-            </StickyHeader>
-            <div className="flex flex-col space-y-9 lg:space-y-12">
-                <SimulationSections
-                    simulation={simulation}
-                    message={message}
-                    showTokenBalanceChanges={showTokenBalanceChanges}
-                    anchorStyle={SECTION_ANCHOR_STYLE}
-                />
+            <BaseNavigationTabs
+                scrollSpy
+                tabs={tabs}
+                buildHref={path => `#${path}`}
+                wrapperClassName="bg-heavy-metal-900"
+                className="gap-5"
+                disabledHint="Run the simulation to load this tab's content."
+            />
+            <div className="mt-9 flex flex-col space-y-9 lg:mt-12 lg:space-y-12">
                 {signatures && (
-                    <div id="signatures" style={SECTION_ANCHOR_STYLE}>
+                    <div id="signatures">
                         <TransactionSignatures message={message} signatures={signatures} rawMessage={rawMessage} />
                     </div>
                 )}
-                <div id="accounts" style={SECTION_ANCHOR_STYLE}>
-                    <AccountsCard message={message} />
+                {/* Account List with the SOL Balance Changes merged in as a "Change" column; the
+                    per-row Simulate affordance drives the same simulation the panel below uses. */}
+                <div id="accounts">
+                    <AccountsCard message={message} simulation={simulation} />
                 </div>
-                <div id="address-lookups" style={SECTION_ANCHOR_STYLE}>
+                <div id="address-lookups">
                     <AddressTableLookupsCard message={message} />
                 </div>
-                <div id="instructions" style={SECTION_ANCHOR_STYLE}>
-                    <InstructionsSection message={message} compiledInnerInstructions={compiledInnerInstructions} />
+                {/* Programs & Logs — the two-column row copied from the TX details page. At xxl it goes
+                    full-bleed to the viewport: Instructions (Programs) on the left, and the Simulation
+                    control + Logs + CU profiling in the sticky right column. */}
+                <div className="flex flex-col space-y-9 pb-10 xxl:relative xxl:left-1/2 xxl:w-screen xxl:-translate-x-1/2 xxl:flex-row xxl:items-start xxl:gap-6 xxl:space-y-0 xxl:px-6">
+                    <div id="programs" className="xxl:min-w-0 xxl:flex-[1_1_0%] xxl:overflow-hidden">
+                        <InstructionsSection message={message} compiledInnerInstructions={compiledInnerInstructions} />
+                    </div>
+                    <div className="scrollbar-hide xxl:sticky xxl:top-[70px] xxl:max-h-[calc(100vh-90px)] xxl:min-w-0 xxl:flex-[1_1_0%] xxl:overflow-y-auto xxl:rounded-b-lg">
+                        <SimulationLogsPanel simulation={simulation} message={message} />
+                    </div>
                 </div>
             </div>
         </>
     );
 }
-
-// Offsets anchor scrolling by the sticky tab bar height (+12px gap) so a section lands under the bar.
-const SECTION_ANCHOR_STYLE: React.CSSProperties = {
-    scrollMarginTop: 'calc(var(--sticky-header-height, 0px) + 12px)',
-};
 
 const DEFAULT_FEES = {
     lamportsPerSignature: 5000,
@@ -290,7 +244,7 @@ function OverviewCard({
     }, [message, raw]);
 
     return (
-        <section className="flex flex-col gap-3">
+        <section id="summary" className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
                 <h2 className="m-0 text-lg font-normal text-white">Overview</h2>
                 <div className="flex shrink-0 items-center gap-1">
@@ -346,12 +300,12 @@ function OverviewCard({
 }
 
 // Mirrors the Summary card rows on the transaction details page (features/transaction/ui/SummaryCard):
-// a label | value grid with 12px horizontal / 8px vertical padding and top-aligned content.
+// a label | value grid with 12px horizontal / 10px vertical padding and top-aligned content.
 function OverviewRow({ children, divider }: { children: React.ReactNode; divider?: boolean }) {
     return (
         <div
             className={cn(
-                'grid min-h-9 grid-cols-[clamp(100px,25%,200px)_1fr] items-start gap-2 px-3 py-2',
+                'grid min-h-9 grid-cols-[clamp(100px,25%,200px)_1fr] items-start gap-2 px-3 py-2.5',
                 divider && 'border-1 border-b border-white/10 [border-bottom-style:solid]',
             )}
         >

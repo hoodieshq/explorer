@@ -1,5 +1,5 @@
 import { cn } from '@components/shared/utils';
-import { ReactNode, useId } from 'react';
+import { type ReactNode, useId } from 'react';
 
 import { baseCardVariants } from '@/app/shared/ui/Card';
 
