@@ -23,7 +23,8 @@ import { ErrorBoundary } from 'react-error-boundary';
 import { ErrorCard } from '@/app/components/common/ErrorCard';
 import { InspectorInstructionCard as InspectorInstructionCardComponent } from '@/app/components/common/InspectorInstructionCard';
 import { LoadingCard } from '@/app/components/common/LoadingCard';
-import { AssociatedTokenDetailsCard } from '@/app/components/inspector/associated-token/AssociatedTokenDetailsCard';
+import { AssociatedTokenDetailsCard } from '@features/decode-instruction-associated-token';
+import { AddressWithContextCell } from '@/app/components/inspector/AddressWithContextCell';
 import { UnknownDetailsCard } from '@/app/components/inspector/UnknownDetailsCard';
 import { BpfUpgradeableLoaderDetailsCard } from '@/app/components/instruction/bpf-upgradeable-loader/BpfUpgradeableLoaderDetailsCard';
 import { ComputeBudgetDetailsCard } from '@/app/components/instruction/ComputeBudgetDetailsCard';
@@ -221,9 +222,11 @@ function InspectorInstructionCard({
                     key={index}
                     ix={parsedIx}
                     raw={ix}
-                    message={message}
                     index={index}
                     result={INSPECTOR_RESULT}
+                    InstructionCardComponent={InspectorInstructionCardComponent}
+                    AddressComponent={AddressWithContextCell}
+                    showProgramField={false}
                 />
             );
         case 'bpf-upgradeable-loader':
