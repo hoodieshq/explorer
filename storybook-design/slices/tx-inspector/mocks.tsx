@@ -261,12 +261,18 @@ function accountInfoResponse(base58Key: string, useLamports: 'pre' | 'post') {
     };
 }
 
+// `modifyUrl` (app/entities/cluster/lib/cluster.ts) rewrites the `api` subdomain to `explorer-api`
+// on every non-localhost host, so a deployed Storybook (e.g. Vercel) calls
+// explorer-api.mainnet-beta.solana.com while local dev calls api.mainnet-beta.solana.com. Intercept
+// both, otherwise the deployed build falls through to the live cluster and 403s.
+const RPC_URLS = [MAINNET_BETA_URL, MAINNET_BETA_URL.replace('api', 'explorer-api')];
+
 // Intercept Solana JSON-RPC so the address/accounts block (AccountsCard's
 // getMultipleAccounts) and the Transaction Simulation block (simulateTransaction,
 // getMultipleAccounts, getEpochInfo) replay the real on-chain state and simulation
 // result instead of hitting a live cluster.
-export const DEFAULT_HANDLERS = [
-    http.post('https://api.mainnet-beta.solana.com', async ({ request }) => {
+export const DEFAULT_HANDLERS = RPC_URLS.map(url =>
+    http.post(url, async ({ request }) => {
         const body = (await request.json()) as { id?: number; method?: string; params?: unknown[] };
         const reply = (result: unknown) => HttpResponse.json({ id: body.id ?? 1, jsonrpc: '2.0', result });
 
@@ -305,5 +311,5 @@ export const DEFAULT_HANDLERS = [
                 return reply(null);
         }
     }),
-];
+);
 /* eslint-enable unicorn/no-null, @typescript-eslint/consistent-type-assertions */
