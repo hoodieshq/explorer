@@ -5,6 +5,14 @@ import { VotesCard } from '../VotesCard';
 import { BASE_SLOT, voteAccountFixture } from './fixtures';
 
 const meta: Meta<typeof VotesCard> = {
+    argTypes: {
+        layout: {
+            control: 'inline-radio',
+            description:
+                'Inner list rendering. `table` uses the shared `<BaseTable>`; `grid` uses a CSS-grid built from `div`s (desktop-identical, diverges on mobile later).',
+            options: ['table', 'grid'],
+        },
+    },
     component: VotesCard,
     decorators: [withCluster],
     parameters: nextjsParameters,
@@ -29,5 +37,14 @@ export const WithVotes: Story = {
 export const Empty: Story = {
     args: {
         voteAccount: voteAccountFixture([]),
+    },
+};
+
+// `layout="grid"` renders the same list as a CSS grid instead of a `<table>`. Desktop visuals match the
+// table stories above; the internals differ so mobile can diverge later. Flip the `layout` control.
+export const GridLayout: Story = {
+    args: {
+        layout: 'grid',
+        voteAccount: voteAccountFixture(votes),
     },
 };
