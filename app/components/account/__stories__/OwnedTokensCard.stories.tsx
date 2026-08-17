@@ -9,7 +9,7 @@ import { PublicKey } from '@solana/web3.js';
 import { MockAccountsProvider } from '@storybook-config/__mocks__/MockAccountsProvider';
 import { MockClusterProvider as ClusterProvider } from '@storybook-config/__mocks__/MockClusterProvider';
 import { MockTokenInfoBatchProvider } from '@storybook-config/__mocks__/MockTokenInfoBatchProvider';
-import { nextjsParameters, withTokenInfoBatch } from '@storybook-config/decorators';
+import { createNextjsParameters, nextjsParameters, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Decorator, Meta, StoryObj } from '@storybook-config/types';
 import React from 'react';
 
@@ -20,6 +20,7 @@ const noop = () => undefined;
 
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+const BONK_MINT = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263';
 const logoInfos = {
     [USDC_MINT]: {
         address: USDC_MINT,
@@ -29,6 +30,25 @@ const logoInfos = {
         symbol: 'USDC',
     },
     // No entry for WSOL_MINT on purpose - exercises the fallback-logo branch alongside the seeded row.
+} as const;
+
+// Batch labels for the Summary/Detailed comparison fixture below. USDC and BONK are seeded; WSOL is left out
+// on purpose so one row still exercises the fallback logo.
+const mixedLogoInfos = {
+    [BONK_MINT]: {
+        address: BONK_MINT,
+        logoURI:
+            'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/logo.png',
+        name: 'Bonk',
+        symbol: 'BONK',
+    },
+    [USDC_MINT]: {
+        address: USDC_MINT,
+        logoURI:
+            'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v/logo.png',
+        name: 'USD Coin',
+        symbol: 'USDC',
+    },
 } as const;
 
 const tokensState = (entries: TokensState['entries']): TokensState => ({
@@ -83,6 +103,59 @@ const sampleTokensWithLogosEntry = {
     status: FetchStatus.Fetched,
 };
 
+// A wallet chosen to make the Summary vs Detailed difference obvious:
+// - USDC is held in TWO token accounts (1000 + 234.56). Both displays group by mint and SUM, so USDC shows
+//   as a single 1234.56 row — which is why Detailed labels the column "Total Balance". Because rows collapse
+//   by mint, Detailed's Account Address column surfaces one account for that mint (the last one seen).
+// - WSOL and BONK sit in one account each, so the Detailed Account Address column reads clearly across rows.
+const sampleMixedEntry = {
+    data: {
+        tokens: [
+            {
+                info: {
+                    isNative: false,
+                    mint: new PublicKey(USDC_MINT),
+                    owner: new PublicKey(ADDRESS),
+                    state: 'initialized' as const,
+                    tokenAmount: { amount: '1000000000', decimals: 6, uiAmount: 1000, uiAmountString: '1000' },
+                },
+                pubkey: gen.publicKey(1),
+            },
+            {
+                info: {
+                    isNative: false,
+                    mint: new PublicKey(USDC_MINT),
+                    owner: new PublicKey(ADDRESS),
+                    state: 'initialized' as const,
+                    tokenAmount: { amount: '234560000', decimals: 6, uiAmount: 234.56, uiAmountString: '234.56' },
+                },
+                pubkey: gen.publicKey(2),
+            },
+            {
+                info: {
+                    isNative: false,
+                    mint: new PublicKey(WSOL_MINT),
+                    owner: new PublicKey(ADDRESS),
+                    state: 'initialized' as const,
+                    tokenAmount: { amount: '5000000000', decimals: 9, uiAmount: 5, uiAmountString: '5' },
+                },
+                pubkey: gen.publicKey(3),
+            },
+            {
+                info: {
+                    isNative: false,
+                    mint: new PublicKey(BONK_MINT),
+                    owner: new PublicKey(ADDRESS),
+                    state: 'initialized' as const,
+                    tokenAmount: { amount: '42000000000', decimals: 5, uiAmount: 420000, uiAmountString: '420000' },
+                },
+                pubkey: gen.publicKey(4),
+            },
+        ],
+    },
+    status: FetchStatus.Fetched,
+};
+
 function MockTokensState({ children, value }: { children: React.ReactNode; value: TokensState }) {
     return (
         <ClusterProvider>
@@ -117,7 +190,24 @@ const withNoTokens: Decorator = Story => (
     </MockTokensState>
 );
 
+const withMixedTokens: Decorator = Story => (
+    <MockTokenInfoBatchProvider infos={mixedLogoInfos}>
+        <MockTokensState value={tokensState({ [ADDRESS]: sampleMixedEntry as any })}>
+            <Story />
+        </MockTokensState>
+    </MockTokenInfoBatchProvider>
+);
+
 const meta = {
+    argTypes: {
+        layout: {
+            control: 'inline-radio',
+            options: ['table', 'grid'],
+        },
+    },
+    // Grid is the new responsive layout, so every story previews it by default; flip to `table` (the legacy
+    // dashkit table, still the component default in production) via the Layout control.
+    args: { layout: 'grid' },
     component: OwnedTokensCard,
     decorators: [withTokenInfoBatch],
     parameters: nextjsParameters,
@@ -148,4 +238,21 @@ export const WithLogos: Story = {
 export const Empty: Story = {
     args: { address: ADDRESS },
     decorators: [withNoTokens],
+};
+
+// Summary vs Detailed on IDENTICAL data (see `sampleMixedEntry`) — flip between these two to see exactly
+// what Detailed adds. Summary: Logo / Mint Address / Balance. USDC's two accounts are already summed into
+// one 1234.56 row here.
+export const Summary: Story = {
+    args: { address: ADDRESS },
+    decorators: [withMixedTokens],
+};
+
+// Detailed adds the Account Address column (Logo / Account Address / Mint Address / Total Balance) on desktop
+// and the Account line on mobile — the only difference from Summary. `display` is read from the URL, so the
+// story forces `?display=detail` via nextjs params, otherwise the detailed view is unreachable in Storybook.
+export const Detailed: Story = {
+    args: { address: ADDRESS },
+    decorators: [withMixedTokens],
+    parameters: createNextjsParameters({ query: { display: 'detail' } }),
 };

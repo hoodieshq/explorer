@@ -7,7 +7,7 @@ import { FetchStatus } from '@providers/cache';
 import { PublicKey } from '@solana/web3.js';
 import { MockAccountsProvider } from '@storybook-config/__mocks__/MockAccountsProvider';
 import { MockClusterProvider as ClusterProvider } from '@storybook-config/__mocks__/MockClusterProvider';
-import { nextjsParameters, withTokenInfoBatch } from '@storybook-config/decorators';
+import { createNextjsParameters, nextjsParameters, withTokenInfoBatch } from '@storybook-config/decorators';
 import { INITIAL_VIEWPORTS, withViewportFromGlobal } from '@storybook-config/responsive-decorators';
 import type { Decorator, Meta, StoryObj } from '@storybook-config/types';
 import React from 'react';
@@ -70,11 +70,20 @@ const meta: Meta<typeof OwnedTokensCard> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const args = { address: ADDRESS };
+// Grid is the mobile layout, so the responsive viewports exercise it.
+const args = { address: ADDRESS, layout: 'grid' as const };
 
 export const Mobile: Story = {
     args,
     globals: { viewport: { value: 'iphonex' } },
+};
+
+// Same phone viewport, Detailed display (`?display=detail`) — exercises the extra Account line in the
+// labels-left mobile view, which the summary Mobile story can't reach.
+export const MobileDetailed: Story = {
+    args,
+    globals: { viewport: { value: 'iphonex' } },
+    parameters: createNextjsParameters({ query: { display: 'detail' } }),
 };
 
 export const TabletPortrait: Story = {
