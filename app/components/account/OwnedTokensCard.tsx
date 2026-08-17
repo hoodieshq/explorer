@@ -83,13 +83,19 @@ export function OwnedTokensCard({ address, layout = 'table' }: { address: string
     const loadMore = () => setVisibleCount(c => c + HOLDINGS_LOAD_MORE_COUNT);
 
     return (
-        <CollapsibleSection title="Token Holdings" className="" actions={<DisplayDropdown display={display} />}>
+        <CollapsibleSection
+            title="Token Holdings"
+            className=""
+            // Summary/Detailed only applies to the legacy table; the grid is always the detailed view, so it
+            // needs no toggle.
+            actions={layout === 'grid' ? undefined : <DisplayDropdown display={display} />}
+        >
             {layout === 'grid' ? (
                 // Surface matched to the transaction Tokens/Accounts card, in pure Tailwind: bg
                 // `outer-space-900` equals `#1e2423` (dashkit `dk-gray-800-dark`); `border-outer-space-800`
                 // gives the card the same tone as the row separators; `rounded-lg` is the 8px radius.
                 <Card variant="tight" className="rounded-lg border-outer-space-800 bg-outer-space-900">
-                    <TokensGrid tokens={tokens} visibleCount={visibleCount} display={display} />
+                    <TokensGrid tokens={tokens} visibleCount={visibleCount} />
                     <TokensCardFooter tokens={tokens} visibleCount={visibleCount} loadMore={loadMore} />
                 </Card>
             ) : (
@@ -229,7 +235,7 @@ function TokenRow({ mintAddress, token, showAccountAddress }: TokenRowProps) {
                 <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
             </td>
             <td>
-                {token.amount} {tokenInfo?.symbol}
+                {token.amount} {tokenInfo?.symbol ?? 'tokens'}
                 <ScaledUiAmountMultiplierTooltip
                     rawAmount={new BigNumber(token.rawAmount).shiftedBy(-(token.decimals || 0)).toString()}
                     scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}
@@ -258,35 +264,26 @@ const gridCellVariants = cva('flex items-center px-3 py-2.5', {
     },
 });
 
-// Two renderings toggled at `sm`. Below `sm` (phones) each holding is a labels-left block: no shared column
-// header, every field carries its own left label, so long base58 keys read top-to-bottom instead of being
-// squeezed into narrow columns. At `sm+` it becomes the CSS-grid table: the logo hugs its icon (`auto`) and
-// the balance takes the same `minmax(auto,180px)` track as the transaction page's Post Balance column, while
-// the address column(s) take the remaining width as `minmax(0,1fr)` and mid-truncate. Detailed display
-// inserts the Account Address column before the mint.
-function TokensGrid({
-    tokens,
-    visibleCount,
-    display,
-}: {
-    tokens: TokenInfoWithPubkey[];
-    visibleCount: number;
-    display: Display;
-}) {
-    const showAccountAddress = display === 'detail';
-    const visibleTokens = useMappedTokens(tokens, showAccountAddress).slice(0, visibleCount);
+type GridRowProps = {
+    mintAddress: string;
+    token: MappedToken;
+};
+
+// The grid is always the detailed view — Logo / Account Address / Mint Address / Total Balance. (Summary vs
+// Detailed only applies to the legacy table.) Two renderings toggled at `sm`: below it each holding is a
+// labels-left block (no shared header, every field carries its own left label, so long base58 keys read
+// top-to-bottom); at `sm+` it becomes the CSS-grid table — the logo hugs its icon (`auto`), the balance
+// takes the same `minmax(auto,180px)` track as the transaction page's Post Balance column, and the two
+// address columns take the remaining width as `minmax(0,1fr)` and mid-truncate.
+function TokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; visibleCount: number }) {
+    const visibleTokens = useMappedTokens(tokens, true).slice(0, visibleCount);
 
     return (
         <>
             {/* Mobile (< sm): labels-left list. */}
             <div className="sm:hidden">
                 {visibleTokens.map(([mintAddress, token]) => (
-                    <MobileTokenRow
-                        key={mintAddress}
-                        mintAddress={mintAddress}
-                        token={token}
-                        showAccountAddress={showAccountAddress}
-                    />
+                    <MobileTokenRow key={mintAddress} mintAddress={mintAddress} token={token} />
                 ))}
             </div>
 
@@ -298,39 +295,24 @@ function TokensGrid({
                 <div
                     role="table"
                     aria-label="Token holdings"
-                    className={cn(
-                        'grid min-w-full',
-                        showAccountAddress
-                            ? 'grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(auto,180px)]'
-                            : 'grid-cols-[auto_minmax(0,1fr)_minmax(auto,180px)]',
-                    )}
+                    className="grid min-w-full grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(auto,180px)]"
                 >
                     <div role="row" className="contents">
                         <div role="columnheader" className={gridCellVariants({ column: 'logo', role: 'header' })}>
                             Logo
                         </div>
-                        {showAccountAddress && (
-                            <div
-                                role="columnheader"
-                                className={gridCellVariants({ column: 'address', role: 'header' })}
-                            >
-                                Account Address
-                            </div>
-                        )}
+                        <div role="columnheader" className={gridCellVariants({ column: 'address', role: 'header' })}>
+                            Account Address
+                        </div>
                         <div role="columnheader" className={gridCellVariants({ column: 'address', role: 'header' })}>
                             Mint Address
                         </div>
                         <div role="columnheader" className={gridCellVariants({ column: 'balance', role: 'header' })}>
-                            {showAccountAddress ? 'Total Balance' : 'Balance'}
+                            Total Balance
                         </div>
                     </div>
                     {visibleTokens.map(([mintAddress, token]) => (
-                        <GridTokenRow
-                            key={mintAddress}
-                            mintAddress={mintAddress}
-                            token={token}
-                            showAccountAddress={showAccountAddress}
-                        />
+                        <GridTokenRow key={mintAddress} mintAddress={mintAddress} token={token} />
                     ))}
                 </div>
             </div>
@@ -338,18 +320,17 @@ function TokensGrid({
     );
 }
 
-// Mobile row (< sm): one labels-left line per field. Labels sit in a fixed-width column so the values line
-// up; the value wrappers are `min-w-0` so `<Address>` mid-truncates instead of overflowing. The logo rides
-// inline just before the Mint address. Detailed display adds the Account line and relabels Balance →
-// Total Balance.
-function MobileTokenRow({ mintAddress, token, showAccountAddress }: TokenRowProps) {
+// Mobile row (< sm): one labels-left line per field (Account / Mint / Total Balance). Labels sit in a
+// fixed-width column so the values line up; the value wrappers are `min-w-0` so `<Address>` mid-truncates
+// instead of overflowing. The logo rides inline just before the Mint address.
+function MobileTokenRow({ mintAddress, token }: GridRowProps) {
     const { cluster, genesisHash } = useCluster();
     // Same lazy per-row enrichment as the desktop rows: one batched useTokenInfo fetch per mint.
     const tokenInfo = useTokenInfo(true, mintAddress, cluster, genesisHash);
 
     return (
         <div className="flex flex-col gap-1 border-t border-solid border-outer-space-800 px-3 py-3 text-sm text-white first:border-t-0">
-            {showAccountAddress && token.pubkey && (
+            {token.pubkey && (
                 <div className="flex items-baseline gap-2">
                     <span className="w-24 shrink-0 text-outer-space-300">Account</span>
                     <div className="min-w-0 flex-1">
@@ -361,7 +342,9 @@ function MobileTokenRow({ mintAddress, token, showAccountAddress }: TokenRowProp
                 <span className="w-24 shrink-0 self-baseline text-outer-space-300">Mint</span>
                 <ProxiedImage
                     alt="Token icon"
-                    className="h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
+                    // `-my-0.5` keeps the 24px logo from making this line taller than the text lines: its
+                    // margin-box drops to the text line height while the icon itself renders at its full size.
+                    className="-my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
                     height={16}
                     uri={tokenInfo?.logoURI ?? undefined}
                     width={16}
@@ -371,11 +354,9 @@ function MobileTokenRow({ mintAddress, token, showAccountAddress }: TokenRowProp
                 </div>
             </div>
             <div className="flex items-baseline gap-2">
-                <span className="w-24 shrink-0 text-outer-space-300">
-                    {showAccountAddress ? 'Total Balance' : 'Balance'}
-                </span>
+                <span className="w-24 shrink-0 text-outer-space-300">Total Balance</span>
                 <span className="min-w-0 flex-1 break-words">
-                    {token.amount}
+                    {token.amount} {tokenInfo?.symbol ?? 'tokens'}
                     <ScaledUiAmountMultiplierTooltip
                         rawAmount={new BigNumber(token.rawAmount).shiftedBy(-(token.decimals || 0)).toString()}
                         scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}
@@ -386,7 +367,7 @@ function MobileTokenRow({ mintAddress, token, showAccountAddress }: TokenRowProp
     );
 }
 
-function GridTokenRow({ mintAddress, token, showAccountAddress }: TokenRowProps) {
+function GridTokenRow({ mintAddress, token }: GridRowProps) {
     const { cluster, genesisHash } = useCluster();
     // Same lazy per-row enrichment as the table `TokenRow`: one batched useTokenInfo fetch per mint.
     const tokenInfo = useTokenInfo(true, mintAddress, cluster, genesisHash);
@@ -396,13 +377,15 @@ function GridTokenRow({ mintAddress, token, showAccountAddress }: TokenRowProps)
             <div role="cell" className={gridCellVariants({ column: 'logo' })}>
                 <ProxiedImage
                     alt="Token icon"
-                    className="h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
+                    // `-my-0.5` keeps the 24px logo from driving the row height above the text cells: its
+                    // margin-box drops to the text line height while the icon itself renders at its full size.
+                    className="-my-0.5 h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
                     height={16}
                     uri={tokenInfo?.logoURI ?? undefined}
                     width={16}
                 />
             </div>
-            {showAccountAddress && token.pubkey && (
+            {token.pubkey && (
                 <div role="cell" className={gridCellVariants({ column: 'address' })}>
                     <Address pubkey={new PublicKey(token.pubkey)} link />
                 </div>
@@ -411,7 +394,7 @@ function GridTokenRow({ mintAddress, token, showAccountAddress }: TokenRowProps)
                 <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
             </div>
             <div role="cell" className={gridCellVariants({ column: 'balance' })}>
-                {token.amount}
+                {token.amount} {tokenInfo?.symbol ?? 'tokens'}
                 <ScaledUiAmountMultiplierTooltip
                     rawAmount={new BigNumber(token.rawAmount).shiftedBy(-(token.decimals || 0)).toString()}
                     scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}

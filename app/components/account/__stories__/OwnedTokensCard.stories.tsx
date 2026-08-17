@@ -9,7 +9,7 @@ import { PublicKey } from '@solana/web3.js';
 import { MockAccountsProvider } from '@storybook-config/__mocks__/MockAccountsProvider';
 import { MockClusterProvider as ClusterProvider } from '@storybook-config/__mocks__/MockClusterProvider';
 import { MockTokenInfoBatchProvider } from '@storybook-config/__mocks__/MockTokenInfoBatchProvider';
-import { createNextjsParameters, nextjsParameters, withTokenInfoBatch } from '@storybook-config/decorators';
+import { nextjsParameters, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Decorator, Meta, StoryObj } from '@storybook-config/types';
 import React from 'react';
 
@@ -240,19 +240,9 @@ export const Empty: Story = {
     decorators: [withNoTokens],
 };
 
-// Summary vs Detailed on IDENTICAL data (see `sampleMixedEntry`) — flip between these two to see exactly
-// what Detailed adds. Summary: Logo / Mint Address / Balance. USDC's two accounts are already summed into
-// one 1234.56 row here.
-export const Summary: Story = {
+// Demonstrative fixture: USDC held across two token accounts (summed into one 1234.56 row), plus WSOL and
+// BONK — so the always-detailed grid's Account Address column reads across several rows.
+export const MixedHoldings: Story = {
     args: { address: ADDRESS },
     decorators: [withMixedTokens],
-};
-
-// Detailed adds the Account Address column (Logo / Account Address / Mint Address / Total Balance) on desktop
-// and the Account line on mobile — the only difference from Summary. `display` is read from the URL, so the
-// story forces `?display=detail` via nextjs params, otherwise the detailed view is unreachable in Storybook.
-export const Detailed: Story = {
-    args: { address: ADDRESS },
-    decorators: [withMixedTokens],
-    parameters: createNextjsParameters({ query: { display: 'detail' } }),
 };

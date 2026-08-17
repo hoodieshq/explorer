@@ -165,7 +165,7 @@ describe('should render OwnedTokensCard with lazy per-row enrichment', () => {
 
         render(<OwnedTokensCard address={OWNER} />);
 
-        expect(screen.getByText('8')).toBeInTheDocument();
+        expect(screen.getByText('8 tokens')).toBeInTheDocument();
         const tooltip = screen.getByTestId('scaled-tooltip');
         expect(tooltip.getAttribute('data-multiplier')).toBe('2');
         expect(tooltip.getAttribute('data-raw-amount')).toBe('4');
@@ -178,7 +178,7 @@ describe('should render OwnedTokensCard with lazy per-row enrichment', () => {
 
         render(<OwnedTokensCard address={OWNER} />);
 
-        expect(screen.getByText('8')).toBeInTheDocument();
+        expect(screen.getByText('8 tokens')).toBeInTheDocument();
         const tooltip = screen.getByTestId('scaled-tooltip');
         expect(tooltip.getAttribute('data-multiplier')).toBe('2');
         expect(tooltip.getAttribute('data-raw-amount')).toBe('4');
