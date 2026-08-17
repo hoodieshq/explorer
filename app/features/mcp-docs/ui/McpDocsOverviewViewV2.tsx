@@ -389,6 +389,12 @@ export function McpDocsOverviewViewV2() {
 
 const TOOL_NAMES = ['inspect_entity', 'ping'] as const;
 
+// Tab labels: plain words, capitalised. The tab `value` stays the raw tool name (it keys the panels).
+const TOOL_LABELS: Record<(typeof TOOL_NAMES)[number], string> = {
+    inspect_entity: 'Inspect entity',
+    ping: 'Ping',
+};
+
 /** Tool reference behind the same underline-tab navigation as the Setup card. */
 function ToolsShowcase() {
     const [tool, setTool] = useState<string>(TOOL_NAMES[0]);
@@ -401,8 +407,8 @@ function ToolsShowcase() {
                     className="-mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto border-b border-white/10 px-4 sm:-mx-6 sm:px-6"
                 >
                     {TOOL_NAMES.map(name => (
-                        <TabsTrigger key={name} value={name} className="shrink-0 whitespace-nowrap font-mono">
-                            {name}
+                        <TabsTrigger key={name} value={name} className="shrink-0 whitespace-nowrap">
+                            {TOOL_LABELS[name]}
                         </TabsTrigger>
                     ))}
                 </TabsList>
