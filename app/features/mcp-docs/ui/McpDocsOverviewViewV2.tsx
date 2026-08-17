@@ -1,31 +1,31 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
-import { Check, Copy, Minus, Plus, Tool, X, XCircle } from 'react-feather';
+import { ExternalLink, Minus, Plus, Tool } from 'react-feather';
 
 import { Button } from '@/app/components/shared/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/shared/ui/tabs';
 import { cn } from '@/app/components/shared/utils';
-import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
 
 import { AGENT_INSTRUCTIONS_SNIPPET, AGENT_INSTRUCTIONS_TARGETS, SETUP_CLIENTS_OPEN } from '../lib/setup-clients';
 import { useDeploymentOrigin } from '../lib/useDeploymentOrigin';
 import { CodeBlock } from './CodeBlock';
-import { CopyableEndpoint } from './CopyableEndpoint';
 import { DocCard } from './DocCard';
 import { InlineCode } from './DocSection';
 
 /** Table inside an example answer, mirroring the tables the agent printed. */
 function AnswerTable({ head, rows }: { head: string[]; rows: string[][] }) {
     return (
-        <div className="overflow-x-auto">
+        // The rounded outer border lives on the wrapper (kept intact by the scroll container's clipping); cells
+        // draw only the inner grid lines, so no border is lost at the corners.
+        <div className="overflow-x-auto rounded-lg border border-solid border-white/10">
             <table className="w-full border-collapse text-xs">
                 <thead>
                     <tr>
                         {head.map(title => (
                             <th
                                 key={title}
-                                className="border border-solid border-white/10 px-2.5 py-1.5 text-left font-medium text-neutral-400"
+                                className="border-0 border-b border-r border-solid border-white/10 px-2.5 py-1.5 text-left font-medium text-neutral-400 last:border-r-0"
                             >
                                 {title}
                             </th>
@@ -38,7 +38,7 @@ function AnswerTable({ head, rows }: { head: string[]; rows: string[][] }) {
                             {row.map(cell => (
                                 <td
                                     key={cell}
-                                    className="border border-solid border-white/10 px-2.5 py-1.5 align-top text-neutral-300 [overflow-wrap:anywhere]"
+                                    className="border-0 border-r border-t border-solid border-white/10 px-2.5 py-1.5 align-top text-neutral-300 [overflow-wrap:anywhere] last:border-r-0"
                                 >
                                     {cell}
                                 </td>
@@ -250,7 +250,6 @@ export function McpDocsOverviewViewV2() {
     const origin = useDeploymentOrigin();
     const [client, setClient] = useState(SETUP_CLIENTS_OPEN[0].id);
     const [status, setStatus] = useState<EndpointStatus>({ state: 'checking' });
-    const [showHowToRun, setShowHowToRun] = useState(false);
 
     // Live health probe: any non-503 answer from /mcp means the endpoint is up.
     useEffect(() => {
@@ -290,27 +289,32 @@ export function McpDocsOverviewViewV2() {
             <DocCard transparent className="mb-12">
                 <div className="grid gap-x-8 gap-y-4 p-4 sm:grid-cols-2 sm:p-6">
                     <HeroFact label="Status">
-                        <StatusValue status={status} onShowHowToRun={() => setShowHowToRun(true)} />
+                        <StatusValue status={status} />
                     </HeroFact>
                     <HeroFact label="Endpoint">
-                        <CopyableEndpoint url={`${origin}/mcp`} />
+                        <a
+                            href={`${origin}/mcp`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-sm text-dark-accent no-underline"
+                        >
+                            {`${origin}/mcp`}
+                            <ExternalLink size={12} aria-hidden />
+                        </a>
                     </HeroFact>
                     <HeroFact label="Transport">
-                        <span className="font-mono text-xs">Streamable HTTP, stateless</span>
+                        <span className="text-sm">Streamable HTTP, stateless</span>
                     </HeroFact>
                     <HeroFact label="Auth">
-                        <span className="font-mono text-xs">Open — no key required</span>
+                        <span className="text-sm">Open — no key required</span>
                     </HeroFact>
                     <HeroFact label="Clusters">
-                        <span className="font-mono text-xs">mainnet-beta · devnet · testnet · simd296</span>
+                        <span className="text-sm">mainnet-beta · devnet · testnet · simd296</span>
                     </HeroFact>
                     <HeroFact label="Tools">
-                        <span className="font-mono text-xs">inspect_entity · ping</span>
+                        <span className="text-sm">inspect_entity · ping</span>
                     </HeroFact>
                 </div>
-                {status.state === 'disabled' && showHowToRun && (
-                    <HowToRunHint origin={origin} onClose={() => setShowHowToRun(false)} />
-                )}
             </DocCard>
 
             {/* Setup */}
@@ -514,80 +518,7 @@ function ToolParam({ name, required, children }: { name: string; required?: bool
     );
 }
 
-/** Prompt for a coding agent that enables the endpoint — mirrors the steps shown in the hint. */
-function buildHowToRunPrompt(origin: string): string {
-    return [
-        `Enable the MCP endpoint of this Solana Explorer deployment (${origin}). The /mcp route answers 503 until it is explicitly enabled; all MCP configuration is environment-only (see .env.example).`,
-        '',
-        '1. Set MCP_ENDPOINT_ENABLED=true in the deployment environment — anything else keeps the endpoint disabled.',
-        '2. Optionally set MCP_ACCESS_KEYS (comma-separated bearer keys; unset means open access) and MCP_BLOCKED_IPS (comma-separated IPs rejected with 403).',
-        '3. The variables are read once at startup: on Vercel add them in Project Settings → Environment Variables and redeploy; for a local checkout put them in .env.local and restart the dev server.',
-        `4. Verify: GET ${origin}/mcp must stop answering 503, and an MCP client pointed at ${origin}/mcp should list the inspect_entity and ping tools.`,
-    ].join('\n');
-}
-
-/** Shown only when the live probe actually got a 503 (or could not reach /mcp at all). */
-function HowToRunHint({ onClose, origin }: { onClose: () => void; origin: string }) {
-    const [copyState, copy] = useCopyToClipboard(1000);
-
-    const copyIcon = {
-        copied: <Check size={14} aria-hidden />,
-        copy: <Copy size={14} aria-hidden />,
-        errored: <XCircle size={14} aria-hidden />,
-    }[copyState];
-
-    return (
-        <div className="border-0 border-t border-solid border-white/10 p-4 sm:p-6">
-            <div className="mb-3 flex items-center justify-between gap-2">
-                <h3 className="m-0 text-sm font-medium text-white">How to run</h3>
-                <button
-                    type="button"
-                    aria-label="Close"
-                    onClick={onClose}
-                    className="flex cursor-pointer rounded border-0 bg-transparent p-1 text-neutral-500 hover:bg-heavy-metal-800 hover:text-neutral-200"
-                >
-                    <X size={14} aria-hidden />
-                </button>
-            </div>
-            <p className="mb-3 mt-0 text-sm leading-relaxed text-neutral-300">
-                The endpoint is opt-in by design — this deployment keeps <InlineCode>/mcp</InlineCode> answering{' '}
-                <InlineCode>503</InlineCode> until it is enabled explicitly:
-            </p>
-            <ol className="m-0 flex list-none flex-col gap-1.5 p-0 text-sm leading-relaxed text-neutral-300">
-                <li>
-                    1. Set <InlineCode>MCP_ENDPOINT_ENABLED=true</InlineCode> in the deployment environment — anything
-                    else keeps the endpoint disabled. All MCP configuration is environment-only (see{' '}
-                    <InlineCode>.env.example</InlineCode>).
-                </li>
-                <li>
-                    2. Optionally set <InlineCode>MCP_ACCESS_KEYS</InlineCode> (comma-separated bearer keys; unset means
-                    open access) and <InlineCode>MCP_BLOCKED_IPS</InlineCode>.
-                </li>
-                <li>
-                    3. The variables are read once at startup: on Vercel add them in Project Settings → Environment
-                    Variables and redeploy; locally put them in <InlineCode>.env.local</InlineCode> and restart the dev
-                    server.
-                </li>
-                <li>4. Reload this page — Status flips to Ready.</li>
-            </ol>
-            <button
-                type="button"
-                onClick={() => copy(buildHowToRunPrompt(origin))}
-                className={cn(
-                    'mt-4 flex cursor-pointer items-center gap-1.5 rounded border border-solid border-white/10 bg-transparent px-2.5 py-1.5',
-                    'text-xs font-medium text-neutral-200 hover:bg-heavy-metal-800',
-                    copyState === 'copied' && 'text-dark-accent',
-                    copyState === 'errored' && 'text-red-500',
-                )}
-            >
-                {copyIcon}
-                {copyState === 'copied' ? 'Copied' : 'Copy prompt'}
-            </button>
-        </div>
-    );
-}
-
-function StatusValue({ onShowHowToRun, status }: { onShowHowToRun: () => void; status: EndpointStatus }) {
+function StatusValue({ status }: { status: EndpointStatus }) {
     if (status.state === 'checking') {
         return <span className="text-neutral-500">Checking…</span>;
     }
@@ -596,13 +527,15 @@ function StatusValue({ onShowHowToRun, status }: { onShowHowToRun: () => void; s
             <span className="flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-neutral-500" aria-hidden />
                 Disabled
-                <button
-                    type="button"
-                    onClick={onShowHowToRun}
-                    className="cursor-pointer border-0 bg-transparent p-0 text-xs font-medium text-dark-accent hover:underline"
+                <a
+                    href="https://github.com/solana-foundation/explorer/blob/master/app/mcp/README.md"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-sm font-medium text-dark-accent no-underline"
                 >
                     How to run
-                </button>
+                    <ExternalLink size={12} aria-hidden />
+                </a>
             </span>
         );
     }
@@ -746,7 +679,9 @@ function ExamplesCarousel() {
                                                 setExpanded(true);
                                                 setEngaged(true);
                                             }}
-                                            className="cursor-pointer self-start border-0 bg-transparent p-0 text-xs font-medium text-dark-accent hover:underline"
+                                            // Match the link hover: `<a>` darkens via the global `a:hover`
+                                            // (#2b8a6e); a `<button>` isn't covered by it, so set it explicitly.
+                                            className="cursor-pointer self-start border-0 bg-transparent p-0 text-xs font-medium text-dark-accent hover:text-[#2b8a6e]"
                                         >
                                             Expand message
                                         </button>
@@ -764,7 +699,7 @@ function ExamplesCarousel() {
 function HeroFact({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="flex min-w-0 flex-col gap-1">
-            <span className="text-xs uppercase tracking-wide text-neutral-500">{label}</span>
+            <span className="text-sm uppercase tracking-wide text-neutral-500">{label}</span>
             <span className="truncate text-sm text-neutral-200">{children}</span>
         </div>
     );
