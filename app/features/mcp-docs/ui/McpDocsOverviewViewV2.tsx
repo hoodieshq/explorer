@@ -296,10 +296,14 @@ export function McpDocsOverviewViewV2() {
                             href={`${origin}/mcp`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-sm text-dark-accent no-underline"
+                            className="text-sm text-dark-accent no-underline [overflow-wrap:anywhere]"
                         >
                             {`${origin}/mcp`}
-                            <ExternalLink size={12} aria-hidden />
+                            <ExternalLink
+                                size={12}
+                                aria-hidden
+                                className="relative -top-0.5 ml-1 inline align-text-bottom"
+                            />
                         </a>
                     </HeroFact>
                     <HeroFact label="Transport">
@@ -700,7 +704,7 @@ function HeroFact({ label, children }: { label: string; children: React.ReactNod
     return (
         <div className="flex min-w-0 flex-col gap-1">
             <span className="text-sm uppercase tracking-wide text-neutral-500">{label}</span>
-            <span className="truncate text-sm text-neutral-200">{children}</span>
+            <span className="text-sm text-neutral-200">{children}</span>
         </div>
     );
 }
