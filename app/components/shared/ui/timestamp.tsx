@@ -16,7 +16,7 @@ import { displayTimestampAbsolute, displayTimestampRelative } from '@/app/utils/
 export interface TimestampProps {
     /** Unix timestamp in seconds (e.g. a block's `blockTime`). */
     unixTimestamp: number;
-    /** Fallback representation for the trigger when nothing is pinned. Defaults to local time. */
+    /** Fallback representation for the trigger when nothing is pinned. Defaults to UTC. */
     display?: TimestampDisplay;
     /** Overrides the trigger label; the chevron is always appended. */
     children?: React.ReactNode;
@@ -115,7 +115,7 @@ function useNow(ticking: boolean, fixed: number | undefined): number | undefined
  * individually copyable and pinnable. Pinning a representation makes every Timestamp across
  * Explorer default to it. Use anywhere a timestamp is shown so the presentation stays consistent.
  */
-export function Timestamp({ unixTimestamp, display = 'local', children, referenceMs, className }: TimestampProps) {
+export function Timestamp({ unixTimestamp, display = 'utc', children, referenceMs, className }: TimestampProps) {
     const pinned = usePinnedTimestampDisplay();
     const effective = pinned ?? display;
     const now = useNow(effective === 'relative', referenceMs);

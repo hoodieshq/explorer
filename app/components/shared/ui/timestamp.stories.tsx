@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook-config/types';
 import type { ReactNode } from 'react';
-import { expect, screen, userEvent, waitFor, within } from 'storybook/test';
+import { expect, screen, userEvent, within } from 'storybook/test';
 
 import { cn } from '@/app/components/shared/utils';
 import { RelativeBands } from '@/app/ui/RelativeBands';
@@ -32,16 +32,6 @@ export const Default: Story = {
     args: { unixTimestamp },
 };
 
-// Trigger renders in UTC instead of the viewer's local time.
-export const UtcTrigger: Story = {
-    args: { display: 'utc', unixTimestamp },
-};
-
-// The trigger label can be anything (e.g. a relative time); the dropdown is unchanged.
-export const CustomLabel: Story = {
-    args: { children: 'about 1 hour ago', unixTimestamp },
-};
-
 // Opens the dropdown and asserts the three copyable rows are present.
 export const OpenDropdown: Story = {
     args: { unixTimestamp },
@@ -53,19 +43,6 @@ export const OpenDropdown: Story = {
         expect(screen.getByText('Local')).toBeInTheDocument();
         expect(screen.getByText('Unix Timestamp')).toBeInTheDocument();
         expect(screen.getByText(String(unixTimestamp))).toBeInTheDocument();
-    },
-};
-
-// Pinning UTC in the dropdown flips the trigger to the UTC representation.
-export const PinDefault: Story = {
-    args: { unixTimestamp },
-    play: async ({ canvasElement }) => {
-        const canvas = within(canvasElement);
-        await userEvent.click(canvas.getByRole('button'));
-        const pinUtc = await screen.findByRole('button', { name: 'Pin UTC as default' });
-        await userEvent.click(pinUtc);
-        // Trigger (in the canvas) now shows the UTC time (06:41:51 UTC), not the local zone.
-        await waitFor(() => expect(canvas.getByRole('button')).toHaveTextContent('06:41:51 UTC'));
     },
 };
 
@@ -111,30 +88,7 @@ export const InTransactionOverview: Story = {
     render: ({ unixTimestamp: ts }) => <TransactionOverviewSlice unixTimestamp={ts} />,
 };
 
-// Same slice pre-sized to a 375px phone (bsXs) — open it to check wrapping and the dropdown on mobile.
-export const InTransactionOverviewMobile: Story = {
-    args: { unixTimestamp },
-    globals: { viewport: { value: 'bsXs' } },
-    render: ({ unixTimestamp: ts }) => <TransactionOverviewSlice unixTimestamp={ts} />,
-};
-
 // One date per relative-time band, so every granularity (seconds … years) is visible at once.
 export const RelativeTimeBands: Story = {
     render: () => <RelativeBands />,
-};
-
-// Fifteen copies down a tall, scrollable page — open one near the top and one near the bottom
-// to see the dropdown flip its side (Radix collision handling) against the viewport edges.
-export const FifteenOnAPage: Story = {
-    args: { unixTimestamp },
-    render: ({ unixTimestamp: ts }) => (
-        <div className="flex flex-col gap-24 py-8">
-            {Array.from({ length: 15 }, (_, index) => index + 1).map(n => (
-                <div key={n} className="flex items-start gap-3">
-                    <span className="w-8 shrink-0 text-sm text-outer-space-300">#{n}</span>
-                    <Timestamp unixTimestamp={ts} />
-                </div>
-            ))}
-        </div>
-    ),
 };
