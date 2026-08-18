@@ -8,13 +8,13 @@ import { cn } from '@/app/components/shared/utils';
  * of a className override because `cn` keeps conflicting classes (no
  * tailwind-merge) and stylesheet order would decide the border color.
  */
-export function DocCard({
-    className,
-    transparent,
-    ...props
-}: React.HTMLAttributes<HTMLDivElement> & { transparent?: boolean }) {
+export const DocCard = React.forwardRef<
+    HTMLDivElement,
+    React.HTMLAttributes<HTMLDivElement> & { transparent?: boolean }
+>(function DocCard({ className, transparent, ...props }, ref) {
     return (
         <div
+            ref={ref}
             className={cn(
                 'rounded-xl border border-solid border-white/10 text-neutral-200',
                 // Prop instead of a `bg-*` className override: cn keeps conflicting classes.
@@ -24,4 +24,4 @@ export function DocCard({
             {...props}
         />
     );
-}
+});

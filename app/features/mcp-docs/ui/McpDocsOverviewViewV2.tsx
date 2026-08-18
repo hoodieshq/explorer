@@ -13,6 +13,48 @@ import { CodeBlock } from './CodeBlock';
 import { DocCard } from './DocCard';
 import { InlineCode } from './DocSection';
 
+// Mobile-only sticky tab strip. While scrolling a section its tab strip pins to the top of the window; once
+// less than `tailPx` is left below the strip to the section's end, it detaches and scrolls away — kept
+// `position: sticky` but with `top` driven negative, so it re-pins on the way back up and its
+// box/width/horizontal-scroll are preserved. Desktop (>= sm) leaves the strip static.
+function useStickyRelease(tailPx = 320) {
+    const sectionRef = useRef<HTMLDivElement | null>(null);
+    const stripRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const mq = window.matchMedia('(max-width: 575.98px)');
+        let raf = 0;
+        const update = () => {
+            raf = 0;
+            const section = sectionRef.current;
+            const strip = stripRef.current;
+            if (!section || !strip) return;
+            if (!mq.matches) {
+                strip.style.top = '';
+                return;
+            }
+            const rect = section.getBoundingClientRect();
+            const threshold = tailPx + strip.offsetHeight;
+            strip.style.top = rect.bottom < threshold ? `${Math.round(rect.bottom - threshold)}px` : '0px';
+        };
+        const onScroll = () => {
+            if (!raf) raf = requestAnimationFrame(update);
+        };
+        update();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll);
+        mq.addEventListener('change', onScroll);
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+            mq.removeEventListener('change', onScroll);
+            if (raf) cancelAnimationFrame(raf);
+        };
+    }, [tailPx]);
+
+    return { sectionRef, stripRef };
+}
+
 /** Table inside an example answer, mirroring the tables the agent printed. */
 function AnswerTable({ head, rows }: { head: string[]; rows: string[][] }) {
     return (
@@ -250,6 +292,7 @@ export function McpDocsOverviewViewV2() {
     const origin = useDeploymentOrigin();
     const [client, setClient] = useState(SETUP_CLIENTS_OPEN[0].id);
     const [status, setStatus] = useState<EndpointStatus>({ state: 'checking' });
+    const setupSticky = useStickyRelease();
 
     // Live health probe: any non-503 answer from /mcp means the endpoint is up.
     useEffect(() => {
@@ -328,11 +371,12 @@ export function McpDocsOverviewViewV2() {
             >
                 Setup
             </SectionTitle>
-            <DocCard className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
+            <DocCard ref={setupSticky.sectionRef} className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
                 <Tabs value={client} onValueChange={setClient}>
                     <TabsList
+                        ref={setupSticky.stripRef}
                         style={{ display: 'flex' }}
-                        className="-mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto border-b border-white/10 px-4 sm:-mx-6 sm:px-6"
+                        className="sticky top-0 z-10 -mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto rounded-t-[11px] border-b border-white/10 bg-heavy-metal-800 px-4 sm:static sm:-mx-6 sm:rounded-none sm:bg-transparent sm:px-6"
                     >
                         {SETUP_CLIENTS_OPEN.map(({ id, label }) => (
                             <TabsTrigger key={id} value={id} className="shrink-0 whitespace-nowrap">
@@ -398,13 +442,15 @@ const TOOL_LABELS: Record<(typeof TOOL_NAMES)[number], string> = {
 /** Tool reference behind the same underline-tab navigation as the Setup card. */
 function ToolsShowcase() {
     const [tool, setTool] = useState<string>(TOOL_NAMES[0]);
+    const sticky = useStickyRelease();
 
     return (
-        <DocCard className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
+        <DocCard ref={sticky.sectionRef} className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
             <Tabs value={tool} onValueChange={setTool}>
                 <TabsList
+                    ref={sticky.stripRef}
                     style={{ display: 'flex' }}
-                    className="-mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto border-b border-white/10 px-4 sm:-mx-6 sm:px-6"
+                    className="sticky top-0 z-10 -mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto rounded-t-[11px] border-b border-white/10 bg-heavy-metal-800 px-4 sm:static sm:-mx-6 sm:rounded-none sm:bg-transparent sm:px-6"
                 >
                     {TOOL_NAMES.map(name => (
                         <TabsTrigger key={name} value={name} className="shrink-0 whitespace-nowrap">
@@ -582,6 +628,7 @@ function ExamplesCarousel() {
     const [engaged, setEngaged] = useState(false);
     const [expanded, setExpanded] = useState(false);
     const rootRef = useRef<HTMLDivElement | null>(null);
+    const sticky = useStickyRelease();
 
     useEffect(() => {
         if (hovered || engaged) {
@@ -611,17 +658,23 @@ function ExamplesCarousel() {
 
     return (
         <DocCard
+            ref={sticky.sectionRef}
             transparent
-            className="mb-12 overflow-hidden"
+            className="mb-12"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
             <div ref={rootRef} className="flex flex-col sm:flex-row">
-                {/* Chat list */}
+                {/* Chat list — mobile: a sticky, horizontal, scrollable underline tab strip (like Setup/Tools);
+                    desktop: a static vertical sidebar with a left-bar active marker. */}
                 <div
+                    ref={sticky.stripRef}
                     role="tablist"
                     aria-label="Examples"
-                    className="flex shrink-0 flex-col border-0 border-b border-solid border-white/10 py-2.5 sm:w-52 sm:border-b-0 sm:border-r sm:py-3"
+                    className={cn(
+                        'sticky top-0 z-10 flex shrink-0 flex-row gap-x-5 overflow-x-auto rounded-t-[11px] border-0 border-b border-solid border-white/10 bg-dark-background px-4',
+                        'sm:static sm:z-auto sm:w-52 sm:flex-col sm:gap-x-0 sm:overflow-visible sm:rounded-none sm:border-b-0 sm:border-r sm:bg-transparent sm:px-0 sm:py-3',
+                    )}
                 >
                     {EXAMPLES.map((example, exampleIndex) => {
                         const active = exampleIndex === index;
@@ -638,13 +691,12 @@ function ExamplesCarousel() {
                                     setEngaged(true);
                                 }}
                                 className={cn(
-                                    'cursor-pointer border-0 bg-transparent px-4 py-2.5 text-left text-sm sm:py-3',
-                                    'border-solid transition-colors',
-                                    // Active marker: left bar, both in the stacked (mobile) and the sidebar (desktop) list.
-                                    'border-l-2',
+                                    'cursor-pointer whitespace-nowrap border-0 bg-transparent px-0 py-4 text-left text-sm transition-colors sm:px-4 sm:py-3',
+                                    // Active marker: underline on mobile, left bar on the desktop sidebar.
+                                    'border-b-2 border-solid sm:border-b-0 sm:border-l-2',
                                     active
-                                        ? 'border-dark-accent bg-heavy-metal-900 text-white'
-                                        : 'border-transparent text-neutral-400 hover:bg-heavy-metal-900 hover:text-neutral-200',
+                                        ? 'border-dark-accent text-white sm:bg-heavy-metal-900'
+                                        : 'border-transparent text-neutral-400 hover:text-neutral-200 sm:hover:bg-heavy-metal-900',
                                 )}
                             >
                                 {example.label}
