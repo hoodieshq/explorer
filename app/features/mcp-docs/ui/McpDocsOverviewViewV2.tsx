@@ -55,6 +55,19 @@ function useStickyRelease(tailPx = 320) {
     return { sectionRef, stripRef };
 }
 
+// On tab switch, pull the section's top up to the top of the window — but only if it has scrolled above the
+// viewport (you're inside/past the section). If the section top is still at or below the viewport top (you're
+// above it), leave the scroll alone. Uses `window.scrollTo` (not `scrollIntoView`, which wouldn't move the
+// page here) and defers a frame so it lands after the tab click's own focus-into-view scroll.
+function scrollSectionToTop(el: HTMLElement | null) {
+    if (!el) return;
+    requestAnimationFrame(() => {
+        const rectTop = el.getBoundingClientRect().top;
+        if (rectTop >= 0) return;
+        window.scrollTo({ behavior: 'instant', top: window.scrollY + rectTop });
+    });
+}
+
 /** Table inside an example answer, mirroring the tables the agent printed. */
 function AnswerTable({ head, rows }: { head: string[]; rows: string[][] }) {
     return (
@@ -372,11 +385,18 @@ export function McpDocsOverviewViewV2() {
                 Setup
             </SectionTitle>
             <DocCard ref={setupSticky.sectionRef} className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
-                <Tabs value={client} onValueChange={setClient}>
+                <Tabs
+                    value={client}
+                    onValueChange={value => {
+                        setClient(value);
+                        // Switching tabs resets scroll to the top of the (possibly shorter/taller) new panel.
+                        scrollSectionToTop(setupSticky.sectionRef.current);
+                    }}
+                >
                     <TabsList
                         ref={setupSticky.stripRef}
                         style={{ display: 'flex' }}
-                        className="sticky top-0 z-10 -mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto rounded-t-[11px] border-b border-white/10 bg-heavy-metal-800 px-4 sm:static sm:-mx-6 sm:rounded-none sm:bg-transparent sm:px-6"
+                        className="sticky top-0 z-10 -mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto rounded-t-[11px] border-b border-white/10 bg-heavy-metal-800 px-4 [scrollbar-width:none] sm:static sm:-mx-6 sm:rounded-none sm:bg-transparent sm:px-6 [&::-webkit-scrollbar]:hidden"
                     >
                         {SETUP_CLIENTS_OPEN.map(({ id, label }) => (
                             <TabsTrigger key={id} value={id} className="shrink-0 whitespace-nowrap">
@@ -446,11 +466,18 @@ function ToolsShowcase() {
 
     return (
         <DocCard ref={sticky.sectionRef} className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
-            <Tabs value={tool} onValueChange={setTool}>
+            <Tabs
+                value={tool}
+                onValueChange={value => {
+                    setTool(value);
+                    // Switching tabs resets scroll to the top of the new panel.
+                    scrollSectionToTop(sticky.sectionRef.current);
+                }}
+            >
                 <TabsList
                     ref={sticky.stripRef}
                     style={{ display: 'flex' }}
-                    className="sticky top-0 z-10 -mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto rounded-t-[11px] border-b border-white/10 bg-heavy-metal-800 px-4 sm:static sm:-mx-6 sm:rounded-none sm:bg-transparent sm:px-6"
+                    className="sticky top-0 z-10 -mx-4 mb-4 flex-nowrap gap-x-5 overflow-x-auto rounded-t-[11px] border-b border-white/10 bg-heavy-metal-800 px-4 [scrollbar-width:none] sm:static sm:-mx-6 sm:rounded-none sm:bg-transparent sm:px-6 [&::-webkit-scrollbar]:hidden"
                 >
                     {TOOL_NAMES.map(name => (
                         <TabsTrigger key={name} value={name} className="shrink-0 whitespace-nowrap">
@@ -672,7 +699,7 @@ function ExamplesCarousel() {
                     role="tablist"
                     aria-label="Examples"
                     className={cn(
-                        'sticky top-0 z-10 flex shrink-0 flex-row gap-x-5 overflow-x-auto rounded-t-[11px] border-0 border-b border-solid border-white/10 bg-dark-background px-4',
+                        'sticky top-0 z-10 flex shrink-0 flex-row gap-x-5 overflow-x-auto rounded-t-[11px] border-0 border-b border-solid border-white/10 bg-dark-background px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
                         'sm:static sm:z-auto sm:w-52 sm:flex-col sm:gap-x-0 sm:overflow-visible sm:rounded-none sm:border-b-0 sm:border-r sm:bg-transparent sm:px-0 sm:py-3',
                     )}
                 >
@@ -689,6 +716,8 @@ function ExamplesCarousel() {
                                     // Re-selecting the current chat won't change `index` — collapse explicitly.
                                     setExpanded(false);
                                     setEngaged(true);
+                                    // Switching chats resets scroll to the top of the new conversation.
+                                    scrollSectionToTop(sticky.sectionRef.current);
                                 }}
                                 className={cn(
                                     'cursor-pointer whitespace-nowrap border-0 bg-transparent px-0 py-4 text-left text-sm transition-colors sm:px-4 sm:py-3',
