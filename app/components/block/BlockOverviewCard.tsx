@@ -216,15 +216,19 @@ export function BlockOverviewCard({
                 <Row divider>
                     <Label>Transaction Cost Utilization</Label>
                     <Value mono={false} breakAll={false}>
-                        {totalCostUnits.toLocaleString()} / {maxComputeUnits.toLocaleString()} (
-                        {Math.round((totalCostUnits / maxComputeUnits) * 100)}%)
+                        {totalCostUnits.toLocaleString()} / {maxComputeUnits.toLocaleString()}{' '}
+                        <span className="text-outer-space-300">
+                            ({Math.round((totalCostUnits / maxComputeUnits) * 100)}%)
+                        </span>
                     </Value>
                 </Row>
                 <Row>
                     <Label>Reserved Compute Units</Label>
                     <Value mono={false} breakAll={false}>
-                        {totalRequestedCUs.toLocaleString()} / {maxComputeUnits.toLocaleString()} (
-                        {Math.round((totalRequestedCUs / maxComputeUnits) * 100)}%)
+                        {totalRequestedCUs.toLocaleString()} / {maxComputeUnits.toLocaleString()}{' '}
+                        <span className="text-outer-space-300">
+                            ({Math.round((totalRequestedCUs / maxComputeUnits) * 100)}%)
+                        </span>
                     </Value>
                 </Row>
             </Card>

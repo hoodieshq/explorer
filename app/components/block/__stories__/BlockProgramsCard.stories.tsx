@@ -6,12 +6,6 @@ import { BlockProgramsCard } from '../BlockProgramsCard';
 
 const meta: Meta<typeof BlockProgramsCard> = {
     argTypes: {
-        programsVariant: {
-            control: 'inline-radio',
-            description:
-                'Initial design variant for the collapsible "Block Programs" table (also switchable on-page via the chips): \'1\' — count + percentage as aligned columns; \'2\' — count with "(percentage of total)" in parentheses, no "% of total" header suffix, Success Rate header shortened to "Success"; \'2a\' — like 2 but count and percentage swapped, with the percentage bright and the count muted.',
-            options: ['1', '2', '2a'],
-        },
         variant: {
             control: 'inline-radio',
             description:
