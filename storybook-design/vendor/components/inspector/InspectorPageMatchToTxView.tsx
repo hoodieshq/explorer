@@ -186,7 +186,7 @@ function LoadedView({
                 scrollSpy
                 tabs={tabs}
                 buildHref={path => `#${path}`}
-                wrapperClassName="bg-heavy-metal-900"
+                wrapperClassName="mt-3 bg-heavy-metal-900 lg:mt-0"
                 className="gap-5"
                 disabledHint="Run the simulation to load this tab's content."
             />
