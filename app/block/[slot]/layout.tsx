@@ -54,6 +54,9 @@ function BlockLayoutInner({ children, params: { slot } }: InnerProps) {
                     childSlot={childSlot}
                     childLeader={childLeader}
                     parentLeader={parentLeader}
+                    // Tighten the mobile gap down to the tab bar to ~12px. `!` because `space-y-9` sets
+                    // margin-bottom:0 on non-first children (beating a plain `-mb-6`); reset at `lg`.
+                    className="!-mb-6 lg:!mb-0"
                 />
                 <MoreSection slot={slotNumber}>{children}</MoreSection>
             </>
@@ -100,7 +103,9 @@ function MoreSection({ children, slot }: { children: React.ReactNode; slot: numb
         <>
             {/* Full-bleed sticky tab bar, mirroring the transaction page's tab bar: the negative
                 margins stretch the background edge-to-edge while the matching padding pulls the tabs
-                back onto the page's content column. */}
+                back onto the page's content column. Below the bar we keep the natural `space-y-9` gap
+                (~36px) — 8px more than the 28px band above the labels — so no `-mb` reduction is needed
+                here (unlike the overview card above, which uses `!-mb-6` to sit ~12px off the bar). */}
             <div className="sticky top-0 z-10 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] overflow-x-auto bg-heavy-metal-900 pl-[calc(50vw-50%)] pr-[calc(50vw-50%)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <NavigationTabs buildHref={buildHref} tabs={TABS} className="gap-5" />
             </div>

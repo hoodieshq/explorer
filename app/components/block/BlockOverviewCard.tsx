@@ -72,6 +72,7 @@ type BlockOverviewCardProps = {
     childSlot?: number;
     childLeader?: PublicKey;
     parentLeader?: PublicKey;
+    className?: string;
 };
 
 export function BlockOverviewCard({
@@ -82,6 +83,7 @@ export function BlockOverviewCard({
     childSlot,
     childLeader,
     parentLeader,
+    className,
 }: BlockOverviewCardProps) {
     const { cluster } = useCluster();
 
@@ -99,7 +101,7 @@ export function BlockOverviewCard({
     const maxComputeUnits = getMaxComputeUnitsInBlock({ cluster, epoch });
 
     return (
-        <section className="flex flex-col gap-3">
+        <section className={cn('flex flex-col gap-3', className)}>
             <div className="flex items-center justify-between">
                 <h2 className="m-0 text-lg font-normal text-white">Overview</h2>
                 {IBRL_EXPLORER_URL && (
