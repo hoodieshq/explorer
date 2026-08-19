@@ -7,7 +7,6 @@ import { HelpCircle } from 'react-feather';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
 import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
-import { Chip } from '@/app/features/transaction/ui/ProgramLogSection';
 import { invariant } from '@/app/shared/lib/invariant';
 import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
@@ -93,16 +92,9 @@ function computeProgramStats(block: VersionedBlockResponse): ProgramStats {
 export function BlockProgramsCard({
     block,
     variant = 'default',
-    programsVariant = '1',
 }: {
     block: VersionedBlockResponse;
     variant?: BlockProgramsVariant;
-    /**
-     * Initial design variant for the collapsible "Block Programs" table ('1' | '2' | '2a'). Switchable
-     * live on the page via the chip toggle in the section header; this only seeds the starting selection.
-     * Distinct from `variant`, which picks the overall layout (Dashkit vs. domains-card).
-     */
-    programsVariant?: string;
 }) {
     const stats = computeProgramStats(block);
 
@@ -112,7 +104,7 @@ export function BlockProgramsCard({
         return (
             <div className="flex flex-col gap-6">
                 <ProgramStatsCollapsible stats={stats} />
-                <ProgramsCollapsible stats={stats} initialVariant={programsVariant} />
+                <ProgramsCollapsible stats={stats} />
             </div>
         );
     }
@@ -240,92 +232,45 @@ export function HeaderLabel({ label, help }: { label: string; help?: string }) {
     );
 }
 
-// A merged numeric cell: a count and (optionally) its percentage as two fixed-width mono parts. The
-// count holds 6 characters; the percentage holds 7 (enough for `100.00%`), so figures line up
-// regardless of magnitude.
-function MergedFigure({ count, percent }: { count: string; percent?: string }) {
-    return (
-        <div className="flex justify-end gap-1 tabular-nums">
-            <span className="text-right" style={{ width: '6ch' }}>
-                {count}
-            </span>
-            {percent !== undefined && (
-                <span className="text-right text-outer-space-300" style={{ width: '7ch' }}>
-                    {percent}
-                </span>
-            )}
-        </div>
-    );
+// A single right-aligned mono figure (the Success column). `tabular-nums` keeps digits aligned across rows.
+function MergedFigure({ count }: { count: string }) {
+    return <div className="text-right tabular-nums">{count}</div>;
 }
 
-// Design variants for the "Block Programs" table, surfaced as on-page chips (1, 2, …) in the section
-// header — the slot where the collapse toggle normally sits.
-const PROGRAMS_VARIANT_IDS = ['1', '2', '2a'] as const;
-
-// Bracketed figure for variants 2 / 2a — a count and its percentage on one right-aligned mono line.
-//   - Variant 2  (swapped=false): bright count, muted "(percent)" ("of total" dropped on desktop).
-//   - Variant 2a (swapped=true):  bright "percent", muted "(count)" — the two are swapped and the
-//                                  emphasis flips onto the percentage ("of total" dropped on desktop).
-function BracketedFigure({ count, percent, swapped }: { count: string; percent: string; swapped?: boolean }) {
+// A count with its percentage in parentheses on one right-aligned mono line: "count (percent)".
+function BracketedFigure({ count, percent }: { count: string; percent: string }) {
     return (
         <div className="text-right tabular-nums">
-            {swapped ? (
-                <>
-                    {percent}
-                    <span className="text-outer-space-300"> ({count})</span>
-                </>
-            ) : (
-                <>
-                    {count}
-                    <span className="text-outer-space-300"> ({percent})</span>
-                </>
-            )}
+            {count}
+            <span className="text-outer-space-300"> ({percent})</span>
         </div>
     );
 }
 
-// Domains-card style — "Block Programs" as a CSS grid on lg+, stacked labelled rows below lg.
-function ProgramsCollapsible({ stats, initialVariant }: { stats: ProgramStats; initialVariant: string }) {
+// Domains-card style: "Block Programs" as a CSS grid on lg+, stacked labelled rows below lg. Each figure
+// shows its count with the percentage in parentheses ("count (percent)").
+function ProgramsCollapsible({ stats }: { stats: ProgramStats }) {
     const { ixFrequency, programEntries, showSuccessRate, totalInstructions, totalTransactions, txSuccesses } = stats;
-    const [pv, setPv] = React.useState(initialVariant);
-
-    // Variants 2 / 2a fold each percentage into its count via parentheses (BracketedFigure), so the
-    // header sheds the ", % of total" suffix; the Success Rate column stays, but its header drops "Rate".
-    // Variant 2a additionally swaps count/percentage and flips the emphasis onto the percentage.
-    const bracketed = pv === '2' || pv === '2a';
-    const swapped = pv === '2a';
 
     // Program takes the slack; the count+percentage columns are a fixed 8.5rem track wide enough for a
-    // merged pair (see MergedFigure), while the single-value Success Rate column is narrower (5rem).
-    // Fixed (not `auto`) so the header and each row — which are separate grids — resolve identical
-    // track widths, keeping the right edges of the headers and values on the same vertical. Header +
-    // rows share this template. Inline (not a `grid-cols-[…]` class) so the Storybook JIT can't purge it.
+    // "count (percent)" pair, while the single-value Success column is narrower (5rem). Fixed (not `auto`)
+    // so the header and each row (separate grids) resolve identical track widths, keeping right edges
+    // aligned. Inline (not a `grid-cols-[...]` class) so the Storybook JIT cannot purge it.
     const gridStyle: React.CSSProperties = {
         gridTemplateColumns: `minmax(0,1fr) 8.5rem 8.5rem${showSuccessRate ? ' 5rem' : ''}`,
     };
-    const figureHeader = (base: string) => (bracketed ? base : `${base}, % of total`);
-    // Denominators shown in the page's top block — surfaced here in the header hover explanations.
     const txPctHelp = `Share of the block's ${totalTransactions.toLocaleString('en-US')} processed transactions that invoked this program.`;
     const ixPctHelp = `Share of the block's ${totalInstructions.toLocaleString('en-US')} total instructions that invoked this program.`;
     const successHelp = "Share of this program's transactions that succeeded (no error).";
     const headers: { label: string; help?: string }[] = [
         { label: 'Program' },
-        { help: txPctHelp, label: figureHeader('Transactions') },
-        { help: ixPctHelp, label: figureHeader('Instructions') },
+        { help: txPctHelp, label: 'Transactions' },
+        { help: ixPctHelp, label: 'Instructions' },
     ];
-    if (showSuccessRate) headers.push({ help: successHelp, label: bracketed ? 'Success' : 'Success Rate' });
+    if (showSuccessRate) headers.push({ help: successHelp, label: 'Success' });
 
     return (
-        <CollapsibleSection
-            title="Block Programs"
-            collapsible={false}
-            className=""
-            actions={PROGRAMS_VARIANT_IDS.map(v => (
-                <Chip key={v} active={pv === v} onClick={() => setPv(v)}>
-                    {v}
-                </Chip>
-            ))}
-        >
+        <CollapsibleSection title="Block Programs" collapsible={false} className="">
             <Card variant="tight" className={TIGHT_CARD}>
                 <div className="text-sm text-white">
                     <div
@@ -354,12 +299,11 @@ function ProgramsCollapsible({ stats, initialVariant }: { stats: ProgramStats; i
                             { count: `${ixFreq}`, label: 'Instructions', pct: ixPct },
                         ];
                         if (successRate !== undefined) {
-                            fields.push({ count: successRate, label: bracketed ? 'Success' : 'Success Rate' });
+                            fields.push({ count: successRate, label: 'Success' });
                         }
                         return (
                             <div key={programId} className="border-b border-solid border-white/10 last:border-b-0">
-                                {/* Mobile / tablet — stacked, labelled rows. Label column uses the same
-                                    clamp(100px,25%,200px) ratio as the Overview section (ProgramStatsCollapsible). */}
+                                {/* Mobile / tablet: stacked, labelled rows. */}
                                 <div className="flex flex-col gap-1 px-3 py-3 md:hidden">
                                     <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-center gap-2">
                                         <span className="text-outer-space-300">Program</span>
@@ -374,23 +318,13 @@ function ProgramsCollapsible({ stats, initialVariant }: { stats: ProgramStats; i
                                             <span>
                                                 {f.pct === undefined ? (
                                                     f.count
-                                                ) : swapped ? (
-                                                    <>
-                                                        {f.pct}
-                                                        <span className="text-outer-space-300"> ({f.count})</span>
-                                                    </>
-                                                ) : bracketed ? (
+                                                ) : (
                                                     <>
                                                         {f.count}
                                                         <span className="text-outer-space-300">
                                                             {' '}
                                                             ({f.pct} of Total)
                                                         </span>
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        {f.count}
-                                                        <span className="text-outer-space-300"> {f.pct} of Total</span>
                                                     </>
                                                 )}
                                             </span>
@@ -403,19 +337,9 @@ function ProgramsCollapsible({ stats, initialVariant }: { stats: ProgramStats; i
                                     <div className="min-w-0">
                                         <Address pubkey={new PublicKey(programId)} link />
                                     </div>
-                                    {bracketed ? (
-                                        <>
-                                            <BracketedFigure count={`${txFreq}`} percent={txPct} swapped={swapped} />
-                                            <BracketedFigure count={`${ixFreq}`} percent={ixPct} swapped={swapped} />
-                                            {successRate !== undefined && <MergedFigure count={successRate} />}
-                                        </>
-                                    ) : (
-                                        <>
-                                            <MergedFigure count={`${txFreq}`} percent={txPct} />
-                                            <MergedFigure count={`${ixFreq}`} percent={ixPct} />
-                                            {successRate !== undefined && <MergedFigure count={successRate} />}
-                                        </>
-                                    )}
+                                    <BracketedFigure count={`${txFreq}`} percent={txPct} />
+                                    <BracketedFigure count={`${ixFreq}`} percent={ixPct} />
+                                    {successRate !== undefined && <MergedFigure count={successRate} />}
                                 </div>
                             </div>
                         );

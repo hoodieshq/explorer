@@ -187,17 +187,13 @@ const ACCOUNTS_GRID: React.CSSProperties = {
     gridTemplateColumns: 'minmax(0,1fr) repeat(2, minmax(auto,5rem)) minmax(auto,8.5rem)',
 };
 
-// Merged numeric cell mirroring the Block Programs card: a count and its percentage as two fixed-width
-// parts (count bright, percentage muted) so figures line up. `tabular-nums` aligns digits in the sans face.
-function MergedFigure({ count, percent }: { count: string; percent: string }) {
+// A count with its percentage in parentheses on one right-aligned mono line ("count (percent)"), matching
+// the Block Programs card. `tabular-nums` aligns digits in the sans face.
+function BracketedFigure({ count, percent }: { count: string; percent: string }) {
     return (
-        <div className="flex justify-end gap-1 tabular-nums">
-            <span className="text-right" style={{ width: '6ch' }}>
-                {count}
-            </span>
-            <span className="text-right text-outer-space-300" style={{ width: '7ch' }}>
-                {percent}
-            </span>
+        <div className="text-right tabular-nums">
+            {count}
+            <span className="text-outer-space-300"> ({percent})</span>
         </div>
     );
 }
@@ -308,7 +304,7 @@ function AccountsGridRow({
                     <span className="text-outer-space-300">Total</span>
                     <span>
                         {total}
-                        <span className="text-outer-space-300"> {totalPct} of block transactions</span>
+                        <span className="text-outer-space-300"> ({totalPct} of Total)</span>
                     </span>
                 </div>
             </div>
@@ -325,7 +321,7 @@ function AccountsGridRow({
                         {f.value}
                     </div>
                 ))}
-                <MergedFigure count={`${total}`} percent={totalPct} />
+                <BracketedFigure count={`${total}`} percent={totalPct} />
             </div>
         </div>
     );
