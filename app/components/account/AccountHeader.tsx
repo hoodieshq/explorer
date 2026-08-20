@@ -23,6 +23,7 @@ import { dasImageAddress } from '@/app/components/account/das-image-address';
 import { ProgramHeader } from '@/app/components/shared/account/ProgramHeader';
 import { ProxiedImage } from '@/app/features/metadata';
 import { getProxiedUri } from '@/app/features/metadata/utils';
+import { PageHeader } from '@/app/shared/ui/page-header/PageHeader';
 import { type FullTokenInfo, isRedactedTokenAddress } from '@/app/utils/token-info';
 
 export function AccountHeader({
@@ -102,12 +103,12 @@ export function AccountHeader({
 }
 
 function AccountDetailsHeader({ title }: { title: string }) {
-    return (
-        <div className="flex flex-col justify-center gap-1 md:min-h-[69px]">
-            <h6 className="uppercase tracking-[0.08em] text-dk-gray-700">Details</h6>
-            <h2 className="mb-0">{title}</h2>
-        </div>
-    );
+    // min-h keeps the "Details / <title>" header a consistent height across account types (it matches
+    // the token-mint header), but centering ~57px of content in 69px would add ~6px above and below the
+    // title and inflate the page's top and title→card gaps vs the block page. The negative `-my` pulls
+    // that overhang back out of the flow so the visible spacing matches the block page while the box
+    // itself stays 69px tall. `as="div"` because this header is nested inside the account Header row.
+    return <PageHeader as="div" title={title} className="justify-center md:-my-1.5 md:min-h-[69px]" />;
 }
 
 function TokenMintHeader({

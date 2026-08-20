@@ -60,6 +60,7 @@ import useSWRImmutable from 'swr/immutable';
 
 import { CompressedNftCard } from '@/app/components/account/CompressedNftCard';
 import { SolanaAttestationServiceCard } from '@/app/components/account/sas/SolanaAttestationCard';
+import { cn } from '@/app/components/shared/utils';
 import { getFeatureInfo, useFeatureInfo } from '@/app/entities/feature-gate';
 import { hasTokenMetadata } from '@/app/features/metadata';
 import {
@@ -73,8 +74,13 @@ import {
 import { useCompressedNft } from '@/app/providers/compressed-nft';
 import { useSquadsMultisigLookup } from '@/app/providers/squadsMultisig';
 import { type NavigationTab, NavigationTabLink, NavigationTabs } from '@/app/shared/ui/navigation-tabs';
-import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
-import { StickyHeader } from '@/app/shared/ui/sticky-header/StickyHeader';
+import {
+    DSCOMMON_BEFORE_HEADER,
+    DSCOMMON_BETWEEN_BLOCKS,
+    DSCOMMON_CONTENT_MAX_WIDTH_M,
+    DSCOMMON_PAGE_PADDING_X,
+} from '@/app/shared/ui/page-spacing/spacing';
+import { useStickyHeaderHeight } from '@/app/shared/ui/sticky-header/useStickyHeaderHeight';
 import { isAttestationAccount } from '@/app/utils/attestation-service';
 import {
     fetchFullTokenInfo,
@@ -191,8 +197,17 @@ function AddressLayoutInner({ children, params: { address } }: InnerProps) {
         }
     }, [address, status, info]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Content column, max-width + horizontal/top padding all from the shared DSCOMMON size tokens
+    // (the max-width matches the transaction page).
     return (
-        <PageContainer variant="pulled-up">
+        <div
+            className={cn(
+                'mx-auto flex w-full flex-col',
+                DSCOMMON_CONTENT_MAX_WIDTH_M.className,
+                DSCOMMON_PAGE_PADDING_X.className,
+                DSCOMMON_BEFORE_HEADER.className,
+            )}
+        >
             <Header
                 address={address}
                 account={info?.data}
@@ -212,7 +227,7 @@ function AddressLayoutInner({ children, params: { address } }: InnerProps) {
                     {children}
                 </DetailsSections>
             )}
-        </PageContainer>
+        </div>
     );
 }
 
@@ -386,15 +401,27 @@ function MoreSection({
         [baseUrl, buildClusterPath],
     );
 
+    // Track the sticky bar's height into --sticky-header-height so anchored content beneath it
+    // (e.g. TokenExtensionsSection's scroll-margin-top) still clears the bar without StickyHeader.
+    const tabBarRef = React.useRef<HTMLDivElement>(null);
+    useStickyHeaderHeight(tabBarRef);
+
     return (
         <>
-            <StickyHeader>
-                <PageContainer>
-                    <NavigationTabs buildHref={buildHref} tabs={tabs}>
-                        {asyncChildren}
-                    </NavigationTabs>
-                </PageContainer>
-            </StickyHeader>
+            {/* Full-bleed sticky tab bar, structured exactly like the block page: the negative margins
+                stretch the background edge-to-edge while the matching padding pulls the tabs back onto
+                the content column. Unlike the block page we keep the full-width underline (border-b). */}
+            <div
+                ref={tabBarRef}
+                className={cn(
+                    'sticky top-0 z-10 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] overflow-x-auto border-0 border-b border-solid border-neutral-800 bg-heavy-metal-900 pl-[calc(50vw-50%)] pr-[calc(50vw-50%)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+                    DSCOMMON_BETWEEN_BLOCKS.marginClassName,
+                )}
+            >
+                <NavigationTabs buildHref={buildHref} tabs={tabs} className="gap-5">
+                    {asyncChildren}
+                </NavigationTabs>
+            </div>
             {children}
         </>
     );

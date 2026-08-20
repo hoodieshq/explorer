@@ -30,7 +30,7 @@ export function VotesCard({ voteAccount, layout = 'table' }: { voteAccount: Vote
                 // Surface matched to the transaction Tokens/Accounts card, in pure Tailwind: bg
                 // `outer-space-900` equals `#1e2423` (dashkit `dk-gray-800-dark`); `border-outer-space-800`
                 // gives the card the same tone as the row separators; `rounded-lg` is the 8px radius.
-                <Card variant="tight" className="rounded-lg border-outer-space-800 bg-outer-space-900">
+                <Card variant="tight" className="!rounded-lg border-outer-space-800 bg-outer-space-900">
                     <VotesGrid votes={votes} />
                 </Card>
             ) : (

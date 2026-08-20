@@ -19,7 +19,7 @@ function VotesCardRenderer({
     if (!isParsedAccountProgram(parsedData, VOTE_PROGRAM_LABEL)) {
         return onNotFound();
     }
-    return <VotesCard voteAccount={parsedData.parsed} />;
+    return <VotesCard voteAccount={parsedData.parsed} layout="grid" />;
 }
 
 export default function VoteHistoryPageClient({ params: { address } }: Props) {
