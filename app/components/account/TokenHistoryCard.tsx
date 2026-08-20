@@ -11,6 +11,7 @@ import {
     parseTokenLendingInstructionTitle,
 } from '@components/instruction/token-lending/types';
 import { isTokenSwapInstruction, parseTokenSwapInstructionTitle } from '@components/instruction/token-swap/types';
+import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
 import { cn } from '@components/shared/utils';
 import { useTokenInfo } from '@entities/token-info';
@@ -38,7 +39,7 @@ import { Button } from '@/app/components/shared/ui/button';
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/components/shared/ui/dropdown';
 import { INITIAL_TOKENS_TO_FETCH, INITIAL_VISIBLE_COUNT, LOAD_MORE_COUNT } from '@/app/features/token-history/config';
 import { Logger } from '@/app/shared/lib/logger';
-import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@/app/shared/ui/Card';
+import { Card, CardBody, CardFooter } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 const TRUNCATE_TOKEN_LENGTH = 10;
@@ -188,28 +189,25 @@ function TokenHistoryTable({ tokens }: { tokens: TokenInfoWithPubkey[] }) {
         }
         if (tokensToFetchCount === 0) {
             return (
-                <Card ui="dashkit">
-                    <CardHeader ui="dashkit">
-                        <CardTitle as="h3" ui="dashkit">
-                            Token History
-                        </CardTitle>
-                    </CardHeader>
-                    <CardBody ui="dashkit">
-                        <p className="mb-0 text-center text-dk-gray-700">
-                            Click the button below to load token transaction history
-                        </p>
-                    </CardBody>
-                    <CardFooter ui="dashkit">
-                        <Button
-                            ui="dashkit"
-                            variant="primary"
-                            className="w-full"
-                            onClick={() => setTokensToFetchCount(LOAD_MORE_COUNT)}
-                        >
-                            Load Token History
-                        </Button>
-                    </CardFooter>
-                </Card>
+                <CollapsibleSection title="Token History" className="">
+                    <Card ui="dashkit" marginBottom="none">
+                        <CardBody ui="dashkit">
+                            <p className="mb-0 text-center text-dk-gray-700">
+                                Click the button below to load token transaction history
+                            </p>
+                        </CardBody>
+                        <CardFooter ui="dashkit">
+                            <Button
+                                ui="dashkit"
+                                variant="primary"
+                                className="w-full"
+                                onClick={() => setTokensToFetchCount(LOAD_MORE_COUNT)}
+                            >
+                                Load Token History
+                            </Button>
+                        </CardFooter>
+                    </Card>
+                </CollapsibleSection>
             );
         }
         return (
@@ -224,90 +222,95 @@ function TokenHistoryTable({ tokens }: { tokens: TokenInfoWithPubkey[] }) {
     });
 
     return (
-        <Card ui="dashkit">
-            <CardHeader ui="dashkit">
-                <CardTitle as="h3" ui="dashkit">
-                    Token History
-                </CardTitle>
-                <FilterDropdown filter={filter} tokens={tokens} />
-                <RefreshButton
-                    analyticsSection="token_history_card"
-                    onClick={() => fetchHistories(true)}
-                    fetching={fetching}
-                />
-            </CardHeader>
+        <CollapsibleSection
+            title="Token History"
+            className=""
+            actions={
+                <>
+                    <FilterDropdown filter={filter} tokens={tokens} />
+                    <RefreshButton
+                        analyticsSection="token_history_card"
+                        onClick={() => fetchHistories(true)}
+                        fetching={fetching}
+                    />
+                </>
+            }
+        >
+            <Card ui="dashkit" marginBottom="none">
+                <BaseTable ui="dashkit" variant="card" nowrap>
+                    <BaseTable.Head>
+                        <BaseTable.Row>
+                            <BaseTable.HeaderCell className="w-px text-dk-gray-700">Slot</BaseTable.HeaderCell>
+                            <BaseTable.HeaderCell className="text-dk-gray-700">Result</BaseTable.HeaderCell>
+                            <BaseTable.HeaderCell className="text-dk-gray-700">Token</BaseTable.HeaderCell>
+                            <BaseTable.HeaderCell className="text-dk-gray-700">Instruction Type</BaseTable.HeaderCell>
+                            <BaseTable.HeaderCell className="text-dk-gray-700">
+                                Transaction Signature
+                            </BaseTable.HeaderCell>
+                        </BaseTable.Row>
+                    </BaseTable.Head>
+                    <BaseTable.Body>
+                        {mintAndTxs.slice(0, visibleTxCount).map(({ mint, tx }) => (
+                            <TokenTransactionRow
+                                key={tx.signature}
+                                mint={mint}
+                                tx={tx}
+                                details={transactionDetailsCache[tx.signature]}
+                            />
+                        ))}
+                    </BaseTable.Body>
+                </BaseTable>
 
-            <BaseTable ui="dashkit" variant="card" nowrap>
-                <BaseTable.Head>
-                    <BaseTable.Row>
-                        <BaseTable.HeaderCell className="w-px text-dk-gray-700">Slot</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Result</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Token</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Instruction Type</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Transaction Signature</BaseTable.HeaderCell>
-                    </BaseTable.Row>
-                </BaseTable.Head>
-                <BaseTable.Body>
-                    {mintAndTxs.slice(0, visibleTxCount).map(({ mint, tx }) => (
-                        <TokenTransactionRow
-                            key={tx.signature}
-                            mint={mint}
-                            tx={tx}
-                            details={transactionDetailsCache[tx.signature]}
-                        />
-                    ))}
-                </BaseTable.Body>
-            </BaseTable>
-
-            <CardFooter ui="dashkit">
-                {visibleTxCount < mintAndTxs.length ? (
-                    <Button
-                        ui="dashkit"
-                        variant="primary"
-                        className="w-full"
-                        onClick={() => setVisibleTxCount(c => c + LOAD_MORE_COUNT)}
-                    >
-                        {`Show More (${visibleTxCount} of ${mintAndTxs.length})`}
-                    </Button>
-                ) : tokensToFetchCount < filteredTokens.length ? (
-                    <Button
-                        ui="dashkit"
-                        variant="primary"
-                        className="w-full"
-                        onClick={() => setTokensToFetchCount(c => c + LOAD_MORE_COUNT)}
-                        disabled={fetching}
-                    >
-                        {fetching ? (
-                            <>
-                                <span className="spinner-grow spinner-grow-sm mr-1.5 align-text-top"></span>
-                                Loading
-                            </>
-                        ) : (
-                            `Load More Token Accounts (${tokensToFetchCount} of ${filteredTokens.length})`
-                        )}
-                    </Button>
-                ) : allFoundOldest ? (
-                    <div className="text-center text-dk-gray-700">Fetched full history</div>
-                ) : (
-                    <Button
-                        ui="dashkit"
-                        variant="primary"
-                        className="w-full"
-                        onClick={() => fetchHistories()}
-                        disabled={fetching}
-                    >
-                        {fetching ? (
-                            <>
-                                <span className="spinner-grow spinner-grow-sm mr-1.5 align-text-top"></span>
-                                Loading
-                            </>
-                        ) : (
-                            'Load More History'
-                        )}
-                    </Button>
-                )}
-            </CardFooter>
-        </Card>
+                <CardFooter ui="dashkit">
+                    {visibleTxCount < mintAndTxs.length ? (
+                        <Button
+                            ui="dashkit"
+                            variant="primary"
+                            className="w-full"
+                            onClick={() => setVisibleTxCount(c => c + LOAD_MORE_COUNT)}
+                        >
+                            {`Show More (${visibleTxCount} of ${mintAndTxs.length})`}
+                        </Button>
+                    ) : tokensToFetchCount < filteredTokens.length ? (
+                        <Button
+                            ui="dashkit"
+                            variant="primary"
+                            className="w-full"
+                            onClick={() => setTokensToFetchCount(c => c + LOAD_MORE_COUNT)}
+                            disabled={fetching}
+                        >
+                            {fetching ? (
+                                <>
+                                    <span className="spinner-grow spinner-grow-sm mr-1.5 align-text-top"></span>
+                                    Loading
+                                </>
+                            ) : (
+                                `Load More Token Accounts (${tokensToFetchCount} of ${filteredTokens.length})`
+                            )}
+                        </Button>
+                    ) : allFoundOldest ? (
+                        <div className="text-center text-dk-gray-700">Fetched full history</div>
+                    ) : (
+                        <Button
+                            ui="dashkit"
+                            variant="primary"
+                            className="w-full"
+                            onClick={() => fetchHistories()}
+                            disabled={fetching}
+                        >
+                            {fetching ? (
+                                <>
+                                    <span className="spinner-grow spinner-grow-sm mr-1.5 align-text-top"></span>
+                                    Loading
+                                </>
+                            ) : (
+                                'Load More History'
+                            )}
+                        </Button>
+                    )}
+                </CardFooter>
+            </Card>
+        </CollapsibleSection>
     );
 }
 

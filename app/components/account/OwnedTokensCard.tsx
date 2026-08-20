@@ -269,7 +269,7 @@ type GridRowProps = {
     token: MappedToken;
 };
 
-// The grid is always the detailed view — Logo / Account Address / Mint Address / Total Balance. (Summary vs
+// The grid is always the detailed view — Logo / Mint Address / Account Address / Total Balance. (Summary vs
 // Detailed only applies to the legacy table.) Two renderings toggled at `sm`: below it each holding is a
 // labels-left block (no shared header, every field carries its own left label, so long base58 keys read
 // top-to-bottom); at `sm+` it becomes the CSS-grid table — the logo hugs its icon (`auto`), the balance
@@ -302,10 +302,10 @@ function TokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; v
                             Logo
                         </div>
                         <div role="columnheader" className={gridCellVariants({ column: 'address', role: 'header' })}>
-                            Account Address
+                            Mint Address
                         </div>
                         <div role="columnheader" className={gridCellVariants({ column: 'address', role: 'header' })}>
-                            Mint Address
+                            Account Address
                         </div>
                         <div role="columnheader" className={gridCellVariants({ column: 'balance', role: 'header' })}>
                             Total Balance
@@ -320,7 +320,7 @@ function TokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; v
     );
 }
 
-// Mobile row (< sm): one labels-left line per field (Account / Mint / Total Balance). Labels sit in a
+// Mobile row (< sm): one labels-left line per field (Mint / Account / Total Balance). Labels sit in a
 // fixed-width column so the values line up; the value wrappers are `min-w-0` so `<Address>` mid-truncates
 // instead of overflowing. The logo rides inline just before the Mint address.
 function MobileTokenRow({ mintAddress, token }: GridRowProps) {
@@ -330,14 +330,6 @@ function MobileTokenRow({ mintAddress, token }: GridRowProps) {
 
     return (
         <div className="flex flex-col gap-1 border-t border-solid border-outer-space-800 px-3 py-3 text-sm text-white first:border-t-0">
-            {token.pubkey && (
-                <div className="flex items-baseline gap-2">
-                    <span className="w-24 shrink-0 text-outer-space-300">Account</span>
-                    <div className="min-w-0 flex-1">
-                        <Address pubkey={new PublicKey(token.pubkey)} link />
-                    </div>
-                </div>
-            )}
             <div className="flex items-center gap-2">
                 <span className="w-24 shrink-0 self-baseline text-outer-space-300">Mint</span>
                 <ProxiedImage
@@ -353,6 +345,14 @@ function MobileTokenRow({ mintAddress, token }: GridRowProps) {
                     <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
                 </div>
             </div>
+            {token.pubkey && (
+                <div className="flex items-baseline gap-2">
+                    <span className="w-24 shrink-0 text-outer-space-300">Account</span>
+                    <div className="min-w-0 flex-1">
+                        <Address pubkey={new PublicKey(token.pubkey)} link />
+                    </div>
+                </div>
+            )}
             <div className="flex items-baseline gap-2">
                 <span className="w-24 shrink-0 text-outer-space-300">Total Balance</span>
                 <span className="min-w-0 flex-1 break-words">
@@ -385,14 +385,14 @@ function GridTokenRow({ mintAddress, token }: GridRowProps) {
                     width={16}
                 />
             </div>
+            <div role="cell" className={gridCellVariants({ column: 'address' })}>
+                <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
+            </div>
             {token.pubkey && (
                 <div role="cell" className={gridCellVariants({ column: 'address' })}>
                     <Address pubkey={new PublicKey(token.pubkey)} link />
                 </div>
             )}
-            <div role="cell" className={gridCellVariants({ column: 'address' })}>
-                <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
-            </div>
             <div role="cell" className={gridCellVariants({ column: 'balance' })}>
                 {token.amount} {tokenInfo?.symbol ?? 'tokens'}
                 <ScaledUiAmountMultiplierTooltip

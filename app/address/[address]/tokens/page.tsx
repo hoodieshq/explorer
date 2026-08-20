@@ -24,7 +24,7 @@ export default async function OwnedTokensPage(props: Props) {
 
     return (
         <TransactionsProvider>
-            <OwnedTokensCard address={address} />
+            <OwnedTokensCard address={address} layout="grid" />
             <TokenHistoryCard address={address} />
         </TransactionsProvider>
     );
