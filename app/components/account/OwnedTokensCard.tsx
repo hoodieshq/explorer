@@ -273,8 +273,9 @@ type GridRowProps = {
 // Detailed only applies to the legacy table.) Two renderings toggled at `sm`: below it each holding is a
 // labels-left block (no shared header, every field carries its own left label, so long base58 keys read
 // top-to-bottom); at `sm+` it becomes the CSS-grid table — the logo hugs its icon (`auto`), the balance
-// takes the same `minmax(auto,180px)` track as the transaction page's Post Balance column, and the two
-// address columns take the remaining width as `minmax(0,1fr)` and mid-truncate.
+// takes a `minmax(auto,220px)` track (a touch wider than the transaction page's 180px Post Balance column,
+// so long amounts + symbols breathe), and the two address columns take the remaining width as
+// `minmax(0,1fr)` and mid-truncate.
 function TokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; visibleCount: number }) {
     const visibleTokens = useMappedTokens(tokens, true).slice(0, visibleCount);
 
@@ -295,7 +296,7 @@ function TokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; v
                 <div
                     role="table"
                     aria-label="Token holdings"
-                    className="grid min-w-full grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(auto,180px)]"
+                    className="grid min-w-full grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(auto,220px)]"
                 >
                     <div role="row" className="contents">
                         <div role="columnheader" className={gridCellVariants({ column: 'logo', role: 'header' })}>

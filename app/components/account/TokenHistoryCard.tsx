@@ -39,13 +39,15 @@ import { Button } from '@/app/components/shared/ui/button';
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/components/shared/ui/dropdown';
 import { INITIAL_TOKENS_TO_FETCH, INITIAL_VISIBLE_COUNT, LOAD_MORE_COUNT } from '@/app/features/token-history/config';
 import { Logger } from '@/app/shared/lib/logger';
-import { Card, CardBody, CardFooter } from '@/app/shared/ui/Card';
+import { Card, CardFooter } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 const TRUNCATE_TOKEN_LENGTH = 10;
 const ALL_TOKENS = '';
 
-export function TokenHistoryCard({ address }: { address: string }) {
+export type TokenHistoryLayout = 'table' | 'grid';
+
+export function TokenHistoryCard({ address, layout = 'table' }: { address: string; layout?: TokenHistoryLayout }) {
     const ownedTokens = useAccountOwnedTokens(address);
 
     if (ownedTokens === undefined) {
@@ -56,10 +58,14 @@ export function TokenHistoryCard({ address }: { address: string }) {
     if (tokens === undefined || tokens.length === 0) return null;
 
     if (tokens.length > 25) {
-        return <ErrorCard text="Token transaction history is not available for accounts with over 25 token accounts" />;
+        return (
+            <CollapsibleSection title="Token History" className="">
+                <ErrorCard text="Token transaction history is not available for accounts with over 25 token accounts" />
+            </CollapsibleSection>
+        );
     }
 
-    return <TokenHistoryTable tokens={tokens} />;
+    return <TokenHistoryTable tokens={tokens} layout={layout} />;
 }
 
 const useQueryFilter = (): string => {
@@ -73,7 +79,7 @@ type FilterProps = {
     tokens: TokenInfoWithPubkey[];
 };
 
-function TokenHistoryTable({ tokens }: { tokens: TokenInfoWithPubkey[] }) {
+function TokenHistoryTable({ tokens, layout }: { tokens: TokenInfoWithPubkey[]; layout: TokenHistoryLayout }) {
     const accountHistories = useAccountHistories();
     const fetchAccountHistory = useFetchAccountHistory();
     const transactionDetailsCache = useTransactionDetailsCache();
@@ -183,20 +189,25 @@ function TokenHistoryTable({ tokens }: { tokens: TokenInfoWithPubkey[] }) {
 
     if (mintAndTxs.length === 0) {
         if (fetching) {
-            return <LoadingCard message="Loading history" />;
+            // Keep the "Token History" heading visible while the first page loads instead of
+            // collapsing to a bare LoadingCard.
+            return (
+                <CollapsibleSection title="Token History" className="">
+                    <LoadingCard message="Loading history" />
+                </CollapsibleSection>
+            );
         } else if (failed) {
-            return <ErrorCard retry={() => fetchHistories(true)} text="Failed to fetch transaction history" />;
+            return (
+                <CollapsibleSection title="Token History" className="">
+                    <ErrorCard retry={() => fetchHistories(true)} text="Failed to fetch transaction history" />
+                </CollapsibleSection>
+            );
         }
         if (tokensToFetchCount === 0) {
             return (
                 <CollapsibleSection title="Token History" className="">
                     <Card ui="dashkit" marginBottom="none">
-                        <CardBody ui="dashkit">
-                            <p className="mb-0 text-center text-dk-gray-700">
-                                Click the button below to load token transaction history
-                            </p>
-                        </CardBody>
-                        <CardFooter ui="dashkit">
+                        <CardFooter ui="dashkit" className="!p-3">
                             <Button
                                 ui="dashkit"
                                 variant="primary"
@@ -211,7 +222,13 @@ function TokenHistoryTable({ tokens }: { tokens: TokenInfoWithPubkey[] }) {
             );
         }
         return (
-            <ErrorCard retry={() => fetchHistories(true)} retryText="Try again" text="No transaction history found" />
+            <CollapsibleSection title="Token History" className="">
+                <ErrorCard
+                    retry={() => fetchHistories(true)}
+                    retryText="Try again"
+                    text="No transaction history found"
+                />
+            </CollapsibleSection>
         );
     }
 
@@ -220,6 +237,61 @@ function TokenHistoryTable({ tokens }: { tokens: TokenInfoWithPubkey[] }) {
         if (a.tx.slot < b.tx.slot) return 1;
         return 0;
     });
+
+    const visibleRows = mintAndTxs.slice(0, visibleTxCount);
+
+    // Footer is identical across layouts: a Load/Show-More button, or the left-aligned
+    // "Fetched full history" end-of-stream note. 12px padding all round (see !p-3).
+    const footer = (
+        <CardFooter ui="dashkit" className="!p-3">
+            {visibleTxCount < mintAndTxs.length ? (
+                <Button
+                    ui="dashkit"
+                    variant="primary"
+                    className="w-full"
+                    onClick={() => setVisibleTxCount(c => c + LOAD_MORE_COUNT)}
+                >
+                    {`Show More (${visibleTxCount} of ${mintAndTxs.length})`}
+                </Button>
+            ) : tokensToFetchCount < filteredTokens.length ? (
+                <Button
+                    ui="dashkit"
+                    variant="primary"
+                    className="w-full"
+                    onClick={() => setTokensToFetchCount(c => c + LOAD_MORE_COUNT)}
+                    disabled={fetching}
+                >
+                    {fetching ? (
+                        <>
+                            <span className="spinner-grow spinner-grow-sm mr-1.5 align-text-top"></span>
+                            Loading
+                        </>
+                    ) : (
+                        `Load More Token Accounts (${tokensToFetchCount} of ${filteredTokens.length})`
+                    )}
+                </Button>
+            ) : allFoundOldest ? (
+                <div className="text-left text-dk-gray-700">Fetched full history</div>
+            ) : (
+                <Button
+                    ui="dashkit"
+                    variant="primary"
+                    className="w-full"
+                    onClick={() => fetchHistories()}
+                    disabled={fetching}
+                >
+                    {fetching ? (
+                        <>
+                            <span className="spinner-grow spinner-grow-sm mr-1.5 align-text-top"></span>
+                            Loading
+                        </>
+                    ) : (
+                        'Load More History'
+                    )}
+                </Button>
+            )}
+        </CardFooter>
+    );
 
     return (
         <CollapsibleSection
@@ -236,80 +308,42 @@ function TokenHistoryTable({ tokens }: { tokens: TokenInfoWithPubkey[] }) {
                 </>
             }
         >
-            <Card ui="dashkit" marginBottom="none">
-                <BaseTable ui="dashkit" variant="card" nowrap>
-                    <BaseTable.Head>
-                        <BaseTable.Row>
-                            <BaseTable.HeaderCell className="w-px text-dk-gray-700">Slot</BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell className="text-dk-gray-700">Result</BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell className="text-dk-gray-700">Token</BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell className="text-dk-gray-700">Instruction Type</BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell className="text-dk-gray-700">
-                                Transaction Signature
-                            </BaseTable.HeaderCell>
-                        </BaseTable.Row>
-                    </BaseTable.Head>
-                    <BaseTable.Body>
-                        {mintAndTxs.slice(0, visibleTxCount).map(({ mint, tx }) => (
-                            <TokenTransactionRow
-                                key={tx.signature}
-                                mint={mint}
-                                tx={tx}
-                                details={transactionDetailsCache[tx.signature]}
-                            />
-                        ))}
-                    </BaseTable.Body>
-                </BaseTable>
-
-                <CardFooter ui="dashkit">
-                    {visibleTxCount < mintAndTxs.length ? (
-                        <Button
-                            ui="dashkit"
-                            variant="primary"
-                            className="w-full"
-                            onClick={() => setVisibleTxCount(c => c + LOAD_MORE_COUNT)}
-                        >
-                            {`Show More (${visibleTxCount} of ${mintAndTxs.length})`}
-                        </Button>
-                    ) : tokensToFetchCount < filteredTokens.length ? (
-                        <Button
-                            ui="dashkit"
-                            variant="primary"
-                            className="w-full"
-                            onClick={() => setTokensToFetchCount(c => c + LOAD_MORE_COUNT)}
-                            disabled={fetching}
-                        >
-                            {fetching ? (
-                                <>
-                                    <span className="spinner-grow spinner-grow-sm mr-1.5 align-text-top"></span>
-                                    Loading
-                                </>
-                            ) : (
-                                `Load More Token Accounts (${tokensToFetchCount} of ${filteredTokens.length})`
-                            )}
-                        </Button>
-                    ) : allFoundOldest ? (
-                        <div className="text-center text-dk-gray-700">Fetched full history</div>
-                    ) : (
-                        <Button
-                            ui="dashkit"
-                            variant="primary"
-                            className="w-full"
-                            onClick={() => fetchHistories()}
-                            disabled={fetching}
-                        >
-                            {fetching ? (
-                                <>
-                                    <span className="spinner-grow spinner-grow-sm mr-1.5 align-text-top"></span>
-                                    Loading
-                                </>
-                            ) : (
-                                'Load More History'
-                            )}
-                        </Button>
-                    )}
-                </CardFooter>
-            </Card>
+            {layout === 'grid' ? (
+                // Surface matched to the Token Holdings grid: tight card, 8px radius, outer-space border.
+                <Card variant="tight" className="rounded-lg border-outer-space-800 bg-outer-space-900">
+                    <TokenHistoryGrid rows={visibleRows} detailsCache={transactionDetailsCache} />
+                    {footer}
+                </Card>
+            ) : (
+                <Card ui="dashkit" marginBottom="none">
+                    <BaseTable ui="dashkit" variant="card" nowrap>
+                        <BaseTable.Head>
+                            <BaseTable.Row>
+                                <BaseTable.HeaderCell className="w-px text-dk-gray-700">Slot</BaseTable.HeaderCell>
+                                <BaseTable.HeaderCell className="text-dk-gray-700">Result</BaseTable.HeaderCell>
+                                <BaseTable.HeaderCell className="text-dk-gray-700">Token</BaseTable.HeaderCell>
+                                <BaseTable.HeaderCell className="text-dk-gray-700">
+                                    Instruction Type
+                                </BaseTable.HeaderCell>
+                                <BaseTable.HeaderCell className="text-dk-gray-700">
+                                    Transaction Signature
+                                </BaseTable.HeaderCell>
+                            </BaseTable.Row>
+                        </BaseTable.Head>
+                        <BaseTable.Body>
+                            {visibleRows.map(({ mint, tx }) => (
+                                <TokenTransactionRow
+                                    key={tx.signature}
+                                    mint={mint}
+                                    tx={tx}
+                                    details={transactionDetailsCache[tx.signature]}
+                                />
+                            ))}
+                        </BaseTable.Body>
+                    </BaseTable>
+                    {footer}
+                </Card>
+            )}
         </CollapsibleSection>
     );
 }
@@ -413,6 +447,143 @@ const TokenTransactionRow = React.memo(function TokenTransactionRow({
     );
 });
 
+// Success / Failed badge, shared by the grid signature cell and the legacy table.
+function TxStatusBadge({ err }: { err: ConfirmedSignatureInfo['err'] }) {
+    return err ? (
+        <Badge ui="dashkit" variant="warning">
+            Failed
+        </Badge>
+    ) : (
+        <Badge ui="dashkit" variant="success">
+            Success
+        </Badge>
+    );
+}
+
+// Grid rendering of the history rows, mirroring the transaction Accounts/Token Balances tables and the
+// Token Holdings grid. Columns in order: Signature (with the status badge folded into the cell after it),
+// Instruction Type, Token, Slot. Below `sm` each row collapses to a labels-left block.
+//
+// Instruction Type and Slot are fixed-width; Signature and Token split the remaining width equally
+// (`minmax(0,1fr)` each — the `0` min lets their mid-truncating content shrink instead of widening the
+// grid past the container and forcing a horizontal scrollbar). The Slot track is sized to hold a
+// comma-grouped slot number plus Copyable's inline copy icon: a too-narrow fixed track let the
+// `whitespace-nowrap` number spill past the grid, where the card's overflow clipped it.
+const HISTORY_GRID_TEMPLATE = 'grid-cols-[minmax(0,1fr)_160px_minmax(0,1fr)_160px]';
+const historyHeaderCell = 'flex items-center px-3 py-2.5 text-xs uppercase text-outer-space-300';
+const historyBodyCell = 'flex items-center border-t border-solid border-outer-space-800 px-3 py-2.5';
+
+type HistoryRowProps = {
+    mint: PublicKey;
+    tx: ConfirmedSignatureInfo;
+    details: CacheEntry<Details> | undefined;
+};
+
+function TokenHistoryGrid({
+    rows,
+    detailsCache,
+}: {
+    rows: { mint: PublicKey; tx: ConfirmedSignatureInfo }[];
+    detailsCache: Record<string, CacheEntry<Details>>;
+}) {
+    return (
+        <>
+            {/* Mobile (< md): labels-left list. */}
+            <div className="md:hidden">
+                {rows.map(({ mint, tx }) => (
+                    <MobileHistoryRow key={tx.signature} mint={mint} tx={tx} details={detailsCache[tx.signature]} />
+                ))}
+            </div>
+
+            {/* Desktop (md+): CSS-grid table; `contents` row wrappers keep ARIA structure without breaking
+                the grid column alignment. */}
+            <div className="hidden w-full text-sm text-white md:block">
+                <div role="table" aria-label="Token history" className={cn('grid w-full', HISTORY_GRID_TEMPLATE)}>
+                    <div role="row" className="contents">
+                        <div role="columnheader" className={historyHeaderCell}>
+                            Signature
+                        </div>
+                        <div role="columnheader" className={historyHeaderCell}>
+                            Instruction Type
+                        </div>
+                        <div role="columnheader" className={historyHeaderCell}>
+                            Token
+                        </div>
+                        <div role="columnheader" className={historyHeaderCell}>
+                            Slot
+                        </div>
+                    </div>
+                    {rows.map(({ mint, tx }) => (
+                        <GridHistoryRow key={tx.signature} mint={mint} tx={tx} details={detailsCache[tx.signature]} />
+                    ))}
+                </div>
+            </div>
+        </>
+    );
+}
+
+function GridHistoryRow({ mint, tx, details }: HistoryRowProps) {
+    return (
+        <div role="row" className="contents">
+            <div role="cell" className={cn(historyBodyCell, 'min-w-0 gap-2 overflow-hidden')}>
+                {/* No flex-1: the wrapper hugs the (fixed, mid-truncated) signature so the badge sits
+                    directly after it instead of being pushed to the far edge of the 1fr column. */}
+                <div className="min-w-0">
+                    <Signature signature={tx.signature} link />
+                </div>
+                <span className="shrink-0">
+                    <TxStatusBadge err={tx.err} />
+                </span>
+            </div>
+            <div role="cell" className={cn(historyBodyCell, 'min-w-0 flex-wrap gap-1')}>
+                <InstructionTypeContent signature={tx.signature} details={details} tx={tx} />
+            </div>
+            <div role="cell" className={cn(historyBodyCell, 'min-w-0 overflow-hidden')}>
+                <Address pubkey={mint} link />
+            </div>
+            <div role="cell" className={cn(historyBodyCell, 'whitespace-nowrap')}>
+                <Slot slot={tx.slot} link />
+            </div>
+        </div>
+    );
+}
+
+function MobileHistoryRow({ mint, tx, details }: HistoryRowProps) {
+    return (
+        <div className="flex flex-col gap-1 border-t border-solid border-outer-space-800 px-3 py-3 text-sm text-white first:border-t-0">
+            <div className="flex items-start gap-2">
+                <span className="w-28 shrink-0 text-outer-space-300">Signature</span>
+                <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                    <div className="min-w-0">
+                        <Signature signature={tx.signature} link />
+                    </div>
+                    <span className="shrink-0">
+                        <TxStatusBadge err={tx.err} />
+                    </span>
+                </div>
+            </div>
+            <div className="flex items-start gap-2">
+                <span className="w-28 shrink-0 text-outer-space-300">Instruction Type</span>
+                <div className="flex min-w-0 flex-1 flex-wrap gap-1">
+                    <InstructionTypeContent signature={tx.signature} details={details} tx={tx} />
+                </div>
+            </div>
+            <div className="flex items-start gap-2">
+                <span className="w-28 shrink-0 text-outer-space-300">Token</span>
+                <div className="min-w-0 flex-1 overflow-hidden">
+                    <Address pubkey={mint} link />
+                </div>
+            </div>
+            <div className="flex items-start gap-2">
+                <span className="w-28 shrink-0 text-outer-space-300">Slot</span>
+                <div className="min-w-0 flex-1">
+                    <Slot slot={tx.slot} link />
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function formatTokenName(pubkey: string, cluster: Cluster, tokenInfo?: TokenLabelInfo): string {
     let display = displayAddress(pubkey, cluster, tokenInfo);
 
@@ -423,7 +594,7 @@ function formatTokenName(pubkey: string, cluster: Cluster, tokenInfo?: TokenLabe
     return display;
 }
 
-function InstructionDetailsCell({
+function InstructionTypeContent({
     signature,
     details,
     tx,
@@ -446,34 +617,30 @@ function InstructionDetailsCell({
 
     if (!details) {
         return (
-            <td>
-                <Button ui="dashkit" variant="outline-primary" size="sm" className="px-[3px] py-0 leading-none" asChild>
-                    <span role="button" onClick={handleLoadClick}>
-                        Load
-                    </span>
-                </Button>
-            </td>
+            <Button ui="dashkit" variant="outline-primary" size="sm" className="px-[3px] py-0 leading-none" asChild>
+                <span role="button" onClick={handleLoadClick}>
+                    Load
+                </span>
+            </Button>
         );
     }
 
     if (isFetching) {
         return (
-            <td>
+            <>
                 <span className="spinner-grow spinner-grow-sm mr-1.5 align-text-top"></span>
                 Loading
-            </td>
+            </>
         );
     }
 
     if (hasFailed || !instructions) {
         return (
-            <td>
-                <Button ui="dashkit" variant="outline-warning" size="sm" className="px-[3px] py-0 leading-none" asChild>
-                    <span role="button" onClick={handleLoadClick}>
-                        Retry
-                    </span>
-                </Button>
-            </td>
+            <Button ui="dashkit" variant="outline-warning" size="sm" className="px-[3px] py-0 leading-none" asChild>
+                <span role="button" onClick={handleLoadClick}>
+                    Retry
+                </span>
+            </Button>
         );
     }
 
@@ -559,10 +726,23 @@ function InstructionDetailsCell({
         .filter((item): item is InstructionType => item !== undefined);
 
     return (
-        <td>
+        <>
             {tokenInstructionNames.map((instructionType, index) => (
                 <InstructionDetails key={index} instructionType={instructionType} tx={tx} />
             ))}
+        </>
+    );
+}
+
+// Legacy table wrapper: the same content inside a <td> for the dashkit <table> body.
+function InstructionDetailsCell(props: {
+    signature: string;
+    details: CacheEntry<Details> | undefined;
+    tx: ConfirmedSignatureInfo;
+}) {
+    return (
+        <td>
+            <InstructionTypeContent {...props} />
         </td>
     );
 }

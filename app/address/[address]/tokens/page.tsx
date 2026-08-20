@@ -4,6 +4,7 @@ import getReadableTitleFromAddress, { AddressPageMetadataProps } from '@utils/ge
 import { Metadata } from 'next/types';
 
 import { TransactionsProvider } from '@/app/providers/transactions';
+import { DSCOMMON_BETWEEN_BLOCKS } from '@/app/shared/ui/page-spacing/spacing';
 
 type Props = Readonly<{
     params: Promise<{
@@ -24,8 +25,12 @@ export default async function OwnedTokensPage(props: Props) {
 
     return (
         <TransactionsProvider>
-            <OwnedTokensCard address={address} layout="grid" />
-            <TokenHistoryCard address={address} />
+            {/* Match the block/transaction pages: token blocks are separated by the shared
+                between-blocks spacing token (the layout only spaces the tab bar from the first block). */}
+            <div className={DSCOMMON_BETWEEN_BLOCKS.className}>
+                <OwnedTokensCard address={address} layout="grid" />
+                <TokenHistoryCard address={address} layout="grid" />
+            </div>
         </TransactionsProvider>
     );
 }
