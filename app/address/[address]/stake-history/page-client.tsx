@@ -19,7 +19,7 @@ function StakeHistoryCardRenderer({
     if (!isParsedAccountProgram(parsedData, SYSVAR_PROGRAM_LABEL) || parsedData.parsed.type !== 'stakeHistory') {
         return onNotFound();
     }
-    return <StakeHistoryCard sysvarAccount={parsedData.parsed} />;
+    return <StakeHistoryCard sysvarAccount={parsedData.parsed} layout="grid" />;
 }
 
 export default function StakeHistoryPageClient({ params: { address } }: Props) {

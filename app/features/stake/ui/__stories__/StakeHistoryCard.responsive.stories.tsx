@@ -24,7 +24,9 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// Grid layout is the mobile-focused one, so the responsive stories exercise it.
 const args = {
+    layout: 'grid' as const,
     sysvarAccount: sysvar([
         {
             epoch: 700,
