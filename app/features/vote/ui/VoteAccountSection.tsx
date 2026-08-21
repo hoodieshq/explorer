@@ -2,7 +2,7 @@ import { Address } from '@components/common/Address';
 import { Copyable } from '@components/common/Copyable';
 import { Slot } from '@components/common/Slot';
 import { SolBalance } from '@components/common/SolBalance';
-import { TableCardBody } from '@components/common/TableCardBody';
+import { RawDataField } from '@components/shared/RawDataField';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
 import { cn } from '@components/shared/utils';
 import { useRawAccountDataOnMount, useRefreshAccount } from '@entities/account';
@@ -13,7 +13,6 @@ import React from 'react';
 import { Code } from 'react-feather';
 
 import { Button } from '@/app/components/shared/ui/button';
-import { BaseRawAccountRows } from '@/app/shared/ui/BaseRawAccountRows';
 import { Card } from '@/app/shared/ui/Card';
 import { DSCOMMON_BETWEEN_BLOCKS } from '@/app/shared/ui/page-spacing/spacing';
 
@@ -71,13 +70,52 @@ function Value({
 }
 
 // Raw account bytes view — mounted only while the Raw toggle is on so its SWR fetch (useRawAccountDataOnMount)
-// doesn't run for the common case. Kept in the shared BaseTable format the other account cards use.
+// doesn't run for the common case. Uses the same grid Row/Label/Value layout as the default view so the
+// card looks consistent when toggled (rather than the old dashkit BaseTable rows).
 function RawAccountRows({ account }: { account: Account }) {
     const { data, isLoading } = useRawAccountDataOnMount(account.pubkey);
     return (
-        <TableCardBody>
-            <BaseRawAccountRows account={account} rawData={data} isLoading={isLoading} />
-        </TableCardBody>
+        <>
+            <Row divider>
+                <Label>Address</Label>
+                <Value className="flex w-full min-w-0 items-baseline">
+                    <Address pubkey={account.pubkey} raw noTruncate />
+                </Value>
+            </Row>
+
+            <Row divider>
+                <Label>Balance (SOL)</Label>
+                <Value className="uppercase">
+                    <SolBalance lamports={account.lamports} />
+                </Value>
+            </Row>
+
+            <Row divider>
+                <Label>Assigned Program Id</Label>
+                <Value>
+                    <Address pubkey={account.owner} link noTruncate />
+                </Value>
+            </Row>
+
+            {account.space !== undefined && (
+                <Row divider>
+                    <Label>Allocated Data Size</Label>
+                    <Value mono={false}>{account.space} byte(s)</Value>
+                </Row>
+            )}
+
+            <Row divider>
+                <Label>Executable</Label>
+                <Value mono={false}>{account.executable ? 'Yes' : 'No'}</Value>
+            </Row>
+
+            <Row divider>
+                <Label>Raw Data</Label>
+                <Value className="min-w-0">
+                    <RawDataField data={data} filename={account.pubkey.toBase58()} loading={isLoading} />
+                </Value>
+            </Row>
+        </>
     );
 }
 
