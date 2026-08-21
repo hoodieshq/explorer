@@ -80,7 +80,7 @@ import {
     DSCOMMON_CONTENT_MAX_WIDTH_M,
     DSCOMMON_PAGE_PADDING_X,
 } from '@/app/shared/ui/page-spacing/spacing';
-import { useStickyHeaderHeight } from '@/app/shared/ui/sticky-header/useStickyHeaderHeight';
+import { StickyHeader } from '@/app/shared/ui/sticky-header/StickyHeader';
 import { isAttestationAccount } from '@/app/utils/attestation-service';
 import {
     fetchFullTokenInfo,
@@ -401,31 +401,16 @@ function MoreSection({
         [baseUrl, buildClusterPath],
     );
 
-    // Track the sticky bar's height into --sticky-header-height so anchored content beneath it
-    // (e.g. TokenExtensionsSection's scroll-margin-top) still clears the bar without StickyHeader.
-    const tabBarRef = React.useRef<HTMLDivElement>(null);
-    useStickyHeaderHeight(tabBarRef);
-
     return (
         <>
-            {/* Full-bleed sticky tab bar, structured exactly like the block page: the negative margins
-                stretch the background edge-to-edge while the matching padding pulls the tabs back onto
-                the content column. Underline (border-b) matches the block page too: full-bleed into the
-                page margins on mobile/tablet (border on this wrapper) and clipped to the content column
-                at `lg` (border moves to the inner column wrapper below). */}
-            <div
-                ref={tabBarRef}
-                className={cn(
-                    'sticky top-0 z-10 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] overflow-x-auto border-0 border-b border-solid border-neutral-800 bg-heavy-metal-900 pl-[calc(50vw-50%)] pr-[calc(50vw-50%)] [scrollbar-width:none] lg:border-b-0 [&::-webkit-scrollbar]:hidden',
-                    DSCOMMON_BETWEEN_BLOCKS.marginClassName,
-                )}
-            >
-                <div className="lg:border-0 lg:border-b lg:border-solid lg:border-neutral-800">
-                    <NavigationTabs buildHref={buildHref} tabs={tabs} className="gap-5">
-                        {asyncChildren}
-                    </NavigationTabs>
-                </div>
-            </div>
+            {/* StickyHeader owns the full-bleed background, the responsive underline and the
+                --sticky-header-height publishing. It must sit directly in the content column (it is here)
+                so its pull-back lines the tabs up with the page body. */}
+            <StickyHeader className={DSCOMMON_BETWEEN_BLOCKS.marginClassName}>
+                <NavigationTabs buildHref={buildHref} tabs={tabs} className="gap-5">
+                    {asyncChildren}
+                </NavigationTabs>
+            </StickyHeader>
             {children}
         </>
     );
