@@ -410,17 +410,21 @@ function MoreSection({
         <>
             {/* Full-bleed sticky tab bar, structured exactly like the block page: the negative margins
                 stretch the background edge-to-edge while the matching padding pulls the tabs back onto
-                the content column. Unlike the block page we keep the full-width underline (border-b). */}
+                the content column. Underline (border-b) matches the block page too: full-bleed into the
+                page margins on mobile/tablet (border on this wrapper) and clipped to the content column
+                at `lg` (border moves to the inner column wrapper below). */}
             <div
                 ref={tabBarRef}
                 className={cn(
-                    'sticky top-0 z-10 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] overflow-x-auto border-0 border-b border-solid border-neutral-800 bg-heavy-metal-900 pl-[calc(50vw-50%)] pr-[calc(50vw-50%)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden',
+                    'sticky top-0 z-10 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] overflow-x-auto border-0 border-b border-solid border-neutral-800 bg-heavy-metal-900 pl-[calc(50vw-50%)] pr-[calc(50vw-50%)] [scrollbar-width:none] lg:border-b-0 [&::-webkit-scrollbar]:hidden',
                     DSCOMMON_BETWEEN_BLOCKS.marginClassName,
                 )}
             >
-                <NavigationTabs buildHref={buildHref} tabs={tabs} className="gap-5">
-                    {asyncChildren}
-                </NavigationTabs>
+                <div className="lg:border-0 lg:border-b lg:border-solid lg:border-neutral-800">
+                    <NavigationTabs buildHref={buildHref} tabs={tabs} className="gap-5">
+                        {asyncChildren}
+                    </NavigationTabs>
+                </div>
             </div>
             {children}
         </>
