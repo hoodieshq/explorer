@@ -13,6 +13,7 @@ import {
     upgradeableProgramDataProbe,
     upgradeableProgramProbe,
 } from '../../../accounts/__tests__/account-fixtures.js';
+import { VAULT_ACCOUNT_SIZE, vaultIdlClient } from '../../../accounts/__tests__/idl-layout-fixtures.js';
 import { asRecord } from '../../../shared/parse-helpers.js';
 import { SourceUnavailableError } from '../../../rpc/rpc.js';
 import { handleInspectEntity, type InspectEntityDependencies, splitBuilderErrors } from '../inspect-entity.js';
@@ -44,6 +45,17 @@ function transactionProbe(overrides: Record<string, unknown> = {}): Record<strin
         },
         version: 'legacy',
         ...overrides,
+    };
+}
+
+// A client that decodes on the anchor arm — a real outcome (an injected fallback decoder produces it)
+// that carries no layout, so the assertions below stay about `info`/`program`. The real-client case
+// covers the layout itself.
+function decodingClientMock(programName: string | undefined) {
+    return {
+        decodeAccount: vi.fn().mockReturnValue({ decoded: { authority: 'abc' }, kind: 'anchor' }),
+        getDecodedData: vi.fn().mockReturnValue({ authority: 'abc' }),
+        programName: vi.fn().mockReturnValue(programName),
     };
 }
 
@@ -607,10 +619,7 @@ describe('inspect_entity handler', () => {
     });
 
     it('should decode unknown raw accounts through the owner program IDL', async () => {
-        const resolveIdlClient = vi.fn().mockResolvedValue({
-            decodeAccountData: vi.fn().mockReturnValue([undefined, { authority: 'abc' }]),
-            programName: vi.fn().mockReturnValue('My Program'),
-        });
+        const resolveIdlClient = vi.fn().mockResolvedValue(decodingClientMock('My Program'));
         const dependencies = createDependencies({
             fetchAccountInfo: vi
                 .fn()
@@ -633,11 +642,27 @@ describe('inspect_entity handler', () => {
         });
     });
 
-    it('should omit the program key when the resolved IDL declares no name', async () => {
-        const resolveIdlClient = vi.fn().mockResolvedValue({
-            decodeAccountData: vi.fn().mockReturnValue([undefined, { authority: 'abc' }]),
-            programName: vi.fn().mockReturnValue(undefined),
+    it('should attach the byte layout when a real IDL decodes the account', async () => {
+        const bytes = new Uint8Array(VAULT_ACCOUNT_SIZE);
+        const dependencies = createDependencies({
+            fetchAccountInfo: vi.fn().mockResolvedValue(rawAccountProbe({ bytes, owner: 'UnknownOwner' })),
+            resolveIdlClient: vi.fn().mockResolvedValue(vaultIdlClient()),
         });
+
+        const result = await handleInspectEntity({ identifier: ACCOUNT_IDENTIFIER }, dependencies);
+        const envelope = parseEnvelope(result);
+        const entity = (envelope.payload as { entity: { decoded: { layout: unknown } } }).entity;
+
+        expect(entity.decoded.layout).toEqual({
+            fields: [
+                { docs: ['The vault owner.'], kind: 'publicKeyTypeNode', offset: 0, path: 'authority', size: 32 },
+                { format: 'u32', kind: 'numberTypeNode', offset: 32, path: 'total', size: 4 },
+            ],
+        });
+    });
+
+    it('should omit the program key when the resolved IDL declares no name', async () => {
+        const resolveIdlClient = vi.fn().mockResolvedValue(decodingClientMock(undefined));
         const dependencies = createDependencies({
             fetchAccountInfo: vi
                 .fn()
@@ -650,6 +675,50 @@ describe('inspect_entity handler', () => {
         const entity = (envelope.payload as { entity: { decoded: Record<string, unknown> } }).entity;
 
         expect(entity.decoded).toEqual({ info: { authority: 'abc' }, source: 'idl' });
+    });
+
+    it('should log the decode diagnosis the unknown arm carries, which the reply cannot show', async () => {
+        const logger = { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+        const failure = new Error('codec overran the buffer');
+        const dependencies = createDependencies({
+            fetchAccountInfo: vi
+                .fn()
+                .mockResolvedValue(rawAccountProbe({ bytes: new Uint8Array([1, 2, 3]), owner: 'UnknownOwner' })),
+            logger,
+            resolveIdlClient: vi.fn().mockResolvedValue({
+                decodeAccount: vi.fn().mockReturnValue({ errors: [failure], kind: 'unknown' }),
+                getDecodedData: vi.fn(),
+                programName: vi.fn().mockReturnValue('My Program'),
+            }),
+        });
+
+        const envelope = parseEnvelope(await handleInspectEntity({ identifier: ACCOUNT_IDENTIFIER }, dependencies));
+
+        // the payload cannot distinguish "no IDL" from "the IDL did not fit these bytes"; the log can
+        expect((envelope.payload as { entity: Record<string, unknown> }).entity).not.toHaveProperty('decoded');
+        expect(logger.warn).toHaveBeenCalledWith(
+            '[entity-inspector] idl account decode failed',
+            expect.objectContaining({ errors: [failure], owner: 'UnknownOwner' }),
+        );
+    });
+
+    it('should stay silent when the unknown arm is a plain discriminator miss', async () => {
+        const logger = { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() };
+        const dependencies = createDependencies({
+            fetchAccountInfo: vi
+                .fn()
+                .mockResolvedValue(rawAccountProbe({ bytes: new Uint8Array([1, 2, 3]), owner: 'UnknownOwner' })),
+            logger,
+            resolveIdlClient: vi.fn().mockResolvedValue({
+                decodeAccount: vi.fn().mockReturnValue({ errors: [], kind: 'unknown' }),
+                getDecodedData: vi.fn(),
+                programName: vi.fn(),
+            }),
+        });
+
+        await handleInspectEntity({ identifier: ACCOUNT_IDENTIFIER }, dependencies);
+
+        expect(logger.warn).not.toHaveBeenCalled();
     });
 
     it('should keep the kind-only unknown payload when no IDL resolves', async () => {
@@ -670,7 +739,8 @@ describe('inspect_entity handler', () => {
 
     it('should keep the kind-only unknown payload when the IDL decode fails', async () => {
         const resolveIdlClient = vi.fn().mockResolvedValue({
-            decodeAccountData: vi.fn().mockReturnValue([{ code: 'IDL_ERROR__ACCOUNT_DECODE_FAILED' }, undefined]),
+            decodeAccount: vi.fn().mockReturnValue({ errors: [], kind: 'unknown' }),
+            getDecodedData: vi.fn(),
             programName: vi.fn().mockReturnValue('My Program'),
         });
         const dependencies = createDependencies({

@@ -6,6 +6,7 @@ import { unknownMarker } from '../../accounts/account-kinds/shared.js';
 import { ACCOUNT_IDENTIFIER_KIND, BPF_UPGRADEABLE_LOADER_KIND, UNKNOWN_KIND } from '../../accounts/kinds.js';
 import { enrichUpgradeableProgramData, normalizeAccountProbe } from '../../accounts/account-normalizer.js';
 import { buildAccountPayloadWithRouter } from '../../accounts/inspect-entity-account-router.js';
+import { describeIdlAccountLayout } from '../../accounts/idl-account-layout.js';
 import {
     classifyAccountKindBase,
     decodeIdentifierKind,
@@ -139,7 +140,7 @@ async function resolveAccount(
         });
 
         if (finalKind === UNKNOWN_KIND) {
-            const decoded = await resolveIdlDecodedData(enrichedAccount, cluster, dependencies);
+            const decoded = await resolveIdlDecodedData(enrichedAccount, cluster, dependencies, logger);
             if (decoded) {
                 routedPayload.entity = { ...asRecord(routedPayload.entity), decoded };
             }
@@ -243,6 +244,7 @@ async function resolveIdlDecodedData(
     account: NormalizedAccountInfo,
     cluster: SupportedCluster,
     dependencies: InspectEntityDependencies,
+    logger: InspectorLogger,
 ): Promise<Record<string, unknown> | null> {
     // asString guards the raw RPC passthrough — a malformed probe must not reach the resolver.
     const owner = asString(account.owner);
@@ -255,13 +257,34 @@ async function resolveIdlDecodedData(
         return null;
     }
 
-    const [error, info] = client.decodeAccountData(account.rawDataBytes);
-    if (error) {
+    // The two-step decode, not `decodeAccountData`: the layout needs the envelope, and the unknown arm
+    // is the same "could not decode" outcome the one-step route reports as an error.
+    const decode = client.decodeAccount(account.rawDataBytes);
+    if (decode.kind === 'unknown') {
+        // an empty `errors` is a plain discriminator miss; anything else is a diagnosis worth keeping,
+        // since the reply itself cannot tell "no IDL" from "the IDL did not fit these bytes"
+        if (decode.errors.length > 0) {
+            logger.warn(ns('idl account decode failed'), {
+                address: account.address,
+                errors: decode.errors,
+                owner,
+            });
+        }
         return null;
     }
 
+    const info = client.getDecodedData(decode);
     const program = client.programName();
-    return { info, source: 'idl', ...(program !== undefined ? { program } : {}) };
+    const layout = describeIdlAccountLayout(decode, account.rawDataBytes, logger, {
+        address: account.address,
+        owner,
+    });
+    return {
+        info,
+        source: 'idl',
+        ...(program !== undefined ? { program } : {}),
+        ...(layout ? { layout } : {}),
+    };
 }
 
 async function resolveTransaction(
