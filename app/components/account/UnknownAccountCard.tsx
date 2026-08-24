@@ -2,7 +2,7 @@
 
 import { Address } from '@components/common/Address';
 import { SolBalance } from '@components/common/SolBalance';
-import { TableCardBody } from '@components/common/TableCardBody';
+import { RawDataField } from '@components/shared/RawDataField';
 import { cn } from '@components/shared/utils';
 import { useRawAccountDataOnMount } from '@entities/account';
 import { AdjacentClusterLink, SearchingClusterIndicator, useClusterResourceSearch } from '@entities/cluster';
@@ -15,7 +15,6 @@ import React from 'react';
 import { Code } from 'react-feather';
 
 import { Button } from '@/app/components/shared/ui/button';
-import { BaseRawAccountRows } from '@/app/shared/ui/BaseRawAccountRows';
 import { Card } from '@/app/shared/ui/Card';
 
 // Grid-based key/value row, mirroring the block Overview / Vote Account cards so account overview cards
@@ -65,13 +64,52 @@ function Value({
 }
 
 // Raw account bytes view — mounted only while the Raw toggle is on so its SWR fetch doesn't run for the
-// common case. Kept in the shared BaseTable format the other account cards use.
+// common case. Uses the same grid Row/Label/Value layout as the default view so the card looks consistent
+// when toggled (rather than the old dashkit BaseTable rows).
 function RawAccountRows({ account }: { account: Account }) {
     const { data, isLoading } = useRawAccountDataOnMount(account.pubkey);
     return (
-        <TableCardBody>
-            <BaseRawAccountRows account={account} rawData={data} isLoading={isLoading} />
-        </TableCardBody>
+        <>
+            <Row divider>
+                <Label>Address</Label>
+                <Value className="flex w-full min-w-0 items-baseline">
+                    <Address pubkey={account.pubkey} raw noTruncate />
+                </Value>
+            </Row>
+
+            <Row divider>
+                <Label>Balance (SOL)</Label>
+                <Value className="uppercase">
+                    <SolBalance lamports={account.lamports} />
+                </Value>
+            </Row>
+
+            <Row divider>
+                <Label>Assigned Program Id</Label>
+                <Value>
+                    <Address pubkey={account.owner} link noTruncate />
+                </Value>
+            </Row>
+
+            {account.space !== undefined && (
+                <Row divider>
+                    <Label>Allocated Data Size</Label>
+                    <Value mono={false}>{account.space} byte(s)</Value>
+                </Row>
+            )}
+
+            <Row divider>
+                <Label>Executable</Label>
+                <Value mono={false}>{account.executable ? 'Yes' : 'No'}</Value>
+            </Row>
+
+            <Row>
+                <Label>Raw Data</Label>
+                <Value className="min-w-0">
+                    <RawDataField data={data} filename={account.pubkey.toBase58()} loading={isLoading} />
+                </Value>
+            </Row>
+        </>
     );
 }
 
