@@ -158,6 +158,10 @@ export const Populated: Story = {
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
         await userEvent.click(await canvas.findByRole('button', { name: 'Load Token History' }));
-        await expect(await canvas.findByText('Failed')).toBeInTheDocument();
+        // The card renders both the mobile list and the desktop grid at once (CSS toggles visibility), so
+        // the failed row's "Failed" badge exists twice in the DOM. Scope the assertion to the desktop grid
+        // (the only node with role="table") to match a single element.
+        const grid = await canvas.findByRole('table', { name: 'Token history' });
+        await expect(await within(grid).findByText('Failed')).toBeInTheDocument();
     },
 };
