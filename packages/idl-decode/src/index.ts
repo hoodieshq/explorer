@@ -25,6 +25,13 @@ export {
 } from './entries/index.js';
 export type { AccountDataOf, AccountsDataOf, AsDecoded, InstructionDataOf } from './infer/index.js';
 export {
+    flattenLayout,
+    getDecodedLayout,
+    type LayoutEntry,
+    type LayoutNodeKind,
+    type LayoutNumberFormat,
+} from './layout/index.js';
+export {
     getIdlProgramVersion,
     getIdlStandard,
     getIdlVersion,
@@ -44,6 +51,8 @@ export {
     IDL_ERROR__IDL_NOT_FOUND,
     IDL_ERROR__IDL_PARSE_FAILED,
     IDL_ERROR__INSTRUCTION_DECODE_FAILED,
+    IDL_ERROR__LAYOUT_NOT_ANCHORABLE,
+    IDL_ERROR__LAYOUT_WALK_FAILED,
     IDL_ERROR__MISSING_DECODE_HANDLER,
     IDL_ERROR__PROGRAM_ADDRESS_REQUIRED,
     IDL_ERROR__UNSUPPORTED_IDL_FORMAT,

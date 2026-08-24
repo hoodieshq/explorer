@@ -685,6 +685,9 @@ importers:
 
   packages/idl-decode:
     dependencies:
+      '@codama/dynamic-codecs':
+        specifier: 1.1.30
+        version: 1.1.30(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
       '@codama/dynamic-parsers':
         specifier: 1.1.30
         version: 1.1.30(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
@@ -701,9 +704,6 @@ importers:
       '@codama/dynamic-client':
         specifier: 0.1.0
         version: 0.1.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
-      '@codama/dynamic-codecs':
-        specifier: 1.1.30
-        version: 1.1.30(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)
       '@codama/renderers-js':
         specifier: ^1.7.0
         version: 1.7.0(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)

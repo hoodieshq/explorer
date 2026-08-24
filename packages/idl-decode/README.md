@@ -14,7 +14,7 @@ Every entry is side-effect-free and tree-shakeable (gated).
 
 | Import                | Ships                                                             |
 | --------------------- | ------------------------------------------------------------------ |
-| `@explorer/idl-decode`        | client (codama decode engine by default), guards, names, errors, types |
+| `@explorer/idl-decode`        | client (codama decode engine by default), guards, names, entries, byte layout, errors, types |
 | `@explorer/idl-decode/codama` | the codama engine pieces (`codamaProvider`, decode functions) for explicit wiring |
 | `@explorer/idl-decode/anchor` | Anchor IDL helpers (`convertToCodama`)                        |
 | `@explorer/idl-decode/fetch`  | fetch the IDL by program address (`fetchIdlClient`)           |
@@ -282,6 +282,55 @@ amount?.value; // the decoded value, already in that format's runtime shape — 
 **The anchor origin is invisible.** An anchor IDL goes through the same call — the internal
 conversion pairs its leaves with codama nodes too, so one schema-driven renderer serves both
 standards.
+
+## Byte layout
+
+`getDecodedLayout` adds the dimension entries cannot carry: **where in the raw bytes each field
+sat**. Pass the decode and the same bytes it read, and get a tree of ranges paired with the schema
+node, the decoded value, and the program's own Rust docs — enough to highlight a hex dump, or to
+explain a layout to something that cannot see one:
+
+```ts
+import { createIdlClient, flattenLayout, getDecodedLayout } from '@explorer/idl-decode';
+
+const client = createIdlClient(splTokenIdl);
+const layout = getDecodedLayout(client.decodeAccount(bytes), bytes);
+
+layout.size; // 165 — the root entry spans the bytes the schema read, which a padded account exceeds
+layout.children.map(f => [f.name, f.offset, f.size]);
+// [['mint', 0, 32], ['owner', 32, 32], ['amount', 64, 8], ['delegate', 72, 36], …]
+
+const [mint] = layout.children;
+mint.docs; // ['The mint associated with this account.'] — the program's own doc comment
+mint.node.kind; // 'publicKeyTypeNode' — resolved, so render by kind as with entries
+flattenLayout(layout); // depth-first, parents before children
+```
+
+Ranges are **measured, not computed**: every node's `read` is instrumented, so a range is what the
+decoder actually consumed. There is no second implementation of the size rules (length prefixes,
+sentinels, offsets, fixed options) free to drift from the engine's.
+
+**A path addresses the decoded payload.** Reading `path` out of the decode yields that entry's
+`value`, so a range and a value always agree on what they describe. Element indices are the payload's
+own (`['slots', 2]` stays index 2 even when index 1 is a `None`), map keys are the payload's keys, and
+an option's payload sits under `value` — `['maybeChain', 'value', 'id']` — because that is where the
+decode keeps it. Two omissions are deliberate:
+
+- **Framing never earns an entry.** Length prefixes, enum discriminants and option tags belong to the
+  codec, not the schema. Where the framed member has an entry, the framing is the gap between a
+  parent's range and its children's — a `Vec` field starting at 8 whose first element starts at 12 has
+  its 4-byte count prefix in between. Where the framed member has none, the framing stays inside the
+  entry's own range: a size-prefixed string, an option of a scalar and a scalar enum each report one
+  range covering both the framing and the value. `size` is the field's extent, not its payload's.
+- **Only containers earn an element entry.** A `[u64; 60]` is one entry whose `value` is the decoded
+  array; 60 entries would repeat what one range and one value already say. The same holds for arrays of
+  pubkeys, strings, and variant-only enums — the codec decodes one to an index, so it is a value here,
+  not a body. An array of structs does give one entry per element — those are the ones worth drilling
+  into.
+
+A non-codama arm throws the same typed kind mismatch as `unwrap`. Bytes the decode cannot be replayed
+against throw `IDL_ERROR__LAYOUT_WALK_FAILED`, and a payload the schema reads through no container at
+all throws `IDL_ERROR__LAYOUT_NOT_ANCHORABLE`.
 
 ## Anchor IDLs
 

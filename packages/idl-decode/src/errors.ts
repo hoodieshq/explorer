@@ -12,6 +12,8 @@ export const IDL_ERROR__DECODE_UNIMPLEMENTED = 8;
 export const IDL_ERROR__DECODE_KIND_MISMATCH = 9;
 export const IDL_ERROR__IDL_NOT_FOUND = 10;
 export const IDL_ERROR__PROGRAM_ADDRESS_REQUIRED = 11;
+export const IDL_ERROR__LAYOUT_WALK_FAILED = 12;
+export const IDL_ERROR__LAYOUT_NOT_ANCHORABLE = 13;
 
 export type IdlErrorCode =
     | typeof IDL_ERROR__ACCOUNT_DECODE_FAILED
@@ -22,6 +24,8 @@ export type IdlErrorCode =
     | typeof IDL_ERROR__IDL_NOT_FOUND
     | typeof IDL_ERROR__IDL_PARSE_FAILED
     | typeof IDL_ERROR__INSTRUCTION_DECODE_FAILED
+    | typeof IDL_ERROR__LAYOUT_NOT_ANCHORABLE
+    | typeof IDL_ERROR__LAYOUT_WALK_FAILED
     | typeof IDL_ERROR__MISSING_DECODE_HANDLER
     | typeof IDL_ERROR__PROGRAM_ADDRESS_REQUIRED
     | typeof IDL_ERROR__UNSUPPORTED_IDL_FORMAT;
@@ -39,6 +43,8 @@ export type IdlErrorContext = DefaultUnspecifiedErrorContextToUndefined<{
     [IDL_ERROR__IDL_NOT_FOUND]: { programAddress: string };
     [IDL_ERROR__IDL_PARSE_FAILED]: { operation: string };
     [IDL_ERROR__INSTRUCTION_DECODE_FAILED]: { programAddress: string; standard: IdlStandard };
+    [IDL_ERROR__LAYOUT_NOT_ANCHORABLE]: { kind: string };
+    [IDL_ERROR__LAYOUT_WALK_FAILED]: { dataLength: number };
     [IDL_ERROR__MISSING_DECODE_HANDLER]: { kind: string };
     [IDL_ERROR__PROGRAM_ADDRESS_REQUIRED]: { programName?: string };
 }>;
@@ -55,6 +61,8 @@ const IDL_ERROR_MESSAGES: Readonly<{ [P in IdlErrorCode]: (context: IdlErrorCont
     [IDL_ERROR__IDL_PARSE_FAILED]: c => `failed to parse the program IDL (${c.operation})`,
     [IDL_ERROR__INSTRUCTION_DECODE_FAILED]: c =>
         `could not decode instruction data for program ${c.programAddress} with the ${c.standard} IDL`,
+    [IDL_ERROR__LAYOUT_NOT_ANCHORABLE]: c => `the ${c.kind} payload has no field to anchor a byte range to`,
+    [IDL_ERROR__LAYOUT_WALK_FAILED]: c => `could not map the decode onto the ${c.dataLength} bytes it came from`,
     [IDL_ERROR__MISSING_DECODE_HANDLER]: c => `no handler declared for decode kind '${c.kind}'`,
     [IDL_ERROR__PROGRAM_ADDRESS_REQUIRED]: c =>
         `the legacy IDL${c.programName ? ` for ${c.programName}` : ''} declares no program address — pass options.programAddress`,
