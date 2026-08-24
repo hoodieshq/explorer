@@ -16,6 +16,7 @@ import { Button } from '@/app/components/shared/ui/button';
 import { Card } from '@/app/shared/ui/Card';
 import { DSCOMMON_BETWEEN_BLOCKS } from '@/app/shared/ui/page-spacing/spacing';
 
+import { collapseAuthorizedVoters } from '../lib/authorized-voters';
 import { VoteAccount } from '../lib/validators';
 
 // Grid-based key/value row, mirroring the block Overview card so account overview cards stay consistent
@@ -123,6 +124,7 @@ export function VoteAccountSection({ account, voteAccount }: { account: Account;
     const refresh = useRefreshAccount();
     const [showRaw, setShowRaw] = React.useState(false);
     const rootSlot = voteAccount.info.rootSlot;
+    const authorizedVoters = collapseAuthorizedVoters(voteAccount.info.authorizedVoters);
 
     return (
         <section className="flex flex-col gap-3">
@@ -177,16 +179,19 @@ export function VoteAccountSection({ account, voteAccount }: { account: Account;
                         </Row>
 
                         <Row divider>
-                            <Label>Authorized Voter{voteAccount.info.authorizedVoters.length > 1 ? 's' : ''}</Label>
+                            <Label>Authorized Voter{authorizedVoters.length > 1 ? 's' : ''}</Label>
                             <Value className="flex flex-col gap-1">
-                                {voteAccount.info.authorizedVoters.map(voter => (
-                                    // The same voter can appear once per epoch, so the pubkey alone is not unique
-                                    <Address
-                                        pubkey={voter.authorizedVoter}
-                                        key={`${voter.epoch}-${voter.authorizedVoter.toString()}`}
-                                        link
-                                        noTruncate
-                                    />
+                                {authorizedVoters.map(voter => (
+                                    <span key={voter.epoch} className="flex flex-wrap items-baseline gap-x-1">
+                                        {/* Address is a full-width block; the wrapper shrinks it to its text so
+                                            the epoch stays inline while the column is wide enough. */}
+                                        <span className="min-w-0">
+                                            <Address pubkey={voter.authorizedVoter} link noTruncate />
+                                        </span>
+                                        <span className="whitespace-nowrap text-outer-space-300">
+                                            (since epoch {voter.epoch})
+                                        </span>
+                                    </span>
                                 ))}
                             </Value>
                         </Row>
