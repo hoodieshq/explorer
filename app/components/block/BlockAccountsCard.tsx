@@ -6,7 +6,7 @@ import { useClusterPath } from '@utils/url';
 import Link from 'next/link';
 import React from 'react';
 
-import { HeaderLabel } from '@/app/components/block/BlockProgramsCard';
+import { BracketedFigure, HeaderLabel, TIGHT_CARD } from '@/app/components/block/shared';
 import { Button } from '@/app/components/shared/ui/button';
 import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
 import { invariant } from '@/app/shared/lib/invariant';
@@ -21,13 +21,9 @@ type AccountStats = {
 // Design variant, switchable via prop (see BlockRewardsCard for the same pattern):
 //   - 'default'     — the original Dashkit card + table.
 //   - 'collapsible' — the domains-card treatment (PR #115): heading lifted out above a collapsible
-//                     section, list on a `tight` card surface, CSS-grid body on `lg+` and a stacked,
-//                     labelled layout below `lg`.
+//                     section, list on a `tight` card surface, CSS-grid body on `md+` and a stacked,
+//                     labelled layout below `md`.
 export type BlockAccountsVariant = 'default' | 'collapsible';
-
-// Surface matched to the transaction tables (see BaseDomainsCard) — set on a `variant="tight"` Card.
-// `!rounded-lg` (8px) forces the radius over the tw base's `rounded-xl` (12px) — see BlockHistoryCard.
-const TIGHT_CARD = 'overflow-hidden !rounded-lg border-outer-space-800 bg-outer-space-900';
 
 const PAGE_SIZE = 25;
 
@@ -188,18 +184,7 @@ const ACCOUNTS_GRID: React.CSSProperties = {
     gridTemplateColumns: 'minmax(0,1fr) repeat(2, minmax(auto,5rem)) minmax(auto,8.5rem)',
 };
 
-// A count with its percentage in parentheses on one right-aligned mono line ("count (percent)"), matching
-// the Block Programs card. `tabular-nums` aligns digits in the sans face.
-function BracketedFigure({ count, percent }: { count: string; percent: string }) {
-    return (
-        <div className="text-right tabular-nums">
-            {count}
-            <span className="text-outer-space-300"> ({percent})</span>
-        </div>
-    );
-}
-
-// Domains-card style — a CSS grid on lg+, stacked labelled rows below lg.
+// Domains-card style — a CSS grid on md+, stacked labelled rows below md.
 function AccountsGrid({
     rows,
     blockSlot,
@@ -305,7 +290,7 @@ function AccountsGridRow({
                     <span className="text-outer-space-300">Total</span>
                     <span>
                         {total}
-                        <span className="text-outer-space-300"> ({totalPct} of Total)</span>
+                        <span className="text-outer-space-300"> ({totalPct})</span>
                     </span>
                 </div>
             </div>

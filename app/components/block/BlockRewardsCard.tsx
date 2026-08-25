@@ -5,6 +5,7 @@ import type { BlockWithV1 } from '@entities/block-data';
 import { PublicKey, VersionedBlockResponse } from '@solana/web3.js';
 import React from 'react';
 
+import { TIGHT_CARD } from '@/app/components/block/shared';
 import { Button } from '@/app/components/shared/ui/button';
 import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
 import { Card, CardFooter, CardHeader, CardTitle } from '@/app/shared/ui/Card';
@@ -17,7 +18,7 @@ const PAGE_SIZE = 10;
 //   - 'default'     — the original Dashkit table.
 //   - 'collapsible' — the domains-card treatment (PR #115): heading lifted out above a collapsible
 //                     section, list on a `tight` card surface toned to match the transaction tables,
-//                     a CSS-grid body on `lg+` and a stacked, labelled layout below `lg`.
+//                     a CSS-grid body on `md+` and a stacked, labelled layout below `md`.
 export type BlockRewardsVariant = 'default' | 'collapsible';
 
 type Reward = NonNullable<VersionedBlockResponse['rewards']>[number];
@@ -36,7 +37,7 @@ export function BlockRewardsCard({
     if (variant === 'collapsible') {
         return (
             <CollapsibleSection title="Block Rewards" className="">
-                <Card variant="tight" className="overflow-hidden !rounded-lg border-outer-space-800 bg-outer-space-900">
+                <Card variant="tight" className={TIGHT_CARD}>
                     <RewardsGrid rewards={block.rewards} />
                 </Card>
             </CollapsibleSection>
@@ -130,8 +131,8 @@ function percentChange(reward: Reward): string | undefined {
     return `${pct.toFixed(9)}%`;
 }
 
-// Shared body for the 'card' and 'collapsible' variants — a pure-Tailwind CSS grid on `lg+` plus a
-// stacked, labelled layout below `lg` (the pattern from the transaction Token Balances card).
+// Shared body for the 'card' and 'collapsible' variants — a pure-Tailwind CSS grid on `md+` plus a
+// stacked, labelled layout below `md` (the pattern from the transaction Token Balances card).
 function RewardsGrid({ rewards }: { rewards: Reward[] }) {
     const [displayed, setDisplayed] = React.useState(PAGE_SIZE);
     const visible = rewards.slice(0, displayed);
@@ -162,27 +163,29 @@ function RewardsGrid({ rewards }: { rewards: Reward[] }) {
                         key={reward.pubkey + reward.rewardType}
                         className="border-b border-solid border-white/10 last:border-b-0"
                     >
-                        {/* Mobile / tablet — stacked, labelled rows (block page has to fit five columns). */}
+                        {/* Mobile / tablet — stacked, labelled rows. Label column matches BlockOverviewCard. */}
                         <div className="flex flex-col gap-1 px-3 py-3 md:hidden md:px-4">
-                            <div className="flex items-center gap-2">
-                                <span className="w-28 shrink-0 text-outer-space-300">Address</span>
-                                <Address pubkey={pubkey} link />
+                            <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2">
+                                <span className="text-outer-space-300">Address</span>
+                                <span className="min-w-0">
+                                    <Address pubkey={pubkey} link />
+                                </span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="w-28 shrink-0 text-outer-space-300">Type</span>
+                            <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2">
+                                <span className="text-outer-space-300">Type</span>
                                 <span>{reward.rewardType}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="w-28 shrink-0 text-outer-space-300">Amount</span>
+                            <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2">
+                                <span className="text-outer-space-300">Amount</span>
                                 <SolBalance lamports={reward.lamports} />
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="w-28 shrink-0 text-outer-space-300">Post Balance</span>
+                            <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2">
+                                <span className="text-outer-space-300">Post Balance</span>
                                 {reward.postBalance ? <SolBalance lamports={reward.postBalance} /> : <span>-</span>}
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="w-28 shrink-0 text-outer-space-300">% Change</span>
-                                <span>{pct ?? '-'}</span>
+                            <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2">
+                                <span className="text-outer-space-300">% Change</span>
+                                <span className="break-all">{pct ?? '-'}</span>
                             </div>
                         </div>
 
