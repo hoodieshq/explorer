@@ -3,7 +3,13 @@
 import { useSyncExternalStore } from 'react';
 
 // The representations a Timestamp can render. `unix` shows the raw seconds, `relative` shows "X ago".
-export type TimestampDisplay = 'utc' | 'local' | 'unix' | 'relative';
+// Single source of truth for both the type and the runtime guard so the two can't drift.
+const DISPLAYS = ['utc', 'local', 'unix', 'relative'] as const;
+export type TimestampDisplay = (typeof DISPLAYS)[number];
+
+function isTimestampDisplay(value: unknown): value is TimestampDisplay {
+    return DISPLAYS.includes(value as TimestampDisplay);
+}
 
 const STORAGE_KEY = 'explorer:timestamp-display';
 
@@ -18,7 +24,7 @@ let cacheValid = false;
 function readStorage(): TimestampDisplay | undefined {
     if (typeof window === 'undefined') return undefined;
     const value = window.localStorage.getItem(STORAGE_KEY);
-    return value === 'utc' || value === 'local' || value === 'unix' || value === 'relative' ? value : undefined;
+    return isTimestampDisplay(value) ? value : undefined;
 }
 
 function subscribe(onChange: () => void): () => void {

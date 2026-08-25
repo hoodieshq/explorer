@@ -13,6 +13,11 @@ import { cn } from '@/app/components/shared/utils';
 import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
 import { displayTimestampAbsolute, displayTimestampRelative } from '@/app/utils/date';
 
+// The global reset (`button:focus { outline: none !important }`) strips the UA ring, so — like every
+// other button in components/shared/ui — restore a visible keyboard focus indicator via ring utilities.
+const focusRing =
+    'rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-transparent';
+
 export interface TimestampProps {
     /** Unix timestamp in seconds (e.g. a block's `blockTime`). */
     unixTimestamp: number;
@@ -35,14 +40,14 @@ function CopyButton({ text }: { text: string }) {
         state === 'copied'
             ? 'text-success-400'
             : state === 'errored'
-              ? 'text-red-400'
+              ? 'text-destructive'
               : 'text-neutral-500 hover:text-neutral-200';
     return (
         <button
             type="button"
             onClick={() => copy(text)}
             title="Copy"
-            className={cn('flex cursor-pointer items-center border-0 bg-transparent p-0', color)}
+            className={cn('flex cursor-pointer items-center border-0 bg-transparent p-0', focusRing, color)}
         >
             <Icon size={14} />
         </button>
@@ -83,7 +88,8 @@ function TimestampRow({
                     title={isPinned ? `Unpin ${label}` : `Pin ${label} as default`}
                     className={cn(
                         'flex cursor-pointer items-center border-0 bg-transparent p-0',
-                        isPinned ? 'text-teal-400' : 'text-neutral-500 hover:text-neutral-200',
+                        focusRing,
+                        isPinned ? 'text-accent' : 'text-neutral-500 hover:text-neutral-200',
                     )}
                 >
                     <Star size={14} fill={isPinned ? 'currentColor' : 'none'} />
@@ -146,6 +152,7 @@ export function Timestamp({ unixTimestamp, display = 'utc', children, referenceM
                         // Force our standard (non-mono) font and whole-word wrapping even inside a font-mono/break-all cell.
                         'break-normal font-[family-name:var(--explorer-default-font)]',
                         'text-neutral-200 hover:text-white',
+                        focusRing,
                         className,
                     )}
                 >

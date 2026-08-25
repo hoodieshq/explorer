@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { expect, screen, userEvent, within } from 'storybook/test';
 
 import { cn } from '@/app/components/shared/utils';
-import { RelativeBands } from '@/app/ui/RelativeBands';
 
 import { Timestamp } from './timestamp';
 import { setPinnedTimestampDisplay } from './useTimestampDisplay';
@@ -88,7 +87,48 @@ export const InTransactionOverview: Story = {
     render: ({ unixTimestamp: ts }) => <TransactionOverviewSlice unixTimestamp={ts} />,
 };
 
+const MIN = 60;
+const HOUR = 3600;
+const DAY = 86400;
+
+// A fixed reference "now" shared by every row below — passed as `referenceMs` so the relative
+// labels are deterministic (no live clock, no ±1s flicker) and each row lands squarely in its band.
+const REFERENCE_MS = unixTimestamp * 1000;
+
+// One representative age (seconds into the past) per relative-time band in displayTimestampRelative.
+const BANDS: { note: string; offset: number }[] = [
+    { note: '< 1 min → seconds', offset: 25 },
+    { note: '< 10 min → minutes + seconds', offset: 3 * MIN + 20 },
+    { note: '10 min – 1 h → minutes', offset: 25 * MIN },
+    { note: '1 – 8 h → hours + minutes', offset: 3 * HOUR + 15 * MIN },
+    { note: '8 – 48 h → hours', offset: 20 * HOUR },
+    { note: '48 h – 12 d → days + hours', offset: 5 * DAY + 4 * HOUR },
+    { note: '12 – 30 d → days', offset: 20 * DAY },
+    { note: '30 – 365 d → months + days', offset: 100 * DAY },
+    { note: '1 – 3 y → years + months', offset: 400 * DAY },
+    { note: '> 3 y → years', offset: 4 * 365 * DAY },
+];
+
 // One date per relative-time band, so every granularity (seconds … years) is visible at once.
 export const RelativeTimeBands: Story = {
-    render: () => <RelativeBands />,
+    render: () => (
+        <div className="flex max-w-xl flex-col overflow-hidden rounded-lg border border-solid border-outer-space-800">
+            {BANDS.map((band, index) => (
+                <div
+                    key={band.note}
+                    className={cn(
+                        'flex items-start justify-between gap-4 px-4 py-3',
+                        index < BANDS.length - 1 && 'border-b border-solid border-white/10',
+                    )}
+                >
+                    <span className="text-sm text-outer-space-300">{band.note}</span>
+                    <Timestamp
+                        unixTimestamp={unixTimestamp - band.offset}
+                        display="relative"
+                        referenceMs={REFERENCE_MS}
+                    />
+                </div>
+            ))}
+        </div>
+    ),
 };
