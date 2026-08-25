@@ -25,6 +25,7 @@ import { generateTokenBalanceRows, TokenBalancesCard } from '@/app/features/tran
 import { AutoRefresh, useAutoRefreshState } from '@/app/shared/lib/use-auto-refresh';
 import { useBreakpoint } from '@/app/shared/lib/use-breakpoint';
 import { BaseNavigationTabs } from '@/app/shared/ui/navigation-tabs/ui/BaseNavigationTabs';
+import { PageHeader } from '@/app/shared/ui/page-header/PageHeader';
 import { useLogsPanelScrollSync } from '@/app/tx/[signature]/use-logs-scroll-sync';
 import useTabVisibility from '@/app/utils/use-tab-visibility';
 
@@ -86,10 +87,7 @@ export function TransactionDetailsPageClient({ params: { signature: raw } }: Pro
 
     return (
         <div className="mx-auto flex max-w-5xl flex-col space-y-9 px-4 pt-3 selection:bg-[#13d89b40] selection:text-inherit lg:space-y-12 lg:px-6 lg:pt-5">
-            <header className="-mb-6 flex flex-col gap-1.5 pb-3 pt-2 lg:mb-0">
-                <span className="text-xs font-normal uppercase text-muted">Details</span>
-                <h1 className="m-0 text-2xl font-normal leading-none text-white md:text-3xl">Transaction</h1>
-            </header>
+            <PageHeader title="Transaction" className="-mb-6 pb-3 pt-2 lg:mb-0" />
 
             {signature === undefined ? (
                 <ErrorCard text={`Signature "${raw}" is not valid`} />

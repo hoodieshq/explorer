@@ -263,10 +263,10 @@ function MoreSection({ children, slot }: { children: React.ReactNode; slot: numb
 
     return (
         <>
-            <StickyHeader>
-                <PageContainer>
-                    <NavigationTabs buildHref={buildHref} tabs={TABS} />
-                </PageContainer>
+            {/* StickyHeader sits directly in the block's content column (the outer PageContainer), so it
+                takes the tabs alone — no inner column wrapper — and pulls them back to the column itself. */}
+            <StickyHeader className="mb-8">
+                <NavigationTabs buildHref={buildHref} tabs={TABS} />
             </StickyHeader>
             {children}
         </>

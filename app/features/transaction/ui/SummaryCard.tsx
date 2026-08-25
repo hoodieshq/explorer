@@ -46,7 +46,9 @@ export function Row({ children, className, divider, ...props }: RowProps) {
         <div
             className={cn(
                 'grid min-h-9 grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2 px-3 py-2.5 md:px-4',
-                divider && 'border-1 border-b border-white/10 [border-bottom-style:solid]',
+                // `last:border-b-0` drops the trailing divider so it can't double up with the card's own
+                // bottom border — the shared idiom used across the account/transaction cards.
+                divider && 'border-1 border-b border-white/10 [border-bottom-style:solid] last:border-b-0',
                 className,
             )}
             {...props}
