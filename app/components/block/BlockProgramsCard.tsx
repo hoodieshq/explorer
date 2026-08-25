@@ -3,9 +3,8 @@ import { TableCardBody } from '@components/common/TableCardBody';
 import { cn } from '@components/shared/utils';
 import { PublicKey, VersionedBlockResponse } from '@solana/web3.js';
 import React from 'react';
-import { HelpCircle } from 'react-feather';
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
+import { BracketedFigure, HeaderLabel, TIGHT_CARD } from '@/app/components/block/shared';
 import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
 import { invariant } from '@/app/shared/lib/invariant';
 import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
@@ -14,13 +13,9 @@ import { BaseTable } from '@/app/shared/ui/Table';
 // Design variant, switchable via prop (see BlockRewardsCard for the same pattern):
 //   - 'default'     — the original Dashkit cards + table.
 //   - 'collapsible' — the domains-card treatment (PR #115): each heading lifted out above a collapsible
-//                     section, list on a `tight` card surface, CSS-grid body on `lg+` and a stacked,
-//                     labelled layout below `lg`.
+//                     section, list on a `tight` card surface, CSS-grid body on `md+` and a stacked,
+//                     labelled layout below `md`.
 export type BlockProgramsVariant = 'default' | 'collapsible';
-
-// Surface matched to the transaction tables (see BaseDomainsCard) — set on a `variant="tight"` Card.
-// `!rounded-lg` (8px) forces the radius over the tw base's `rounded-xl` (12px) — see BlockHistoryCard.
-const TIGHT_CARD = 'overflow-hidden !rounded-lg border-outer-space-800 bg-outer-space-900';
 
 type ProgramStats = {
     ixFrequency: Map<string, number>;
@@ -212,42 +207,12 @@ function ProgramStatsCollapsible({ stats }: { stats: ProgramStats }) {
 // Muted uppercase header cell + body cell, matching the transaction tables / BaseDomainsCard grid.
 const GRID_HEADER_CELL = 'text-xs uppercase text-outer-space-300';
 
-// Column header label; when `help` is set it carries a help icon and a hover explanation. The icon is
-// inline (not a flex item) so a long label like "Transactions, % of total" wraps naturally and the icon
-// trails the last word ("total") instead of being pushed onto its own line.
-export function HeaderLabel({ label, help }: { label: string; help?: string }) {
-    if (!help) {
-        return <>{label}</>;
-    }
-    return (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <span className="cursor-help">
-                    {label}
-                    <HelpCircle size={14} className="ml-1 inline align-text-bottom" />
-                </span>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-72 normal-case">{help}</TooltipContent>
-        </Tooltip>
-    );
-}
-
 // A single right-aligned mono figure (the Success column). `tabular-nums` keeps digits aligned across rows.
 function MergedFigure({ count }: { count: string }) {
     return <div className="text-right tabular-nums">{count}</div>;
 }
 
-// A count with its percentage in parentheses on one right-aligned mono line: "count (percent)".
-function BracketedFigure({ count, percent }: { count: string; percent: string }) {
-    return (
-        <div className="text-right tabular-nums">
-            {count}
-            <span className="text-outer-space-300"> ({percent})</span>
-        </div>
-    );
-}
-
-// Domains-card style: "Block Programs" as a CSS grid on lg+, stacked labelled rows below lg. Each figure
+// Domains-card style: "Block Programs" as a CSS grid on md+, stacked labelled rows below md. Each figure
 // shows its count with the percentage in parentheses ("count (percent)").
 function ProgramsCollapsible({ stats }: { stats: ProgramStats }) {
     const { ixFrequency, programEntries, showSuccessRate, totalInstructions, totalTransactions, txSuccesses } = stats;
@@ -321,10 +286,7 @@ function ProgramsCollapsible({ stats }: { stats: ProgramStats }) {
                                                 ) : (
                                                     <>
                                                         {f.count}
-                                                        <span className="text-outer-space-300">
-                                                            {' '}
-                                                            ({f.pct} of Total)
-                                                        </span>
+                                                        <span className="text-outer-space-300"> ({f.pct})</span>
                                                     </>
                                                 )}
                                             </span>

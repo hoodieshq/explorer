@@ -20,6 +20,7 @@ import { ReadonlyURLSearchParams, usePathname, useRouter, useSearchParams } from
 import React, { useMemo } from 'react';
 import { ChevronDown, ChevronUp, Filter, Search, X } from 'react-feather';
 
+import { TIGHT_CARD } from '@/app/components/block/shared';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/components/shared/ui/dropdown';
@@ -38,12 +39,6 @@ const PAGE_SIZE = 25;
 //                     CSS-grid body on `md+` and a stacked, labelled layout below `md`. Sorting and
 //                     "Load More" are preserved.
 export type BlockHistoryVariant = 'default' | 'collapsible';
-
-// Surface matched to the transaction tables (see BaseDomainsCard) — set on a `variant="tight"` Card.
-// `!rounded-lg` (8px) forces the radius over the tw base's `rounded-xl` (12px): without Preflight the
-// two utilities collide and source order — not class order — would otherwise leave the card at 12px,
-// out of step with the dashkit cards (Overview / transaction page) that sit at 8px.
-const TIGHT_CARD = 'overflow-hidden !rounded-lg border-outer-space-800 bg-outer-space-900';
 
 const useQueryProgramFilter = (query: ReadonlyURLSearchParams): string => {
     const filter = query.get('filter');

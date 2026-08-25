@@ -72,7 +72,8 @@ export function CollapsibleSection({
                                     size={12}
                                     className={cn(
                                         'transition-transform duration-200 ease-in-out',
-                                        // keep this writing. this is working in case parent has trasform translate
+                                        // Rotate via an explicit `transform` rather than the `rotate-*` utility so an
+                                        // ancestor's `translate` transform can't override the flip.
                                         expanded && '[transform:rotate(180deg)]',
                                     )}
                                 />
