@@ -60,6 +60,7 @@ import useSWRImmutable from 'swr/immutable';
 
 import { CompressedNftCard } from '@/app/components/account/CompressedNftCard';
 import { SolanaAttestationServiceCard } from '@/app/components/account/sas/SolanaAttestationCard';
+import { cn } from '@/app/components/shared/utils';
 import { getFeatureInfo, useFeatureInfo } from '@/app/entities/feature-gate';
 import { hasTokenMetadata } from '@/app/features/metadata';
 import {
@@ -73,7 +74,12 @@ import {
 import { useCompressedNft } from '@/app/providers/compressed-nft';
 import { useSquadsMultisigLookup } from '@/app/providers/squadsMultisig';
 import { type NavigationTab, NavigationTabLink, NavigationTabs } from '@/app/shared/ui/navigation-tabs';
-import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
+import {
+    DSCOMMON_BEFORE_HEADER,
+    DSCOMMON_BETWEEN_BLOCKS,
+    DSCOMMON_CONTENT_MAX_WIDTH_M,
+    DSCOMMON_PAGE_PADDING_X,
+} from '@/app/shared/ui/page-spacing/spacing';
 import { StickyHeader } from '@/app/shared/ui/sticky-header/StickyHeader';
 import { isAttestationAccount } from '@/app/utils/attestation-service';
 import {
@@ -191,8 +197,17 @@ function AddressLayoutInner({ children, params: { address } }: InnerProps) {
         }
     }, [address, status, info]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Content column, max-width + horizontal/top padding all from the shared DSCOMMON size tokens
+    // (the max-width matches the transaction page).
     return (
-        <PageContainer variant="pulled-up">
+        <div
+            className={cn(
+                'mx-auto flex w-full flex-col',
+                DSCOMMON_CONTENT_MAX_WIDTH_M.className,
+                DSCOMMON_PAGE_PADDING_X.className,
+                DSCOMMON_BEFORE_HEADER.className,
+            )}
+        >
             <Header
                 address={address}
                 account={info?.data}
@@ -212,7 +227,7 @@ function AddressLayoutInner({ children, params: { address } }: InnerProps) {
                     {children}
                 </DetailsSections>
             )}
-        </PageContainer>
+        </div>
     );
 }
 
@@ -388,12 +403,13 @@ function MoreSection({
 
     return (
         <>
-            <StickyHeader>
-                <PageContainer>
-                    <NavigationTabs buildHref={buildHref} tabs={tabs}>
-                        {asyncChildren}
-                    </NavigationTabs>
-                </PageContainer>
+            {/* StickyHeader owns the full-bleed background, the responsive underline and the
+                --sticky-header-height publishing. It must sit directly in the content column (it is here)
+                so its pull-back lines the tabs up with the page body. */}
+            <StickyHeader className={DSCOMMON_BETWEEN_BLOCKS.marginClassName}>
+                <NavigationTabs buildHref={buildHref} tabs={tabs} className="gap-5">
+                    {asyncChildren}
+                </NavigationTabs>
             </StickyHeader>
             {children}
         </>

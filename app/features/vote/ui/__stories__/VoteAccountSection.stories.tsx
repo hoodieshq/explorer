@@ -9,7 +9,32 @@ import { accountFixture, BASE_SLOT, voteAccountFixture, voteAccountV4Fixture } f
 const meta = {
     component: VoteAccountSection,
     decorators: [withMockRpc, withClusterAndAccounts, withTokenInfoBatch],
-    parameters: nextjsParameters,
+    parameters: {
+        ...nextjsParameters,
+        docs: {
+            description: {
+                component: [
+                    'The vote account\'s overview card, matched to the block Overview card: the "Overview"',
+                    'heading is lifted out above the surface with the account actions beside it, and the fields',
+                    'render as a key/value grid. This component supplies the copy and per-field data; everything',
+                    'else is composed from the shared primitives below.',
+                    '',
+                    '## References',
+                    '',
+                    '- [Card](?path=/docs/components-shared-card-basecard--docs) (`ui="dashkit"`) — the surface holding the rows.',
+                    '- Key/value grid — local `Row`/`Label`/`Value` helpers: a CSS grid (`clamp(100px,25%,200px) 1fr`) with muted `outer-space-300` labels and `break-all` values, mirroring the block Overview card. Long pubkeys wrap instead of forcing horizontal scroll; a bottom `white/10` divider separates rows.',
+                    '- [RefreshButton](?path=/docs/components-shared-refreshbutton--docs) — reloads the parsed account (`analyticsSection="vote_account_section"`).',
+                    '- [Button](?path=/docs/components-shared-button--docs) (`variant="outline" size="sm"`) — the Raw toggle (a `Code` icon plus a `Raw` label on `md+`) that swaps the grid for the raw-bytes view.',
+                    '- [AccountDownloadDropdown](?path=/docs/shared-downloaddropdown--docs) — downloads the raw account data; wraps the shared `DownloadDropdown`.',
+                    '- [Address](?path=/docs/components-common-address--docs) — renders the account address (`raw`) and the linked voter / withdrawer / collector pubkeys; each carries its own copy button (`Copyable`) and tooltip, so rows must not wrap it in another `Copyable`.',
+                    '- Authorized Voter(s) — `collapseAuthorizedVoters` folds the per-epoch copies the vote program caches for an unchanged authority into one row per run, newest-first, each carrying an `(epoch from-to)` range (a single number when the run spans one epoch).',
+                    '- `SolBalance` — renders the balance and (SIMD-0185) pending delegator rewards as a ◎ SOL amount.',
+                    '- `Slot` — renders the Root Slot as a linked slot number.',
+                    '- [BaseRawAccountRows](?path=/docs/features-account-baserawaccountrows--docs) inside a `TableCardBody` — the raw-bytes view shown while the Raw toggle is on; mounted lazily so its SWR fetch only runs when opened.',
+                ].join('\n'),
+            },
+        },
+    },
     tags: ['autodocs', 'test'],
     title: 'Features/Vote/VoteAccountSection',
 } satisfies Meta<typeof VoteAccountSection>;
@@ -26,7 +51,7 @@ export const PreV4: Story = {
     },
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
-        expect(canvas.getByText('Vote Account')).toBeInTheDocument();
+        expect(canvas.getByText('Overview')).toBeInTheDocument();
         expect(canvas.getByText('Authorized Withdrawer')).toBeInTheDocument();
         expect(canvas.getByText('5%')).toBeInTheDocument();
         // SIMD-0185 rows only render when the node emits vote state v4
@@ -49,8 +74,9 @@ export const V4: Story = {
     },
 };
 
-export const MultipleAuthorizedVoters: Story = {
-    // Same voter across consecutive epochs — the shape that exposed the duplicate React key bug.
+export const RepeatedAuthorizedVoter: Story = {
+    // The vote program re-caches the active key every epoch, so an unchanged authority piles up
+    // identical entries. They collapse to one row spanning the earliest-to-latest epoch retained.
     args: {
         account: accountFixture(),
         voteAccount: (() => {
@@ -62,6 +88,30 @@ export const MultipleAuthorizedVoters: Story = {
     },
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
+        expect(canvas.getByText('Authorized Voter')).toBeInTheDocument();
+        expect(canvas.getByText('(epoch 700-702)')).toBeInTheDocument();
+    },
+};
+
+export const RotatedAuthorizedVoter: Story = {
+    // A rotation in flight: the outgoing key holds 700-701, the incoming one takes over at 702.
+    args: {
+        account: accountFixture(),
+        voteAccount: (() => {
+            const voteAccount = voteAccountFixture(votes);
+            const outgoing = voteAccount.info.authorizedVoters[0].authorizedVoter;
+            voteAccount.info.authorizedVoters = [
+                { authorizedVoter: outgoing, epoch: 700 },
+                { authorizedVoter: outgoing, epoch: 701 },
+                { authorizedVoter: voteAccount.info.nodePubkey, epoch: 702 },
+            ];
+            return voteAccount;
+        })(),
+    },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
         expect(canvas.getByText('Authorized Voters')).toBeInTheDocument();
+        expect(canvas.getByText('(epoch 700-701)')).toBeInTheDocument();
+        expect(canvas.getByText('(epoch 702)')).toBeInTheDocument();
     },
 };

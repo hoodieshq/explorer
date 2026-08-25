@@ -19,5 +19,5 @@ export async function generateMetadata(props: AddressPageMetadataProps): Promise
 export default async function BlockRewardsPage(props: Props) {
     const { address } = await props.params;
 
-    return <RewardsCard address={address} />;
+    return <RewardsCard address={address} layout="grid" />;
 }
