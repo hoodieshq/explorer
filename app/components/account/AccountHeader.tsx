@@ -4,7 +4,7 @@ import { isNFTokenAccount } from '@components/account/nftoken/isNFTokenAccount';
 import { NFTokenAccountHeader } from '@components/account/nftoken/NFTokenAccountHeader';
 import { useDasImage } from '@entities/digital-asset';
 import { isMetaplexNFT } from '@entities/nft';
-import { STAKE_PROGRAM_LABEL } from '@explorer/parsers';
+import { STAKE_PROGRAM_LABEL, VOTE_PROGRAM_LABEL } from '@explorer/parsers';
 import {
     Account,
     isTokenProgramData,
@@ -76,6 +76,12 @@ export function AccountHeader({
     // ("Stake Account") instead of the generic "Account" fallback.
     if (parsedData?.program === STAKE_PROGRAM_LABEL) {
         return <AccountDetailsHeader title="Stake Account" />;
+    }
+
+    // Vote accounts likewise have a stable parsed type independent of the token-info fetch, so
+    // resolve their header early and title it "Vote Account" instead of the generic "Account".
+    if (parsedData?.program === VOTE_PROGRAM_LABEL) {
+        return <AccountDetailsHeader title="Vote Account" />;
     }
 
     // The token-mint header consumes the token-info fetch, so wait for it.

@@ -129,7 +129,7 @@ export function VoteAccountSection({ account, voteAccount }: { account: Account;
     return (
         <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
-                <h2 className="m-0 text-lg font-normal text-white">Vote Account</h2>
+                <h2 className="m-0 text-lg font-normal text-white">Overview</h2>
                 <div className="flex items-center gap-2">
                     <RefreshButton
                         analyticsSection="vote_account_section"
@@ -182,14 +182,23 @@ export function VoteAccountSection({ account, voteAccount }: { account: Account;
                             <Label>Authorized Voter{authorizedVoters.length > 1 ? 's' : ''}</Label>
                             <Value className="flex flex-col gap-1">
                                 {authorizedVoters.map(voter => (
-                                    <span key={voter.epoch} className="flex flex-wrap items-baseline gap-x-1">
-                                        {/* Address is a full-width block; the wrapper shrinks it to its text so
-                                            the epoch stays inline while the column is wide enough. */}
-                                        <span className="min-w-0">
+                                    <span key={voter.fromEpoch} className="flex flex-wrap items-baseline gap-x-1 pl-5">
+                                        {/* Hanging indent for the epoch: when it can't sit beside the address it wraps
+                                            to its own line, and the wrapper's `pl-5` shifts that wrapped line right so
+                                            the epoch's start lines up with the address *text*. The address wrapper's
+                                            matching `-ml-5` cancels the padding on line 1, pulling the address back to
+                                            the column edge (aligned with the other rows). The 20px offset is the copy
+                                            affordance the Address renders before its text: 13px icon + its 6px right
+                                            margin + the 1px row padding. */}
+                                        <span className="-ml-5 min-w-0">
                                             <Address pubkey={voter.authorizedVoter} link noTruncate />
                                         </span>
-                                        <span className="whitespace-nowrap text-outer-space-300">
-                                            (since epoch {voter.epoch})
+                                        <span className="whitespace-nowrap font-sans text-sm text-outer-space-300">
+                                            (epoch{' '}
+                                            {voter.fromEpoch === voter.toEpoch
+                                                ? voter.fromEpoch
+                                                : `${voter.fromEpoch}-${voter.toEpoch}`}
+                                            )
                                         </span>
                                     </span>
                                 ))}
