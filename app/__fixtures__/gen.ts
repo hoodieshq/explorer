@@ -17,6 +17,11 @@ export const gen = {
             for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
         } else {
             for (let i = 0; i < bytes.length; i++) bytes[i] = (seed * 19 + i * 23 + 5) & 0xff;
+            // Every byte above is taken mod 256, so `seed` and `seed + 256` produced the same
+            // address and a caller asking for 257 distinct ones silently got 256. Folding the
+            // high bits into one byte pushes the repeat out to 65536 seeds. Seeds 0-255 are
+            // untouched (`seed >>> 8` is 0 there), so existing fixture addresses keep their bytes.
+            bytes[1] = (bytes[1] + (seed >>> 8)) & 0xff;
         }
         return BASE58_DECODER.decode(bytes);
     },

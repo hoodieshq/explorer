@@ -48,8 +48,12 @@ type FullLegacyTokenInfoList = {
  *
  * @param includeOnChainFallback Also read on-chain Metaplex metadata for mints
  * the UTL list does not carry. Costs extra RPC calls, so it is opt-in.
+ *
+ * Exported for `@entities/token-info`, which layers chunking on top for holdings
+ * lists longer than the route's cap. Kept here rather than duplicated there so one
+ * function owns the request shape.
  */
-async function fetchTokenInfosFromApi(
+export async function fetchTokenInfosFromApi(
     addresses: string[],
     cluster: Cluster,
     genesisHash: string | undefined,

@@ -9,8 +9,9 @@ import { Logger } from '@/app/shared/lib/logger';
 import { CACHE_MAX_AGE, MAX_ADDRESSES } from './config';
 
 // Platform backstop, as in `app/api/metadata/proxy/route.ts`. One invocation is the UTL list
-// lookup, then at most four RPC calls (`MAX_ADDRESSES` keys, chunked 100 at a time), then the
-// off-chain logo reads — and those are already bounded as a group by `LOGO_BUDGET_MS` (10s).
+// lookup, then at most six RPC calls (the fallback makes two passes over `MAX_ADDRESSES` keys,
+// each chunked 100 at a time), then the off-chain logo reads — and those are already bounded
+// as a group by `LOGO_BUDGET_MS` (10s).
 // That leaves headroom here rather than a limit the fallback can hit. Kept inline (not in
 // config.ts): Next reads route segment config only as literal route exports.
 export const maxDuration = 30;
