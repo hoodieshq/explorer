@@ -3,20 +3,27 @@ import ScaledUiAmountMultiplierTooltip from '@components/account/token-extension
 import { Address } from '@components/common/Address';
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
+import { Signature } from '@components/common/Signature';
+import { Slot } from '@components/common/Slot';
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { cn } from '@components/shared/utils';
 import { deriveScaledUiAmountMultiplier, useTokenInfo } from '@entities/token-info';
+import { useAccountHistory } from '@features/transaction-history/model/use-account-history';
+import { useFetchAccountHistory } from '@features/transaction-history/model/use-fetch-account-history';
 import { TokenInfoWithPubkey, useAccountOwnedTokens, useFetchAccountOwnedTokens } from '@providers/accounts/tokens';
 import { FetchStatus } from '@providers/cache';
 import { useCluster } from '@providers/cluster';
 import { PublicKey } from '@solana/web3.js';
+import { displayTimestampUtc, unixTimestampToMs } from '@utils/date';
+import { useClusterPath } from '@utils/url';
 import { BigNumber } from 'bignumber.js';
 import { cva } from 'class-variance-authority';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ChevronDown } from 'react-feather';
 
+import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/components/shared/ui/dropdown';
 import { ProxiedImage } from '@/app/features/metadata';
@@ -50,7 +57,17 @@ const useQueryDisplay = (): Display => {
 // - `table` (default) — the shared `<BaseTable>` (a real `<table>`), keeping the original dashkit surface.
 // - `grid` — a CSS-grid list built from `div`s, mirroring the transaction page's Accounts/Token Balances
 //   tables. Desktop visuals match `table`; the internals differ so the two can diverge on mobile later.
-export function OwnedTokensCard({ address, layout = 'table' }: { address: string; layout?: OwnedTokensLayout }) {
+// `expandable` (grid layout only) turns each holding into a spoiler: a chevron opens the row to reveal that
+// token account's recent transactions plus a link to its account page. A design variant for the tokens tab.
+export function OwnedTokensCard({
+    address,
+    layout = 'table',
+    expandable = false,
+}: {
+    address: string;
+    layout?: OwnedTokensLayout;
+    expandable?: boolean;
+}) {
     const pubkey = useMemo(() => new PublicKey(address), [address]);
     const ownedTokens = useAccountOwnedTokens(address);
     const fetchAccountTokens = useFetchAccountOwnedTokens();
@@ -95,7 +112,11 @@ export function OwnedTokensCard({ address, layout = 'table' }: { address: string
                 // `outer-space-900` equals `#1e2423` (dashkit `dk-gray-800-dark`); `border-outer-space-800`
                 // gives the card the same tone as the row separators; `rounded-lg` is the 8px radius.
                 <Card variant="tight" className="rounded-lg border-outer-space-800 bg-outer-space-900">
-                    <TokensGrid tokens={tokens} visibleCount={visibleCount} />
+                    {expandable ? (
+                        <ExpandableTokensGrid tokens={tokens} visibleCount={visibleCount} />
+                    ) : (
+                        <TokensGrid tokens={tokens} visibleCount={visibleCount} />
+                    )}
                     <TokensCardFooter tokens={tokens} visibleCount={visibleCount} loadMore={loadMore} />
                 </Card>
             ) : (
@@ -400,6 +421,241 @@ function GridTokenRow({ mintAddress, token }: GridRowProps) {
                     rawAmount={new BigNumber(token.rawAmount).shiftedBy(-(token.decimals || 0)).toString()}
                     scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}
                 />
+            </div>
+        </div>
+    );
+}
+
+// How many recent transactions the spoiler preview shows before the "View all" link.
+const RECENT_TX_LIMIT = 8;
+// Same tracks as the normal grid plus a trailing `auto` column for the expand chevron.
+const EXPANDABLE_GRID_TEMPLATE = 'grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(auto,220px)_auto]';
+
+// Variant 3: the holdings grid where each row is a spoiler. Mirrors TokensGrid's columns (Logo / Mint /
+// Account / Total Balance) and adds a chevron; opening a row reveals its recent transactions.
+function ExpandableTokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; visibleCount: number }) {
+    const visibleTokens = useMappedTokens(tokens, true).slice(0, visibleCount);
+
+    return (
+        <>
+            {/* Mobile (< sm): expandable labels-left blocks. */}
+            <div className="sm:hidden">
+                {visibleTokens.map(([mintAddress, token]) => (
+                    <ExpandableMobileRow key={mintAddress} mintAddress={mintAddress} token={token} />
+                ))}
+            </div>
+
+            {/* Desktop (sm+): CSS-grid table with a trailing expand column. */}
+            <div className="hidden w-full overflow-x-auto text-sm text-white sm:block">
+                <div
+                    role="table"
+                    aria-label="Token holdings"
+                    className={cn('grid min-w-full', EXPANDABLE_GRID_TEMPLATE)}
+                >
+                    <div role="row" className="contents">
+                        <div role="columnheader" className={gridCellVariants({ column: 'logo', role: 'header' })}>
+                            Logo
+                        </div>
+                        <div role="columnheader" className={gridCellVariants({ column: 'address', role: 'header' })}>
+                            Mint Address
+                        </div>
+                        <div role="columnheader" className={gridCellVariants({ column: 'address', role: 'header' })}>
+                            Account Address
+                        </div>
+                        <div role="columnheader" className={gridCellVariants({ column: 'balance', role: 'header' })}>
+                            Total Balance
+                        </div>
+                        <div role="columnheader" className={gridCellVariants({ role: 'header' })} />
+                    </div>
+                    {visibleTokens.map(([mintAddress, token]) => (
+                        <ExpandableGridRow key={mintAddress} mintAddress={mintAddress} token={token} />
+                    ))}
+                </div>
+            </div>
+        </>
+    );
+}
+
+// Spoiler toggle shared by the desktop and mobile rows: a grey "history" label plus the chevron, both
+// inside one ghost button so the whole thing is the clickable target.
+function SpoilerToggle({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
+    return (
+        <Button
+            variant="ghost"
+            size="sm"
+            aria-expanded={expanded}
+            aria-label={expanded ? 'Collapse recent transactions' : 'Expand recent transactions'}
+            className="h-auto shrink-0 !gap-0.5 !px-1.5 !py-1 text-xs text-outer-space-300 [&_svg]:size-4"
+            onClick={onToggle}
+        >
+            history
+            <ChevronDown
+                size={16}
+                className={cn('transition-transform duration-200 ease-in-out', expanded ? 'rotate-180' : 'rotate-0')}
+            />
+        </Button>
+    );
+}
+
+function ExpandableGridRow({ mintAddress, token }: GridRowProps) {
+    const { cluster, genesisHash } = useCluster();
+    const tokenInfo = useTokenInfo(true, mintAddress, cluster, genesisHash);
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <div role="row" className="contents">
+            <div role="cell" className={gridCellVariants({ column: 'logo' })}>
+                <ProxiedImage
+                    alt="Token icon"
+                    className="-my-0.5 h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
+                    height={16}
+                    uri={tokenInfo?.logoURI ?? undefined}
+                    width={16}
+                />
+            </div>
+            <div role="cell" className={gridCellVariants({ column: 'address' })}>
+                <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
+            </div>
+            <div role="cell" className={gridCellVariants({ column: 'address' })}>
+                {token.pubkey ? <Address pubkey={new PublicKey(token.pubkey)} link /> : '—'}
+            </div>
+            <div role="cell" className={gridCellVariants({ column: 'balance' })}>
+                {token.amount} {tokenInfo?.symbol ?? 'tokens'}
+                <ScaledUiAmountMultiplierTooltip
+                    rawAmount={new BigNumber(token.rawAmount).shiftedBy(-(token.decimals || 0)).toString()}
+                    scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}
+                />
+            </div>
+            <div role="cell" className={cn(gridCellVariants({}), 'justify-end')}>
+                {token.pubkey && <SpoilerToggle expanded={expanded} onToggle={() => setExpanded(v => !v)} />}
+            </div>
+            {token.pubkey && (
+                <div
+                    className={cn(
+                        // Start at grid line 2 (skip the logo column) so the panel — with its own px-3 —
+                        // lines up under the Mint Address column instead of the row's left edge.
+                        'col-[2/-1] grid transition-[grid-template-rows,opacity] duration-200 ease-in-out',
+                        expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                    )}
+                >
+                    <div className="min-h-0 overflow-hidden">
+                        <div className="px-3 pb-9">
+                            <RecentTokenTransactions accountAddress={token.pubkey} enabled={expanded} />
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ExpandableMobileRow({ mintAddress, token }: GridRowProps) {
+    const { cluster, genesisHash } = useCluster();
+    const tokenInfo = useTokenInfo(true, mintAddress, cluster, genesisHash);
+    const [expanded, setExpanded] = useState(false);
+
+    return (
+        <div className="flex flex-col gap-1 border-t border-solid border-outer-space-800 px-3 py-3 text-sm text-white first:border-t-0">
+            <div className="flex items-center gap-2">
+                <span className="w-24 shrink-0 self-baseline text-outer-space-300">Mint</span>
+                <ProxiedImage
+                    alt="Token icon"
+                    className="-my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
+                    height={16}
+                    uri={tokenInfo?.logoURI ?? undefined}
+                    width={16}
+                />
+                <div className="min-w-0 flex-1">
+                    <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
+                </div>
+                {token.pubkey && <SpoilerToggle expanded={expanded} onToggle={() => setExpanded(v => !v)} />}
+            </div>
+            {token.pubkey && (
+                <div className="flex items-baseline gap-2">
+                    <span className="w-24 shrink-0 text-outer-space-300">Account</span>
+                    <div className="min-w-0 flex-1">
+                        <Address pubkey={new PublicKey(token.pubkey)} link />
+                    </div>
+                </div>
+            )}
+            <div className="flex items-baseline gap-2">
+                <span className="w-24 shrink-0 text-outer-space-300">Total Balance</span>
+                <span className="min-w-0 flex-1 break-words">
+                    {token.amount} {tokenInfo?.symbol ?? 'tokens'}
+                    <ScaledUiAmountMultiplierTooltip
+                        rawAmount={new BigNumber(token.rawAmount).shiftedBy(-(token.decimals || 0)).toString()}
+                        scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}
+                    />
+                </span>
+            </div>
+            {token.pubkey && (
+                <div
+                    className={cn(
+                        'grid transition-[grid-template-rows,opacity] duration-200 ease-in-out',
+                        expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                    )}
+                >
+                    <div className="min-h-0 overflow-hidden">
+                        <div className="mt-2">
+                            <RecentTokenTransactions accountAddress={token.pubkey} enabled={expanded} />
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// The spoiler body: the token account's most recent transactions, fetched lazily on first expand (gated by
+// `enabled`), plus a link to the full token-account page.
+function RecentTokenTransactions({ accountAddress, enabled }: { accountAddress: string; enabled: boolean }) {
+    const pubkey = useMemo(() => new PublicKey(accountAddress), [accountAddress]);
+    const history = useAccountHistory(accountAddress);
+    const fetchHistory = useFetchAccountHistory(RECENT_TX_LIMIT);
+    const viewAllPath = useClusterPath({ pathname: `/address/${accountAddress}` });
+
+    useEffect(() => {
+        if (enabled && !history) {
+            fetchHistory(pubkey, false, true);
+        }
+    }, [enabled, accountAddress]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    const fetched = history?.data?.fetched;
+    const rows = fetched?.slice(0, RECENT_TX_LIMIT) ?? [];
+    const loading = !history || (history.status === FetchStatus.Fetching && !fetched);
+
+    return (
+        <div className="flex flex-col gap-2 pt-1">
+            <div className="text-xs uppercase text-outer-space-300">Recent transactions</div>
+            {loading ? (
+                <div className="text-sm text-outer-space-300">Loading…</div>
+            ) : rows.length === 0 ? (
+                <div className="text-sm text-outer-space-300">No recent transactions</div>
+            ) : (
+                // Content-sized columns (each track is `auto`), no horizontal dividers. Fragments keep the
+                // four cells as direct grid children so the columns line up across rows.
+                <div className="grid w-fit grid-cols-[auto_auto_auto] items-center gap-x-6 gap-y-1.5">
+                    {rows.map(tx => (
+                        <React.Fragment key={tx.signature}>
+                            {/* Signature + status share one column — the badge sits right after the signature. */}
+                            <div className="flex items-center gap-1.5">
+                                <Signature signature={tx.signature} link />
+                                <Badge ui="dashkit" variant={tx.err ? 'warning' : 'success'}>
+                                    {tx.err ? 'Failed' : 'Success'}
+                                </Badge>
+                            </div>
+                            <span className="whitespace-nowrap text-outer-space-300">
+                                {tx.blockTime ? displayTimestampUtc(unixTimestampToMs(tx.blockTime), true) : '—'}
+                            </span>
+                            <Slot slot={tx.slot} link />
+                        </React.Fragment>
+                    ))}
+                </div>
+            )}
+            <div>
+                <Button ui="dashkit" variant="white" size="sm" className="!text-xs" asChild>
+                    <Link href={viewAllPath}>View all transactions</Link>
+                </Button>
             </div>
         </div>
     );

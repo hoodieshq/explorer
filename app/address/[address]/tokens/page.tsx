@@ -1,10 +1,9 @@
-import { OwnedTokensCard } from '@components/account/OwnedTokensCard';
-import { TokenHistoryCard } from '@components/account/TokenHistoryCard';
 import getReadableTitleFromAddress, { AddressPageMetadataProps } from '@utils/get-readable-title-from-address';
 import { Metadata } from 'next/types';
 
 import { TransactionsProvider } from '@/app/providers/transactions';
-import { DSCOMMON_BETWEEN_BLOCKS } from '@/app/shared/ui/page-spacing/spacing';
+
+import { TokensTabView } from './TokensTabView';
 
 type Props = Readonly<{
     params: Promise<{
@@ -25,12 +24,7 @@ export default async function OwnedTokensPage(props: Props) {
 
     return (
         <TransactionsProvider>
-            {/* Match the block/transaction pages: token blocks are separated by the shared
-                between-blocks spacing token (the layout only spaces the tab bar from the first block). */}
-            <div className={DSCOMMON_BETWEEN_BLOCKS.className}>
-                <OwnedTokensCard address={address} layout="grid" />
-                <TokenHistoryCard address={address} layout="grid" />
-            </div>
+            <TokensTabView address={address} />
         </TransactionsProvider>
     );
 }
