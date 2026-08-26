@@ -40,9 +40,8 @@ export function CollapsibleSection({
 
     return (
         <section id={id} aria-labelledby={headingId} className={cn('flex flex-col gap-3', sectionClassName)}>
-            {/* Header block: the title (plus optional `belowTitle`) forms the first column; the actions and
-                collapse toggle form a second column that `titleClassName` can bottom-align (`items-end`).
-                Without `belowTitle` the title stays a direct child so existing sections are untouched. */}
+            {/* Title (plus optional `belowTitle`) forms the first column; actions and the collapse toggle
+                form a second. Without `belowTitle` the title stays a direct child, untouched. */}
             <div data-section-title className={cn('flex items-center justify-between', titleClassName)}>
                 {belowTitle ? (
                     <div className="flex min-w-0 flex-col gap-2">

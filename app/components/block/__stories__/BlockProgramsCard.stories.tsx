@@ -5,14 +5,6 @@ import type { Meta, StoryObj } from '@storybook-config/types';
 import { BlockProgramsCard } from '../BlockProgramsCard';
 
 const meta: Meta<typeof BlockProgramsCard> = {
-    argTypes: {
-        variant: {
-            control: 'inline-radio',
-            description:
-                "'default' — original Dashkit cards + table; 'collapsible' — domains-card style (heading lifted out above a collapsible section, tight card surface, CSS-grid body).",
-            options: ['default', 'collapsible'],
-        },
-    },
     component: BlockProgramsCard,
     decorators: [withCluster, withTokenInfoBatch],
     parameters: nextjsParameters,
@@ -51,19 +43,9 @@ function makeBlock(txCount: number) {
     return { transactions } as any;
 }
 
-// Original Dashkit cards.
 export const WithData: Story = {
     args: {
         block: makeBlock(12),
-    },
-};
-
-// Domains-card style (PR #115): headings lifted out above collapsible sections, tight card surfaces,
-// CSS-grid bodies on lg+ and stacked, labelled layouts below lg.
-export const Collapsible: Story = {
-    args: {
-        block: makeBlock(12),
-        variant: 'collapsible',
     },
 };
 

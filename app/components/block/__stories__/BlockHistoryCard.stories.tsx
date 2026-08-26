@@ -93,14 +93,6 @@ function makeBlock(txCount: number): VersionedBlockResponse {
 }
 
 const meta = {
-    argTypes: {
-        variant: {
-            control: 'inline-radio',
-            description:
-                "'default' — original Dashkit table; 'collapsible' — domains-card style (title lifted out above a collapsible section with the filter as its action, tight card surface, CSS-grid body).",
-            options: ['default', 'collapsible'],
-        },
-    },
     component: BlockHistoryCard,
     decorators: [withCluster, withTokenInfoBatch],
     parameters: nextjsParameters,
@@ -111,25 +103,14 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// A handful of transactions — populated table with a mix of Success / Failed rows and invoked programs.
+// A handful of transactions — a mix of Success / Failed rows and invoked programs.
 export const WithTransactions: Story = {
     args: { block: makeBlock(8), epoch: 500n },
 };
 
-// More than one page (PAGE_SIZE = 25) so the green "Load More" footer shows.
+// More than one page (PAGE_SIZE = 25) so the "Load More" footer shows.
 export const ManyTransactions: Story = {
     args: { block: makeBlock(30), epoch: 500n },
-};
-
-// Domains-card style (PR #115): title lifted out above a collapsible section (filter kept as its
-// action), tight card surface, CSS-grid body on md+ and a stacked, labelled layout below md.
-export const Collapsible: Story = {
-    args: { block: makeBlock(8), epoch: 500n, variant: 'collapsible' },
-};
-
-// Collapsible variant with more than one page → the green "Load More" footer shows.
-export const CollapsibleManyTransactions: Story = {
-    args: { block: makeBlock(30), epoch: 500n, variant: 'collapsible' },
 };
 
 // No transactions → the "This block has no transactions" ErrorCard fallback.
