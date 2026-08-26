@@ -35,7 +35,7 @@ export default function BlockTransactionsTabClient({ params: { slot } }: Props) 
         }
     }, [slotNumber, status]); // eslint-disable-line react-hooks/exhaustive-deps
     if (confirmedBlock?.data?.block) {
-        return <BlockHistoryCard block={confirmedBlock.data.block} epoch={epoch} variant="collapsible" />;
+        return <BlockHistoryCard block={confirmedBlock.data.block} epoch={epoch} />;
     }
     return null;
 }

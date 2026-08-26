@@ -1,4 +1,5 @@
-import { PublicKey, VersionedBlockResponse } from '@solana/web3.js';
+import type { BlockWithV1 } from '@entities/block-data';
+import { PublicKey } from '@solana/web3.js';
 import { nextjsParameters, withClusterAccountsAndTokenInfo } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
@@ -13,7 +14,7 @@ const baseBlock = {
     parentSlot: 426014006,
     previousBlockhash: 'GfR1o2b8mVCg1KYp2f8vXbNqvY9dQyv2n8VnQyJc5Uab',
     transactions: [],
-} as unknown as VersionedBlockResponse;
+} as unknown as BlockWithV1;
 
 const LEADER = new PublicKey('So11111111111111111111111111111111111111112');
 const PARENT_LEADER = new PublicKey('Vote111111111111111111111111111111111111111');
@@ -45,7 +46,7 @@ export const Default: Story = {
 export const NoTimestamp: Story = {
     args: {
         ...Default.args,
-        block: { ...baseBlock, blockTime: null } as unknown as VersionedBlockResponse,
+        block: { ...baseBlock, blockTime: null } as unknown as BlockWithV1,
     },
 };
 

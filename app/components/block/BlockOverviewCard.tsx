@@ -4,68 +4,20 @@ import { Epoch } from '@components/common/Epoch';
 import { ExternalLinkWarning } from '@components/common/ExternalLinkWarning';
 import { Slot } from '@components/common/Slot';
 import { cn } from '@components/shared/utils';
+import type { BlockWithV1 } from '@entities/block-data';
 import { estimateRequestedComputeUnits } from '@entities/compute-unit';
 import { useCluster } from '@providers/cluster';
-import { PublicKey, VersionedBlockResponse } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { displayTimestamp, displayTimestampUtc } from '@utils/date';
 import { IBRL_EXPLORER_URL } from '@utils/env';
-import React from 'react';
 import { ExternalLink } from 'react-feather';
 
+import { Label, Row, Value } from '@/app/features/transaction/ui/DetailRow';
 import { Card } from '@/app/shared/ui/Card';
 import { getMaxComputeUnitsInBlock } from '@/app/utils/epoch-schedule';
 
-// Grid-based key/value row, mirroring the transaction SummaryCard so overview cards stay consistent
-// across pages. The `1fr` value column lets long mono values wrap (`break-all`) instead of forcing
-// the whole card into horizontal scroll on narrow screens.
-type RowProps = React.HTMLAttributes<HTMLDivElement> & { divider?: boolean };
-function Row({ children, className, divider, ...props }: RowProps) {
-    return (
-        <div
-            className={cn(
-                'grid min-h-9 grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2 px-3 py-2.5 md:px-4',
-                divider && 'border-1 border-b border-white/10 [border-bottom-style:solid]',
-                className,
-            )}
-            {...props}
-        >
-            {children}
-        </div>
-    );
-}
-
-function Label({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-    return (
-        <div
-            className={cn('flex flex-wrap items-center gap-1 overflow-hidden text-sm text-outer-space-300', className)}
-            {...props}
-        >
-            {children}
-        </div>
-    );
-}
-
-// `mono` toggles the monospace face — on for hashes/addresses/numbers, off for prose like dates.
-// (cn is plain clsx here, so an added `font-sans` wouldn't reliably beat a hardcoded `font-mono`;
-// omitting `font-mono` and inheriting the sans default is the robust way to opt out.)
-// `breakAll` lets a long unbreakable token (a hash) wrap anywhere instead of forcing horizontal
-// scroll; turn it off for space-separated prose/numbers so words wrap whole, only at the spaces.
-function Value({
-    children,
-    className,
-    mono = true,
-    breakAll = true,
-    ...props
-}: React.HTMLAttributes<HTMLDivElement> & { mono?: boolean; breakAll?: boolean }) {
-    return (
-        <div className={cn('text-sm text-white', breakAll && 'break-all', mono && 'font-mono', className)} {...props}>
-            {children}
-        </div>
-    );
-}
-
 type BlockOverviewCardProps = {
-    block: VersionedBlockResponse;
+    block: BlockWithV1;
     slot: number;
     epoch: bigint | undefined;
     blockLeader?: PublicKey;

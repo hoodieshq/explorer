@@ -1,6 +1,5 @@
 import { createNextjsParameters, withCluster } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
-import { Code } from 'react-feather';
 
 import { BaseTransactionHistoryCard, type TransactionHistoryRowView } from '../BaseTransactionHistoryCard';
 import { InstructionList } from '../InstructionList';
@@ -27,26 +26,7 @@ function makeRow(
     };
 }
 
-// Stand-in for the raw-data cell in the 'grid' variant's "Size (Bytes)" column — the `<>` control plus
-// a byte count, mirroring the design. In production this cell is the lazily-fetched raw-data control.
-function sizeCell(bytes: number) {
-    return (
-        <span className="flex items-center gap-1.5 font-mono">
-            <Code size={13} className="text-dk-gray-700" />
-            {bytes}
-        </span>
-    );
-}
-
 const meta = {
-    argTypes: {
-        variant: {
-            control: 'inline-radio',
-            description:
-                "'default' — original Dashkit table; 'grid' — rearranged CSS-grid layout (Result badge inline with the signature, Age + Timestamp combined into one Time column).",
-            options: ['default', 'grid'],
-        },
-    },
     component: BaseTransactionHistoryCard,
     decorators: [withCluster],
     parameters: createNextjsParameters(),
@@ -103,48 +83,5 @@ export const Fetching: Story = {
         onLoadMore: () => {},
         onRefresh: () => {},
         rows: [makeRow({ signature: SIGNATURES.first })],
-    },
-};
-
-// 'grid' variant — the rearranged layout: badge inline with the signature (instructions below), Age +
-// Timestamp merged into one Time column, Block and Size (Bytes) as their own columns.
-export const Grid: Story = {
-    args: {
-        fetching: false,
-        foundOldest: false,
-        onLoadMore: () => {},
-        onRefresh: () => {},
-        rows: [
-            makeRow({
-                blockTime: 1_718_000_000,
-                instructionsCell: <InstructionList instructions={[{ name: 'Transfer', program: 'System' }]} />,
-                rawDataCell: sizeCell(215),
-                signature: SIGNATURES.first,
-                slot: 312_456_789,
-            }),
-            makeRow({
-                blockTime: 1_717_999_880,
-                instructionsCell: (
-                    <InstructionList
-                        instructions={[
-                            { name: 'Mint To', program: 'Token' },
-                            { name: 'Transfer', program: 'Token' },
-                        ]}
-                    />
-                ),
-                rawDataCell: sizeCell(388),
-                signature: SIGNATURES.third,
-                slot: 312_456_790,
-            }),
-            makeRow({
-                blockTime: 1_717_999_700,
-                instructionsCell: <InstructionList instructions={[{ name: 'Transfer', program: 'System' }]} />,
-                rawDataCell: sizeCell(164),
-                signature: SIGNATURES.failed,
-                slot: 312_456_791,
-                status: 'failed',
-            }),
-        ],
-        variant: 'grid',
     },
 };

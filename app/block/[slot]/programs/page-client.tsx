@@ -24,7 +24,7 @@ export default function BlockProgramsTab({ params: { slot } }: Props) {
         }
     }, [slotNumber, status]); // eslint-disable-line react-hooks/exhaustive-deps
     if (confirmedBlock?.data?.block) {
-        return <BlockProgramsCard block={confirmedBlock.data.block} variant="collapsible" />;
+        return <BlockProgramsCard block={confirmedBlock.data.block} />;
     }
     return null;
 }

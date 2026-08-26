@@ -9,31 +9,21 @@ import { useCluster } from '@providers/cluster';
 import { ConfirmedTransactionMeta, PublicKey, TransactionSignature, VOTE_PROGRAM_ID } from '@solana/web3.js';
 import { parseProgramLogs } from '@utils/program-logs';
 import { displayAddress } from '@utils/tx';
-import { useBuildClusterPath } from '@utils/url';
 import Link from 'next/link';
 import { ReadonlyURLSearchParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useMemo } from 'react';
 import { ChevronDown, ChevronUp, Filter, Search, X } from 'react-feather';
 
-import { TIGHT_CARD } from '@/app/components/block/shared';
+import { LabeledField, LoadMoreButton, TIGHT_CARD } from '@/app/components/block/shared';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/components/shared/ui/dropdown';
 import { Input } from '@/app/components/shared/ui/input';
 import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
 import { invariant } from '@/app/shared/lib/invariant';
-import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@/app/shared/ui/Card';
-import { BaseTable } from '@/app/shared/ui/Table';
+import { Card } from '@/app/shared/ui/Card';
 
 const PAGE_SIZE = 25;
-
-// Design variant, switchable via prop (see the other block cards for the same pattern):
-//   - 'default'     — the original Dashkit table.
-//   - 'collapsible' — the domains-card treatment (PR #115): the title lifted out above a collapsible
-//                     section (filter dropdown kept as its action), list on a `tight` card surface,
-//                     CSS-grid body on `md+` and a stacked, labelled layout below `md`. Sorting and
-//                     "Load More" are preserved.
-export type BlockHistoryVariant = 'default' | 'collapsible';
 
 const useQueryProgramFilter = (query: ReadonlyURLSearchParams): string => {
     const filter = query.get('filter');
@@ -92,15 +82,7 @@ type TransactionWithInvocations = {
     logTruncated: boolean;
 };
 
-export function BlockHistoryCard({
-    block,
-    epoch,
-    variant = 'default',
-}: {
-    block: BlockWithV1;
-    epoch: bigint | undefined;
-    variant?: BlockHistoryVariant;
-}) {
+export function BlockHistoryCard({ block, epoch }: { block: BlockWithV1; epoch: bigint | undefined }) {
     const [numDisplayed, setNumDisplayed] = React.useState(PAGE_SIZE);
     const currentPathname = usePathname();
     const currentSearchParams = useSearchParams();
@@ -109,7 +91,6 @@ export function BlockHistoryCard({
     const { direction: sortDirection, mode: sortMode } = useQuerySort(currentSearchParams);
     const router = useRouter();
     const { cluster } = useCluster();
-    const buildClusterPath = useBuildClusterPath();
 
     // Sort is driven by URL params (`sort` + `dir`); the grid variant's sortable headers push through here.
     // Clicking the active column flips its direction; clicking another column selects it at its natural
@@ -272,293 +253,82 @@ export function BlockHistoryCard({
         return <ErrorCard text="This block has no transactions" />;
     }
 
-    let title: string;
-    if (filteredTransactions.length === transactions.length) {
-        title = `Block Transactions (${filteredTransactions.length})`;
-    } else {
-        title = `Filtered Block Transactions (${filteredTransactions.length}/${transactions.length})`;
-    }
-
-    if (variant === 'collapsible') {
-        const visible = filteredTransactions.slice(0, numDisplayed);
-        const hasMore = filteredTransactions.length > numDisplayed;
-        const emptyFilterMessage =
-            accountFilter === null && programFilter === HIDE_VOTES
-                ? "This block doesn't contain any non-vote transactions"
-                : 'No transactions found with this filter';
-
-        return (
-            <CollapsibleSection
-                // The record count rides in the title as a muted, smaller run — "N filtered records" when a
-                // filter is active, otherwise "N records".
-                title={
-                    <>
-                        {/* Gap lives on the title (`mr-2`), not the count, so when the count wraps to its own
-                            line it sits flush-left under the title instead of indented. */}
-                        <span className="mr-2">Block Transactions</span>
-                        {/* `inline-block` makes the count an atomic unit: it stays on one line and wraps to
-                            the next line whole when it can't sit beside the title; its width is measured
-                            against the full container, so words only break once the block itself overflows. */}
-                        <span className="inline-block text-sm font-normal text-outer-space-300">
-                            {filteredTransactions.length}{' '}
-                            {isProgramFilterSet || accountFilter !== null ? 'filtered records' : 'records'}
-                        </span>
-                    </>
-                }
-                className=""
-                // Buttons form the second column, bottom-aligned; `gap-4` keeps the chip off them.
-                titleClassName="!items-end gap-4"
-                // Only the active-filter chip sits under the title now. `-mt-1` trims 4px off the title
-                // column's 8px gap (bringing the count text closer); `mb-0.5` adds 2px under the chip on
-                // top of the section's own 12px gap to the table.
-                belowTitle={
-                    isProgramFilterSet ? (
-                        <div className="-mt-1 mb-0.5 flex flex-wrap items-center gap-2">
-                            <FilterChip label={filterModel.current.name} />
-                        </div>
-                    ) : undefined
-                }
-                actions={
-                    <>
-                        {/* Mobile-only: the grid's sort headers are hidden below md, so surface them here,
-                            to the left of the filter. */}
-                        <SortDropdown
-                            showComputeUnits={showComputeUnits}
-                            sortMode={sortMode}
-                            sortDirection={sortDirection}
-                            onSort={pushSort}
-                        />
-                        <FilterDropdown
-                            options={filterModel.options}
-                            currentFilter={programFilter}
-                            isFilterSet={isProgramFilterSet}
-                        />
-                    </>
-                }
-            >
-                <div className="flex flex-col gap-3">
-                    {accountFilter !== null && (
-                        <div className="text-sm text-white">
-                            Showing transactions which load account:
-                            <span className="ml-1.5 inline-block align-middle">
-                                <Address pubkey={accountFilter} link />
-                            </span>
-                        </div>
-                    )}
-                    <Card variant="tight" className={TIGHT_CARD}>
-                        {filteredTransactions.length === 0 ? (
-                            <div className="px-4 py-3 text-sm text-white">{emptyFilterMessage}</div>
-                        ) : (
-                            <BlockHistoryGrid
-                                rows={visible}
-                                showComputeUnits={showComputeUnits}
-                                onSort={pushSort}
-                                sortMode={sortMode}
-                                sortDirection={sortDirection}
-                            />
-                        )}
-                        {hasMore && (
-                            <div className="border-t border-solid border-white/10 px-3 py-4 md:px-4">
-                                <Button
-                                    ui="dashkit"
-                                    variant="primary"
-                                    className="w-full"
-                                    onClick={() => setNumDisplayed(displayed => displayed + PAGE_SIZE)}
-                                >
-                                    Load More
-                                </Button>
-                            </div>
-                        )}
-                    </Card>
-                </div>
-            </CollapsibleSection>
-        );
-    }
+    const visible = filteredTransactions.slice(0, numDisplayed);
+    const hasMore = filteredTransactions.length > numDisplayed;
+    const emptyFilterMessage =
+        accountFilter === null && programFilter === HIDE_VOTES
+            ? "This block doesn't contain any non-vote transactions"
+            : 'No transactions found with this filter';
 
     return (
-        <Card ui="dashkit">
-            <CardHeader ui="dashkit">
-                <CardTitle as="h3" ui="dashkit">
-                    {title}
-                </CardTitle>
-                <FilterDropdown
-                    options={filterModel.options}
-                    currentFilter={programFilter}
-                    isFilterSet={isProgramFilterSet}
-                />
-            </CardHeader>
-
-            {isProgramFilterSet && (
-                <CardBody ui="dashkit">
-                    <FilterChip label={filterModel.current.name} />
-                </CardBody>
-            )}
-
-            {accountFilter !== null && (
-                <CardBody ui="dashkit">
-                    Showing transactions which load account:
-                    <div className="ml-1.5 inline-block">
-                        <Address pubkey={accountFilter} link />
+        <CollapsibleSection
+            // The record count rides in the title as a muted, smaller run.
+            title={
+                <>
+                    <span className="mr-2">Block Transactions</span>
+                    {/* `inline-block` keeps the count atomic: it wraps to the next line whole rather than
+                        breaking mid-phrase when it can't sit beside the title. */}
+                    <span className="inline-block text-sm font-normal text-outer-space-300">
+                        {filteredTransactions.length}{' '}
+                        {isProgramFilterSet || accountFilter !== null ? 'filtered records' : 'records'}
+                    </span>
+                </>
+            }
+            className=""
+            titleClassName="!items-end gap-4"
+            belowTitle={
+                isProgramFilterSet ? (
+                    <div className="-mt-1 mb-0.5 flex flex-wrap items-center gap-2">
+                        <FilterChip label={filterModel.current.name} />
                     </div>
-                </CardBody>
-            )}
-
-            {filteredTransactions.length === 0 ? (
-                <CardBody ui="dashkit">
-                    {accountFilter === null && programFilter === HIDE_VOTES
-                        ? "This block doesn't contain any non-vote transactions"
-                        : 'No transactions found with this filter'}
-                </CardBody>
-            ) : (
-                <BaseTable ui="dashkit" variant="card" nowrap>
-                    <BaseTable.Head>
-                        <BaseTable.Row>
-                            <BaseTable.HeaderCell
-                                className="cursor-pointer text-dk-gray-700"
-                                onClick={() => pushSort()}
-                            >
-
-                                #
-                            </BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell className="text-dk-gray-700">Result</BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell className="text-dk-gray-700">
-                                Transaction Signature
-                            </BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell
-                                className="cursor-pointer text-dk-gray-700"
-                                onClick={() => {
-                                    const additionalParams = new URLSearchParams(currentSearchParams?.toString());
-                                    additionalParams.set('sort', 'fee');
-                                    router.push(buildClusterPath(currentPathname, { additionalParams }));
-                                }}
-                            >
-                                Fee
-                            </BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell
-                                className="cursor-pointer text-dk-gray-700"
-                                onClick={() => {
-                                    const additionalParams = new URLSearchParams(currentSearchParams?.toString());
-                                    additionalParams.set('sort', 'reservedCUs');
-                                    router.push(buildClusterPath(currentPathname, { additionalParams }));
-                                }}
-                            >
-                                CUs Reserved
-                            </BaseTable.HeaderCell>
-                            {showComputeUnits && (
-                                <BaseTable.HeaderCell
-                                    className="cursor-pointer text-dk-gray-700"
-                                    onClick={() => {
-                                        const additionalParams = new URLSearchParams(currentSearchParams?.toString());
-                                        additionalParams.set('sort', 'compute');
-                                        router.push(buildClusterPath(currentPathname, { additionalParams }));
-                                    }}
-                                >
-                                    CUs Consumed
-                                </BaseTable.HeaderCell>
-                            )}
-                            <BaseTable.HeaderCell
-                                className="cursor-pointer text-dk-gray-700"
-                                onClick={() => {
-                                    const additionalParams = new URLSearchParams(currentSearchParams?.toString());
-                                    additionalParams.set('sort', 'txnCost');
-                                    router.push(buildClusterPath(currentPathname, { additionalParams }));
-                                }}
-                            >
-                                Txn Cost
-                            </BaseTable.HeaderCell>
-                            <BaseTable.HeaderCell className="text-dk-gray-700">Invoked Programs</BaseTable.HeaderCell>
-                        </BaseTable.Row>
-                    </BaseTable.Head>
-                    <BaseTable.Body>
-                        {filteredTransactions.slice(0, numDisplayed).map((tx, i) => {
-                            let statusText;
-                            let statusClass;
-                            let signature: React.ReactNode;
-                            if (tx.meta?.err || !tx.signature) {
-                                statusClass = 'warning';
-                                statusText = 'Failed';
-                            } else {
-                                statusClass = 'success';
-                                statusText = 'Success';
-                            }
-
-                            if (tx.signature) {
-                                signature = <Signature signature={tx.signature} link />;
-                            }
-
-                            const entries = Array.from(tx.invocations.entries());
-                            entries.sort();
-
-                            return (
-                                <BaseTable.Row key={i}>
-                                    <BaseTable.Cell>{tx.index + 1}</BaseTable.Cell>
-                                    <BaseTable.Cell>
-                                        <Badge ui="dashkit" variant={statusClass as 'success' | 'warning'}>
-                                            {statusText}
-                                        </Badge>
-                                    </BaseTable.Cell>
-
-                                    <BaseTable.Cell>{signature}</BaseTable.Cell>
-
-                                    <BaseTable.Cell>
-                                        {tx.meta !== null ? <SolBalance lamports={tx.meta.fee} /> : 'Unknown'}
-                                    </BaseTable.Cell>
-
-                                    <BaseTable.Cell>
-                                        {tx.reservedComputeUnits !== undefined
-                                            ? new Intl.NumberFormat('en-US').format(tx.reservedComputeUnits)
-                                            : 'Unknown'}
-                                    </BaseTable.Cell>
-
-                                    {showComputeUnits && (
-                                        <BaseTable.Cell>
-                                            {tx.logTruncated && '>'}
-                                            {tx.computeUnits !== undefined
-                                                ? new Intl.NumberFormat('en-US').format(tx.computeUnits)
-                                                : 'Unknown'}
-                                        </BaseTable.Cell>
-                                    )}
-                                    <BaseTable.Cell>
-                                        {tx.costUnits !== undefined
-                                            ? new Intl.NumberFormat('en-US').format(tx.costUnits)
-                                            : 'Unknown'}
-                                    </BaseTable.Cell>
-                                    <BaseTable.Cell>
-                                        {tx.invocations.size === 0
-                                            ? 'NA'
-                                            : entries.map(([programId, count], i) => {
-                                                  return (
-                                                      <div key={i} className="flex items-center">
-                                                          <Address pubkey={new PublicKey(programId)} link />
-                                                          <span className="ml-1.5 text-dk-gray-700">{`(${count})`}</span>
-                                                      </div>
-                                                  );
-                                              })}
-                                    </BaseTable.Cell>
-                                </BaseTable.Row>
-                            );
-                        })}
-                    </BaseTable.Body>
-                </BaseTable>
-            )}
-
-            {filteredTransactions.length > numDisplayed && (
-                <CardFooter ui="dashkit">
-                    <Button
-                        ui="dashkit"
-                        variant="primary"
-                        className="w-full"
-                        onClick={() => setNumDisplayed(displayed => displayed + PAGE_SIZE)}
-                    >
-                        Load More
-                    </Button>
-                </CardFooter>
-            )}
-        </Card>
+                ) : undefined
+            }
+            actions={
+                <>
+                    {/* The grid's sort headers are hidden below md, so surface them here on mobile. */}
+                    <SortDropdown
+                        showComputeUnits={showComputeUnits}
+                        sortMode={sortMode}
+                        sortDirection={sortDirection}
+                        onSort={pushSort}
+                    />
+                    <FilterDropdown
+                        options={filterModel.options}
+                        currentFilter={programFilter}
+                        isFilterSet={isProgramFilterSet}
+                    />
+                </>
+            }
+        >
+            <div className="flex flex-col gap-3">
+                {accountFilter !== null && (
+                    <div className="text-sm text-white">
+                        Showing transactions which load account:
+                        <span className="ml-1.5 inline-block align-middle">
+                            <Address pubkey={accountFilter} link />
+                        </span>
+                    </div>
+                )}
+                <Card variant="tight" className={TIGHT_CARD}>
+                    {filteredTransactions.length === 0 ? (
+                        <div className="px-4 py-3 text-sm text-white">{emptyFilterMessage}</div>
+                    ) : (
+                        <BlockHistoryGrid
+                            rows={visible}
+                            showComputeUnits={showComputeUnits}
+                            onSort={pushSort}
+                            sortMode={sortMode}
+                            sortDirection={sortDirection}
+                        />
+                    )}
+                    {hasMore && <LoadMoreButton onClick={() => setNumDisplayed(displayed => displayed + PAGE_SIZE)} />}
+                </Card>
+            </div>
+        </CollapsibleSection>
     );
 }
 
-// Domain status → badge label/variant. Mirrors the default table's inline mapping.
+// Domain status → badge label/variant.
 const HISTORY_STATUS = {
     failed: { label: 'Failed', variant: 'warning' },
     success: { label: 'Success', variant: 'success' },
@@ -566,12 +336,8 @@ const HISTORY_STATUS = {
 
 const numberFmt = (n: number) => new Intl.NumberFormat('en-US').format(n);
 
-// Sort affordance for a header: a dim up/down chevron pair signals the column is clickable; on the
-// active column the arrow for the current direction lights up bright white (the other stays dim).
-// The chevron stack is taller than the header text, so it's absolutely positioned inside a box whose
-// height matches the header line (`h-4` = text-xs line-height) and centred — it never grows the row,
-// and the top/bottom overflow stays symmetric so the header's own padding reads even. The box is `w-1`
-// (narrower than the glyphs) so the chevrons overflow it and centre tightly under the label.
+// A dim up/down chevron pair marking a sortable header; the arrow for the active direction lights up
+// white. Absolutely positioned in an `h-4`/`w-1` box so the taller glyph stack doesn't grow the row.
 function SortIndicator({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) {
     return (
         <span className="relative inline-block h-4 w-1">
@@ -591,8 +357,8 @@ function SortIndicator({ active, direction }: { active: boolean; direction: 'asc
     );
 }
 
-// Domains-card style — a CSS grid on md+, stacked labelled rows below md. Sortable numeric headers push
-// the sort through `onSort` (same URL-param mechanism as the default table).
+// A CSS grid on md+, stacked labelled rows below md. Sortable numeric headers push the sort through
+// `onSort` (the URL-param mechanism).
 function BlockHistoryGrid({
     rows,
     showComputeUnits,
@@ -606,12 +372,9 @@ function BlockHistoryGrid({
     sortMode: SortMode;
     sortDirection: SortDirection;
 }) {
-    // Signature takes the slack; the numeric columns are capped tight (≈ content + ~1rem of headroom).
-    // Inline (not a `grid-cols-[…]` class) so the Storybook JIT can't purge it. The Compute column only
-    // exists when compute data is available. Following the transaction-history card, Result (badge) sits
-    // inline with the signature and the invoked programs stack beneath it — so neither gets its own column.
-    // CU columns are wide enough to hold "CUs Consumed"/"CUs Reserved" + the sort chevrons on one line;
-    // Cost gets a touch more room for its chevrons too.
+    // Signature takes the slack; the numeric columns are capped wide enough for their label + sort
+    // chevrons. The Compute column only exists when compute data is available. Inline (not a
+    // `grid-cols-[…]` class) so the Storybook JIT can't purge it.
     const gridStyle: React.CSSProperties = {
         gridTemplateColumns: `minmax(auto,2.5rem) minmax(0,1fr) minmax(auto,7rem) minmax(auto,7.5rem) ${
             showComputeUnits ? 'minmax(auto,7.5rem) ' : ''
@@ -698,10 +461,8 @@ function BlockHistoryGridRow({
         entries.length === 0 ? (
             'NA'
         ) : (
-            // Two-column grid so the "N ×" counters share one right-aligned column (any width) and every
-            // program name lines up in the next — stays aligned no matter how large the count grows.
-            // `tabular-nums` keeps multi-digit counts from jittering. Inline grid template so the
-            // Storybook JIT can't purge it.
+            // Two-column grid so the "N ×" counters share one right-aligned column and the program names
+            // line up in the next. Inline grid template so the Storybook JIT can't purge it.
             <div className="grid items-center gap-x-1.5 gap-y-0.5" style={{ gridTemplateColumns: 'auto 1fr' }}>
                 {entries.map(([programId, count]) => (
                     <React.Fragment key={programId}>
@@ -714,9 +475,8 @@ function BlockHistoryGridRow({
             </div>
         );
 
-    // Signature with the Result badge to its right — mirroring the transaction-history card. On desktop the
-    // invoked programs stack directly beneath it (`signatureBlock`); on mobile they move to their own
-    // labelled "Programs" field, so here the header stays on its own.
+    // Signature with the Result badge to its right. On desktop the invoked programs stack beneath it
+    // (`signatureBlock`); on mobile they move to their own labelled "Programs" field.
     const signatureHeader = (
         <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="min-w-0">{signatureNode}</span>
@@ -732,24 +492,21 @@ function BlockHistoryGridRow({
 
     return (
         <div className="border-b border-solid border-white/10 last:border-b-0">
-            {/* Mobile — stacked, labelled rows matching the Overview card's key/value grid; the index sits
-                in the top-right corner (like the transaction-page account card) and the invoked programs
-                get their own labelled field. */}
+            {/* Mobile — stacked labelled rows with the index pinned to the top-right corner. */}
             <div className="relative flex flex-col gap-1.5 px-4 py-3 md:hidden">
                 <span className="absolute right-4 top-3 text-outer-space-300">#{tx.index + 1}</span>
-                <BlockHistoryMobileField label="Signature">
+                <LabeledField label="Signature">
                     <div className="pr-10">{signatureHeader}</div>
-                </BlockHistoryMobileField>
-                <BlockHistoryMobileField label="Fee">{feeNode}</BlockHistoryMobileField>
-                {showComputeUnits && <BlockHistoryMobileField label="CUs Consumed">{compute}</BlockHistoryMobileField>}
-                <BlockHistoryMobileField label="CUs Reserved">{reserved}</BlockHistoryMobileField>
-                <BlockHistoryMobileField label="Cost">{txnCost}</BlockHistoryMobileField>
-                <BlockHistoryMobileField label="Programs" align="start">
+                </LabeledField>
+                <LabeledField label="Fee">{feeNode}</LabeledField>
+                {showComputeUnits && <LabeledField label="CUs Consumed">{compute}</LabeledField>}
+                <LabeledField label="CUs Reserved">{reserved}</LabeledField>
+                <LabeledField label="Cost">{txnCost}</LabeledField>
+                <LabeledField label="Programs" align="start">
                     {invokedNode}
-                </BlockHistoryMobileField>
+                </LabeledField>
             </div>
 
-            {/* Desktop grid row. */}
             <div style={gridStyle} className="hidden items-start gap-4 px-4 py-3 md:grid">
                 <div className="text-outer-space-300">{tx.index + 1}</div>
                 {signatureBlock}
@@ -758,29 +515,6 @@ function BlockHistoryGridRow({
                 <div className="text-right">{reserved}</div>
                 <div className="text-right">{txnCost}</div>
             </div>
-        </div>
-    );
-}
-
-function BlockHistoryMobileField({
-    label,
-    children,
-    align = 'baseline',
-}: {
-    label: string;
-    children: React.ReactNode;
-    align?: 'baseline' | 'start';
-}) {
-    // Label column width mirrors the Overview card's key/value grid so the two cards line up.
-    return (
-        <div
-            className={cn(
-                'grid grid-cols-[clamp(100px,25%,200px)_1fr] gap-2',
-                align === 'start' ? 'items-start' : 'items-baseline',
-            )}
-        >
-            <span className="text-outer-space-300">{label}</span>
-            <span className="min-w-0">{children}</span>
         </div>
     );
 }
