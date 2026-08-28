@@ -1,13 +1,16 @@
 import { Address } from '@components/common/Address';
 import { Signature } from '@components/common/Signature';
-import { PublicKey, VersionedMessage } from '@solana/web3.js';
+import { cn } from '@components/shared/utils';
+import { type PublicKey, type VersionedMessage } from '@solana/web3.js';
 import bs58 from 'bs58';
 import React from 'react';
 import * as nacl from 'tweetnacl';
 
 import { Badge } from '@/app/components/shared/ui/badge';
-import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
-import { BaseTable } from '@/app/shared/ui/Table';
+import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
+import { BaseTable, DENSE_ROW_PADDING } from '@/app/shared/ui/Table';
+
+import { CARD_TABLE_HEADER } from './inspector-table';
 
 export function TransactionSignatures({
     signatures,
@@ -45,25 +48,18 @@ export function TransactionSignatures({
     }, [signatures, message, rawMessage]);
 
     return (
-        <Card ui="dashkit">
-            <CardHeader ui="dashkit">
-                <CardTitle as="h3" ui="dashkit">
-                    Signatures
-                </CardTitle>
-            </CardHeader>
-            <BaseTable ui="dashkit" variant="card" nowrap>
+        <CollapsibleSection title="Signatures">
+            <BaseTable ui="dashkit" variant="card" nowrap className={cn(DENSE_ROW_PADDING, CARD_TABLE_HEADER)}>
                 <BaseTable.Head>
                     <BaseTable.Row>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">#</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Signature</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Signer</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Validity</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Details</BaseTable.HeaderCell>
+                        <BaseTable.HeaderCell className="w-px text-outer-space-300">#</BaseTable.HeaderCell>
+                        <BaseTable.HeaderCell className="text-outer-space-300">Signature</BaseTable.HeaderCell>
+                        <BaseTable.HeaderCell className="text-outer-space-300">Signer</BaseTable.HeaderCell>
                     </BaseTable.Row>
                 </BaseTable.Head>
                 <BaseTable.Body>{signatureRows}</BaseTable.Body>
             </BaseTable>
-        </Card>
+        </CollapsibleSection>
     );
 }
 
@@ -93,33 +89,37 @@ function SignatureRow({
     return (
         <BaseTable.Row>
             <BaseTable.Cell>
-                <Badge ui="dashkit" variant="info" className="mr-[3px]">
-                    {index + 1}
-                </Badge>
-            </BaseTable.Cell>
-            <BaseTable.Cell>{signature ? <Signature signature={signature} /> : 'Missing Signature'}</BaseTable.Cell>
-            <BaseTable.Cell>
-                <Address pubkey={signer} link />
+                <span className="text-outer-space-300">{index + 1}</span>
             </BaseTable.Cell>
             <BaseTable.Cell>
-                {verified === undefined ? (
-                    'N/A'
-                ) : verified ? (
-                    <Badge ui="dashkit" variant="success" className="mr-[3px]">
-                        Valid
-                    </Badge>
-                ) : (
-                    <Badge ui="dashkit" variant="warning" className="mr-[3px]">
-                        Invalid
-                    </Badge>
-                )}
+                <div className="flex flex-col gap-1">
+                    <div>{signature ? <Signature signature={signature} /> : 'Missing Signature'}</div>
+                    <div>
+                        {verified === undefined ? (
+                            'N/A'
+                        ) : verified ? (
+                            <Badge ui="dashkit" variant="success" className="mr-[3px]">
+                                Valid
+                            </Badge>
+                        ) : (
+                            <Badge ui="dashkit" variant="warning" className="mr-[3px]">
+                                Invalid
+                            </Badge>
+                        )}
+                    </div>
+                </div>
             </BaseTable.Cell>
             <BaseTable.Cell>
-                {index === 0 && (
-                    <Badge ui="dashkit" variant="info" className="mr-[3px]">
-                        Fee Payer
-                    </Badge>
-                )}
+                <div className="flex flex-col gap-1">
+                    <Address pubkey={signer} link />
+                    {index === 0 && (
+                        <div>
+                            <Badge ui="dashkit" variant="info" className="mr-[3px]">
+                                Fee Payer
+                            </Badge>
+                        </div>
+                    )}
+                </div>
             </BaseTable.Cell>
         </BaseTable.Row>
     );

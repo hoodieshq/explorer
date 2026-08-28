@@ -1,28 +1,26 @@
-// Match-to-TX-view-only pieces of the simulation zone, split so the page can lay them out like the
-// transaction details page: the Simulation control + Logs + CU profiling live TOGETHER in the sticky
-// right ("Logs") column (mirrors ProgramLogSection + CUProfilingSection on the TX page), while SOL
-// Balance Changes is a separate full-width block in the "Tokens" slot. This is a private copy of the
-// relevant bits of SimulationSections with no green full-bleed zone — SimulationSections stays exactly
-// as-is so the Enhancements page is untouched.
+// The right ("Logs") column of the inspector's Programs & Logs row: the Simulation control sits above
+// its own results (Logs, then CU profiling), so the simulation lives TOGETHER with the logs it produces
+// — mirroring the transaction details page's ProgramLogSection + CUProfilingSection sticky panel. Each
+// block keeps its own anchor id (`simulation` / `logs` / `cu-profiling`) for tab navigation. Simulation
+// state is owned by the page (LoadedView) and passed in, so this panel and the Account List's "Change"
+// column react to the same run.
 import { cn } from '@components/shared/utils';
 import { useCluster } from '@providers/cluster';
 import type { VersionedMessage } from '@solana/web3.js';
 import React from 'react';
 
+import { ProgramLogsCardBody } from '@/app/components/ProgramLogsCardBody';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { type SimulationState } from '@/app/features/instruction-simulation/model/use-simulation';
+import { LastSimulatedAt } from '@/app/features/instruction-simulation/ui/LastSimulatedAt';
+import { SIM_ZONE_STYLE } from '@/app/features/instruction-simulation/ui/sim-zone-style';
+import { SimulatorCUProfilingCard } from '@/app/features/instruction-simulation/ui/SimulatorCUProfilingCard';
 import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
+import { DENSE_ROW_PADDING } from '@/app/shared/ui/Table';
 
-import { ProgramLogsCardBody } from '../../../components/ProgramLogsCardBody';
-import { DENSE_ROW_PADDING } from '../../../shared/ui/Table/dense-row-padding';
-import { LastSimulatedAt } from './LastSimulatedAt';
-// Reuse variant 2's (Enhancements) exact green noise background for the simulation card surface.
-import { SIM_ZONE_STYLE } from './SimulationSections';
-import { SimulatorCUProfilingCard } from './SimulatorCUProfilingCard';
-
-// A block's title paired with a "Simulated" tag — the Logs / CU profiling / SOL Balance Changes blocks
-// are all derived from a simulation run, so each carries the badge after its name.
+// A block's title paired with a "Simulated" tag — the Logs / CU profiling blocks are derived from a
+// simulation run, so each carries the badge after its name once real content is present.
 function SimulatedTitle({ children }: { children: React.ReactNode }) {
     return (
         <span className="inline-flex items-center gap-1.5">
@@ -34,16 +32,14 @@ function SimulatedTitle({ children }: { children: React.ReactNode }) {
     );
 }
 
-// Card surface for the simulation-derived blocks (Logs / CU profiling): the dashkit card OUTLINE with
-// no filled backing — border only, transparent inside. Mirrors baseCardVariants({ ui: 'dashkit' })
-// minus its `bg-dk-gray-800-dark shadow-dk-card` fill (and the default `mb-6`). The page container
-// remaps `border-dk-card-outline-dark` → `border-outer-space-800`, so this matches the other outlines.
+// Card surface for the simulation-derived blocks (Logs / CU profiling): the dashkit card OUTLINE with no
+// filled backing — border only, transparent inside. The page container remaps
+// `border-dk-card-outline-dark` → `border-outer-space-800`, so this matches the other outlines.
 const OUTLINE_ONLY_CARD = 'rounded-lg border border-solid border-dk-card-outline-dark';
 
-// Empty-state body for a simulation-derived card (Logs / CU profiling) shown before a simulation has
-// run: the card is present so its tab has a target, but its content is a left-aligned muted prompt
-// telling the user to run the simulation to populate it. A Simulate button sits at the right edge,
-// revealed on hover of the enclosing card (the card body carries `group`) or on keyboard focus.
+// Empty-state body for a simulation-derived card (Logs / CU profiling) shown before a simulation has run:
+// the card is present so its tab has a target, but its content is a left-aligned muted prompt to run the
+// simulation. A Simulate button sits at the right edge, revealed on hover/focus of the enclosing card.
 function SimEmptyHint({
     children,
     simulate,
@@ -74,10 +70,7 @@ function SimEmptyHint({
     );
 }
 
-/** The right ("Logs") column of the Programs & Logs row: the Simulation control sits above its own
- *  results (Logs, then CU profiling) — the simulation is moved in here to live together with the logs.
- *  Each block keeps its own anchor id (`simulation` / `logs` / `cu-profiling`) for tab navigation. */
-export function SimulationLogsPanel({
+export function InspectorSimulationPanel({
     simulation,
     message,
 }: {
@@ -95,10 +88,10 @@ export function SimulationLogsPanel({
 
     return (
         <div className="flex flex-col space-y-9 lg:space-y-12">
-            {/* Simulation — laid out like the other blocks: the heading sits OUTSIDE the card, and the
-                guidance + Simulate button live INSIDE a card carrying the original green noise backing
-                (SIM_ZONE_STYLE) and outer-space border. `overflow-hidden` keeps the tiled noise and the
-                full-bleed failure band within the rounded corners. */}
+            {/* Simulation — the heading sits OUTSIDE the card; the guidance + Simulate button live INSIDE a
+                card carrying the green noise backing (SIM_ZONE_STYLE) and outer-space border.
+                `overflow-hidden` keeps the tiled noise and the full-bleed failure band within the rounded
+                corners. */}
             <section id="simulation" aria-label="Simulation" className="flex flex-col gap-3">
                 <h2 className="m-0 text-lg font-normal text-white">Simulation</h2>
                 <div
@@ -106,7 +99,7 @@ export function SimulationLogsPanel({
                     className="flex flex-col gap-3 overflow-hidden rounded-lg border border-solid border-outer-space-800 p-4 lg:p-6"
                 >
                     {/* Guidance stays between the heading and the button at all times — it is not cleared
-                        once a simulation has run. Plain sentences, no bulleted list. */}
+                        once a simulation has run. */}
                     <div className="m-0 space-y-1 text-sm text-outer-space-300">
                         <p className="m-0">
                             Simulation is free and will run this transaction against the latest confirmed ledger state.
@@ -116,10 +109,9 @@ export function SimulationLogsPanel({
                         </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                        {/* Brand-green (accent) fill. The label is always "Simulate"; while a run is in
-                            flight the label is hidden — kept in flow so the button keeps its exact size —
-                            and a spinner is overlaid centred on top. The last-run time sits inline beside
-                            the button, vertically centred. */}
+                        {/* Brand-green (accent) fill. The label is always "Simulate"; while a run is in flight
+                            the label is hidden — kept in flow so the button keeps its exact size — and a
+                            spinner is overlaid centred on top. The last-run time sits inline beside it. */}
                         <Button
                             variant="accent"
                             size="default"
@@ -141,10 +133,9 @@ export function SimulationLogsPanel({
                         <LastSimulatedAt simulation={simulation} />
                     </div>
                     {simulation.status === 'error' && (
-                        // Full-bleed to the card edges (negative margins cancel the card padding, incl.
-                        // the bottom so it reaches the rounded corner). A top border draws the full-width
-                        // divider; below it sits the failure text. `mt-1 lg:mt-3` tops up the card's
-                        // `gap-3` (12px) so the space under the button equals the card side padding.
+                        // Full-bleed to the card edges (negative margins cancel the card padding, incl. the
+                        // bottom so it reaches the rounded corner). A top border draws the full-width divider;
+                        // below it sits the failure text.
                         <div className="-mx-4 -mb-4 mt-1 border-0 border-t border-solid border-outer-space-800 px-4 py-3 lg:-mx-6 lg:-mb-6 lg:mt-3 lg:px-6">
                             <span className="text-sm text-white">Simulation Failure:</span>
                             <span className="ml-2 break-all text-sm text-yellow-500">{simulation.error}</span>
@@ -154,8 +145,8 @@ export function SimulationLogsPanel({
             </section>
 
             {/* Logs and CU profiling are always present so their tabs have a scroll target; before a
-                simulation runs they show an empty-state prompt instead of results. The "Simulated"
-                badge is only added once real content is in the card. */}
+                simulation runs they show an empty-state prompt instead of results. The "Simulated" badge is
+                only added once real content is in the card. */}
             <div id="logs">
                 <CollapsibleSection
                     title={hasLogs ? <SimulatedTitle>Logs</SimulatedTitle> : 'Logs'}
@@ -179,15 +170,19 @@ export function SimulationLogsPanel({
 
             <div id="cu-profiling">
                 {result && logs ? (
-                    <SimulatorCUProfilingCard
-                        message={message}
-                        logs={logs}
-                        unitsConsumed={result.unitsConsumed}
-                        cluster={cluster}
-                        epoch={result.epoch}
+                    <CollapsibleSection
                         title={<SimulatedTitle>CU profiling</SimulatedTitle>}
                         className={OUTLINE_ONLY_CARD}
-                    />
+                    >
+                        <SimulatorCUProfilingCard
+                            message={message}
+                            logs={logs}
+                            unitsConsumed={result.unitsConsumed}
+                            cluster={cluster}
+                            epoch={result.epoch}
+                            headerless
+                        />
+                    </CollapsibleSection>
                 ) : (
                     <CollapsibleSection title="CU profiling" className={cn(OUTLINE_ONLY_CARD, 'group')}>
                         <SimEmptyHint simulate={simulate} isSimulating={isSimulating}>

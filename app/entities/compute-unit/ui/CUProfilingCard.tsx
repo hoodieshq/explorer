@@ -192,9 +192,12 @@ function useCUProfileChartOptions(totalCU: number): ChartOptions<'bar'> {
 type CUProfilingCardProps = {
     instructions: InstructionCUData[];
     unitsConsumed?: number;
+    // When true, render only the chart + legend body — no card chrome, no built-in header — so a
+    // caller can supply its own section header (e.g. the inspector's header-outside layout).
+    headerless?: boolean;
 };
 
-export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCardProps) {
+export function CUProfilingCard({ instructions, unitsConsumed, headerless = false }: CUProfilingCardProps) {
     const instructionsWithDisplay = React.useMemo(
         () =>
             instructions.map(item => ({
@@ -243,41 +246,47 @@ export function CUProfilingCard({ instructions, unitsConsumed }: CUProfilingCard
 
     if (instructions.length === 0) return null;
 
+    const body = (
+        <CardBody ui="dashkit" className={headerless ? 'px-3 py-3' : undefined}>
+            {Boolean(unitsConsumed) && <div className="mb-3">Total: {unitsConsumed?.toLocaleString()} CU</div>}
+
+            <div style={{ height: '32px', marginLeft: '-8px' }}>
+                <Bar data={chartData} options={chartOptions} />
+            </div>
+
+            {/* Legend */}
+            <div className="mt-3 flex flex-wrap gap-3 text-xs">
+                {instructions.map((item, i) => {
+                    const isReserved = !item.computeUnits && !item.reservedValue && item.displayUnits;
+                    const value = item.computeUnits || item.reservedValue || item.displayUnits;
+
+                    return (
+                        <div key={i} className="align-items-center flex">
+                            <div
+                                style={{
+                                    backgroundColor: getInstructionColor(i),
+                                    borderRadius: '4px',
+                                    height: '16px',
+                                    marginRight: '8px',
+                                    width: '16px',
+                                }}
+                            />
+                            <span>
+                                Instruction #{i + 1}: {isReserved && '~'}
+                                {value ? value.toLocaleString() : 'Unknown'}
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </CardBody>
+    );
+
+    if (headerless) return body;
+
     return (
         <CollapsibleCard title="CU profiling" className={baseCardVariants({ ui: 'dashkit' })}>
-            <CardBody ui="dashkit">
-                {Boolean(unitsConsumed) && <div className="mb-3">Total: {unitsConsumed?.toLocaleString()} CU</div>}
-
-                <div style={{ height: '32px', marginLeft: '-8px' }}>
-                    <Bar data={chartData} options={chartOptions} />
-                </div>
-
-                {/* Legend */}
-                <div className="mt-3 flex flex-wrap gap-3 text-xs">
-                    {instructions.map((item, i) => {
-                        const isReserved = !item.computeUnits && !item.reservedValue && item.displayUnits;
-                        const value = item.computeUnits || item.reservedValue || item.displayUnits;
-
-                        return (
-                            <div key={i} className="align-items-center flex">
-                                <div
-                                    style={{
-                                        backgroundColor: getInstructionColor(i),
-                                        borderRadius: '4px',
-                                        height: '16px',
-                                        marginRight: '8px',
-                                        width: '16px',
-                                    }}
-                                />
-                                <span>
-                                    Instruction #{i + 1}: {isReserved && '~'}
-                                    {value ? value.toLocaleString() : 'Unknown'}
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
-            </CardBody>
+            {body}
         </CollapsibleCard>
     );
 }

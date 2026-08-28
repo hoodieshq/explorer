@@ -27,6 +27,7 @@ import React, { useMemo } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import { isTokenBatchInstruction, resolveInnerBatchInstructions, TokenBatchCard } from '@/app/features/token-batch';
+import { CollapsibleSection } from '@/app/features/transaction/ui/CollapsibleSection';
 import { useAddressLookupTables } from '@/app/providers/accounts';
 import { FetchStatus } from '@/app/providers/cache';
 
@@ -95,7 +96,7 @@ export function InstructionsSection({
         : {};
 
     return (
-        <>
+        <CollapsibleSection id="instructions" title="Instructions" className="">
             {transactionMessage.instructions.map((ix, index) => {
                 const batchInnerCards = batchByIndex[index]?.map((innerIx, childIndex) => (
                     <ErrorBoundary key={childIndex} fallback={null}>
@@ -113,7 +114,7 @@ export function InstructionsSection({
                     />
                 );
             })}
-        </>
+        </CollapsibleSection>
     );
 }
 

@@ -10,6 +10,12 @@ type SimulatorCUProfilingCardProps = {
     unitsConsumed?: number;
     cluster: ReturnType<typeof useCluster>['cluster'];
     epoch: bigint;
+    /**
+     * Render only the chart + legend body, without the built-in card chrome/header, so a caller can supply
+     * its own section header (e.g. the inspector's header-outside layout). Defaults to false — existing
+     * callers keep the self-contained {@link CUProfilingCard}.
+     */
+    headerless?: boolean;
 };
 
 export function SimulatorCUProfilingCard({
@@ -18,6 +24,7 @@ export function SimulatorCUProfilingCard({
     unitsConsumed,
     cluster,
     epoch,
+    headerless = false,
 }: SimulatorCUProfilingCardProps) {
     const instructionsForCU = useMemo(() => {
         const instructions = message.compiledInstructions.map(ix => ({
@@ -32,5 +39,5 @@ export function SimulatorCUProfilingCard({
         });
     }, [message, logs, cluster, epoch]);
 
-    return <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} />;
+    return <CUProfilingCard instructions={instructionsForCU} unitsConsumed={unitsConsumed} headerless={headerless} />;
 }

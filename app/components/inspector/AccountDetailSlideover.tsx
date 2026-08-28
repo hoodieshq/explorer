@@ -1,10 +1,10 @@
-// Match-to-TX-view-only mobile drawer for an account row. On mobile, tapping an account row opens a
-// bottom slideover showing the SAME fields as the list (Owner, Change, Post Balance, Size) plus quick
-// actions. The top holds only the address and its tags; the fields sit below. The Change row carries
-// the Simulate button (a run can be started from the drawer) — the list itself never shows it.
-// It reuses the app's Slideover primitive so the chrome matches the transaction details page. The
-// fields are passed in as pre-rendered nodes so the drawer stays agnostic of how each is produced
-// (owner/balance come from the accounts provider, size is the interactive raw-data element, etc.).
+// Mobile drawer for an account row. On mobile, tapping an account row opens a bottom slideover showing
+// the SAME fields as the list (Owner, Change, Post Balance, Size) plus quick actions. The top holds only
+// the address and its tags; the fields sit below. The Change row carries the Simulate button (a run can
+// be started from the drawer) — the list itself never shows it. Reuses the app's Slideover primitive so
+// the chrome matches the transaction details page. Fields are passed in as pre-rendered nodes so the
+// drawer stays agnostic of how each is produced (owner/balance come from the accounts provider, size is
+// the interactive raw-data element, etc.).
 import type { PublicKey } from '@solana/web3.js';
 import { useClusterPath } from '@utils/url';
 import Link from 'next/link';
@@ -22,10 +22,9 @@ import {
 import { EditIcon, NicknameEditor, useNickname } from '@/app/features/nicknames';
 import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
 
-// A label | value row in the drawer body — mirrors the tx page's DetailRow (AccountExpandedLayout):
-// a `clamp(100px,25%,200px) 1fr` grid, baseline-aligned, gap-2, px-4, both cells at text-sm with a
-// muted label. Vertical rhythm comes from the parent's `flex flex-col gap-1.5`, so the row has no
-// own padding.
+// A label | value row in the drawer body — mirrors the tx page's DetailRow (AccountExpandedLayout): a
+// `clamp(100px,25%,200px) 1fr` grid, baseline-aligned, gap-2, px-4, both cells at text-sm with a muted
+// label. Vertical rhythm comes from the parent's `flex flex-col gap-1.5`, so the row has no own padding.
 function DrawerField({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2 px-4">

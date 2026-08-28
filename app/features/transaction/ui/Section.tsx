@@ -3,9 +3,10 @@ import { type ReactNode, useId } from 'react';
 
 import { baseCardVariants } from '@/app/shared/ui/Card';
 
-// Non-collapsible counterpart of app's CollapsibleSection: identical header + card-body markup,
-// but without the expand/collapse toggle. The inspector design intentionally drops the spoiler,
-// and CollapsibleSection (in app/) always renders the toggle, so we use this local wrapper here.
+// Non-collapsible counterpart of {@link CollapsibleSection}: identical header + card-body markup, but
+// without the expand/collapse toggle. Used where a section is always open yet still needs the shared
+// heading chrome and a scroll-spy anchor (`id`) + `data-section-title` marker (read by the sticky logs
+// scroll-sync) — e.g. the inspector's Signatures / Programs sections.
 export function Section({
     id,
     title,
