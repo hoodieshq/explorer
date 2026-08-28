@@ -5,7 +5,9 @@ import { TransactionsProvider } from '@providers/transactions';
 import { type Cluster, clusterSelection } from '@utils/cluster';
 import React, { useLayoutEffect, useRef } from 'react';
 import { fn } from 'storybook/test';
+import { SWRConfig } from 'swr';
 
+import type { McpHealth } from '@/app/features/mcp-landing/model/mcp-health';
 import { Card } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
 
@@ -229,34 +231,19 @@ export const withClipboardMock: Decorator = Story => {
     return <Story />;
 };
 
-const MCP_PONG = { id: 1, jsonrpc: '2.0', result: { content: [{ text: 'pong', type: 'text' }] } };
-
-// Patched during render so the swap lands before any child effect fires, and restored on unmount so the
-// stub cannot leak into another story sharing this browser context.
-function McpHealthyBoundary({ children }: { children: React.ReactNode }) {
-    const original = useRef(globalThis.fetch);
-
-    if (globalThis.fetch === original.current) {
-        globalThis.fetch = fn(() => Promise.resolve(Response.json(MCP_PONG)));
-    }
-    useLayoutEffect(() => {
-        const restore = original.current;
-        return () => {
-            globalThis.fetch = restore;
-        };
-    }, []);
-
-    return <>{children}</>;
-}
+// The probe is the feature's only network call, so seeding its SWR entry retires it outright. A pong stub
+// would still leave `checkMcpHealth` timing its own round-trip and rendering the measured milliseconds,
+// which differ every run and drift the screenshot.
+const MCP_HEALTH_READY: McpHealth = { latencyMs: 12, status: 'ready' };
 
 /**
- * Answers the /mcp health probe with a pong so the status badge settles on "Ready".
+ * Settles the /mcp status badge on "Ready" with a fixed latency.
  * Without it the badge races from "Checking" to "Unreachable" mid-screenshot.
  */
 export const withMcpHealthy: Decorator = Story => (
-    <McpHealthyBoundary>
+    <SWRConfig value={{ fallback: { 'mcp-health': MCP_HEALTH_READY }, revalidateOnMount: false }}>
         <Story />
-    </McpHealthyBoundary>
+    </SWRConfig>
 );
 
 /** Errored variant — writeText rejects so consumers flip to 'errored' state. */

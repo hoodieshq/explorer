@@ -2,7 +2,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { StorybookConfig } from '@storybook/nextjs-vite';
-import type { AliasOptions } from 'vite';
+import type { AliasOptions, Plugin } from 'vite';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -15,6 +15,21 @@ function toAliasArray(alias: AliasOptions | undefined) {
         find,
         replacement,
     }));
+}
+
+// Scoped to the importer on purpose: aliasing `fs` outright also rewrites Storybook's own node-side code,
+// which genuinely reads `fs.promises`. See node-fs.browser-shim.ts for why codama needs the shim at all.
+function codamaFsShim(): Plugin {
+    const shim = path.resolve(__dirname, './node-fs.browser-shim.ts');
+    return {
+        enforce: 'pre',
+        name: 'explorer:codama-fs-shim',
+        resolveId(source, importer) {
+            const isNodeFs = source === 'fs' || source === 'node:fs';
+            if (isNodeFs && importer?.includes('@codama')) return shim;
+            return undefined;
+        },
+    };
 }
 
 const config: StorybookConfig = {
@@ -37,6 +52,7 @@ const config: StorybookConfig = {
             ...config,
             plugins: [
                 ...(config.plugins || []),
+                codamaFsShim(),
                 nodePolyfills({
                     globals: {
                         Buffer: true,
