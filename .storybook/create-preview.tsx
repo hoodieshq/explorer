@@ -4,6 +4,7 @@ import { INITIAL_VIEWPORTS } from 'storybook/viewport';
 
 import { rubikFont } from '@/app/styles';
 
+import { BREAKPOINT_VIEWPORTS } from './breakpoints';
 import type { Preview } from './types';
 
 // Storybook serialises story args with JSON.stringify (for the controls panel and inter-frame
@@ -86,21 +87,12 @@ export function createPreview({ mswEnabled }: { mswEnabled: boolean }): Preview 
                     return 0;
                 },
             },
-            // Bootstrap 5 breakpoint presets — consumed by the breakpoint toolbar.
-            // Keys (bsXs … bsXxl) must match the BREAKPOINTS array in .storybook/breakpoint-toolbar.tsx.
-            // Widths are the raw breakpoint value + 1px to match tailwind.config's getScreenDim (which
-            // shifts every screen up by 1px), so each chip renders exactly at the point where its
-            // breakpoint's utilities activate — e.g. `lg` engages at min-width:993px, so bsLg is 993px.
+            // Breakpoint presets generated from tailwind.config `breakpoints` (see ./breakpoints).
             // INITIAL_VIEWPORTS spread included so responsive stories (iphonex, ipad …) resize correctly in story view.
             // NOTE: Storybook 10 reads `options`, not `viewports` — using the wrong key silently falls back to MINIMAL_VIEWPORTS.
             viewport: {
                 options: {
-                    bsLg: { name: 'lg·993', styles: { height: '768px', width: '993px' }, type: 'desktop' },
-                    bsMd: { name: 'md·769', styles: { height: '1024px', width: '769px' }, type: 'tablet' },
-                    bsSm: { name: 'sm·577', styles: { height: '812px', width: '577px' }, type: 'mobile' },
-                    bsXl: { name: 'xl·1201', styles: { height: '900px', width: '1201px' }, type: 'desktop' },
-                    bsXs: { name: 'xs·376', styles: { height: '667px', width: '376px' }, type: 'mobile' },
-                    bsXxl: { name: 'xxl·1401', styles: { height: '900px', width: '1401px' }, type: 'desktop' },
+                    ...BREAKPOINT_VIEWPORTS,
                     ...INITIAL_VIEWPORTS,
                 },
             },
