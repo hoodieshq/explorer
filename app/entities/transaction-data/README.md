@@ -41,10 +41,17 @@ Stages 2 and 3 are wrapped together by the two hooks the barrel exports, so a co
 | account-page transaction history | `getInstructionSummaries` | `useResolvedSummaryNames` |
 | CU profiling chart | `resolveInstructionNames` | `useResolvedInstructionNames` |
 | instruction simulation | `resolveNamesFromData` | `useResolvedInstructionNames` |
+| transaction-share OG image | `getInstructionSummaries` | `applyNameSourcesToSummaries`, empty map |
 
-Those three are the only consumers. `getInstructionSummaries` calls `resolveInstructionNames` per
+Those four are the only consumers. `getInstructionSummaries` calls `resolveInstructionNames` per
 instruction and adds the sentinels; the CU chart calls `resolveInstructionNames` itself, so it keeps the
 `undefined` and falls back to the row's position.
+
+The OG image is the first consumer that runs **server side**. Every other one reaches stages 2 and 3
+through a hook, which a route handler cannot call, so it applies stage 3 itself and hands it an empty map.
+That does not weaken invariant 1: an empty map means no IDL, so stage 2 never runs and the surface fetches
+nothing at all. It still names most instructions, since every source above the IDL reads straight from
+`lookup` - see "Adding a name source".
 
 The `/tx/[signature]` instruction cards do **not** use this pipeline. They render through
 `app/features/transaction/ui/InstructionsSection.tsx` and the `instruction-parser` dispatcher, which
