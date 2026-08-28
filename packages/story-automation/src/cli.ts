@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { existsSync, readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { parseArgs } from 'node:util';
 
+import { ENGINE_NAMES, engineRevision, isEngineName, playwrightProvider } from './browser.js';
 import { captureStories } from './capture.js';
 import { diffDirectories, loadAllowlists } from './diff.js';
 import { serveStatic } from './serve.js';
@@ -12,8 +12,9 @@ import { type BaselineMeta, summaryMarkdown, summaryText } from './summary.js';
 
 const USAGE = `Usage:
   story-automation story-ids (--static-dir <dir> | --url <url>)
-  story-automation capture (--static-dir <dir> | --url <url>) --out <dir> [--ids <file>] [--parallel <n>]
+  story-automation capture (--static-dir <dir> | --url <url>) --out <dir> [--ids <file>] [--parallel <n>] [--browser <${ENGINE_NAMES.join('|')}>]
   story-automation diff --baseline <dir> --current <dir> [--triplets <dir>] [--allowlist <file>]... [--include-flaky] [--summary-md] [--merge-base <sha>]
+  story-automation browser-revision [--browser <${ENGINE_NAMES.join('|')}>]
   story-automation chromium-revision
 `;
 
@@ -48,6 +49,7 @@ async function runCapture(args: string[]): Promise<void> {
     const { values } = parseArgs({
         args,
         options: {
+            browser: { default: 'chromium', type: 'string' },
             ids: { type: 'string' },
             out: { type: 'string' },
             parallel: { default: '6', type: 'string' },
@@ -58,24 +60,36 @@ async function runCapture(args: string[]): Promise<void> {
     if (!values.out) fail('--out is required');
     const parallel = Number(values.parallel);
     if (!Number.isInteger(parallel) || parallel < 1) fail('--parallel must be a positive integer');
+    if (!isEngineName(values.browser)) fail(`--browser must be one of ${ENGINE_NAMES.join(', ')}`);
+    const provider = playwrightProvider(values.browser);
 
     const source = await resolveSource(values);
     try {
         const ids: string[] = values.ids
             ? JSON.parse(readFileSync(resolve(values.ids), 'utf8'))
             : await fetchStoryIds(source.url);
-        process.stderr.write(`[capture] ${ids.length} stories @ 2x DPR, ${parallel} pages → ${values.out}\n`);
+        process.stderr.write(
+            `[capture] ${ids.length} stories @ 2x DPR, ${parallel} pages, ${provider.name} → ${values.out}\n`,
+        );
         const result = await captureStories({
             baseUrl: source.url,
             ids,
             log: line => process.stderr.write(`[capture] ${line}\n`),
             outDir: resolve(values.out),
             parallel,
+            provider,
         });
-        process.stderr.write(`[capture] done: ${result.captured} captured, ${result.failed.length} failed\n`);
+        process.stderr.write(
+            `[capture] done: ${result.captured} captured, ${result.failed.length} failed, ${result.empty.length} never rendered\n`,
+        );
         // >10% failures means the build is broken wholesale, not flaky — an "everything removed" diff must not pass as green
         if (result.failed.length > ids.length * 0.1) {
             process.stderr.write(`[capture] failure rate above 10% — treating the run as broken\n`);
+            process.exitCode = 1;
+        }
+        // blank shots screenshot and diff cleanly against each other, so a preview that renders nothing would pass as green
+        if (result.empty.length > ids.length * 0.1) {
+            process.stderr.write(`[capture] over 10% of stories never rendered — treating the run as broken\n`);
             process.exitCode = 1;
         }
     } finally {
@@ -121,19 +135,11 @@ async function runDiff(args: string[]): Promise<void> {
     if (result.drift.length > 0) process.exitCode = 1;
 }
 
-/** The chromium build, not the playwright package version, is what determines rendered pixels (cache key input). */
-function runChromiumRevision(): void {
-    const requireHere = createRequire(import.meta.url);
-    const requireFromPlaywright = createRequire(requireHere.resolve('playwright/package.json'));
-    // browsers.json is not in playwright-core's exports map — locate the package root via its main entry
-    const coreRoot = dirname(requireFromPlaywright.resolve('playwright-core'));
-    const manifest: { browsers: { name: string; revision: string }[] } = JSON.parse(
-        readFileSync(join(coreRoot, 'browsers.json'), 'utf8'),
-    );
-    const { browsers } = manifest;
-    const chromium = browsers.find(browser => browser.name === 'chromium');
-    if (!chromium) throw new Error('chromium entry missing from playwright-core/browsers.json');
-    process.stdout.write(`${chromium.revision}\n`);
+/** The browser build, not the playwright package version, is what determines rendered pixels (cache key input). */
+function runBrowserRevision(args: string[]): void {
+    const { values } = parseArgs({ args, options: { browser: { default: 'chromium', type: 'string' } } });
+    if (!isEngineName(values.browser)) fail(`--browser must be one of ${ENGINE_NAMES.join(', ')}`);
+    process.stdout.write(`${engineRevision(values.browser)}\n`);
 }
 
 const [command, ...rest] = process.argv.slice(2);
@@ -147,8 +153,12 @@ switch (command) {
     case 'diff':
         await runDiff(rest);
         break;
+    case 'browser-revision':
+        runBrowserRevision(rest);
+        break;
+    // kept for the CI baseline cache key, which is chromium-specific by construction
     case 'chromium-revision':
-        runChromiumRevision();
+        runBrowserRevision(['--browser', 'chromium']);
         break;
     default:
         fail(command ? `unknown command: ${command}` : 'missing command');

@@ -6,7 +6,6 @@ on:
   workflow_dispatch:
 
 env:
-  PNPM_CACHE_FOLDER: ~/.pnpm-store
   SENTRY_TELEMETRY_DISABLE: true
   STORYBOOK_DISABLE_TELEMETRY: 1
 
@@ -17,7 +16,7 @@ jobs:
       node-version: ${{ steps.nvmrc.outputs.NODE_VERSION }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: |
             .nvmrc
@@ -30,51 +29,30 @@ jobs:
   Storybook-VR-Baseline:
     needs: read-nvmrc
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    # matches the PR job's budget: same install, same builds, same full-sweep capture
+    timeout-minutes: 45
 
-    # pnpm-sb / pw-mnt affixes are shared with the CI Storybook jobs on purpose: the install and browser
-    # set are identical, and separate affixes would duplicate multi-GB entries in the 10GB cache pool.
+    # pw-mnt affix is shared with the CI Storybook jobs on purpose: the browser set is identical, and a
+    # separate affix would duplicate multi-GB entries in the 10GB cache pool.
     env:
-      PNPM_CACHE_AFFIX: pnpm-sb
       PLAYWRIGHT_CACHE_AFFIX: pw-mnt
       PLAYWRIGHT_BROWSERS_PATH: /mnt/cache/ms-playwright
       SBVR_BASELINE_DIR: /mnt/sbvr/baseline
-      # invoked via node, not `pnpm exec`: the repo's .pnpmfile.cjs prints a banner to stdout that would
-      # corrupt the cache-key command substitution and the diff step-summary markdown.
+      # invoked via node, not `pnpm exec`: keeps the package manager out of the stdout that feeds the
+      # cache-key command substitution and the diff step-summary markdown.
       SBVR_CLI: node packages/story-automation/dist/cli.js
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Prepare cache dirs on the scratch disk
         run: |
           sudo mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" "$SBVR_BASELINE_DIR"
           sudo chown -R "$(id -u):$(id -g)" "$PLAYWRIGHT_BROWSERS_PATH" "$SBVR_BASELINE_DIR"
 
-      - name: Install package manager
-        uses: pnpm/action-setup@v4
-
-      - name: Setup pnpm config
-        run: pnpm config set store-dir ${{ env.PNPM_CACHE_FOLDER }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ needs.read-nvmrc.outputs.node-version }}
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
-
-      - name: Cache pnpm store
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.PNPM_CACHE_FOLDER }}
-          key: ${{ runner.os }}-${{ env.PNPM_CACHE_AFFIX }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.PNPM_CACHE_AFFIX }}-
-
       - name: Cache Playwright browsers
-        uses: actions/cache@v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: playwright_cache
         with:
           path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
@@ -82,8 +60,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.PLAYWRIGHT_CACHE_AFFIX }}-
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup pnpm and Node.js
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ needs.read-nvmrc.outputs.node-version }}
 
       - name: Prune pnpm store
         run: pnpm store prune
@@ -106,11 +86,11 @@ jobs:
           echo "chromium=$($SBVR_CLI chromium-revision)" >> $GITHUB_OUTPUT
 
       - name: Baseline cache
-        uses: actions/cache@v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: baseline_cache
         with:
           path: ${{ env.SBVR_BASELINE_DIR }}
-          key: sbvr-baseline-v1-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-${{ github.sha }}
+          key: sbvr-baseline-v2-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-${{ github.sha }}
 
       - name: Build workspace packages
         if: steps.baseline_cache.outputs.cache-hit != 'true'

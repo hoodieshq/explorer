@@ -1,22 +1,22 @@
 {
-    "note": "Stories with intrinsic runtime non-determinism (NFT image load, async cluster/signature lookups, sol-balance sim, mid-truncation font-measurement race). Seeded from the dashkit-removal rig's allowlist after its 2026-06-13 Phase 6 burn-down (45 ids were determinized and removed; these survived same-commit A/B capture as genuinely flaky). The two programmultisigcard ids were re-added on master: the dashkit branch had seeded their SWR suspense fallback, but that determinization never landed on master, so both variants are bistable (loaded vs fallback, ~0.96% at a fixed pixel count) — proven here by same-build A/B/C captures where drift appeared and vanished across identical runs. Add an id only after proving flakiness with a same-build A/B capture, never from a single noisy run.",
+    "note": "Stories with intrinsic runtime non-determinism (NFT image load, async cluster/signature lookups, sol-balance sim, mid-truncation font-measurement race). Seeded from the dashkit-removal rig's allowlist after its 2026-06-13 Phase 6 burn-down (45 ids were determinized and removed; these survived same-commit A/B capture as genuinely flaky). The two programmultisigcard ids were re-added on master: the dashkit branch had seeded their SWR suspense fallback, but that determinization never landed on master, so both variants are bistable (loaded vs fallback, ~0.96% at a fixed pixel count) — proven here by same-build A/B/C captures where drift appeared and vanished across identical runs. Add an id only after proving flakiness with a same-build A/B capture, never from a single noisy run. Eight ids were remapped on 2026-08-28 after master renamed the story titles behind them (`@Responsive` → `@Media`, `Features/Instruction-Simulation/Ui` → `Features/InstructionSimulation`); the components are unchanged, so the earlier proof carries over.",
     "ids": [
         "components-account-programmultisigcard--default",
         "components-account-programmultisigcard-media--mobile",
         "components-common-nftart--with-uri",
-        "components-common-nftart-responsive--mobile",
+        "components-common-nftart-media--mobile",
         "features-transaction-accountscard--with-accounts",
         "features-transaction-accountscard--failed-transaction",
         "features-stake-stakeaccountsection--with-active-lockup",
-        "components-inspector-signaturescard-responsive--mobile",
-        "components-inspector-signaturescard-responsive--tablet-landscape",
-        "components-inspector-signaturescard-responsive--tablet-portrait",
+        "components-inspector-signaturescard-media--mobile",
+        "components-inspector-signaturescard-media--tablet-landscape",
+        "components-inspector-signaturescard-media--tablet-portrait",
         "features-transaction-tokenbalancescard--inner-multiple-rows",
         "components-account-unknownaccountcard--zero-balance-triggers-cluster-lookup",
-        "components-block-blockprogramscard-responsive--tablet-portrait",
-        "features-instruction-simulation-ui-solbalancechangescard--single-positive-change",
-        "features-instruction-simulation-ui-solbalancechangescard--multiple-changes",
-        "features-instruction-simulation-ui-solbalancechangescard--single-negative-change",
+        "components-block-blockprogramscard-media--tablet-portrait",
+        "features-instructionsimulation-solbalancechangescard--single-positive-change",
+        "features-instructionsimulation-solbalancechangescard--multiple-changes",
+        "features-instructionsimulation-solbalancechangescard--single-negative-change",
         "components-inspector-accountscard--default"
     ]
 }

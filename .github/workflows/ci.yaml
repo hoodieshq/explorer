@@ -229,55 +229,35 @@ jobs:
     # development-targeted PR would silently diff against the wrong branch.
     if: github.event_name == 'pull_request' && github.base_ref == 'master'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 1208 stories capture in ~6 min at parallel 6 on an 8-core dev machine; a 4-vCPU runner plus both builds
+    # lands near 30, and a timeout kill reads as drift rather than as a slow runner.
+    timeout-minutes: 45
     # Advisory by decision: drift shows as a red check but never blocks the PR.
     continue-on-error: true
 
-    # pnpm-sb / pw-mnt affixes shared with Storybook-Smoke-Tests on purpose — identical install and browser
-    # set; separate affixes would duplicate multi-GB entries in the 10GB cache pool.
+    # pw-mnt affix shared with Storybook-Smoke-Tests on purpose — identical browser set; a separate affix
+    # would duplicate multi-GB entries in the 10GB cache pool.
     env:
-      PNPM_CACHE_AFFIX: pnpm-sb
       PLAYWRIGHT_CACHE_AFFIX: pw-mnt
       PLAYWRIGHT_BROWSERS_PATH: /mnt/cache/ms-playwright
       SBVR_BASELINE_DIR: /mnt/sbvr/baseline
       SBVR_CURRENT_DIR: /mnt/sbvr/current
       SBVR_DIFF_DIR: /mnt/sbvr/diff
-      # invoked via node, not `pnpm exec`: the repo's .pnpmfile.cjs prints a banner to stdout that would
-      # corrupt the cache-key command substitution and the diff step-summary markdown.
+      # invoked via node, not `pnpm exec`: keeps the package manager out of the stdout that feeds the
+      # cache-key command substitution and the diff step-summary markdown.
       SBVR_CLI: node packages/story-automation/dist/cli.js
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Prepare cache dirs on the scratch disk
         run: |
           sudo mkdir -p "$PLAYWRIGHT_BROWSERS_PATH" "$SBVR_BASELINE_DIR" "$SBVR_CURRENT_DIR" "$SBVR_DIFF_DIR"
           sudo chown -R "$(id -u):$(id -g)" "$PLAYWRIGHT_BROWSERS_PATH" /mnt/sbvr
 
-      - name: Install package manager
-        uses: pnpm/action-setup@v4
-
-      - name: Setup pnpm config
-        run: pnpm config set store-dir ${{ env.PNPM_CACHE_FOLDER }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: ${{ needs.read-nvmrc.outputs.node-version }}
-          cache: 'pnpm'
-          cache-dependency-path: pnpm-lock.yaml
-
-      - name: Cache pnpm store
-        uses: actions/cache@v5
-        with:
-          path: ${{ env.PNPM_CACHE_FOLDER }}
-          key: ${{ runner.os }}-${{ env.PNPM_CACHE_AFFIX }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ env.PNPM_CACHE_AFFIX }}-
-
       - name: Cache Playwright browsers
-        uses: actions/cache@v5
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: playwright_cache
         with:
           path: ${{ env.PLAYWRIGHT_BROWSERS_PATH }}
@@ -285,8 +265,10 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ env.PLAYWRIGHT_CACHE_AFFIX }}-
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Setup pnpm and Node.js
+        uses: ./.github/actions/pnpm-setup
+        with:
+          node-version: ${{ needs.read-nvmrc.outputs.node-version }}
 
       - name: Prune pnpm store
         run: pnpm store prune
@@ -313,13 +295,13 @@ jobs:
 
       # Restore-only: PR runs must never save branch-scoped baseline copies into the shared cache pool.
       - name: Restore baseline
-        uses: actions/cache/restore@v5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         id: baseline_restore
         with:
           path: ${{ env.SBVR_BASELINE_DIR }}
-          key: sbvr-baseline-v1-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-${{ steps.vr_key.outputs.merge_base }}
+          key: sbvr-baseline-v2-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-${{ steps.vr_key.outputs.merge_base }}
           restore-keys: |
-            sbvr-baseline-v1-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-
+            sbvr-baseline-v2-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-
 
       - name: Note missing baseline
         if: steps.baseline_restore.outputs.cache-matched-key == ''
@@ -327,7 +309,7 @@ jobs:
           {
             echo "### Storybook visual regression"
             echo ""
-            echo "Skipped: no baseline cached for \`sbvr-baseline-v1-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-\`."
+            echo "Skipped: no baseline cached for \`sbvr-baseline-v2-${{ steps.vr_key.outputs.image }}-cr${{ steps.vr_key.outputs.chromium }}-\`."
             echo "Dispatch the **Storybook VR Baseline** workflow on \`master\` to build one."
           } >> $GITHUB_STEP_SUMMARY
 
@@ -358,7 +340,7 @@ jobs:
 
       - name: Upload drift triplets
         if: failure() && steps.vr_diff.outcome == 'failure'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sbvr-diff-${{ github.event.pull_request.number }}-${{ github.run_attempt }}
           path: ${{ env.SBVR_DIFF_DIR }}

@@ -1,3 +1,11 @@
+export {
+    ENGINE_NAMES,
+    engineRevision,
+    isEngineName,
+    playwrightProvider,
+    type BrowserProvider,
+    type EngineName,
+} from './browser.js';
 export { captureStories, type CaptureOptions, type CaptureResult } from './capture.js';
 export { diffDirectories, loadAllowlists, type DiffOptions, type DiffResult, type DriftEntry } from './diff.js';
 export { serveStatic, type StaticServer } from './serve.js';

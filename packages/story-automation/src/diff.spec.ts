@@ -128,6 +128,16 @@ describe('diffDirectories', () => {
         ]);
     });
 
+    it('should keep the current side of an added story and nothing for a removed one', () => {
+        const tripletDir = join(root, 'triplets');
+        writeStory(currentDir, 'story-new', makePng(4, 4, [10, 20, 30]));
+        writeStory(baselineDir, 'story-old', makePng(4, 4, [10, 20, 30]));
+
+        diffDirectories({ baselineDir, currentDir, tripletDir });
+
+        expect(readdirSync(tripletDir)).toEqual(['story-new.new.png']);
+    });
+
     it('should not create the triplet dir when there is no drift', () => {
         const tripletDir = join(root, 'triplets');
         const png = makePng(4, 4, [10, 20, 30]);

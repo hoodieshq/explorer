@@ -58,6 +58,13 @@ function writeTriplet(options: DiffOptions, id: string, diffPng?: PNG): void {
     if (diffPng) writeFileSync(join(options.tripletDir, `${id}.diff.png`), PNG.sync.write(diffPng));
 }
 
+/** A story with no baseline has nothing to diff, so its one side is kept for review; baseline-only ids keep nothing. */
+function writeAdded(options: DiffOptions, id: string): void {
+    if (!options.tripletDir) return;
+    mkdirSync(options.tripletDir, { recursive: true });
+    copyFileSync(join(options.currentDir, `${id}.png`), join(options.tripletDir, `${id}.new.png`));
+}
+
 /** Pixel-compares every same-named PNG across two directories; pixelmatch settings match the dashkit-removal rig. */
 export function diffDirectories(options: DiffOptions): DiffResult {
     const allowlist = options.allowlist ?? new Set<string>();
@@ -65,6 +72,7 @@ export function diffDirectories(options: DiffOptions): DiffResult {
     const currentIds = pngIds(options.currentDir);
     const added = [...currentIds].filter(id => !baselineIds.has(id)).sort();
     const removed = [...baselineIds].filter(id => !currentIds.has(id)).sort();
+    for (const id of added) writeAdded(options, id);
 
     const drift: DriftEntry[] = [];
     const allowedDrift: DriftEntry[] = [];
