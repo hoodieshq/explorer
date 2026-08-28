@@ -10,6 +10,7 @@ import { Button } from '@components/shared/ui/button';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
 import { cn } from '@components/shared/utils';
 import { estimateRequestedComputeUnitsForParsedTransaction } from '@entities/compute-unit';
+import { formatTransactionVersion } from '@entities/transaction-data';
 import {
     BaseResourceFeeProjection,
     derivePriorityFeeLamports,
@@ -500,10 +501,6 @@ function readPriorityFeeLamports({
         return undefined;
     }
     return derivePriorityFeeLamports({ feeLamports, signatureCount });
-}
-
-function formatTransactionVersion(version: TransactionVersion): string {
-    return version === 'legacy' ? version : `v${version}`;
 }
 
 /**
