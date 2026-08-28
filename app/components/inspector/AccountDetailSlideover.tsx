@@ -22,9 +22,8 @@ import {
 import { EditIcon, NicknameEditor, useNickname } from '@/app/features/nicknames';
 import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
 
-// A label | value row in the drawer body — mirrors the tx page's DetailRow (AccountExpandedLayout): a
-// `clamp(100px,25%,200px) 1fr` grid, baseline-aligned, gap-2, px-4, both cells at text-sm with a muted
-// label. Vertical rhythm comes from the parent's `flex flex-col gap-1.5`, so the row has no own padding.
+// A label | value row in the drawer body — mirrors the tx page's DetailRow (AccountExpandedLayout).
+// Vertical rhythm comes from the parent's `flex flex-col gap-1.5`, so the row carries no own padding.
 function DrawerField({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="grid grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2 px-4">
@@ -79,7 +78,6 @@ export function AccountDetailSlideover({
                     className="border-t border-white/10 !bg-dk-gray-800-dark [border-top-style:solid]"
                     onEscapeKeyDown={handleEscapeKeyDown}
                 >
-                    {/* Header: the address (with nickname) grouped together, its tags below. */}
                     <div className="space-y-1.5 p-4">
                         <div className="min-w-0 flex-1">
                             <SlideoverTitle className="mb-1.5 tracking-wide !text-outer-space-300">
@@ -93,7 +91,7 @@ export function AccountDetailSlideover({
                         {badges && <div className="flex flex-wrap gap-1">{badges}</div>}
                     </div>
 
-                    {/* Body: the same fields as the list. Change carries the Simulate button pre-run. */}
+                    {/* Change carries the Simulate button pre-run; the other fields mirror the list. */}
                     <SlideoverBody className="border-t border-white/10 py-2 [border-top-style:solid]">
                         <div className="flex flex-col gap-1.5 pb-2.5 pt-1">
                             {ownerSlot && <DrawerField label="Owner">{ownerSlot}</DrawerField>}
@@ -103,7 +101,6 @@ export function AccountDetailSlideover({
                         </div>
                     </SlideoverBody>
 
-                    {/* Footer action bar — icon-over-label tiles (Button size="tile"), four equal columns. */}
                     <div className="flex shrink-0 gap-2 border-t border-white/10 px-3 pb-6 pt-3 [border-top-style:solid]">
                         <Button className="w-1/4" onClick={() => setNicknameOpen(true)} size="tile" variant="outline">
                             <EditIcon width={16} />

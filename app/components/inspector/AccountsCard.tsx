@@ -21,12 +21,12 @@ import React, { useMemo } from 'react';
 import { Code } from 'react-feather';
 
 import { Badge } from '@/app/components/shared/ui/badge';
-import { Button } from '@/app/components/shared/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/shared/ui/popover';
 import type { SolBalanceChange } from '@/app/features/instruction-simulation/lib/types';
 import { useLastSimulatedAt } from '@/app/features/instruction-simulation/model/use-last-simulated-at';
 import { type SimulationState } from '@/app/features/instruction-simulation/model/use-simulation';
 import { LastSimulatedAtLabel } from '@/app/features/instruction-simulation/ui/LastSimulatedAt';
+import { SimulateButton } from '@/app/features/instruction-simulation/ui/SimulateButton';
 import { Section } from '@/app/features/transaction/ui/Section';
 
 import { AccountDetailSlideover } from './AccountDetailSlideover';
@@ -37,13 +37,18 @@ import { LG_ONLY_CARD } from './inspector-table';
 // simply offers the Simulate affordance, which is a no-op until wired to a real run.
 const IDLE_SIMULATION: SimulationState = { simulate: () => undefined, status: 'idle' };
 
-// Desktop-only grid (lg+): a single 6-column row driven by the header labels — the merged "Change"
-// column sits between Owner and Post Balance. Below lg the row uses the mobile layout (AccountRowLayout).
+// Shared 6-column track for the desktop (lg+) table: # / Address / Owner / Change / Post Balance / Size.
+// The header row and every body row use the same columns so they stay aligned.
+const COLS =
+    'grid-cols-[minmax(auto,1.25rem)_1fr_minmax(auto,180px)_minmax(auto,140px)_minmax(auto,160px)_minmax(auto,110px)]';
+
+// Desktop-only body row (lg+); the merged "Change" column sits between Owner and Post Balance. Below lg
+// the row uses the mobile layout (AccountRowLayout).
 const ROW_GRID_DESKTOP = cn(
     'hidden min-h-9 px-3 py-2.5 md:px-4 lg:grid',
     'items-start gap-x-5 whitespace-nowrap text-sm',
     "[grid-template-areas:'number_address_owned_change_balance_size']",
-    'grid-cols-[minmax(auto,1.25rem)_1fr_minmax(auto,180px)_minmax(auto,140px)_minmax(auto,160px)_minmax(auto,110px)]',
+    COLS,
 );
 
 // Fixed-width per-row field label for the mobile layout.
@@ -51,8 +56,8 @@ const MOBILE_LABEL = 'w-16 shrink-0 text-outer-space-300';
 
 // Header row (lg+ only).
 const HEADER_GRID = cn(
-    'hidden px-3 py-2.5 md:px-4 lg:grid',
-    'grid-cols-[minmax(auto,1.25rem)_1fr_minmax(auto,180px)_minmax(auto,140px)_minmax(auto,160px)_minmax(auto,110px)] gap-5',
+    'hidden gap-5 px-3 py-2.5 md:px-4 lg:grid',
+    COLS,
     'text-xs uppercase text-outer-space-300',
     'border-1 border-b border-white/10 [border-bottom-style:solid]',
 );
@@ -104,7 +109,7 @@ export function AccountsCard({
 
     const { accountRows } = React.useMemo(() => {
         const message = validMessage;
-        if (!message) return { accountRows: undefined, numAccounts: 0 };
+        if (!message) return { accountRows: undefined };
         const staticAccountRows = message.staticAccountKeys.map((publicKey, accountIndex) => {
             const { numRequiredSignatures, numReadonlySignedAccounts, numReadonlyUnsignedAccounts } = message.header;
 
@@ -168,7 +173,6 @@ export function AccountsCard({
 
         return {
             accountRows: [...staticAccountRows, ...writableLookupTableRows, ...readonlyLookupTableRows],
-            numAccounts: accountIndex,
         };
     }, [accounts, loading, validMessage, simulation, changeByKey]);
 
@@ -322,33 +326,27 @@ function AccountFromLookupTableRow({
 // Zero delta reused for unchanged accounts after a run — BalanceDelta renders it as the "+0" badge.
 const ZERO_DELTA = new BN(0);
 
-// The grey dash shown in the Change column before a run (non-first rows, when the row is not hovered).
 function ChangeDash() {
     return <span className="text-outer-space-500">—</span>;
 }
 
-// Brand-green Simulate button used inside the Change column. Both variants are pinned to `!h-5` — the
-// row's text line-height — so the button never grows the row taller than the plain dash/delta state (i.e.
-// the row height doesn't jump between pre-run, hover and post-run). `table` is the tiny in-cell form;
+// The Change-column form of the shared Simulate button. Both variants are pinned to `!h-5` — the row's
+// text line-height — so the button never grows the row taller than the plain dash/delta state (i.e. the
+// row height doesn't jump between pre-run, hover and post-run). `table` is the tiny in-cell form;
 // `drawer` keeps the same height with slightly larger, more legible text for the detail popup.
-function SimulateButton({ simulation, size = 'table' }: { simulation: SimulationState; size?: 'table' | 'drawer' }) {
-    const isSimulating = simulation.status === 'simulating';
-    const simulate = 'simulate' in simulation ? simulation.simulate : undefined;
+function ChangeSimulateButton({
+    simulation,
+    size = 'table',
+}: {
+    simulation: SimulationState;
+    size?: 'table' | 'drawer';
+}) {
     return (
-        <Button
-            variant="accent"
+        <SimulateButton
+            simulation={simulation}
             size="compact"
-            className={cn('relative !h-5 leading-none', size === 'drawer' ? 'px-2.5 !text-xs' : '!px-2 !text-[10px]')}
-            disabled={isSimulating}
-            onClick={simulate}
-        >
-            <span className={cn(isSimulating && 'invisible')}>Simulate</span>
-            {isSimulating && (
-                <span className="absolute inset-0 flex items-center justify-center">
-                    <span className="spinner-border spinner-border-sm" role="status" aria-label="Simulating" />
-                </span>
-            )}
-        </Button>
+            className={cn('!h-5 leading-none', size === 'drawer' ? 'px-2.5 !text-xs' : '!px-2 !text-[10px]')}
+        />
     );
 }
 
@@ -388,7 +386,7 @@ function SimulatedHeaderTag({ simulation, simulatedAt }: { simulation: Simulatio
                 onOpenAutoFocus={e => e.preventDefault()}
                 className="flex flex-col gap-2 p-3"
             >
-                <SimulateButton simulation={simulation} />
+                <ChangeSimulateButton simulation={simulation} />
                 {simulatedAt && <LastSimulatedAtLabel at={simulatedAt} />}
             </PopoverContent>
         </Popover>
@@ -420,7 +418,7 @@ function ChangeCell({
     }
 
     if (mode === 'plain') return <ChangeDash />;
-    if (mode === 'action') return <SimulateButton simulation={simulation} size="drawer" />;
+    if (mode === 'action') return <ChangeSimulateButton simulation={simulation} size="drawer" />;
 
     return (
         <>
@@ -428,7 +426,7 @@ function ChangeCell({
                 <ChangeDash />
             </span>
             <span className="hidden [@media(hover:hover)_and_(pointer:fine)]:group-hover:inline-flex">
-                <SimulateButton simulation={simulation} />
+                <ChangeSimulateButton simulation={simulation} />
             </span>
         </>
     );
