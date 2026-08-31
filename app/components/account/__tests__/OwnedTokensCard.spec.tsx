@@ -140,7 +140,7 @@ describe('should render OwnedTokensCard from a single bulk lookup', () => {
         // Logo column always rendered, with the resolved uri.
         const logo = screen.getByTestId('token-logo');
         expect(logo.getAttribute('data-uri')).toBe(LOGO);
-        // The card resolves every held mint in one call - rows no longer fetch for themselves.
+        // The card resolves every held mint in one call, so rows fetch nothing themselves.
         expect(useTokenInfosMock).toHaveBeenCalledWith([MINT], Cluster.MainnetBeta, 'genesis');
         // Symbol comes from the lookup, rendered next to the amount in the balance cell.
         expect(screen.getByText('USDC', { exact: false })).toBeInTheDocument();

@@ -43,11 +43,7 @@ const useQueryDisplay = (): Display => {
     }
 };
 
-/**
- * Resolves the holdings and handles the empty/loading/failed states. The table itself
- * lives in `HoldingsCard`, which cannot be inlined here: it needs the mint list to
- * resolve verification, and those hooks may not sit behind the guards below.
- */
+/** `HoldingsCard` stays split out because its hooks may not sit behind the guards below. */
 export function OwnedTokensCard({ address }: { address: string }) {
     const pubkey = useMemo(() => new PublicKey(address), [address]);
     const ownedTokens = useAccountOwnedTokens(address);
@@ -87,24 +83,22 @@ function HoldingsCard({ display, tokens }: { display: Display; tokens: TokenInfo
     const holdings = useMemo(() => aggregateByMint(tokens), [tokens]);
     const mints = useMemo(() => Array.from(holdings.keys()), [holdings]);
 
-    // Resolved for every mint, not just the visible ones: a mint cannot be placed in the
-    // order below until its verified status is known. This replaces the per-row lookup
-    // rows used to make, so a short list costs the same request it always did.
+    // Every mint, not just the visible ones: a mint cannot be placed in the order below
+    // until its verified status is known.
     const { isLoading, tokenInfos } = useTokenInfos(mints, cluster, genesisHash);
 
     const orderedHoldings = useMemo(
         () =>
             orderMintsByVerification(mints, tokenInfos).flatMap(mintAddress => {
                 const token = holdings.get(mintAddress);
-                // The ordering is a permutation of the same keys, so nothing is ever dropped
-                // here. Reading the entry back out beats asserting the lookup cannot miss.
+                // A permutation of the same keys, so nothing is dropped here. Reading the
+                // entry back out beats asserting the lookup cannot miss.
                 return token ? [[mintAddress, token] as const] : [];
             }),
         [holdings, mints, tokenInfos],
     );
 
-    // Hold the existing spinner rather than paint an arbitrary order that reshuffles a
-    // moment later - the holdings themselves are already behind the same spinner.
+    // Hold the spinner rather than paint an arbitrary order that reshuffles a moment later.
     if (isLoading) {
         return <LoadingCard message="Loading token holdings" />;
     }
@@ -164,11 +158,7 @@ type MappedToken = {
     scaledUiAmountMultiplier: string;
 };
 
-/**
- * Totals every token account of one mint into a single row, keyed by mint and keeping
- * the order the RPC returned the mints in. Both displays aggregate identically; only
- * whether the account address column renders differs, so they share this.
- */
+/** Insertion order is RPC order, which the verification tiering preserves within a tier. */
 function aggregateByMint(tokens: TokenInfoWithPubkey[]): Map<string, MappedToken> {
     const byMint = new Map<string, MappedToken>();
 

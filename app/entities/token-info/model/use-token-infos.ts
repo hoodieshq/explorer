@@ -15,26 +15,21 @@ type UseTokenInfosResult = {
 };
 
 /**
- * Resolves metadata for a whole list of mints in one go, for callers that must know
- * something about every mint before they can render — ordering holdings by
- * verification, for one. Prefer `useTokenInfo` when a component needs a single mint.
+ * For callers that must know every mint before they can render anything. Use the
+ * singular `useTokenInfo` for one mint.
  *
- * `mints` must be referentially stable across renders (memoize it in the caller):
- * its identity drives both the SWR key and the fetch, so a fresh array each render
- * would refetch the list on every render.
+ * `mints` must be referentially stable across renders: its identity drives the fetch,
+ * so a fresh array each render refetches the whole list each render.
  */
 export function useTokenInfos(mints: readonly string[], cluster: Cluster, genesisHash?: string): UseTokenInfosResult {
-    // Joining is O(list) and runs only when the caller's array identity changes. Keying
-    // on the mints themselves — rather than on the owner address — keeps this hook
-    // unaware of who holds them, and lets two owners of the same set share one entry.
+    // Keyed on the mints rather than the owner, so two owners of the same set share an entry.
     const mintsKey = useMemo(() => mints.join(','), [mints]);
 
     const { data, isLoading } = useSWR(
-        // `undefined` disables the fetch, exactly as `null` would; SWR treats any falsy key alike.
+        // SWR reads a falsy key as "do not fetch".
         mintsKey ? ['token-infos', mintsKey, cluster, genesisHash] : undefined,
         () => fetchTokenInfos(mints, cluster, genesisHash),
-        // A mint's verified status changes on the scale of days, and refetching costs a
-        // request proportional to the holdings list, so do not re-run it on tab focus.
+        // Verified status changes on the scale of days, and a refetch costs a request per chunk.
         { revalidateOnFocus: false },
     );
 

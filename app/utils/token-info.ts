@@ -46,12 +46,11 @@ type FullLegacyTokenInfoList = {
  * Resolves mints through the `/api/token-info` route. The route owns the UTL
  * list lookup and the RPC endpoint, so no RPC URL is sent from the browser.
  *
+ * Exported so callers that chunk longer lists reuse this request shape instead of
+ * restating it.
+ *
  * @param includeOnChainFallback Also read on-chain Metaplex metadata for mints
  * the UTL list does not carry. Costs extra RPC calls, so it is opt-in.
- *
- * Exported for `@entities/token-info`, which layers chunking on top for holdings
- * lists longer than the route's cap. Kept here rather than duplicated there so one
- * function owns the request shape.
  */
 export async function fetchTokenInfosFromApi(
     addresses: string[],
