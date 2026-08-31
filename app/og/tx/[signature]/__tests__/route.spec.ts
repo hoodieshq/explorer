@@ -103,8 +103,6 @@ describe('should handle GET /og/tx/[signature]', () => {
         expect((element.props as { data?: TxShareData }).data).toBeUndefined();
     });
 
-    // The result carries no status of its own, so the route answers every data-layer failure the same way:
-    // 502, because what failed is upstream of us. A render failure is the route's own fault and stays a 500.
     it('should return 502 when the data layer errors', async () => {
         vi.mocked(getTxShareData).mockResolvedValue({ kind: 'error' });
 
@@ -115,8 +113,6 @@ describe('should handle GET /og/tx/[signature]', () => {
     });
 
     it('should return 500 when image generation fails', async () => {
-        // `Once`, not a plain implementation: `clearAllMocks` wipes calls but not implementations, so a
-        // permanent override here would leak the throw into whatever test runs next.
         vi.mocked(ImageResponse).mockImplementationOnce(function () {
             throw new Error('Render failed');
         });
