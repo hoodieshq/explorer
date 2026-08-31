@@ -29,7 +29,6 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
     const searchParams = await props.searchParams;
     const { signature } = await props.params;
 
-    // Resolved once for both branches: the receipt image and the tx image each need the cluster.
     const cluster = getClusterParam(searchParams);
     const clusterEnum = SHAREABLE_CLUSTERS.find(c => clusterSlug(c) === cluster);
 

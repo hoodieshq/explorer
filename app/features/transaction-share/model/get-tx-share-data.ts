@@ -64,9 +64,9 @@ export async function getTxShareData(signature: string, cluster?: ServerCluster)
         const tx = await getTx({ cluster: resolved.cluster, signature });
         if (!tx) return { kind: 'not-found' };
 
-        // Stage 1 names everything the transaction carries on its own. Stage 2 is the one fetch, for what is
-        // left. Stage 3 applies the result, filling the program name as well as the instruction name.
+        // Summarize the instructions in the transaction.
         const summaries = getInstructionSummaries(tx);
+        // Get names for the custom programs and their instructions.
         const names = await getIdlNames({ cluster: resolved.cluster, programIds: idlProgramIds(summaries) });
         const instructions = applyNameSourcesToSummaries(summaries, names);
 

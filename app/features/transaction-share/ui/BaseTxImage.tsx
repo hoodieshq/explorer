@@ -20,7 +20,7 @@ export function BaseTxImage({ data }: BaseTxImageProps) {
     return (
         <div
             style={{
-                backgroundColor: colors.background,
+                backgroundColor: COLORS.background,
                 display: 'flex',
                 flexDirection: 'column',
                 height: '100%',
@@ -31,8 +31,7 @@ export function BaseTxImage({ data }: BaseTxImageProps) {
             {/* Green gradient glow - large diffuse wash centered slightly above middle */}
             <div
                 style={{
-                    background:
-                        'radial-gradient(ellipse 120% 110% at 50% 40%, rgba(0, 90, 55, 0.55) 0%, rgba(0, 60, 40, 0.25) 40%, transparent 70%)',
+                    background: GLOW,
                     display: 'flex',
                     height: '100%',
                     left: 0,
@@ -47,7 +46,7 @@ export function BaseTxImage({ data }: BaseTxImageProps) {
                     display: 'flex',
                     flexDirection: 'column',
                     flexGrow: 1,
-                    padding: '36px 76px 76px',
+                    padding: SPACING.canvasPadding,
                     position: 'relative',
                     width: '100%',
                 }}
@@ -62,21 +61,20 @@ export function BaseTxImage({ data }: BaseTxImageProps) {
 function Header({ dateUtc, fee }: { dateUtc: string | undefined; fee: string | undefined }) {
     return (
         <div style={{ alignItems: 'flex-start', display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-            <div style={{ alignItems: 'center', display: 'flex', gap: '18px' }}>
-                <Logo variant="green" style={{ color: colors.white, height: '26px', width: '229px' }} />
-                <span style={{ color: colors.neutral50, fontSize: '36px', fontWeight: 400 }}>Explorer</span>
+            <div style={{ alignItems: 'center', display: 'flex', gap: SPACING.gap }}>
+                <Logo variant="green" style={{ color: COLORS.white, ...LOGO }} />
+                <span style={{ color: COLORS.neutral50, ...TYPO.wordmark }}>Explorer</span>
             </div>
 
-            {/* A column so the fee stacks under the date. `flex-end` is the right edge on a column's cross axis. */}
             <div style={{ alignItems: 'flex-end', display: 'flex', flexDirection: 'column' }}>
                 {dateUtc && (
-                    <span data-testid="tx-image-date" style={{ color: colors.neutral400, fontSize: '18px' }}>
+                    <span data-testid="tx-image-date" style={{ color: COLORS.neutral400, ...TYPO.caption }}>
                         {dateUtc}
                     </span>
                 )}
 
                 {fee && (
-                    <span data-testid="tx-image-fee" style={{ color: colors.neutral400, fontSize: '18px' }}>
+                    <span data-testid="tx-image-fee" style={{ color: COLORS.neutral400, ...TYPO.caption }}>
                         {`Fee ${fee}`}
                     </span>
                 )}
@@ -91,22 +89,23 @@ function TxSections({ data }: { data: TxShareData }) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+            {/* Signature + Tx status */}
             <div
                 data-testid="tx-image-section"
                 style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '18px',
-                    marginTop: '20px',
+                    gap: SPACING.gap,
+                    marginTop: SPACING.gap,
                 }}
             >
                 <div style={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between', width: '100%' }}>
                     <div
                         data-testid="tx-image-signature"
                         style={{
-                            color: colors.neutral100,
+                            ...TYPO.body,
+                            color: COLORS.neutral100,
                             fontFamily: 'monospace',
-                            fontSize: '24px',
                             letterSpacing: '-0.68px',
                         }}
                     >
@@ -115,29 +114,23 @@ function TxSections({ data }: { data: TxShareData }) {
                     <StatusBadge status={data.status} />
                 </div>
             </div>
-
+            {/* Instructions list */}
             <div
                 data-testid="tx-image-section"
                 style={{
                     display: 'flex',
                     flexDirection: 'column',
                     flexGrow: 1,
-                    gap: '8px',
-                    marginTop: '20px',
+                    gap: SPACING.gap,
+                    marginTop: SPACING.gap,
                 }}
             >
                 {visible.map((instruction, index) => (
-                    // Index key: a summary carries no id, and two rows of the same program and name are
-                    // indistinguishable by value. The list is built once per render from a frozen response,
-                    // so nothing reorders or splices it.
                     <span
                         key={index}
                         data-testid="tx-image-instruction"
-                        style={{ color: colors.neutral100, fontSize: '24px' }}
+                        style={{ color: COLORS.neutral100, ...TYPO.body }}
                     >
-                        {/* Numbered over the rows shown, so the list reads 1..n with no gaps. The detail page
-                            numbers the raw instructions instead, so a transaction carrying Compute Budget - which
-                            this list drops - is numbered differently there. */}
                         {`#${index + 1} ${instruction.programName}: ${instruction.name}`}
                     </span>
                 ))}
@@ -145,13 +138,13 @@ function TxSections({ data }: { data: TxShareData }) {
                 {overflow > 0 && (
                     <span
                         data-testid="tx-image-instruction-overflow"
-                        style={{ color: colors.neutral400, fontSize: '18px' }}
+                        style={{ color: COLORS.neutral400, ...TYPO.caption }}
                     >
                         {`and ${overflow} more`}
                     </span>
                 )}
             </div>
-
+            {/* Footer with transaction details (signer, block, compute units, version) */}
             <Footer data={data} />
         </div>
     );
@@ -166,9 +159,9 @@ function Footer({ data }: { data: TxShareData }) {
     return (
         <div data-testid="tx-image-footer" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
             {cells.map(cell => (
-                <div key={cell.label} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <span style={{ color: colors.neutral400, fontSize: '20px' }}>{cell.label}</span>
-                    <span style={{ color: colors.neutral100, fontSize: '26px' }}>{cell.value}</span>
+                <div key={cell.label} style={{ display: 'flex', flexDirection: 'column', gap: SPACING.footerCellGap }}>
+                    <span style={{ color: COLORS.neutral400, ...TYPO.footer.label }}>{cell.label}</span>
+                    <span style={{ color: COLORS.neutral100, ...TYPO.footer.value }}>{cell.value}</span>
                 </div>
             ))}
         </div>
@@ -176,10 +169,9 @@ function Footer({ data }: { data: TxShareData }) {
 }
 
 /**
- * The footer cells that have a value, in mockup order.
+ * The footer cells that have a non-empty value.
  *
- * An absent cell is dropped rather than rendered with a placeholder: CU and Version are legitimately
- * missing on many transactions, and a row of dashes reads as broken data.
+ * An absent cell is dropped rather than rendered with a placeholder.
  */
 function footerCells(data: TxShareData): { label: string; value: string }[] {
     const cells: { label: string; value: string }[] = [];
@@ -199,10 +191,10 @@ function StatusBadge({ status }: { status: TxShareData['status'] }) {
         <span
             data-testid="tx-image-status"
             style={{
-                backgroundColor: failed ? colors.dangerMuted : colors.successMuted,
+                ...TYPO.body,
+                backgroundColor: failed ? COLORS.dangerMuted : COLORS.successMuted,
                 borderRadius: '999px',
-                color: failed ? colors.danger : colors.success,
-                fontSize: '24px',
+                color: failed ? COLORS.danger : COLORS.success,
                 padding: '6px 18px',
             }}
         >
@@ -219,7 +211,7 @@ function NoTransaction() {
         >
             <span
                 style={{
-                    color: colors.neutral400,
+                    color: COLORS.neutral400,
                     fontSize: '48px',
                     fontWeight: 400,
                     letterSpacing: '-0.96px',
@@ -232,15 +224,46 @@ function NoTransaction() {
     );
 }
 
-const colors = {
+const COLORS = {
     background: '#161a18',
     danger: '#fca5a5',
     dangerMuted: 'rgba(153, 27, 27, 0.35)',
     neutral100: '#f5f5f5',
     neutral400: '#a1a1a1',
     neutral50: '#fafafa',
-    neutral800: '#262626',
     success: '#86efac',
     successMuted: 'rgba(22, 101, 52, 0.35)',
     white: '#fff',
-};
+} as const;
+
+/**
+ * The card's type scale. Satori has no classes, so every style is inline and a shared object is the only
+ * thing that keeps two rows the same size - the signature, an instruction row and the status badge all
+ * read at `body`, and drifting one of them apart is a silent visual bug.
+ */
+const TYPO = {
+    /** Signature, instruction rows, status badge - the card's reading size. */
+    body: { fontSize: '24px' },
+    /** Date, fee, overflow line: present, but not what the eye lands on. */
+    caption: { fontSize: '18px' },
+    footer: {
+        label: { fontSize: '20px' },
+        value: { fontSize: '26px' },
+    },
+    /** "Explorer", beside the logo. */
+    wordmark: { fontSize: '36px', fontWeight: 400 },
+} as const;
+
+const SPACING = {
+    /** 36 top, 76 sides and bottom - the mockup's frame is deliberately asymmetric. */
+    canvasPadding: '36px 76px 76px',
+    footerCellGap: '6px',
+    /** One rhythm for every gap on the card: header, both sections, and the space above them. */
+    gap: '18px',
+} as const;
+
+const LOGO = { height: '26px', width: '229px' } as const;
+
+// Centred slightly above the middle so the glow sits behind the signature rather than the footer.
+const GLOW =
+    'radial-gradient(ellipse 120% 110% at 50% 40%, rgba(0, 90, 55, 0.55) 0%, rgba(0, 60, 40, 0.25) 40%, transparent 70%)';
