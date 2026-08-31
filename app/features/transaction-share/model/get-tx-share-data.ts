@@ -37,15 +37,10 @@ export type TxShareData = {
 
 type ErrorResult = { kind: 'error' };
 type NotFoundResult = { kind: 'not-found' };
-/**
- * The shaped transaction, or the reason there is none. `not-found` and `error` stay separate because
- * the route answers them differently: a missing transaction still renders the fallback image.
- */
 export type TxShareResult = { kind: 'ok'; data: TxShareData } | ErrorResult | NotFoundResult;
 
 /**
- * The data behind `/og/tx/<signature>`, read from the cluster the link named or from the one the probe
- * finds.
+ * The data behind `/og/tx/<signature>`, read from the cluster the link named or from the one the probe finds.
  *
  * The one place a cluster is decided, which is what lets `getTx` take a required one. Never throws:
  * every failure becomes a result the route turns into a status code.
@@ -75,15 +70,10 @@ export async function getTxShareData(signature: string, cluster?: ServerCluster)
     }
 }
 
-/** The cluster to read from, or the same failure shape `getTxShareData` returns. */
 type ResolvedCluster = { kind: 'found'; cluster: ServerCluster } | NotFoundResult | ErrorResult;
 
 /**
  * Clusters to probe, in order, when the link carried no `?cluster=`.
- *
- * Mainnet first because it is the overwhelming majority and an absent param means mainnet by the app's own
- * contract - `parseQuery` falls back to `DEFAULT_CLUSTER`. Unlike receipt, this feature has no probe flag, so
- * the list is fixed.
  */
 const PROBE_ORDER: readonly ServerCluster[] = [Cluster.MainnetBeta, Cluster.Devnet, Cluster.Testnet];
 
@@ -122,9 +112,6 @@ function idlProgramIds(summaries: InstructionSummary[]): string[] {
 
 /**
  * The fields the image prints.
- *
- * Still synchronous and pure: it gained a parameter rather than an `await`, so it stays testable without a
- * network stub. The I/O all sits above it, in `getTxShareData` and the two calls `resolveCluster` makes.
  */
 function toShareData(signature: string, tx: TransactionWithMeta, instructions: InstructionSummary[]): TxShareData {
     return {

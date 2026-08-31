@@ -9,7 +9,6 @@ import { findTransactionCluster } from '../find-transaction-cluster';
 const mockSend = vi.fn();
 const mockGetSignatureStatuses = vi.fn(() => ({ send: mockSend }));
 
-// The global setup already stubs `createSolanaRpc`. This narrows it to a spy these assertions can read.
 vi.mock('@solana/kit', async () => {
     const actual = await vi.importActual<typeof import('@solana/kit')>('@solana/kit');
     return {

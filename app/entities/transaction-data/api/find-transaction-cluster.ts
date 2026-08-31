@@ -2,10 +2,7 @@ import { createSolanaRpc, signature as createSignature } from '@solana/kit';
 import { type ServerCluster, serverClusterUrl } from '@utils/cluster';
 
 /**
- * Where a signature was found, or why the search stopped short.
- *
- * `error` names the cluster whose status check failed so a caller can tell a network fault apart from a
- * genuine miss. Probing past a failed check would read the fault as "not on this cluster".
+ * Cluster result when a signature was found or not.
  */
 export type FindTransactionClusterResult =
     | { cluster: ServerCluster; kind: 'found' }
@@ -15,9 +12,7 @@ export type FindTransactionClusterResult =
 /**
  * Walks `clusters` in order and stops at the first one holding the signature.
  *
- * Probe policy belongs to the caller: pass the clusters to try, in the order to try them. No probe-policy env
- * is read here - `serverClusterUrl` still reads the per-cluster `*_RPC_URL`, which is why this lives in
- * `server.ts` - and nothing throws, so each caller maps the result onto its own error type.
+ * Probe policy belongs to the caller: pass the clusters to try, in the order to try them.
  * @param clusters - Clusters to probe, in probe order
  * @param signature - The transaction signature to look for
  */

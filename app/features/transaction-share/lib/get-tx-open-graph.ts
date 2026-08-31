@@ -5,8 +5,7 @@ import type { Metadata } from 'next/types';
 import { TX_OG_BASE_URL } from './constants';
 
 /**
- * Open Graph tags for a transaction page. `type` and `url` are the two whose absence stops Slack unfurling
- * `/tx/<signature>`, so both are always set. There is no feature flag, hence no `| undefined` return.
+ * Open Graph tags for a transaction page.
  */
 export function getTxOpenGraph(signature: string, cluster?: ServerCluster): Metadata['openGraph'] {
     return {
