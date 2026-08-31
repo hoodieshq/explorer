@@ -6,11 +6,11 @@ import { ExternalLink, Minus, Plus, Tool } from 'react-feather';
 import { Button } from '@/app/components/shared/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/app/components/shared/ui/tabs';
 import { cn } from '@/app/components/shared/utils';
+import { Card } from '@/app/shared/ui/Card';
 
 import { AGENT_INSTRUCTIONS_SNIPPET, AGENT_INSTRUCTIONS_TARGETS, SETUP_CLIENTS } from '../lib/setup-clients';
 import { useDeploymentOrigin } from '../lib/useDeploymentOrigin';
 import { CodeBlock } from './CodeBlock';
-import { DocCard } from './DocCard';
 import { InlineCode } from './InlineCode';
 
 // Mobile-only sticky tab strip. While scrolling a section its tab strip pins to the top of the window; once
@@ -345,7 +345,7 @@ export function McpDocsOverviewView() {
                     </a>
                 </Button>
             </div>
-            <DocCard transparent className="mb-12">
+            <Card variant="tight" className="mb-12 !bg-transparent">
                 <div className="grid gap-x-8 gap-y-4 p-4 sm:grid-cols-2 sm:p-6">
                     <HeroFact label="Status">
                         <StatusValue status={status} />
@@ -378,7 +378,7 @@ export function McpDocsOverviewView() {
                         <span className="text-sm">inspect_entity · ping</span>
                     </HeroFact>
                 </div>
-            </DocCard>
+            </Card>
 
             {/* Setup */}
             <SectionTitle
@@ -387,7 +387,7 @@ export function McpDocsOverviewView() {
             >
                 Setup
             </SectionTitle>
-            <DocCard ref={setupSticky.sectionRef} className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
+            <Card variant="tight" ref={setupSticky.sectionRef} className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
                 <Tabs
                     value={client}
                     onValueChange={value => {
@@ -417,13 +417,13 @@ export function McpDocsOverviewView() {
                         </TabsContent>
                     ))}
                 </Tabs>
-            </DocCard>
+            </Card>
 
             {/* Agent instructions */}
             <SectionTitle subtitle="Teach the agent to reach for the Explorer instead of guessing — add the block below to the instructions file your tool reads.">
                 Agent instructions
             </SectionTitle>
-            <DocCard className="mb-12 overflow-hidden">
+            <Card variant="tight" className="mb-12 overflow-hidden">
                 <p className="m-0 p-4 text-sm text-neutral-300 sm:p-6">
                     {AGENT_INSTRUCTIONS_TARGETS.map((target, index) => (
                         <React.Fragment key={target.file}>
@@ -436,7 +436,7 @@ export function McpDocsOverviewView() {
                 <div className="border-0 border-t border-solid border-white/10">
                     <CodeBlock variant="flush" code={AGENT_INSTRUCTIONS_SNIPPET} />
                 </div>
-            </DocCard>
+            </Card>
 
             {/* Tools */}
             <SectionTitle
@@ -468,7 +468,7 @@ function ToolsShowcase() {
     const sticky = useStickyRelease();
 
     return (
-        <DocCard ref={sticky.sectionRef} className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
+        <Card variant="tight" ref={sticky.sectionRef} className="mb-12 px-4 pb-4 pt-0 sm:px-6 sm:pb-6">
             <Tabs
                 value={tool}
                 onValueChange={value => {
@@ -495,7 +495,7 @@ function ToolsShowcase() {
                     <PingDoc />
                 </TabsContent>
             </Tabs>
-        </DocCard>
+        </Card>
     );
 }
 
@@ -687,10 +687,10 @@ function ExamplesCarousel() {
     }, [engaged]);
 
     return (
-        <DocCard
+        <Card
+            variant="tight"
             ref={sticky.sectionRef}
-            transparent
-            className="mb-12"
+            className="mb-12 !bg-transparent"
             onMouseEnter={() => setHovered(true)}
             onMouseLeave={() => setHovered(false)}
         >
@@ -786,7 +786,7 @@ function ExamplesCarousel() {
                     })}
                 </div>
             </div>
-        </DocCard>
+        </Card>
     );
 }
 
