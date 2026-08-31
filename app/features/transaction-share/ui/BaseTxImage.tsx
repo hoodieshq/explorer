@@ -12,6 +12,10 @@ const SIGNATURE_PAD = 20;
 // Shorter than the headline signature: four cells share one row, and the label above already says what it is.
 const FOOTER_ADDRESS_PAD = 6;
 
+// What an absent footer value prints. The same placeholder `formatDateUtc` uses for a transaction with no
+// block time, so one card never spells "absent" two different ways.
+const EMPTY_VALUE = '-';
+
 type BaseTxImageProps = {
     data: TxShareData | undefined;
 };
@@ -103,9 +107,9 @@ function TxSections({ data }: { data: TxShareData }) {
                     <div
                         data-testid="tx-image-signature"
                         style={{
-                            ...TYPO.body,
                             color: COLORS.neutral100,
                             fontFamily: 'monospace',
+                            fontSize: TYPO.body.fontSize.m,
                             letterSpacing: '-0.68px',
                         }}
                     >
@@ -121,7 +125,6 @@ function TxSections({ data }: { data: TxShareData }) {
                     display: 'flex',
                     flexDirection: 'column',
                     flexGrow: 1,
-                    gap: SPACING.gap,
                     marginTop: SPACING.gap,
                 }}
             >
@@ -129,7 +132,7 @@ function TxSections({ data }: { data: TxShareData }) {
                     <span
                         key={index}
                         data-testid="tx-image-instruction"
-                        style={{ color: COLORS.neutral100, ...TYPO.body }}
+                        style={{ color: COLORS.neutral100, fontSize: TYPO.body.fontSize.s, }}
                     >
                         {`#${index + 1} ${instruction.programName}: ${instruction.name}`}
                     </span>
@@ -166,19 +169,22 @@ function Footer({ data }: { data: TxShareData }) {
 }
 
 /**
- * The footer cells that have a non-empty value.
+ * The four footer cells, always all four.
  *
- * An absent cell is dropped rather than rendered with a placeholder.
+ * An absent value prints {@link EMPTY_VALUE} rather than dropping its cell: the row lays out with
+ * `justifyContent: 'space-between'`, so dropping one would respace the rest and land the same label in a
+ * different place from one card to the next.
  */
 function footerCells(data: TxShareData): { label: string; value: string }[] {
-    const cells: { label: string; value: string }[] = [];
-
-    if (data.signer) cells.push({ label: 'Signer', value: truncateAddress(data.signer, FOOTER_ADDRESS_PAD) });
-    cells.push({ label: 'Block', value: data.slot.toLocaleString('en-US') });
-    if (data.computeUnits !== undefined) cells.push({ label: 'CU', value: data.computeUnits.toLocaleString('en-US') });
-    if (data.version) cells.push({ label: 'Version', value: data.version });
-
-    return cells;
+    return [
+        { label: 'Signer', value: data.signer ? truncateAddress(data.signer, FOOTER_ADDRESS_PAD) : EMPTY_VALUE },
+        { label: 'Block', value: data.slot.toLocaleString('en-US') },
+        {
+            label: 'CU',
+            value: data.computeUnits === undefined ? EMPTY_VALUE : data.computeUnits.toLocaleString('en-US'),
+        },
+        { label: 'Version', value: data.version ?? EMPTY_VALUE },
+    ];
 }
 
 function StatusBadge({ status }: { status: TxShareData['status'] }) {
@@ -188,10 +194,10 @@ function StatusBadge({ status }: { status: TxShareData['status'] }) {
         <span
             data-testid="tx-image-status"
             style={{
-                ...TYPO.body,
                 backgroundColor: failed ? COLORS.dangerMuted : COLORS.successMuted,
                 borderRadius: '999px',
                 color: failed ? COLORS.danger : COLORS.success,
+                fontSize: TYPO.body.fontSize.m,
                 padding: '6px 18px',
             }}
         >
@@ -240,7 +246,7 @@ const COLORS = {
  */
 const TYPO = {
     /** Signature, instruction rows, status badge - the card's reading size. */
-    body: { fontSize: '24px' },
+    body: { fontSize: { m: '24px', s: '20px' } },
     /** Date, fee, overflow line: present, but not what the eye lands on. */
     caption: { fontSize: '18px' },
     footer: {

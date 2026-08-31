@@ -18,10 +18,6 @@ import { MAX_INSTRUCTION_ROWS } from '../lib/constants';
 
 /**
  * Data for the OG image rendering, already formatted.
- *
- * Optional means the response can genuinely omit it, and the image drops that footer cell rather than
- * printing a placeholder. There is no wire size here: it is the one footer field the `jsonParsed`
- * encoding does not carry, so it would cost a second `base64` fetch.
  */
 export type TxShareData = {
     signature: string;
