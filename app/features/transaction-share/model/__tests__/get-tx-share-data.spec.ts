@@ -32,11 +32,13 @@ vi.mock('@entities/transaction-data', async () => {
 
     return {
         applyNameSourcesToSummaries: names.applyNameSourcesToSummaries,
-        findTransactionCluster: mocks.findTransactionCluster,
         formatTransactionVersion: version.formatTransactionVersion,
         getInstructionSummaries: summaries.getInstructionSummaries,
     };
 });
+// The probe moved to the entity's server barrel, so it needs its own mock: the barrel factory above no
+// longer intercepts it.
+vi.mock('@entities/transaction-data/server', () => ({ findTransactionCluster: mocks.findTransactionCluster }));
 vi.mock('../../api/get-tx', () => ({ getTx: mocks.getTx }));
 vi.mock('../../api/get-idl-names', () => ({ getIdlNames: mocks.getIdlNames }));
 

@@ -1,4 +1,5 @@
-import { fetchTransactionDetails, findTransactionCluster, type TransactionWithMeta } from '@entities/transaction-data';
+import { fetchTransactionDetails, type TransactionWithMeta } from '@entities/transaction-data';
+import { findTransactionCluster } from '@entities/transaction-data/server';
 
 import { Logger } from '@/app/shared/lib/logger';
 import { Cluster, clusterSlug, type ServerCluster, serverClusterUrl } from '@/app/utils/cluster';

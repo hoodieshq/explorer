@@ -1,8 +1,7 @@
 import { IMAGE_SIZE } from '@entities/open-graph';
 import { Cluster, clusterSlug, type ServerCluster } from '@utils/cluster';
+import { EXPLORER_BASE_URL } from '@utils/env';
 import type { Metadata } from 'next/types';
-
-import { TX_OG_BASE_URL } from '../env';
 
 /**
  * Open Graph tags for a transaction page. `type` and `url` are the two whose absence stops Slack unfurling
@@ -12,13 +11,13 @@ export function getTxOpenGraph(signature: string, cluster?: ServerCluster): Meta
     return {
         images: [{ ...IMAGE_SIZE, alt: 'Solana Transaction', url: getTxOgImageUrl(signature, cluster) }],
         type: 'website',
-        url: `${TX_OG_BASE_URL}/tx/${signature}${clusterQuery(cluster)}`,
+        url: `${EXPLORER_BASE_URL}/tx/${signature}${clusterQuery(cluster)}`,
     };
 }
 
 /** Exported so `page.tsx` can aim `twitter.images` at the same URL instead of rebuilding it. */
 export function getTxOgImageUrl(signature: string, cluster?: ServerCluster): string {
-    return `${TX_OG_BASE_URL}/og/tx/${signature}${clusterQuery(cluster)}`;
+    return `${EXPLORER_BASE_URL}/og/tx/${signature}${clusterQuery(cluster)}`;
 }
 
 // Mainnet is the route's own default, so emitting the param there would only make a shared link noisier.

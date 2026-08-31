@@ -1,4 +1,5 @@
-import { fetchTransactionDetails, findTransactionCluster } from '@entities/transaction-data';
+import { fetchTransactionDetails } from '@entities/transaction-data';
+import { findTransactionCluster } from '@entities/transaction-data/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Cluster, serverClusterUrl } from '@/app/utils/cluster';
@@ -6,11 +7,10 @@ import { Cluster, serverClusterUrl } from '@/app/utils/cluster';
 import { mockSingleTransferTransaction } from '../../mocks/single-transfer';
 import { getTx } from '../get-tx';
 
-// Both halves of the read live in the entity now - the cluster probe and the transaction fetch.
-vi.mock('@entities/transaction-data', () => ({
-    fetchTransactionDetails: vi.fn(),
-    findTransactionCluster: vi.fn(),
-}));
+// Both halves of the read live in the entity now, on separate barrels: the transaction fetch on the
+// universal `index.ts`, the cluster probe on the server-only one.
+vi.mock('@entities/transaction-data', () => ({ fetchTransactionDetails: vi.fn() }));
+vi.mock('@entities/transaction-data/server', () => ({ findTransactionCluster: vi.fn() }));
 
 // Mutable so one case can turn the probe flag off. `vi.mock` is hoisted, so the object has to be hoisted too.
 const env = vi.hoisted(() => ({ isClusterProbeEnabled: true }));

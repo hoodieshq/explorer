@@ -24,7 +24,9 @@ vi.mock('@features/transaction-share/server', () => ({
 }));
 
 const SIGNATURE = gen.signature(1);
-const CACHE_CONTROL = 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=60';
+const RESOLVED_CACHE_CONTROL = 'public, max-age=1800, s-maxage=1800, stale-while-revalidate=60';
+// Shorter on purpose: the fallback is only correct until the transaction propagates.
+const FALLBACK_CACHE_CONTROL = 'public, max-age=60, s-maxage=60, stale-while-revalidate=60';
 
 const shareData: TxShareData = {
     dateUtc: 'Aug 31, 2026 at 11:00:00 UTC',
@@ -56,7 +58,7 @@ describe('should handle GET /og/tx/[signature]', () => {
 
         expect(response.status).toBe(200);
         expect(response.headers.get('Content-Type')).toBe('image/png');
-        expect(response.headers.get('Cache-Control')).toBe(CACHE_CONTROL);
+        expect(response.headers.get('Cache-Control')).toBe(RESOLVED_CACHE_CONTROL);
         expect(getTxShareData).toHaveBeenCalledWith(SIGNATURE, undefined);
     });
 
@@ -97,7 +99,8 @@ describe('should handle GET /og/tx/[signature]', () => {
 
         expect(response.status).toBe(200);
         expect(response.headers.get('Content-Type')).toBe('image/png');
-        expect(response.headers.get('Cache-Control')).toBe(CACHE_CONTROL);
+        // A just-landed transaction reads as not-found, so this card must expire long before a resolved one.
+        expect(response.headers.get('Cache-Control')).toBe(FALLBACK_CACHE_CONTROL);
         const [element] = vi.mocked(ImageResponse).mock.calls[0];
         // `ReactElement` declares its props as `unknown`, so the shape this route passes is named here.
         expect((element.props as { data?: TxShareData }).data).toBeUndefined();

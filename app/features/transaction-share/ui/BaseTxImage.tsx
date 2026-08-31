@@ -152,9 +152,6 @@ function TxSections({ data }: { data: TxShareData }) {
 
 function Footer({ data }: { data: TxShareData }) {
     const cells = footerCells(data);
-    // Nothing to draw beats an empty bordered strip. React accepts undefined, and the repo's lint
-    // rules treat a bare `null` as a smell.
-    if (cells.length === 0) return undefined;
 
     return (
         <div data-testid="tx-image-footer" style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>

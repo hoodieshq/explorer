@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 import { getTxOgImageUrl, getTxOpenGraph } from '../get-tx-open-graph';
 
 const SIGNATURE = gen.signature(1);
-// TX_OG_BASE_URL falls back to EXPLORER_BASE_URL when the env var is unset, which is the case under vitest.
 const BASE_URL = 'https://explorer.solana.com';
 
 describe('should build transaction Open Graph metadata', () => {

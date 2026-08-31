@@ -1,15 +1,11 @@
 import '../../styles/styles.css';
 
 import { IMAGE_SIZE } from '@entities/open-graph';
-import {
-    buildCompositeSignature,
-    getClusterParam,
-    isReceiptEnabled,
-    RECEIPT_BASE_URL,
-    RECEIPT_OG_IMAGE_VERSION,
-} from '@features/receipt/server';
-import { getTxOgImageUrl, getTxOpenGraph, TX_OG_BASE_URL } from '@features/transaction-share/server';
+import { isReceiptEnabled, RECEIPT_BASE_URL, RECEIPT_OG_IMAGE_VERSION } from '@features/receipt/env';
+import { buildCompositeSignature, getClusterParam } from '@features/receipt/server';
+import { getTxOgImageUrl, getTxOpenGraph } from '@features/transaction-share/server';
 import { Cluster, CLUSTERS, clusterSlug, type ServerCluster } from '@utils/cluster';
+import { EXPLORER_BASE_URL } from '@utils/env';
 import { SignatureProps } from '@utils/index';
 import { Metadata } from 'next/types';
 import React from 'react';
@@ -86,7 +82,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
             card: 'summary_large_image',
             description,
             images: [getTxOgImageUrl(signature, clusterEnum)],
-            site: TX_OG_BASE_URL,
+            site: EXPLORER_BASE_URL,
             title,
         },
     };
