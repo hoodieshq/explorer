@@ -11,10 +11,6 @@ const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // Dev-only: allow the dev server to be reached from other devices on the LAN (Next 15+ otherwise
-    // rejects requests — including the HMR websocket — from non-localhost origins). Set DEV_ORIGIN to the
-    // Mac's LAN IP/host. Ignored in production.
-    allowedDevOrigins: process.env.DEV_ORIGIN ? [process.env.DEV_ORIGIN] : [],
     // Use separate build directory for dev server to avoid conflicts with production builds
     distDir: process.env.NODE_ENV === 'production' ? '.next' : '.next-dev',
     outputFileTracingRoot: projectRoot,

@@ -7,7 +7,7 @@ export const DEPLOYMENT_PLACEHOLDER = 'https://<deployment>';
 
 /**
  * Origin of the deployment the visitor is on, so config snippets are copy-ready
- * for exactly this Explorer instance (spec: mcp-docs-pages §10).
+ * for exactly this Explorer instance.
  */
 export function useDeploymentOrigin(): string {
     const [origin, setOrigin] = useState<string>();
