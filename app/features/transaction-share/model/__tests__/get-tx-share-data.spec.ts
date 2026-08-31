@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
     findTransactionCluster: vi.fn(),
+    getIdlNames: vi.fn(),
     getTx: vi.fn(),
 }));
 
@@ -37,7 +38,9 @@ vi.mock('@entities/transaction-data', async () => {
     };
 });
 vi.mock('../../api/get-tx', () => ({ getTx: mocks.getTx }));
+vi.mock('../../api/get-idl-names', () => ({ getIdlNames: mocks.getIdlNames }));
 
+import { MAX_INSTRUCTION_ROWS } from '../../lib/constants';
 import { getTxShareData } from '../get-tx-share-data';
 
 const SIGNATURE = gen.signature(1);
@@ -71,6 +74,29 @@ const SET_COMPUTE_UNIT_LIMIT: PartiallyDecodedInstruction = {
     programId: ComputeBudgetProgram.programId,
 };
 
+// An unparsed instruction from a program no byte-level source knows, which is the only case an IDL can
+// improve. Stage 1 leaves it `Unknown Instruction` / `Unknown Program` and hands on a `nameLookup`.
+const JUPITER = gen.publicKey(2);
+const ROUTE_DATA = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+
+const ROUTE: PartiallyDecodedInstruction = {
+    accounts: [],
+    data: BASE58_DECODER.decode(ROUTE_DATA),
+    programId: JUPITER,
+};
+
+// Stands in for a real discriminator table, which is a byte-prefix compare. The table itself is tested in
+// `instruction-name-table.spec.ts`; what matters here is that the map reaches stage 3 intact.
+const jupiterNames = {
+    programName: 'Jupiter Aggregator V6',
+    resolveInstructionName: (data: Uint8Array) => (data[0] === 1 ? 'Route' : undefined),
+};
+
+/** One unparsed instruction per program, so a transaction can overflow the row cap with distinct programs. */
+function unparsedFrom(programId: PublicKey): PartiallyDecodedInstruction {
+    return { accounts: [], data: BASE58_DECODER.decode(ROUTE_DATA), programId };
+}
+
 function txWith(instructions: (ParsedInstruction | PartiallyDecodedInstruction)[], err: unknown = null) {
     return {
         blockTime: BLOCK_TIME,
@@ -88,6 +114,9 @@ const TX = txWith([]);
 // `beforeEach` as a teardown - which would invoke `getTx` with no arguments after every test.
 beforeEach(() => {
     mocks.getTx.mockResolvedValue(TX);
+    // The empty map is the "no IDL named anything" answer, so every case that does not care about IDLs
+    // behaves exactly as it did before this stage existed.
+    mocks.getIdlNames.mockResolvedValue(new Map());
 });
 
 afterEach(() => vi.clearAllMocks());
@@ -261,5 +290,54 @@ describe('should carry the footer fields', () => {
         const result = await getTxShareData(SIGNATURE, Cluster.Devnet);
 
         expect((result as { data: { version?: string } }).data.version).toBeUndefined();
+    });
+});
+
+describe('should name the instructions only an IDL can name', () => {
+    it('should name an instruction and its program from the IDL map', async () => {
+        mocks.getTx.mockResolvedValue(txWith([ROUTE]));
+        mocks.getIdlNames.mockResolvedValue(new Map([[JUPITER.toBase58(), jupiterNames]]));
+
+        const result = await getTxShareData(SIGNATURE, Cluster.Devnet);
+
+        // Both halves of the row come from one map entry: `resolveNamesFromLookup` reads the instruction
+        // resolver and the program name off the same value.
+        expect(result).toMatchObject({
+            data: { instructions: [{ name: 'Route', programName: 'Jupiter Aggregator V6' }] },
+            kind: 'ok',
+        });
+    });
+
+    it('should ask for the unnamed program on the cluster it resolved', async () => {
+        mocks.getTx.mockResolvedValue(txWith([ROUTE]));
+
+        await getTxShareData(SIGNATURE, Cluster.Devnet);
+
+        expect(mocks.getIdlNames).toHaveBeenCalledWith({
+            cluster: Cluster.Devnet,
+            programIds: [JUPITER.toBase58()],
+        });
+    });
+
+    // A row the RPC already named carries no `nameLookup`, so there is nothing an IDL could improve.
+    it('should ask for nothing when the RPC already named every row', async () => {
+        mocks.getTx.mockResolvedValue(txWith([TRANSFER]));
+
+        await getTxShareData(SIGNATURE, Cluster.Devnet);
+
+        expect(mocks.getIdlNames).toHaveBeenCalledWith({ cluster: Cluster.Devnet, programIds: [] });
+    });
+
+    it('should ask only for the programs in the rows the image draws', async () => {
+        const programs = Array.from({ length: MAX_INSTRUCTION_ROWS + 2 }, (_, index) => gen.publicKey(index + 10));
+        mocks.getTx.mockResolvedValue(txWith(programs.map(unparsedFrom)));
+
+        await getTxShareData(SIGNATURE, Cluster.Devnet);
+
+        // Rows past the cap collapse into "and N more", so resolving their IDLs buys nothing but latency.
+        expect(mocks.getIdlNames).toHaveBeenCalledWith({
+            cluster: Cluster.Devnet,
+            programIds: programs.slice(0, MAX_INSTRUCTION_ROWS).map(program => program.toBase58()),
+        });
     });
 });

@@ -12,7 +12,9 @@ import { lamportsToSolString } from '@utils/index';
 
 import { Logger } from '@/app/shared/lib/logger';
 
+import { getIdlNames } from '../api/get-idl-names';
 import { getTx } from '../api/get-tx';
+import { MAX_INSTRUCTION_ROWS } from '../lib/constants';
 
 /**
  * Data for the OG image rendering, already formatted.
@@ -62,7 +64,13 @@ export async function getTxShareData(signature: string, cluster?: ServerCluster)
         const tx = await getTx({ cluster: resolved.cluster, signature });
         if (!tx) return { kind: 'not-found' };
 
-        return { data: toShareData(signature, tx), kind: 'ok' };
+        // Stage 1 names everything the transaction carries on its own. Stage 2 is the one fetch, for what is
+        // left. Stage 3 applies the result, filling the program name as well as the instruction name.
+        const summaries = getInstructionSummaries(tx);
+        const names = await getIdlNames({ cluster: resolved.cluster, programIds: idlProgramIds(summaries) });
+        const instructions = applyNameSourcesToSummaries(summaries, names);
+
+        return { data: toShareData(signature, tx, instructions), kind: 'ok' };
     } catch (error) {
         Logger.error(error, { signature });
         return { kind: 'error' };
@@ -103,17 +111,24 @@ async function resolveCluster(signature: string, cluster?: ServerCluster): Promi
 }
 
 /**
+ * The programs worth an IDL fetch: still unnamed - a row keeps its `nameLookup` only while nothing has
+ * named it - and only in the rows the image draws. Rows past the cap collapse into "and N more", so
+ * resolving their IDLs buys nothing but latency. Duplicates are left in, since `getIdlNames` dedupes.
+ *
+ * A builtin still reaches `getIdlNames` here, and is refused inside the entity where the builtin set
+ * lives. Filtering it out at this level would mean exporting that set to serve one caller.
+ */
+function idlProgramIds(summaries: InstructionSummary[]): string[] {
+    return summaries.slice(0, MAX_INSTRUCTION_ROWS).flatMap(s => (s.nameLookup ? [s.nameLookup.programId] : []));
+}
+
+/**
  * The fields the image prints.
  *
- * The empty IDL map is the finished call, not a stub: per the entity README an empty map means "no
- * IDL", never "nothing is named yet". Every byte-level source still runs, so Compute Budget, Memo, ZK
- * ElGamal, Lighthouse, Mango, Serum and the `@solana-program/*` clients all name with no network call.
- * Passing a populated map is a follow-up and changes nothing else here.
+ * Still synchronous and pure: it gained a parameter rather than an `await`, so `getTxShareData` is the only
+ * function in this feature that does I/O.
  */
-function toShareData(signature: string, tx: TransactionWithMeta): TxShareData {
-    const summaries = getInstructionSummaries(tx);
-    const instructions = applyNameSourcesToSummaries(summaries, new Map());
-
+function toShareData(signature: string, tx: TransactionWithMeta, instructions: InstructionSummary[]): TxShareData {
     return {
         computeUnits: tx.meta?.computeUnitsConsumed,
         dateUtc: formatDateUtc(tx.blockTime),
