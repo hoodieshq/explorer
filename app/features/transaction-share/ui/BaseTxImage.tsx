@@ -1,4 +1,5 @@
 import { truncateAddress } from '@entities/address';
+import { type InstructionSummary, UNKNOWN_PROGRAM_NAME } from '@entities/transaction-data';
 
 import { Logo } from '@/app/shared/components/SolanaLogo';
 
@@ -9,8 +10,9 @@ import type { TxShareData } from '../model/get-tx-share-data';
 // 1200px canvas. Wide enough to stay recognisable, short enough to hold one line.
 const SIGNATURE_PAD = 20;
 
-// Shorter than the headline signature: four cells share one row, and the label above already says what it is.
-const FOOTER_ADDRESS_PAD = 6;
+// Every address that is not the headline signature: the footer cells and an unnamed program's id. Each
+// shares its row with other content, so they get less width than the signature and all read the same.
+const ADDRESS_PAD = 6;
 
 // What an absent footer value prints. The same placeholder `formatDateUtc` uses for a transaction with no
 // block time, so one card never spells "absent" two different ways.
@@ -134,7 +136,7 @@ function TxSections({ data }: { data: TxShareData }) {
                         data-testid="tx-image-instruction"
                         style={{ color: COLORS.neutral100, fontSize: TYPO.body.fontSize.s }}
                     >
-                        {`#${index + 1} ${instruction.programName}: ${instruction.name}`}
+                        {`#${index + 1} ${programLabel(instruction)}: ${instruction.name}`}
                     </span>
                 ))}
 
@@ -169,6 +171,20 @@ function Footer({ data }: { data: TxShareData }) {
 }
 
 /**
+ * The program's name, or the name plus its truncated address when nothing named it.
+ *
+ * An unnamed row is otherwise indistinguishable from every other unnamed row, and the address is the only
+ * thing that says which program ran. Gated on the sentinel rather than on `nameLookup` alone: a row keeps
+ * its lookup while the *instruction* is unnamed, so a named program with an unnamed instruction would
+ * otherwise print an address it does not need.
+ */
+function programLabel({ nameLookup, programName }: InstructionSummary): string {
+    if (programName !== UNKNOWN_PROGRAM_NAME || !nameLookup) return programName;
+
+    return `${programName} (${truncateAddress(nameLookup.programId, ADDRESS_PAD)})`;
+}
+
+/**
  * The four footer cells, always all four.
  *
  * An absent value prints {@link EMPTY_VALUE} rather than dropping its cell: the row lays out with
@@ -177,7 +193,7 @@ function Footer({ data }: { data: TxShareData }) {
  */
 function footerCells(data: TxShareData): { label: string; value: string }[] {
     return [
-        { label: 'Signer', value: data.signer ? truncateAddress(data.signer, FOOTER_ADDRESS_PAD) : EMPTY_VALUE },
+        { label: 'Signer', value: data.signer ? truncateAddress(data.signer, ADDRESS_PAD) : EMPTY_VALUE },
         { label: 'Block', value: data.slot.toLocaleString('en-US') },
         {
             label: 'CU',

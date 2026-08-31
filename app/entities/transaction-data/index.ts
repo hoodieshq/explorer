@@ -3,7 +3,7 @@ export { fetchTransactionDetails } from './api/fetch-transaction-details';
 export { adaptParsedTransaction } from './lib/adapt-parsed-transaction';
 export { encodeTransactionData, type EncodingFormat } from './lib/encoding';
 export { formatTransactionVersion } from './lib/format-transaction-version';
-export { getProgramName } from './lib/get-program-name';
+export { getProgramName, UNKNOWN_PROGRAM_NAME } from './lib/get-program-name';
 export { getInstructionSummaries, resolveInstructionNames, resolveNamesFromData } from './lib/instruction-summary';
 export { mergeTransactionMap } from './lib/merge-transaction-map';
 // Applies the name sources directly, for a server-side caller that cannot run the hooks below. Pass an empty
