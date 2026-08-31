@@ -135,7 +135,7 @@ function HoldingsCard({ display, tokens }: { display: Display; tokens: TokenInfo
                         </BaseTable.HeaderCell>
                     </BaseTable.Row>
                 </BaseTable.Head>
-                <tbody>
+                <BaseTable.Body>
                     {visibleHoldings.map(([mintAddress, token]) => (
                         <TokenRow
                             key={mintAddress}
@@ -145,7 +145,7 @@ function HoldingsCard({ display, tokens }: { display: Display; tokens: TokenInfo
                             tokenInfo={tokenInfos.get(mintAddress)}
                         />
                     ))}
-                </tbody>
+                </BaseTable.Body>
             </BaseTable>
             <TokensCardFooter
                 loadMore={() => setVisibleCount(count => count + HOLDINGS_LOAD_MORE_COUNT)}
@@ -211,8 +211,8 @@ type TokenRowProps = {
 
 function TokenRow({ mintAddress, showAccountAddress, token, tokenInfo }: TokenRowProps) {
     return (
-        <tr>
-            <td className="w-px p-0 text-center">
+        <BaseTable.Row>
+            <BaseTable.Cell className="w-px p-0 text-center">
                 <ProxiedImage
                     alt="Token icon"
                     className="h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
@@ -220,23 +220,23 @@ function TokenRow({ mintAddress, showAccountAddress, token, tokenInfo }: TokenRo
                     uri={tokenInfo?.logoURI ?? undefined}
                     width={16}
                 />
-            </td>
+            </BaseTable.Cell>
             {showAccountAddress && (
-                <td>
+                <BaseTable.Cell>
                     <Address pubkey={new PublicKey(token.pubkey)} link />
-                </td>
+                </BaseTable.Cell>
             )}
-            <td>
+            <BaseTable.Cell>
                 <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
-            </td>
-            <td>
+            </BaseTable.Cell>
+            <BaseTable.Cell>
                 {token.amount} {tokenInfo?.symbol}
                 <ScaledUiAmountMultiplierTooltip
                     rawAmount={new BigNumber(token.rawAmount).shiftedBy(-(token.decimals || 0)).toString()}
                     scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}
                 />
-            </td>
-        </tr>
+            </BaseTable.Cell>
+        </BaseTable.Row>
     );
 }
 
