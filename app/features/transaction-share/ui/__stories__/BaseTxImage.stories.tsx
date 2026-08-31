@@ -120,17 +120,24 @@ export const NoInstructions: Story = {
     },
 };
 
-export const PartialFooter: Story = {
+// Every optional footer field absent at once, which is also the only story that exercises a missing signer.
+export const MissingFooterValues: Story = {
     args: {
-        data: { ...txShareData, computeUnits: undefined, version: undefined },
+        data: { ...txShareData, computeUnits: undefined, signer: undefined, version: undefined },
     },
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
         expect(canvas.getByTestId('tx-image-footer')).toBeInTheDocument();
+
+        // All four labels keep their place, so the row does not respace around a missing value.
         expect(canvas.getByText('Signer')).toBeInTheDocument();
         expect(canvas.getByText('Block')).toBeInTheDocument();
-        expect(canvas.queryByText('CU')).not.toBeInTheDocument();
-        expect(canvas.queryByText('Version')).not.toBeInTheDocument();
+        expect(canvas.getByText('CU')).toBeInTheDocument();
+        expect(canvas.getByText('Version')).toBeInTheDocument();
+
+        // Signer, CU and Version fall back to the placeholder. Block is required, so it still prints.
+        expect(canvas.getAllByText('-')).toHaveLength(3);
+        expect(canvas.getByText('208,871,522')).toBeInTheDocument();
     },
 };
 
