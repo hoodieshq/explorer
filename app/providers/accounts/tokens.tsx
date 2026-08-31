@@ -73,8 +73,7 @@ async function fetchAccountTokens(dispatch: Dispatch, pubkey: PublicKey, cluster
             },
         );
 
-        // Return raw holdings only. Symbol/logo/name are enriched lazily per visible row via useTokenInfo
-        // (the app-wide batched token-info provider), so there is no upfront bulk metadata fetch and no cap.
+        // Raw holdings only, uncapped. Consumers resolve symbol/logo/name themselves.
         const tokens: TokenInfoWithPubkey[] = tokenAccounts.concat(token2022Accounts).map(accountInfo => {
             const parsedInfo = accountInfo.account.data.parsed.info;
             const info = create(parsedInfo, TokenAccountInfo);
