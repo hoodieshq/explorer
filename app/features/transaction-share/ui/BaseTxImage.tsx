@@ -6,16 +6,13 @@ import { Logo } from '@/app/shared/components/SolanaLogo';
 import { MAX_INSTRUCTION_ROWS } from '../lib/constants';
 import type { TxShareData } from '../model/get-tx-share-data';
 
-// `truncateAddress` defaults to 4 characters a side, which reads as a hash fragment rather than a signature on a
-// 1200px canvas. Wide enough to stay recognisable, short enough to hold one line.
+// `truncateAddress` defaults to 4 characters for a side.
 const SIGNATURE_PAD = 20;
 
-// Every address that is not the headline signature: the footer cells and an unnamed program's id. Each
-// shares its row with other content, so they get less width than the signature and all read the same.
+// Every address that is not the headline signature: the footer cells and an unnamed program's id.
 const ADDRESS_PAD = 6;
 
-// What an absent footer value prints. The same placeholder `formatDateUtc` uses for a transaction with no
-// block time, so one card never spells "absent" two different ways.
+// Placeholder for an absent value.
 const EMPTY_VALUE = '-';
 
 type BaseTxImageProps = {
@@ -172,11 +169,6 @@ function Footer({ data }: { data: TxShareData }) {
 
 /**
  * The program's name, or the name plus its truncated address when nothing named it.
- *
- * An unnamed row is otherwise indistinguishable from every other unnamed row, and the address is the only
- * thing that says which program ran. Gated on the sentinel rather than on `nameLookup` alone: a row keeps
- * its lookup while the *instruction* is unnamed, so a named program with an unnamed instruction would
- * otherwise print an address it does not need.
  */
 function programLabel({ nameLookup, programName }: InstructionSummary): string {
     if (programName !== UNKNOWN_PROGRAM_NAME || !nameLookup) return programName;
@@ -186,10 +178,7 @@ function programLabel({ nameLookup, programName }: InstructionSummary): string {
 
 /**
  * The four footer cells, always all four.
- *
- * An absent value prints {@link EMPTY_VALUE} rather than dropping its cell: the row lays out with
- * `justifyContent: 'space-between'`, so dropping one would respace the rest and land the same label in a
- * different place from one card to the next.
+ * An absent value prints {@link EMPTY_VALUE} rather than dropping its cell.
  */
 function footerCells(data: TxShareData): { label: string; value: string }[] {
     return [
@@ -255,11 +244,6 @@ const COLORS = {
     white: '#fff',
 } as const;
 
-/**
- * The card's type scale. Satori has no classes, so every style is inline and a shared object is the only
- * thing that keeps two rows the same size - the signature, an instruction row and the status badge all
- * read at `body`, and drifting one of them apart is a silent visual bug.
- */
 const TYPO = {
     /** Signature, instruction rows, status badge - the card's reading size. */
     body: { fontSize: { m: '24px', s: '20px' } },
@@ -274,7 +258,6 @@ const TYPO = {
 } as const;
 
 const SPACING = {
-    /** 36 top, 76 sides and bottom - the mockup's frame is deliberately asymmetric. */
     canvasPadding: '36px 76px 76px',
     footerCellGap: '6px',
     /** One rhythm for every gap on the card: header, both sections, and the space above them. */

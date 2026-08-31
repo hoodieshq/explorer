@@ -7,8 +7,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { GET } from '../route';
 
-// No `vi.resetModules()`, so the route and this file share one module generation and these two mocks can
-// be imported statically. The route reads no env at module scope, so it has nothing to re-evaluate.
 vi.mock('next/og', () => ({
     ImageResponse: vi.fn(function () {
         return new Response('mock-image-response', {

@@ -32,10 +32,6 @@ export async function GET(request: NextRequest, props: Props) {
 
     try {
         const result = await getTxShareData(signature, clusterParam.cluster);
-        // The result carries no status of its own. `error` is nearly always upstream - a cluster we could
-        // not reach, or a fetch that threw - so it answers 502. Not exclusively though: `getTxShareData`
-        // catches its own shaping code too, so a bug in there is reported as 502 as well. A render failure
-        // below is unambiguously ours and stays a 500.
         if (result.kind === 'error') return new NextResponse('Failed to load transaction', { status: 502 });
 
         // A missing transaction still renders: BaseTxImage draws its own fallback, so a stale link unfurls as
