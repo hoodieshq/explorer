@@ -1,7 +1,9 @@
 /**
  * Per-client setup instructions for the overview page. Snippets are functions
  * of the deployment origin so the visitor copies a config that already points
- * at the Explorer instance they are on.
+ * at the Explorer instance they are on. The deployed endpoint is open (no auth
+ * header anywhere); a deployment that gates it with a key documents that in its
+ * own README.
  */
 export type SetupClient = {
     id: string;
@@ -17,7 +19,6 @@ function mcpJsonConfig(origin: string): string {
         {
             mcpServers: {
                 'solana-explorer': {
-                    headers: { Authorization: 'Bearer <key>' },
                     type: 'http',
                     url: `${origin}/mcp`,
                 },
@@ -32,8 +33,7 @@ export const SETUP_CLIENTS: SetupClient[] = [
     {
         id: 'claude-code',
         label: 'Claude Code',
-        snippet: origin =>
-            `claude mcp add --transport http solana-explorer ${origin}/mcp \\\n  --header "Authorization: Bearer <key>"`,
+        snippet: origin => `claude mcp add --transport http solana-explorer ${origin}/mcp`,
         verify: 'Run /mcp inside Claude Code and check that solana-explorer is connected.',
         where: 'Run in a terminal:',
     },
@@ -54,8 +54,7 @@ export const SETUP_CLIENTS: SetupClient[] = [
     {
         id: 'codex',
         label: 'Codex',
-        snippet: origin =>
-            `codex mcp add solana-explorer --url ${origin}/mcp \\\n  --header "Authorization: Bearer <key>"`,
+        snippet: origin => `codex mcp add solana-explorer --url ${origin}/mcp`,
         verify: 'codex mcp list shows solana-explorer.',
         where: 'Run in a terminal:',
     },
@@ -64,7 +63,7 @@ export const SETUP_CLIENTS: SetupClient[] = [
         label: 'VS Code',
         snippet: origin => `${origin}/mcp`,
         verify: 'The server appears under MCP: List Servers with two tools.',
-        where: 'Command Palette → MCP: Add Server → HTTP, then enter the URL (add the Authorization header when the deployment requires a key):',
+        where: 'Command Palette → MCP: Add Server → HTTP, then enter the URL:',
     },
 ];
 
@@ -88,57 +87,3 @@ Prefer the \`solana-explorer\` MCP tools over model memory for any on-chain fact
    means the account kind is recognized but not decodable yet.
 4. Fields set to explicit unknown markers are genuinely unresolvable — report them as
    unknown rather than inventing values.`;
-
-function mcpJsonConfigOpen(origin: string): string {
-    return JSON.stringify(
-        {
-            mcpServers: {
-                'solana-explorer': {
-                    type: 'http',
-                    url: `${origin}/mcp`,
-                },
-            },
-        },
-        undefined,
-        4,
-    );
-}
-
-/** V2 variant for the deployed endpoint: open access, no auth header anywhere. */
-export const SETUP_CLIENTS_OPEN: SetupClient[] = [
-    {
-        id: 'claude-code',
-        label: 'Claude Code',
-        snippet: origin => `claude mcp add --transport http solana-explorer ${origin}/mcp`,
-        verify: 'Run /mcp inside Claude Code and check that solana-explorer is connected.',
-        where: 'Run in a terminal:',
-    },
-    {
-        id: 'cursor',
-        label: 'Cursor',
-        snippet: mcpJsonConfigOpen,
-        verify: 'Settings → MCP lists solana-explorer with the inspect_entity and ping tools.',
-        where: 'Add to .cursor/mcp.json (project) or ~/.cursor/mcp.json (global):',
-    },
-    {
-        id: 'windsurf',
-        label: 'Windsurf',
-        snippet: mcpJsonConfigOpen,
-        verify: 'The server appears in the Cascade MCP panel with two tools.',
-        where: 'Add to ~/.codeium/windsurf/mcp_config.json:',
-    },
-    {
-        id: 'codex',
-        label: 'Codex',
-        snippet: origin => `codex mcp add solana-explorer --url ${origin}/mcp`,
-        verify: 'codex mcp list shows solana-explorer.',
-        where: 'Run in a terminal:',
-    },
-    {
-        id: 'vs-code',
-        label: 'VS Code',
-        snippet: origin => `${origin}/mcp`,
-        verify: 'The server appears under MCP: List Servers with two tools.',
-        where: 'Command Palette → MCP: Add Server → HTTP, then enter the URL:',
-    },
-];
