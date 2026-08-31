@@ -7,10 +7,12 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { Logger } from '@/app/shared/lib/logger';
 
-const CACHE_DURATION = 30 * 60; // 30 min
-const CACHE_HEADERS = {
-    'Cache-Control': `public, max-age=${CACHE_DURATION}, s-maxage=${CACHE_DURATION}, stale-while-revalidate=60`,
-};
+// A resolved transaction is immutable, so its card can sit in a cache for a long time.
+const RESOLVED_CACHE_DURATION = 30 * 60; // 30 min
+// The fallback is not: a transaction is "not found" only until it propagates. The probe sees it at
+// `processed` while the fetch reads at `confirmed`, so a link shared the second it lands renders the
+// fallback. A short TTL lets the real card replace it in a minute instead of pinning the empty one.
+const FALLBACK_CACHE_DURATION = 60; // 1 min
 
 type Props = Readonly<{
     params: Promise<{ signature: string }>;
@@ -30,9 +32,10 @@ export async function GET(request: NextRequest, props: Props) {
 
     try {
         const result = await getTxShareData(signature, clusterParam.cluster);
-        // The result carries no status of its own: every failure it reports is upstream of us - a cluster we
-        // could not reach, or a fetch that threw - so they all answer 502. A render failure below is our own
-        // and stays a 500.
+        // The result carries no status of its own. `error` is nearly always upstream - a cluster we could
+        // not reach, or a fetch that threw - so it answers 502. Not exclusively though: `getTxShareData`
+        // catches its own shaping code too, so a bug in there is reported as 502 as well. A render failure
+        // below is unambiguously ours and stays a 500.
         if (result.kind === 'error') return new NextResponse('Failed to load transaction', { status: 502 });
 
         // A missing transaction still renders: BaseTxImage draws its own fallback, so a stale link unfurls as
@@ -43,12 +46,19 @@ export async function GET(request: NextRequest, props: Props) {
         const imageBuffer = await imageResponse.arrayBuffer();
 
         return new NextResponse(imageBuffer, {
-            headers: { ...CACHE_HEADERS, 'Content-Type': 'image/png' },
+            headers: {
+                ...cacheHeaders(data ? RESOLVED_CACHE_DURATION : FALLBACK_CACHE_DURATION),
+                'Content-Type': 'image/png',
+            },
         });
     } catch (e) {
         Logger.error(new Error('[og:tx] Failed to generate image', { cause: e }), { sentry: true, signature });
         return new NextResponse('Failed to process request', { status: 500 });
     }
+}
+
+function cacheHeaders(duration: number) {
+    return { 'Cache-Control': `public, max-age=${duration}, s-maxage=${duration}, stale-while-revalidate=60` };
 }
 
 function resolveClusterParam(request: NextRequest): ClusterParam {

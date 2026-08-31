@@ -15,8 +15,14 @@ const SECOND = gen.address(2);
 
 const firstNames = { programName: 'Jupiter Aggregator V6', resolveInstructionName: () => 'Route' };
 
+// The stage budget, mirrored rather than imported: the constant is private, same as `maxRetries: 1` below.
+const IDL_FETCH_BUDGET_MS = 1_500;
+
 describe('getIdlNames', () => {
-    afterEach(() => vi.resetAllMocks());
+    afterEach(() => {
+        vi.resetAllMocks();
+        vi.useRealTimers();
+    });
 
     it('should resolve a duplicated program once', async () => {
         mocks.resolveProgramIdlNames.mockResolvedValue(firstNames);
@@ -79,5 +85,32 @@ describe('getIdlNames', () => {
         const names = await getIdlNames({ cluster: Cluster.MainnetBeta, programIds: [FIRST] });
 
         expect(names.size).toBe(0);
+    });
+
+    it('should keep the program that answered in time and drop the one that outlived the budget', async () => {
+        vi.useFakeTimers();
+        // Never settles, standing in for a connection that hangs rather than fails.
+        mocks.resolveProgramIdlNames.mockImplementation((_url: string, programId: string) =>
+            programId === SECOND ? new Promise(() => {}) : Promise.resolve(firstNames),
+        );
+
+        const pending = getIdlNames({ cluster: Cluster.MainnetBeta, programIds: [FIRST, SECOND] });
+        await vi.advanceTimersByTimeAsync(IDL_FETCH_BUDGET_MS);
+
+        const names = await pending;
+
+        expect(names.get(FIRST)).toBe(firstNames);
+        expect(names.has(SECOND)).toBe(false);
+    });
+
+    it('should clear the budget timer once every program has answered', async () => {
+        vi.useFakeTimers();
+        mocks.resolveProgramIdlNames.mockResolvedValue(firstNames);
+
+        const names = await getIdlNames({ cluster: Cluster.MainnetBeta, programIds: [FIRST] });
+
+        expect(names.get(FIRST)).toBe(firstNames);
+        // Nothing is left holding the event loop open for the rest of the budget after a fast render.
+        expect(vi.getTimerCount()).toBe(0);
     });
 });

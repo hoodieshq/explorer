@@ -15,8 +15,9 @@ export type FindTransactionClusterResult =
 /**
  * Walks `clusters` in order and stops at the first one holding the signature.
  *
- * Probe policy belongs to the caller: pass the clusters to try, in the order to try them. This reads no env
- * and throws nothing, so each caller maps the result onto its own error type.
+ * Probe policy belongs to the caller: pass the clusters to try, in the order to try them. No probe-policy env
+ * is read here - `serverClusterUrl` still reads the per-cluster `*_RPC_URL`, which is why this lives in
+ * `server.ts` - and nothing throws, so each caller maps the result onto its own error type.
  * @param clusters - Clusters to probe, in probe order
  * @param signature - The transaction signature to look for
  */

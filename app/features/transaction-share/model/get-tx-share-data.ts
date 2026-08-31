@@ -1,11 +1,11 @@
 import {
     applyNameSourcesToSummaries,
-    findTransactionCluster,
     formatTransactionVersion,
     getInstructionSummaries,
     type InstructionSummary,
     type TransactionWithMeta,
 } from '@entities/transaction-data';
+import { findTransactionCluster } from '@entities/transaction-data/server';
 import { Cluster, type ServerCluster } from '@utils/cluster';
 import { displayTimestampUtc, unixTimestampToMs } from '@utils/date';
 import { lamportsToSolString } from '@utils/index';
@@ -72,7 +72,9 @@ export async function getTxShareData(signature: string, cluster?: ServerCluster)
 
         return { data: toShareData(signature, tx, instructions), kind: 'ok' };
     } catch (error) {
-        Logger.error(error, { signature });
+        Logger.error(new Error('[transaction-share] Failed to get transaction share data', { cause: error }), {
+            signature,
+        });
         return { kind: 'error' };
     }
 }
@@ -125,8 +127,8 @@ function idlProgramIds(summaries: InstructionSummary[]): string[] {
 /**
  * The fields the image prints.
  *
- * Still synchronous and pure: it gained a parameter rather than an `await`, so `getTxShareData` is the only
- * function in this feature that does I/O.
+ * Still synchronous and pure: it gained a parameter rather than an `await`, so it stays testable without a
+ * network stub. The I/O all sits above it, in `getTxShareData` and the two calls `resolveCluster` makes.
  */
 function toShareData(signature: string, tx: TransactionWithMeta, instructions: InstructionSummary[]): TxShareData {
     return {
