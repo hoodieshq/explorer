@@ -1,6 +1,7 @@
 import { gen } from '@__fixtures__/gen';
+import { truncateAddress } from '@entities/address';
 import { IMAGE_SIZE } from '@entities/open-graph';
-import type { InstructionSummary } from '@entities/transaction-data';
+import { type InstructionSummary, UNKNOWN_PROGRAM_NAME } from '@entities/transaction-data';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { expect, within } from 'storybook/test';
 
@@ -9,6 +10,7 @@ import type { TxShareData } from '../../model/get-tx-share-data';
 import { BaseTxImage } from '../BaseTxImage';
 
 const SIGNATURE = gen.signature(1);
+const UNKNOWN_PROGRAM_ID = gen.address(2);
 
 function makeInstructions(count: number): InstructionSummary[] {
     return Array.from({ length: count }, (_, index) => ({
@@ -138,6 +140,32 @@ export const MissingFooterValues: Story = {
         // Signer, CU and Version fall back to the placeholder. Block is required, so it still prints.
         expect(canvas.getAllByText('-')).toHaveLength(3);
         expect(canvas.getByText('208,871,522')).toBeInTheDocument();
+    },
+};
+
+// A program no built-in source and no IDL names still carries its `nameLookup`, which is where the address
+// comes from. The named row alongside it proves a resolved program does not pick up an address it lacks.
+export const UnknownProgram: Story = {
+    args: {
+        data: {
+            ...txShareData,
+            instructions: [
+                { name: 'Transfer', programName: 'System Program' },
+                {
+                    name: 'Unknown Instruction',
+                    nameLookup: { data: new Uint8Array([1, 2, 3]), programId: UNKNOWN_PROGRAM_ID },
+                    programName: UNKNOWN_PROGRAM_NAME,
+                },
+            ],
+        },
+    },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        const truncated = truncateAddress(UNKNOWN_PROGRAM_ID, 6);
+
+        expect(canvas.getByText(`#2 ${UNKNOWN_PROGRAM_NAME} (${truncated}): Unknown Instruction`)).toBeInTheDocument();
+        // The named program keeps its plain label, with no address appended.
+        expect(canvas.getByText('#1 System Program: Transfer')).toBeInTheDocument();
     },
 };
 
