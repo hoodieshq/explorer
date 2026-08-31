@@ -4,8 +4,9 @@ import type { InstructionSummary } from '@entities/transaction-data';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { expect, within } from 'storybook/test';
 
+import { MAX_INSTRUCTION_ROWS } from '../../lib/constants';
 import type { TxShareData } from '../../model/get-tx-share-data';
-import { BaseTxImage, MAX_INSTRUCTION_ROWS } from '../BaseTxImage';
+import { BaseTxImage } from '../BaseTxImage';
 
 const SIGNATURE = gen.signature(1);
 

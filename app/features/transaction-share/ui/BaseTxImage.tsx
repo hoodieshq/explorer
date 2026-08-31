@@ -2,10 +2,8 @@ import { truncateAddress } from '@entities/address';
 
 import { Logo } from '@/app/shared/components/SolanaLogo';
 
+import { MAX_INSTRUCTION_ROWS } from '../lib/constants';
 import type { TxShareData } from '../model/get-tx-share-data';
-
-/** Rows past this collapse into one "and N more" line. Exported so the stories assert against a single number. */
-export const MAX_INSTRUCTION_ROWS = 5;
 
 // `truncateAddress` defaults to 4 characters a side, which reads as a hash fragment rather than a signature on a
 // 1200px canvas. Wide enough to stay recognisable, short enough to hold one line.

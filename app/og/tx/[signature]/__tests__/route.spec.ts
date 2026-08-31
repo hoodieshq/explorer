@@ -97,6 +97,7 @@ describe('should handle GET /og/tx/[signature]', () => {
 
         expect(response.status).toBe(200);
         expect(response.headers.get('Content-Type')).toBe('image/png');
+        expect(response.headers.get('Cache-Control')).toBe(CACHE_CONTROL);
         const [element] = vi.mocked(ImageResponse).mock.calls[0];
         // `ReactElement` declares its props as `unknown`, so the shape this route passes is named here.
         expect((element.props as { data?: TxShareData }).data).toBeUndefined();
