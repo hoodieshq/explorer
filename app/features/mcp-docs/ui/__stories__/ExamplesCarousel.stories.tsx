@@ -36,6 +36,8 @@ export const ExpandMessage: Story = {
 
         await userEvent.click(canvas.getByRole('tab', { name: 'Transaction walkthrough' }));
         await userEvent.click(await canvas.findByRole('button', { name: 'Expand message' }));
-        await expect(await canvas.findByText('Instruction 1 — ComputeBudget', { exact: false })).toBeVisible();
+        const tail = await canvas.findByText('Instruction 1 — ComputeBudget', { exact: false });
+        // The conversation cross-fades in over a 500ms opacity transition; poll until it's fully visible.
+        await waitFor(() => expect(tail).toBeVisible());
     },
 };
