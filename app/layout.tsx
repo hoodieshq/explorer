@@ -4,7 +4,7 @@ import { Footer } from '@components/Footer';
 import { MessageBanner } from '@components/MessageBanner';
 import { Navbar } from '@components/Navbar';
 import { Toaster } from '@components/shared/ui/sonner/toaster';
-import { ClusterModal, ClusterStatusButton, PendingCustomUrlConsent } from '@features/cluster-switcher';
+import { ClusterModal, PendingCustomUrlConsent } from '@features/cluster-switcher';
 import { ClusterProvider } from '@providers/cluster';
 import { ScrollAnchorProvider } from '@providers/scroll-anchor';
 import { EXPLORER_BASE_URL, isEnvEnabled } from '@utils/env';
@@ -63,9 +63,6 @@ export default function RootLayout({ analytics, children }: { analytics: React.R
                                             <MessageBanner />
                                             <PageContainer className="my-3 xl:hidden">
                                                 <SearchBar />
-                                            </PageContainer>
-                                            <PageContainer className="my-3 lg:hidden">
-                                                <ClusterStatusButton />
                                             </PageContainer>
                                             {children}
                                         </div>

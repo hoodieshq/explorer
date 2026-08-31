@@ -46,7 +46,7 @@ export function ClusterModal() {
                         &times;
                     </span>
 
-                    <h2 className="mb-6 mt-6 text-center">Choose a Cluster</h2>
+                    <h2 className="mb-6 mt-6 text-left">Choose a Cluster</h2>
                     <ClusterToggle />
                     <ClusterModalDeveloperSettings />
                 </div>

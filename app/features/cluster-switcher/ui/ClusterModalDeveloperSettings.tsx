@@ -24,7 +24,7 @@ export function ClusterModalDeveloperSettings() {
     return (
         <div className="selection:bg-accent selection:text-dark-background">
             <hr />
-            <h2 className="mb-6 mt-6 text-center">Developer Settings</h2>
+            <h2 className="mb-6 mt-6 text-left">Developer Settings</h2>
             <div className="flex items-center justify-between">
                 <label htmlFor="cardToggle" className="mr-3 cursor-pointer">
                     Trust any custom url param

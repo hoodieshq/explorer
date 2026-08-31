@@ -11,7 +11,7 @@ import { cva } from 'class-variance-authority';
 // Every `text-*` here needs its `hover:text-*` twin: these render as `<a>`, and styles.css `a:hover`
 // (0,1,1) outranks a bare `text-*` class (0,1,0), so without the twin the dashkit link green wins on
 // hover and the text stops matching the border. `hover:text-*` is (0,2,0) and takes it back.
-export const clusterButtonVariants = cva(cn(buttonVariants({ size: 'default', ui: 'dashkit' }), 'w-full'), {
+export const clusterButtonVariants = cva(cn(buttonVariants({ size: 'default', ui: 'dashkit' }), 'w-full', '!text-left'), {
     compoundVariants: [
         {
             active: true,

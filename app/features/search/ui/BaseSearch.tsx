@@ -99,7 +99,7 @@ export function BaseSearch({
                         <div
                             className={cn(
                                 'flex items-center gap-3',
-                                'rounded-md border border-heavy-metal-950 bg-heavy-metal-800 [border-style:solid]',
+                                'rounded-md border border-outer-space-700 bg-heavy-metal-800 [border-style:solid]',
                                 'h-[38px] px-4 shadow-md',
                                 'transition-shadow focus-within:shadow-[0_0_0.4rem_#00d18c]',
                             )}
@@ -143,7 +143,7 @@ export function BaseSearch({
                                 <kbd
                                     className={cn(
                                         'flex h-6 w-6 shrink-0 items-center justify-center',
-                                        'rounded border border-solid border-heavy-metal-950 bg-heavy-metal-700',
+                                        'rounded border border-solid border-outer-space-600 bg-heavy-metal-700',
                                         'text-sm text-heavy-metal-100',
                                     )}
                                 >
