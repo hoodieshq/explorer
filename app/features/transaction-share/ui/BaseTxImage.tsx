@@ -132,7 +132,7 @@ function TxSections({ data }: { data: TxShareData }) {
                     <span
                         key={index}
                         data-testid="tx-image-instruction"
-                        style={{ color: COLORS.neutral100, fontSize: TYPO.body.fontSize.s, }}
+                        style={{ color: COLORS.neutral100, fontSize: TYPO.body.fontSize.s }}
                     >
                         {`#${index + 1} ${instruction.programName}: ${instruction.name}`}
                     </span>
