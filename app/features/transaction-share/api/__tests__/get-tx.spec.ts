@@ -19,7 +19,9 @@ describe('should delegate the transaction fetch to the entity', () => {
 
         const result = await getTx({ cluster: Cluster.Devnet, signature: SIGNATURE });
 
-        expect(mocks.fetchTransactionDetails).toHaveBeenCalledWith(serverClusterUrl(Cluster.Devnet), SIGNATURE);
+        expect(mocks.fetchTransactionDetails).toHaveBeenCalledWith(serverClusterUrl(Cluster.Devnet), SIGNATURE, {
+            abortSignal: undefined,
+        });
         expect(result).toBe(transaction);
     });
 
@@ -30,7 +32,19 @@ describe('should delegate the transaction fetch to the entity', () => {
 
         await getTx({ cluster: Cluster.Testnet, signature: SIGNATURE });
 
-        expect(mocks.fetchTransactionDetails).toHaveBeenCalledWith(serverClusterUrl(Cluster.Testnet), SIGNATURE);
+        expect(mocks.fetchTransactionDetails).toHaveBeenCalledWith(
+            serverClusterUrl(Cluster.Testnet),
+            SIGNATURE,
+            expect.anything(),
+        );
+    });
+    it('should hand the deadline it was given to the entity', async () => {
+        mocks.fetchTransactionDetails.mockResolvedValue({});
+        const abortSignal = AbortSignal.timeout(1_000);
+
+        await getTx({ abortSignal, cluster: Cluster.Devnet, signature: SIGNATURE });
+
+        expect(mocks.fetchTransactionDetails).toHaveBeenCalledWith(expect.any(String), SIGNATURE, { abortSignal });
     });
 
     it('should pass a missing transaction through as null', async () => {

@@ -15,6 +15,53 @@ const ADDRESS_PAD = 6;
 // Placeholder for an absent value.
 const EMPTY_VALUE = '-';
 
+// A program name and an instruction name both come from IDL metadata, which bounds neither.
+// `TEXT_ELLIPSIS` already keeps a row to one line whatever it holds.
+const MAX_LABEL_CHARS = 32;
+
+const ELLIPSIS = '...';
+
+// The card cannot grow, so a row is cut rather than wrapped.
+const TEXT_ELLIPSIS = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', width: '100%' } as const;
+
+const COLORS = {
+    background: '#161a18',
+    danger: '#fca5a5',
+    dangerMuted: 'rgba(153, 27, 27, 0.35)',
+    neutral100: '#f5f5f5',
+    neutral400: '#a1a1a1',
+    neutral50: '#fafafa',
+    success: '#86efac',
+    successMuted: 'rgba(22, 101, 52, 0.35)',
+    white: '#fff',
+} as const;
+
+const TYPO = {
+    /** Signature, instruction rows, status badge - the card's reading size. */
+    body: { fontSize: { m: '24px', s: '20px' } },
+    /** Date, fee, overflow line: present, but not what the eye lands on. */
+    caption: { fontSize: '18px' },
+    footer: {
+        label: { fontSize: '20px' },
+        value: { fontSize: '26px' },
+    },
+    /** "Explorer", beside the logo. */
+    wordmark: { fontSize: '36px', fontWeight: 400 },
+} as const;
+
+const SPACING = {
+    canvasPadding: '36px 76px 76px',
+    footerCellGap: '6px',
+    /** One rhythm for every gap on the card: header, both sections, and the space above them. */
+    gap: '18px',
+} as const;
+
+const LOGO = { height: '26px', width: '229px' } as const;
+
+// Centred slightly above the middle so the glow sits behind the signature rather than the footer.
+const GLOW =
+    'radial-gradient(ellipse 120% 110% at 50% 40%, rgba(0, 90, 55, 0.55) 0%, rgba(0, 60, 40, 0.25) 40%, transparent 70%)';
+
 type BaseTxImageProps = {
     data: TxShareData | undefined;
 };
@@ -131,9 +178,9 @@ function TxSections({ data }: { data: TxShareData }) {
                     <span
                         key={index}
                         data-testid="tx-image-instruction"
-                        style={{ color: COLORS.neutral100, fontSize: TYPO.body.fontSize.s }}
+                        style={{ color: COLORS.neutral100, fontSize: TYPO.body.fontSize.s, ...TEXT_ELLIPSIS }}
                     >
-                        {`#${index + 1} ${programLabel(instruction)}: ${instruction.name}`}
+                        {`#${index + 1} ${programLabel(instruction)}: ${truncateLabel(instruction.name)}`}
                     </span>
                 ))}
 
@@ -171,9 +218,19 @@ function Footer({ data }: { data: TxShareData }) {
  * The program's name, or the name plus its truncated address when nothing named it.
  */
 function programLabel({ nameLookup, programName }: InstructionSummary): string {
-    if (programName !== UNKNOWN_PROGRAM_NAME || !nameLookup) return programName;
+    const name = truncateLabel(programName);
+    if (programName !== UNKNOWN_PROGRAM_NAME || !nameLookup) return name;
 
-    return `${programName} (${truncateAddress(nameLookup.programId, ADDRESS_PAD)})`;
+    return `${name} (${truncateAddress(nameLookup.programId, ADDRESS_PAD)})`;
+}
+
+/**
+ * `value` cut to {@link MAX_LABEL_CHARS} with the cut marked, or returned as it came when it already fits.
+ */
+function truncateLabel(value: string): string {
+    if (value.length <= MAX_LABEL_CHARS) return value;
+
+    return `${value.slice(0, MAX_LABEL_CHARS - ELLIPSIS.length)}${ELLIPSIS}`;
 }
 
 /**
@@ -231,41 +288,3 @@ function NoTransaction() {
         </div>
     );
 }
-
-const COLORS = {
-    background: '#161a18',
-    danger: '#fca5a5',
-    dangerMuted: 'rgba(153, 27, 27, 0.35)',
-    neutral100: '#f5f5f5',
-    neutral400: '#a1a1a1',
-    neutral50: '#fafafa',
-    success: '#86efac',
-    successMuted: 'rgba(22, 101, 52, 0.35)',
-    white: '#fff',
-} as const;
-
-const TYPO = {
-    /** Signature, instruction rows, status badge - the card's reading size. */
-    body: { fontSize: { m: '24px', s: '20px' } },
-    /** Date, fee, overflow line: present, but not what the eye lands on. */
-    caption: { fontSize: '18px' },
-    footer: {
-        label: { fontSize: '20px' },
-        value: { fontSize: '26px' },
-    },
-    /** "Explorer", beside the logo. */
-    wordmark: { fontSize: '36px', fontWeight: 400 },
-} as const;
-
-const SPACING = {
-    canvasPadding: '36px 76px 76px',
-    footerCellGap: '6px',
-    /** One rhythm for every gap on the card: header, both sections, and the space above them. */
-    gap: '18px',
-} as const;
-
-const LOGO = { height: '26px', width: '229px' } as const;
-
-// Centred slightly above the middle so the glow sits behind the signature rather than the footer.
-const GLOW =
-    'radial-gradient(ellipse 120% 110% at 50% 40%, rgba(0, 90, 55, 0.55) 0%, rgba(0, 60, 40, 0.25) 40%, transparent 70%)';

@@ -6,13 +6,16 @@ import { type ServerCluster, serverClusterUrl } from '@utils/cluster';
  *
  * @param cluster - The cluster to read from, never Custom - see `ServerCluster`
  * @param signature - The transaction signature from the route
+ * @param abortSignal - The share deadline, already part-spent by the probe that resolved the cluster
  */
 export async function getTx({
+    abortSignal,
     cluster,
     signature,
 }: {
+    abortSignal?: AbortSignal;
     cluster: ServerCluster;
     signature: string;
 }): Promise<TransactionWithMeta | null> {
-    return fetchTransactionDetails(serverClusterUrl(cluster), signature);
+    return fetchTransactionDetails(serverClusterUrl(cluster), signature, { abortSignal });
 }

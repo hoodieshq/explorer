@@ -169,6 +169,42 @@ export const UnknownProgram: Story = {
     },
 };
 
+const LONG_IDL_INSTRUCTIONS: InstructionSummary[] = [
+    { name: 'Initialize Permissionless Pool With Fee Tier', programName: 'Meteora Dynamic Liquidity Market Maker' },
+    { name: 'Shared Accounts Route With Token Ledger', programName: 'Jupiter Aggregator Limit Order V2' },
+    { name: 'Increase Liquidity With Token Extensions', programName: 'Orca Whirlpools Concentrated Liquidity' },
+    { name: 'Lending Account Withdraw Emissions', programName: 'Marginfi Isolated Lending Protocol V2' },
+    { name: 'Close Open Orders Indexer Account', programName: 'OpenBook V2 Central Limit Order Book' },
+];
+
+// The canvas cannot grow, so the longest labels the card will ever draw fill every row at once and the
+// footer below them proves the worst case still fits.
+export const OversizedIdlNames: Story = {
+    args: {
+        data: { ...txShareData, instructions: LONG_IDL_INSTRUCTIONS },
+    },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        const rows = canvas.getAllByTestId('tx-image-instruction');
+
+        expect(rows).toHaveLength(MAX_INSTRUCTION_ROWS);
+
+        // The first row in full: both names cut at 29 characters and marked, rather than the program name
+        // spending the line and leaving the instruction nothing.
+        expect(rows[0]).toHaveTextContent('#1 Meteora Dynamic Liquidity Mar...: Initialize Permissionless Poo...');
+
+        // And no row prints either name whole, so the cap is not something only the first row gets. This
+        // also fails if a fixture above is edited down under the cap and quietly stops exercising it.
+        LONG_IDL_INSTRUCTIONS.forEach(({ name, programName }, index) => {
+            expect(rows[index]).not.toHaveTextContent(programName);
+            expect(rows[index]).not.toHaveTextContent(name);
+        });
+
+        // The row all of this exists for: the footer keeps its place instead of being pushed off the canvas.
+        expect(canvas.getByTestId('tx-image-footer')).toBeInTheDocument();
+    },
+};
+
 export const NoTransaction: Story = {
     args: {
         data: undefined,

@@ -128,7 +128,11 @@ describe('should shape the transaction behind an OG image', () => {
         const result = await getTxShareData(SIGNATURE, Cluster.Devnet);
 
         expect(mocks.findTransactionCluster).not.toHaveBeenCalled();
-        expect(mocks.getTx).toHaveBeenCalledWith({ cluster: Cluster.Devnet, signature: SIGNATURE });
+        expect(mocks.getTx).toHaveBeenCalledWith({
+            abortSignal: expect.any(AbortSignal),
+            cluster: Cluster.Devnet,
+            signature: SIGNATURE,
+        });
         expect(result).toEqual({
             data: {
                 computeUnits: 4321,
@@ -155,8 +159,13 @@ describe('should shape the transaction behind an OG image', () => {
         expect(mocks.findTransactionCluster).toHaveBeenCalledWith(
             [Cluster.MainnetBeta, Cluster.Devnet, Cluster.Testnet],
             SIGNATURE,
+            { abortSignal: expect.any(AbortSignal) },
         );
-        expect(mocks.getTx).toHaveBeenCalledWith({ cluster: Cluster.Testnet, signature: SIGNATURE });
+        expect(mocks.getTx).toHaveBeenCalledWith({
+            abortSignal: expect.any(AbortSignal),
+            cluster: Cluster.Testnet,
+            signature: SIGNATURE,
+        });
         expect(result.kind).toBe('ok');
     });
 
