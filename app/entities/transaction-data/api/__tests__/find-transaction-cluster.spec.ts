@@ -62,6 +62,38 @@ describe('findTransactionCluster', () => {
         });
     });
 
+    describe('the deadline the caller set', () => {
+        // One signal across the sequential probes, so the walk as a whole is bounded rather than each
+        // cluster getting a fresh allowance a stalled node can spend three times over.
+        it('should pass the caller signal to every probe in the walk', async () => {
+            const abortSignal = AbortSignal.timeout(1_000);
+
+            await findTransactionCluster([Cluster.MainnetBeta, Cluster.Devnet], SIGNATURE, { abortSignal });
+
+            expect(mockSend).toHaveBeenNthCalledWith(1, { abortSignal });
+            expect(mockSend).toHaveBeenNthCalledWith(2, { abortSignal });
+        });
+
+        // A timed-out probe is a cluster this walk could not reach, which is the error case that already
+        // exists. The caller decides what that means, exactly as it does for a refused connection.
+        it('should report an aborted probe as an error naming its cluster', async () => {
+            const error = new Error('The operation was aborted due to timeout');
+            mockSend.mockRejectedValueOnce(error);
+
+            const result = await findTransactionCluster([Cluster.MainnetBeta, Cluster.Devnet], SIGNATURE, {
+                abortSignal: AbortSignal.timeout(1_000),
+            });
+
+            expect(result).toEqual({ cluster: Cluster.MainnetBeta, error, kind: 'error' });
+        });
+
+        it('should send no signal when the caller set no deadline', async () => {
+            await findTransactionCluster([Cluster.MainnetBeta], SIGNATURE);
+
+            expect(mockSend).toHaveBeenCalledWith({ abortSignal: undefined });
+        });
+    });
+
     describe('no cluster holds the signature', () => {
         it('should report not-found after probing every cluster', async () => {
             // Annotated because an enum member widens to `Cluster` once it is held in a variable, and

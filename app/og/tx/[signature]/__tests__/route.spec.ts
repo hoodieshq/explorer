@@ -35,8 +35,13 @@ const shareData: TxShareData = {
     status: 'success',
 };
 
+/** A request in the shape `getTxOgImageUrl` emits, which is the only shape the route accepts. */
 function makeRequest(signature: string, cluster?: string) {
-    const query = cluster === undefined ? '' : `?cluster=${cluster}`;
+    return makeRawRequest(signature, cluster === undefined ? '' : `?cluster=${cluster}`);
+}
+
+/** A request with the query written out, for the shapes only a hand-edited URL produces. */
+function makeRawRequest(signature: string, query: string) {
     return new NextRequest(`http://localhost:3000/og/tx/${signature}${query}`);
 }
 
@@ -78,6 +83,29 @@ describe('should handle GET /og/tx/[signature]', () => {
 
     it('should return 400 when the cluster param is not a known slug', async () => {
         const response = await GET(makeRequest(SIGNATURE, 'sandbox'), makeProps(SIGNATURE));
+
+        expect(response.status).toBe(400);
+        expect(getTxShareData).not.toHaveBeenCalled();
+    });
+
+    // Every rejection below keeps one URL per card reaching the node. The CDN keys on the whole query, so a
+    // shape that still parses to a valid cluster is a fresh miss that repeats the whole render.
+    it('should return 400 when a param rides along with a valid cluster', async () => {
+        const response = await GET(makeRawRequest(SIGNATURE, '?cluster=devnet&bust=1'), makeProps(SIGNATURE));
+
+        expect(response.status).toBe(400);
+        expect(getTxShareData).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when an unrecognized param arrives without a cluster', async () => {
+        const response = await GET(makeRawRequest(SIGNATURE, '?bust=1'), makeProps(SIGNATURE));
+
+        expect(response.status).toBe(400);
+        expect(getTxShareData).not.toHaveBeenCalled();
+    });
+
+    it('should return 400 when the cluster param is repeated', async () => {
+        const response = await GET(makeRawRequest(SIGNATURE, '?cluster=devnet&cluster=devnet'), makeProps(SIGNATURE));
 
         expect(response.status).toBe(400);
         expect(getTxShareData).not.toHaveBeenCalled();

@@ -58,7 +58,20 @@ function cacheHeaders(duration: number) {
 }
 
 function resolveClusterParam(request: NextRequest): ClusterParam {
-    const slug = request.nextUrl.searchParams.get('cluster') ?? undefined;
+    const { search, searchParams } = request.nextUrl;
+    const slug = searchParams.get('cluster') ?? undefined;
+
+    // The CDN keys on the whole URL, so a second spelling of one request is a fresh miss - and each miss
+    // costs a probe, a transaction fetch, an IDL round and a Satori render that any caller can ask for.
+    // Comparing the raw query against the param it parsed to leaves the two shapes `getTxOgImageUrl` emits.
+    const canonical = slug === undefined ? '' : `?cluster=${slug}`;
+    if (search !== canonical) {
+        // Console only, like every refusal a caller can provoke: reporting one would hand anyone a way to
+        // raise alerts.
+        Logger.warn('[og:tx] Rejected a query that is not the canonical shape');
+        return { kind: 'invalid' };
+    }
+
     // An absent param is not an error: it means mainnet by the app's own contract, and getTxShareData probes.
     if (slug === undefined) return { kind: 'ok' };
 

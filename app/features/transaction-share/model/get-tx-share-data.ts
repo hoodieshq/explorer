@@ -39,6 +39,8 @@ type ErrorResult = { kind: 'error' };
 type NotFoundResult = { kind: 'not-found' };
 export type TxShareResult = { kind: 'ok'; data: TxShareData } | ErrorResult | NotFoundResult;
 
+const RPC_BUDGET_MS = 1_200;
+
 /**
  * The data behind `/og/tx/<signature>`, read from the cluster the link named or from the one the probe finds.
  *
@@ -49,10 +51,12 @@ export type TxShareResult = { kind: 'ok'; data: TxShareData } | ErrorResult | No
  */
 export async function getTxShareData(signature: string, cluster?: ServerCluster): Promise<TxShareResult> {
     try {
-        const resolved = await resolveCluster(signature, cluster);
+        const abortSignal = AbortSignal.timeout(RPC_BUDGET_MS);
+
+        const resolved = await resolveCluster(signature, cluster, abortSignal);
         if (resolved.kind !== 'found') return resolved;
 
-        const tx = await getTx({ cluster: resolved.cluster, signature });
+        const tx = await getTx({ abortSignal, cluster: resolved.cluster, signature });
         if (!tx) return { kind: 'not-found' };
 
         // Summarize the instructions in the transaction.
@@ -78,13 +82,16 @@ type ResolvedCluster = { kind: 'found'; cluster: ServerCluster } | NotFoundResul
 const PROBE_ORDER: readonly ServerCluster[] = [Cluster.MainnetBeta, Cluster.Devnet, Cluster.Testnet];
 
 /**
- * The caller's cluster when the link carried one, otherwise the entity's probe. A probe that could not
- * reach a cluster is a 502, the status the receipt route already returns for that failure.
+ * The caller's cluster when the link carried one, otherwise the entity's probe.
  */
-async function resolveCluster(signature: string, cluster?: ServerCluster): Promise<ResolvedCluster> {
+async function resolveCluster(
+    signature: string,
+    cluster: ServerCluster | undefined,
+    abortSignal: AbortSignal,
+): Promise<ResolvedCluster> {
     if (cluster !== undefined) return { cluster, kind: 'found' };
 
-    const result = await findTransactionCluster(PROBE_ORDER, signature);
+    const result = await findTransactionCluster(PROBE_ORDER, signature, { abortSignal });
 
     switch (result.kind) {
         case 'found':
