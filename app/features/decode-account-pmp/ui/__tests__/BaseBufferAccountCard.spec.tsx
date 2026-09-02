@@ -203,7 +203,7 @@ describe('BaseBufferAccountCard', () => {
         render(<BaseBufferAccountCard {...bufferArgs(body)} />);
 
         // First 8 hex chars survive HashValue's mid-truncation regardless of the width jsdom reports.
-        expect(screen.getByTestId('pmp-account-data-hash')).toHaveTextContent(resolved.dataHash.slice(0, 8));
+        expect(screen.getByTestId('pmp-payload-data-hash')).toHaveTextContent(resolved.dataHash.slice(0, 8));
     });
 
     it('should show the payload data hash for an oversized payload', () => {
@@ -217,7 +217,7 @@ describe('BaseBufferAccountCard', () => {
             />,
         );
 
-        expect(screen.getByTestId('pmp-account-data-hash')).toHaveTextContent('deadbeef');
+        expect(screen.getByTestId('pmp-payload-data-hash')).toHaveTextContent('deadbeef');
     });
 
     // Built from real bytes rather than a hand-rolled `configFromBytes`, so the real `resolveBufferConfigFromBytes`
@@ -227,7 +227,7 @@ describe('BaseBufferAccountCard', () => {
 
         render(<BaseBufferAccountCard {...bufferArgs(full.slice(0, full.length - 4))} />);
 
-        expect(screen.queryByTestId('pmp-account-data-hash')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-payload-data-hash')).not.toBeInTheDocument();
     });
 
     it('should not show a payload data hash when a declared container fails to unpack', () => {
@@ -236,6 +236,6 @@ describe('BaseBufferAccountCard', () => {
 
         render(<BaseBufferAccountCard {...bufferArgs(damaged)} />);
 
-        expect(screen.queryByTestId('pmp-account-data-hash')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-payload-data-hash')).not.toBeInTheDocument();
     });
 });
