@@ -19,6 +19,7 @@ import {
 } from './BasePmpAccountDataCard';
 import {
     PayloadDocumentRow,
+    PayloadHashRow,
     PayloadRows,
     PayloadTooLargeRow,
     PayloadUnpackOverflowRow,
@@ -97,6 +98,7 @@ function BufferDataContentRows({
     if (resultFromBytes.kind === 'oversized') {
         return (
             <>
+                <PayloadHashRow hash={resultFromBytes.dataHash} />
                 <PayloadTooLargeRow budget={resultFromBytes.budget} size={resultFromBytes.bytes.length} />
                 <RawPayloadRow bytes={resultFromBytes.bytes} />
             </>
@@ -118,6 +120,7 @@ function BufferDataContentRows({
                         (resultFromBytes.kind === 'text' ? resultFromBytes.format : undefined),
                 }}
             />
+            <PayloadHashRow hash={resultFromBytes.dataHash} />
             <BufferPayloadRow foundConfig={foundConfig} fromBytesConfig={resultFromBytes} />
         </>
     );

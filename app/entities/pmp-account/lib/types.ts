@@ -31,11 +31,17 @@ export type PmpDecodeConfig = {
  *
  * `text` is display-ready: a `Json` payload arrives pretty-printed, everything else verbatim. The card renders it
  * as-is, so nothing downstream has to know which format produced it.
+ *
+ * `dataHash` is a sha256 hex digest of the UNPACKED bytes on the same arm, carried only by `decoded` and
+ * `oversized` because those are the only two with bytes to hash. It is taken over the unpacked form on purpose: the
+ * stored bytes may be compressed, and deflate output varies by implementation and settings, so a hash over them
+ * would not be reproducible by a reader comparing an account against the file a CI build produced. Read it through
+ * `pmpPayloadHash` rather than narrowing the union by hand.
  */
 export type PmpPayloadDecodeResult =
-    | { kind: 'decoded'; text: string; bytes: Uint8Array }
+    | { kind: 'decoded'; text: string; bytes: Uint8Array; dataHash: string }
     | { kind: 'empty' }
-    | { kind: 'oversized'; bytes: Uint8Array; budget: number }
+    | { kind: 'oversized'; bytes: Uint8Array; budget: number; dataHash: string }
     | { kind: 'unpack-overflow'; limit: number }
     | { kind: 'failed'; reason: string };
 

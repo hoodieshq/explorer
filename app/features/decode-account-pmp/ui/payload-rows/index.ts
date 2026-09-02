@@ -1,4 +1,5 @@
 export { PayloadDocumentRow } from './PayloadDocumentRow';
+export { PayloadHashRow } from './PayloadHashRow';
 export {
     PayloadEmptyRow,
     PayloadTooLargeRow,
