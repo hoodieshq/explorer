@@ -1,10 +1,10 @@
 'use client';
 
 import type { BufferAccount } from '@entities/pmp-account';
-import { sha256 } from '@noble/hashes/sha256';
 import React from 'react';
 
-import { bytes, toHex } from '@/app/shared/lib/bytes';
+import { bytes } from '@/app/shared/lib/bytes';
+import { sha256Hex } from '@/app/shared/lib/hash';
 
 import {
     type ConfigResolutionFromBytesResult,
@@ -30,7 +30,7 @@ export function useDecodeBufferPayload({ account, address }: { account: BufferAc
     // cached one must not outlive the bytes it was resolved against. Fingerprinting the body rather than keying on
     // the account's identity is what keeps that cheap - the provider hands back a new object on every fetch, so an
     // identity key would re-run the scan even when the chain returned the very same bytes.
-    const fingerprint = React.useMemo(() => (account ? toHex(sha256(bytes(account.data))) : ''), [account]);
+    const fingerprint = React.useMemo(() => (account ? sha256Hex(bytes(account.data)) : ''), [account]);
 
     const enabled = shouldResolveOnchain(configFromBytes.status === 'ready' ? configFromBytes.result : undefined);
     const configFromOnchain = useResolveBufferConfigOnchain({ address, enabled, fingerprint });

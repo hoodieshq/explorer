@@ -86,11 +86,11 @@ export function Address({
     const isMidTruncateCandidate = (!noTruncate || !!nickname) && !overrideText && addressLabel === address;
 
     const editBtnRef = useRef<HTMLButtonElement>(null);
-    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation(
-        isMidTruncateCandidate,
-        address,
-        editBtnRef,
-    );
+    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation({
+        enabled: isMidTruncateCandidate,
+        text: address,
+        trailingRef: editBtnRef,
+    });
 
     const handleMouseEnter = (text: string) => {
         const elements = document.querySelectorAll(`[data-address="${text}"]`);

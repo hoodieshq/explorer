@@ -185,7 +185,7 @@ describe('BaseBufferAccountCard', () => {
             <BaseBufferAccountCard
                 {...bufferArgs(pack(YAML_DOC, Compression.Gzip))}
                 configFromBytes={{
-                    result: { budget: 2, bytes: new Uint8Array([1, 2, 3]), kind: 'oversized' },
+                    result: { budget: 2, bytes: new Uint8Array([1, 2, 3]), dataHash: 'deadbeef', kind: 'oversized' },
                     status: 'ready',
                 }}
             />,
@@ -193,5 +193,49 @@ describe('BaseBufferAccountCard', () => {
 
         expect(screen.getByTestId('pmp-account-payload-too-large')).toHaveTextContent('3 bytes, limit 2');
         expect(screen.getByTestId('pmp-account-raw')).toBeInTheDocument();
+    });
+
+    it('should show the payload data hash for a compressed buffer', () => {
+        const body = pack(YAML_DOC, Compression.Gzip);
+        const resolved = resolveBufferConfigFromBytes(body);
+        if (resolved.kind !== 'text') throw new Error(`expected a text payload, got "${resolved.kind}"`);
+
+        render(<BaseBufferAccountCard {...bufferArgs(body)} />);
+
+        // First 8 hex chars survive HashValue's mid-truncation regardless of the width jsdom reports.
+        expect(screen.getByTestId('pmp-account-data-hash')).toHaveTextContent(resolved.dataHash.slice(0, 8));
+    });
+
+    it('should show the payload data hash for an oversized payload', () => {
+        render(
+            <BaseBufferAccountCard
+                {...bufferArgs(pack(YAML_DOC, Compression.Gzip))}
+                configFromBytes={{
+                    result: { budget: 2, bytes: new Uint8Array([1, 2, 3]), dataHash: 'deadbeef', kind: 'oversized' },
+                    status: 'ready',
+                }}
+            />,
+        );
+
+        expect(screen.getByTestId('pmp-account-data-hash')).toHaveTextContent('deadbeef');
+    });
+
+    // Built from real bytes rather than a hand-rolled `configFromBytes`, so the real `resolveBufferConfigFromBytes`
+    // is what decides this lands on `incomplete` - the same guarantee `bufferArgs` gives every other case here.
+    it('should not show a payload data hash when the compressed stream is incomplete', () => {
+        const full = pack(YAML_DOC, Compression.Gzip);
+
+        render(<BaseBufferAccountCard {...bufferArgs(full.slice(0, full.length - 4))} />);
+
+        expect(screen.queryByTestId('pmp-account-data-hash')).not.toBeInTheDocument();
+    });
+
+    it('should not show a payload data hash when a declared container fails to unpack', () => {
+        const damaged = pack(YAML_DOC, Compression.Gzip);
+        damaged[damaged.length - 5] ^= 0xff;
+
+        render(<BaseBufferAccountCard {...bufferArgs(damaged)} />);
+
+        expect(screen.queryByTestId('pmp-account-data-hash')).not.toBeInTheDocument();
     });
 });
