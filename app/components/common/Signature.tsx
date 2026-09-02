@@ -38,7 +38,10 @@ type Props = {
 
 export function Signature({ signature, alignItems, alignRight, className, link, noTruncate }: Props) {
     const transactionPath = useClusterPath({ pathname: `/tx/${signature}` });
-    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation(!noTruncate, signature);
+    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation({
+        enabled: !noTruncate,
+        text: signature,
+    });
 
     const visibleText = isMidTruncated ? midTruncatedText : signature;
 

@@ -2,6 +2,7 @@ import { Compression, decodeData, Format } from '@solana-program/program-metadat
 import { Inflate } from 'pako';
 
 import { bytes, concat } from '@/app/shared/lib/bytes';
+import { sha256Hex } from '@/app/shared/lib/hash';
 import { Logger } from '@/app/shared/lib/logger';
 
 import { PMP_DECODE_BUDGET_BYTES, PMP_MAX_UNPACKED_BYTES } from './constants';
@@ -87,7 +88,7 @@ export function decodeUnpackedPayload({
     const budget = cap ?? PMP_DECODE_BUDGET_BYTES[config.encoding];
 
     if (bytes.length > budget) {
-        return { budget, bytes, kind: 'oversized' };
+        return { budget, bytes, dataHash: sha256Hex(bytes), kind: 'oversized' };
     }
 
     // Zero payload bytes come back as `empty`, never as `decoded`. Every encoding decodes nothing to the empty
@@ -109,7 +110,7 @@ export function decodeUnpackedPayload({
             return { kind: 'failed', reason: `unsupported encoding (${config.encoding})` };
         }
 
-        return { bytes, kind: 'decoded', text: toDocumentText(text, config.format) };
+        return { bytes, dataHash: sha256Hex(bytes), kind: 'decoded', text: toDocumentText(text, config.format) };
     } catch (error) {
         const reason = toErrorReason(error, 'unknown decode error');
         Logger.error(new Error('[pmp:decode-payload] failed to decode', { cause: error }), {
@@ -119,6 +120,11 @@ export function decodeUnpackedPayload({
         });
         return { kind: 'failed', reason };
     }
+}
+
+/** The unpacked-bytes digest, for the two arms that have bytes. `undefined` where there are none to hash. */
+export function pmpPayloadHash(payload: PmpPayloadDecodeResult): string | undefined {
+    return payload.kind === 'decoded' || payload.kind === 'oversized' ? payload.dataHash : undefined;
 }
 
 /**
