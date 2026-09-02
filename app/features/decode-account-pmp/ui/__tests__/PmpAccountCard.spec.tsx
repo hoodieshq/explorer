@@ -94,7 +94,7 @@ describe('PmpAccountCard', () => {
         expect(screen.getByTestId('pmp-account-dataLength')).toHaveTextContent('byte(s)');
         expect(screen.queryByTestId('pmp-account-decoded-pending')).not.toBeInTheDocument();
         // First 8 hex chars of DECODED's dataHash ('f'.repeat(64)) survive HashValue's mid-truncation either way.
-        expect(screen.getByTestId('pmp-account-data-hash')).toHaveTextContent('f'.repeat(64).slice(0, 8));
+        expect(screen.getByTestId('pmp-payload-data-hash')).toHaveTextContent('f'.repeat(64).slice(0, 8));
     });
 
     it('should show the payload data hash for an oversized Metadata payload', async () => {
@@ -107,7 +107,7 @@ describe('PmpAccountCard', () => {
 
         render(<PmpAccountCard account={toAccount(METADATA_ACCOUNT)} />);
 
-        expect(await screen.findByTestId('pmp-account-data-hash')).toHaveTextContent('deadbeef');
+        expect(await screen.findByTestId('pmp-payload-data-hash')).toHaveTextContent('deadbeef');
     });
 
     it('should render a binary Metadata payload as raw bytes rather than as a document', async () => {
@@ -157,7 +157,7 @@ describe('PmpAccountCard', () => {
         );
         // A failed decode degrades to the header rows, it does not take out the tab.
         expect(screen.getByTestId('pmp-account-mutable')).toBeInTheDocument();
-        expect(screen.queryByTestId('pmp-account-data-hash')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-payload-data-hash')).not.toBeInTheDocument();
     });
 
     it('should decode a Buffer account from its bytes and say the config was resolved from them', async () => {
@@ -172,7 +172,7 @@ describe('PmpAccountCard', () => {
         expect(screen.getByTestId('pmp-account-format')).toHaveTextContent('JSON');
         expect(screen.getByTestId('pmp-account-document')).toHaveTextContent('company');
         // First 8 hex chars survive HashValue's mid-truncation regardless of the width jsdom reports.
-        expect(screen.getByTestId('pmp-account-data-hash')).toHaveTextContent(resolved.dataHash.slice(0, 8));
+        expect(screen.getByTestId('pmp-payload-data-hash')).toHaveTextContent(resolved.dataHash.slice(0, 8));
 
         expect(screen.queryByTestId('pmp-account-encoding')).not.toBeInTheDocument();
         expect(screen.queryByTestId('pmp-account-dataSource')).not.toBeInTheDocument();

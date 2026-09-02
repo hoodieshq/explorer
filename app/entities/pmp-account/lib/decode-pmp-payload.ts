@@ -86,9 +86,9 @@ export function decodeUnpackedPayload({
     cap?: number;
 }): PmpPayloadDecodeResult {
     const budget = cap ?? PMP_DECODE_BUDGET_BYTES[config.encoding];
-
+    const dataHash = sha256Hex(bytes);
     if (bytes.length > budget) {
-        return { budget, bytes, dataHash: sha256Hex(bytes), kind: 'oversized' };
+        return { budget, bytes, dataHash, kind: 'oversized' };
     }
 
     // Zero payload bytes come back as `empty`, never as `decoded`. Every encoding decodes nothing to the empty
@@ -110,7 +110,7 @@ export function decodeUnpackedPayload({
             return { kind: 'failed', reason: `unsupported encoding (${config.encoding})` };
         }
 
-        return { bytes, dataHash: sha256Hex(bytes), kind: 'decoded', text: toDocumentText(text, config.format) };
+        return { bytes, dataHash, kind: 'decoded', text: toDocumentText(text, config.format) };
     } catch (error) {
         const reason = toErrorReason(error, 'unknown decode error');
         Logger.error(new Error('[pmp:decode-payload] failed to decode', { cause: error }), {

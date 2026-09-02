@@ -1,6 +1,7 @@
 import { RawDataField } from '@components/shared/RawDataField';
 import {
     decodePmpPayload,
+    PayloadHashRow,
     PMP_COMPRESSED_BYTES_LABELS,
     PMP_UNCOMPRESSED_BYTES_LABEL,
     type PmpAccountDecodeResult,
@@ -23,7 +24,6 @@ import { PMP_DECODED_DOWNLOAD_FILENAME, PMP_RAW_DOWNLOAD_FILENAME } from '../lib
 import { createPayloadTabTracker } from '../lib/payload-tab-tracker';
 import type { PmpPayloadInstruction } from '../lib/types';
 import { type PmpAccountPayloadResult, usePmpAccountPayload } from '../model/use-pmp-account-payload';
-import { PayloadHashRow } from './PayloadHashRow';
 
 /** The card table has three columns, so every row in this section spans all of them. */
 const CARD_TABLE_COLUMNS = 3;
@@ -63,7 +63,7 @@ export function DataPayloadSection({ pmpIx }: { pmpIx: PmpPayloadInstruction }) 
     const hash = pmpPayloadHash(decoded);
     return (
         <>
-            {hash !== undefined && <PayloadHashRow hash={hash} />}
+            {hash !== undefined && <PayloadHashRow columns={CARD_TABLE_COLUMNS} hash={hash} />}
             <SectionRow testId="pmp-payload-section">
                 <DecodedTabs
                     compression={config.compression}
@@ -127,7 +127,7 @@ function AccountRows({
 
     return (
         <>
-            {hash !== undefined && <PayloadHashRow hash={hash} />}
+            {hash !== undefined && <PayloadHashRow columns={CARD_TABLE_COLUMNS} hash={hash} />}
             <SectionRow testId="pmp-payload-section">
                 <div className="flex flex-col gap-0">
                     <Alert variant="default" data-testid="pmp-deferred-source-note" className="!mb-0 pl-0">
