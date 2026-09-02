@@ -45,3 +45,4 @@ export type {
     PmpPayloadDecodeResult,
 } from './lib/types';
 export { PmpDecodeConfigStruct } from './lib/validators';
+export { PayloadHashRow } from './ui/PayloadHashRow';
