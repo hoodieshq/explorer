@@ -16,20 +16,23 @@ import { useResolveBufferConfigFromBytes } from './use-resolve-buffer-config-fro
 import { useResolveBufferConfigOnchain } from './use-resolve-buffer-config-onchain';
 
 /**
- * Tries to decode Buffer account data.
+ * Tries to find config for decoding Buffer account data.
  * A Metadata account carries its own decode config, a Buffer doesn't and its config has be resolved first.
  *
  * Two strategies to resolve a Buffer's config are "Resolution from bytes" and "Resolution from intructions (Lookup)".
  * - Resolution from bytes tries to resolve config from bytes. It runs first.
  * - Lookup tries to resolve config from the on-chain instructions that holds the config (initialize, setData, etc).
  */
-export function useDecodeBufferPayload({ account, address }: { account: BufferAccount | undefined; address: string }) {
+export function useResolveBufferConfig({ account, address }: { account: BufferAccount | undefined; address: string }) {
     const configFromBytes = useResolveBufferConfigFromBytes(account);
 
     // The lookup is immutable per buffer VERSION, not per address: a later `setData` declares a new config, and the
     // cached one must not outlive the bytes it was resolved against. Fingerprinting the body rather than keying on
     // the account's identity is what keeps that cheap - the provider hands back a new object on every fetch, so an
     // identity key would re-run the scan even when the chain returned the very same bytes.
+    // The fingerprint hashes the STORED, still-compressed bytes, and it is a cache key rather than anything
+    // displayed. Do not unify it with the content hash over the unpacked bytes: re-packing identical content
+    // yields the same content hash but different stored bytes, so a content-hash key would miss a config change.
     const fingerprint = React.useMemo(() => (account ? sha256Hex(bytes(account.data)) : ''), [account]);
 
     const enabled = shouldResolveOnchain(configFromBytes.status === 'ready' ? configFromBytes.result : undefined);
