@@ -46,7 +46,9 @@ export function HashValue({ value, alignRight }: Props) {
             <Copyable text={value}>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <span className="relative min-w-0 overflow-hidden font-mono">{visibleText}</span>
+                        <span aria-label={value} className="relative min-w-0 overflow-hidden font-mono">
+                            {visibleText}
+                        </span>
                     </TooltipTrigger>
                     {isMidTruncated && (
                         <TooltipContent className="max-w-[min(320px,90vw)]">

@@ -17,11 +17,11 @@ import { useResolveBufferConfigOnchain } from './use-resolve-buffer-config-oncha
 
 /**
  * Tries to find config for decoding Buffer account data.
- * A Metadata account carries its own decode config, a Buffer doesn't and its config has be resolved first.
+ * A Metadata account carries its own decode config, a Buffer doesn't and its config has to be resolved first.
  *
- * Two strategies to resolve a Buffer's config are "Resolution from bytes" and "Resolution from intructions (Lookup)".
+ * Two strategies to resolve a Buffer's config are "Resolution from bytes" and "Resolution from instructions (Lookup)".
  * - Resolution from bytes tries to resolve config from bytes. It runs first.
- * - Lookup tries to resolve config from the on-chain instructions that holds the config (initialize, setData, etc).
+ * - Lookup tries to resolve config from the on-chain instructions that hold the config (initialize, setData, etc).
  */
 export function useResolveBufferConfig({ account, address }: { account: BufferAccount | undefined; address: string }) {
     const configFromBytes = useResolveBufferConfigFromBytes(account);
