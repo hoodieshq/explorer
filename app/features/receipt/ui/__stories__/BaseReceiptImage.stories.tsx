@@ -1,7 +1,8 @@
+import { IMAGE_SIZE } from '@entities/open-graph';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { expect, within } from 'storybook/test';
 
-import { BaseReceiptImage, IMAGE_SIZE } from '../BaseReceiptImage';
+import { BaseReceiptImage } from '../BaseReceiptImage';
 import {
     defaultReceipt,
     receiptLargeAmountWithMemo,
