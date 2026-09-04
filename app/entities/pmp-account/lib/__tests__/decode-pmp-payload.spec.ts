@@ -192,7 +192,11 @@ describe('decodePmpPayload', () => {
             data: new Uint8Array([1, 2, 3]),
         });
 
-        expect(result).toEqual({ kind: 'failed', reason: 'unsupported encoding (99)' });
+        expect(result).toEqual({
+            dataHash: expect.any(String),
+            kind: 'failed',
+            reason: 'unsupported encoding (99)',
+        });
     });
 
     it('should log at debug when a Json payload does not parse as JSON', () => {
@@ -329,7 +333,26 @@ describe('pmpPayloadHash', () => {
 
     it('should report no hash for the arms that carry no bytes', () => {
         expect(pmpPayloadHash({ kind: 'empty' })).toBeUndefined();
-        expect(pmpPayloadHash({ kind: 'failed', reason: 'x' })).toBeUndefined();
         expect(pmpPayloadHash({ kind: 'unpack-overflow', limit: 1 })).toBeUndefined();
+    });
+
+    it('should keep the hash when the bytes unpacked and only the encoding step failed', () => {
+        const result = decodeUnpackedPayload({
+            bytes: fromUtf8(DOC),
+            config: { compression: Compression.None, encoding: 99 as Encoding, format: Format.Json },
+        });
+
+        expect(result.kind).toBe('failed');
+        expect(pmpPayloadHash(result)).toBe(DOC_HASH);
+    });
+
+    it('should report no hash when the unpack itself failed, so no bytes were ever produced', () => {
+        const result = decodePmpPayload({
+            config: { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json },
+            data: new Uint8Array([1, 2, 3, 4]),
+        });
+
+        expect(result.kind).toBe('failed');
+        expect(pmpPayloadHash(result)).toBeUndefined();
     });
 });

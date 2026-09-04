@@ -107,7 +107,7 @@ export function decodeUnpackedPayload({
                 sentry: true,
                 sentryExtras: { compression: config.compression, encoding: config.encoding },
             });
-            return { kind: 'failed', reason: `unsupported encoding (${config.encoding})` };
+            return { dataHash, kind: 'failed', reason: `unsupported encoding (${config.encoding})` };
         }
 
         return { bytes, dataHash, kind: 'decoded', text: toDocumentText(text, config.format) };
@@ -118,13 +118,13 @@ export function decodeUnpackedPayload({
             encoding: config.encoding,
             reason,
         });
-        return { kind: 'failed', reason };
+        return { dataHash, kind: 'failed', reason };
     }
 }
 
 /** The unpacked-bytes digest, for the two arms that have bytes. `undefined` where there are none to hash. */
 export function pmpPayloadHash(payload: PmpPayloadDecodeResult): string | undefined {
-    return payload.kind === 'decoded' || payload.kind === 'oversized' ? payload.dataHash : undefined;
+    return payload.kind === 'empty' || payload.kind === 'unpack-overflow' ? undefined : payload.dataHash;
 }
 
 /**
