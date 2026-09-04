@@ -343,18 +343,19 @@ describe('DataPayloadSection', () => {
     });
 
     it('should report both the unpacked and the stored size when an oversized payload was compressed', async () => {
-        // Zeros compress to almost nothing, so this fixture stays small on the wire (289 bytes) while still
-        // decoding to one byte past the shared render cap, which is what pushes it into `oversized`.
+        const stored = gzip(new Uint8Array(PMP_DECODED_RENDER_CAP_BYTES + 1));
         renderSection({
             config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
             dataSource: DataSource.Direct,
             kind: 'setData',
-            payload: gzip(new Uint8Array(PMP_DECODED_RENDER_CAP_BYTES + 1)),
+            payload: stored,
         });
         await openDecodedTab();
 
         const oversized = screen.getByTestId('pmp-payload-oversized');
-        expect(oversized).toHaveTextContent(`${PMP_DECODED_RENDER_CAP_BYTES + 1} bytes unpacked from 289 stored`);
+        expect(oversized).toHaveTextContent(
+            `${PMP_DECODED_RENDER_CAP_BYTES + 1} bytes unpacked from ${stored.length} stored`,
+        );
         // Sits in the field header beside the unpacked count, saying which of the two counts this download carries.
         expect(screen.getByTestId('pmp-bytes-badge-uncompressed')).toHaveTextContent('uncompressed');
     });
