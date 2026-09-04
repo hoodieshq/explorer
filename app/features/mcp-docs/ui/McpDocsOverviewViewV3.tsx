@@ -257,6 +257,8 @@ function Hero({ origin, status }: { origin: string; status: EndpointStatus }) {
                             href="#setup"
                             fieldRef={fieldRef}
                             className="text-[15px]"
+                            mobileDotScale={2}
+                            mobilePullScale={0.85}
                             zoneTop={1 / 3}
                             zoneBottom={2 / 3}
                         >
@@ -352,12 +354,17 @@ const COPY_ICON = {
 /**
  * The endpoint address as plain mono text with an inline copy button. The button is inline-flow,
  * not a flex child, so when the address wraps it wraps with it like one more character on the line.
+ *
+ * The address itself also copies on a double click — the gesture people already try on a URL —
+ * and hands back the same full value as the button, scheme included, not just the shown host.
  */
 function EndpointAddress({ display, value }: { display: string; value: string }) {
     const [state, copy] = useCopyToClipboard(1000);
     return (
         <span className="font-mono text-sm text-[#EDF2F0] [overflow-wrap:anywhere]">
-            {display}
+            <span className="cursor-copy" onDoubleClick={() => copy(value)} title="Double-click to copy">
+                {display}
+            </span>
             <button
                 type="button"
                 aria-label="Copy endpoint to clipboard"
@@ -391,8 +398,42 @@ const CTA_FIELD_X = 110;
 const CTA_FIELD_Y = 70;
 /** Attraction constant, tuned so a dot crosses the field in roughly a second. */
 const CTA_GRAVITY = 260_000;
+/**
+ * Distance (px) the attraction constant is quoted at: the pull at CTA_GRAVITY_REF is the same
+ * whatever the falloff, so the exponent below re-shapes the curve instead of rescaling it.
+ */
+const CTA_GRAVITY_REF = 200;
+/**
+ * How steeply the pull falls off with distance. 2 is textbook inverse-square: nearly all of the
+ * pull sits in the last few dozen px, so the field barely reaches and the dots then whip into the
+ * button. Lower spreads the same pull out — further reach, calmer arrival.
+ */
+const CTA_GRAVITY_FALLOFF = 2;
+/**
+ * Softening length (px): the pull is measured against sqrt(d² + s²) rather than d, so it levels
+ * off instead of blowing up as a dot closes in. A larger value is a wider, gentler landing.
+ */
+const CTA_GRAVITY_SOFTENING = 24;
 const CTA_MAX_DOTS = 2600;
 const CTA_SPAWNS_PER_SECOND = 1100;
+/**
+ * Phones run half the field: same look, half the dots to integrate and draw. Matched as a
+ * media-query list rather than a width alone, so a phone turned to landscape — wider than the
+ * breakpoint — keeps the reduced count.
+ */
+/**
+ * Sub-pixel slack in the "scrolled to the bottom" test. Fractional device pixels leave the maximum
+ * scroll position a hair short of the exact page height, so an exact comparison can never become
+ * true — this is float tolerance, not an activation area.
+ */
+const CTA_SCROLL_EPSILON = 2;
+const CTA_MOBILE_QUERY = '(hover: none), (max-width: 767px)';
+const CTA_MOBILE_DOT_DIVISOR = 2;
+/**
+ * And the swarm the pull builds is halved once more on top of that, since the pull is where a
+ * phone has the most dots on screen at once: 2.5× the resting field instead of the full 5×.
+ */
+const CTA_MOBILE_PULL_DOT_DIVISOR = 2;
 /**
  * While the pointer is over the button both the dot cap and the spawn rate are multiplied
  * by this, so a hover pulls in a swarm five times denser than the resting field. Off-hover
@@ -429,8 +470,23 @@ const CTA_CELL = 90;
 /** Big dots (target size above this) grow in from a 1px point over CTA_GROW_SECONDS. */
 const CTA_GROW_MIN_SIZE = 2;
 const CTA_GROW_SECONDS = 1;
-/** The big gradations (target > CTA_GROW_MIN_SIZE), sampled when twinkling a fresh big dot in. */
-const CTA_BIG_BUCKETS = CTA_DOT_SIZES.filter(bucket => bucket.min > CTA_GROW_MIN_SIZE);
+/**
+ * Gradations above this size are a gravity-only spark: they are drawn only while the pull is on,
+ * and the moment it stops every one still in the field fades out — so the biggest dots stay tied
+ * to the gravity and the resting field settles back to 1–CTA_IDLE_MAX_SIZE px.
+ */
+const CTA_IDLE_MAX_SIZE = 3;
+const CTA_IDLE_WEIGHT = CTA_DOT_SIZES.reduce(
+    (sum, bucket) => (bucket.min <= CTA_IDLE_MAX_SIZE ? sum + bucket.weight : sum),
+    0,
+);
+/**
+ * The big gradations, sampled when twinkling a fresh big dot in: above CTA_GROW_MIN_SIZE, so they
+ * grow in and out, and no larger than CTA_IDLE_MAX_SIZE, since twinkling only happens at idle.
+ */
+const CTA_BIG_BUCKETS = CTA_DOT_SIZES.filter(
+    bucket => bucket.min > CTA_GROW_MIN_SIZE && bucket.min <= CTA_IDLE_MAX_SIZE,
+);
 const CTA_BIG_WEIGHT = CTA_BIG_BUCKETS.reduce((sum, bucket) => sum + bucket.weight, 0);
 /**
  * Big dots have a finite life so they twinkle in and out at idle: each lives this long (at
@@ -476,9 +532,15 @@ type CtaDot = {
 function GravityCta({
     children,
     className,
+    dotScale = 1,
+    falloff = CTA_GRAVITY_FALLOFF,
     fieldRef,
+    flightSpeedScale = 1,
     href,
+    mobileDotScale = 1,
+    mobilePullScale = 1,
     pageBottomGap,
+    softening = CTA_GRAVITY_SOFTENING,
     wrapClassName,
     zoneBottom = 0.625,
     zoneTop = 0.375,
@@ -486,12 +548,45 @@ function GravityCta({
     children: React.ReactNode;
     className?: string;
     /**
+     * How dense this band's field is, as a factor on the standard budget — every device, not just
+     * phones, and the swarm under gravity scales with it. A band with less room, or one that reads
+     * as busy next to its copy, takes a thinner field.
+     */
+    dotScale?: number;
+    /**
+     * Falloff exponent of the pull for this band (default CTA_GRAVITY_FALLOFF). Below 2 the field
+     * reaches further and eases off near the button, which reads as a calmer, less busy band.
+     */
+    falloff?: number;
+    /**
      * When given, the gravity field spans this element (a whole band) instead of a
      * small box around the button, and the dot canvas is portaled into it — so the
      * dots drift in from the full width and height of the block, not just the button.
      */
     fieldRef?: React.RefObject<HTMLElement | null>;
+    /**
+     * How fast the dots fly in, as a factor on the resting 1× — every device, not just phones.
+     * Arrival speed goes as the square root of the attraction, so the constant is scaled by the
+     * square of this and 0.5 really is half the speed. A calmer band reads as a slower drift in.
+     */
+    flightSpeedScale?: number;
     href: string;
+    /**
+     * Per-band tuning of the mobile dot budget: the phone caps (resting and pull alike) are
+     * multiplied by this. Desktop is untouched. Bands differ in how much room the field has and
+     * how much else is on screen, so the hero can afford a denser field than the closing CTA.
+     */
+    mobileDotScale?: number;
+    /**
+     * Per-band tuning of the mobile cap under gravity only, applied on top of `mobileDotScale`:
+     * how dense the swarm the pull is allowed to build gets, with the resting field left alone.
+     */
+    mobilePullScale?: number;
+    /**
+     * Softening length in px for this band (default CTA_GRAVITY_SOFTENING) — how wide the flat
+     * spot around the button is, i.e. how early the arriving dots stop accelerating.
+     */
+    softening?: number;
     /**
      * Touch-only, like the `zoneTop`/`zoneBottom` band it replaces: gravity switches on once the page
      * is scrolled to within this many px of its bottom — for the closing CTA, which lives at the very
@@ -529,6 +624,16 @@ function GravityCta({
         const link = linkRef.current;
         const ctx = canvas?.getContext('2d');
         if (!wrap || !canvas || !link || !ctx) return;
+
+        // Attraction for this band. A dot's arrival speed goes as the square root of the constant,
+        // so squaring the scale is what makes `flightSpeedScale` read as a speed: 0.5 → a quarter
+        // of the pull → half the speed.
+        const gravity = CTA_GRAVITY * flightSpeedScale * flightSpeedScale;
+        // The constant is quoted as the acceleration at CTA_GRAVITY_REF, so changing the falloff
+        // re-shapes the curve without re-scaling the whole field: the pull at the reference
+        // distance is the same for any exponent, and only its distribution over distance moves.
+        const refAccel = gravity / (CTA_GRAVITY_REF * CTA_GRAVITY_REF);
+        const inverseSquare = falloff === 2;
 
         let width = 0;
         let height = 0;
@@ -574,10 +679,12 @@ function GravityCta({
 
         const dots: CtaDot[] = [];
 
-        // Size is drawn from the weighted buckets: mostly 1–2px, rarely 7–8px.
-        const randomSize = () => {
-            let ticket = Math.random() * CTA_DOT_WEIGHT;
+        // Size is drawn from the weighted buckets: mostly 1–2px, rarely 6px. At idle the draw stops
+        // at CTA_IDLE_MAX_SIZE, so the sparks the fade-out clears aren't spawned straight back in.
+        const randomSize = (idle: boolean) => {
+            let ticket = Math.random() * (idle ? CTA_IDLE_WEIGHT : CTA_DOT_WEIGHT);
             for (const bucket of CTA_DOT_SIZES) {
+                if (idle && bucket.min > CTA_IDLE_MAX_SIZE) break;
                 if (ticket < bucket.weight) return bucket.min + Math.random() * (bucket.max - bucket.min);
                 ticket -= bucket.weight;
             }
@@ -614,6 +721,14 @@ function GravityCta({
             });
         };
 
+        // Start one dot's fade-out in place, freezing the size it had actually grown to so a dot
+        // caught mid-grow-in shrinks away from there instead of popping to full size first.
+        const startFade = (dot: CtaDot, dt: number) => {
+            const t = Math.min(dot.age / CTA_GROW_SECONDS, 1);
+            dot.size = 1 + (dot.size - 1) * t * (2 - t);
+            dot.dying = dt;
+        };
+
         // A random point in the sparsest cell of a coarse density grid, so new dots fill in
         // where the field is thin rather than clumping — the "spawn where they're few" pass,
         // done at spawn time instead of by shuffling settled dots (which would flicker).
@@ -640,14 +755,36 @@ function GravityCta({
         // Spawn one dot at a random point across the whole field, not just the border.
         // Replacements land everywhere, so absorbing a hover's central cloud and refilling
         // it doesn't leave a hole in the middle while the edges slowly drift back in.
-        const spawn = () => makeDot(randomSize(), Math.random() * width, Math.random() * height);
+        const spawn = (idle: boolean) => makeDot(randomSize(idle), Math.random() * width, Math.random() * height);
         // A guaranteed big dot, placed where the field is sparsest — twinkles a fresh one in
         // when another ages out.
         const spawnBig = () => makeDot(bigSize(), ...sparseXY());
 
-        // Initial seed just fills up to the cap using the same area spawn.
+        // Dot caps for this device: the resting field, and the swarm the pull is allowed to build.
+        // On a phone both are halved, the pull's cap is halved once more, and the band's own
+        // `mobileDotScale` scales what is left. Re-read when the query flips (rotation, a resized
+        // window): a field left above the new cap is eased down by the idle drain below, and one
+        // below it is refilled by the steady spawn — neither needs handling here.
+        const mobile = window.matchMedia(CTA_MOBILE_QUERY);
+        let restingDots = CTA_MAX_DOTS;
+        let pullDots = CTA_MAX_DOTS * CTA_HOVER_DOT_MULTIPLIER;
+        const updateDotCaps = () => {
+            restingDots = Math.round(
+                mobile.matches
+                    ? (CTA_MAX_DOTS / CTA_MOBILE_DOT_DIVISOR) * mobileDotScale * dotScale
+                    : CTA_MAX_DOTS * dotScale,
+            );
+            pullDots = mobile.matches
+                ? Math.round((restingDots * CTA_HOVER_DOT_MULTIPLIER * mobilePullScale) / CTA_MOBILE_PULL_DOT_DIVISOR)
+                : restingDots * CTA_HOVER_DOT_MULTIPLIER;
+        };
+        updateDotCaps();
+        mobile.addEventListener('change', updateDotCaps);
+
+        // Initial seed just fills up to the cap using the same area spawn, at rest so it starts
+        // out as the resting field rather than one holding sparks no gravity ever pulled in.
         const seed = () => {
-            while (dots.length < CTA_MAX_DOTS) spawn();
+            while (dots.length < restingDots) spawn(true);
         };
         seed();
 
@@ -661,6 +798,8 @@ function GravityCta({
         let running = false;
         // 0 when idle; ramps toward CTA_HOVER_GRAVITY while the pointer is over the button.
         let gravityScale = 0;
+        // Last frame's gravity state, so the frame it switches off can flush the big sparks.
+        let wasActive = false;
 
         const step = (now: number) => {
             const dt = last === 0 ? 1 / 60 : Math.min((now - last) / 1000, 1 / 20);
@@ -680,16 +819,26 @@ function GravityCta({
                 gravityScale = 0;
             }
 
+            // The frame the pull stops, every spark above CTA_IDLE_MAX_SIZE starts fading out where
+            // it stands — the same shrink-and-fade a twinkle ends on — and the now idle-capped spawn
+            // refills the gaps with small dots, so no oversized dot is left sitting in the field.
+            if (wasActive && !active) {
+                for (const dot of dots) {
+                    if (dot.dying === 0 && dot.size > CTA_IDLE_MAX_SIZE) startFade(dot, dt);
+                }
+            }
+            wasActive = active;
+
             // Active lifts both the cap and the spawn rate together, so the field densifies to
             // five times its resting size while gravity is pulling.
             const hovering = active;
-            const maxDots = hovering ? CTA_MAX_DOTS * CTA_HOVER_DOT_MULTIPLIER : CTA_MAX_DOTS;
+            const maxDots = hovering ? pullDots : restingDots;
             const spawnRate = hovering ? CTA_SPAWNS_PER_SECOND * CTA_HOVER_DOT_MULTIPLIER : CTA_SPAWNS_PER_SECOND;
 
             spawnDebt += dt * spawnRate;
             while (spawnDebt >= 1) {
                 spawnDebt -= 1;
-                if (dots.length < maxDots) spawn();
+                if (dots.length < maxDots) spawn(!active);
             }
 
             ctx.clearRect(0, 0, width, height);
@@ -727,8 +876,15 @@ function GravityCta({
 
                 const dx = centerX - dot.x;
                 const dy = centerY - dot.y;
-                const distance = Math.max(Math.hypot(dx, dy), 24);
-                const pull = ((CTA_GRAVITY * gravityScale) / (distance * distance)) * dt;
+                // Softened distance: the true one out in the field, never under the softening
+                // length up close, and smooth in between (no kink where a hard floor would sit).
+                const softened = Math.sqrt(dx * dx + dy * dy + softening * softening);
+                const drop = inverseSquare
+                    ? (CTA_GRAVITY_REF * CTA_GRAVITY_REF) / (softened * softened)
+                    : Math.pow(CTA_GRAVITY_REF / softened, falloff);
+                const pull = refAccel * drop * gravityScale * dt;
+                // Direction only — the magnitude came from the softened distance above.
+                const distance = Math.max(Math.hypot(dx, dy), 0.001);
                 dot.vx += (dx / distance) * pull;
                 dot.vy += (dy / distance) * pull;
 
@@ -758,20 +914,17 @@ function GravityCta({
                 if (Math.hypot(localX - clamped, localY) <= halfH + dot.size / 2) {
                     // Area, not diameter — an 8px dot lands far harder than a 2px one.
                     swell = Math.min(CTA_HIT_CEILING, swell + dot.size * dot.size * CTA_HIT_GAIN);
-                    // Big dots fade out where they land; small ones just go. Freeze the size
-                    // it had grown to so the fade continues from there rather than popping to
-                    // full size first (a hover absorbs them well before the grow-in finishes).
+                    // Big dots fade out where they land, from the size they had actually reached
+                    // (a hover absorbs them well before the grow-in finishes); small ones just go.
                     if (dot.size > CTA_GROW_MIN_SIZE) {
-                        const t = Math.min(dot.age / CTA_GROW_SECONDS, 1);
-                        dot.size = 1 + (dot.size - 1) * t * (2 - t);
-                        dot.dying = dt;
+                        startFade(dot, dt);
                     } else {
                         dots.splice(index, 1);
                     }
                     // Feed one back for every dot the button eats, so a hover — which absorbs
                     // dots far faster than the steady spawn refills — doesn't leave the field
                     // sparse once the pointer moves away.
-                    if (dots.length < maxDots) spawn();
+                    if (dots.length < maxDots) spawn(!active);
                     continue;
                 }
 
@@ -780,7 +933,7 @@ function GravityCta({
                     // Replace escapees too: under a hard hover, dots that graze the button
                     // slingshot out of bounds fast, and losing those unreplaced is what drains
                     // the field so a dip shows once the pointer leaves.
-                    if (dots.length < maxDots) spawn();
+                    if (dots.length < maxDots) spawn(!active);
                     continue;
                 }
 
@@ -833,7 +986,7 @@ function GravityCta({
                 }
                 const rate = 1 - Math.exp(-dt / CTA_DRAIN_TAU);
                 const overfill = (alive / counts.length) * CTA_REDIST_OVERFILL;
-                let toDrain = Math.ceil(Math.max(0, alive - CTA_MAX_DOTS) * rate);
+                let toDrain = Math.ceil(Math.max(0, alive - restingDots) * rate);
                 let toRefill = 0;
                 // Fade a slice out of the crowded cells: the surplus first (no replacement), then
                 // the rest as recycling that will grow back in where the field is thin.
@@ -862,7 +1015,7 @@ function GravityCta({
                     }
                     counts[sparsest]++;
                     makeDot(
-                        randomSize(),
+                        randomSize(true),
                         ((sparsest % cols) + Math.random()) * (width / cols),
                         (Math.floor(sparsest / cols) + Math.random()) * (height / rows),
                     );
@@ -896,6 +1049,7 @@ function GravityCta({
         // drives gravity and this stays off. On touch there are two cues:
         //  - `pageBottomGap` set (closing CTA): the page is scrolled to within that many px of its
         //    bottom — the button lives at the very end, so "reached the end" is the natural cue.
+        //    A gap of 0 means the very bottom and nothing earlier, sub-pixel slack aside.
         //  - otherwise: the button's centre sits within the caller's activation band
         //    (`zoneTop`–`zoneBottom` of the viewport), the way a hover would on desktop.
         const coarse = window.matchMedia('(hover: none)');
@@ -906,7 +1060,8 @@ function GravityCta({
             }
             if (pageBottomGap !== undefined) {
                 const doc = document.documentElement;
-                zoneRef.current = window.scrollY + window.innerHeight >= doc.scrollHeight - pageBottomGap;
+                zoneRef.current =
+                    window.scrollY + window.innerHeight >= doc.scrollHeight - pageBottomGap - CTA_SCROLL_EPSILON;
                 return;
             }
             const rect = link.getBoundingClientRect();
@@ -922,11 +1077,24 @@ function GravityCta({
             cancelAnimationFrame(frame);
             observer.disconnect();
             visibility.disconnect();
+            mobile.removeEventListener('change', updateDotCaps);
             window.removeEventListener('scroll', updateZone);
             window.removeEventListener('resize', updateZone);
             link.style.transform = '';
         };
-    }, [reduced, fieldEl, zoneTop, zoneBottom, pageBottomGap]);
+    }, [
+        reduced,
+        fieldEl,
+        zoneTop,
+        zoneBottom,
+        pageBottomGap,
+        mobileDotScale,
+        mobilePullScale,
+        flightSpeedScale,
+        falloff,
+        softening,
+        dotScale,
+    ]);
 
     // One canvas element, positioned either as a full-band overlay (field mode) or a
     // small box around the button (local mode). In field mode it is portaled into the
@@ -1152,7 +1320,17 @@ function CodeCard({
     );
 }
 
-/** Compact tab row for a card header bar — sits where a static label would, scrolls if it overflows. */
+/** Width (px) of the dissolve at a tab row's scrolling edge. */
+const TAB_FADE = 28;
+
+/**
+ * Compact tab row for a card header bar — sits where a static label would, scrolls if it overflows.
+ *
+ * An overflowing row dissolves at the ends that have tabs scrolled out of sight rather than being
+ * chopped off mid-letter: on the right that edge butts against the copy button, where a hard cut
+ * read as a rendering fault. The fade follows the scroll position, so a row scrolled to its end
+ * shows the last tab at full strength and one that fits is not faded at all.
+ */
 function CardTabs({
     items,
     onChange,
@@ -1162,10 +1340,42 @@ function CardTabs({
     onChange: (id: string) => void;
     value: string;
 }) {
+    const rowRef = useRef<HTMLDivElement>(null);
+    const [edges, setEdges] = useState({ end: false, start: false });
+
+    useEffect(() => {
+        const row = rowRef.current;
+        if (!row) return;
+        const update = () => {
+            // 1px of slack: fractional scroll offsets never land exactly on the maximum.
+            const max = row.scrollWidth - row.clientWidth;
+            const start = row.scrollLeft > 1;
+            const end = row.scrollLeft < max - 1;
+            setEdges(prev => (prev.start === start && prev.end === end ? prev : { end, start }));
+        };
+        update();
+        row.addEventListener('scroll', update, { passive: true });
+        const observer = new ResizeObserver(update);
+        observer.observe(row);
+        return () => {
+            row.removeEventListener('scroll', update);
+            observer.disconnect();
+        };
+    }, [items]);
+
+    // Opaque across the row, transparent only at an edge with more tabs behind it.
+    const stops = [
+        edges.start ? `transparent, #000 ${TAB_FADE}px` : '#000',
+        edges.end ? `#000 calc(100% - ${TAB_FADE}px), transparent` : '#000',
+    ].join(', ');
+    const mask = edges.start || edges.end ? `linear-gradient(to right, ${stops})` : undefined;
+
     return (
         <div
+            ref={rowRef}
             role="tablist"
             className="flex min-w-0 flex-1 items-stretch gap-5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            style={{ WebkitMaskImage: mask, maskImage: mask }}
         >
             {items.map(item => {
                 const active = item.id === value;
@@ -1241,7 +1451,7 @@ const TOOL_VIEWS = [
 function Tools() {
     return (
         <>
-            <BandIntro title="Two tools, and neither one can sign">
+            <BandIntro title="Two tools cover the whole chain">
                 The server registers two tools. Both are read-only — nothing signs, sends or mutates.
             </BandIntro>
             <ToolDoc
@@ -1758,7 +1968,18 @@ function ClosingCta() {
                     Code.
                 </p>
                 <div className="flex flex-col items-center gap-2.5 pt-2.5 sm:flex-row sm:gap-3">
-                    <GravityCta href="#setup" fieldRef={fieldRef} className="text-[15.5px]" pageBottomGap={20}>
+                    <GravityCta
+                        href="#setup"
+                        fieldRef={fieldRef}
+                        className="text-[15.5px]"
+                        dotScale={1 / 1.5}
+                        falloff={1.6}
+                        flightSpeedScale={0.53}
+                        mobileDotScale={0.5}
+                        mobilePullScale={0.5}
+                        pageBottomGap={0}
+                        softening={52}
+                    >
                         Set up your agent
                     </GravityCta>
                 </div>

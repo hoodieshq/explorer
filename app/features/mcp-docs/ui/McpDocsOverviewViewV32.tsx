@@ -295,18 +295,18 @@ const CTA_REDIST_OVERFILL = 1.5;
 const CTA_HOVER_SCALE = 1.02;
 const CTA_HOVER_SHIFT = 6;
 /**
- * Relative frequency of each dot-size gradation, in px. The 3–6px tail is graded into
- * single-px steps with a uniform drop (0.08 → 0.06 → 0.04 → 0.02) that keeps the same 0.2
- * total, so it slots into the overall descending scale rather than a lump:
- *   1px·10, 2px·1.6, 3px·0.08, 4px·0.06, 5px·0.04, 6px·0.02.
+ * Relative frequency of each dot-size gradation, in px. The 3–6px tail drops away steeply: past
+ * 3px each gradation is thinned further than the one before it (4px halved, 5px cut to a third,
+ * 6px to a quarter), so the largest dots read as rare sparks rather than a population:
+ *   1px·10, 2px·1.6, 3px·0.08, 4px·0.03, 5px·0.0133, 6px·0.005.
  */
 const CTA_DOT_SIZES = [
     { max: 1, min: 1, weight: 10 },
     { max: 2, min: 2, weight: 1.6 },
     { max: 3, min: 3, weight: 0.08 },
-    { max: 4, min: 4, weight: 0.06 },
-    { max: 5, min: 5, weight: 0.04 },
-    { max: 6, min: 6, weight: 0.02 },
+    { max: 4, min: 4, weight: 0.03 },
+    { max: 5, min: 5, weight: 0.0133 },
+    { max: 6, min: 6, weight: 0.005 },
 ];
 const CTA_DOT_WEIGHT = CTA_DOT_SIZES.reduce((sum, bucket) => sum + bucket.weight, 0);
 /** Density-grid cell size (px) used to place new dots where the field is sparsest. */
@@ -314,8 +314,23 @@ const CTA_CELL = 90;
 /** Big dots (target size above this) grow in from a 1px point over CTA_GROW_SECONDS. */
 const CTA_GROW_MIN_SIZE = 2;
 const CTA_GROW_SECONDS = 1;
-/** The big gradations (target > CTA_GROW_MIN_SIZE), sampled when twinkling a fresh big dot in. */
-const CTA_BIG_BUCKETS = CTA_DOT_SIZES.filter(bucket => bucket.min > CTA_GROW_MIN_SIZE);
+/**
+ * Gradations above this size are a gravity-only spark: they are drawn only while the pull is on,
+ * and the moment it stops every one still in the field fades out — so the biggest dots stay tied
+ * to the gravity and the resting field settles back to 1–CTA_IDLE_MAX_SIZE px.
+ */
+const CTA_IDLE_MAX_SIZE = 3;
+const CTA_IDLE_WEIGHT = CTA_DOT_SIZES.reduce(
+    (sum, bucket) => (bucket.min <= CTA_IDLE_MAX_SIZE ? sum + bucket.weight : sum),
+    0,
+);
+/**
+ * The big gradations, sampled when twinkling a fresh big dot in: above CTA_GROW_MIN_SIZE, so they
+ * grow in and out, and no larger than CTA_IDLE_MAX_SIZE, since twinkling only happens at idle.
+ */
+const CTA_BIG_BUCKETS = CTA_DOT_SIZES.filter(
+    bucket => bucket.min > CTA_GROW_MIN_SIZE && bucket.min <= CTA_IDLE_MAX_SIZE,
+);
 const CTA_BIG_WEIGHT = CTA_BIG_BUCKETS.reduce((sum, bucket) => sum + bucket.weight, 0);
 /**
  * Big dots have a finite life so they twinkle in and out at idle: each lives this long (at
@@ -444,10 +459,12 @@ function GravityCta({
 
         const dots: CtaDot[] = [];
 
-        // Size is drawn from the weighted buckets: mostly 1–2px, rarely 7–8px.
-        const randomSize = () => {
-            let ticket = Math.random() * CTA_DOT_WEIGHT;
+        // Size is drawn from the weighted buckets: mostly 1–2px, rarely 6px. At idle the draw stops
+        // at CTA_IDLE_MAX_SIZE, so the sparks the fade-out clears aren't spawned straight back in.
+        const randomSize = (idle: boolean) => {
+            let ticket = Math.random() * (idle ? CTA_IDLE_WEIGHT : CTA_DOT_WEIGHT);
             for (const bucket of CTA_DOT_SIZES) {
+                if (idle && bucket.min > CTA_IDLE_MAX_SIZE) break;
                 if (ticket < bucket.weight) return bucket.min + Math.random() * (bucket.max - bucket.min);
                 ticket -= bucket.weight;
             }
@@ -484,6 +501,14 @@ function GravityCta({
             });
         };
 
+        // Start one dot's fade-out in place, freezing the size it had actually grown to so a dot
+        // caught mid-grow-in shrinks away from there instead of popping to full size first.
+        const startFade = (dot: CtaDot, dt: number) => {
+            const t = Math.min(dot.age / CTA_GROW_SECONDS, 1);
+            dot.size = 1 + (dot.size - 1) * t * (2 - t);
+            dot.dying = dt;
+        };
+
         // A random point in the sparsest cell of a coarse density grid, so new dots fill in
         // where the field is thin rather than clumping — the "spawn where they're few" pass,
         // done at spawn time instead of by shuffling settled dots (which would flicker).
@@ -510,14 +535,15 @@ function GravityCta({
         // Spawn one dot at a random point across the whole field, not just the border.
         // Replacements land everywhere, so absorbing a hover's central cloud and refilling
         // it doesn't leave a hole in the middle while the edges slowly drift back in.
-        const spawn = () => makeDot(randomSize(), Math.random() * width, Math.random() * height);
+        const spawn = (idle: boolean) => makeDot(randomSize(idle), Math.random() * width, Math.random() * height);
         // A guaranteed big dot, placed where the field is sparsest — twinkles a fresh one in
         // when another ages out.
         const spawnBig = () => makeDot(bigSize(), ...sparseXY());
 
-        // Initial seed just fills up to the cap using the same area spawn.
+        // Initial seed just fills up to the cap using the same area spawn, at rest so it starts
+        // out as the resting field rather than one holding sparks no gravity ever pulled in.
         const seed = () => {
-            while (dots.length < CTA_MAX_DOTS) spawn();
+            while (dots.length < CTA_MAX_DOTS) spawn(true);
         };
         seed();
 
@@ -531,6 +557,8 @@ function GravityCta({
         let running = false;
         // 0 when idle; ramps toward CTA_HOVER_GRAVITY while the pointer is over the button.
         let gravityScale = 0;
+        // Last frame's gravity state, so the frame it switches off can flush the big sparks.
+        let wasActive = false;
 
         const step = (now: number) => {
             const dt = last === 0 ? 1 / 60 : Math.min((now - last) / 1000, 1 / 20);
@@ -550,6 +578,16 @@ function GravityCta({
                 gravityScale = 0;
             }
 
+            // The frame the pull stops, every spark above CTA_IDLE_MAX_SIZE starts fading out where
+            // it stands — the same shrink-and-fade a twinkle ends on — and the now idle-capped spawn
+            // refills the gaps with small dots, so no oversized dot is left sitting in the field.
+            if (wasActive && !active) {
+                for (const dot of dots) {
+                    if (dot.dying === 0 && dot.size > CTA_IDLE_MAX_SIZE) startFade(dot, dt);
+                }
+            }
+            wasActive = active;
+
             // Active lifts both the cap and the spawn rate together, so the field densifies to
             // five times its resting size while gravity is pulling.
             const hovering = active;
@@ -559,7 +597,7 @@ function GravityCta({
             spawnDebt += dt * spawnRate;
             while (spawnDebt >= 1) {
                 spawnDebt -= 1;
-                if (dots.length < maxDots) spawn();
+                if (dots.length < maxDots) spawn(!active);
             }
 
             ctx.clearRect(0, 0, width, height);
@@ -628,20 +666,17 @@ function GravityCta({
                 if (Math.hypot(localX - clamped, localY) <= halfH + dot.size / 2) {
                     // Area, not diameter — an 8px dot lands far harder than a 2px one.
                     swell = Math.min(CTA_HIT_CEILING, swell + dot.size * dot.size * CTA_HIT_GAIN);
-                    // Big dots fade out where they land; small ones just go. Freeze the size
-                    // it had grown to so the fade continues from there rather than popping to
-                    // full size first (a hover absorbs them well before the grow-in finishes).
+                    // Big dots fade out where they land, from the size they had actually reached
+                    // (a hover absorbs them well before the grow-in finishes); small ones just go.
                     if (dot.size > CTA_GROW_MIN_SIZE) {
-                        const t = Math.min(dot.age / CTA_GROW_SECONDS, 1);
-                        dot.size = 1 + (dot.size - 1) * t * (2 - t);
-                        dot.dying = dt;
+                        startFade(dot, dt);
                     } else {
                         dots.splice(index, 1);
                     }
                     // Feed one back for every dot the button eats, so a hover — which absorbs
                     // dots far faster than the steady spawn refills — doesn't leave the field
                     // sparse once the pointer moves away.
-                    if (dots.length < maxDots) spawn();
+                    if (dots.length < maxDots) spawn(!active);
                     continue;
                 }
 
@@ -650,7 +685,7 @@ function GravityCta({
                     // Replace escapees too: under a hard hover, dots that graze the button
                     // slingshot out of bounds fast, and losing those unreplaced is what drains
                     // the field so a dip shows once the pointer leaves.
-                    if (dots.length < maxDots) spawn();
+                    if (dots.length < maxDots) spawn(!active);
                     continue;
                 }
 
@@ -732,7 +767,7 @@ function GravityCta({
                     }
                     counts[sparsest]++;
                     makeDot(
-                        randomSize(),
+                        randomSize(true),
                         ((sparsest % cols) + Math.random()) * (width / cols),
                         (Math.floor(sparsest / cols) + Math.random()) * (height / rows),
                     );
@@ -1134,7 +1169,7 @@ const TOOL_VIEWS = [
 function Tools() {
     return (
         <>
-            <BandIntro title="Two tools, and neither one can sign">
+            <BandIntro title="Two tools cover the whole chain">
                 inspect_entity works out on its own whether it was handed an account address or a transaction signature.
             </BandIntro>
             <ToolDoc
