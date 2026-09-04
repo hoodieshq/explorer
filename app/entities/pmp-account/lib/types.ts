@@ -43,7 +43,7 @@ export type PmpPayloadDecodeResult =
     | { kind: 'empty' }
     | { kind: 'oversized'; bytes: Uint8Array; budget: number; dataHash: string }
     | { kind: 'unpack-overflow'; limit: number }
-    | { kind: 'failed'; reason: string };
+    | { kind: 'failed'; reason: string; dataHash?: string };
 
 /** Which PMP account layout the body was read from. A Buffer carries no hints of its own, a Metadata does. */
 export type PmpAccountKind = 'buffer' | 'metadata';
