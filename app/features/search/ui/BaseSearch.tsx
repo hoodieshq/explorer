@@ -98,9 +98,13 @@ export function BaseSearch({
                     <PopoverPrimitive.Anchor asChild>
                         <div
                             className={cn(
-                                'flex items-center gap-3',
+                                'flex items-center gap-2.5',
                                 'rounded-md border border-outer-space-700 bg-heavy-metal-800 [border-style:solid]',
-                                'h-[38px] px-4 shadow-md',
+                                // Both ends give their mark a square of space rather than a gutter meant
+                                // for text: the 24px key has 6 above and below it in a 36px content box,
+                                // so it gets 6 to its right, and the 15px lens has 10, so it gets 10 to
+                                // its left and the same again before the text begins.
+                                'h-[38px] pl-2.5 pr-1.5 shadow-md',
                                 'transition-shadow focus-within:shadow-[0_0_0.4rem_#00d18c]',
                             )}
                         >
@@ -140,10 +144,16 @@ export function BaseSearch({
                                     <X size={16} />
                                 </button>
                             ) : (
+                                // The hint is for a keyboard, and the web has no signal for one; the primary
+                                // pointer is the proxy — `fine` (mouse, trackpad) all but implies a keyboard,
+                                // `coarse` (touch) is where the hint would only be noise. `/` works either way.
                                 <kbd
                                     className={cn(
-                                        'flex h-6 w-6 shrink-0 items-center justify-center',
-                                        'rounded border border-solid border-outer-space-600 bg-heavy-metal-700',
+                                        'hidden h-6 w-6 shrink-0 items-center justify-center [@media(pointer:fine)]:flex',
+                                        // `bg-transparent` and not merely the absence of a fill: a
+                                        // global element rule gives every `kbd` a dark ground, and only a
+                                        // utility outranks it. Transparent lets the field's own show.
+                                        'rounded border border-solid border-outer-space-600 bg-transparent',
                                         'text-sm text-heavy-metal-100',
                                     )}
                                 >

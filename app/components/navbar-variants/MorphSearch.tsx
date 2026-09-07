@@ -1,0 +1,403 @@
+'use client';
+
+import { cn } from '@components/shared/utils';
+import { useHotkeys } from '@mantine/hooks';
+import React, { type ReactNode, type RefObject, useCallback, useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
+import { Search, X } from 'react-feather';
+
+import { AuroraField, type AuroraFieldTuning } from './AuroraField';
+
+/**
+ * The search field that is shown outright where there is room and lives in a button where there is not —
+ * One component, so the variants that use it differ in *where* the field sits and *what
+ * shares its frame*, not in how it moves.
+ *
+ * One element. From `dockFrom` it is in flow, always open: a framed field growing with the bar (the caller
+ * aligns and caps it through `dockClassName`). Below that it is a 38px outlined square at rest — the lens
+ * in it — positioned absolutely over its own slot in the bar (the caller keeps a spacer there and hands the
+ * slot's insets in as `restClassName`, computed from its own row arithmetic); tapped, its `left` and
+ * `right` animate from the slot to the gutters, so the square stretches across the row and, closed,
+ * shrinks back into itself. The frame, the radius and the ground are continuous through the motion. The
+ * lens turns into a cross in place, since the same button closes what it opened.
+ *
+ * `prefix` and `suffix` are nodes that share the frame at its left and right ends — v5.1 puts the network
+ * selector at the tail — and ride that edge through the motion. The toggle sits between
+ * the input and the suffix, so a closed frame reads lens · suffix and an open one input · cross · suffix.
+ *
+ * The slot's insets come one of two ways. `restClassName` is the caller's arithmetic as classes, for a bar
+ * whose slot sits after fixed-width controls only. `slotRef` points at the spacer instead and the insets
+ * are measured — needed where text of unknown width (the link row) stands between the slot and an edge —
+ * and re-measured on resize. `dockFrom: 'none'` is a field that is never shown outright: the square at
+ * every width, the field on demand only. `quiet` drops the square's outline at rest — a glyph with a hover
+ * ground, for a bar whose controls are text on a ground; the frame returns with the field.
+ *
+ * `focusGlow` picks the focus treatment. `ring` is the plain glow around the whole frame the other
+ * variants use. `underline` is two things at once: an aurora under the *input alone* (`AuroraField`),
+ * brightest where the text begins and falling away towards the tail, and the frame's own rule lighting up
+ * in the brand green. The aurora says where the light comes from; the lit rule says which control has the
+ * caret, which a band under the text alone leaves ambiguous once the field shares its frame with a
+ * network selector. Nothing is drawn outside the rule in either non-ring mode — `halo` leaves that to
+ * `AuroraBorder`, and `underline` wants none. Both take the same asymmetric timing — 300ms in, four times
+ * that out — so they rise and settle together rather than as two effects that happen to overlap.
+ *
+ * The field is the shipping `SearchBar` (the bar's `children`), mounted once. Its own frame — the `div`
+ * `BaseSearch` anchors its popover to, the only `div` child of cmdk's root — is stripped of rule, ground
+ * and shadow from outside, so this box carries the frame instead; its lens is made white to match the
+ * controls. Below `dockFrom` the `/` hint is hidden (the cross takes that end) and the input is
+ * `display: none` while closed — out of the tab order, and out of the *layout*, so a `prefix` beside it
+ * fills the square instead of splitting it with an input nobody can see.
+ *
+ * Opening focuses the input synchronously, inside the gesture: the render is flushed first, since a
+ * `display: none` input cannot take focus, and iOS raises the keyboard only for a focus that happens
+ * within the tap. `/` and `⌘K` go the same way; `BaseSearch`'s own handler for those keys does nothing
+ * against a hidden input and simply focuses a docked one.
+ */
+
+/**
+ * `bg-heavy-metal-800`, spelled out: the lit rule has to paint the field's own ground back over its
+ * middle — the ring is a background clipped to the border box, and without a layer on top of it the
+ * gradient would wash across the whole field.
+ */
+const GROUND = 'oklch(30.098% 0.01205 160.58)';
+
+export type DockFrom = 'lg' | 'md' | 'none' | 'sm';
+
+/**
+ * Per-threshold class sets, spelled out in full: Tailwind finds classes by scanning source, so a
+ * `${bp}:` template would produce nothing. `kbd` hides below the threshold; `!pr-1` there brings the
+ * input's own right padding in, since the cross sits where the `/` hint would.
+ */
+// The docked frames carried a `hover:border-outer-space-700`, which is the colour they already have at
+// rest — a no-op, except that Tailwind emits `hover` after `focus-within`, so it quietly won over the lit
+// rule and the border reverted to grey the moment the pointer crossed a focused field. Dropped.
+const DOCK: Record<DockFrom, { belowDock: string; frame: string; gone: string; ring: string; shown: string }> = {
+    lg: {
+        belowDock: '[@media(max-width:992px)]:[&_kbd]:hidden [@media(max-width:992px)]:[&_[cmdk-root]>div]:!pr-1',
+        frame: 'lg:relative lg:inset-auto lg:h-[38px] lg:min-w-0 lg:flex-1 lg:bg-heavy-metal-800',
+        gone: 'lg:hidden',
+        ring: 'lg:focus-within:shadow-[0_0_0.4rem_#00d18c]',
+        shown: 'lg:block',
+    },
+    md: {
+        belowDock: '[@media(max-width:767px)]:[&_kbd]:hidden [@media(max-width:767px)]:[&_[cmdk-root]>div]:!pr-1',
+        frame: 'md:relative md:inset-auto md:h-[38px] md:min-w-0 md:flex-1 md:bg-heavy-metal-800',
+        gone: 'md:hidden',
+        ring: 'md:focus-within:shadow-[0_0_0.4rem_#00d18c]',
+        shown: 'md:block',
+    },
+    none: {
+        belowDock: '[&_kbd]:hidden [&_[cmdk-root]>div]:!pr-1',
+        frame: '',
+        gone: '',
+        ring: '',
+        shown: '',
+    },
+    sm: {
+        belowDock: '[@media(max-width:575px)]:[&_kbd]:hidden [@media(max-width:575px)]:[&_[cmdk-root]>div]:!pr-1',
+        frame: 'sm:relative sm:inset-auto sm:h-[38px] sm:min-w-0 sm:flex-1 sm:bg-heavy-metal-800',
+        gone: 'sm:hidden',
+        ring: 'sm:focus-within:shadow-[0_0_0.4rem_#00d18c]',
+        shown: 'sm:block',
+    },
+};
+
+/** Strips `BaseSearch`'s own frame — the `div` it anchors its popover to, cmdk root's only `div` child —
+ *  of rule, ground and shadow, and makes its lens white to match the controls. Important, because `cn` is
+ *  clsx-only and these have to beat the frame's own utilities regardless of emission order. */
+export const STRIP_SEARCH_FRAME_CLASSES =
+    '[&_[cmdk-root]>div]:!border-0 [&_[cmdk-root]>div]:!bg-transparent [&_[cmdk-root]>div]:!shadow-none [&_[cmdk-root]>div]:focus-within:!shadow-none [&_[cmdk-root]>div>svg]:!text-white';
+
+/**
+ * Hands the search's own frame the height of the box it sits in, all the way down the chain — the wrapper
+ * it is given, `SearchBar`'s own div, cmdk's root, and the frame itself. It asks for a flat 38px, which is
+ * two more than a 38px bordered box has inside it: left alone it overhangs, so its lens and its hotkey
+ * hint centre a pixel low and its foot is clipped. A percentage height needs every ancestor to have one,
+ * which is why this is four selectors rather than one.
+ */
+const FILL_SEARCH_HEIGHT_CLASSES = '[&>div]:h-full [&_[cmdk-root]]:h-full [&_[cmdk-root]>div]:!h-full';
+
+export interface MorphSearchProps {
+    /** Passed to the aurora under the field, for a bar that wants its light finer or hotter than default. */
+    aurora?: AuroraFieldTuning;
+    /** The search bar. */
+    children: ReactNode;
+    /** Docked-state alignment and cap, e.g. `lg:ml-auto lg:max-w-[560px]`. */
+    dockClassName?: string;
+    /** From which screen the field is simply there. */
+    dockFrom: DockFrom;
+    /** What the field stands on: its own sunken fill, or nothing, letting the bar through. */
+    /** Focus treatment: the ring around the frame, the aurora under the input, or — `halo` — the lit rule
+     *  alone, for a bar that draws the aurora *outside* the frame, which this clipped box cannot do. */
+    focusGlow?: 'halo' | 'ring' | 'underline';
+    /** Handed the frame element, for a glow that has to measure it from outside. */
+    frameRef?: RefObject<HTMLDivElement | null>;
+    /** Told when the frame gains or loses focus, for the same. */
+    onFocusChange?: (focused: boolean) => void;
+    onOpenChange: (open: boolean) => void;
+    open: boolean;
+    /** Shares the frame at its left end; rides the left edge through the motion. */
+    prefix?: ReactNode;
+    /** No outline at rest: the lens on the bar's ground with a hover ground, the frame only once open. */
+    quiet?: boolean;
+    /** Closed-state `left`/`right` per screen below `dockFrom` — the slot the square rests in — as classes.
+     *  Extra rest-state styling (say, a borderless look from lg) goes here too. */
+    restClassName?: string;
+    /** The spacer the square rests over; its insets are measured from it instead of coming as classes. */
+    slotRef?: RefObject<HTMLElement | null>;
+    /** Shares the frame at its right end, past the toggle; rides the right edge through the motion. */
+    suffix?: ReactNode;
+}
+
+export function MorphSearch({
+    aurora,
+    children,
+    dockClassName,
+    dockFrom,
+    focusGlow = 'ring',
+    frameRef,
+    onFocusChange,
+    onOpenChange,
+    open,
+    prefix,
+    quiet,
+    restClassName,
+    slotRef,
+    suffix,
+}: MorphSearchProps) {
+    const dock = DOCK[dockFrom];
+    const fieldRef = useRef<HTMLDivElement>(null);
+    const toggleRef = useRef<HTMLButtonElement>(null);
+    const wasOpen = useRef(false);
+    const [slotInsets, setSlotInsets] = useState<{ left: number; right: number } | undefined>(undefined);
+    // Only for the aurora, which is a render loop and should not run against a field nobody is typing in.
+    // `onFocus`/`onBlur` in React are focusin/focusout, so they carry the whole frame's focus, and the
+    // `relatedTarget` check keeps a move *within* the frame from reading as a blur. A bar that draws the
+    // aurora outside this box needs the same fact, so it also goes out through `onFocusChange`.
+    const [focused, setFocused] = useState(false);
+    // Outlives `focused` by the fade-out. The lit rule is painted with background layers, and those layers
+    // have to stay mounted while the ring shrinks back into its corner — dropped the moment focus left,
+    // the ring would snap off instead of fading.
+    const [ringVisible, setRingVisible] = useState(false);
+    useEffect(() => {
+        if (focused) {
+            setRingVisible(true);
+            return;
+        }
+        const timer = setTimeout(() => setRingVisible(false), 1200);
+        return () => clearTimeout(timer);
+    }, [focused]);
+    const reportFocus = focusGlow !== 'ring';
+    const changeFocus = (next: boolean) => {
+        setFocused(next);
+        onFocusChange?.(next);
+    };
+
+    // Where the square rests, read off the spacer: its offsets within the positioned row (the spacer's
+    // offsetParent, since nothing between them is positioned). A passive effect, not a layout one: the
+    // spacer is a later sibling, and React attaches refs and runs layout effects in one tree-order pass,
+    // so at this component's layout effect the spacer's ref is still null. The box stays `invisible` until
+    // the first measurement lands, so it is never painted at a stale place. Re-measured whenever the row or
+    // the spacer changes size, since the text row beside the spacer reflows with the viewport.
+    useEffect(() => {
+        const slot = slotRef?.current;
+        const row = slot?.offsetParent;
+        if (!slot || !(row instanceof HTMLElement)) return;
+        const measure = () =>
+            setSlotInsets({ left: slot.offsetLeft, right: row.clientWidth - slot.offsetLeft - slot.offsetWidth });
+        measure();
+        const observer = new ResizeObserver(measure);
+        observer.observe(row);
+        observer.observe(slot);
+        return () => observer.disconnect();
+    }, [slotRef]);
+
+    /**
+     * The lit rule, for the two modes that do not use the plain ring.
+     *
+     * `underline` grades it: brightest at the bottom-left corner, where the aurora's own light gathers,
+     * carried the length of the bottom edge to the far corner, and gone by the top-left. A gradient on a border means one of
+     * two things in CSS — `border-image`, which drops the corner radius, or a background painted to the
+     * border box with the ground painted back over the padding box, which keeps it. This is the second.
+     * An inset shadow, which is what this was, cannot be it: a shadow is drawn inside the padding box, a
+     * pixel in from the border it is meant to be, and that pixel shows.
+     *
+     * A background cannot be faded, so the ring is *grown* instead: the gradient layer goes from no size
+     * at all to the full box, anchored at the corner it comes from, which reads as light spreading out of
+     * that corner and drawing back into it. The border's own colour goes transparent underneath, so the
+     * grey rule is what shows until the light covers it.
+     *
+     * Durations are per property rather than one for all: the morph's `left`/`right` keep their 300ms in
+     * both directions, while the ring takes 300ms in and four times that out.
+     *
+     * Applied whenever the field is *shown*, which is not the same as `open`: from the docking width the
+     * field is simply there and `open` never becomes true, so keying the rule to it alone left every
+     * desktop layout without one.
+     */
+    const litRule: React.CSSProperties | undefined =
+        focusGlow === 'underline' && (open || ringVisible)
+            ? {
+                  backgroundClip: 'padding-box, border-box',
+                  backgroundImage: [
+                      // Whatever the frame stands on, painted back over the padding box. Must match what
+                      // the classes put there, or the field's middle changes colour on focus.
+                      `linear-gradient(${GROUND}, ${GROUND})`,
+                      // Wider than tall by design: the horizontal reach carries the light along the whole
+                      // bottom edge. A radial gradient paints its last stop beyond the ending shape, so
+                      // that stop is what the far corners get, the top-right included.
+                      //
+                      // The near corner has come down twice, a quarter each time — 0.95 to 0.71 to 0.53 —
+                      // while the far one went up to 0.31, and the stops between are re-laid each time so
+                      // the ramp never runs downhill and back up. Still the same direction, pouring out of
+                      // the bottom-left; what is left of the fall is 0.53 to 0.31 across the whole ring.
+                      'radial-gradient(118% 130% at 0% 100%, rgba(29,215,155,0.53) 0%, rgba(29,215,155,0.46) 35%, rgba(29,215,155,0.4) 65%, rgba(29,215,155,0.34) 90%, rgba(29,215,155,0.31) 100%)',
+                  ].join(', '),
+                  backgroundOrigin: 'border-box',
+                  backgroundPosition: '0 0, left bottom',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundSize: focused ? '100% 100%, 100% 100%' : '100% 100%, 0% 0%',
+                  borderColor: focused ? 'transparent' : undefined,
+                  transitionDuration: focused ? '300ms, 300ms, 300ms, 300ms' : '300ms, 300ms, 1200ms, 1200ms',
+                  transitionProperty: 'left, right, background-size, border-color',
+              }
+            : focusGlow === 'halo'
+              ? {
+                    borderColor: focused ? 'rgba(29,215,155,0.8)' : undefined,
+                    transitionDuration: focused ? '300ms, 300ms, 300ms' : '300ms, 300ms, 1200ms',
+                    transitionProperty: 'left, right, border-color',
+                }
+              : undefined;
+
+    // The outline, which `quiet` hides at rest; open, the field's ground and — for the ring treatment —
+    // its focus glow.
+    const frameClasses = cn(
+        'rounded-md border border-solid border-outer-space-700',
+        open
+            ? cn('bg-heavy-metal-800', focusGlow === 'ring' && 'focus-within:shadow-[0_0_0.4rem_#00d18c]')
+            : quiet
+              ? 'border-transparent bg-transparent hover:bg-outer-space-800'
+              : 'bg-transparent hover:border-outer-space-600',
+    );
+
+    // Flushed, then focused: see the note above. Same path for the tap and for the hotkeys.
+    const openNow = useCallback(() => {
+        flushSync(() => onOpenChange(true));
+        fieldRef.current?.querySelector('input')?.focus();
+    }, [onOpenChange]);
+
+    // Focus goes back onto the button when the field folds, so a keyboard user is not dropped on `<body>`.
+    // Docked, the button is display:none and `focus()` is a no-op, which is right — the input keeps focus.
+    useEffect(() => {
+        if (!open && wasOpen.current) toggleRef.current?.focus();
+        wasOpen.current = open;
+    }, [open]);
+
+    useHotkeys(
+        [
+            ['/', openNow],
+            ['mod+k', openNow],
+        ],
+        ['INPUT', 'TEXTAREA'],
+    );
+
+    return (
+        <div
+            ref={node => {
+                fieldRef.current = node;
+                if (frameRef) frameRef.current = node;
+            }}
+            onKeyDown={event => {
+                if (event.key === 'Escape') onOpenChange(false);
+            }}
+            onFocus={() => {
+                if (reportFocus) changeFocus(true);
+            }}
+            onBlur={event => {
+                // A move *within* the frame is not a blur — the cross and the network selector both live
+                // in here, and tabbing to either would otherwise read as leaving.
+                if (event.currentTarget.contains(event.relatedTarget)) return;
+                if (reportFocus) changeFocus(false);
+                // An open field with nothing typed in it is a frame in the way of the bar; fold it back
+                // into its square. One with text stays, because that text is a search in progress and the
+                // results are one click away.
+                if (open && !fieldRef.current?.querySelector('input')?.value) onOpenChange(false);
+            }}
+            // Measured insets apply at rest only; open, the gutter classes take over and the transition runs
+            // between the two.
+            style={{
+                ...litRule,
+                ...(!open && slotInsets ? { left: slotInsets.left, right: slotInsets.right } : undefined),
+            }}
+            className={cn(
+                'absolute bottom-0 top-0 z-10 flex items-center overflow-hidden',
+                'transition-[left,right,background-color,border-color] duration-300 ease-out motion-reduce:transition-none',
+                slotRef && !slotInsets && 'invisible',
+                'group/frame',
+                frameClasses,
+                dock.frame,
+                focusGlow === 'ring' && dock.ring,
+                dockClassName,
+                open ? 'left-4 right-4 lg:left-6 lg:right-6' : restClassName,
+            )}
+        >
+            {prefix}
+
+            <div
+                className={cn(
+                    // `self-stretch` against the frame's `items-center`: the box has to reach the frame's
+                    // inner bottom edge, or an underline anchored to it lands a pixel past the clip.
+                    'relative min-w-0 flex-1 self-stretch',
+                    FILL_SEARCH_HEIGHT_CLASSES,
+                    STRIP_SEARCH_FRAME_CLASSES,
+                    dock.belowDock,
+                    // Exactly one of the two, so nothing rides on which display utility Tailwind emits
+                    // last; `dock.shown` is responsive and outranks the base `hidden` from the dock up.
+                    open ? 'block' : 'hidden',
+                    dock.shown,
+                )}
+            >
+                {children}
+                {focusGlow === 'underline' && <AuroraField active={focused} band={51} overhang={18} {...aurora} />}
+            </div>
+
+            {/* The square's own glyph and, once open, the way back: lens and cross crossfade in one 38px
+                slot at the frame's right end. Gone from `dockFrom`, where the field needs no button. */}
+            <button
+                ref={toggleRef}
+                type="button"
+                aria-label={open ? 'Close search' : 'Open search'}
+                aria-expanded={open}
+                onClick={() => (open ? onOpenChange(false) : openNow())}
+                // `w-full` under a 38px cap, not a flat 38. Collapsed, the frame is 38px *including* its
+                // two 1px rules, so a 38px button overhangs its 36px content box by two — the lens ends up
+                // a pixel left of centre and the overflow is clipped. Full width lands it dead centre
+                // there, and the cap holds it to 38 once the frame is wide.
+                className={cn(
+                    'flex h-[36px] w-full max-w-[38px] shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-white transition-colors hover:text-heavy-metal-100',
+                    dock.gone,
+                )}
+            >
+                <span className="relative block h-[18px] w-[18px]">
+                    <Search
+                        size={18}
+                        aria-hidden
+                        className={cn(
+                            'absolute inset-0 transition-[opacity,transform] duration-200 motion-reduce:transition-none',
+                            open ? 'rotate-90 opacity-0' : 'rotate-0 opacity-100',
+                        )}
+                    />
+                    <X
+                        size={18}
+                        aria-hidden
+                        className={cn(
+                            'absolute inset-0 transition-[opacity,transform] duration-200 motion-reduce:transition-none',
+                            open ? 'rotate-0 opacity-100' : '-rotate-90 opacity-0',
+                        )}
+                    />
+                </span>
+            </button>
+
+            {suffix}
+        </div>
+    );
+}

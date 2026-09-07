@@ -17,10 +17,12 @@ import { useRef } from 'react';
 // toggle that stops asking altogether.
 export type ConsentRequest = { kind: 'endpoint'; endpoint: RpcEndpoint } | { kind: 'developer-bypass' };
 
-// One step above the cluster sidebar's `z-[1060]`, the highest of the legacy dashkit layers. The
-// developer-bypass confirmation renders from inside that sidebar, and the endpoint prompt has to stay on
-// top if the user opens the switcher while it is waiting for an answer.
-const CONSENT_Z_INDEX = 1070;
+// Above every layer the app can put on screen: the nickname editor and the popover surface are the
+// tallest at `z-[1203]` and `z-[1202]`, over the slideover at 1201 and the legacy dashkit sidebar at
+// 1060. This dialog asks a security question and is raised from inside those surfaces — the
+// developer-bypass toggle sits in the cluster switcher, which renders as a sidebar in one place and as a
+// popover in another — so anything it can be opened from has to end up beneath it.
+const CONSENT_Z_INDEX = 1210;
 
 type Props = {
     request: ConsentRequest | undefined;
