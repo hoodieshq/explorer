@@ -214,7 +214,11 @@ const config: Config = {
             'max-sm': getScreenDim('sm', -1),
             'max-md': getScreenDim('md', -1),
             xxs: getScreenDim('xxs'),
-            xs: getScreenDim('xs'),
+            // Flat, without the +1 the others carry: 375 is the width of the phones this navigation was
+            // drawn against, and its rest insets are arithmetic for exactly that row — a pixel up and an
+            // iPhone at 375 fell through to the 320 numbers. It also puts the CSS in step with
+            // `useBreakpoint`, which reads this map raw and has always matched `xs` at 375.
+            xs: getScreenDim('xs', 0),
             sm: getScreenDim('sm'),
             md: getScreenDim('md'),
             lg: getScreenDim('lg'),

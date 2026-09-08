@@ -30,8 +30,16 @@ export const GUTTER_CLASSES = 'px-4 lg:px-6';
  * beside the 38px search field and cluster button. Transparent ground, `outer-space-700` rule, the same
  * radius as the field.
  */
-export const OUTLINED_CONTROL_CLASSES =
-    'flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-md border border-solid border-outer-space-700 bg-transparent p-0 text-white transition-colors hover:border-outer-space-600';
+const OUTLINED_CONTROL_BASE =
+    'flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-md border border-solid border-outer-space-700 p-0 text-white transition-colors hover:border-outer-space-600';
+
+export const OUTLINED_CONTROL_CLASSES = cn(OUTLINED_CONTROL_BASE, 'bg-transparent');
+
+/** The same control standing on the search field's fill instead of bare on the bar, for a variant whose
+ *  other controls are filled — an outline on the bar beside a filled chip reads as two kinds of control.
+ *  Spelled out as its own constant rather than a class appended by the caller: `cn` is plain clsx, so two
+ *  background utilities in one list would leave stylesheet order to pick the winner. */
+export const FILLED_CONTROL_CLASSES = cn(OUTLINED_CONTROL_BASE, 'bg-heavy-metal-800');
 
 /**
  * Brand lockup: the Solana mark over an "Explorer (beta)" caption. Identical to v1's markup — the asset is

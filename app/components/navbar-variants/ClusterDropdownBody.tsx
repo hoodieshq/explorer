@@ -133,7 +133,9 @@ export function endpointName(endpoint: RpcEndpoint) {
 const ROW_CLASSES =
     'flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2 text-sm text-heavy-metal-100 no-underline transition-colors hover:bg-outer-space-800 hover:text-white';
 const ACTIVE_ROW_CLASSES = 'bg-outer-space-800 text-white';
-const CAPTION_CLASSES = 'text-[10px] font-medium uppercase tracking-[0.12em] text-[#b4b4b4]';
+/** The card tables' column headers, as the transaction page sets them, so the panel's headings read as the
+ *  page's do — 12px caps in `outer-space-300`, not the legacy `<table>` head's 10px dashkit type. */
+const CAPTION_CLASSES = 'text-xs font-normal uppercase text-outer-space-300';
 
 export function ClusterDropdownBody() {
     const { status, cluster, endpoint } = useCluster();
@@ -162,7 +164,9 @@ export function ClusterDropdownBody() {
             {/* Just the heading. The two facts used to sit here, at the top of the panel, where they were
                 a statement about "the network" in the abstract; they now stand on the row of the network
                 they are about, which is where a reader looks to check them. */}
-            <div className="flex items-center px-3 pb-1.5 pt-1">
+            {/* Room to breathe on both sides of it: the panel's own 6px plus 8 above and 8 below, which
+                at 12px caps is what keeps the heading from sitting on the first row. */}
+            <div className="flex items-center px-3 pb-2 pt-2">
                 <span className={CAPTION_CLASSES}>Network</span>
             </div>
 
@@ -191,7 +195,7 @@ export function ClusterDropdownBody() {
 
             {savedClusters.length > 0 && (
                 <>
-                    <div className={cn(CAPTION_CLASSES, 'px-3 pb-1.5 pt-3')}>Saved endpoints</div>
+                    <div className={cn(CAPTION_CLASSES, 'px-3 pb-2 pt-3.5')}>Saved endpoints</div>
                     <ul className="m-0 flex list-none flex-col gap-0.5 p-0" data-testid="saved-clusters-section">
                         {savedClusters.map(saved => (
                             <SavedEndpointRow

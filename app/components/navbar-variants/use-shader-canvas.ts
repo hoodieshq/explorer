@@ -131,9 +131,14 @@ export function useShaderCanvas({
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        // `alpha` so the bar shows through, `premultipliedAlpha: false` so the shader's own colours are
-        // what land on screen, no antialias because a blurred glow has nothing to alias.
-        const gl = canvas.getContext('webgl', { alpha: true, antialias: false, premultipliedAlpha: false });
+        // `alpha` so the bar shows through, and no antialias because a blurred glow has nothing to alias.
+        //
+        // Premultiplied, which is the default and the only one worth relying on: WebKit composites the
+        // canvas as premultiplied whatever the attribute says, so a shader writing straight colour with a
+        // low alpha had its colour added at full strength on iOS — a faint band on Chrome came out as a
+        // slab of green over the whole field in Safari. Every fragment shader here multiplies its colour
+        // by its own alpha to match.
+        const gl = canvas.getContext('webgl', { alpha: true, antialias: false, premultipliedAlpha: true });
         if (!gl || gl.isContextLost()) return;
 
         const vertexShader = compile(gl, gl.VERTEX_SHADER, VERTEX_SHADER);

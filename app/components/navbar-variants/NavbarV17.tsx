@@ -89,6 +89,10 @@ export function NavbarV17({ children }: INavbarProps) {
                     <MorphSearch
                         dockFrom="sm"
                         focusGlow="underline"
+                        // The collapsed square and the menu button take the same fill as the network chip
+                        // beside them, so the three read as one set of controls rather than two outlines
+                        // flanking a filled one.
+                        restFilled
                         // Finer light than v5.1's and half as strong overall, with the very edge kept three
                         // times the rest of the band rather than half again: four times the cells across the
                         // field, and a blur cut to a single pixel, which is about as far as it can go — the
@@ -121,7 +125,13 @@ export function NavbarV17({ children }: INavbarProps) {
 
                 {/* Only ever one of these is on screen, so exactly one takes the third column. */}
                 <NavLinks routes={routes} className="hidden lg:flex lg:justify-self-end" />
-                <NavMenu routes={routes} open={menuOpened} onOpenChange={onMenuOpenChange} className="lg:hidden" />
+                <NavMenu
+                    routes={routes}
+                    filled
+                    open={menuOpened}
+                    onOpenChange={onMenuOpenChange}
+                    className="lg:hidden"
+                />
             </div>
         </nav>
     );

@@ -16,7 +16,9 @@ function EntityIcon({ icon, label }: { icon?: string; label: string }) {
             // eslint-disable-next-line @next/next/no-img-element
             <img
                 alt={`entity-icon-${label}`}
-                className="h-9 w-9 shrink-0 rounded-lg object-cover"
+                // A rule of its own, so a logo whose art runs to its edges — or is transparent behind —
+                // still reads as a tile rather than bleeding into the row it sits on.
+                className="h-9 w-9 shrink-0 rounded-lg border border-solid border-white/10 object-cover"
                 src={icon}
                 onError={() => setError(true)}
             />
@@ -27,7 +29,9 @@ function EntityIcon({ icon, label }: { icon?: string; label: string }) {
         <div
             className={cn(
                 'flex h-9 w-9 shrink-0 select-none items-center justify-center rounded-lg',
-                'bg-heavy-metal-600 text-sm font-bold text-heavy-metal-200',
+                // The same fill as a selected row, so on the row under the cursor the tile vanished into
+                // it and the initial floated free. A translucent rule reads on either ground.
+                'border border-solid border-white/10 bg-heavy-metal-600 text-sm font-bold text-heavy-metal-200',
             )}
         >
             {label.charAt(0).toUpperCase()}

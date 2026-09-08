@@ -141,7 +141,9 @@ void main() {
     vec3 color = brand * (0.34 + 0.44 * noise + 0.3 * bottomFill);
 
     float alpha = clamp(foot * edge * crown * gate * shoulder * decay * 0.195 * uIntensity, 0.0, 1.0);
-    gl_FragColor = vec4(color, alpha);
+    // Premultiplied: the canvas is composited that way everywhere, so the colour carries its own
+    // alpha rather than being added at full strength over the ground.
+    gl_FragColor = vec4(color * alpha, alpha);
 }
 `;
 

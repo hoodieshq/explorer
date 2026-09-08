@@ -97,6 +97,12 @@ export function BaseSearch({
                 <Command shouldFilter={false} label="Search">
                     <PopoverPrimitive.Anchor asChild>
                         <div
+                            // Named, so a surface that reframes the search (the navbar's morphing field)
+                            // can restyle this box without selecting it by position: cmdk's root also
+                            // holds a label and, once open, the results panel, and a positional selector
+                            // hit those instead — the panel wore the field's height and padding, and the
+                            // field kept the frame that was meant to be stripped.
+                            data-search-frame
                             className={cn(
                                 'flex items-center gap-2.5',
                                 'rounded-md border border-outer-space-700 bg-heavy-metal-800 [border-style:solid]',
@@ -132,8 +138,10 @@ export function BaseSearch({
                                     aria-label="Clear search"
                                     className={cn(
                                         'flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center',
-                                        'appearance-none rounded border border-solid border-heavy-metal-950 bg-heavy-metal-700 p-0',
-                                        'text-heavy-metal-100 transition-colors hover:text-heavy-metal-400',
+                                        // No plate of its own: a mark on the field's own ground, like the
+                                        // lens at the other end, rather than a button drawn inside a field.
+                                        'appearance-none border-0 bg-transparent p-0',
+                                        'text-heavy-metal-100 transition-colors hover:text-white',
                                     )}
                                     type="button"
                                     onMouseDown={e => {
@@ -169,10 +177,15 @@ export function BaseSearch({
                         asChild
                         align="start"
                         sideOffset={4}
+                        // Named like the box above, so a surface that reframes the search can line the
+                        // panel up with a border of its own.
+                        data-search-panel
                         className={cn(
                             'z-50 rounded-md shadow-2xl [border-style:solid]',
                             'w-[var(--radix-popover-trigger-width)]',
-                            'border border-heavy-metal-950 bg-heavy-metal-800',
+                            // The cards' outline, not the near-black one it had: the panel is a surface
+                            // laid over the page like they are, and a black rule reads as a gap.
+                            'border border-outer-space-800 bg-heavy-metal-800',
                         )}
                         onInteractOutside={e => {
                             if (e.target instanceof Element && e.target === inputRef.current) e.preventDefault();

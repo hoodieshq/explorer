@@ -14,7 +14,13 @@ import { Menu } from 'react-feather';
 
 import { ExternalLink } from '@/app/components/shared/ui/external-link';
 
-import { EXPLORER_REPO_URL, GitHubMark, type NavRoute, OUTLINED_CONTROL_CLASSES } from './shared';
+import {
+    EXPLORER_REPO_URL,
+    FILLED_CONTROL_CLASSES,
+    GitHubMark,
+    type NavRoute,
+    OUTLINED_CONTROL_CLASSES,
+} from './shared';
 
 /**
  * The menu, as two components: the segmented group of destinations for
@@ -113,15 +119,18 @@ export function NavLinks({
 
 /** The menu button and its anchored dropdown: the destinations, a rule, the repo link. Controlled when the
  *  bar wants it mutually exclusive with its other overlays; otherwise Radix owns the state. `quiet` drops
- *  the button's outline — a glyph with a hover ground, for a bar whose controls are text on a ground. */
+ *  the button's outline — a glyph with a hover ground, for a bar whose controls are text on a ground.
+ *  `filled` keeps the outline but puts the field's fill behind it, for a bar whose controls are filled. */
 export function NavMenu({
     className,
+    filled,
     onOpenChange,
     open,
     quiet,
     routes,
 }: {
     className?: string;
+    filled?: boolean;
     onOpenChange?: (open: boolean) => void;
     open?: boolean;
     quiet?: boolean;
@@ -136,7 +145,10 @@ export function NavMenu({
                     className={cn(
                         quiet
                             ? 'flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-white transition-colors hover:bg-outer-space-800 data-[state=open]:bg-outer-space-800'
-                            : cn(OUTLINED_CONTROL_CLASSES, 'data-[state=open]:border-outer-space-500'),
+                            : cn(
+                                  filled ? FILLED_CONTROL_CLASSES : OUTLINED_CONTROL_CLASSES,
+                                  'data-[state=open]:border-outer-space-500',
+                              ),
                         className,
                     )}
                 >

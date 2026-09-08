@@ -76,7 +76,8 @@ void main() {
     float amplitude = 0.2 + 1.2 * pow(noise, 1.6);
     vec3 color = ${BRAND_RGB} * (0.35 + 0.75 * noise);
     float alpha = clamp(body * withinBar * withinField * gate * amplitude * 0.7, 0.0, 1.0);
-    gl_FragColor = vec4(color, alpha);
+    // Premultiplied, as the canvas is composited — see the note in use-shader-canvas.ts.
+    gl_FragColor = vec4(color * alpha, alpha);
 }
 `;
 

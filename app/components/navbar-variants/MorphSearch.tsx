@@ -71,30 +71,41 @@ export type DockFrom = 'lg' | 'md' | 'none' | 'sm';
 // The docked frames carried a `hover:border-outer-space-700`, which is the colour they already have at
 // rest — a no-op, except that Tailwind emits `hover` after `focus-within`, so it quietly won over the lit
 // rule and the border reverted to grey the moment the pointer crossed a focused field. Dropped.
+// Below the dock the toggle lies over the frame's right end rather than beside it, so the search box — and
+// with it the results panel, whose width comes from the box it is anchored to, and the glow, which spans
+// the box it sits in — is the frame's full width. The padding is what keeps the text and the hotkey hint
+// from running under the button.
+//
+// `BaseSearch`'s own clear button goes with them, and only here: two crosses a few pixels apart are a
+// question rather than a control, so below the dock the frame's cross does both jobs — clear, then close.
+// Docked, the frame has no cross of its own and the field's own one is the only way to empty it by mouse.
 const DOCK: Record<DockFrom, { belowDock: string; frame: string; gone: string; ring: string; shown: string }> = {
     lg: {
-        belowDock: '[@media(max-width:992px)]:[&_kbd]:hidden [@media(max-width:992px)]:[&_[cmdk-root]>div]:!pr-1',
+        belowDock:
+            '[@media(max-width:992px)]:[&_kbd]:hidden [@media(max-width:992px)]:[&_[data-search-frame]]:!pr-[38px] [@media(max-width:992px)]:[&_[data-search-frame]>button]:!hidden',
         frame: 'lg:relative lg:inset-auto lg:h-[38px] lg:min-w-0 lg:flex-1 lg:bg-heavy-metal-800',
         gone: 'lg:hidden',
         ring: 'lg:focus-within:shadow-[0_0_0.4rem_#00d18c]',
         shown: 'lg:block',
     },
     md: {
-        belowDock: '[@media(max-width:767px)]:[&_kbd]:hidden [@media(max-width:767px)]:[&_[cmdk-root]>div]:!pr-1',
+        belowDock:
+            '[@media(max-width:767px)]:[&_kbd]:hidden [@media(max-width:767px)]:[&_[data-search-frame]]:!pr-[38px] [@media(max-width:767px)]:[&_[data-search-frame]>button]:!hidden',
         frame: 'md:relative md:inset-auto md:h-[38px] md:min-w-0 md:flex-1 md:bg-heavy-metal-800',
         gone: 'md:hidden',
         ring: 'md:focus-within:shadow-[0_0_0.4rem_#00d18c]',
         shown: 'md:block',
     },
     none: {
-        belowDock: '[&_kbd]:hidden [&_[cmdk-root]>div]:!pr-1',
+        belowDock: '[&_kbd]:hidden [&_[data-search-frame]]:!pr-[38px] [&_[data-search-frame]>button]:!hidden',
         frame: '',
         gone: '',
         ring: '',
         shown: '',
     },
     sm: {
-        belowDock: '[@media(max-width:575px)]:[&_kbd]:hidden [@media(max-width:575px)]:[&_[cmdk-root]>div]:!pr-1',
+        belowDock:
+            '[@media(max-width:575px)]:[&_kbd]:hidden [@media(max-width:575px)]:[&_[data-search-frame]]:!pr-[38px] [@media(max-width:575px)]:[&_[data-search-frame]>button]:!hidden',
         frame: 'sm:relative sm:inset-auto sm:h-[38px] sm:min-w-0 sm:flex-1 sm:bg-heavy-metal-800',
         gone: 'sm:hidden',
         ring: 'sm:focus-within:shadow-[0_0_0.4rem_#00d18c]',
@@ -102,11 +113,31 @@ const DOCK: Record<DockFrom, { belowDock: string; frame: string; gone: string; r
     },
 };
 
-/** Strips `BaseSearch`'s own frame — the `div` it anchors its popover to, cmdk root's only `div` child —
- *  of rule, ground and shadow, and makes its lens white to match the controls. Important, because `cn` is
- *  clsx-only and these have to beat the frame's own utilities regardless of emission order. */
+/** Strips `BaseSearch`'s own frame — the box it anchors its popover to — of rule, ground and shadow, and
+ *  makes its lens white to match the controls. Important, because `cn` is clsx-only and these have to beat
+ *  the frame's own utilities regardless of emission order.
+ *
+ *  Selected by `data-search-frame` and not by position among cmdk's children: the results panel is a
+ *  direct child of that root too, so a bare `>div` reached the panel as well — it wore the field's height,
+ *  ground and padding — while `:first-child` reached neither, cmdk's own label being first. */
 export const STRIP_SEARCH_FRAME_CLASSES =
-    '[&_[cmdk-root]>div]:!border-0 [&_[cmdk-root]>div]:!bg-transparent [&_[cmdk-root]>div]:!shadow-none [&_[cmdk-root]>div]:focus-within:!shadow-none [&_[cmdk-root]>div>svg]:!text-white';
+    '[&_[data-search-frame]]:!border-0 [&_[data-search-frame]]:!bg-transparent [&_[data-search-frame]]:!shadow-none [&_[data-search-frame]]:focus-within:!shadow-none [&_[data-search-frame]>svg]:!text-white';
+
+/**
+ * Lines the results panel up with the frame's rule rather than with the box the panel is anchored to.
+ * Radix takes the panel's width and its left edge from that box, and here the box carries no rule of its
+ * own — the frame around it does — so the panel came out a pixel inside the field on either side. Two
+ * pixels wider and one to the left is the frame's border box exactly.
+ */
+const ALIGN_SEARCH_PANEL_CLASSES =
+    '[&_[data-search-panel]]:!-ml-px [&_[data-search-panel]]:!w-[calc(var(--radix-popover-trigger-width)+2px)]';
+
+/**
+ * The aurora under the field, off for now — the graded rule carries the focus on its own and the band was
+ * the louder half of the pair. Everything it needs is still here (`AuroraField`, the shader, the per-bar
+ * tuning each variant passes): flipping this back to `true` brings it back as it was.
+ */
+const AURORA_ENABLED = false;
 
 /**
  * Hands the search's own frame the height of the box it sits in, all the way down the chain — the wrapper
@@ -115,7 +146,7 @@ export const STRIP_SEARCH_FRAME_CLASSES =
  * hint centre a pixel low and its foot is clipped. A percentage height needs every ancestor to have one,
  * which is why this is four selectors rather than one.
  */
-const FILL_SEARCH_HEIGHT_CLASSES = '[&>div]:h-full [&_[cmdk-root]]:h-full [&_[cmdk-root]>div]:!h-full';
+const FILL_SEARCH_HEIGHT_CLASSES = '[&>div]:h-full [&_[cmdk-root]]:h-full [&_[data-search-frame]]:!h-full';
 
 export interface MorphSearchProps {
     /** Passed to the aurora under the field, for a bar that wants its light finer or hotter than default. */
@@ -140,6 +171,9 @@ export interface MorphSearchProps {
     prefix?: ReactNode;
     /** No outline at rest: the lens on the bar's ground with a hover ground, the frame only once open. */
     quiet?: boolean;
+    /** The rest-state square stands on the field's own fill rather than bare on the bar — for a bar whose
+     *  other controls are filled. Only visible below `dockFrom`; docked, the frame is filled anyway. */
+    restFilled?: boolean;
     /** Closed-state `left`/`right` per screen below `dockFrom` — the slot the square rests in — as classes.
      *  Extra rest-state styling (say, a borderless look from lg) goes here too. */
     restClassName?: string;
@@ -162,6 +196,7 @@ export function MorphSearch({
     prefix,
     quiet,
     restClassName,
+    restFilled,
     slotRef,
     suffix,
 }: MorphSearchProps) {
@@ -179,6 +214,9 @@ export function MorphSearch({
     // have to stay mounted while the ring shrinks back into its corner — dropped the moment focus left,
     // the ring would snap off instead of fading.
     const [ringVisible, setRingVisible] = useState(false);
+    // Drives the cross's label alone: what it does on the next press depends on whether the field holds
+    // anything, and a control whose two jobs share one glyph has to say which one it is on.
+    const [hasText, setHasText] = useState(false);
     useEffect(() => {
         if (focused) {
             setRingVisible(true);
@@ -276,8 +314,39 @@ export function MorphSearch({
             ? cn('bg-heavy-metal-800', focusGlow === 'ring' && 'focus-within:shadow-[0_0_0.4rem_#00d18c]')
             : quiet
               ? 'border-transparent bg-transparent hover:bg-outer-space-800'
-              : 'bg-transparent hover:border-outer-space-600',
+              : cn(restFilled ? 'bg-heavy-metal-800' : 'bg-transparent', 'hover:border-outer-space-600'),
     );
+
+    // Whether there is anything to clear, read off the input rather than mirrored in state that would have
+    // to be kept in step with a field this component does not own. `input` covers typing, pasting and the
+    // clear itself; `open` re-runs it because the input is only in the tree while the field is.
+    useEffect(() => {
+        const field = fieldRef.current;
+        if (!field) return;
+        const sync = () => setHasText(Boolean(field.querySelector('input')?.value));
+        sync();
+        field.addEventListener('input', sync);
+        return () => field.removeEventListener('input', sync);
+    }, [open]);
+
+    /**
+     * The cross, in two acts: the first press empties the field, the second folds it away — and a field
+     * with nothing in it folds on the first, since clearing an empty field is a press that does nothing.
+     *
+     * Clearing goes through the value setter on the prototype and a bubbling `input` event, not through
+     * `input.value = ''`: React tracks the last value it wrote and ignores an assignment it did not see,
+     * so the field would blank on screen and the search behind it would go on holding the old query.
+     */
+    const clearOrClose = useCallback(() => {
+        const input = fieldRef.current?.querySelector('input');
+        if (!input?.value) {
+            onOpenChange(false);
+            return;
+        }
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set?.call(input, '');
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.focus();
+    }, [onOpenChange]);
 
     // Flushed, then focused: see the note above. Same path for the tap and for the hotkeys.
     const openNow = useCallback(() => {
@@ -349,6 +418,7 @@ export function MorphSearch({
                     'relative min-w-0 flex-1 self-stretch',
                     FILL_SEARCH_HEIGHT_CLASSES,
                     STRIP_SEARCH_FRAME_CLASSES,
+                    ALIGN_SEARCH_PANEL_CLASSES,
                     dock.belowDock,
                     // Exactly one of the two, so nothing rides on which display utility Tailwind emits
                     // last; `dock.shown` is responsive and outranks the base `hidden` from the dock up.
@@ -357,7 +427,9 @@ export function MorphSearch({
                 )}
             >
                 {children}
-                {focusGlow === 'underline' && <AuroraField active={focused} band={51} overhang={18} {...aurora} />}
+                {AURORA_ENABLED && focusGlow === 'underline' && (
+                    <AuroraField active={focused} band={51} overhang={18} {...aurora} />
+                )}
             </div>
 
             {/* The square's own glyph and, once open, the way back: lens and cross crossfade in one 38px
@@ -365,15 +437,20 @@ export function MorphSearch({
             <button
                 ref={toggleRef}
                 type="button"
-                aria-label={open ? 'Close search' : 'Open search'}
+                aria-label={open ? (hasText ? 'Clear search' : 'Close search') : 'Open search'}
                 aria-expanded={open}
-                onClick={() => (open ? onOpenChange(false) : openNow())}
-                // `w-full` under a 38px cap, not a flat 38. Collapsed, the frame is 38px *including* its
-                // two 1px rules, so a 38px button overhangs its 36px content box by two — the lens ends up
-                // a pixel left of centre and the overflow is clipped. Full width lands it dead centre
-                // there, and the cap holds it to 38 once the frame is wide.
+                // Pressed with the field open, the button must not take the focus off it first: a blur with
+                // an empty field folds the whole thing, and clearing wants the caret left where it was.
+                onMouseDown={event => open && event.preventDefault()}
+                onClick={() => (open ? clearOrClose() : openNow())}
+                // Over the frame's right end, not a column of it: in flow the button took 38px off the box
+                // beside it, and that box is what the results panel takes its width from and what the glow
+                // spans — both came out short of the field by the width of this button. `inset-y-0` is the
+                // frame's padding box, so the lens centres between its two rules rather than overhanging
+                // them. A frame with a suffix keeps the old flow: there the right end is the suffix's.
                 className={cn(
-                    'flex h-[36px] w-full max-w-[38px] shrink-0 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-white transition-colors hover:text-heavy-metal-100',
+                    'flex cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-white transition-colors hover:text-heavy-metal-100',
+                    suffix ? 'h-[36px] w-full max-w-[38px] shrink-0' : 'absolute inset-y-0 right-0 z-10 w-[38px]',
                     dock.gone,
                 )}
             >
