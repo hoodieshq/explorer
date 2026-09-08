@@ -11,21 +11,19 @@ import type { VersionedMessage } from '@solana/web3.js';
 import React from 'react';
 
 import { ProgramLogsCardBody } from '@/app/components/ProgramLogsCardBody';
-import { Badge } from '@/app/components/shared/ui/badge';
 import { type SimulationState } from '@/app/features/instruction-simulation/model/use-simulation';
 import { useSimulationInstructionNames } from '@/app/features/instruction-simulation/model/use-simulation-instruction-names';
 import { BaseSimulatorCUProfilingCard } from '@/app/features/instruction-simulation/ui/BaseSimulatorCUProfilingCard';
 import { LastSimulatedAt } from '@/app/features/instruction-simulation/ui/LastSimulatedAt';
 import { SIM_ZONE_STYLE } from '@/app/features/instruction-simulation/ui/sim-zone-style';
 import { SimulateButton } from '@/app/features/instruction-simulation/ui/SimulateButton';
+import { SimulatedBadge } from '@/app/features/instruction-simulation/ui/SimulatedBadge';
 
 function SimulatedTitle({ children }: { children: React.ReactNode }) {
     return (
         <span className="inline-flex items-center gap-1.5">
             {children}
-            <Badge ui="dashkit" className="border-accent/50 border border-solid !text-[10px] text-accent">
-                Simulated
-            </Badge>
+            <SimulatedBadge>Simulated</SimulatedBadge>
         </span>
     );
 }
@@ -110,7 +108,10 @@ export function InspectorSimulationPanel({
             {/* Logs and CU profiling are always present so their tabs have a scroll target; before a
                 simulation runs they show an empty-state prompt instead of results. The "Simulated" badge is
                 only added once real content is in the card. */}
-            <div id="logs">
+            {/* `scroll-margin-top` keeps the sticky tab bar off the block when it is reached through a
+                plain `#logs` anchor (e.g. the Account List's hint) rather than through a tab click, which
+                computes the offset itself. */}
+            <div id="logs" style={{ scrollMarginTop: 'var(--sticky-header-height, 0px)' }}>
                 <CollapsibleSection
                     title={hasLogs ? <SimulatedTitle>Logs</SimulatedTitle> : 'Logs'}
                     className={cn(OUTLINE_ONLY_CARD, !hasLogs && 'group')}

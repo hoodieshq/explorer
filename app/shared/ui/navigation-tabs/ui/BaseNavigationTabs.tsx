@@ -144,6 +144,7 @@ export function BaseNavigationTabs({
                         key={tab.path}
                         path={tab.path}
                         title={tab.title}
+                        badge={tab.badge}
                         disabled={disabledPaths.has(tab.path)}
                         disabledHint={disabledHint}
                     />

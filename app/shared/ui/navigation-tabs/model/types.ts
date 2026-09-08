@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react';
+
 export type NavigationTab<P extends string = string> = {
     path: P;
     title: string;
@@ -7,4 +9,10 @@ export type NavigationTab<P extends string = string> = {
      * sections before a simulation has run. Pair with `disabledHint` on `BaseNavigationTabs` for a tooltip.
      */
     disabled?: boolean;
+    /**
+     * Small marker rendered right before the title, in the tab bar and in the mobile "More" dropdown alike
+     * — e.g. the inspector's "S" chip marking the simulation-derived Simulation tab. Purely decorative:
+     * the accessible name stays `title`.
+     */
+    badge?: ReactNode;
 };

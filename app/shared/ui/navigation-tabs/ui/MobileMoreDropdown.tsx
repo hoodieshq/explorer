@@ -35,6 +35,16 @@ export function MobileMoreDropdown({ tabs, onSelectChange, disabledPaths }: Mobi
             <PopoverContent align="start" className="w-auto min-w-[8rem] p-1">
                 {tabs.map(tab => {
                     const isDisabled = disabledPaths?.has(tab.path) ?? tab.disabled ?? false;
+                    // Inline, not flex — same reason as TabLink: a flex wrapper would take its baseline
+                    // from the badge and shift the title off the row's text baseline.
+                    const label = tab.badge ? (
+                        <>
+                            <span className="relative -top-0.5 mr-1 inline-block align-middle">{tab.badge}</span>
+                            {tab.title}
+                        </>
+                    ) : (
+                        tab.title
+                    );
                     if (isDisabled) {
                         return (
                             <span
@@ -42,7 +52,7 @@ export function MobileMoreDropdown({ tabs, onSelectChange, disabledPaths }: Mobi
                                 aria-disabled="true"
                                 className="block cursor-not-allowed rounded px-3 py-2 text-sm text-outer-space-500 no-underline opacity-60"
                             >
-                                {tab.title}
+                                {label}
                             </span>
                         );
                     }
@@ -60,7 +70,7 @@ export function MobileMoreDropdown({ tabs, onSelectChange, disabledPaths }: Mobi
                                     'hover:bg-outer-space-800 hover:text-white',
                                 )}
                             >
-                                {tab.title}
+                                {label}
                             </Link>
                         </PopoverPrimitive.Close>
                     );

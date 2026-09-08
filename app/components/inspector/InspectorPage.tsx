@@ -26,11 +26,11 @@ import useSWR from 'swr';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { useSimulation } from '@/app/features/instruction-simulation/model/use-simulation';
+import { SimulatedBadge } from '@/app/features/instruction-simulation/ui/SimulatedBadge';
 import { generateTokenBalanceRows, TokenBalancesCardInner } from '@/app/features/transaction';
 import { useCluster } from '@/app/providers/cluster';
 import { DownloadDropdown } from '@/app/shared/components/DownloadDropdown';
 import { toBase64 } from '@/app/shared/lib/bytes';
-import { useBreakpoint } from '@/app/shared/lib/use-breakpoint';
 import {
     bridgeV1MessageBytes,
     isV1MessageBytes,
@@ -551,17 +551,17 @@ export function PermalinkView({
 
 // Tab bar sections. `path` doubles as the anchor id on the matching section wrapper, so scroll-spy can
 // track it and clicking scrolls to it. `gated` tabs (the simulation-derived Logs / CU profiling) are
-// shown disabled until a simulation has run. `merged` tabs collapse into the single "Programs & Logs" tab
-// on the xxl two-column layout (mirrors the TX details page, which merges its Programs and Logs tabs when
-// they sit side by side). SOL Balance Changes has no tab of its own — it is merged into the Accounts table
-// as a "Change" column. The `tokens` tab (`requiresTokens`) is dropped until a simulation has produced
-// token-balance changes, mirroring the TX details page which shows its Tokens tab only when the tx touched
-// SPL tokens.
+// shown disabled until a simulation has run. The list is the SAME at every width — Programs, Simulation,
+// Logs and CU profiling keep their own tabs on desktop too, even though the xxl layout puts them side by
+// side, so the navigation (and what is disabled) reads identically on mobile and desktop. SOL Balance
+// Changes has no tab of its own — it is merged into the Accounts table as a "Change" column. The `tokens`
+// tab (`requiresTokens`) is dropped until a simulation has produced token-balance changes, mirroring the
+// TX details page which shows its Tokens tab only when the tx touched SPL tokens.
 const BASE_TABS: {
     path: string;
     title: string;
+    badge?: React.ReactNode;
     gated?: boolean;
-    merged?: boolean;
     requiresSignatures?: boolean;
     requiresLookups?: boolean;
     requiresTokens?: boolean;
@@ -570,10 +570,11 @@ const BASE_TABS: {
     { path: 'accounts', title: 'Accounts' },
     { path: 'tokens', requiresTokens: true, title: 'Tokens' },
     { path: 'address-lookups', requiresLookups: true, title: 'Address Lookups' },
-    { merged: true, path: 'programs', title: 'Programs' },
-    { merged: true, path: 'simulation', title: 'Simulation' },
-    { gated: true, merged: true, path: 'logs', title: 'Logs' },
-    { gated: true, merged: true, path: 'cu-profiling', title: 'CU profiling' },
+    { path: 'programs', title: 'Programs' },
+    // The same "S" chip the Account List's Change column carries, marking what a simulation produces.
+    { badge: <SimulatedBadge>S</SimulatedBadge>, path: 'simulation', title: 'Simulation' },
+    { gated: true, path: 'logs', title: 'Logs' },
+    { gated: true, path: 'cu-profiling', title: 'CU profiling' },
 ];
 
 // The loaded-transaction view, shared by the permalink, parsed raw-input and Squads modes. It is arranged
@@ -582,7 +583,10 @@ const BASE_TABS: {
 // two-column "Programs & Logs" row at xxl, with Instructions (Programs) on the left and the Simulation
 // control + Logs + CU profiling in the sticky right column. Simulation state is owned here (not inside a
 // section) so the tab bar can gate the simulation-derived tabs and the Account List's "Change" column and
-// the right panel react to the same run.
+// the right panel react to the same run. The tab bar is the one deliberate departure from that page: it
+// keeps every section's own tab at all widths instead of collapsing Programs / Simulation / Logs / CU
+// profiling into one "Programs & Logs" tab on the wide layout, so the inspector's navigation reads the
+// same on mobile and desktop.
 function LoadedView({
     transaction,
     onClear,
@@ -597,7 +601,6 @@ function LoadedView({
 }) {
     const { message, rawMessage, signatures, accountBalances, compiledInnerInstructions, version, transactionConfig } =
         transaction;
-    const { isXxl } = useBreakpoint();
 
     const fetchAccountInfo = useFetchAccountInfo();
     React.useEffect(() => {
@@ -623,25 +626,22 @@ function LoadedView({
 
     const hasSignatures = Boolean(signatures);
     const hasLookups = message.addressTableLookups.length > 0;
-    // Build the tab list. On xxl the Programs / Simulation / Logs / CU profiling tabs sit in the
-    // side-by-side row, so they collapse into a single "Programs & Logs" tab (the `programs` anchor) and
-    // the rest are dropped — exactly how the TX page merges Programs & Logs when side by side.
+    // Build the tab list. Width plays no part in it: every section keeps its own tab at every breakpoint,
+    // and the gated ones (Logs / CU profiling) stay disabled until a run, so desktop navigation matches
+    // mobile exactly. Only the presence of the underlying content drops a tab.
     const tabs = React.useMemo(() => {
-        const visible = BASE_TABS.filter(
+        return BASE_TABS.filter(
             t =>
                 !(t.requiresSignatures && !hasSignatures) &&
                 !(t.requiresLookups && !hasLookups) &&
                 !(t.requiresTokens && !hasTokens),
-        );
-        const forXxl = visible
-            .filter(t => !(t.merged && t.path !== 'programs'))
-            .map(t => (t.path === 'programs' ? { ...t, title: 'Programs & Logs' } : t));
-        return (isXxl ? forXxl : visible).map(t => ({
+        ).map(t => ({
+            badge: t.badge,
             disabled: Boolean(t.gated) && !simDone,
             path: t.path,
             title: t.title,
         }));
-    }, [hasSignatures, hasLookups, hasTokens, isXxl, simDone]);
+    }, [hasSignatures, hasLookups, hasTokens, simDone]);
 
     return (
         <>

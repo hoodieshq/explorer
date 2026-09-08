@@ -20,12 +20,15 @@ export const tabLinkClassName = cn(
 export function TabLink({
     path,
     title,
+    badge,
     className,
     disabled,
     disabledHint,
 }: {
     path: string;
     title: string;
+    /** Decorative marker shown before the title (e.g. the inspector's simulation "S" chip). */
+    badge?: React.ReactNode;
     className?: string;
     disabled?: boolean;
     // Tooltip shown on hover over a disabled tab (e.g. "run a simulation to load this tab").
@@ -33,6 +36,18 @@ export function TabLink({
 }) {
     const ctx = useNavigationTabsContext();
     const isActive = path === ctx.activeValue;
+    // Without a badge the label stays a bare string, so existing tabs keep their exact markup. With one,
+    // the badge is an inline `align-middle` box rather than a flex item: an `inline-flex` wrapper would
+    // take ITS baseline from the badge (the first flex item), nudging the title a pixel off the baseline
+    // every other tab sits on. Inline keeps the title in the link's own line box, unmoved.
+    const label = badge ? (
+        <>
+            <span className="relative -top-0.5 mr-1 inline-block align-middle">{badge}</span>
+            {title}
+        </>
+    ) : (
+        title
+    );
 
     if (disabled) {
         const span = (
@@ -42,7 +57,7 @@ export function TabLink({
                 data-state="inactive"
                 className={cn(tabLinkClassName, 'cursor-not-allowed text-outer-space-500 opacity-60', className)}
             >
-                {title}
+                {label}
             </span>
         );
         if (!disabledHint) return span;
@@ -71,7 +86,7 @@ export function TabLink({
             className={cn(tabLinkClassName, className)}
             onClick={handleClick}
         >
-            {title}
+            {label}
         </Link>
     );
 }
