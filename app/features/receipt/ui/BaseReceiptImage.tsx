@@ -223,7 +223,7 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                             flexGrow: 1,
                         }}
                     >
-                        <ListItem label="Sender" value={sender.truncated} />
+                        <ListItem label="Sender" value={sender.truncated} mono />
                         <ListItem label="Date" value={date.utc} valueColor={colors.emerald900} />
                         <ListItem
                             label="1. Sent"
@@ -239,11 +239,20 @@ export function BaseReceiptImage({ data, options }: BaseReceiptImageProps) {
                                         lineHeight: '1em',
                                     }}
                                 >
-                                    <span style={{ color: colors.heavyMetal800, fontWeight: 600, lineHeight: '1em' }}>
+                                    <span
+                                        style={{
+                                            color: colors.heavyMetal800,
+                                            fontFamily: MONO,
+                                            fontWeight: 600,
+                                            lineHeight: '1em',
+                                        }}
+                                    >
                                         {total.formatted} {total.unit}
                                     </span>
                                     <span style={{ color: colors.neutral500, lineHeight: '1em' }}>to</span>
-                                    <span style={{ color: colors.emerald700 }}>{receiver.truncated}</span>
+                                    <span style={{ color: colors.emerald700, fontFamily: MONO }}>
+                                        {receiver.truncated}
+                                    </span>
                                 </div>
                             }
                         />
@@ -331,11 +340,14 @@ function ListItem({
     value,
     valueColor = colors.emerald700,
     style,
+    mono = false,
 }: {
     label: string;
     value: React.ReactNode | string | undefined;
     valueColor?: string;
     style?: React.CSSProperties;
+    /* A pubkey or a figure rather than prose — see MONO below. */
+    mono?: boolean;
 }) {
     if (!value) return null;
     return (
@@ -360,6 +372,7 @@ function ListItem({
                         flex: 1,
                         fontSize: '34px',
                         justifyContent: 'flex-end',
+                        ...(mono ? { fontFamily: MONO } : {}),
                     }}
                 >
                     {value}
@@ -473,8 +486,16 @@ const columnLabelStyle = {
     width: SPACING.columnWidth,
 } as const;
 
+// Addresses, signatures and amounts are set in the mono face, the way the PDF of
+// the same receipt sets them (see lib/pdf-fonts.ts): these are strings a reader
+// compares character by character, and a proportional face makes 1/l and 0/O do
+// the deciding. Available to the image since the OG routes started passing fonts
+// — before that satori had one bundled family and this would have been ignored.
+const MONO = 'Roboto Mono' as const;
+
 const addressStyle = {
     color: colors.emerald700,
+    fontFamily: MONO,
     ...TYPO.body,
     width: SPACING.columnWidth,
 } as const;
@@ -496,6 +517,7 @@ const amountCellStyle = {
 } as const;
 
 const amountTextStyle = {
+    fontFamily: MONO,
     fontSize: TYPO.body.fontSize,
     lineHeight: TYPO.body.lineHeight,
 } as const;

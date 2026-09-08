@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import defaultTheme from 'tailwindcss/defaultTheme';
 import plugin from 'tailwindcss/plugin';
 import tailwindcssAnimate from 'tailwindcss-animate';
 
@@ -73,6 +74,19 @@ const config: Config = {
     ],
     theme: {
         extend: {
+            // The two product faces, ahead of the stacks Tailwind ships. Both are
+            // loaded by next/font in app/styles/index.ts and exposed as variables on
+            // <html>; the fallbacks matter only for the first paint and for anything
+            // rendered outside the app shell (Storybook, an isolated slice).
+            //
+            // `font-mono` is the one that changes behaviour: ~210 call sites used to
+            // resolve to the OS monospace — SF Mono, Consolas, Liberation Mono — so an
+            // address looked different on every platform and matched neither the
+            // designs nor the receipt PDF, which embeds this exact family.
+            fontFamily: {
+                mono: ['var(--explorer-mono-font)', ...defaultTheme.fontFamily.mono],
+                sans: ['var(--explorer-default-font)', ...defaultTheme.fontFamily.sans],
+            },
             boxShadow: {
                 // border for active states from Dashkit
                 active: '0 0 0 0.15rem #33a382',

@@ -1,5 +1,6 @@
 import { getFeatureInfo } from '@entities/feature-gate/server';
 import { BaseFeatureGateImage, isFeatureGateOgEnabled, OG_IMAGE_SIZE } from '@features/feature-gate/server';
+import { loadOgFonts } from '@features/receipt/server';
 import { isAddress } from '@solana/kit';
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
@@ -29,6 +30,7 @@ export async function GET(_request: NextRequest, props: Props) {
     try {
         const imageResponse = new ImageResponse(<BaseFeatureGateImage title={feature.title} simds={feature.simds} />, {
             ...OG_IMAGE_SIZE,
+            fonts: await loadOgFonts(),
         });
         const imageBuffer = await imageResponse.arrayBuffer();
 
