@@ -15,12 +15,18 @@ describe('PageLayout', () => {
         expect(screen.getByText('block')).toBeInTheDocument();
     });
 
-    it('should apply the default shell, max-width and between-blocks rhythm', () => {
+    it('should apply the default shell padding and max-width', () => {
         render(<PageLayout data-testid="layout">content</PageLayout>);
         const root = screen.getByTestId('layout');
 
         expect(root).toHaveClass('mx-auto', 'flex', 'flex-col', 'px-4', 'lg:px-6', 'pt-3', 'lg:pt-5');
-        expect(root).toHaveClass('max-w-5xl', 'space-y-9', 'lg:space-y-12');
+        expect(root).toHaveClass('max-w-5xl');
+    });
+
+    it('should not own the between-blocks rhythm (that lives in PageSections)', () => {
+        render(<PageLayout data-testid="layout">content</PageLayout>);
+
+        expect(screen.getByTestId('layout')).not.toHaveClass('space-y-9', 'lg:space-y-12');
     });
 
     it('should span the parent when width is full', () => {
@@ -33,16 +39,6 @@ describe('PageLayout', () => {
 
         expect(root).toHaveClass('max-w-none');
         expect(root).not.toHaveClass('max-w-5xl');
-    });
-
-    it('should drop the between-blocks rhythm when gap is none', () => {
-        render(
-            <PageLayout data-testid="layout" gap="none">
-                content
-            </PageLayout>,
-        );
-
-        expect(screen.getByTestId('layout')).not.toHaveClass('space-y-9', 'lg:space-y-12');
     });
 
     it('should merge a custom className and forward arbitrary props', () => {

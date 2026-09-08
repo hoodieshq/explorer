@@ -25,12 +25,17 @@ export type BaseNavigationTabsProps = {
     onTabClick?: (path: string, e: React.MouseEvent<HTMLAnchorElement>) => void;
     /**
      * Enables scroll-spy mode: active tab tracks scroll position, clicking scrolls smoothly.
-     * Wraps the tab bar in a sticky full-width container with a shadow on stuck.
-     * Use `wrapperClassName` to provide the background color (e.g. "bg-heavy-metal-900").
+     * Implies `sticky` (scroll-spy tabs are always pinned).
      */
     scrollSpy?: boolean;
+    /**
+     * Wraps the tab bar in a sticky, full-bleed container that raises a shadow once it sticks to the
+     * top. Use for route-based tabs that should pin (the block page); `scrollSpy` turns this on too.
+     * Provide the background color via `wrapperClassName` (e.g. "bg-heavy-metal-900").
+     */
+    sticky?: boolean;
     tabs: NavigationTab[];
-    /** Applied to the sticky wrapper when `scrollSpy` is true. Use for background color. */
+    /** Applied to the sticky wrapper (when `sticky` or `scrollSpy`). Use for background color. */
     wrapperClassName?: string;
 };
 
@@ -43,8 +48,12 @@ export function BaseNavigationTabs({
     children,
     className,
     scrollSpy,
+    sticky,
     wrapperClassName,
 }: BaseNavigationTabsProps) {
+    // Scroll-spy tabs are always pinned; `sticky` pins route-based tabs too. Both share the same
+    // sticky wrapper + shadow-on-stuck; only the active-tab tracking below is scroll-spy specific.
+    const isSticky = scrollSpy || sticky;
     const { registeredTabs, registerTab, unregisterTab } = useTabRegistration();
 
     const wrapperRef = useRef<HTMLDivElement>(null);
@@ -89,18 +98,23 @@ export function BaseNavigationTabs({
     );
 
     useEffect(() => {
-        if (!scrollSpy) return;
+        if (!isSticky) return;
         const el = wrapperRef.current;
         if (!el) return;
-        const observer = new IntersectionObserver(([entry]) => setStuck(!entry.isIntersecting), {
-            rootMargin: '-1px 0px 0px 0px',
-            threshold: [1],
+        // Raise the shadow only once the bar reaches the top. `rootMargin` bottom `-100%` collapses the
+        // root to a zero-height strip at the very top of the viewport; with `threshold: [0]` the bar
+        // counts as stuck the moment its top edge overlaps that strip. This is width-independent on
+        // purpose — the bar is full-bleed (100vw, wider than the scrollbar-less viewport), so observing
+        // it with `threshold: [1]` would never reach ratio 1 and would latch "stuck" on permanently.
+        const observer = new IntersectionObserver(([entry]) => setStuck(entry.isIntersecting), {
+            rootMargin: '0px 0px -100% 0px',
+            threshold: [0],
         });
         observer.observe(el);
         return () => observer.disconnect();
-    }, [scrollSpy]);
+    }, [isSticky]);
 
-    useStickyHeaderHeight(wrapperRef, !!scrollSpy);
+    useStickyHeaderHeight(wrapperRef, !!isSticky);
 
     useEffect(() => {
         if (!scrollSpy) return;
@@ -161,7 +175,7 @@ export function BaseNavigationTabs({
         </NavigationTabsContext.Provider>
     );
 
-    if (scrollSpy) {
+    if (isSticky) {
         return (
             <div
                 ref={wrapperRef}
