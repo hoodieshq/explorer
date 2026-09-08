@@ -656,7 +656,7 @@ function LoadedView({
             />
             {/* A pointer to the simulation, read before the page is scrolled. Running it stays with the
                 Account List's own hint and the controls in the Simulation block. */}
-            <SimulationJumpHint className="mb-5 mt-3 lg:mb-6 lg:mt-4" />
+            <SimulationJumpHint className="mb-5 mt-4 lg:mb-6" />
             <BaseNavigationTabs
                 scrollSpy
                 tabs={tabs}
@@ -742,7 +742,11 @@ function OverviewCard({
                     <DownloadDropdown filename={signature || 'signature'} data={raw} />
                 </div>
             </div>
-            <Card ui="dashkit">
+            {/* mb-0 via className, not `marginBottom="none"`: BaseCard merges its variant classes with
+                tailwind-merge, and cva emits the marginBottom variant BEFORE the `ui` one, so dashkit's
+                own mb-6 wins over it — className is merged last and does override. The gap down to the
+                simulation band is set by that band's top margin instead. */}
+            <Card ui="dashkit" className="mb-0">
                 <OverviewRow divider>
                     <OverviewLabel>Serialized Size / Limit</OverviewLabel>
                     <OverviewValue>
