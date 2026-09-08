@@ -223,11 +223,55 @@ jobs:
           STORYBOOK_DISABLE_TELEMETRY: ${{ env.STORYBOOK_DISABLE_TELEMETRY }}
         run: pnpm test:sb
 
+  # A full sweep costs ~20 runner-minutes, so it only earns its keep when the PR can actually move pixels.
+  # The PR's own file list comes from the API — no checkout, and no deep fetch to diff base...head.
+  Detect-Visual-Scope:
+    if: github.event_name == 'pull_request' && github.base_ref == 'master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+      pull-requests: read
+
+    outputs:
+      touched: ${{ steps.scope.outputs.touched }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            scripts/visual-scope.sh
+          sparse-checkout-cone-mode: false
+
+      # The path patterns live in the script, which `scripts/__tests__/visual-scope.spec.ts` covers — a copy
+      # inlined here would drift from the tested one.
+      - name: Check whether the PR touches rendered UI
+        id: scope
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
+            --paginate --jq '.[].filename' | bash scripts/visual-scope.sh >> "$GITHUB_OUTPUT"
+
+      - name: Note the decision
+        run: |
+          {
+            echo "### Storybook visual regression"
+            echo ""
+            if [ "${{ steps.scope.outputs.touched }}" = true ]; then
+              echo "Rendered UI touched — running the sweep."
+            else
+              echo "Skipped: this PR touches no story, component, style or workspace-package file."
+            fi
+          } >> $GITHUB_STEP_SUMMARY
+
   Storybook-Visual-Regression:
-    needs: read-nvmrc
+    needs: [read-nvmrc, Detect-Visual-Scope]
     # Master-based PRs only: baselines are captured from master (storybook-vr-baseline.yaml), so a
     # development-targeted PR would silently diff against the wrong branch.
-    if: github.event_name == 'pull_request' && github.base_ref == 'master'
+    if: needs.Detect-Visual-Scope.outputs.touched == 'true'
     runs-on: ubuntu-latest
     # 1208 stories capture in ~6 min at parallel 6 on an 8-core dev machine; a 4-vCPU runner plus both builds
     # lands near 30, and a timeout kill reads as drift rather than as a slow runner.

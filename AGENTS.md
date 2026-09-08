@@ -11,6 +11,8 @@
 
 - Follow Feature-Sliced Design (FSD): features in `app/features/`, entities in `app/entities/`, shared code in `app/shared/`.
   - Server-only code within a slice lives in a dedicated `server.ts` file at the slice root, separate from client code.
+- Within a slice, place code by segment: presentational components in `ui/`, state and hooks in `model/`, pure helpers in `lib/`, data fetching in `api/`. Wiring stays out of `ui/` even when it carries JSX — providers, hooks and card factories belong in `model/`, and a slice's page entry (`<slice>-page.tsx`, exported through the slice's `index.ts`) belongs at slice root, where it feeds data to the `ui/` components it composes.
+- Placement decides visual-regression coverage for non-component modules. [`scripts/visual-scope.sh`](scripts/visual-scope.sh) triggers the Storybook sweep from every `app/**/*.{tsx,css,scss}` plus a slice's `lib/`, `model/` and `api/`, `app/utils/**`, `app/shared/**`, `.storybook/**`, `packages/**` and the Tailwind/PostCSS config. A `.ts` module that shapes rendered output from anywhere else — a slice root, `app/validators/` — is silently exempt: move it into a segment, or extend the script and its [spec](scripts/__tests__/visual-scope.spec.ts) together.
 - Prefer functional style. Use classes only to scope domain-specific logic (e.g., IDL interpreters, program executors).
 
 ## Code Style

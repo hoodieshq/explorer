@@ -65,9 +65,13 @@ Conventions carried over from the campaigns:
 - The **baseline** is captured from master by the manually dispatched `storybook-vr-baseline` workflow and stored
   in the GitHub Actions cache (key: salt + runner `ImageOS` + chromium revision + master sha). It is disposable by
   design; nothing binary is committed. Re-dispatch after notable UI merges, allowlist changes, or cache eviction.
-- The **PR job** restores the newest environment-matching baseline (exact merge-base hit is unlikely and not
-  required — the report names the baseline commit and flags approximate comparisons), captures the PR side, diffs,
-  and uploads drift triplets as an artifact. It is advisory (`continue-on-error`) and skips with a notice when no
-  baseline exists for the current environment.
+- The **PR job** runs only when the PR can move pixels: `Detect-Visual-Scope` reads the PR's file list from the
+  API and defers to `scripts/visual-scope.sh` (components, stories, styles, `.storybook/**`, workspace packages,
+  Tailwind/PostCSS config; specs and mocks excluded). The patterns live in that script, covered by
+  `scripts/__tests__/visual-scope.spec.ts` — never inline a second copy in the workflow. It then restores the
+  newest environment-matching baseline (exact merge-base hit is unlikely and not required — the report names the
+  baseline commit and flags approximate comparisons), captures the PR side, diffs, and uploads drift triplets as
+  an artifact. It is advisory (`continue-on-error`) and skips with a notice when no baseline exists for the
+  current environment.
 - `allowlists/intentional.json` entries are temporary: once the approved change merges and the baseline is
   re-dispatched, remove them.
