@@ -68,9 +68,9 @@ export function SimulationHint({ className, simulation }: { className?: string; 
     );
 }
 
-// The variant-2 band under the Overview: read before anything is scrolled, it says where simulation lives
-// rather than starting one, so its action is navigation — a jump to the Simulation block — and the running
-// of it stays with the controls down there and on the Account List. It wears the same green noise backing
+// The band under the Overview: read before anything is scrolled, it says where simulation lives rather
+// than starting one, so its action is navigation — a jump to the Simulation block — and the running of it
+// stays with the controls down there and on the Account List. It wears the same green noise backing
 // (SIM_ZONE_STYLE), outer-space border and padding rhythm as the Simulation card at the bottom of the
 // page, so the two read as the same zone; `overflow-hidden` keeps the tiled grain inside the rounded
 // corners.

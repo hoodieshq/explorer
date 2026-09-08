@@ -38,8 +38,6 @@ import {
     type V1TransactionConfig,
 } from '@/app/shared/lib/v1-message-bridge';
 import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
-import { DesignVariantSwitcher } from '@/app/shared/ui/design-variant-switcher/DesignVariantSwitcher';
-import { useDesignVariant } from '@/app/shared/ui/design-variant-switcher/use-design-variant';
 import { BaseNavigationTabs } from '@/app/shared/ui/navigation-tabs/ui/BaseNavigationTabs';
 import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
 import { useClusterPath } from '@/app/utils/url';
@@ -580,19 +578,10 @@ const BASE_TABS: {
     { gated: true, path: 'cu-profiling', title: 'CU profiling' },
 ];
 
-// Design variants of the loaded view, kept side by side for review behind the on-page switcher (or the
-// hash, e.g. `/tx/inspector#v2`). They differ only in where the line explaining the empty Change column
-// sits: `v1` carries it only above the Account List card, `v2` adds a line under the Overview that points
-// at the Simulation block, so the simulation is findable right after the summary.
-const DESIGN_VARIANTS = ['v1', 'v2'] as const;
-const DESIGN_VARIANT_LABELS: Record<(typeof DESIGN_VARIANTS)[number], string> = {
-    v1: 'v1 · over accounts',
-    v2: 'v2 · under overview',
-};
-
 // The loaded-transaction view, shared by the permalink, parsed raw-input and Squads modes. It is arranged
 // to MATCH THE TRANSACTION DETAILS PAGE (app/tx/[signature]/page-client.tsx): Overview (= Summary) → a
-// scroll-spy tab bar → a full-width stack (Signatures, Accounts, Address Lookups) → a full-bleed
+// band pointing at the simulation → a scroll-spy tab bar → a full-width stack (Signatures, Accounts,
+// Address Lookups) → a full-bleed
 // two-column "Programs & Logs" row at xxl, with Instructions (Programs) on the left and the Simulation
 // control + Logs + CU profiling in the sticky right column. Simulation state is owned here (not inside a
 // section) so the tab bar can gate the simulation-derived tabs and the Account List's "Change" column and
@@ -624,7 +613,6 @@ function LoadedView({
 
     const simulation = useSimulation(message, accountBalances);
     const simDone = simulation.status === 'done';
-    const [designVariant, setDesignVariant] = useDesignVariant(DESIGN_VARIANTS, 'v1');
 
     // Token-balance rows come from the simulation result, so they exist only after a successful run that
     // touched SPL tokens. Gated behind showTokenBalanceChanges (off for the Squads/permalink callers). A
@@ -658,15 +646,7 @@ function LoadedView({
     }, [hasSignatures, hasLookups, hasTokens, simDone]);
 
     return (
-        // `relative` anchors the (draggable) design-variant switcher plate to this page surface.
-        <div className="relative">
-            <DesignVariantSwitcher
-                label="Variant"
-                variants={DESIGN_VARIANTS}
-                labels={DESIGN_VARIANT_LABELS}
-                value={designVariant}
-                onChange={setDesignVariant}
-            />
+        <>
             <OverviewCard
                 message={message}
                 raw={rawMessage}
@@ -674,9 +654,9 @@ function LoadedView({
                 isV1={version === 1}
                 transactionConfig={transactionConfig}
             />
-            {/* v2: a pointer to the simulation, read before the page is scrolled. Running it stays with
-                the Account List's own hint and the controls in the Simulation block. */}
-            {designVariant === 'v2' && <SimulationJumpHint className="mb-5 mt-3 lg:mb-6 lg:mt-4" />}
+            {/* A pointer to the simulation, read before the page is scrolled. Running it stays with the
+                Account List's own hint and the controls in the Simulation block. */}
+            <SimulationJumpHint className="mb-5 mt-3 lg:mb-6 lg:mt-4" />
             <BaseNavigationTabs
                 scrollSpy
                 tabs={tabs}
@@ -716,7 +696,7 @@ function LoadedView({
                     </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
 
