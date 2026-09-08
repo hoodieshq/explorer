@@ -34,32 +34,12 @@ import { Section } from '@/app/features/transaction/ui/Section';
 import { AccountDetailSlideover } from './AccountDetailSlideover';
 import { AddressFromLookupTableWithContext } from './AddressWithContext';
 import { LG_ONLY_CARD } from './inspector-table';
+import { hasReliableChanges, simulationFailureMessage } from './simulation-changes';
+import { SimulationHint } from './SimulationHint';
 
 // Fallback for callers (isolated stories/tests) that don't own a simulation: the Change column then
 // simply offers the Simulate affordance, which is a no-op until wired to a real run.
 const IDLE_SIMULATION: SimulationState = { simulate: () => undefined, status: 'idle' };
-
-// A simulation can complete (`status: 'done'`) yet still carry an execution error — the run reverted.
-// Its SOL balance changes come from that failed execution and are unreliable, so the Change column must
-// not present them as results. Only a run that completed *without* an error yields usable deltas; every
-// other case (including a failed run) falls back to the Simulate affordance instead.
-function hasReliableChanges(simulation: SimulationState): simulation is Extract<SimulationState, { status: 'done' }> {
-    return simulation.status === 'done' && !simulation.result.error;
-}
-
-// A run that reverted (`status: 'done'` carrying an execution error) or that failed outright
-// (`status: 'error'`) produces no reliable balance deltas. Without this the Change column would fall
-// straight back to the pre-run Simulate affordance, so a completed-but-reverted run looked identical to
-// never having run — the failure was only visible down in the Logs. Returns the message to explain it,
-// or `undefined` when the run did not fail. The `done`-with-error case only carries a generic
-// `TransactionError`, so it points at the Logs rather than repeating it.
-function simulationFailureMessage(simulation: SimulationState): string | undefined {
-    if (simulation.status === 'error') return simulation.error;
-    if (simulation.status === 'done' && simulation.result.error) {
-        return 'Transaction reverted during simulation — see the Logs for the program error.';
-    }
-    return undefined;
-}
 
 // Shared 6-column track for the desktop (lg+) table: # / Address / Owner / Change / Post Balance / Size.
 // The header row and every body row use the same columns so they stay aligned.
@@ -218,13 +198,7 @@ export function AccountsCard({
     }
 
     return (
-        <Section
-            title="Account List"
-            className={LG_ONLY_CARD}
-            /* Only while the Change column has nothing to show — once a run yields deltas the column
-               speaks for itself. */
-            belowTitle={!hasReliableChanges(simulation) && <SimulationHint simulation={simulation} />}
-        >
+        <Section title="Account List" className={LG_ONLY_CARD} belowTitle={<SimulationHint simulation={simulation} />}>
             <div className={HEADER_GRID}>
                 <div>#</div>
                 <div>Address</div>
@@ -402,32 +376,6 @@ function ChangeSimulateButton({
             size="compact"
             className={cn('!h-5 leading-none', size === 'drawer' ? 'px-2.5 !text-xs' : '!px-2 !text-[10px]')}
         />
-    );
-}
-
-// Note between the "Account List" heading and the card, shown while the Change column has nothing to
-// show (before a run, during one, and after a failed one): the Simulate control leads, followed by one
-// interface-short line saying what a run buys and where its full output lands. Plain text on the page
-// background — no card chrome of its own. The anchor is a plain `#logs` link: the target carries
-// `scroll-margin-top: var(--sticky-header-height)` so the sticky tab bar does not cover it, and the app
-// sets `scroll-behavior: smooth` globally.
-function SimulationHint({ simulation }: { simulation: SimulationState }) {
-    return (
-        <div className="flex flex-wrap items-center gap-2 text-sm text-outer-space-300">
-            {/* Two steps up in height from the Change column's row-hover button (which is pinned to the
-                row's text line), with the `sm` variant's own `text-xs` label — the size every other button
-                in the app uses, so it stays a shade smaller than the sentence beside it. */}
-            <SimulateButton simulation={simulation} size="sm" className="shrink-0" />
-            <p className="m-0">
-                Simulate to see balance changes. Full result appears in the{' '}
-                {/* styles.css colours every <a> dashkit green; this one reads as body text, so the grey is
-                    restored explicitly (a plain class beats the `a` element selector) and underlined. */}
-                <a href="#logs" className="text-outer-space-300 underline hover:text-white">
-                    Logs block
-                </a>{' '}
-                below.
-            </p>
-        </div>
     );
 }
 

@@ -73,11 +73,16 @@ export function InspectorSimulationPanel({
                 card carrying the green noise backing (SIM_ZONE_STYLE) and outer-space border.
                 `overflow-hidden` keeps the tiled noise and the full-bleed failure band within the rounded
                 corners. */}
-            <section id="simulation" aria-label="Simulation" className="flex flex-col gap-3">
+            <section
+                id="simulation"
+                aria-label="Simulation"
+                className="flex flex-col gap-3"
+                style={{ scrollMarginTop: 'var(--sticky-header-height, 0px)' }}
+            >
                 <h2 className="m-0 text-lg font-normal text-white">Simulation</h2>
                 <div
                     style={SIM_ZONE_STYLE}
-                    className="flex flex-col gap-3 overflow-hidden rounded-lg border border-solid border-outer-space-800 p-4 lg:p-6"
+                    className="flex flex-col gap-3 overflow-hidden rounded-lg border border-solid border-outer-space-800 px-3 py-4"
                 >
                     {/* Guidance stays between the heading and the button at all times — it is not cleared
                         once a simulation has run. */}
@@ -94,10 +99,10 @@ export function InspectorSimulationPanel({
                         <LastSimulatedAt simulation={simulation} />
                     </div>
                     {simulation.status === 'error' && (
-                        // Full-bleed to the card edges (negative margins cancel the card padding, incl. the
-                        // bottom so it reaches the rounded corner). A top border draws the full-width divider;
-                        // below it sits the failure text.
-                        <div className="-mx-4 -mb-4 mt-1 border-0 border-t border-solid border-outer-space-800 px-4 py-3 lg:-mx-6 lg:-mb-6 lg:mt-3 lg:px-6">
+                        // Full-bleed to the card edges (negative margins cancel the card padding at each
+                        // breakpoint, incl. the bottom so it reaches the rounded corner). A top border draws
+                        // the full-width divider; below it sits the failure text.
+                        <div className="-mx-3 -mb-4 mt-1 border-0 border-t border-solid border-outer-space-800 px-3 py-3 lg:mt-3">
                             <span className="text-sm text-white">Simulation Failure:</span>
                             <span className="ml-2 break-all text-sm text-yellow-500">{simulation.error}</span>
                         </div>
