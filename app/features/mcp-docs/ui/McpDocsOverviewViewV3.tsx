@@ -253,12 +253,16 @@ function Hero({ origin, status }: { origin: string; status: EndpointStatus }) {
                             accounts, programs, tokens and transactions — with the same IDL decoding and enrichments the
                             Explorer renders.
                         </p>
+                        {/* Phone density is matched to the closing band's, per unit of field rather
+                            than per band: this band has about twice the area there, so twice its dot
+                            budget is the same spread of dots. Desktop already sits at that density
+                            and is untouched. */}
                         <GravityCta
                             href="#setup"
                             fieldRef={fieldRef}
                             className="text-[15px]"
-                            mobileDotScale={2}
-                            mobilePullScale={0.85}
+                            mobileDotScale={2 / 3}
+                            mobilePullScale={0.5}
                             zoneTop={1 / 3}
                             zoneBottom={2 / 3}
                         >
@@ -396,13 +400,30 @@ function EndpointAddress({ display, value }: { display: string; value: string })
  */
 const CTA_FIELD_X = 110;
 const CTA_FIELD_Y = 70;
-/** Attraction constant, tuned so a dot crosses the field in roughly a second. */
+/**
+ * Attraction constant, tuned so a dot crosses the field in roughly a second — in a band the size
+ * of CTA_FIELD_REF_RADIUS. Every band scales it by its own radius (see `measure`), so the flight
+ * lasts that same second whatever the screen.
+ */
 const CTA_GRAVITY = 260_000;
 /**
  * Distance (px) the attraction constant is quoted at: the pull at CTA_GRAVITY_REF is the same
  * whatever the falloff, so the exponent below re-shapes the curve instead of rescaling it.
  */
 const CTA_GRAVITY_REF = 200;
+/**
+ * Field radius (px) CTA_GRAVITY is quoted at: the hero band on a 1440-wide desktop, where the
+ * flight was tuned and which every other band is now matched to. The radius of a band is the RMS
+ * distance from a spawn point to the button, so it follows both the band's size and where in it the
+ * button sits — measured, the hero is 712 there against 248 on a phone and 440 in the closing band.
+ *
+ * That gap is what made the same pull read as two different animations: the pull is a
+ * distance-driven acceleration, so a third of the field is not just a third of the trip — the dots
+ * also start out in a far stronger part of the curve, and crossed the phone's band about five times
+ * faster than the desktop hero's. Scaling the pull with the band (see `measure`) is what holds the
+ * hero's pace everywhere: phone, tablet, desktop, top band and closing band alike.
+ */
+const CTA_FIELD_REF_RADIUS = 712;
 /**
  * How steeply the pull falls off with distance. 2 is textbook inverse-square: nearly all of the
  * pull sits in the last few dozen px, so the field barely reaches and the dots then whip into the
@@ -565,16 +586,18 @@ function GravityCta({
      */
     fieldRef?: React.RefObject<HTMLElement | null>;
     /**
-     * How fast the dots fly in, as a factor on the resting 1× — every device, not just phones.
-     * Arrival speed goes as the square root of the attraction, so the constant is scaled by the
-     * square of this and 0.5 really is half the speed. A calmer band reads as a slower drift in.
+     * How fast the dots fly in, as a factor on the resting 1× — every device, not just phones, and
+     * on top of the scaling that already matches this band's pull to its own size. Arrival speed
+     * goes as the square root of the attraction, so the constant is scaled by the square of this
+     * and 0.5 really is half the speed. A calmer band reads as a slower drift in.
      */
     flightSpeedScale?: number;
     href: string;
     /**
      * Per-band tuning of the mobile dot budget: the phone caps (resting and pull alike) are
-     * multiplied by this. Desktop is untouched. Bands differ in how much room the field has and
-     * how much else is on screen, so the hero can afford a denser field than the closing CTA.
+     * multiplied by this. Desktop is untouched. A band loses a different share of its area on a
+     * phone than the next one does, so this is where each band gets back to the density the page
+     * runs at — it is not a knob for making one band denser than another.
      */
     mobileDotScale?: number;
     /**
@@ -583,8 +606,10 @@ function GravityCta({
      */
     mobilePullScale?: number;
     /**
-     * Softening length in px for this band (default CTA_GRAVITY_SOFTENING) — how wide the flat
-     * spot around the button is, i.e. how early the arriving dots stop accelerating.
+     * Softening length for this band (default CTA_GRAVITY_SOFTENING) — how wide the flat spot
+     * around the button is, i.e. how early the arriving dots stop accelerating. Quoted in px for a
+     * field of CTA_FIELD_REF_RADIUS and scaled with the band from there, so it keeps its share of
+     * whatever field it lands in.
      */
     softening?: number;
     /**
@@ -625,15 +650,15 @@ function GravityCta({
         const ctx = canvas?.getContext('2d');
         if (!wrap || !canvas || !link || !ctx) return;
 
-        // Attraction for this band. A dot's arrival speed goes as the square root of the constant,
-        // so squaring the scale is what makes `flightSpeedScale` read as a speed: 0.5 → a quarter
-        // of the pull → half the speed.
-        const gravity = CTA_GRAVITY * flightSpeedScale * flightSpeedScale;
-        // The constant is quoted as the acceleration at CTA_GRAVITY_REF, so changing the falloff
-        // re-shapes the curve without re-scaling the whole field: the pull at the reference
-        // distance is the same for any exponent, and only its distribution over distance moves.
-        const refAccel = gravity / (CTA_GRAVITY_REF * CTA_GRAVITY_REF);
         const inverseSquare = falloff === 2;
+        // Attraction for this band, as the acceleration at CTA_GRAVITY_REF: quoting it at a fixed
+        // distance means changing the falloff re-shapes the curve without re-scaling the whole
+        // field. Both factors are re-derived by `measure` below, since the pull follows the size of
+        // the band; until the first measurement it stands at the reference field.
+        let refAccel = 0;
+        // Softening in the same field-relative terms — also set by `measure`, which runs before
+        // the loop starts, so neither is read at the placeholder it is declared with.
+        let fieldSoftening = softening;
 
         let width = 0;
         let height = 0;
@@ -664,6 +689,23 @@ function GravityCta({
                 centerX = CTA_FIELD_X + halfW;
                 centerY = CTA_FIELD_Y + halfH;
             }
+            // How big this band's field is, in the terms CTA_GRAVITY is quoted in: the RMS
+            // distance from a spawn point — uniform over the whole band — to the button. For a
+            // uniform span, E[(p - c)²] = span²/3 - span·c + c², summed over both axes.
+            const spread = (span: number, at: number) => (span * span) / 3 - span * at + at * at;
+            const radius = Math.sqrt(spread(width, centerX) + spread(height, centerY));
+            // The band measured against the desktop hero. Before the first layout the box is
+            // empty; the reference keeps the pull sane until the observer measures it for real.
+            const fieldScale = radius > 0 ? radius / CTA_FIELD_REF_RADIUS : 1;
+            // Flight time goes as sqrt(R^(falloff + 1) / pull), so raising the pull by the same
+            // power of the band's radius holds that time fixed: a phone's third of a field takes
+            // the same second to cross as the desktop hero, and the arrival speed scales with the
+            // band instead — the same share of the screen per second, which is what reads as the
+            // same animation. The softening length keeps its share of the field for the same
+            // reason, so the landing stays as soft relative to the flight.
+            const gravity = CTA_GRAVITY * flightSpeedScale * flightSpeedScale * Math.pow(fieldScale, falloff + 1);
+            refAccel = gravity / (CTA_GRAVITY_REF * CTA_GRAVITY_REF);
+            fieldSoftening = softening * fieldScale;
             const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
@@ -878,7 +920,7 @@ function GravityCta({
                 const dy = centerY - dot.y;
                 // Softened distance: the true one out in the field, never under the softening
                 // length up close, and smooth in between (no kink where a hard floor would sit).
-                const softened = Math.sqrt(dx * dx + dy * dy + softening * softening);
+                const softened = Math.sqrt(dx * dx + dy * dy + fieldSoftening * fieldSoftening);
                 const drop = inverseSquare
                     ? (CTA_GRAVITY_REF * CTA_GRAVITY_REF) / (softened * softened)
                     : Math.pow(CTA_GRAVITY_REF / softened, falloff);
@@ -1968,17 +2010,18 @@ function ClosingCta() {
                     Code.
                 </p>
                 <div className="flex flex-col items-center gap-2.5 pt-2.5 sm:flex-row sm:gap-3">
+                    {/* Flight is left at the hero's tuning — the pull now scales with the band, so
+                        this shorter one no longer needs the slower, flatter curve it was hand-set
+                        to. `dotScale` is what carries the density across: this band holds about
+                        seven tenths of the hero's area, so it takes about that share of its dots. */}
                     <GravityCta
                         href="#setup"
                         fieldRef={fieldRef}
                         className="text-[15.5px]"
                         dotScale={1 / 1.5}
-                        falloff={1.6}
-                        flightSpeedScale={0.53}
                         mobileDotScale={0.5}
                         mobilePullScale={0.5}
                         pageBottomGap={0}
-                        softening={52}
                     >
                         Set up your agent
                     </GravityCta>
