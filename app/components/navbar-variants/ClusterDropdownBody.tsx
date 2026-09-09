@@ -133,7 +133,7 @@ export function endpointName(endpoint: RpcEndpoint) {
 // The menu links' own grey, hover white: a row here and a link in the bar are the same kind of thing, and
 // two greys a shade apart read as a mistake rather than as a distinction.
 const ROW_CLASSES =
-    'flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-solid px-3 py-2 text-sm text-outer-space-300 no-underline transition-colors hover:bg-outer-space-800 hover:text-white';
+    'flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-solid px-3 py-2 text-sm text-outer-space-300 no-underline transition-colors hover:border-white/10 hover:bg-outer-space-800 hover:text-white';
 // The rule is what tells the chosen row from a row merely under the cursor — both carry the same fill, and
 // on this ground a fill alone is a faint difference. Every row reserves the border, transparent when it is
 // not the chosen one, so nothing shifts by a pixel as the choice moves.
