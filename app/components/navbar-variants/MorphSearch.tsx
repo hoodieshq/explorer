@@ -222,7 +222,8 @@ export function MorphSearch({
             setRingVisible(true);
             return;
         }
-        const timer = setTimeout(() => setRingVisible(false), 1200);
+        // Mounted for as long as the rule takes to fade, no longer.
+        const timer = setTimeout(() => setRingVisible(false), 400);
         return () => clearTimeout(timer);
     }, [focused]);
     const reportFocus = focusGlow !== 'ring';
@@ -266,7 +267,7 @@ export function MorphSearch({
      * grey rule is what shows until the light covers it.
      *
      * Durations are per property rather than one for all: the morph's `left`/`right` keep their 300ms in
-     * both directions, while the ring takes 300ms in and four times that out.
+     * both directions, while the ring takes 100ms in and four times that out.
      *
      * Applied whenever the field is *shown*, which is not the same as `open`: from the docking width the
      * field is simply there and `open` never becomes true, so keying the rule to it alone left every
@@ -295,13 +296,13 @@ export function MorphSearch({
                   backgroundRepeat: 'no-repeat',
                   backgroundSize: focused ? '100% 100%, 100% 100%' : '100% 100%, 0% 0%',
                   borderColor: focused ? 'transparent' : undefined,
-                  transitionDuration: focused ? '300ms, 300ms, 300ms, 300ms' : '300ms, 300ms, 1200ms, 1200ms',
+                  transitionDuration: focused ? '300ms, 300ms, 100ms, 100ms' : '300ms, 300ms, 400ms, 400ms',
                   transitionProperty: 'left, right, background-size, border-color',
               }
             : focusGlow === 'halo'
               ? {
                     borderColor: focused ? 'rgba(29,215,155,0.8)' : undefined,
-                    transitionDuration: focused ? '300ms, 300ms, 300ms' : '300ms, 300ms, 1200ms',
+                    transitionDuration: focused ? '300ms, 300ms, 100ms' : '300ms, 300ms, 400ms',
                     transitionProperty: 'left, right, border-color',
                 }
               : undefined;
@@ -378,14 +379,20 @@ export function MorphSearch({
             onKeyDown={event => {
                 if (event.key === 'Escape') onOpenChange(false);
             }}
-            onFocus={() => {
-                if (reportFocus) changeFocus(true);
+            // The rule belongs to the field, not to the frame around it: the cross lives in here too, and
+            // folding the field hands the focus back to that cross — which left the light on over a
+            // collapsed square. Focus that lands on the cross does not light it, and focus that moves to
+            // the cross puts it out, so the rule fades on the same beat as the fold.
+            onFocus={event => {
+                if (reportFocus && !toggleRef.current?.contains(event.target)) changeFocus(true);
             }}
             onBlur={event => {
-                // A move *within* the frame is not a blur — the cross and the network selector both live
-                // in here, and tabbing to either would otherwise read as leaving.
-                if (event.currentTarget.contains(event.relatedTarget)) return;
-                if (reportFocus) changeFocus(false);
+                // A move *within* the frame is not a blur — the network selector lives in here as well,
+                // and tabbing to it would otherwise read as leaving.
+                const next = event.relatedTarget;
+                const stillLit = event.currentTarget.contains(next) && !toggleRef.current?.contains(next);
+                if (reportFocus && !stillLit) changeFocus(false);
+                if (event.currentTarget.contains(next)) return;
                 // An open field with nothing typed in it is a frame in the way of the bar; fold it back
                 // into its square. One with text stays, because that text is a search in progress and the
                 // results are one click away.
@@ -448,9 +455,13 @@ export function MorphSearch({
                 // spans — both came out short of the field by the width of this button. `inset-y-0` is the
                 // frame's padding box, so the lens centres between its two rules rather than overhanging
                 // them. A frame with a suffix keeps the old flow: there the right end is the suffix's.
+                //
+                // 36 wide and not 38, because `inset-y-0`/`right-0` measure the frame's padding box:
+                // collapsed, the frame is 38px *including* its two rules, so a 38px button overhung the
+                // left one and the lens sat a pixel left of the square's centre.
                 className={cn(
                     'flex cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-white transition-colors hover:text-heavy-metal-100',
-                    suffix ? 'h-[36px] w-full max-w-[38px] shrink-0' : 'absolute inset-y-0 right-0 z-10 w-[38px]',
+                    suffix ? 'h-[36px] w-full max-w-[38px] shrink-0' : 'absolute inset-y-0 right-0 z-10 w-9',
                     dock.gone,
                 )}
             >

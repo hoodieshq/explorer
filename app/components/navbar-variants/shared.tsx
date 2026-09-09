@@ -6,7 +6,7 @@ import { useClusterPath } from '@utils/url';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useSelectedLayoutSegment, useSelectedLayoutSegments } from 'next/navigation';
-import React from 'react';
+import React, { type CSSProperties } from 'react';
 
 /**
  * Pieces the later variants share. The first two inline all of this; they predate the file and are left as
@@ -34,6 +34,49 @@ const OUTLINED_CONTROL_BASE =
     'flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-md border border-solid border-outer-space-700 p-0 text-white transition-colors hover:border-outer-space-600';
 
 export const OUTLINED_CONTROL_CLASSES = cn(OUTLINED_CONTROL_BASE, 'bg-transparent');
+
+/** `bg-heavy-metal-800`, spelled out: the rule below has to paint the control's own fill back over its
+ *  padding box, and a class cannot be read from a style object. */
+const CONTROL_GROUND = 'oklch(30.098% 0.01205 160.58)';
+
+/**
+ * The search field's focus rule, for a control that stands beside it: the same graded green, brightest at
+ * the bottom-left corner and all but gone by the far one, painted to the border box with the fill laid
+ * back over the padding box so the corner radius survives — `border-image` would drop it.
+ *
+ * A background cannot be faded, so the light is *grown*: the gradient layer goes from no size to the whole
+ * box, anchored at the corner it comes from. 100ms in, four times that out, as the field has it.
+ *
+ * Taken as a whole rather than as a class per state: an inline background-size would beat any utility, so
+ * both halves of the switch have to come from here. `lit` covers focus *and* the open surface — tapping a
+ * trigger hands the focus to what it opens, and the control it came from should not go dark while that is
+ * up.
+ */
+export function focusRuleStyle(lit: boolean): CSSProperties {
+    return {
+        backgroundClip: 'padding-box, border-box',
+        backgroundImage: [
+            `linear-gradient(${CONTROL_GROUND}, ${CONTROL_GROUND})`,
+            'radial-gradient(118% 130% at 0% 100%, rgba(29,215,155,0.53) 0%, rgba(29,215,155,0.46) 35%, rgba(29,215,155,0.4) 65%, rgba(29,215,155,0.34) 90%, rgba(29,215,155,0.31) 100%)',
+        ].join(', '),
+        backgroundOrigin: 'border-box',
+        backgroundPosition: '0 0, left bottom',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: lit ? '100% 100%, 100% 100%' : '100% 100%, 0% 0%',
+        borderColor: lit ? 'transparent' : undefined,
+        transitionDuration: lit ? '100ms' : '400ms',
+        transitionProperty: 'background-size, border-color',
+    };
+}
+
+/** Goes with the rule: the browser's own focus ring would sit outside the one being drawn. */
+export const FOCUS_RULE_CLASSES = 'focus-visible:outline-none';
+
+/** True only for a focus the browser would have drawn a ring for — a tap should light the rule through
+ *  the surface it opens, not through the focus the tap leaves behind. */
+export function isKeyboardFocus(target: EventTarget & Element): boolean {
+    return target.matches(':focus-visible');
+}
 
 /** The same control standing on the search field's fill instead of bare on the bar, for a variant whose
  *  other controls are filled — an outline on the bar beside a filled chip reads as two kinds of control.

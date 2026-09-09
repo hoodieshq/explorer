@@ -16,6 +16,7 @@ import {
     STATUS_STYLE,
 } from './ClusterDropdownBody';
 import { ICON_SETS, iconSetAtom } from './icon-sets';
+import { FOCUS_RULE_CLASSES, focusRuleStyle, isKeyboardFocus } from './shared';
 
 /**
  * The network selector as a dropdown, for every variant past the first two: the switcher opens in place under its
@@ -98,6 +99,9 @@ export function ClusterDropdown({ align = 'end', className, onOpenChange, open, 
 
     const LeadGlyph = ICON_SETS[useAtomValue(iconSetAtom)].provenance[known ? 'known' : 'unknown'];
 
+    // Only for the focus rule: a keyboard focus lights it, and so does the panel being up.
+    const [focused, setFocused] = React.useState(false);
+
     const chevron = (
         <ChevronDown
             size={14}
@@ -113,7 +117,11 @@ export function ClusterDropdown({ align = 'end', className, onOpenChange, open, 
                     type="button"
                     aria-label={`Cluster: ${label}. ${rpc.label} RPC endpoint. ${statusLabel}. Change cluster`}
                     title={`${label} · ${description}`}
-                    className={cn('group min-w-0', TRIGGER_CLASSES[shape], className)}
+                    // The search field's focus rule, on the shape that stands beside that field.
+                    style={isLead ? focusRuleStyle(focused || Boolean(open)) : undefined}
+                    onFocus={event => setFocused(isKeyboardFocus(event.currentTarget))}
+                    onBlur={() => setFocused(false)}
+                    className={cn('group min-w-0', TRIGGER_CLASSES[shape], isLead && FOCUS_RULE_CLASSES, className)}
                 >
                     {isLead ? (
                         <>

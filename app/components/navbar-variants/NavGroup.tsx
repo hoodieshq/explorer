@@ -17,7 +17,10 @@ import { ExternalLink } from '@/app/components/shared/ui/external-link';
 import {
     EXPLORER_REPO_URL,
     FILLED_CONTROL_CLASSES,
+    FOCUS_RULE_CLASSES,
+    focusRuleStyle,
     GitHubMark,
+    isKeyboardFocus,
     type NavRoute,
     OUTLINED_CONTROL_CLASSES,
 } from './shared';
@@ -136,18 +139,26 @@ export function NavMenu({
     quiet?: boolean;
     routes: NavRoute[];
 }) {
+    // Only for the rule below: a keyboard focus lights it, and so does the menu being up.
+    const [focused, setFocused] = React.useState(false);
+
     return (
         <DropdownMenu modal={false} open={open} onOpenChange={onOpenChange}>
             <DropdownMenuTrigger asChild>
                 <button
                     type="button"
                     aria-label="Open navigation"
+                    // The field's focus rule, for a filled button: the two stand side by side on the phone
+                    // row, and one lighting up differently from the other reads as two kinds of control.
+                    style={filled ? focusRuleStyle(focused || Boolean(open)) : undefined}
+                    onFocus={event => setFocused(isKeyboardFocus(event.currentTarget))}
+                    onBlur={() => setFocused(false)}
                     className={cn(
                         quiet
                             ? 'flex h-[38px] w-[38px] shrink-0 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent p-0 text-white transition-colors hover:bg-outer-space-800 data-[state=open]:bg-outer-space-800'
                             : cn(
                                   filled ? FILLED_CONTROL_CLASSES : OUTLINED_CONTROL_CLASSES,
-                                  'data-[state=open]:border-outer-space-500',
+                                  filled ? FOCUS_RULE_CLASSES : 'data-[state=open]:border-outer-space-500',
                               ),
                         className,
                     )}

@@ -114,7 +114,10 @@ export function BaseSearch({
                                 'transition-shadow focus-within:shadow-[0_0_0.4rem_#00d18c]',
                             )}
                         >
-                            <Search className="shrink-0 text-heavy-metal-100" size={15} />
+                            {/* A pixel right of where its box puts it: the glyph is drawn with its handle
+                                to the bottom-right, so centred by that box it reads as sitting close to
+                                the rule. Vertically it stays on the line's middle. */}
+                            <Search className="shrink-0 translate-x-px text-heavy-metal-100" size={15} />
                             <Command.Input
                                 ref={inputRef}
                                 autoFocus
@@ -122,7 +125,14 @@ export function BaseSearch({
                                     'w-full min-w-0 flex-1',
                                     'border-none bg-transparent outline-none',
                                     'text-sm text-white placeholder:text-heavy-metal-100',
-                                    'overflow-hidden text-ellipsis',
+                                    // Text that runs past the end fades out rather than stopping dead or
+                                    // ending in an ellipsis: the last 24px of the field are masked to
+                                    // transparent, so a long address reads as continuing past the edge.
+                                    // Nothing shows when the text is short — the mask only affects what is
+                                    // painted under it.
+                                    'overflow-hidden',
+                                    '[-webkit-mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)]',
+                                    '[mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)]',
                                 )}
                                 placeholder="Search for tokens, validators, programs, and accounts"
                                 value={value}
