@@ -16,8 +16,7 @@ type Props = Readonly<{
     searchParams: Promise<Record<string, string | string[] | undefined>>;
 }>;
 
-// Custom clusters use user-specific RPCs that no server-side route can reach. The predicate narrows to
-// ServerCluster, which `filter` alone does not, so `find` below yields a value both share helpers accept.
+// Custom clusters use user-specific RPCs that no server-side route can reach.
 const SHAREABLE_CLUSTERS = CLUSTERS.filter((c): c is ServerCluster => c !== Cluster.Custom);
 
 export async function generateMetadata(props: Props): Promise<Metadata> {

@@ -1,2 +1,1 @@
-export { IMAGE_SIZE } from './constants';
-export type { ImageSize, OgGlows } from './types';
+export { IMAGE_SIZE, type ImageSize } from './constants';

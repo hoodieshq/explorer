@@ -1,5 +1,4 @@
 import { truncateAddress } from '@entities/address';
-import type { OgGlows } from '@entities/open-graph';
 import { type InstructionSummary, UNKNOWN_PROGRAM_NAME } from '@entities/transaction-data';
 
 import { Logo } from '@/app/shared/components/SolanaLogo';
@@ -49,27 +48,7 @@ const TYPO = {
 } as const;
 
 const SPACING = {
-    /** Between the headline and the first instruction row. */
-    bodyGap: '2px',
-    brandGap: '16px',
-    canvasPadding: '52px 65px 92px',
-    footerCellGap: '10px',
-    /** A floor only: `space-between` sets the real distance whenever the cells leave room. */
-    footerGap: '24px',
-    /**
-     * The design nudges the header's right group down 2px and lifts the footer 8px, both with a relative
-     * `top`. Written as margins because satori lays out through yoga, which honours margin on a flex item
-     * and ignores an offset on a relatively positioned one.
-     */
-    footerLift: '8px',
-    headerGap: '22px',
-    headerNudge: '2px',
-    headlineGap: '16px',
-    /**
-     * Between a row's labels and its account count. Once the labels shrink, `space-between` has no free
-     * space left to keep them apart, and the ellipsis touches the count.
-     */
-    rowGap: '24px',
+    /** Shared by an instruction row and the "and N more" line below them, which reads as one of them. */
     rowPadding: '14px 0',
 } as const;
 
@@ -77,13 +56,13 @@ const LOGO = { height: '28px', width: '229px' } as const;
 
 type BaseTxImageProps = {
     data: TxShareData | undefined;
-    /** Both glows as data URIs. Satori resolves no relative URL, so the route reads the files. */
-    glows: OgGlows;
+    /** Both glows are base64 data URIs. */
+    glows: [string, string];
 };
 
 export function BaseTxImage({ data, glows }: BaseTxImageProps) {
     // A card with no transaction has no status to colour, so it takes the success glow.
-    const glow = data?.status === 'failed' ? glows.failed : glows.success;
+    const glow = data?.status === 'failed' ? glows[0] : glows[1];
 
     return (
         <div
@@ -95,7 +74,7 @@ export function BaseTxImage({ data, glows }: BaseTxImageProps) {
                 height: '100%',
                 justifyContent: 'space-between',
                 overflow: 'hidden',
-                padding: SPACING.canvasPadding,
+                padding: '52px 65px 92px',
                 position: 'relative',
                 width: '100%',
             }}
@@ -116,8 +95,14 @@ export function BaseTxImage({ data, glows }: BaseTxImageProps) {
             />
 
             <Header dateUtc={data?.dateUtc} status={data?.status} />
-            {data ? <Body data={data} /> : <NoTransaction />}
-            {data ? <Footer data={data} /> : undefined}
+            {data ? (
+                <>
+                    <Body data={data} />
+                    <Footer data={data} />
+                </>
+            ) : (
+                <NoTransaction />
+            )}
         </div>
     );
 }
@@ -133,7 +118,7 @@ function Header({ dateUtc, status }: { dateUtc: string | undefined; status: TxSh
                 width: '100%',
             }}
         >
-            <div style={{ alignItems: 'center', display: 'flex', gap: SPACING.brandGap }}>
+            <div style={{ alignItems: 'center', display: 'flex', gap: '16px' }}>
                 <Logo variant="green" style={{ color: COLORS.emphasis, ...LOGO }} />
                 <span style={{ color: COLORS.emphasis, ...TYPO.wordmark }}>Explorer</span>
             </div>
@@ -142,8 +127,8 @@ function Header({ dateUtc, status }: { dateUtc: string | undefined; status: TxSh
                 style={{
                     alignItems: 'center',
                     display: 'flex',
-                    gap: SPACING.headerGap,
-                    marginTop: SPACING.headerNudge,
+                    gap: '22px',
+                    marginTop: '2px',
                 }}
             >
                 {dateUtc && (
@@ -166,12 +151,14 @@ function Body({ data }: { data: TxShareData }) {
             style={{
                 display: 'flex',
                 flexDirection: 'column',
-                gap: SPACING.bodyGap,
+                // Between the headline and the first instruction row.
+                gap: '2px',
                 position: 'relative',
                 width: '100%',
             }}
         >
-            <div style={{ alignItems: 'flex-end', display: 'flex', gap: SPACING.headlineGap, width: '100%' }}>
+            {/* Tx with signature */}
+            <div style={{ alignItems: 'flex-end', display: 'flex', gap: '16px', width: '100%' }}>
                 <span style={{ color: COLORS.secondary, ...TYPO.headline, lineHeight: '66px' }}>Transaction</span>
                 <span
                     data-testid="tx-image-signature"
@@ -186,7 +173,7 @@ function Body({ data }: { data: TxShareData }) {
                     {truncateAddress(data.signature, SIGNATURE_PAD)}
                 </span>
             </div>
-
+            {/* Instruction rows */}
             <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '8px', width: '100%' }}>
                 {visible.map((instruction, index) => (
                     <div key={index} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
@@ -226,7 +213,7 @@ function InstructionRow({ instruction }: { instruction: InstructionSummary }) {
             style={{
                 alignItems: 'flex-end',
                 display: 'flex',
-                gap: SPACING.rowGap,
+                gap: '24px',
                 justifyContent: 'space-between',
                 padding: SPACING.rowPadding,
                 width: '100%',
@@ -244,8 +231,6 @@ function InstructionRow({ instruction }: { instruction: InstructionSummary }) {
                     minWidth: 0,
                 }}
             >
-                {/* Never shrinks, so the name beside it is what gives way. Satori already defaults
-                    `flexShrink` to 0, but a browser defaults it to 1, and the two have to agree. */}
                 <span style={{ color: COLORS.secondary, flexShrink: 0, ...TYPO.body, whiteSpace: 'nowrap' }}>
                     {programLabel(instruction)}
                 </span>
@@ -265,9 +250,9 @@ function InstructionRow({ instruction }: { instruction: InstructionSummary }) {
                 </span>
             </div>
 
-            {instruction.accountCount !== undefined && (
+            {instruction.accountsCount !== undefined && (
                 <span style={{ color: COLORS.secondary, flexShrink: 0, ...TYPO.body }}>
-                    {accountCountLabel(instruction.accountCount)}
+                    {accountsCountLabel(instruction.accountsCount)}
                 </span>
             )}
         </div>
@@ -281,15 +266,15 @@ function Footer({ data }: { data: TxShareData }) {
             style={{
                 alignItems: 'flex-end',
                 display: 'flex',
-                gap: SPACING.footerGap,
+                gap: '24px',
                 justifyContent: 'space-between',
-                marginBottom: SPACING.footerLift,
+                marginBottom: '8px',
                 position: 'relative',
                 width: '100%',
             }}
         >
             {footerCells(data).map(cell => (
-                <div key={cell.label} style={{ alignItems: 'flex-end', display: 'flex', gap: SPACING.footerCellGap }}>
+                <div key={cell.label} style={{ alignItems: 'flex-end', display: 'flex', gap: '10px' }}>
                     <span style={{ color: COLORS.footerLabel, ...TYPO.caption }}>{cell.label}</span>
                     <span
                         style={{
@@ -318,7 +303,7 @@ function programLabel({ nameLookup, programName }: InstructionSummary): string {
 /**
  * `N accounts`, singular at one. A partially decoded instruction can pass exactly one.
  */
-function accountCountLabel(count: number): string {
+function accountsCountLabel(count: number): string {
     return `${count} ${count === 1 ? 'account' : 'accounts'}`;
 }
 
@@ -347,7 +332,6 @@ function StatusBadge({ status }: { status: TxShareData['status'] }) {
             data-testid="tx-image-status"
             style={{
                 backgroundColor: pill.background,
-                // Satori does not draw `outline`, which is what the design uses.
                 border: `1px solid ${pill.border}`,
                 borderRadius: '999px',
                 color: pill.text,

@@ -20,7 +20,6 @@ export function getTxOgImageUrl(signature: string, cluster?: ServerCluster): str
     return `${TX_OG_BASE_URL}/og/tx/${signature}${clusterQuery(cluster)}`;
 }
 
-// Mainnet is the route's own default, so emitting the param there would only make a shared link noisier.
 function clusterQuery(cluster: ServerCluster | undefined): string {
     if (cluster === undefined || cluster === Cluster.MainnetBeta) return '';
     return `?cluster=${clusterSlug(cluster)}`;

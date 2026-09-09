@@ -73,7 +73,7 @@ describe('getInstructionSummaries', () => {
 
             const [result] = getInstructionSummaries(makeTx([ix]));
 
-            expect(result.accountCount).toBeUndefined();
+            expect(result.accountsCount).toBeUndefined();
         });
     });
 
@@ -88,7 +88,7 @@ describe('getInstructionSummaries', () => {
             const [result] = getInstructionSummaries(makeTx([ix]));
 
             expect(result).toEqual({
-                accountCount: 0,
+                accountsCount: 0,
                 name: 'Unknown Instruction',
                 nameLookup: {
                     data: new Uint8Array([1, 2, 3]),
@@ -123,7 +123,7 @@ describe('getInstructionSummaries', () => {
 
             const [result] = getInstructionSummaries(makeTx([ix]));
 
-            expect(result.accountCount).toBe(2);
+            expect(result.accountsCount).toBe(2);
         });
     });
 
@@ -142,7 +142,7 @@ describe('getInstructionSummaries', () => {
             const [result] = getInstructionSummaries(makeTx([ix]));
 
             expect(result).toEqual({
-                accountCount: 0,
+                accountsCount: 0,
                 name: 'Unknown Instruction',
                 nameLookup: {
                     data: new Uint8Array([3]),

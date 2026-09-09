@@ -62,71 +62,61 @@ describe('findTransactionCluster', () => {
         });
     });
 
-    describe('the deadline the caller set', () => {
-        // One signal across the sequential probes, so the walk as a whole is bounded rather than each
-        // cluster getting a fresh allowance a stalled node can spend three times over.
-        it('should pass the caller signal to every probe in the walk', async () => {
-            const abortSignal = AbortSignal.timeout(1_000);
+    it('should pass the caller signal to every probe in the walk', async () => {
+        const abortSignal = AbortSignal.timeout(1_000);
 
-            await findTransactionCluster([Cluster.MainnetBeta, Cluster.Devnet], SIGNATURE, { abortSignal });
+        await findTransactionCluster([Cluster.MainnetBeta, Cluster.Devnet], SIGNATURE, { abortSignal });
 
-            expect(mockSend).toHaveBeenNthCalledWith(1, { abortSignal });
-            expect(mockSend).toHaveBeenNthCalledWith(2, { abortSignal });
-        });
-
-        // A timed-out probe is a cluster this walk could not reach, which is the error case that already
-        // exists. The caller decides what that means, exactly as it does for a refused connection.
-        it('should report an aborted probe as an error naming its cluster', async () => {
-            const error = new Error('The operation was aborted due to timeout');
-            mockSend.mockRejectedValueOnce(error);
-
-            const result = await findTransactionCluster([Cluster.MainnetBeta, Cluster.Devnet], SIGNATURE, {
-                abortSignal: AbortSignal.timeout(1_000),
-            });
-
-            expect(result).toEqual({ cluster: Cluster.MainnetBeta, error, kind: 'error' });
-        });
-
-        it('should send no signal when the caller set no deadline', async () => {
-            await findTransactionCluster([Cluster.MainnetBeta], SIGNATURE);
-
-            expect(mockSend).toHaveBeenCalledWith({ abortSignal: undefined });
-        });
+        expect(mockSend).toHaveBeenNthCalledWith(1, { abortSignal });
+        expect(mockSend).toHaveBeenNthCalledWith(2, { abortSignal });
     });
 
-    describe('no cluster holds the signature', () => {
-        it('should report not-found after probing every cluster', async () => {
-            // Annotated because an enum member widens to `Cluster` once it is held in a variable, and
-            // `Cluster` includes Custom, which the server-side parameter excludes.
-            const clusters: ServerCluster[] = [Cluster.MainnetBeta, Cluster.Devnet, Cluster.Testnet];
+    it('should report an aborted probe as an error naming its cluster', async () => {
+        const error = new Error('The operation was aborted due to timeout');
+        mockSend.mockRejectedValueOnce(error);
 
-            const result = await findTransactionCluster(clusters, SIGNATURE);
-
-            expect(result).toEqual({ kind: 'not-found' });
-            expect(mockSend).toHaveBeenCalledTimes(clusters.length);
+        const result = await findTransactionCluster([Cluster.MainnetBeta, Cluster.Devnet], SIGNATURE, {
+            abortSignal: AbortSignal.timeout(1_000),
         });
 
-        // An empty `value` array leaves the entry undefined rather than null, which must not read as a hit.
-        it('should not report a signature as found when the status response is empty', async () => {
-            mockSend.mockResolvedValue({ value: [] });
+        expect(result).toEqual({ cluster: Cluster.MainnetBeta, error, kind: 'error' });
+    });
 
-            const result = await findTransactionCluster([Cluster.MainnetBeta, Cluster.Devnet], SIGNATURE);
+    it('should send no signal when the caller set no deadline', async () => {
+        await findTransactionCluster([Cluster.MainnetBeta], SIGNATURE);
 
-            expect(result).toEqual({ kind: 'not-found' });
-            expect(mockSend).toHaveBeenCalledTimes(2);
-        });
+        expect(mockSend).toHaveBeenCalledWith({ abortSignal: undefined });
+    });
 
-        it('should report not-found without any RPC call for an empty cluster list', async () => {
-            const result = await findTransactionCluster([], SIGNATURE);
+    it('should report not-found after probing every cluster', async () => {
+        // Annotated because an enum member widens to `Cluster` once it is held in a variable, and
+        // `Cluster` includes Custom, which the server-side parameter excludes.
+        const clusters: ServerCluster[] = [Cluster.MainnetBeta, Cluster.Devnet, Cluster.Testnet];
 
-            expect(result).toEqual({ kind: 'not-found' });
-            expect(vi.mocked(createSolanaRpc)).not.toHaveBeenCalled();
-        });
+        const result = await findTransactionCluster(clusters, SIGNATURE);
+
+        expect(result).toEqual({ kind: 'not-found' });
+        expect(mockSend).toHaveBeenCalledTimes(clusters.length);
+    });
+
+    // An empty `value` array leaves the entry undefined rather than null, which must not read as a hit.
+    it('should not report a signature as found when the status response is empty', async () => {
+        mockSend.mockResolvedValue({ value: [] });
+
+        const result = await findTransactionCluster([Cluster.MainnetBeta, Cluster.Devnet], SIGNATURE);
+
+        expect(result).toEqual({ kind: 'not-found' });
+        expect(mockSend).toHaveBeenCalledTimes(2);
+    });
+
+    it('should report not-found without any RPC call for an empty cluster list', async () => {
+        const result = await findTransactionCluster([], SIGNATURE);
+
+        expect(result).toEqual({ kind: 'not-found' });
+        expect(vi.mocked(createSolanaRpc)).not.toHaveBeenCalled();
     });
 
     describe('failed status checks', () => {
-        // A network fault is not evidence the signature is absent, so the cluster is named and the caller
-        // decides whether that is fatal. Receipt treats it as a 502.
         it('should report the cluster whose status check failed', async () => {
             const error = new Error('Forbidden access');
             mockSend.mockRejectedValueOnce(error);

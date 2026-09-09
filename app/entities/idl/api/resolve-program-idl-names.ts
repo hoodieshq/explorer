@@ -11,7 +11,7 @@ import { type ProgramIdlPair } from './types';
  * A program's IDL-derived names - its display name and its instruction-name resolver - or undefined when no
  * IDL names it.
  *
- * Undefined covers three cases: a builtin, a program with no IDL, and a
+ * Undefined covers three cases: a non-anchor program, a program with no IDL, and a
  * program whose IDLs carry neither a metadata name nor a usable discriminator table.
  * @param url - The RPC URL to resolve against
  * @param programId - The program whose IDLs to read

@@ -86,7 +86,7 @@ function summarizeInstruction(ix: ParsedInstruction | PartiallyDecodedInstructio
         programName: programName ?? UNKNOWN_PROGRAM_NAME,
         // Only a partially decoded instruction carries an account list. A parsed one has `parsed.info`,
         // which mixes account fields with scalars, so there is nothing to count.
-        ...('accounts' in ix ? { accountCount: ix.accounts.length } : {}),
+        ...('accounts' in ix ? { accountsCount: ix.accounts.length } : {}),
         ...(nameLookup ? { nameLookup } : {}),
     };
 }

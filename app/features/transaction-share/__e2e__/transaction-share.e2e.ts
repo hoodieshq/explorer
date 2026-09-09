@@ -38,9 +38,6 @@ test.describe('og image request validation', () => {
     });
 });
 
-// The only place `BaseTxImage` meets the real Satori renderer. The unit specs mock `next/og`, and the
-// Storybook stories render into a browser DOM that accepts CSS Satori rejects outright, so a card that
-// renders everywhere else can still 500 here.
 test.describe('og image rendering', () => {
     test.describe.configure({ mode: 'serial' });
 
@@ -53,7 +50,6 @@ test.describe('og image rendering', () => {
 
         expect(response.status()).toBe(200);
         expect(response.headers()['content-type']).toBe('image/png');
-        // A resolved transaction is immutable, so it gets the long ttl rather than the fallback's.
         expect(response.headers()['cache-control']).toContain('max-age=1800');
 
         const png = new Uint8Array(await response.body());

@@ -7,8 +7,6 @@ import codamaPmp from '../../mocks/codama/codama-1.0.0-ProgM6JCCvbYkfKqJYHePx4xx
 
 const mocks = vi.hoisted(() => ({ resolveProgramIdls: vi.fn() }));
 
-// Only the RPC-backed resolver is faked. `buildProgramIdlNames`, the discriminator tables and the
-// builtin set all run for real, because this spec exists to pin the policy layered on top of them.
 vi.mock('../resolve-program-idls', () => ({ resolveProgramIdls: mocks.resolveProgramIdls }));
 
 import { resolveProgramIdlNames } from '../resolve-program-idl-names';
@@ -40,7 +38,7 @@ function resolved(programMetadataIdl?: unknown, anchorIdl?: unknown) {
 describe('resolveProgramIdlNames', () => {
     afterEach(() => vi.clearAllMocks());
 
-    it('should refuse a builtin before the fetch, sparing even its program-metadata call', async () => {
+    it('should skip a non-anchor program without fetching', async () => {
         await expect(resolveProgramIdlNames(DEFAULT_RPC_URL, SYSTEM_PROGRAM_ADDRESS, BACKOFF)).resolves.toBeUndefined();
 
         expect(mocks.resolveProgramIdls).not.toHaveBeenCalled();
@@ -104,7 +102,7 @@ describe('resolveProgramIdlNames', () => {
         expect(mocks.resolveProgramIdls).toHaveBeenCalledTimes(1);
     });
 
-    it('should honour the attempt budget the caller passed', async () => {
+    it('should not retry when maxRetries is zero', async () => {
         mocks.resolveProgramIdls.mockRejectedValue(transientError());
 
         await expect(

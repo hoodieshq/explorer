@@ -1,6 +1,6 @@
 import { gen } from '@__fixtures__/gen';
 import { truncateAddress } from '@entities/address';
-import { IMAGE_SIZE, type OgGlows } from '@entities/open-graph';
+import { IMAGE_SIZE } from '@entities/open-graph';
 import { type InstructionSummary, UNKNOWN_PROGRAM_NAME } from '@entities/transaction-data';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { expect, within } from 'storybook/test';
@@ -14,21 +14,22 @@ const UNKNOWN_PROGRAM_ID = gen.address(2);
 
 // A browser resolves these paths on its own. The route hands the same two images in as data URIs, because
 // satori resolves no relative URL - see `loadOgGlows`.
-const GLOWS: OgGlows = { failed: '/img/og/pink_gradient.png', success: '/img/og/green_gradient.png' };
+// Glow for failed tx first, success second.
+const GLOWS: [string, string] = ['/img/og/pink_gradient.png', '/img/og/green_gradient.png'];
 
 /**
  * `value`, or a thrown error naming what was missing. Measuring against an absent element reads as a
  * layout assertion while testing nothing, so the story fails loudly instead.
  */
-function required<T>(value: T | null | undefined, what: string): T {
-    if (value === null || value === undefined) throw new Error(`Expected ${what} to be in the row.`);
+function expectInRow<T>(value: T | null | undefined, name: string): T {
+    if (value === null || value === undefined) throw new Error(`Expected ${name} to be in the row.`);
 
     return value;
 }
 
 function makeInstructions(count: number): InstructionSummary[] {
     return Array.from({ length: count }, (_, index) => ({
-        accountCount: index + 1,
+        accountsCount: index + 1,
         name: `Instruction ${index + 1}`,
         programName: 'System Program',
     }));
@@ -38,14 +39,14 @@ const txShareData: TxShareData = {
     dateUtc: 'Aug 31, 2026 at 11:00:00 UTC',
     fee: '0.000005 SOL',
     instructions: [
-        { accountCount: 0, name: 'Transfer', programName: 'System Program' },
-        { accountCount: 14, name: 'Create Idempotent', programName: 'Associated Token Program' },
+        { accountsCount: 0, name: 'Transfer', programName: 'System Program' },
+        { accountsCount: 14, name: 'Create Idempotent', programName: 'Associated Token Program' },
     ],
     signature: SIGNATURE,
     signer: gen.address(1),
     slot: Number(gen.slot(1)),
     status: 'success',
-    version: 'v0',
+    version: 'legacy',
 };
 
 const meta: Meta<typeof BaseTxImage> = {
@@ -97,10 +98,9 @@ export const Default: Story = {
         expect(canvas.getByText('Fee')).toBeInTheDocument();
         expect(canvas.getByText('0.000005 SOL')).toBeInTheDocument();
         expect(canvas.getByText('Slot')).toBeInTheDocument();
-        // `gen.slot(1)` is 208871522, formatted with en-US separators by the footer.
         expect(canvas.getByText('208,871,522')).toBeInTheDocument();
         expect(canvas.getByText('Version')).toBeInTheDocument();
-        expect(canvas.getByText('v0')).toBeInTheDocument();
+        expect(canvas.getByText('legacy')).toBeInTheDocument();
         expect(canvas.getByText('Fee payer')).toBeInTheDocument();
         expect(canvas.queryByText('CU')).not.toBeInTheDocument();
     },
@@ -112,9 +112,6 @@ export const Failed: Story = {
         const canvas = within(canvasElement);
 
         expect(canvas.getByTestId('tx-image-status')).toHaveTextContent('Failed');
-        // The two states differ by more than the pill: the glow behind the card changes with them.
-        // Read off the inline style rather than through `toHaveStyle`, which normalises a `url()` value
-        // into quoted form and would compare against the wrong string.
         expect(canvas.getByTestId('tx-image-glow').style.backgroundImage).toContain('pink_gradient');
     },
 };
@@ -123,7 +120,6 @@ export const SuccessGlow: Story = {
     args: { data: txShareData },
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
-
         expect(canvas.getByTestId('tx-image-glow').style.backgroundImage).toContain('green_gradient');
     },
 };
@@ -136,8 +132,6 @@ export const ExactlyAtCap: Story = {
 
         expect(rows).toHaveLength(MAX_INSTRUCTION_ROWS);
         expect(canvas.queryByTestId('tx-image-instruction-overflow')).not.toBeInTheDocument();
-        // `makeInstructions` counts from one, so the first row is the singular case. Asserted as a negative
-        // because `toHaveTextContent` matches a substring, and "1 account" sits inside "1 accounts".
         expect(rows[0]).not.toHaveTextContent('1 accounts');
         expect(rows[1]).toHaveTextContent('2 accounts');
     },
@@ -161,7 +155,7 @@ export const WithoutAccountCounts: Story = {
             ...txShareData,
             instructions: [
                 { name: 'Transfer', programName: 'System Program' },
-                { accountCount: 14, name: 'Increase Liquidity', programName: 'Orca Whirlpools' },
+                { accountsCount: 14, name: 'Increase Liquidity', programName: 'Orca Whirlpools' },
             ],
         },
     },
@@ -197,7 +191,6 @@ export const MissingFooterValues: Story = {
         expect(canvas.getByText('Version')).toBeInTheDocument();
         expect(canvas.getByText('Fee payer')).toBeInTheDocument();
 
-        // Version and fee payer fall back to the placeholder. Fee and slot are always present.
         expect(canvas.getAllByText('-')).toHaveLength(2);
         expect(canvas.getByText('208,871,522')).toBeInTheDocument();
     },
@@ -210,9 +203,9 @@ export const UnknownProgram: Story = {
         data: {
             ...txShareData,
             instructions: [
-                { accountCount: 1, name: 'Transfer', programName: 'System Program' },
+                { accountsCount: 1, name: 'Transfer', programName: 'System Program' },
                 {
-                    accountCount: 3,
+                    accountsCount: 3,
                     name: 'Unknown Instruction',
                     nameLookup: { data: new Uint8Array([1, 2, 3]), programId: UNKNOWN_PROGRAM_ID },
                     programName: UNKNOWN_PROGRAM_NAME,
@@ -225,7 +218,6 @@ export const UnknownProgram: Story = {
         const rows = canvas.getAllByTestId('tx-image-instruction');
 
         expect(rows[1]).toHaveTextContent(`${UNKNOWN_PROGRAM_NAME} (${truncateAddress(UNKNOWN_PROGRAM_ID, 6)})`);
-        // The named program keeps its plain label, with no address appended.
         expect(rows[0]).toHaveTextContent('System Program');
         expect(rows[0]).not.toHaveTextContent('(');
     },
@@ -233,17 +225,17 @@ export const UnknownProgram: Story = {
 
 const LONG_IDL_INSTRUCTIONS: InstructionSummary[] = [
     {
-        accountCount: 22,
+        accountsCount: 22,
         name: 'Initialize Permissionless Pool With Fee Tier',
         programName: 'Meteora Dynamic Liquidity Market Maker',
     },
     {
-        accountCount: 18,
+        accountsCount: 18,
         name: 'Shared Accounts Route With Token Ledger',
         programName: 'Jupiter Aggregator Limit Order V2',
     },
     {
-        accountCount: 14,
+        accountsCount: 14,
         name: 'Increase Liquidity With Token Extensions',
         programName: 'Orca Whirlpools Concentrated Liquidity',
     },
@@ -259,23 +251,18 @@ export const OversizedIdlNames: Story = {
 
         expect(rows).toHaveLength(MAX_INSTRUCTION_ROWS);
 
-        // Every row is cut, and none is cut by rewriting its text: the label keeps its full string and the
-        // layout hides the overflow, so this is measured rather than read off `textContent`. A text
-        // assertion would pass on an untruncated row, which is the failure worth catching. This also fails
-        // if a fixture above is edited down to something that fits and quietly stops exercising the case.
         rows.forEach(row => {
-            const label = required(row.firstElementChild?.lastElementChild, 'an instruction name');
+            const label = expectInRow(row.firstElementChild?.lastElementChild, 'an instruction name');
             expect(label.scrollWidth).toBeGreaterThan(label.clientWidth);
 
             // The mirror of the assertion above, and the only thing holding the design's rule that a
             // program name is shown whole. Put `TEXT_ELLIPSIS` back on that span and this is what fails.
-            const program = required(row.firstElementChild?.firstElementChild, 'a program name');
+            const program = expectInRow(row.firstElementChild?.firstElementChild, 'a program name');
             expect(program.scrollWidth).toBeLessThanOrEqual(program.clientWidth);
         });
 
-        // The account count survives the truncation of everything beside it, and stays inside the canvas.
         expect(rows[0]).toHaveTextContent('22 accounts');
-        const count = required(rows[0].lastElementChild, 'an account count');
+        const count = expectInRow(rows[0].lastElementChild, 'an account count');
         expect(count.getBoundingClientRect().right).toBeLessThanOrEqual(rows[0].getBoundingClientRect().right + 1);
 
         // The row all of this exists for: the footer keeps its place instead of being pushed off the canvas.

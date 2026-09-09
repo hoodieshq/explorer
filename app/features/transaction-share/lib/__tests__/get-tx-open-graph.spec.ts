@@ -7,7 +7,7 @@ import { getTxOgImageUrl, getTxOpenGraph } from '../get-tx-open-graph';
 const SIGNATURE = gen.signature(1);
 const BASE_URL = 'https://explorer.solana.com';
 
-describe('should build transaction Open Graph metadata', () => {
+describe('getTxOpenGraph', () => {
     it('should set type and url, the two tags whose absence stops Slack unfurling', () => {
         expect(getTxOpenGraph(SIGNATURE)).toMatchObject({
             type: 'website',

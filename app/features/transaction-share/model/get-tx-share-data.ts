@@ -105,12 +105,9 @@ async function resolveCluster(
 }
 
 /**
- * The programs worth an IDL fetch: still unnamed - a row keeps its `nameLookup` only while nothing has
- * named it - and only in the rows the image draws. Rows past the cap collapse into "and N more", so
- * resolving their IDLs buys nothing but latency. Duplicates are left in, since `getIdlNames` dedupes.
+ * The programs worth an IDL fetch:
  *
- * A builtin still reaches `getIdlNames` here, and is refused inside the entity where the builtin set
- * lives. Filtering it out at this level would mean exporting that set to serve one caller.
+ * Only the first `MAX_INSTRUCTION_ROWS` instructions are considered, as rows past the cap collapse into "and N more", hence no fetch needed for them.
  */
 function idlProgramIds(summaries: InstructionSummary[]): string[] {
     return summaries.slice(0, MAX_INSTRUCTION_ROWS).flatMap(s => (s.nameLookup ? [s.nameLookup.programId] : []));

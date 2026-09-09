@@ -2,10 +2,11 @@
      Keep the gstatic preconnect to warm the connection for next/font's woff2 fetch. -->
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-<!-- Roboto Mono is not a next/font face: only the OG images ask for it, and there satori is handed the
-     TTF bytes by `loadOgFonts`. A browser has no such registration, so `fontFamily: 'Roboto Mono'` in
-     `BaseTxImage` would silently fall back to Rubik and the card would preview in the wrong face.
-     Declared off the same files the route reads, served by `staticDirs: ['../public']`. -->
+<!-- Roboto Mono is not a next/font face: only the OG images ask for it.
+    A browser has no such registration, so `fontFamily:
+    'Roboto Mono'` in `BaseTxImage` would silently fall back to Rubik.
+    Declared off the same files the route reads, served by `staticDirs: ['../public']`.
+-->
 <style>
     @font-face {
         font-family: 'Roboto Mono';

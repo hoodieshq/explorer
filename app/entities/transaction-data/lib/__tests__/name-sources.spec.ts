@@ -260,10 +260,8 @@ describe('applyNameSourcesToSummaries', () => {
         expect(row).toBe(input);
     });
 
-    // A renamed row is rebuilt, so anything beside the names has to be carried across. A partially decoded
-    // instruction is both the only kind that carries a count and the only kind an IDL renames.
     it('should keep the account count on a row an IDL renames', () => {
-        const input: InstructionSummary = { ...summary('Prog1', 1), accountCount: 14 };
+        const input: InstructionSummary = { ...summary('Prog1', 1), accountsCount: 14 };
 
         const [row] = applyNameSourcesToSummaries(
             [input],
@@ -271,7 +269,7 @@ describe('applyNameSourcesToSummaries', () => {
         );
 
         expect(row.name).toBe('Vote');
-        expect(row.accountCount).toBe(14);
+        expect(row.accountsCount).toBe(14);
     });
 });
 

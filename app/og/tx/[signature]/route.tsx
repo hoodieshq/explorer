@@ -9,9 +9,6 @@ import { Logger } from '@/app/shared/lib/logger';
 
 // A resolved transaction is immutable, so its card can sit in a cache for a long time.
 const RESOLVED_CACHE_DURATION = 30 * 60; // 30 min
-// The fallback is not: a transaction is "not found" only until it propagates. The probe sees it at
-// `processed` while the fetch reads at `confirmed`, so a link shared the second it lands renders the
-// fallback. A short TTL lets the real card replace it in a minute instead of pinning the empty one.
 const FALLBACK_CACHE_DURATION = 60; // 1 min
 
 type Props = Readonly<{
@@ -41,7 +38,7 @@ export async function GET(request: NextRequest, props: Props) {
         // Both loaders cache after the first call, so this is one read per instance, not per request.
         const [fonts, glows] = await Promise.all([loadOgFonts(), loadOgGlows()]);
 
-        const imageResponse = new ImageResponse(<BaseTxImage data={data} glows={glows} />, {
+        const imageResponse = new ImageResponse(<BaseTxImage data={data} glows={[glows.failed, glows.success]} />, {
             ...IMAGE_SIZE,
             fonts,
         });

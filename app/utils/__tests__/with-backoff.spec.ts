@@ -92,12 +92,9 @@ describe('withBackoff', () => {
 
     it('should throw on the first failure without sleeping when shouldRetry returns false', async () => {
         const fn = vi.fn().mockRejectedValue(new Error('fatal'));
-        // The global Logger mock is shared across this file and `vi.spyOn` reuses it, so its history holds
-        // the retries earlier cases made. Cleared so this case is order-independent.
         vi.mocked(Logger.debug).mockClear();
 
-        // No timer flush here on purpose: a fatal failure must reject before a retry timer is ever
-        // scheduled, so a case that needed `runAllTimersAsync` would be proving the opposite.
+        // No timer flush here on purpose: a fatal failure must reject before a retry timer is ever scheduled.
         await expect(withBackoff(fn, { shouldRetry: () => false })).rejects.toThrow('fatal');
         expect(fn).toHaveBeenCalledTimes(1);
         expect(Logger.debug).not.toHaveBeenCalled();

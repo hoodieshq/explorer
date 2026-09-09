@@ -1,18 +1,14 @@
 /**
- * Every task's value, in input order, with `undefined` in place of any task that had not settled within
- * `timeoutMs`.
+ * Every task's value, in input order, with `undefined` for any that had not settled within `timeoutMs`.
  *
- * One timer for the batch rather than one per task: they all start together, so a shared budget and
- * per-task budgets expire at the same instant, and there is a single handle to clear. Clearing matters on
- * the fast path - an uncleared timer holds the event loop open for the rest of the budget after the work is
- * already done.
+ * One timer for the whole batch, cleared on the way out - an uncleared timer holds the event loop open for
+ * the rest of the budget after the work is done.
  *
- * A task that runs out of budget is abandoned, not cancelled: nothing here can stop work already in flight,
- * so pair this with an `AbortSignal` when the task supports one.
+ * A task that runs out of budget is abandoned, not cancelled. Pair this with an `AbortSignal` to stop the
+ * work itself.
  *
- * Rejections propagate, exactly as `Promise.all` does. Catch inside each task when the batch has to survive
- * one failure.
- * @param timeoutMs - How long the whole batch gets
+ * Rejections propagate, as with `Promise.all`. Catch inside a task for the batch to survive its failure.
+ * @param timeoutMs - The budget for the whole batch
  * @param tasks - Already-started promises, so they run concurrently rather than in sequence
  */
 export async function settleWithin<T>(timeoutMs: number, tasks: readonly Promise<T>[]): Promise<(T | undefined)[]> {
