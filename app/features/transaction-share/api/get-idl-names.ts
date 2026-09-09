@@ -41,7 +41,9 @@ export async function getIdlNames({
     try {
         const settled = await settleWithin(
             IDL_FETCH_BUDGET_MS,
-            resolvable.map(programId => resolveProgramEntry({ abortSignal: abortSignal.signal, cluster, programId, url })),
+            resolvable.map(programId =>
+                resolveProgramEntry({ abortSignal: abortSignal.signal, cluster, programId, url }),
+            ),
         );
 
         return new Map(settled.flatMap(entry => (entry ? [entry] : [])));
