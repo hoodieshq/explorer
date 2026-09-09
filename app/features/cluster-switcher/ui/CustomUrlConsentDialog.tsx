@@ -97,7 +97,9 @@ export function CustomUrlConsentDialog({ request, onConfirm, onCancel }: Props) 
                 // Capped and scrollable, because the fold below can double the height: on a short phone the
                 // answer buttons would otherwise sit past the bottom of the screen, and this dialog is one
                 // nobody should be able to dismiss by accident for want of a visible Cancel.
-                className="!gap-3 !p-5 !pt-6"
+                // The cards' outline, so the box has an edge of its own against the page behind it — the
+                // dialog reserves a border and leaves it transparent by default.
+                className="!gap-3 !border-outer-space-800 !p-5 !pt-6"
             >
                 {/* Per kind, never a two-way ternary: the request the dialog closed on is `undefined`, and an
                     `else` branch would answer one question with the other one's copy. */}
