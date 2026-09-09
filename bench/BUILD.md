@@ -1,8 +1,8 @@
-> Sizes are gzipped, approximate, and rounded to reduce build-output noise. Next.js 16 (Turbopack) no longer prints sizes to stdout; these are derived by gzipping the first-load chunks listed in `.next/diagnostics/route-bundle-stats.json`. `Size` is First Load JS minus the chunks shared by all routes. Routes with no client JS (e.g. API routes) show `—`.
+> Gzipped first-load sizes from `.next/diagnostics/route-bundle-stats.json`, rounded to reduce noise; a cell keeps its previous value while fresh bytes round within one step of it. `Size` is First Load JS minus the chunks shared by all routes; routes with no client JS show `—`.
 
 | Type | Route | Size | First Load JS |
 |------|-------|------|---------------|
-| Static | `/` | 130 kB | 530 kB |
+| Static | `/` | 270 kB | 670 kB |
 | Static | `/_not-found` | 0 B | 410 kB |
 | Dynamic | `/address/[address]` | 520 kB | 920 kB |
 | Dynamic | `/address/[address]/account-data` | 530 kB | 930 kB |
@@ -57,7 +57,6 @@
 | Dynamic | `/epoch/[epoch]` | 20 kB | 420 kB |
 | Static | `/feature-gates` | 50 kB | 450 kB |
 | Dynamic | `/mcp` | — | — |
-| Static | `/mcp/docs` | 30 kB | 430 kB |
 | Static | `/mcp/start` | 20 kB | 420 kB |
 | Dynamic | `/og/feature-gate/[address]` | — | — |
 | Dynamic | `/og/receipt/[signature]` | — | — |
