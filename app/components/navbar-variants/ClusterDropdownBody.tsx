@@ -130,9 +130,18 @@ export function endpointName(endpoint: RpcEndpoint) {
     return shown.endsWith('/') ? shown.slice(0, -1) : shown;
 }
 
+// The menu links' own grey, hover white: a row here and a link in the bar are the same kind of thing, and
+// two greys a shade apart read as a mistake rather than as a distinction.
 const ROW_CLASSES =
-    'flex w-full cursor-pointer items-center justify-between gap-3 rounded-md px-3 py-2 text-sm text-heavy-metal-100 no-underline transition-colors hover:bg-outer-space-800 hover:text-white';
-const ACTIVE_ROW_CLASSES = 'bg-outer-space-800 text-white';
+    'flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-solid px-3 py-2 text-sm text-outer-space-300 no-underline transition-colors hover:bg-outer-space-800 hover:text-white';
+// The rule is what tells the chosen row from a row merely under the cursor — both carry the same fill, and
+// on this ground a fill alone is a faint difference. Every row reserves the border, transparent when it is
+// not the chosen one, so nothing shifts by a pixel as the choice moves.
+// Translucent white, not a palette step: `outer-space-700` is the next step up and reads as a hard rule,
+// while the palette is written in `oklch(...)` strings that Tailwind cannot thin with a `/50`, so the
+// modifier silently drops the class and the border falls back to `currentColor`.
+const ACTIVE_ROW_CLASSES = 'border-white/10 bg-outer-space-800 text-white';
+const INACTIVE_ROW_CLASSES = 'border-transparent';
 /** The card tables' column headers, as the transaction page sets them, so the panel's headings read as the
  *  page's do — 12px caps in `outer-space-300`, not the legacy `<table>` head's 10px dashkit type. */
 const CAPTION_CLASSES = 'text-xs font-normal uppercase text-outer-space-300';
@@ -178,7 +187,7 @@ export function ClusterDropdownBody() {
                             <Link
                                 href={buildHref({ cluster: net })}
                                 aria-current={active ? 'true' : undefined}
-                                className={cn(ROW_CLASSES, active && ACTIVE_ROW_CLASSES)}
+                                className={cn(ROW_CLASSES, active ? ACTIVE_ROW_CLASSES : INACTIVE_ROW_CLASSES)}
                             >
                                 {clusterName(net)}
                                 {active && activeFacts}
@@ -243,7 +252,7 @@ function CustomEndpointRow({
     if (!active) {
         return (
             <li>
-                <Link href={buildHref({ cluster: Cluster.Custom })} className={ROW_CLASSES}>
+                <Link href={buildHref({ cluster: Cluster.Custom })} className={cn(ROW_CLASSES, INACTIVE_ROW_CLASSES)}>
                     Custom RPC URL
                 </Link>
             </li>
@@ -254,7 +263,10 @@ function CustomEndpointRow({
         <li>
             <div
                 aria-current="true"
-                className={cn('flex w-full flex-col gap-1.5 rounded-md px-3 py-2 text-sm', ACTIVE_ROW_CLASSES)}
+                className={cn(
+                    'flex w-full flex-col gap-1.5 rounded-md border border-solid px-3 py-2 text-sm',
+                    ACTIVE_ROW_CLASSES,
+                )}
             >
                 <span>Custom RPC URL</span>
                 <span className="flex min-w-0 items-center gap-1">{activeFacts}</span>
@@ -319,12 +331,12 @@ function SavedEndpointRow({
                 title={`${saved.name} — ${saved.url}`}
                 aria-current={active ? 'true' : undefined}
                 // Room on the right for the tick and the delete control, which sit over the row.
-                className={cn(ROW_CLASSES, 'pr-16', active && ACTIVE_ROW_CLASSES)}
+                className={cn(ROW_CLASSES, 'pr-16', active ? ACTIVE_ROW_CLASSES : INACTIVE_ROW_CLASSES)}
             >
                 <span className="flex min-w-0 flex-col leading-tight">
                     <span className="truncate">{saved.name}</span>
                     {savedEndpoint && savedEndpoint.host !== saved.name && (
-                        <span className="truncate text-xs text-dk-gray-700">{savedEndpoint.host}</span>
+                        <span className="truncate text-xs text-outer-space-300">{savedEndpoint.host}</span>
                     )}
                 </span>
             </Link>
@@ -367,8 +379,12 @@ function DeveloperRow() {
     return (
         <div className="flex items-start justify-between gap-3 px-3 pb-1.5 pt-1">
             <label htmlFor="nav-cluster-trust-toggle" className="flex min-w-0 cursor-pointer flex-col leading-tight">
-                <span className="text-sm text-heavy-metal-100">Trust any customUrl param</span>
-                <span className="text-xs text-dk-gray-700">Connect without asking. Only for your own endpoints.</span>
+                {/* White, like the row it switches: this is the setting's name, the line under it is what
+                    the setting does. */}
+                <span className="text-sm text-white">Trust any customUrl param</span>
+                <span className="mt-1 text-xs text-outer-space-300">
+                    Connect without asking. Only for your own endpoints.
+                </span>
             </label>
             <Switch
                 id="nav-cluster-trust-toggle"

@@ -166,7 +166,7 @@ export function NavMenu({
                     <Menu size={18} aria-hidden />
                 </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" sideOffset={8} className="w-56 p-1.5">
+            <DropdownMenuContent align="end" sideOffset={4} className="w-56 p-1.5">
                 {routes.map(route => (
                     <DropdownMenuItem key={route.id} asChild>
                         <Link

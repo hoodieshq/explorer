@@ -193,16 +193,22 @@ export function BaseSearch({
                         className={cn(
                             'z-50 rounded-md shadow-2xl [border-style:solid]',
                             'w-[var(--radix-popover-trigger-width)]',
-                            // The cards' outline, not the near-black one it had: the panel is a surface
-                            // laid over the page like they are, and a black rule reads as a gap.
-                            'border border-outer-space-800 bg-heavy-metal-800',
+                            // The popover's own ground and rule — this panel and the cluster dropdown are
+                            // the same kind of surface laid over the page, and they were two shades apart.
+                            'border border-outer-space-800 bg-outer-space-900',
                         )}
                         onInteractOutside={e => {
                             if (e.target instanceof Element && e.target === inputRef.current) e.preventDefault();
                         }}
                         onOpenAutoFocus={e => e.preventDefault()}
                     >
-                        <div>
+                        {/* Nothing inside the panel takes the focus off the field: the field folds and the
+                            panel closes on blur, so a press on a gap between rows, on a group heading or on
+                            the panel's own padding used to dismiss the results the reader was aiming at.
+                            The panel closes on a press outside it or on a result being chosen, and on
+                            nothing else. `mousedown` is where the focus moves, so that is where this sits;
+                            `click` still reaches the rows and the filter pills. */}
+                        <div onMouseDown={event => event.preventDefault()}>
                             {/* Allow a single pill: hide-all rule can leave visibleTabs at length 1. */}
                             {hasResults && visibleTabs.length >= 1 && (
                                 <SearchFilters
@@ -215,20 +221,17 @@ export function BaseSearch({
 
                             <CommandList
                                 className={cn(
-                                    'max-h-[420px] overflow-y-auto overflow-x-hidden pb-2',
+                                    // Padding so a row's rounded plate sits inside the panel rather than
+                                    // running edge to edge, as the cluster dropdown's rows do — and the
+                                    // same on all three sides, or the last row looks dropped.
+                                    'max-h-[420px] overflow-y-auto overflow-x-hidden p-1.5 pt-0',
                                     '[&::-webkit-scrollbar]:w-2',
-                                    '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-heavy-metal-600 [&::-webkit-scrollbar-thumb]:hover:bg-heavy-metal-500',
-                                    '[&::-webkit-scrollbar-track]:rounded-md [&::-webkit-scrollbar-track]:bg-heavy-metal-800',
+                                    '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-outer-space-600 [&::-webkit-scrollbar-thumb]:hover:bg-outer-space-500',
+                                    '[&::-webkit-scrollbar-track]:rounded-md [&::-webkit-scrollbar-track]:bg-outer-space-900',
                                 )}
-                                onMouseDown={e => {
-                                    if (e.target === e.currentTarget) {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                    }
-                                }}
                             >
                                 {isLoading && (
-                                    <Command.Loading className="px-4 py-3 pb-1 text-sm text-heavy-metal-400">
+                                    <Command.Loading className="px-4 py-3 pb-1 text-sm text-outer-space-300">
                                         Searching...
                                     </Command.Loading>
                                 )}
@@ -242,9 +245,17 @@ export function BaseSearch({
                                                       <CommandItem
                                                           key={`${group.label}-${option.pathname}`}
                                                           className={cn(
-                                                              'cursor-pointer px-3 py-2',
+                                                              // The cluster dropdown's row, to the pixel:
+                                                              // same rounding, same fill under the cursor
+                                                              // and under the selection.
+                                                              'cursor-pointer rounded-md px-3 py-2',
+                                                              // The border is reserved on every row and
+                                                              // only coloured on the chosen one, so the
+                                                              // list does not shift as the choice moves.
+                                                              'border border-solid border-transparent',
                                                               'transition-colors',
-                                                              'hover:bg-heavy-metal-700 aria-[selected=true]:bg-heavy-metal-600',
+                                                              'hover:bg-outer-space-800 aria-[selected=true]:bg-outer-space-800',
+                                                              'aria-[selected=true]:border-white/10',
                                                           )}
                                                           keywords={option.value}
                                                           value={option.pathname}
@@ -260,7 +271,7 @@ export function BaseSearch({
                                     : null}
 
                                 {!isLoading && (
-                                    <CommandEmpty className="w-full px-4 py-3 pb-1 text-sm text-heavy-metal-400">
+                                    <CommandEmpty className="w-full px-4 py-3 pb-1 text-sm text-outer-space-300">
                                         No results found
                                     </CommandEmpty>
                                 )}

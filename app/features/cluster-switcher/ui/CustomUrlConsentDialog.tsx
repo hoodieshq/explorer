@@ -39,7 +39,9 @@ const CONSENT_Z_INDEX = 1210;
 const HEADER_CLASSES = '!space-y-1.5 !text-left';
 const PLATE_CLASSES = 'rounded-md border border-solid border-outer-space-800 bg-heavy-metal-800 p-3 text-left';
 const LABEL_CLASSES = 'text-xs uppercase text-outer-space-300';
-const BODY_CLASSES = 'm-0 text-left text-[13px] leading-relaxed text-neutral-400';
+// `outer-space-300` throughout, the grey the navigation's own links and the cluster panel are set in:
+// this dialog is raised from those surfaces, and a shade of its own read as a different family.
+const BODY_CLASSES = 'm-0 text-left text-[13px] leading-relaxed text-outer-space-300';
 // The shared button's focus ring is near-black with an offset, which on this ground reads as a hole
 // punched around the button. Same ring, in the accent, tight to the edge.
 const ACTION_CLASSES = 'focus-visible:!ring-1 focus-visible:!ring-accent focus-visible:!ring-offset-0';
@@ -54,12 +56,12 @@ const DANGER_CLASSES = '!bg-dk-danger hover:!bg-dk-danger/90';
 // what came out still sat unevenly against the paragraph above. This is three lines of CSS and lines up.
 const DETAILS_CLASSES = 'text-left [&[open]]:pb-2 [&[open]_svg]:rotate-90';
 const SUMMARY_CLASSES = cn(
-    'flex cursor-pointer list-none items-center gap-1.5 text-[13px] text-neutral-400',
-    'transition-colors hover:text-neutral-200 [&::-webkit-details-marker]:hidden',
+    'flex cursor-pointer list-none items-center gap-1.5 text-[13px] text-outer-space-300',
+    'transition-colors hover:text-white [&::-webkit-details-marker]:hidden',
 );
 /** One setting for everything the fold holds: the closing line used to be a shade dimmer than the list,
  *  which read as a footnote to a footnote. */
-const FOLD_TEXT_CLASSES = 'text-[13px] leading-relaxed text-neutral-400';
+const FOLD_TEXT_CLASSES = 'text-[13px] leading-relaxed text-outer-space-300';
 // Pinned to the bottom of the box: the fold above can outgrow a short screen, and an answer the reader
 // has to scroll to find is an answer they may give by pressing Escape instead.
 const FOOTER_CLASSES = '!flex-row !justify-start gap-2 pt-1 sm:space-x-0';
@@ -186,7 +188,7 @@ function BypassConsent({ onConfirm, onCancel }: Pick<Props, 'onCancel' | 'onConf
                     Radix wires `aria-describedby` to it, so what a screen reader hears after the question is
                     what is on screen. The whole of it is one fold down, for a reader who wants to know
                     exactly what they are agreeing to. */}
-                <DialogDescription className="m-0 !text-[13px] leading-relaxed !text-neutral-300">
+                <DialogDescription className="m-0 !text-[13px] leading-relaxed !text-outer-space-300">
                     Use it only for testing against your own endpoints. Any link you open can then point the Explorer at
                     a server of its choosing, without asking you first.
                 </DialogDescription>

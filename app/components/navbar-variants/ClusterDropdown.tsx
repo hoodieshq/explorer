@@ -185,7 +185,7 @@ export function ClusterDropdown({ align = 'end', className, onOpenChange, open, 
                 scroll (see v3 for why). */}
             <PopoverContent
                 align={align}
-                sideOffset={8}
+                sideOffset={4}
                 collisionPadding={16}
                 className="w-[320px] max-w-[calc(100vw-2rem)] p-1.5 shadow-[0_16px_48px_-16px_rgba(0,0,0,0.9)]"
             >
