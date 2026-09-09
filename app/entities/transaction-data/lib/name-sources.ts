@@ -94,7 +94,14 @@ export function applyNameSourcesToSummaries(
         // string as "resolved nothing" and hand back a named row still carrying its lookup.
         if (resolved.name === undefined && resolved.programName === undefined) return summary;
 
+        // Rest-spread rather than three named fields: a row carries more than its names (`accountCount`
+        // today), and rebuilding from a fixed list silently drops whatever is not on it. `nameLookup` is
+        // destructured out because `keptLookup` owns whether it survives, and a spread cannot remove a key.
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars -- destructured out to omit the key
+        const { nameLookup: _resolvedLookup, ...rest } = summary;
+
         return {
+            ...rest,
             name: resolved.name ?? summary.name,
             ...keptLookup(resolved, summary.nameLookup),
             programName: resolved.programName ?? summary.programName,

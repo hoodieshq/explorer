@@ -1,8 +1,4 @@
-/** Width and height in px of an Open Graph image. */
-export type ImageSize = {
-    height: number;
-    width: number;
-};
+import type { ImageSize } from './types';
 
 /**
  * The size every Open Graph image in this app renders at.

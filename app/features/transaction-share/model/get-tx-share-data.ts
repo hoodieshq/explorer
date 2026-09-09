@@ -31,7 +31,6 @@ export type TxShareData = {
     slot: number;
     /** Read from the first account key, which a message with none would not have. */
     signer?: string;
-    computeUnits?: number;
     version?: string;
 };
 
@@ -122,7 +121,6 @@ function idlProgramIds(summaries: InstructionSummary[]): string[] {
  */
 function toShareData(signature: string, tx: TransactionWithMeta, instructions: InstructionSummary[]): TxShareData {
     return {
-        computeUnits: tx.meta?.computeUnitsConsumed,
         dateUtc: formatDateUtc(tx.blockTime),
         // `meta` is absent only when the RPC returned no execution result, which a confirmed
         // transaction always carries. Zero keeps the row printable instead of blanking it.

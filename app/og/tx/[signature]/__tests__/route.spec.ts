@@ -1,4 +1,5 @@
 import { gen } from '@__fixtures__/gen';
+import type { OgGlows } from '@entities/open-graph';
 import { getTxShareData, type TxShareData } from '@features/transaction-share/server';
 import { Cluster } from '@utils/cluster';
 import { ImageResponse } from 'next/og';
@@ -19,6 +20,15 @@ vi.mock('next/og', () => ({
 vi.mock('@features/transaction-share/server', () => ({
     BaseTxImage: vi.fn(() => null),
     getTxShareData: vi.fn(),
+}));
+
+vi.mock('@entities/open-graph/server', async importOriginal => ({
+    ...(await importOriginal<typeof import('@entities/open-graph/server')>()),
+    // Both loaders read off `process.cwd()`, which resolves under vitest too - `og-fonts.spec` reads the real
+    // TTFs. They are stubbed because these tests are about routing: the real pair is 200 KB of outlines plus
+    // 770 KB of PNG per file, and a stub also lets the assertion below name the exact bytes it expects.
+    loadOgFonts: vi.fn(async () => []),
+    loadOgGlows: vi.fn(async () => ({ failed: 'data:image/png;base64,failed', success: 'data:image/png;base64,ok' })),
 }));
 
 const SIGNATURE = gen.signature(1);
@@ -130,6 +140,17 @@ describe('should handle GET /og/tx/[signature]', () => {
         const [element] = vi.mocked(ImageResponse).mock.calls[0];
         // `ReactElement` declares its props as `unknown`, so the shape this route passes is named here.
         expect((element.props as { data?: TxShareData }).data).toBeUndefined();
+    });
+
+    it('should hand the card both glows', async () => {
+        await GET(makeRequest(SIGNATURE), makeProps(SIGNATURE));
+
+        const [element] = vi.mocked(ImageResponse).mock.calls[0];
+        // `ReactElement` declares its props as `unknown`, so the shape this route passes is named here.
+        expect((element.props as { glows?: OgGlows }).glows).toEqual({
+            failed: 'data:image/png;base64,failed',
+            success: 'data:image/png;base64,ok',
+        });
     });
 
     it('should return 502 when the data layer errors', async () => {

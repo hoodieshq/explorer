@@ -53,6 +53,12 @@ export type NamedInstruction = InstructionNames & { programId: PublicKey };
 export type InstructionSummary = {
     name: string;
     programName: string;
+    /**
+     * How many accounts the instruction passes, absent when the RPC parsed it.
+     * A parsed instruction carries named fields in `parsed.info` rather than an account list, and those
+     * fields mix accounts with scalars, so there is nothing to count.
+     */
+    accountCount?: number;
     // Set only while the instruction is still unnamed — the lookup a name resolver (IDL, ZK ElGamal, …)
     // needs to resolve the real name. `name-sources` drops it from every row it names.
     nameLookup?: InstructionNameLookup;

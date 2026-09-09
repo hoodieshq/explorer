@@ -1,4 +1,4 @@
-import { IMAGE_SIZE } from '@entities/open-graph/server';
+import { IMAGE_SIZE, loadOgFonts, loadOgGlows } from '@entities/open-graph/server';
 import { BaseTxImage, getTxShareData } from '@features/transaction-share/server';
 import { isSignature } from '@solana/kit';
 import { Cluster, clusterFromSlug, type ServerCluster } from '@utils/cluster';
@@ -38,7 +38,13 @@ export async function GET(request: NextRequest, props: Props) {
         // a branded card instead of a broken image.
         const data = result.kind === 'ok' ? result.data : undefined;
 
-        const imageResponse = new ImageResponse(<BaseTxImage data={data} />, { ...IMAGE_SIZE });
+        // Both loaders cache after the first call, so this is one read per instance, not per request.
+        const [fonts, glows] = await Promise.all([loadOgFonts(), loadOgGlows()]);
+
+        const imageResponse = new ImageResponse(<BaseTxImage data={data} glows={glows} />, {
+            ...IMAGE_SIZE,
+            fonts,
+        });
         const imageBuffer = await imageResponse.arrayBuffer();
 
         return new NextResponse(imageBuffer, {

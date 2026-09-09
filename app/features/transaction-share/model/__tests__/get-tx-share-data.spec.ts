@@ -135,7 +135,6 @@ describe('should shape the transaction behind an OG image', () => {
         });
         expect(result).toEqual({
             data: {
-                computeUnits: 4321,
                 dateUtc: 'Nov 15, 2023 at 22:13:20 UTC',
                 fee: '0.000005 SOL',
                 instructions: [],
@@ -283,16 +282,6 @@ describe('should carry the footer fields', () => {
         const result = await getTxShareData(SIGNATURE, Cluster.Devnet);
 
         expect(result).toMatchObject({ data: { version: 'v1' }, kind: 'ok' });
-    });
-
-    it('should omit compute units when the RPC did not report them', async () => {
-        const tx = txWith([]);
-        mocks.getTx.mockResolvedValue({ ...tx, meta: { err: null, fee: 5000 } });
-
-        const result = await getTxShareData(SIGNATURE, Cluster.Devnet);
-
-        expect(result).toMatchObject({ kind: 'ok' });
-        expect((result as { data: { computeUnits?: number } }).data.computeUnits).toBeUndefined();
     });
 
     it('should omit the version when the transaction carries none', async () => {
