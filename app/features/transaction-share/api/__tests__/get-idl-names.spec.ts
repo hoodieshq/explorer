@@ -37,16 +37,9 @@ describe('getIdlNames', () => {
         await getIdlNames({ cluster: Cluster.Devnet, programIds: [FIRST, SECOND] });
 
         const url = serverClusterUrl(Cluster.Devnet);
-        expect(mocks.resolveProgramIdlNames).toHaveBeenCalledWith(
-            url,
-            FIRST,
-            expect.objectContaining({ maxRetries: 1 }),
-        );
-        expect(mocks.resolveProgramIdlNames).toHaveBeenCalledWith(
-            url,
-            SECOND,
-            expect.objectContaining({ maxRetries: 1 }),
-        );
+        const options = expect.objectContaining({ abortSignal: expect.any(AbortSignal), maxRetries: 1 });
+        expect(mocks.resolveProgramIdlNames).toHaveBeenCalledWith(url, FIRST, options);
+        expect(mocks.resolveProgramIdlNames).toHaveBeenCalledWith(url, SECOND, options);
     });
 
     it('should resolve nothing for an empty program list', async () => {
@@ -101,6 +94,47 @@ describe('getIdlNames', () => {
 
         expect(names.get(FIRST)).toBe(firstNames);
         expect(names.has(SECOND)).toBe(false);
+    });
+
+    it('should abort the program that outlived the budget so its request stops costing a connection', async () => {
+        vi.useFakeTimers();
+        const signals: AbortSignal[] = [];
+        mocks.resolveProgramIdlNames.mockImplementation((_url: string, _programId: string, options) => {
+            signals.push(options.abortSignal);
+            return new Promise(() => {});
+        });
+
+        const pending = getIdlNames({ cluster: Cluster.MainnetBeta, programIds: [FIRST] });
+        // While the budget holds, the request has to stay live.
+        expect(signals[0]?.aborted).toBe(false);
+
+        await vi.advanceTimersByTimeAsync(IDL_FETCH_BUDGET_MS);
+        await pending;
+
+        expect(signals[0]?.aborted).toBe(true);
+    });
+
+    it('should not report an aborted straggler as a failure', async () => {
+        vi.useFakeTimers();
+        // What an aborted `fetch` rejects with, so the catch sees the same error the real RPC would raise.
+        mocks.resolveProgramIdlNames.mockImplementation(
+            (_url: string, _programId: string, { abortSignal }: { abortSignal: AbortSignal }) =>
+                new Promise((_resolve, reject) =>
+                    abortSignal.addEventListener('abort', () => reject(abortSignal.reason)),
+                ),
+        );
+
+        const pending = getIdlNames({ cluster: Cluster.MainnetBeta, programIds: [FIRST] });
+        await vi.advanceTimersByTimeAsync(IDL_FETCH_BUDGET_MS);
+        await pending;
+        // The rejection lands after the budget resolves the batch, so let its catch run before asserting.
+        await vi.advanceTimersByTimeAsync(0);
+
+        expect(Logger.error).not.toHaveBeenCalled();
+        expect(Logger.debug).toHaveBeenCalledWith(expect.stringContaining('abandoned past the budget'), {
+            cluster: Cluster.MainnetBeta,
+            programId: FIRST,
+        });
     });
 
     it('should clear the budget timer once every program has answered', async () => {

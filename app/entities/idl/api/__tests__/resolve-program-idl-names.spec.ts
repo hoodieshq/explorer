@@ -111,6 +111,26 @@ describe('resolveProgramIdlNames', () => {
         expect(mocks.resolveProgramIdls).toHaveBeenCalledTimes(1);
     });
 
+    it('should not touch the RPC when the deadline has already expired', async () => {
+        await expect(
+            resolveProgramIdlNames(DEFAULT_RPC_URL, PROGRAM, { ...BACKOFF, abortSignal: AbortSignal.abort() }),
+        ).rejects.toHaveProperty('name', 'AbortError');
+        expect(mocks.resolveProgramIdls).not.toHaveBeenCalled();
+    });
+
+    it('should stop retrying once the deadline expires', async () => {
+        const deadline = new AbortController();
+        mocks.resolveProgramIdls.mockImplementation(() => {
+            deadline.abort();
+            return Promise.reject(transientError());
+        });
+
+        await expect(
+            resolveProgramIdlNames(DEFAULT_RPC_URL, PROGRAM, { ...BACKOFF, abortSignal: deadline.signal }),
+        ).rejects.toHaveProperty('name', 'AbortError');
+        expect(mocks.resolveProgramIdls).toHaveBeenCalledTimes(1);
+    });
+
     it('should let the caller override the retry classifier', async () => {
         mocks.resolveProgramIdls
             .mockRejectedValueOnce(new Error('fatal by default'))

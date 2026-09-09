@@ -111,4 +111,39 @@ describe('withBackoff', () => {
         expect(shouldRetry).toHaveBeenCalledWith(expect.objectContaining({ message: 'retryable' }));
         expect(fn).toHaveBeenCalledTimes(2);
     });
+
+    it('should not attempt anything for a deadline that has already expired', async () => {
+        const fn = vi.fn().mockResolvedValue('ok');
+        const expired = AbortSignal.abort();
+
+        await expect(withBackoff(fn, { abortSignal: expired })).rejects.toHaveProperty('name', 'AbortError');
+        expect(fn).not.toHaveBeenCalled();
+    });
+
+    it('should stop retrying once the deadline expires, and report the abort over the failure', async () => {
+        const deadline = new AbortController();
+        // The caller moves on while this attempt is in flight, as a stage budget lapsing mid-request would.
+        const fn = vi.fn().mockImplementation(() => {
+            deadline.abort();
+            return Promise.reject(new Error('rpc unreachable'));
+        });
+
+        // No timer flush on purpose: an expired deadline must reject before a retry timer is scheduled.
+        await expect(withBackoff(fn, { abortSignal: deadline.signal, shouldRetry: () => true })).rejects.toHaveProperty(
+            'name',
+            'AbortError',
+        );
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
+    it('should retry as usual while the deadline holds', async () => {
+        const fn = vi.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValue('ok');
+        const deadline = new AbortController();
+
+        const promise = withBackoff(fn, { abortSignal: deadline.signal });
+        await vi.runAllTimersAsync();
+
+        await expect(promise).resolves.toBe('ok');
+        expect(fn).toHaveBeenCalledTimes(2);
+    });
 });
