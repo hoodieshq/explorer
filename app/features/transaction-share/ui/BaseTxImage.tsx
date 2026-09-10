@@ -90,14 +90,11 @@ export function BaseTxImage({ data, glows }: BaseTxImageProps) {
             />
 
             <Header dateUtc={data?.dateUtc} status={data?.status} />
-            {data ? (
-                <>
-                    <Body data={data} />
-                    <Footer data={data} />
-                </>
-            ) : (
-                <NoTransaction />
-            )}
+            {/* Three flat siblings, never a fragment: satori wraps a fragment's children in one implicit
+                row box, which lays the footer out beside the body instead of below it. */}
+            {data && <Body data={data} />}
+            {data && <Footer data={data} />}
+            {!data && <NoTransaction />}
         </div>
     );
 }
