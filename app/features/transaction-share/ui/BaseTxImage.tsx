@@ -22,7 +22,6 @@ const COLORS = {
     emphasis: '#FFFFFF',
     footerLabel: '#A0AAA5',
     secondary: '#BAC4C0',
-    separator: '#FFFFFF14',
     signature: '#2DD4A7',
 } as const;
 
@@ -168,34 +167,24 @@ function Body({ data }: { data: TxShareData }) {
             {/* Instruction rows */}
             <div style={{ display: 'flex', flexDirection: 'column', paddingTop: '8px', width: '100%' }}>
                 {visible.map((instruction, index) => (
-                    <div key={index} style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                        {index > 0 && <Separator />}
-                        <InstructionRow instruction={instruction} />
-                    </div>
+                    <InstructionRow instruction={instruction} key={index} />
                 ))}
 
                 {overflow > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', width: '100%' }}>
-                        {visible.length > 0 && <Separator />}
-                        <span
-                            data-testid="tx-image-instruction-overflow"
-                            style={{
-                                color: COLORS.secondary,
-                                padding: SPACING.rowPadding,
-                                ...TYPO.body,
-                            }}
-                        >
-                            {`and ${overflow} more instructions`}
-                        </span>
-                    </div>
+                    <span
+                        data-testid="tx-image-instruction-overflow"
+                        style={{
+                            color: COLORS.secondary,
+                            padding: SPACING.rowPadding,
+                            ...TYPO.body,
+                        }}
+                    >
+                        {`and ${overflow} more instructions`}
+                    </span>
                 )}
             </div>
         </div>
     );
-}
-
-function Separator() {
-    return <div style={{ backgroundColor: COLORS.separator, display: 'flex', height: '1px', width: '100%' }} />;
 }
 
 function InstructionRow({ instruction }: { instruction: InstructionSummary }) {
