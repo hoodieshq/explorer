@@ -205,48 +205,28 @@ function InstructionRow({ instruction }: { instruction: InstructionSummary }) {
             style={{
                 alignItems: 'flex-end',
                 display: 'flex',
-                gap: '24px',
-                justifyContent: 'space-between',
+                gap: '12px',
                 padding: SPACING.rowPadding,
                 width: '100%',
             }}
         >
-            <div
+            <span style={{ color: COLORS.secondary, flexShrink: 0, ...TYPO.body, whiteSpace: 'nowrap' }}>
+                {programLabel(instruction)}
+            </span>
+            <span
                 style={{
-                    alignItems: 'flex-end',
-                    display: 'flex',
-                    // Both written out on purpose. Satori defaults `flexShrink` to 0, so without it the
-                    // labels keep their content width and push the count past the canvas padding; a browser
-                    // defaults it to 1 but needs `minWidth: 0` to shrink a flex child below its content.
+                    color: COLORS.emphasis,
+                    // The one thing on the row that gives way. Written out for satori, which defaults it
+                    // to 0; `minWidth: 0` is what lets a browser shrink it below its content.
                     flexShrink: 1,
-                    gap: '12px',
+                    fontWeight: 500,
                     minWidth: 0,
+                    ...TYPO.body,
+                    ...TEXT_ELLIPSIS,
                 }}
             >
-                <span style={{ color: COLORS.secondary, flexShrink: 0, ...TYPO.body, whiteSpace: 'nowrap' }}>
-                    {programLabel(instruction)}
-                </span>
-                <span
-                    style={{
-                        color: COLORS.emphasis,
-                        // The one thing on the row that gives way. Written out for satori, which defaults it
-                        // to 0; `minWidth: 0` is what lets a browser shrink it below its content.
-                        flexShrink: 1,
-                        fontWeight: 500,
-                        minWidth: 0,
-                        ...TYPO.body,
-                        ...TEXT_ELLIPSIS,
-                    }}
-                >
-                    {instruction.name}
-                </span>
-            </div>
-
-            {instruction.accountsCount !== undefined && (
-                <span style={{ color: COLORS.secondary, flexShrink: 0, ...TYPO.body }}>
-                    {accountsCountLabel(instruction.accountsCount)}
-                </span>
-            )}
+                {instruction.name}
+            </span>
         </div>
     );
 }
@@ -290,13 +270,6 @@ function programLabel({ nameLookup, programName }: InstructionSummary): string {
     if (programName !== UNKNOWN_PROGRAM_NAME || !nameLookup) return programName;
 
     return `${programName} (${truncateAddress(nameLookup.programId, ADDRESS_PAD)})`;
-}
-
-/**
- * `N accounts`, singular at one. A partially decoded instruction can pass exactly one.
- */
-function accountsCountLabel(count: number): string {
-    return `${count} ${count === 1 ? 'account' : 'accounts'}`;
 }
 
 /**

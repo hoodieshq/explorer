@@ -95,7 +95,6 @@ export function applyNameSourcesToSummaries(
         if (resolved.name === undefined && resolved.programName === undefined) return summary;
 
         return {
-            accountsCount: summary.accountsCount,
             name: resolved.name ?? summary.name,
             ...keptLookup(resolved, summary.nameLookup),
             programName: resolved.programName ?? summary.programName,

@@ -259,18 +259,6 @@ describe('applyNameSourcesToSummaries', () => {
 
         expect(row).toBe(input);
     });
-
-    it('should keep the account count on a row an IDL renames', () => {
-        const input: InstructionSummary = { ...summary('Prog1', 1), accountsCount: 14 };
-
-        const [row] = applyNameSourcesToSummaries(
-            [input],
-            idlNames({ Prog1: { programName: 'Voting', resolveInstructionName: () => 'Vote' } }),
-        );
-
-        expect(row.name).toBe('Vote');
-        expect(row.accountsCount).toBe(14);
-    });
 });
 
 const COMPUTE_BUDGET_PROGRAM = 'ComputeBudget111111111111111111111111111111';

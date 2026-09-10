@@ -1,4 +1,3 @@
-import { gen } from '@__fixtures__/gen';
 import { getBase58Decoder } from '@solana/kit';
 import {
     ComputeBudgetProgram,
@@ -63,18 +62,6 @@ describe('getInstructionSummaries', () => {
 
             expect(result).toEqual({ name: 'Unknown Instruction', programName: 'System Program' });
         });
-
-        it('should leave the account count absent when the RPC parsed the instruction', () => {
-            const ix = {
-                parsed: { info: { lamports: 1 }, type: 'transfer' },
-                program: 'system',
-                programId: SystemProgram.programId,
-            } as unknown as ParsedInstruction;
-
-            const [result] = getInstructionSummaries(makeTx([ix]));
-
-            expect(result.accountsCount).toBeUndefined();
-        });
     });
 
     describe('unknown / partially decoded instructions', () => {
@@ -88,7 +75,6 @@ describe('getInstructionSummaries', () => {
             const [result] = getInstructionSummaries(makeTx([ix]));
 
             expect(result).toEqual({
-                accountsCount: 0,
                 name: 'Unknown Instruction',
                 nameLookup: {
                     data: new Uint8Array([1, 2, 3]),
@@ -113,18 +99,6 @@ describe('getInstructionSummaries', () => {
                 new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]),
             );
         });
-
-        it('should count the accounts a partially decoded instruction passes', () => {
-            const ix: PartiallyDecodedInstruction = {
-                accounts: [gen.publicKey(1), gen.publicKey(2)],
-                data: BASE58_DECODER.decode(new Uint8Array([1, 2, 3])),
-                programId: gen.publicKey(3),
-            };
-
-            const [result] = getInstructionSummaries(makeTx([ix]));
-
-            expect(result.accountsCount).toBe(2);
-        });
     });
 
     describe('ZK ElGamal proof instructions', () => {
@@ -142,7 +116,6 @@ describe('getInstructionSummaries', () => {
             const [result] = getInstructionSummaries(makeTx([ix]));
 
             expect(result).toEqual({
-                accountsCount: 0,
                 name: 'Unknown Instruction',
                 nameLookup: {
                     data: new Uint8Array([3]),

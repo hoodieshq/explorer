@@ -29,7 +29,6 @@ function expectInRow<T>(value: T | null | undefined, name: string): T {
 
 function makeInstructions(count: number): InstructionSummary[] {
     return Array.from({ length: count }, (_, index) => ({
-        accountsCount: index + 1,
         name: `Instruction ${index + 1}`,
         programName: 'System Program',
     }));
@@ -39,8 +38,8 @@ const txShareData: TxShareData = {
     dateUtc: 'Aug 31, 2026 at 11:00:00 UTC',
     fee: '0.000005 SOL',
     instructions: [
-        { accountsCount: 0, name: 'Transfer', programName: 'System Program' },
-        { accountsCount: 14, name: 'Create Idempotent', programName: 'Associated Token Program' },
+        { name: 'Transfer', programName: 'System Program' },
+        { name: 'Create Idempotent', programName: 'Associated Token Program' },
     ],
     signature: SIGNATURE,
     signer: gen.address(1),
@@ -89,8 +88,8 @@ export const Default: Story = {
         expect(rows).toHaveLength(2);
         expect(rows[0]).toHaveTextContent('System Program');
         expect(rows[0]).toHaveTextContent('Transfer');
-        expect(rows[0]).toHaveTextContent('0 accounts');
-        expect(rows[1]).toHaveTextContent('14 accounts');
+        expect(rows[1]).toHaveTextContent('Associated Token Program');
+        expect(rows[1]).toHaveTextContent('Create Idempotent');
         expect(canvas.queryByTestId('tx-image-instruction-overflow')).not.toBeInTheDocument();
 
         // The footer the design specifies, in its order.
@@ -132,8 +131,6 @@ export const ExactlyAtCap: Story = {
 
         expect(rows).toHaveLength(MAX_INSTRUCTION_ROWS);
         expect(canvas.queryByTestId('tx-image-instruction-overflow')).not.toBeInTheDocument();
-        expect(rows[0]).not.toHaveTextContent('1 accounts');
-        expect(rows[1]).toHaveTextContent('2 accounts');
     },
 };
 
@@ -144,27 +141,6 @@ export const OverCap: Story = {
 
         expect(canvas.getAllByTestId('tx-image-instruction')).toHaveLength(MAX_INSTRUCTION_ROWS);
         expect(canvas.getByTestId('tx-image-instruction-overflow')).toHaveTextContent('and 4 more instructions');
-    },
-};
-
-// The RPC parses System, Token, Stake, Vote and Memo instructions, and a parsed instruction carries no
-// account list. Those rows print their names and nothing on the right.
-export const WithoutAccountCounts: Story = {
-    args: {
-        data: {
-            ...txShareData,
-            instructions: [
-                { name: 'Transfer', programName: 'System Program' },
-                { accountsCount: 14, name: 'Increase Liquidity', programName: 'Orca Whirlpools' },
-            ],
-        },
-    },
-    play: async ({ canvasElement }) => {
-        const canvas = within(canvasElement);
-        const rows = canvas.getAllByTestId('tx-image-instruction');
-
-        expect(rows[0]).not.toHaveTextContent('accounts');
-        expect(rows[1]).toHaveTextContent('14 accounts');
     },
 };
 
@@ -203,9 +179,8 @@ export const UnknownProgram: Story = {
         data: {
             ...txShareData,
             instructions: [
-                { accountsCount: 1, name: 'Transfer', programName: 'System Program' },
+                { name: 'Transfer', programName: 'System Program' },
                 {
-                    accountsCount: 3,
                     name: 'Unknown Instruction',
                     nameLookup: { data: new Uint8Array([1, 2, 3]), programId: UNKNOWN_PROGRAM_ID },
                     programName: UNKNOWN_PROGRAM_NAME,
@@ -225,18 +200,15 @@ export const UnknownProgram: Story = {
 
 const LONG_IDL_INSTRUCTIONS: InstructionSummary[] = [
     {
-        accountsCount: 22,
-        name: 'Initialize Permissionless Pool With Fee Tier',
+        name: 'Initialize Permissionless Constant Product Pool With Fee Tier And Config',
         programName: 'Meteora Dynamic Liquidity Market Maker',
     },
     {
-        accountsCount: 18,
-        name: 'Shared Accounts Route With Token Ledger',
+        name: 'Shared Accounts Exact Out Route With Token Ledger And Platform Fee',
         programName: 'Jupiter Aggregator Limit Order V2',
     },
     {
-        accountsCount: 14,
-        name: 'Increase Liquidity With Token Extensions',
+        name: 'Increase Liquidity V2 With Token Extensions And Transfer Hooks',
         programName: 'Orca Whirlpools Concentrated Liquidity',
     },
 ];
@@ -252,18 +224,16 @@ export const OversizedIdlNames: Story = {
         expect(rows).toHaveLength(MAX_INSTRUCTION_ROWS);
 
         rows.forEach(row => {
-            const label = expectInRow(row.firstElementChild?.lastElementChild, 'an instruction name');
+            const label = expectInRow(row.lastElementChild, 'an instruction name');
             expect(label.scrollWidth).toBeGreaterThan(label.clientWidth);
+            // The name is what gives way, so it stays inside the row instead of running past the padding.
+            expect(label.getBoundingClientRect().right).toBeLessThanOrEqual(row.getBoundingClientRect().right + 1);
 
             // The mirror of the assertion above, and the only thing holding the design's rule that a
             // program name is shown whole. Put `TEXT_ELLIPSIS` back on that span and this is what fails.
-            const program = expectInRow(row.firstElementChild?.firstElementChild, 'a program name');
+            const program = expectInRow(row.firstElementChild, 'a program name');
             expect(program.scrollWidth).toBeLessThanOrEqual(program.clientWidth);
         });
-
-        expect(rows[0]).toHaveTextContent('22 accounts');
-        const count = expectInRow(rows[0].lastElementChild, 'an account count');
-        expect(count.getBoundingClientRect().right).toBeLessThanOrEqual(rows[0].getBoundingClientRect().right + 1);
 
         // The row all of this exists for: the footer keeps its place instead of being pushed off the canvas.
         expect(canvas.getByTestId('tx-image-footer')).toBeInTheDocument();
