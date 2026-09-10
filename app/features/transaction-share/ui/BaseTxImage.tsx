@@ -15,11 +15,6 @@ const ADDRESS_PAD = 6;
 // Placeholder for an absent value.
 const EMPTY_VALUE = '-';
 
-// The instruction name comes from IDL metadata, which does not bound its length, so it is cut by layout
-// rather than by a character count: the row cannot grow, and satori's own ellipsis draws U+2026. A character
-// cap on top of this cuts twice and lands mid-word ("Liquidity M…").
-// Only the instruction name carries this. The design shows the program name whole, so that span never
-// shrinks and this one absorbs the difference.
 const TEXT_ELLIPSIS = { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } as const;
 
 const COLORS = {
@@ -56,7 +51,7 @@ const LOGO = { height: '28px', width: '229px' } as const;
 
 type BaseTxImageProps = {
     data: TxShareData | undefined;
-    /** Both glows are base64 data URIs. */
+    /** Both glows are base64 data URIs. [failedGlow, successGlow] */
     glows: [string, string];
 };
 
