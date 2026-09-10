@@ -1,4 +1,4 @@
-import { IMAGE_SIZE, loadOgFonts, loadOgGlows } from '@entities/open-graph/server';
+import { IMAGE_SIZE, loadOgFonts, loadOgGlows, type OgFontOption } from '@entities/open-graph/server';
 import { BaseTxImage, getTxShareData } from '@features/transaction-share/server';
 import { isSignature } from '@solana/kit';
 import { Cluster, clusterFromSlug, type ServerCluster } from '@utils/cluster';
@@ -6,6 +6,11 @@ import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { Logger } from '@/app/shared/lib/logger';
+
+const FONTS_TO_LOAD: readonly OgFontOption[] = [
+    { family: 'Rubik', weights: [400, 500] },
+    { family: 'Roboto Mono', weights: [400, 500] },
+];
 
 // A resolved transaction is immutable, so its card can sit in a cache for a long time.
 const RESOLVED_CACHE_DURATION = 30 * 60; // 30 min
@@ -36,7 +41,7 @@ export async function GET(request: NextRequest, props: Props) {
         const data = result.kind === 'ok' ? result.data : undefined;
 
         // Both loaders cache after the first call, so this is one read per instance, not per request.
-        const [fonts, glows] = await Promise.all([loadOgFonts(), loadOgGlows()]);
+        const [fonts, glows] = await Promise.all([loadOgFonts(FONTS_TO_LOAD), loadOgGlows()]);
 
         const imageResponse = new ImageResponse(<BaseTxImage data={data} glows={[glows.failed, glows.success]} />, {
             ...IMAGE_SIZE,
