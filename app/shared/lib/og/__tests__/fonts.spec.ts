@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { loadOgFonts } from '../og-fonts';
+import { loadOgFonts } from '../fonts';
 
 describe('og-fonts', () => {
     it('should return both families at 400, 500 and 600', async () => {

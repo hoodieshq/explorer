@@ -1,11 +1,12 @@
-import { IMAGE_SIZE, loadOgFonts, loadOgGlows, type OgFontOption } from '@entities/open-graph/server';
-import { BaseTxImage, getTxShareData } from '@features/transaction-share/server';
+import { BaseTxImage, getTxShareData, loadOgGlows } from '@features/transaction-share/server';
 import { isSignature } from '@solana/kit';
 import { Cluster, clusterFromSlug, type ServerCluster } from '@utils/cluster';
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';
 
 import { Logger } from '@/app/shared/lib/logger';
+import { loadOgFonts, type OgFontOption } from '@/app/shared/lib/og/fonts';
+import { IMAGE_SIZE } from '@/app/shared/lib/og/image-size';
 
 const FONTS_TO_LOAD: readonly OgFontOption[] = [
     { family: 'Rubik', weights: [400, 500] },

@@ -1,7 +1,7 @@
 import { gen } from '@__fixtures__/gen';
 import { truncateAddress } from '@entities/address';
-import { IMAGE_SIZE } from '@entities/open-graph';
 import { type InstructionSummary, UNKNOWN_PROGRAM_NAME } from '@entities/transaction-data';
+import { IMAGE_SIZE } from '@shared/lib/og/image-size';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { expect, within } from 'storybook/test';
 

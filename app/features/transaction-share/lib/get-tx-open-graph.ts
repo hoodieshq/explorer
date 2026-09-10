@@ -1,4 +1,4 @@
-import { IMAGE_SIZE } from '@entities/open-graph';
+import { IMAGE_SIZE } from '@shared/lib/og/image-size';
 import { Cluster, clusterSlug, type ServerCluster } from '@utils/cluster';
 import type { Metadata } from 'next/types';
 

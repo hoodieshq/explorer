@@ -1,4 +1,4 @@
-import { IMAGE_SIZE, type ImageSize } from '@entities/open-graph';
+import { IMAGE_SIZE, type ImageSize } from '@shared/lib/og/image-size';
 
 import { Logo } from '@/app/shared/components/SolanaLogo';
 

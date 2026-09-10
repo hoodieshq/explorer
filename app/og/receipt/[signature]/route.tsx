@@ -1,4 +1,3 @@
-import { IMAGE_SIZE } from '@entities/open-graph/server';
 import {
     BaseReceiptImage,
     createReceipt,
@@ -6,6 +5,7 @@ import {
     parseCompositeSignature,
     ReceiptError,
 } from '@features/receipt/server';
+import { IMAGE_SIZE } from '@shared/lib/og/image-size';
 import { isSignature } from '@solana/kit';
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';

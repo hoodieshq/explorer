@@ -1,5 +1,5 @@
 import { getFeatureInfo } from '@entities/feature-gate';
-import { IMAGE_SIZE } from '@entities/open-graph';
+import { IMAGE_SIZE } from '@shared/lib/og/image-size';
 import type { Metadata } from 'next/types';
 
 import { FEATURE_GATE_BASE_URL, isFeatureGateOgEnabled } from '../env';

@@ -1,6 +1,6 @@
 import { getFeatureInfo } from '@entities/feature-gate/server';
-import { IMAGE_SIZE } from '@entities/open-graph/server';
 import { BaseFeatureGateImage, isFeatureGateOgEnabled } from '@features/feature-gate/server';
+import { IMAGE_SIZE } from '@shared/lib/og/image-size';
 import { isAddress } from '@solana/kit';
 import { ImageResponse } from 'next/og';
 import { NextRequest, NextResponse } from 'next/server';

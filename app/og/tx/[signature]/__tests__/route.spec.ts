@@ -19,15 +19,12 @@ vi.mock('next/og', () => ({
 vi.mock('@features/transaction-share/server', () => ({
     BaseTxImage: vi.fn(() => null),
     getTxShareData: vi.fn(),
+    loadOgGlows: vi.fn(async () => ({ failed: 'data:image/png;base64,failed', success: 'data:image/png;base64,ok' })),
 }));
 
-vi.mock('@entities/open-graph/server', async importOriginal => ({
-    ...(await importOriginal<typeof import('@entities/open-graph/server')>()),
-    // Both loaders read off `process.cwd()`, which resolves under vitest too - `og-fonts.spec` reads the real
-    // TTFs. They are stubbed because these tests are about routing: the real pair is 200 KB of outlines plus
-    // 770 KB of PNG per file, and a stub also lets the assertion below name the exact bytes it expects.
+vi.mock('@/app/shared/lib/og/fonts', async importOriginal => ({
+    ...(await importOriginal<typeof import('@/app/shared/lib/og/fonts')>()),
     loadOgFonts: vi.fn(async () => []),
-    loadOgGlows: vi.fn(async () => ({ failed: 'data:image/png;base64,failed', success: 'data:image/png;base64,ok' })),
 }));
 
 const SIGNATURE = gen.signature(1);

@@ -6,8 +6,8 @@
 | Static | `/_not-found` | 0 B | 410 kB |
 | Dynamic | `/address/[address]` | 520 kB | 920 kB |
 | Dynamic | `/address/[address]/account-data` | 540 kB | 940 kB |
-| Dynamic | `/address/[address]/anchor-account` | 490 kB | 900 kB |
-| Dynamic | `/address/[address]/attestation` | 490 kB | 900 kB |
+| Dynamic | `/address/[address]/anchor-account` | 490 kB | 890 kB |
+| Dynamic | `/address/[address]/attestation` | 490 kB | 890 kB |
 | Dynamic | `/address/[address]/attributes` | 490 kB | 890 kB |
 | Dynamic | `/address/[address]/blockhashes` | 490 kB | 890 kB |
 | Dynamic | `/address/[address]/compression` | 490 kB | 900 kB |

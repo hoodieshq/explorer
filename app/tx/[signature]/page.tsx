@@ -1,9 +1,9 @@
 import '../../styles/styles.css';
 
-import { IMAGE_SIZE } from '@entities/open-graph';
 import { isReceiptEnabled, RECEIPT_BASE_URL, RECEIPT_OG_IMAGE_VERSION } from '@features/receipt/env';
 import { buildCompositeSignature, getClusterParam } from '@features/receipt/server';
 import { getTxOgImageUrl, getTxOpenGraph } from '@features/transaction-share/server';
+import { IMAGE_SIZE } from '@shared/lib/og/image-size';
 import { Cluster, CLUSTERS, clusterSlug, type ServerCluster } from '@utils/cluster';
 import { SignatureProps } from '@utils/index';
 import { Metadata } from 'next/types';
