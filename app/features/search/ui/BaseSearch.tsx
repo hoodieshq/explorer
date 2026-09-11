@@ -97,14 +97,27 @@ export function BaseSearch({
                 <Command shouldFilter={false} label="Search">
                     <PopoverPrimitive.Anchor asChild>
                         <div
+                            // Named, so a surface that reframes the search (the navbar's morphing field)
+                            // can restyle this box without selecting it by position: cmdk's root also
+                            // holds a label and, once open, the results panel, and a positional selector
+                            // hit those instead — the panel wore the field's height and padding, and the
+                            // field kept the frame that was meant to be stripped.
+                            data-search-frame
                             className={cn(
-                                'flex items-center gap-3',
-                                'rounded-md border border-heavy-metal-950 bg-heavy-metal-800 [border-style:solid]',
-                                'h-[38px] px-4 shadow-md',
+                                'flex items-center gap-2.5',
+                                'rounded-md border border-outer-space-700 bg-heavy-metal-800 [border-style:solid]',
+                                // Both ends give their mark a square of space rather than a gutter meant
+                                // for text: the 24px key has 6 above and below it in a 36px content box,
+                                // so it gets 6 to its right, and the 15px lens has 10, so it gets 10 to
+                                // its left and the same again before the text begins.
+                                'h-[38px] pl-2.5 pr-1.5 shadow-md',
                                 'transition-shadow focus-within:shadow-[0_0_0.4rem_#00d18c]',
                             )}
                         >
-                            <Search className="shrink-0 text-heavy-metal-100" size={15} />
+                            {/* A pixel right of where its box puts it: the glyph is drawn with its handle
+                                to the bottom-right, so centred by that box it reads as sitting close to
+                                the rule. Vertically it stays on the line's middle. */}
+                            <Search className="shrink-0 translate-x-px text-heavy-metal-100" size={15} />
                             <Command.Input
                                 ref={inputRef}
                                 autoFocus
@@ -112,7 +125,14 @@ export function BaseSearch({
                                     'w-full min-w-0 flex-1',
                                     'border-none bg-transparent outline-none',
                                     'text-sm text-white placeholder:text-heavy-metal-100',
-                                    'overflow-hidden text-ellipsis',
+                                    // Text that runs past the end fades out rather than stopping dead or
+                                    // ending in an ellipsis: the last 24px of the field are masked to
+                                    // transparent, so a long address reads as continuing past the edge.
+                                    // Nothing shows when the text is short — the mask only affects what is
+                                    // painted under it.
+                                    'overflow-hidden',
+                                    '[-webkit-mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)]',
+                                    '[mask-image:linear-gradient(to_right,#000_calc(100%-24px),transparent)]',
                                 )}
                                 placeholder="Search for tokens, validators, programs, and accounts"
                                 value={value}
@@ -128,8 +148,10 @@ export function BaseSearch({
                                     aria-label="Clear search"
                                     className={cn(
                                         'flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center',
-                                        'appearance-none rounded border border-solid border-heavy-metal-950 bg-heavy-metal-700 p-0',
-                                        'text-heavy-metal-100 transition-colors hover:text-heavy-metal-400',
+                                        // No plate of its own: a mark on the field's own ground, like the
+                                        // lens at the other end, rather than a button drawn inside a field.
+                                        'appearance-none border-0 bg-transparent p-0',
+                                        'text-heavy-metal-100 transition-colors hover:text-white',
                                     )}
                                     type="button"
                                     onMouseDown={e => {
@@ -140,10 +162,16 @@ export function BaseSearch({
                                     <X size={16} />
                                 </button>
                             ) : (
+                                // The hint is for a keyboard, and the web has no signal for one; the primary
+                                // pointer is the proxy — `fine` (mouse, trackpad) all but implies a keyboard,
+                                // `coarse` (touch) is where the hint would only be noise. `/` works either way.
                                 <kbd
                                     className={cn(
-                                        'flex h-6 w-6 shrink-0 items-center justify-center',
-                                        'rounded border border-solid border-heavy-metal-950 bg-heavy-metal-700',
+                                        'hidden h-6 w-6 shrink-0 items-center justify-center [@media(pointer:fine)]:flex',
+                                        // `bg-transparent` and not merely the absence of a fill: a
+                                        // global element rule gives every `kbd` a dark ground, and only a
+                                        // utility outranks it. Transparent lets the field's own show.
+                                        'rounded border border-solid border-outer-space-600 bg-transparent',
                                         'text-sm text-heavy-metal-100',
                                     )}
                                 >
@@ -159,17 +187,28 @@ export function BaseSearch({
                         asChild
                         align="start"
                         sideOffset={4}
+                        // Named like the box above, so a surface that reframes the search can line the
+                        // panel up with a border of its own.
+                        data-search-panel
                         className={cn(
                             'z-50 rounded-md shadow-2xl [border-style:solid]',
                             'w-[var(--radix-popover-trigger-width)]',
-                            'border border-heavy-metal-950 bg-heavy-metal-800',
+                            // The popover's own ground and rule — this panel and the cluster dropdown are
+                            // the same kind of surface laid over the page, and they were two shades apart.
+                            'border border-outer-space-800 bg-outer-space-900',
                         )}
                         onInteractOutside={e => {
                             if (e.target instanceof Element && e.target === inputRef.current) e.preventDefault();
                         }}
                         onOpenAutoFocus={e => e.preventDefault()}
                     >
-                        <div>
+                        {/* Nothing inside the panel takes the focus off the field: the field folds and the
+                            panel closes on blur, so a press on a gap between rows, on a group heading or on
+                            the panel's own padding used to dismiss the results the reader was aiming at.
+                            The panel closes on a press outside it or on a result being chosen, and on
+                            nothing else. `mousedown` is where the focus moves, so that is where this sits;
+                            `click` still reaches the rows and the filter pills. */}
+                        <div onMouseDown={event => event.preventDefault()}>
                             {/* Allow a single pill: hide-all rule can leave visibleTabs at length 1. */}
                             {hasResults && visibleTabs.length >= 1 && (
                                 <SearchFilters
@@ -182,20 +221,17 @@ export function BaseSearch({
 
                             <CommandList
                                 className={cn(
-                                    'max-h-[420px] overflow-y-auto overflow-x-hidden pb-2',
+                                    // Padding so a row's rounded plate sits inside the panel rather than
+                                    // running edge to edge, as the cluster dropdown's rows do — and the
+                                    // same on all three sides, or the last row looks dropped.
+                                    'max-h-[420px] overflow-y-auto overflow-x-hidden p-1.5 pt-0',
                                     '[&::-webkit-scrollbar]:w-2',
-                                    '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-heavy-metal-600 [&::-webkit-scrollbar-thumb]:hover:bg-heavy-metal-500',
-                                    '[&::-webkit-scrollbar-track]:rounded-md [&::-webkit-scrollbar-track]:bg-heavy-metal-800',
+                                    '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-outer-space-600 [&::-webkit-scrollbar-thumb]:hover:bg-outer-space-500',
+                                    '[&::-webkit-scrollbar-track]:rounded-md [&::-webkit-scrollbar-track]:bg-outer-space-900',
                                 )}
-                                onMouseDown={e => {
-                                    if (e.target === e.currentTarget) {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                    }
-                                }}
                             >
                                 {isLoading && (
-                                    <Command.Loading className="px-4 py-3 pb-1 text-sm text-heavy-metal-400">
+                                    <Command.Loading className="px-4 py-3 pb-1 text-sm text-outer-space-300">
                                         Searching...
                                     </Command.Loading>
                                 )}
@@ -209,9 +245,17 @@ export function BaseSearch({
                                                       <CommandItem
                                                           key={`${group.label}-${option.pathname}`}
                                                           className={cn(
-                                                              'cursor-pointer px-3 py-2',
+                                                              // The cluster dropdown's row, to the pixel:
+                                                              // same rounding, same fill under the cursor
+                                                              // and under the selection.
+                                                              'cursor-pointer rounded-md px-3 py-2',
+                                                              // The border is reserved on every row and
+                                                              // only coloured on the chosen one, so the
+                                                              // list does not shift as the choice moves.
+                                                              'border border-solid border-transparent',
                                                               'transition-colors',
-                                                              'hover:bg-heavy-metal-700 aria-[selected=true]:bg-heavy-metal-600',
+                                                              'hover:bg-outer-space-800 aria-[selected=true]:bg-outer-space-800',
+                                                              'aria-[selected=true]:border-white/10',
                                                           )}
                                                           keywords={option.value}
                                                           value={option.pathname}
@@ -227,7 +271,7 @@ export function BaseSearch({
                                     : null}
 
                                 {!isLoading && (
-                                    <CommandEmpty className="w-full px-4 py-3 pb-1 text-sm text-heavy-metal-400">
+                                    <CommandEmpty className="w-full px-4 py-3 pb-1 text-sm text-outer-space-300">
                                         No results found
                                     </CommandEmpty>
                                 )}
