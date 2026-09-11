@@ -14,9 +14,9 @@
 | Dynamic | `/address/[address]/concurrent-merkle-tree` | 490 kB | 890 kB |
 | Dynamic | `/address/[address]/domains` | 490 kB | 890 kB |
 | Dynamic | `/address/[address]/entries` | 490 kB | 890 kB |
-| Dynamic | `/address/[address]/feature-gate` | 480 kB | 880 kB |
+| Dynamic | `/address/[address]/feature-gate` | 480 kB | 900 kB |
 | Dynamic | `/address/[address]/idl` | 610 kB | 0.98 MB |
-| Dynamic | `/address/[address]/instructions` | 490 kB | 890 kB |
+| Dynamic | `/address/[address]/instructions` | 490 kB | 910 kB |
 | Dynamic | `/address/[address]/metadata` | 490 kB | 890 kB |
 | Dynamic | `/address/[address]/nftoken-collection-nfts` | 490 kB | 890 kB |
 | Dynamic | `/address/[address]/program-multisig` | 490 kB | 890 kB |
@@ -24,7 +24,7 @@
 | Dynamic | `/address/[address]/security` | 490 kB | 890 kB |
 | Dynamic | `/address/[address]/slot-hashes` | 490 kB | 890 kB |
 | Dynamic | `/address/[address]/stake-history` | 490 kB | 890 kB |
-| Dynamic | `/address/[address]/subscriptions` | 480 kB | 880 kB |
+| Dynamic | `/address/[address]/subscriptions` | 480 kB | 900 kB |
 | Dynamic | `/address/[address]/token-extensions` | 490 kB | 890 kB |
 | Dynamic | `/address/[address]/tokens` | 500 kB | 900 kB |
 | Dynamic | `/address/[address]/transfers` | 500 kB | 900 kB |
