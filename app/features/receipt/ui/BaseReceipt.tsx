@@ -47,7 +47,7 @@ export function BaseReceipt({
 
     return (
         <div className="w-full max-w-lg">
-            <div className="bg-outer-space-900">
+            <div className="border border-b-0 border-solid border-outer-space-800 bg-outer-space-900">
                 <Header date={date} />
                 <TransactionSection network={network} confirmationStatus={confirmationStatus} />
                 <TransfersTable transfers={transferRows} fee={fee} logoURI={logoURI} tokenHref={tokenHref} />
@@ -264,7 +264,7 @@ export function NoReceipt({
             <BlurredCircle />
 
             <div className="w-full max-w-lg">
-                <div className="min-h-96 bg-outer-space-900">
+                <div className="min-h-96 border border-b-0 border-solid border-outer-space-800 bg-outer-space-900">
                     <Header date={date} title="No Receipt" />
                     <div className="p-6 text-sm text-gray-400">
                         <p className="m-0">
@@ -286,7 +286,21 @@ export function NoReceipt({
 }
 
 export function Zigzag() {
-    return <div className="zigzag bg-outer-space-900 pb-6" />;
+    // border-x, not a full border: the mask that cuts the teeth clips these two rules along with the
+    // fill, so the card outline runs down into the tear and stops where the paper does.
+    //
+    // The teeth themselves cannot take a border — they are a mask, not a box — so their outline is a
+    // drop-shadow of the masked silhouette, offset straight down so it shows along every
+    // downward-facing edge. 1.4px because these edges sit at 45 degrees, where a vertical offset reads
+    // as offset x cos(45) ~= 1px of line.
+    //
+    // The filter has to sit on the parent: masking is applied after filtering, so a filter on the
+    // masked element itself would have its own shadow clipped away by that mask.
+    return (
+        <div className="[filter:drop-shadow(0_1.4px_0_theme(colors.outer-space.800))]">
+            <div className="zigzag border-x border-solid border-outer-space-800 bg-outer-space-900 pb-6" />
+        </div>
+    );
 }
 
 export function BlurredCircle() {
