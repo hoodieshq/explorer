@@ -1,9 +1,20 @@
 'use client';
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 
 import { cn } from '@/app/components/shared/utils';
 
+import {
+    CTA_FIELD_SCOPES,
+    CTA_FIELD_TUNING_CONTROLS,
+    type CtaFieldScope,
+    getCtaFieldTuningRevision,
+    loadCtaFieldTuning,
+    resetCtaFieldScope,
+    resolveCtaField,
+    setCtaFieldValue,
+    subscribeCtaFieldTuning,
+} from '../lib/ctaFieldTuning';
 import { MCP_DOCS_VERSIONS, type McpDocsVersion } from '../lib/useMcpDocsVersion';
 
 /** Distance from the top-right corner where the plate first parks itself. */
@@ -33,6 +44,7 @@ export function VersionSwitcher({
     // and we only switch to explicit coordinates once the real size is known.
     const [pos, setPos] = useState<Point | undefined>(undefined);
     const [dragging, setDragging] = useState(false);
+    const [fieldOpen, setFieldOpen] = useState(false);
     // Pointer offset inside the plate at grab time, so it doesn't jump under the cursor.
     const grab = useRef<Point>({ x: 0, y: 0 });
 
@@ -100,7 +112,7 @@ export function VersionSwitcher({
         <div
             ref={plateRef}
             className={cn(
-                'absolute z-50 flex items-center gap-2 rounded-xl border border-solid border-white/10',
+                'absolute z-50 flex flex-col gap-2 rounded-xl border border-solid border-white/10',
                 'bg-[#121716]/90 px-2 py-1.5 shadow-[0px_10px_30px_-10px_#000000cc] backdrop-blur',
             )}
             style={
@@ -110,37 +122,157 @@ export function VersionSwitcher({
                       { right: MARGIN, top: MARGIN }
             }
         >
-            <button
-                type="button"
-                aria-label="Drag to move"
-                onPointerDown={onPointerDown}
-                onPointerMove={onPointerMove}
-                onPointerUp={stopDrag}
-                onPointerCancel={stopDrag}
-                className={cn(
-                    'flex shrink-0 touch-none select-none items-center border-0 bg-transparent px-1 py-1 text-neutral-500 hover:text-neutral-300',
-                    dragging ? 'cursor-grabbing' : 'cursor-grab',
-                )}
-            >
-                <GripDots />
-            </button>
-            <span className="text-xs uppercase tracking-wide text-neutral-500">Version</span>
-            <div className="flex overflow-hidden rounded-lg border border-solid border-white/10">
-                {MCP_DOCS_VERSIONS.map(version => (
+            <div className="flex items-center gap-2">
+                <button
+                    type="button"
+                    aria-label="Drag to move"
+                    onPointerDown={onPointerDown}
+                    onPointerMove={onPointerMove}
+                    onPointerUp={stopDrag}
+                    onPointerCancel={stopDrag}
+                    className={cn(
+                        'flex shrink-0 touch-none select-none items-center border-0 bg-transparent px-1 py-1 text-neutral-500 hover:text-neutral-300',
+                        dragging ? 'cursor-grabbing' : 'cursor-grab',
+                    )}
+                >
+                    <GripDots />
+                </button>
+                <span className="text-xs uppercase tracking-wide text-neutral-500">Version</span>
+                <div className="flex overflow-hidden rounded-lg border border-solid border-white/10">
+                    {MCP_DOCS_VERSIONS.map(version => (
+                        <button
+                            key={version}
+                            type="button"
+                            onClick={() => onChange(version)}
+                            className={cn(
+                                'cursor-pointer whitespace-nowrap border-0 px-3 py-1 text-xs font-medium uppercase transition-colors',
+                                value === version
+                                    ? 'bg-heavy-metal-800 text-white'
+                                    : 'bg-transparent text-neutral-500 hover:text-neutral-200',
+                            )}
+                        >
+                            {VERSION_LABELS[version] ?? version}
+                        </button>
+                    ))}
+                </div>
+                {/* The sliders retune v3's dot field; v3.2 keeps its own untouched copy of it. */}
+                {value === 'v3' && (
                     <button
-                        key={version}
                         type="button"
-                        onClick={() => onChange(version)}
+                        onClick={() => setFieldOpen(open => !open)}
+                        aria-expanded={fieldOpen}
                         className={cn(
-                            'cursor-pointer whitespace-nowrap border-0 px-3 py-1 text-xs font-medium uppercase transition-colors',
-                            value === version
+                            'cursor-pointer rounded-lg border border-solid border-white/10 px-2 py-1',
+                            'text-xs font-medium uppercase transition-colors',
+                            fieldOpen
                                 ? 'bg-heavy-metal-800 text-white'
                                 : 'bg-transparent text-neutral-500 hover:text-neutral-200',
                         )}
                     >
-                        {VERSION_LABELS[version] ?? version}
+                        Field
+                    </button>
+                )}
+            </div>
+            {value === 'v3' && fieldOpen && <FieldTuningPanel />}
+        </div>
+    );
+}
+
+/**
+ * Sliders over the live dot-field values. Every drag writes straight into the shared tuning object
+ * the field's rAF loop reads each frame, so the change lands on the next frame in whichever bands
+ * follow the selected scope. The values survive a reload (localStorage) — a tuning session is
+ * rarely one sitting — and Copy hands back a block ready to paste over that scope's defaults in
+ * `ctaFieldTuning` once a set of numbers is settled on.
+ */
+function FieldTuningPanel() {
+    // Subscribed to the revision counter, not the values: the tuning objects are mutated in place
+    // so the loop can keep reading the same references.
+    useSyncExternalStore(subscribeCtaFieldTuning, getCtaFieldTuningRevision, () => 0);
+    const [scope, setScope] = useState<CtaFieldScope>('base');
+    const [copied, setCopied] = useState(false);
+
+    useEffect(loadCtaFieldTuning, []);
+
+    const values = resolveCtaField(scope);
+
+    const copy = useCallback(() => {
+        const body = CTA_FIELD_TUNING_CONTROLS.map(control => `    ${control.key}: ${values[control.key]},`);
+        navigator.clipboard.writeText(`{\n${body.join('\n')}\n}`).then(
+            () => {
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1200);
+            },
+            () => setCopied(false),
+        );
+    }, [values]);
+
+    return (
+        <div className="flex w-[286px] flex-col gap-1.5 border-0 border-t border-solid border-white/10 pt-2">
+            {/* Which set of values the sliders write to. The page drives both bands on a phone and
+                the closing band everywhere; a scope overrides it for one band on desktop. */}
+            <div className="flex overflow-hidden rounded-lg border border-solid border-white/10">
+                {CTA_FIELD_SCOPES.map(entry => (
+                    <button
+                        key={entry.key}
+                        type="button"
+                        onClick={() => setScope(entry.key)}
+                        className={cn(
+                            'flex-1 cursor-pointer whitespace-nowrap border-0 px-2 py-1 text-[10px]',
+                            'font-medium uppercase tracking-wide transition-colors',
+                            scope === entry.key
+                                ? 'bg-heavy-metal-800 text-white'
+                                : 'bg-transparent text-neutral-500 hover:text-neutral-200',
+                        )}
+                    >
+                        {entry.label}
                     </button>
                 ))}
+            </div>
+            <p className="m-0 text-[10px] leading-[13px] text-neutral-500">
+                {CTA_FIELD_SCOPES.find(entry => entry.key === scope)?.caption}
+            </p>
+            {CTA_FIELD_TUNING_CONTROLS.map(control => (
+                <label key={control.key} title={control.hint} className="flex items-center gap-2">
+                    <span className="w-[62px] shrink-0 text-[10px] uppercase tracking-wide text-neutral-500">
+                        {control.label}
+                    </span>
+                    <input
+                        type="range"
+                        min={control.min}
+                        max={control.max}
+                        step={control.step}
+                        value={values[control.key]}
+                        onChange={event => setCtaFieldValue(scope, control.key, event.target.valueAsNumber)}
+                        className="h-1 min-w-0 flex-1 cursor-pointer"
+                        style={{ accentColor: '#1DD79B' }}
+                    />
+                    <span className="w-[74px] shrink-0 text-right font-mono text-[10px] tabular-nums text-neutral-300">
+                        {control.format(values[control.key])}
+                    </span>
+                </label>
+            ))}
+            <div className="flex items-center justify-end gap-1.5 pt-0.5">
+                <button
+                    type="button"
+                    onClick={() => resetCtaFieldScope(scope)}
+                    className={cn(
+                        'cursor-pointer rounded-md border border-solid border-white/10 bg-transparent px-2 py-0.5',
+                        'text-[10px] uppercase tracking-wide text-neutral-500 hover:text-neutral-200',
+                    )}
+                >
+                    Reset
+                </button>
+                <button
+                    type="button"
+                    onClick={copy}
+                    className={cn(
+                        'cursor-pointer rounded-md border border-solid border-white/10 bg-transparent px-2 py-0.5',
+                        'text-[10px] uppercase tracking-wide text-neutral-500 hover:text-neutral-200',
+                    )}
+                >
+                    {copied ? 'Copied' : 'Copy'}
+                </button>
             </div>
         </div>
     );

@@ -20,6 +20,7 @@ import { cn } from '@/app/components/shared/utils';
 import { useReducedMotion } from '@/app/shared/lib/use-reduced-motion';
 import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
 
+import { type CtaFieldScope, resolveCtaField } from '../lib/ctaFieldTuning';
 import { answerCost, MCP_EXAMPLES, type McpExample, revealAnswer, type RevealedBlock } from '../lib/example-answers';
 import { AGENT_INSTRUCTIONS_SNIPPET, AGENT_INSTRUCTIONS_TARGETS, SETUP_CLIENTS } from '../lib/setup-clients';
 import { INSPECT_ENTITY_RESPONSE } from '../lib/tool-reference';
@@ -261,6 +262,7 @@ function Hero({ origin, status }: { origin: string; status: EndpointStatus }) {
                             href="#setup"
                             fieldRef={fieldRef}
                             className="text-[15px]"
+                            desktopScope="heroDesktop"
                             mobileDotScale={2 / 3}
                             mobilePullScale={0.5}
                             zoneTop={1 / 3}
@@ -424,19 +426,7 @@ const CTA_GRAVITY_REF = 200;
  * hero's pace everywhere: phone, tablet, desktop, top band and closing band alike.
  */
 const CTA_FIELD_REF_RADIUS = 712;
-/**
- * How steeply the pull falls off with distance. 2 is textbook inverse-square: nearly all of the
- * pull sits in the last few dozen px, so the field barely reaches and the dots then whip into the
- * button. Lower spreads the same pull out — further reach, calmer arrival.
- */
-const CTA_GRAVITY_FALLOFF = 2;
-/**
- * Softening length (px): the pull is measured against sqrt(d² + s²) rather than d, so it levels
- * off instead of blowing up as a dot closes in. A larger value is a wider, gentler landing.
- */
-const CTA_GRAVITY_SOFTENING = 24;
 const CTA_MAX_DOTS = 2600;
-const CTA_SPAWNS_PER_SECOND = 1100;
 /**
  * Phones run half the field: same look, half the dots to integrate and draw. Matched as a
  * media-query list rather than a width alone, so a phone turned to landscape — wider than the
@@ -455,12 +445,6 @@ const CTA_MOBILE_DOT_DIVISOR = 2;
  * phone has the most dots on screen at once: 2.5× the resting field instead of the full 5×.
  */
 const CTA_MOBILE_PULL_DOT_DIVISOR = 2;
-/**
- * While the pointer is over the button both the dot cap and the spawn rate are multiplied
- * by this, so a hover pulls in a swarm five times denser than the resting field. Off-hover
- * the cap drops back and the excess fades away over the next second.
- */
-const CTA_HOVER_DOT_MULTIPLIER = 5;
 /**
  * Off-hover the field eases back to a uniform resting spread on this exponential time constant
  * (seconds): the count decays smoothly toward the cap and never dips below it, and the clump the
@@ -525,12 +509,10 @@ const CTA_GRAVITY_RAMP_SECONDS = 0.2;
  */
 const CTA_STOP_DRAG = 10;
 /**
- * Ambient fluctuation: a slow per-dot drift running as its own OU process, decoupled from
- * the stop drag so its speed can be tuned without touching how directed motion halts.
- * CTA_FLUX_DRAG sets the timescale (lower = slower), CTA_FLUX_ACCEL the amplitude.
+ * Timescale of the ambient fluctuation (lower = slower). Its amplitude is `drift` in
+ * `ctaFieldTuning`, which also carries the reasoning for keeping the two apart.
  */
 const CTA_FLUX_DRAG = 2;
-const CTA_FLUX_ACCEL = 368;
 /** Swell per unit of dot area, and the ceiling however many arrive at once. */
 const CTA_HIT_GAIN = 0.0022 / 3;
 const CTA_HIT_CEILING = 0.16 / 3;
@@ -553,15 +535,16 @@ type CtaDot = {
 function GravityCta({
     children,
     className,
+    desktopScope = 'base',
     dotScale = 1,
-    falloff = CTA_GRAVITY_FALLOFF,
+    falloff,
     fieldRef,
     flightSpeedScale = 1,
     href,
     mobileDotScale = 1,
     mobilePullScale = 1,
     pageBottomGap,
-    softening = CTA_GRAVITY_SOFTENING,
+    softening,
     wrapClassName,
     zoneBottom = 0.625,
     zoneTop = 0.375,
@@ -569,14 +552,20 @@ function GravityCta({
     children: React.ReactNode;
     className?: string;
     /**
+     * Which set of field values this band follows on a desktop-class screen — a band that reads
+     * differently there than the page does takes its own scope. Phones always run the page values.
+     */
+    desktopScope?: CtaFieldScope;
+    /**
      * How dense this band's field is, as a factor on the standard budget — every device, not just
      * phones, and the swarm under gravity scales with it. A band with less room, or one that reads
      * as busy next to its copy, takes a thinner field.
      */
     dotScale?: number;
     /**
-     * Falloff exponent of the pull for this band (default CTA_GRAVITY_FALLOFF). Below 2 the field
-     * reaches further and eases off near the button, which reads as a calmer, less busy band.
+     * Falloff exponent of the pull for this band. Below 2 the field reaches further and eases off
+     * near the button, which reads as a calmer, less busy band. Left out, the band follows the
+     * page-wide `falloff` in `ctaFieldTuning` — as both bands now do.
      */
     falloff?: number;
     /**
@@ -606,10 +595,10 @@ function GravityCta({
      */
     mobilePullScale?: number;
     /**
-     * Softening length for this band (default CTA_GRAVITY_SOFTENING) — how wide the flat spot
-     * around the button is, i.e. how early the arriving dots stop accelerating. Quoted in px for a
-     * field of CTA_FIELD_REF_RADIUS and scaled with the band from there, so it keeps its share of
-     * whatever field it lands in.
+     * Softening length for this band — how wide the flat spot around the button is, i.e. how early
+     * the arriving dots stop accelerating. Quoted in px for a field of CTA_FIELD_REF_RADIUS and
+     * scaled with the band from there, so it keeps its share of whatever field it lands in. Left
+     * out, the band follows the page-wide `softening` in `ctaFieldTuning`.
      */
     softening?: number;
     /**
@@ -650,15 +639,8 @@ function GravityCta({
         const ctx = canvas?.getContext('2d');
         if (!wrap || !canvas || !link || !ctx) return;
 
-        const inverseSquare = falloff === 2;
-        // Attraction for this band, as the acceleration at CTA_GRAVITY_REF: quoting it at a fixed
-        // distance means changing the falloff re-shapes the curve without re-scaling the whole
-        // field. Both factors are re-derived by `measure` below, since the pull follows the size of
-        // the band; until the first measurement it stands at the reference field.
-        let refAccel = 0;
-        // Softening in the same field-relative terms — also set by `measure`, which runs before
-        // the loop starts, so neither is read at the placeholder it is declared with.
-        let fieldSoftening = softening;
+        // This band's size against the reference field, set by `measure` below.
+        let fieldScale = 1;
 
         let width = 0;
         let height = 0;
@@ -691,21 +673,13 @@ function GravityCta({
             }
             // How big this band's field is, in the terms CTA_GRAVITY is quoted in: the RMS
             // distance from a spawn point — uniform over the whole band — to the button. For a
-            // uniform span, E[(p - c)²] = span²/3 - span·c + c², summed over both axes.
+            // uniform span, E[(p - c)²] = span²/3 - span·c + c², summed over both axes. The pull
+            // itself is derived from this once a frame in the loop, since the sliders can move.
             const spread = (span: number, at: number) => (span * span) / 3 - span * at + at * at;
             const radius = Math.sqrt(spread(width, centerX) + spread(height, centerY));
             // The band measured against the desktop hero. Before the first layout the box is
             // empty; the reference keeps the pull sane until the observer measures it for real.
-            const fieldScale = radius > 0 ? radius / CTA_FIELD_REF_RADIUS : 1;
-            // Flight time goes as sqrt(R^(falloff + 1) / pull), so raising the pull by the same
-            // power of the band's radius holds that time fixed: a phone's third of a field takes
-            // the same second to cross as the desktop hero, and the arrival speed scales with the
-            // band instead — the same share of the screen per second, which is what reads as the
-            // same animation. The softening length keeps its share of the field for the same
-            // reason, so the landing stays as soft relative to the flight.
-            const gravity = CTA_GRAVITY * flightSpeedScale * flightSpeedScale * Math.pow(fieldScale, falloff + 1);
-            refAccel = gravity / (CTA_GRAVITY_REF * CTA_GRAVITY_REF);
-            fieldSoftening = softening * fieldScale;
+            fieldScale = radius > 0 ? radius / CTA_FIELD_REF_RADIUS : 1;
             const dpr = Math.min(globalThis.devicePixelRatio || 1, 2);
             canvas.style.width = `${width}px`;
             canvas.style.height = `${height}px`;
@@ -808,25 +782,27 @@ function GravityCta({
         // window): a field left above the new cap is eased down by the idle drain below, and one
         // below it is refilled by the steady spawn — neither needs handling here.
         const mobile = window.matchMedia(CTA_MOBILE_QUERY);
-        let restingDots = CTA_MAX_DOTS;
-        let pullDots = CTA_MAX_DOTS * CTA_HOVER_DOT_MULTIPLIER;
-        const updateDotCaps = () => {
-            restingDots = Math.round(
-                mobile.matches
-                    ? (CTA_MAX_DOTS / CTA_MOBILE_DOT_DIVISOR) * mobileDotScale * dotScale
-                    : CTA_MAX_DOTS * dotScale,
-            );
-            pullDots = mobile.matches
-                ? Math.round((restingDots * CTA_HOVER_DOT_MULTIPLIER * mobilePullScale) / CTA_MOBILE_PULL_DOT_DIVISOR)
-                : restingDots * CTA_HOVER_DOT_MULTIPLIER;
+        let phone = mobile.matches;
+        const onMobileChange = () => {
+            phone = mobile.matches;
         };
-        updateDotCaps();
-        mobile.addEventListener('change', updateDotCaps);
+        mobile.addEventListener('change', onMobileChange);
+        const restingCap = (density: number) =>
+            Math.round(
+                phone
+                    ? (CTA_MAX_DOTS / CTA_MOBILE_DOT_DIVISOR) * mobileDotScale * dotScale * density
+                    : CTA_MAX_DOTS * dotScale * density,
+            );
+        const pullCap = (resting: number, swarm: number) =>
+            phone
+                ? Math.round((resting * swarm * mobilePullScale) / CTA_MOBILE_PULL_DOT_DIVISOR)
+                : Math.round(resting * swarm);
 
         // Initial seed just fills up to the cap using the same area spawn, at rest so it starts
         // out as the resting field rather than one holding sparks no gravity ever pulled in.
         const seed = () => {
-            while (dots.length < restingDots) spawn(true);
+            const cap = restingCap(resolveCtaField(phone ? 'base' : desktopScope).density);
+            while (dots.length < cap) spawn(true);
         };
         seed();
 
@@ -846,6 +822,27 @@ function GravityCta({
         const step = (now: number) => {
             const dt = last === 0 ? 1 / 60 : Math.min((now - last) / 1000, 1 / 20);
             last = now;
+
+            // The live knobs, read once a frame (never per dot) so a slider drag retunes the field
+            // on the spot: this band's scope over the page values, with its own props over both.
+            const tuning = resolveCtaField(phone ? 'base' : desktopScope);
+            const bandFalloff = falloff ?? tuning.falloff;
+            const inverseSquare = bandFalloff === 2;
+            // Flight time goes as sqrt(R^(falloff + 1) / pull), so raising the pull by the same
+            // power of the band's radius holds that time fixed: a phone's third of a field takes
+            // the same second to cross as the desktop hero, and the arrival speed scales with the
+            // band instead — the same share of the screen per second, which is what reads as the
+            // same animation. Arrival speed goes as the square root of the pull, which is why the
+            // speed factors enter squared. The softening length keeps its share of the field for
+            // the same reason, so the landing stays as soft relative to the flight.
+            const speed = flightSpeedScale * tuning.flight;
+            const gravity = CTA_GRAVITY * speed * speed * Math.pow(fieldScale, bandFalloff + 1);
+            // Quoted as the acceleration at CTA_GRAVITY_REF, so changing the falloff re-shapes the
+            // curve instead of re-scaling the whole field.
+            const refAccel = gravity / (CTA_GRAVITY_REF * CTA_GRAVITY_REF);
+            const fieldSoftening = (softening ?? tuning.softening) * fieldScale;
+            const restingDots = restingCap(tuning.density);
+            const pullDots = pullCap(restingDots, tuning.pullDensity);
 
             // Gravity is on while the pointer is over the button (desktop hover) or the button
             // has scrolled into the middle quarter of the viewport (touch, no hover). It ramps up
@@ -871,11 +868,11 @@ function GravityCta({
             }
             wasActive = active;
 
-            // Active lifts both the cap and the spawn rate together, so the field densifies to
-            // five times its resting size while gravity is pulling.
+            // Active lifts both the cap and the spawn rate together, so the field densifies by the
+            // same multiple while gravity is pulling.
             const hovering = active;
             const maxDots = hovering ? pullDots : restingDots;
-            const spawnRate = hovering ? CTA_SPAWNS_PER_SECOND * CTA_HOVER_DOT_MULTIPLIER : CTA_SPAWNS_PER_SECOND;
+            const spawnRate = hovering ? tuning.spawn * tuning.pullDensity : tuning.spawn;
 
             spawnDebt += dt * spawnRate;
             while (spawnDebt >= 1) {
@@ -923,12 +920,22 @@ function GravityCta({
                 const softened = Math.sqrt(dx * dx + dy * dy + fieldSoftening * fieldSoftening);
                 const drop = inverseSquare
                     ? (CTA_GRAVITY_REF * CTA_GRAVITY_REF) / (softened * softened)
-                    : Math.pow(CTA_GRAVITY_REF / softened, falloff);
+                    : Math.pow(CTA_GRAVITY_REF / softened, bandFalloff);
                 const pull = refAccel * drop * gravityScale * dt;
                 // Direction only — the magnitude came from the softened distance above.
                 const distance = Math.max(Math.hypot(dx, dy), 0.001);
                 dot.vx += (dx / distance) * pull;
                 dot.vy += (dy / distance) * pull;
+
+                // Terminal speed. Free fall into the button keeps accelerating to the last frame,
+                // and past `maxSpeed` the step between frames is wide enough that the dot stops
+                // reading as one dot in flight. Clamped on the directed velocity only — the ambient
+                // sway below is orders of magnitude slower and never reaches it.
+                const dotSpeed = Math.hypot(dot.vx, dot.vy);
+                if (dotSpeed > tuning.maxSpeed) {
+                    dot.vx *= tuning.maxSpeed / dotSpeed;
+                    dot.vy *= tuning.maxSpeed / dotSpeed;
+                }
 
                 // Off-hover, damp the velocity toward zero so the directed rush comes to a
                 // stop instead of drifting on in a straight line; while hovering, gravity is
@@ -942,8 +949,8 @@ function GravityCta({
                 // Ambient fluctuation: its own slow OU drift, independent of the stop drag,
                 // so it stays as a gentle sway once directed motion has stopped.
                 const fluxDamp = Math.exp(-dt * CTA_FLUX_DRAG);
-                dot.wx = dot.wx * fluxDamp + (Math.random() - 0.5) * CTA_FLUX_ACCEL * dt;
-                dot.wy = dot.wy * fluxDamp + (Math.random() - 0.5) * CTA_FLUX_ACCEL * dt;
+                dot.wx = dot.wx * fluxDamp + (Math.random() - 0.5) * tuning.drift * dt;
+                dot.wy = dot.wy * fluxDamp + (Math.random() - 0.5) * tuning.drift * dt;
 
                 dot.x += (dot.vx + dot.wx) * dt;
                 dot.y += (dot.vy + dot.wy) * dt;
@@ -1119,7 +1126,7 @@ function GravityCta({
             cancelAnimationFrame(frame);
             observer.disconnect();
             visibility.disconnect();
-            mobile.removeEventListener('change', updateDotCaps);
+            mobile.removeEventListener('change', onMobileChange);
             window.removeEventListener('scroll', updateZone);
             window.removeEventListener('resize', updateZone);
             link.style.transform = '';
@@ -1136,6 +1143,7 @@ function GravityCta({
         falloff,
         softening,
         dotScale,
+        desktopScope,
     ]);
 
     // One canvas element, positioned either as a full-band overlay (field mode) or a
@@ -2018,6 +2026,7 @@ function ClosingCta() {
                         href="#setup"
                         fieldRef={fieldRef}
                         className="text-[15.5px]"
+                        desktopScope="closingDesktop"
                         dotScale={1 / 1.5}
                         mobileDotScale={0.5}
                         mobilePullScale={0.5}
