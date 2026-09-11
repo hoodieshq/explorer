@@ -182,9 +182,9 @@ export type CtaFieldScope = (typeof CTA_FIELD_SCOPES)[number]['key'];
  * Tuned on the page, on a 1440 desktop: a sparse field easing in at no more than 6px a frame, which
  * makes the band read as a slow drift across the screen rather than a fall into the button. The
  * flight takes 2.7s from the middle of the band and 5.3s from the far corner, against 1.0s and 2.5s
- * on the page values. The field holds 520 dots at rest against the page's 2600 and spawns at a
- * little over half the rate, but gathers 3.5× of that while the pull is on, so the band is nearly
- * bare at rest and fills up under the pointer.
+ * on the page values. The field holds 1560 dots at rest against the page's 2600, spawning at half
+ * the rate, and gathers only half again as many under the pull — the density barely moves, so what
+ * the pointer changes here is the flight, not the crowd.
  */
 export const CTA_FIELD_SCOPE_DEFAULTS: Record<Exclude<CtaFieldScope, 'base'>, CtaFieldTuning> = {
     /**
@@ -204,14 +204,14 @@ export const CTA_FIELD_SCOPE_DEFAULTS: Record<Exclude<CtaFieldScope, 'base'>, Ct
         spawn: 1100,
     },
     heroDesktop: {
-        density: 0.2,
+        density: 0.6,
         drift: 320,
         falloff: 1.3,
         flight: 0.3,
         maxSpeed: 360,
-        pullDensity: 3.5,
+        pullDensity: 1.5,
         softening: 24,
-        spawn: 600,
+        spawn: 550,
     },
 };
 
