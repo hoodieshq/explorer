@@ -348,6 +348,10 @@ export function SavedEndpointRow({
             ) : (
                 <Link
                     href={buildHref({ cluster: Cluster.Custom, customUrl: saved.url })}
+                    // The pick itself puts the page back at the top (`scrollPageToTop`, from the draft);
+                    // the router's own scrolling only brings the changed segment into view, which stops
+                    // with the bar just off the screen.
+                    scroll={false}
                     onClick={onSelect}
                     title={title}
                     aria-current={active ? 'true' : undefined}

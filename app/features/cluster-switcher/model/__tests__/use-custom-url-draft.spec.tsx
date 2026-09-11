@@ -53,10 +53,17 @@ function setupDraft() {
             clusterMock.customUrl = url;
             view.rerender();
         },
+
+        /** Choosing an endpoint outright — Enter, Go, an entry picked from the list. */
+        select(next: string) {
+            act(() => view.result.current.select(next));
+        },
+
         /** Let the commit debounce fire. */
         settle() {
             act(() => vi.advanceTimersByTime(500));
         },
+
         store,
         /** One edit of the field. */
         type(next: string) {
@@ -140,6 +147,35 @@ describe('useCustomUrlDraft', () => {
         draft.settle();
 
         expect(nav.replace).toHaveBeenCalledWith('/?cluster=custom&sort=fee', { scroll: false });
+    });
+
+    // Typing must not move the page; choosing an endpoint outright is the reader starting on the content
+    // again, and starting means the top of it — the same thing the menu's cluster rows do.
+    it('should go back to the top when an endpoint is chosen outright', () => {
+        const scrolled = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+        const draft = setupDraft();
+
+        draft.select('http://picked-node:8899');
+
+        expect(scrolled).toHaveBeenCalledWith({ top: 0 });
+        // The router is told not to: it scrolls the changed segment into view rather than the document,
+        // which comes to rest with the navbar just off the screen.
+        expect(nav.replace).toHaveBeenCalledWith(
+            `/?cluster=custom&customUrl=${encodeURIComponent('http://picked-node:8899')}&sort=fee`,
+            { scroll: false },
+        );
+        scrolled.mockRestore();
+    });
+
+    it('should leave the page where it stands while the endpoint is being typed', () => {
+        const scrolled = vi.spyOn(window, 'scrollTo').mockImplementation(() => undefined);
+        const draft = setupDraft();
+
+        draft.type('http://typed-node:8899');
+        draft.settle();
+
+        expect(scrolled).not.toHaveBeenCalled();
+        scrolled.mockRestore();
     });
 
     // A saved cluster, an in-app link or a declined prompt changes the endpoint without anyone touching

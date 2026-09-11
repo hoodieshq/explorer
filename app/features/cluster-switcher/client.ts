@@ -13,3 +13,4 @@ export { type SavedCluster, useSavedClusters } from './model/use-saved-clusters'
 // the `useSearchParams` hooks — re-exported from `index.ts` they put those into the server graph and the
 // whole app 500s on `You're importing a module that depends on useSearchParams`.
 export { MAX_CLUSTER_NAME_LENGTH, normalizeClusterName, suggestClusterName } from './lib/cluster-name';
+export { scrollPageToTop } from './lib/scroll-to-top';

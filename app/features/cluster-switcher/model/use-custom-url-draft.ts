@@ -7,6 +7,7 @@ import { useSetAtom } from 'jotai';
 import { useRouter } from 'next/navigation';
 import { useRef, useState } from 'react';
 
+import { scrollPageToTop } from '../lib/scroll-to-top';
 import { useClusterHref } from './use-cluster-href';
 
 // How long typing pauses before the endpoint reaches the URL. Long enough that a typed-out URL commits
@@ -78,12 +79,19 @@ export function useCustomUrlDraft(): CustomUrlDraft {
     // `replace` rather than `push`: editing one field should not leave a history entry per typing pause,
     // each holding a half-typed URL.
     //
-    // `scroll: false` on every one of them: the App Router scrolls to the top of the document on a
-    // navigation, and this one fires *while the reader is typing* — a pause in the middle of a URL threw
-    // the page back to the top under their hands. The endpoint changing is not a new page arriving; it is
-    // the same page, told where to get its data. The repo does this wherever a control writes to the query
-    // string (`HistoryFilterBar`, `NavigationTabs`).
-    const commitNow = (url: string) => {
+    // Whether the page goes back to the top is the difference between the two ways in. A commit that
+    // fires *while the reader is typing* must not move anything — a pause in the middle of a URL threw
+    // the page back to the top under their hands, and that endpoint change is not a new page arriving,
+    // it is the same page told where to get its data. Choosing an endpoint outright — Enter, Go, an entry
+    // picked from the list — is the reader starting on the content again, and starting means the top of
+    // it, the same as picking a cluster from the menu.
+    //
+    // `scrollPageToTop` rather than the router's own `scroll` option, and the option held off for good:
+    // the App Router does not scroll to the top of the *document*, it scrolls the changed segment into
+    // view — and the bar this menu hangs from sits outside that segment, so the page came to rest with
+    // the menu just above the edge of the screen. Ours goes to the top and nothing argues with it.
+    const commitNow = (url: string, scroll: boolean) => {
+        if (scroll) scrollPageToTop();
         // An empty field clears the endpoint instead of leaving the previous one in the URL.
         if (url.trim() === '') {
             setSentUrl(undefined);
@@ -102,7 +110,7 @@ export function useCustomUrlDraft(): CustomUrlDraft {
 
     const commit = useDebounceCallback((url: string) => {
         if (url !== intended.current) return;
-        commitNow(url);
+        commitNow(url, false);
     }, COMMIT_DELAY_MS);
 
     return {
@@ -114,7 +122,7 @@ export function useCustomUrlDraft(): CustomUrlDraft {
         select: (next: string) => {
             intended.current = next;
             setDraftUrl(next);
-            commitNow(next);
+            commitNow(next, true);
         },
         value: draftUrl,
     };

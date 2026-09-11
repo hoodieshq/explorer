@@ -7,6 +7,7 @@ import { CustomUrlConsentDialog } from '@features/cluster-switcher';
 import {
     type CustomUrlDraft,
     type SavedCluster,
+    scrollPageToTop,
     useClusterHref,
     useCustomUrlDraft,
     useSavedClusters,
@@ -244,6 +245,9 @@ export function ClusterDropdownBody() {
                         <li key={clusterSlug(net)}>
                             <Link
                                 href={buildHref({ cluster: net })}
+                                scroll={false}
+                                // The page's data is replaced wholesale, and it is read from the top.
+                                onClick={scrollPageToTop}
                                 aria-current={active ? 'true' : undefined}
                                 className={cn(ROW_CLASSES, active ? ACTIVE_ROW_CLASSES : INACTIVE_ROW_CLASSES)}
                             >
@@ -342,7 +346,11 @@ function CustomEndpointRow({
             <li>
                 <Link
                     href={buildHref({ cluster: Cluster.Custom })}
-                    onClick={onOpen}
+                    scroll={false}
+                    onClick={() => {
+                        scrollPageToTop();
+                        onOpen?.();
+                    }}
                     className={cn(ROW_CLASSES, INACTIVE_ROW_CLASSES)}
                 >
                     Custom RPC URL

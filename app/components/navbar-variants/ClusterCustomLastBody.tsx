@@ -4,6 +4,7 @@ import { cn } from '@components/shared/utils';
 import { DEFAULT_RPC_ENDPOINT, useCluster } from '@entities/cluster';
 import {
     type SavedCluster,
+    scrollPageToTop,
     useClusterHref,
     useCustomUrlDraft,
     useSavedClusters,
@@ -152,7 +153,17 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
                         {/* Choosing a cluster is the whole errand, so the menu shuts behind it. */}
                         <Link
                             href={buildHref({ cluster: net })}
-                            onClick={() => onDismiss?.()}
+                            // The router's own scrolling is off everywhere in this menu: it brings the
+                            // changed segment into view rather than the top of the document, which left
+                            // the bar just above the edge of the screen.
+                            scroll={false}
+                            // The data on the page is about to be replaced wholesale, and it is read from
+                            // the top. Done by hand because the router's `scroll` does nothing for a
+                            // navigation that only rewrites the query string — see `scrollPageToTop`.
+                            onClick={() => {
+                                scrollPageToTop();
+                                onDismiss?.();
+                            }}
                             aria-current={net === cluster ? 'true' : undefined}
                             className={cn(ROW_CLASSES, net === cluster ? ACTIVE_ROW_CLASSES : INACTIVE_ROW_CLASSES)}
                         >

@@ -2,7 +2,12 @@
 
 import { cn } from '@components/shared/utils';
 import { useCluster } from '@entities/cluster';
-import { useClusterHref, useCustomUrlDraft, useSavedClusters } from '@features/cluster-switcher/client';
+import {
+    scrollPageToTop,
+    useClusterHref,
+    useCustomUrlDraft,
+    useSavedClusters,
+} from '@features/cluster-switcher/client';
 import { Cluster, clusterName, CLUSTERS, clusterSlug } from '@utils/cluster';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -91,6 +96,9 @@ export function ClusterFieldFirstBody() {
                         <li key={clusterSlug(net)}>
                             <Link
                                 href={buildHref({ cluster: net })}
+                                scroll={false}
+                                // The page's data is replaced wholesale, and it is read from the top.
+                                onClick={scrollPageToTop}
                                 aria-current={active ? 'true' : undefined}
                                 className={cn(ROW_CLASSES, active ? ACTIVE_ROW_CLASSES : INACTIVE_ROW_CLASSES)}
                             >
@@ -110,7 +118,11 @@ export function ClusterFieldFirstBody() {
                 <li className={cn(CUSTOM_PLATE_CLASSES, customIsLive ? ACTIVE_ROW_CLASSES : INACTIVE_ROW_CLASSES)}>
                     <Link
                         href={buildHref({ cluster: Cluster.Custom })}
-                        onClick={() => setCustomChosen(true)}
+                        scroll={false}
+                        onClick={() => {
+                            scrollPageToTop();
+                            setCustomChosen(true);
+                        }}
                         aria-current={customIsLive ? 'true' : undefined}
                         className="text-sm font-medium text-white no-underline"
                         data-testid="custom-cluster-row"
