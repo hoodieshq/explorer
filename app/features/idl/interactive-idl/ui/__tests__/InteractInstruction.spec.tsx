@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax, no-restricted-globals -- test assertions use RegExp for pattern matching */
+import type { InstructionDisplay } from '@codama/dynamic-instructions';
 import { IdlType } from '@coral-xyz/anchor/dist/cjs/idl';
 import type { InstructionData } from '@entities/idl';
 import { Accordion } from '@radix-ui/react-accordion';
@@ -32,10 +33,18 @@ vi.mock('../../model/use-pdas', () => ({
     usePdas: () => ({}),
 }));
 
+const displayMock = vi.hoisted(() => ({ current: undefined as InstructionDisplay | undefined }));
+
+// Mock the display hook: it reads the cluster rpc and the program atom, and has its own spec.
+vi.mock('../../model/display/use-instruction-display', () => ({
+    useInstructionDisplay: () => displayMock.current,
+}));
+
 describe('InteractInstruction', () => {
     beforeEach(() => {
         walletMock.canSign = false;
         walletMock.publicKey = null;
+        displayMock.current = undefined;
     });
 
     // Helper to render InteractInstruction with accordion expanded
@@ -313,6 +322,38 @@ describe('InteractInstruction', () => {
             fireEvent.click(screen.getByRole('button', { name: /execute/i }));
             await waitFor(() => expect(onExecute).toHaveBeenCalled());
             expect(onExecute).toHaveBeenCalledWith(instruction, expect.anything(), { simulate: false });
+        });
+    });
+
+    describe('instruction display', () => {
+        it('should not render the display note while no display resolves', () => {
+            renderInteractInstruction(createInstruction({ name: 'transferSol' }));
+
+            expect(screen.queryByTestId('instruction-display-summary')).not.toBeInTheDocument();
+        });
+
+        it('should render the interpolated sentence when a display resolves', () => {
+            displayMock.current = {
+                fields: [{ label: 'Amount', value: '1.5 SOL' }],
+                intent: 'Transfer SOL',
+                interpolatedIntent: 'Transfer 1.5 SOL',
+            };
+
+            renderInteractInstruction(createInstruction({ name: 'transferSol' }));
+
+            expect(screen.getByTestId('instruction-display-intent')).toHaveTextContent('Transfer 1.5 SOL');
+        });
+
+        it('should fall back to the intent when the sentence is withheld', () => {
+            displayMock.current = {
+                fields: [{ label: 'Amount', value: '1500000 (raw)' }],
+                intent: 'Mint tokens',
+                interpolatedIntent: null,
+            };
+
+            renderInteractInstruction(createInstruction({ name: 'mintTo' }));
+
+            expect(screen.getByTestId('instruction-display-intent')).toHaveTextContent('Mint tokens');
         });
     });
 });
