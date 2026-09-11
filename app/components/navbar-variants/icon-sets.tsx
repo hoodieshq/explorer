@@ -68,6 +68,20 @@ export const iconSetAtom = (() => {
 })();
 
 /**
+ * One stroke weight for every glyph in the caption, given per glyph's own box: the connection glyphs are
+ * drawn on a 16-unit-tall viewBox and the rest on 24, so the *same* apparent weight needs a different
+ * number in each — the pair below is 0.0875 of the glyph's height either way, and the two have to be
+ * changed together. The provenance mark sat at 1.5–2 on its 24-unit box — about two thirds of the
+ * connection glyph's line — and beside it read as the lighter, lesser of the two facts, which they are
+ * not.
+ *
+ * Feather's own icons are drawn on 24 and take the weight as a prop, so they are held to the same number
+ * rather than to their 2.0 default.
+ */
+const STROKE_ON_16 = 1.4;
+const STROKE_ON_24 = 2.1;
+
+/**
  * Set 2 — the ladder of bars a router or a phone prints for signal strength. Read as strength rather than
  * as a yes/no, which is the point of offering it: it says the same thing in the vocabulary of hardware.
  */
@@ -80,7 +94,7 @@ function Bars({ className, size, state }: ConnectionGlyphProps & { state: 'off' 
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
-            strokeWidth={2.5}
+            strokeWidth={STROKE_ON_24}
             strokeLinecap="round"
             className={className}
             aria-hidden
@@ -119,8 +133,12 @@ function Wire({
     // Where the wire runs. Set 4 drops it to the machines' feet and pulls it in at both ends, so it reads
     // as a cable between two desks rather than a rule ruled through the middle of them.
     const wireY = low ? 9 : 6;
-    const wireFrom = low ? 11.5 : 10.5;
-    const wireTo = low ? 20.5 : 21.5;
+    // Two units of air taken off each end of the wire, so it reads as a run of cable between two machines
+    // rather than as a bar wedged against them. Units of the 32×16 box: at the 11px this is drawn at,
+    // that is a little over a pixel a side on screen.
+    const WIRE_TRIM = 2;
+    const wireFrom = (low ? 11.5 : 10.5) + WIRE_TRIM;
+    const wireTo = (low ? 20.5 : 21.5) - WIRE_TRIM;
     const machine = (x: number) => (
         <>
             <rect x={x} y={2.5} width={9} height={7} rx={1} />
@@ -135,7 +153,7 @@ function Wire({
             viewBox={`${-pad} 0 ${32 + pad * 2} 16`}
             fill="none"
             stroke="currentColor"
-            strokeWidth={1.6}
+            strokeWidth={STROKE_ON_16}
             strokeLinecap="round"
             strokeLinejoin="round"
             className={className}
@@ -204,11 +222,13 @@ function Stamp({ className, size, vouched }: ConnectionGlyphProps & { vouched: b
             className={className}
             aria-hidden
         >
-            <path d={STAMP_EDGE} strokeWidth={1.5} />
+            {/* Edge and mark at one weight, the connection glyph's: they were 1.5 and 2, which put three
+                different lines in a caption two glyphs wide. */}
+            <path d={STAMP_EDGE} strokeWidth={STROKE_ON_24} />
             {vouched ? (
-                <polyline points="8.4 12.2 11 14.7 15.8 9.3" strokeWidth={2} />
+                <polyline points="8.4 12.2 11 14.7 15.8 9.3" strokeWidth={STROKE_ON_24} />
             ) : (
-                <line x1={7.5} y1={16.5} x2={16.5} y2={7.5} strokeWidth={2} />
+                <line x1={7.5} y1={16.5} x2={16.5} y2={7.5} strokeWidth={STROKE_ON_24} />
             )}
         </svg>
     );
@@ -222,17 +242,23 @@ interface IconSet {
 }
 
 const SHIELDS: IconSet['provenance'] = {
-    known: ({ className, size }) => <Shield size={size} className={className} aria-hidden />,
-    unknown: ({ className, size }) => <ShieldOff size={size} className={className} aria-hidden />,
+    known: ({ className, size }) => <Shield size={size} strokeWidth={STROKE_ON_24} className={className} aria-hidden />,
+    unknown: ({ className, size }) => (
+        <ShieldOff size={size} strokeWidth={STROKE_ON_24} className={className} aria-hidden />
+    ),
 };
 
 /** Set 1 — feather's own, the fan of waves and its struck-through twin. */
 const SET_1: Record<ClusterStatus, GlyphComponent> = {
-    [ClusterStatus.Connected]: ({ className, size }) => <Wifi size={size} className={className} aria-hidden />,
-    [ClusterStatus.Connecting]: ({ className, size }) => (
-        <Loader size={size} className={cn('animate-spin', className)} aria-hidden />
+    [ClusterStatus.Connected]: ({ className, size }) => (
+        <Wifi size={size} strokeWidth={STROKE_ON_24} className={className} aria-hidden />
     ),
-    [ClusterStatus.Failure]: ({ className, size }) => <WifiOff size={size} className={className} aria-hidden />,
+    [ClusterStatus.Connecting]: ({ className, size }) => (
+        <Loader size={size} strokeWidth={STROKE_ON_24} className={cn('animate-spin', className)} aria-hidden />
+    ),
+    [ClusterStatus.Failure]: ({ className, size }) => (
+        <WifiOff size={size} strokeWidth={STROKE_ON_24} className={className} aria-hidden />
+    ),
 };
 
 const SET_2: Record<ClusterStatus, GlyphComponent> = {

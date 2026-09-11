@@ -11,6 +11,8 @@ import { NavbarV14 } from './NavbarV14';
 import { NavbarV15 } from './NavbarV15';
 import { NavbarV16 } from './NavbarV16';
 import { NavbarV17 } from './NavbarV17';
+import { NavbarV18 } from './NavbarV18';
+import { NavbarV19 } from './NavbarV19';
 import type { INavbarProps } from './types';
 
 /**
@@ -38,6 +40,8 @@ export const NAV_VARIANTS = [
     { Component: NavbarV10, id: 'v3.1', name: 'Search button on mobile', shortlist: false },
     { Component: NavbarV16, id: 'v3.2', name: 'Same, with the aurora', shortlist: true },
     { Component: NavbarV17, id: 'v3.3', name: 'Status spelled out', shortlist: true },
+    { Component: NavbarV18, id: 'v3.4', name: 'Endpoint field always up', shortlist: true },
+    { Component: NavbarV19, id: 'v3.5', name: 'Custom last, endpoints second', shortlist: true },
     { Component: NavbarV12, id: 'v4.1', name: 'Borderless', shortlist: false },
     { Component: NavbarV13, id: 'v4.2', name: 'Borderless alt', shortlist: false },
     { Component: NavbarV14, id: 'v5.1', name: 'Search and network joined', shortlist: true },

@@ -1,30 +1,26 @@
 'use client';
 
-import { Input } from '@components/shared/ui/input';
 import { Switch } from '@components/shared/ui/switch';
 import { cn } from '@components/shared/utils';
+import { customUrlEnabledAtom, type RpcEndpoint, useCluster } from '@entities/cluster';
+import { CustomUrlConsentDialog } from '@features/cluster-switcher';
 import {
-    approveRpcOriginAtom,
-    customUrlEnabledAtom,
-    parseRpcEndpoint,
-    type RpcEndpoint,
-    useCluster,
-} from '@entities/cluster';
-import { CustomUrlConsentDialog, SaveClusterForm } from '@features/cluster-switcher';
-import {
+    type CustomUrlDraft,
     type SavedCluster,
     useClusterHref,
     useCustomUrlDraft,
     useSavedClusters,
 } from '@features/cluster-switcher/client';
-import { Cluster, clusterName, CLUSTERS, clusterSlug, ClusterStatus, DEFAULT_CLUSTER } from '@utils/cluster';
-import { useAtom, useAtomValue, useSetAtom } from 'jotai';
+import { Cluster, clusterName, CLUSTERS, clusterSlug, ClusterStatus } from '@utils/cluster';
+import { useAtom, useAtomValue } from 'jotai';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
-import { Trash2 } from 'react-feather';
 
+import { ACTIVE_ROW_CLASSES, CAPTION_CLASSES, INACTIVE_ROW_CLASSES, ROW_CLASSES } from './cluster-row-classes';
 import { ICON_SETS, iconSetAtom } from './icon-sets';
+import { saveFlowVariantAtom } from './save-flow-variants';
+import { SavedEndpointRow } from './SavedEndpointRow';
+import { CustomEndpointFields } from './SaveEndpointFlow';
 
 /**
  * The switcher laid out as a menu, for the navbar dropdown. The slide-over panel's body
@@ -35,9 +31,10 @@ import { ICON_SETS, iconSetAtom } from './icon-sets';
  * the foot. No headings — a caption per group, in the bar's own caption style.
  *
  * Only the layout is new. The URL each row navigates to (`useClusterHref`), the field's debounced commit
- * and consent (`useCustomUrlDraft`), the save flow (`SaveClusterForm`) and the developer-bypass
- * confirmation (`CustomUrlConsentDialog`) are the feature's own, so this surface and the panel cannot
- * disagree about what a click does.
+ * and consent (`useCustomUrlDraft`), the naming rules the save flow holds a name to (`cluster-name`), the
+ * store it writes to and the developer-bypass confirmation (`CustomUrlConsentDialog`) are the feature's
+ * own, so this surface and the panel cannot disagree about what a click does. The save flow's *layout* is
+ * this surface's, in three variants the review switches between — see `SaveEndpointFlow`.
  *
  * Colour: the status hue appears on those facts and nowhere else. Rows are neutral, and the current one
  * is told by its fill rather than by a coloured border, so a menu of five looks like a
@@ -91,11 +88,18 @@ export function ClusterProvenance({ known, labelClass, size }: { known: boolean;
 }
 
 export function ClusterFacts({
+    colour: colourOverride,
     labelClass,
     size,
     status,
     titleCase,
 }: {
+    /**
+     * Overrides the status palette. For a surface that spends colour differently — v3.5 states a healthy
+     * connection in the menu's own grey, keeping the palette's hues for the two states that are worth
+     * interrupting a reader over.
+     */
+    colour?: string;
     /** How a chip drops the word on the narrow rows, where the marks say enough. */
     labelClass?: string;
     size: number;
@@ -103,8 +107,16 @@ export function ClusterFacts({
     /** Spelled out as a sentence would, for a caption that is not set in the small caps the others use. */
     titleCase?: boolean;
 }) {
-    const { colour, label, title } = STATUS_STYLE[status];
+    const { colour: paletteColour, label, title } = STATUS_STYLE[status];
+    const colour = colourOverride ?? paletteColour;
     const Glyph = ICON_SETS[useAtomValue(iconSetAtom)].connection[status];
+    // Connecting is the one state that moves, and the word is half of what says it: the glyph pulsed
+    // while "CONNECTING" sat still beside it, which read as two things rather than one fact in progress.
+    //
+    // On the word only. The icon sets pulse their own connecting glyph, so a second `animate-pulse` on the
+    // span around it multiplied the two — the glyph bottomed out at a quarter opacity while the word sat
+    // at a half, and the icon looked twice as faint as the text it belongs to.
+    const pulse = status === ClusterStatus.Connecting && 'animate-pulse';
     return (
         <>
             {/* The colour rides a wrapper rather than the glyph, so every set can draw in `currentColor`
@@ -112,7 +124,7 @@ export function ClusterFacts({
             <span className="flex shrink-0 items-center" style={{ color: colour }}>
                 <Glyph size={size} />
             </span>
-            <span className={cn('truncate', labelClass)} style={{ color: colour }}>
+            <span className={cn('truncate', pulse, labelClass)} style={{ color: colour }}>
                 {titleCase ? title : label}
             </span>
         </>
@@ -130,26 +142,63 @@ export function endpointName(endpoint: RpcEndpoint) {
     return shown.endsWith('/') ? shown.slice(0, -1) : shown;
 }
 
-// The menu links' own grey, hover white: a row here and a link in the bar are the same kind of thing, and
-// two greys a shade apart read as a mistake rather than as a distinction.
-const ROW_CLASSES =
-    'flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-solid px-3 py-2 text-sm text-outer-space-300 no-underline transition-colors hover:border-white/10 hover:bg-outer-space-800 hover:text-white';
-// The rule is what tells the chosen row from a row merely under the cursor — both carry the same fill, and
-// on this ground a fill alone is a faint difference. Every row reserves the border, transparent when it is
-// not the chosen one, so nothing shifts by a pixel as the choice moves.
-// Translucent white, not a palette step: `outer-space-700` is the next step up and reads as a hard rule,
-// while the palette is written in `oklch(...)` strings that Tailwind cannot thin with a `/50`, so the
-// modifier silently drops the class and the border falls back to `currentColor`.
-const ACTIVE_ROW_CLASSES = 'border-white/10 bg-outer-space-800 text-white';
-const INACTIVE_ROW_CLASSES = 'border-transparent';
-/** The card tables' column headers, as the transaction page sets them, so the panel's headings read as the
- *  page's do — 12px caps in `outer-space-300`, not the legacy `<table>` head's 10px dashkit type. */
-const CAPTION_CLASSES = 'text-xs font-normal uppercase text-outer-space-300';
-
 export function ClusterDropdownBody() {
     const { status, cluster, endpoint } = useCluster();
     const { savedClusters } = useSavedClusters();
     const buildHref = useClusterHref();
+    /**
+     * The endpoint field's state, held here rather than in the field: under the address-bar flow the
+     * bookmark list writes into that same field, and two `useCustomUrlDraft` calls would be two drafts
+     * that disagree. Mounted whatever the chosen cluster is, which costs nothing — it holds the resolved
+     * endpoint, empty off the Custom cluster, and commits only when one of these controls calls it.
+     */
+    const draft = useCustomUrlDraft();
+    const saveFlow = useAtomValue(saveFlowVariantAtom);
+    /**
+     * The endpoint the Save button in the field has just kept, if any: its row opens with the name field
+     * up, which is where naming happens now. Held here because the two are siblings — the field saves, the
+     * row asks — and cleared as soon as that row is done with it.
+     */
+    /** The one entry open for editing: opening another closes it, so the menu never holds two
+     *  half-filled forms with no way to tell which one a save would take. */
+    const [editingUrl, setEditingUrl] = useState<string | undefined>(undefined);
+
+    /**
+     * Whether the Custom row is unfolded into its plate — the caption, the field and the save offer.
+     *
+     * Being on the Custom cluster is not enough on its own, because a saved endpoint *is* a custom one:
+     * picking one used to unfold the plate over the very list it was picked from, so a choice made in the
+     * list was answered by a form opening somewhere else. So the plate is up only when the endpoint in
+     * play is not one of the saved ones — a hand-typed URL, where the field is the only thing that can
+     * show it — or when the reader asked for it by clicking the Custom row.
+     *
+     * `customOpen` also latches on the first edit and on a save: without that, typing (or saving) a URL
+     * that matches a saved entry would fold the plate away mid-sentence.
+     */
+    const activeIsSaved = cluster === Cluster.Custom && savedClusters.some(saved => saved.url === endpoint?.href);
+    const [customOpen, setCustomOpen] = useState(false);
+    const showCustomPlate = cluster === Cluster.Custom && (customOpen || !activeIsSaved);
+
+    // Under the address-bar flow a row puts its endpoint back in the field, which then commits it, so the
+    // field stays the one place an endpoint is read. Under the others a row is a link straight to it, as
+    // it has been. Either way, picking one is a choice about the list and leaves the plate folded.
+    const onPick =
+        saveFlow === 'omnibox'
+            ? (url: string) => {
+                  setCustomOpen(false);
+                  draft.select(url);
+              }
+            : undefined;
+
+    /** The field's own draft, which latches the plate open as soon as it is typed into. */
+    const fieldDraft: CustomUrlDraft = {
+        onChange: next => {
+            setCustomOpen(true);
+            draft.onChange(next);
+        },
+        select: draft.select,
+        value: draft.value,
+    };
     // The same fact the chip states, in the same words and the same colour: a caption that agreed with the
     // trigger only some of the time would be worse than one that said nothing.
     const known = endpoint === undefined;
@@ -176,7 +225,9 @@ export function ClusterDropdownBody() {
             {/* Room to breathe on both sides of it: the panel's own 6px plus 8 above and 8 below, which
                 at 12px caps is what keeps the heading from sitting on the first row. */}
             <div className="flex items-center px-3 pb-2 pt-2">
-                <span className={CAPTION_CLASSES}>Network</span>
+                {/* "Cluster", the word the panel has always used ("Choose a Cluster") and the word the
+                    trigger says — one thing should not be called two things across two surfaces. */}
+                <span className={CAPTION_CLASSES}>Cluster</span>
             </div>
 
             <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
@@ -196,7 +247,13 @@ export function ClusterDropdownBody() {
                     );
                 })}
                 <CustomEndpointRow
-                    active={cluster === Cluster.Custom}
+                    active={showCustomPlate}
+                    draft={fieldDraft}
+                    onOpen={() => setCustomOpen(true)}
+                    onSaved={url => {
+                        setCustomOpen(true);
+                        setEditingUrl(url);
+                    }}
                     savedClusters={savedClusters}
                     activeFacts={activeFacts}
                 />
@@ -204,14 +261,28 @@ export function ClusterDropdownBody() {
 
             {savedClusters.length > 0 && (
                 <>
-                    <div className={cn(CAPTION_CLASSES, 'px-3 pb-2 pt-3.5')}>Saved endpoints</div>
+                    {/* The search panel's group heading spacing, to the pixel (`SearchGroupHeading`):
+                        twice the air above as below, because the heading belongs to the group under it and
+                        the wider gap is what separates it from the group that ended above. */}
+                    <div className={cn(CAPTION_CLASSES, 'px-3 pb-2 pt-6')}>Saved endpoints</div>
                     <ul className="m-0 flex list-none flex-col gap-0.5 p-0" data-testid="saved-clusters-section">
                         {savedClusters.map(saved => (
                             <SavedEndpointRow
-                                key={saved.name}
+                                // The URL, not the name: a name may be blank and may repeat, so it is no
+                                // key — two unnamed entries would collide on it.
+                                key={saved.url}
                                 saved={saved}
                                 savedClusters={savedClusters}
-                                active={cluster === Cluster.Custom && endpoint?.href === saved.url}
+                                cluster={cluster}
+                                activeUrl={endpoint?.href}
+                                editing={editingUrl === saved.url}
+                                onEditOpen={() => setEditingUrl(saved.url)}
+                                onEditClose={() => setEditingUrl(undefined)}
+                                onPick={onPick}
+                                // While the plate is up it is the thing in use, and the row it came from
+                                // stands plain: two rows wearing the fill for one endpoint says there are
+                                // two of it.
+                                active={!showCustomPlate && endpoint?.href === saved.url}
                                 activeFacts={activeFacts}
                             />
                         ))}
@@ -219,7 +290,10 @@ export function ClusterDropdownBody() {
                 </>
             )}
 
-            <div className="mx-3 my-2 h-px bg-outer-space-800" role="presentation" />
+            {/* Full-bleed: this rule divides the switcher from the setting under it, and a rule that
+                stops short of the edges reads as belonging to a row rather than as separating two parts of
+                the menu. `-mx-1.5` is the popover's own padding, cancelled. */}
+            <div className="-mx-1.5 my-2 h-px bg-outer-space-800" role="presentation" />
             <DeveloperRow />
         </div>
     );
@@ -232,15 +306,22 @@ export function ClusterDropdownBody() {
  */
 function CustomEndpointRow({
     active,
-    savedClusters,
     activeFacts,
+    draft,
+    onOpen,
+    onSaved,
+    savedClusters,
 }: {
     active: boolean;
-    savedClusters: SavedCluster[];
     activeFacts: React.ReactNode;
+    draft: CustomUrlDraft;
+    /** Asked for by the reader: on the Custom cluster already, the href changes nothing, so the click has
+     *  to say so itself. */
+    onOpen: () => void;
+    onSaved: (url: string) => void;
+    savedClusters: SavedCluster[];
 }) {
     const buildHref = useClusterHref();
-    const { onChange, value } = useCustomUrlDraft();
 
     // Chosen, this stops being a row and becomes a plate: the name, its two facts under it, and the
     // address they are about, all on one ground. The address used to sit outside the fill, which made it
@@ -252,7 +333,11 @@ function CustomEndpointRow({
     if (!active) {
         return (
             <li>
-                <Link href={buildHref({ cluster: Cluster.Custom })} className={cn(ROW_CLASSES, INACTIVE_ROW_CLASSES)}>
+                <Link
+                    href={buildHref({ cluster: Cluster.Custom })}
+                    onClick={onOpen}
+                    className={cn(ROW_CLASSES, INACTIVE_ROW_CLASSES)}
+                >
                     Custom RPC URL
                 </Link>
             </li>
@@ -264,93 +349,20 @@ function CustomEndpointRow({
             <div
                 aria-current="true"
                 className={cn(
-                    'flex w-full flex-col gap-1.5 rounded-md border border-solid px-3 py-2 text-sm',
+                    // `pb-3`, not `py-2`: the plate's sides are 12px, and 8px underneath the field left
+                    // the box looking as though the last control had been pushed against its floor. The
+                    // top stays at 8px, which is what keeps this plate's first line where the row's text
+                    // was before it unfolded.
+                    'flex w-full flex-col gap-1.5 rounded-md border border-solid px-3 pb-3 pt-2 text-sm font-medium text-white',
                     ACTIVE_ROW_CLASSES,
                 )}
             >
                 <span>Custom RPC URL</span>
-                <span className="flex min-w-0 items-center gap-1">{activeFacts}</span>
-                <Input
-                    type="url"
-                    variant="dark"
-                    value={value}
-                    aria-label="Custom RPC URL"
-                    placeholder="https://"
-                    onChange={e => onChange(e.target.value)}
-                />
-                <SaveClusterForm url={value} savedClusters={savedClusters} />
+                <span className="flex min-w-0 flex-wrap items-center gap-1">{activeFacts}</span>
+                {/* The field and the offer to keep what is in it, laid out by whichever save flow the
+                    review has selected. */}
+                <CustomEndpointFields draft={draft} onSaved={onSaved} savedClusters={savedClusters} />
             </div>
-        </li>
-    );
-}
-
-/**
- * A kept endpoint: name with the host as fine print (the whole URL stays in `title`, since provider
- * endpoints carry the key and this menu gets opened during screen shares), a tick when it is the pick,
- * and a delete control that only shows on hover/focus so the list reads as choices, not as a to-do list.
- *
- * Selecting is a first-party action, so the origin is approved before the navigation lands — otherwise
- * the reader treats the user's own saved endpoint as an unvetted inbound one and prompts. Deleting the
- * entry the page is on leaves an endpoint with no home, so the page falls back to the default cluster
- * unless another entry still names the same URL. Both rules are the panel's (`SavedClusterList`).
- */
-function SavedEndpointRow({
-    active,
-    saved,
-    savedClusters,
-    activeFacts,
-}: {
-    active: boolean;
-    saved: SavedCluster;
-    savedClusters: SavedCluster[];
-    activeFacts: React.ReactNode;
-}) {
-    const { endpoint, cluster } = useCluster();
-    const buildHref = useClusterHref();
-    const approveOrigin = useSetAtom(approveRpcOriginAtom);
-    const { removeSavedCluster } = useSavedClusters();
-    const router = useRouter();
-    const savedEndpoint = parseRpcEndpoint(saved.url);
-
-    const onSelect = () => {
-        if (savedEndpoint !== undefined) approveOrigin(savedEndpoint);
-    };
-    const onDelete = () => {
-        const activeUrl = endpoint?.href;
-        const wasActive = cluster === Cluster.Custom && saved.url === activeUrl;
-        removeSavedCluster(saved.name);
-        const stillSaved = savedClusters.some(c => c.name !== saved.name && c.url === activeUrl);
-        if (wasActive && !stillSaved) router.push(buildHref({ cluster: DEFAULT_CLUSTER, customUrl: '' }));
-    };
-
-    return (
-        <li className="group/row relative" data-testid={`saved-cluster-${saved.name}`}>
-            <Link
-                href={buildHref({ cluster: Cluster.Custom, customUrl: saved.url })}
-                onClick={onSelect}
-                title={`${saved.name} — ${saved.url}`}
-                aria-current={active ? 'true' : undefined}
-                // Room on the right for the tick and the delete control, which sit over the row.
-                className={cn(ROW_CLASSES, 'pr-16', active ? ACTIVE_ROW_CLASSES : INACTIVE_ROW_CLASSES)}
-            >
-                <span className="flex min-w-0 flex-col leading-tight">
-                    <span className="truncate">{saved.name}</span>
-                    {savedEndpoint && savedEndpoint.host !== saved.name && (
-                        <span className="truncate text-xs text-outer-space-300">{savedEndpoint.host}</span>
-                    )}
-                </span>
-            </Link>
-            <span className="pointer-events-none absolute right-2 top-1/2 flex -translate-y-1/2 items-center gap-1">
-                {active && activeFacts}
-                <button
-                    type="button"
-                    aria-label={`Delete ${saved.name}`}
-                    onClick={onDelete}
-                    className="pointer-events-auto flex h-7 w-7 cursor-pointer items-center justify-center rounded border-0 bg-transparent p-0 text-neutral-500 opacity-0 transition-[opacity,color] hover:text-[#b45be1] focus-visible:opacity-100 group-hover/row:opacity-100"
-                >
-                    <Trash2 size={14} aria-hidden />
-                </button>
-            </span>
         </li>
     );
 }
@@ -364,7 +376,7 @@ function SavedEndpointRow({
 // of them, where the thing it governs is named, rather than floating against the middle of the sentence.
 // Two pixels down from there, so it sits on the label's own line rather than on the top of its box — the
 // text has leading above it that the switch does not.
-function DeveloperRow() {
+export function DeveloperRow() {
     const [enabled, setEnabled] = useAtom(customUrlEnabledAtom);
     const [confirming, setConfirming] = useState(false);
 

@@ -22,28 +22,28 @@ const STORAGE_KEY = 'explorer:savedClusters';
  */
 export function parseSavedClusters(value: unknown): SavedCluster[] {
     if (!Array.isArray(value)) return [];
-    // By name, because the name is both the React key and the handle `removeSavedClusterAtom` deletes by:
-    // a duplicate leaves one of the pair impossible to remove on its own. Last one wins, matching what
-    // `addSavedClusterAtom` does with a repeated name.
-    const byName = new Map<string, SavedCluster>();
+    // Keyed by URL, because the URL is what an entry *is*: the endpoint. The name is a label the user
+    // writes on it, may be blank, and may repeat — so it cannot be the identity. Two entries for one
+    // endpoint are the same entry saved twice; the last one wins, matching `addSavedClusterAtom`.
+    const byUrl = new Map<string, SavedCluster>();
     for (const entry of value) {
         const cluster = parseSavedCluster(entry);
-        if (cluster) byName.set(cluster.name, cluster);
+        if (cluster) byUrl.set(cluster.url, cluster);
     }
-    return [...byName.values()];
+    return [...byUrl.values()];
 }
 
 function parseSavedCluster(value: unknown): SavedCluster | undefined {
     if (typeof value !== 'object' || value === null) return undefined;
     const { name, url } = value as Partial<Record<keyof SavedCluster, unknown>>;
     if (typeof name !== 'string' || typeof url !== 'string') return undefined;
-    // Normalized to match what the save form stores, so storage cannot hold a name the form could never
-    // produce: blank and rendering as an unlabelled button, or long enough to truncate to nothing on the
-    // pill. Capped rather than dropped, since the URL is the part that carries the value.
+    // Normalized to match what a save stores: trimmed, and capped rather than dropped, since the URL is
+    // the part that carries the value. An empty name is kept — saving is one click, naming is optional and
+    // can be done later, so an unnamed entry is a state the UI produces on purpose and shows by its host.
     const clusterName = normalizeClusterName(name);
     // The same check the save form and the reader apply. Storage is the one input that reaches the
     // switcher without passing either.
-    if (clusterName === '' || !parseRpcEndpoint(url)) return undefined;
+    if (!parseRpcEndpoint(url)) return undefined;
     return { name: clusterName, url };
 }
 
@@ -69,13 +69,64 @@ export const savedClustersAtom = atomWithStorage<SavedCluster[]>(STORAGE_KEY, []
 // Write-only atoms: jotai treats any non-function first argument as the initial read value, so
 // `undefined` means these hold no readable state and exist only for their write function.
 export const addSavedClusterAtom = atom(undefined, (get, set, cluster: SavedCluster) => {
-    set(savedClustersAtom, [...excludeByName(get(savedClustersAtom), cluster.name), cluster]);
+    set(savedClustersAtom, [...excludeByUrl(get(savedClustersAtom), cluster.url), cluster]);
 });
 
-export const removeSavedClusterAtom = atom(undefined, (get, set, name: string) => {
-    set(savedClustersAtom, excludeByName(get(savedClustersAtom), name));
+export const removeSavedClusterAtom = atom(undefined, (get, set, url: string) => {
+    set(savedClustersAtom, excludeByUrl(get(savedClustersAtom), url));
 });
 
-function excludeByName(clusters: SavedCluster[], name: string): SavedCluster[] {
-    return clusters.filter(c => c.name !== name);
+/**
+ * An edit of a kept entry: its name, its address, or both. Addressed by the URL it currently holds, which
+ * is its identity — renaming by the old *name* could not name an unnamed entry, nor tell two entries apart
+ * that happen to share a label.
+ *
+ * A blank name is legal, not a rejected value: saving is one click and naming is a second thought, so an
+ * entry may sit unnamed and be known by its host. Duplicate labels are legal for the same reason.
+ *
+ * The address is not free: it has to be an endpoint the reader would accept (the check the save form and
+ * the URL reader both apply), and it cannot collide with another entry, because two entries on one URL are
+ * one entry saved twice. Both refusals throw, so the form can say which one happened.
+ *
+ * Editing does *not* re-point the app. If the entry being edited is the endpoint in use, the page stays on
+ * the endpoint it is on — the reader was correcting a bookmark, not asking to travel.
+ */
+export const updateSavedClusterAtom = atom(
+    undefined,
+    (get, set, edit: { name: string; nextUrl?: string; url: string }) => {
+        const clusters = get(savedClustersAtom);
+        if (!clusters.some(c => c.url === edit.url)) return;
+        // The same normalization storage holds names in, so an edit cannot store one a save could never
+        // produce.
+        const name = normalizeClusterName(edit.name);
+        const nextUrl = edit.nextUrl ?? edit.url;
+        if (nextUrl !== edit.url) {
+            if (!parseRpcEndpoint(nextUrl)) throw new Error('That is not a full RPC URL.');
+            if (clusters.some(c => c.url === nextUrl)) throw new Error('Another saved endpoint has that address.');
+        }
+        set(
+            savedClustersAtom,
+            clusters.map(c => (c.url === edit.url ? { name, url: nextUrl } : c)),
+        );
+    },
+);
+
+/**
+ * Puts a removed entry back, at the position it held. For an undo offered while a menu is open: a delete
+ * is one click and the list is the only record of an endpoint anyone typed, so the few seconds before the
+ * menu closes are worth being able to take it back in.
+ *
+ * Refuses to duplicate: if that URL has come back by some other route while the offer stood — saved again
+ * by hand, say — the list already has it and this does nothing. The index is clamped, because the list can
+ * have grown or shrunk since.
+ */
+export const restoreSavedClusterAtom = atom(undefined, (get, set, entry: { at: number } & SavedCluster) => {
+    const clusters = get(savedClustersAtom);
+    if (clusters.some(c => c.url === entry.url)) return;
+    const at = Math.min(Math.max(entry.at, 0), clusters.length);
+    set(savedClustersAtom, [...clusters.slice(0, at), { name: entry.name, url: entry.url }, ...clusters.slice(at)]);
+});
+
+function excludeByUrl(clusters: SavedCluster[], url: string): SavedCluster[] {
+    return clusters.filter(c => c.url !== url);
 }

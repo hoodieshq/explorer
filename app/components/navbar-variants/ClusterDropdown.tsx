@@ -3,10 +3,13 @@
 import { Popover, PopoverContent, PopoverTrigger } from '@components/shared/ui/popover';
 import { cn } from '@components/shared/utils';
 import { clusterModalOpenAtom, useCluster } from '@entities/cluster';
+import { Cluster, clusterSlug, ClusterStatus } from '@utils/cluster';
 import { useAtomValue, useSetAtom } from 'jotai';
+import { useSearchParams } from 'next/navigation';
 import React, { useEffect } from 'react';
 import { ChevronDown } from 'react-feather';
 
+import { ClusterCustomLastBody } from './ClusterCustomLastBody';
 import {
     ClusterDropdownBody,
     ClusterFacts,
@@ -15,6 +18,8 @@ import {
     RPC_STYLE,
     STATUS_STYLE,
 } from './ClusterDropdownBody';
+import { ClusterFieldFirstBody } from './ClusterFieldFirstBody';
+import { endpointProvenance } from './endpoint-provenance';
 import { ICON_SETS, iconSetAtom } from './icon-sets';
 import { FOCUS_RULE_CLASSES, focusRuleStyle, isKeyboardFocus } from './shared';
 
@@ -48,6 +53,15 @@ import { FOCUS_RULE_CLASSES, focusRuleStyle, isKeyboardFocus } from './shared';
 
 export type ClusterDropdownShape = 'compact' | 'prefix' | 'stacked' | 'stacked-lead' | 'suffix-stacked' | 'text';
 
+/**
+ * Which switcher hangs off the trigger. `menu` is the row-per-choice one every variant up to v3.3 opens;
+ * `field-first` is v3.4's, where the endpoint field is always up and the saved list feeds it
+ * (`ClusterFieldFirstBody`); `custom-last` is v3.5's, where your own endpoints come second and Custom
+ * sits at the foot and unfolds the field (`ClusterCustomLastBody`). The trigger is identical in all
+ * three — the variants differ inside the popover, not on the bar.
+ */
+export type ClusterDropdownBodyKind = 'custom-last' | 'field-first' | 'menu';
+
 const TRIGGER_CLASSES: Record<ClusterDropdownShape, string> = {
     compact:
         'flex h-[38px] cursor-pointer items-center gap-2 rounded-md border border-solid border-outer-space-700 bg-transparent px-3 text-left text-sm leading-none text-white transition-colors hover:border-outer-space-600 data-[state=open]:border-outer-space-500',
@@ -56,8 +70,11 @@ const TRIGGER_CLASSES: Record<ClusterDropdownShape, string> = {
         'flex h-[38px] cursor-pointer items-center gap-1 overflow-hidden rounded-md border border-solid border-outer-space-700 bg-transparent px-2 text-left leading-none transition-colors hover:border-outer-space-600 data-[state=open]:border-outer-space-500',
     // The one shape that takes the search field's fill rather than standing bare on the bar: it sits
     // right beside that field, and the two should read as one pair of controls.
+    // `px-1.5` below sm, `px-2` from there: on a phone the two pixels a side are worth more inside the
+    // control — they are what lets the word CONNECTED sit on its line instead of being clipped — and at
+    // any wider size there is no shortage to spend them on.
     'stacked-lead':
-        'flex h-[38px] cursor-pointer items-center gap-1 overflow-hidden rounded-md border border-solid border-outer-space-700 bg-heavy-metal-800 px-2 text-left leading-none transition-colors hover:border-outer-space-600 data-[state=open]:border-outer-space-500',
+        'flex h-[38px] cursor-pointer items-center gap-1 overflow-hidden rounded-md border border-solid border-outer-space-700 bg-heavy-metal-800 px-1.5 text-left leading-none transition-colors hover:border-outer-space-600 data-[state=open]:border-outer-space-500 sm:px-2',
     'suffix-stacked':
         'flex h-full cursor-pointer items-center gap-1 overflow-hidden border-0 border-l border-solid border-outer-space-700 bg-transparent pl-2.5 pr-2 text-left leading-none transition-colors hover:bg-outer-space-800 data-[state=open]:bg-outer-space-800',
     text: 'flex h-[38px] cursor-pointer items-center gap-2 border-0 bg-transparent px-2 text-left text-sm leading-none text-white transition-colors hover:text-heavy-metal-100',
@@ -66,14 +83,26 @@ const TRIGGER_CLASSES: Record<ClusterDropdownShape, string> = {
 export interface ClusterDropdownProps {
     /** Which edge of the trigger the popover hangs from — `end` for a right-hand control, `start` near the brand. */
     align?: 'end' | 'start';
+    /** Which switcher the popover holds. Defaults to the menu every variant before v3.4 opens. */
+    body?: ClusterDropdownBodyKind;
     className?: string;
     onOpenChange?: (open: boolean) => void;
     open?: boolean;
     shape: ClusterDropdownShape;
 }
 
-export function ClusterDropdown({ align = 'end', className, onOpenChange, open, shape }: ClusterDropdownProps) {
-    const { status, name, endpoint } = useCluster();
+export function ClusterDropdown({
+    align = 'end',
+    body = 'menu',
+    className,
+    onOpenChange,
+    open,
+    shape,
+}: ClusterDropdownProps) {
+    const { status, name, cluster, endpoint } = useCluster();
+    // Read for one reason: it says `cluster=custom` a render before the selection does, which is what
+    // keeps the chip from claiming a provenance it does not have yet.
+    const searchParams = useSearchParams();
     const setShowPanel = useSetAtom(clusterModalOpenAtom);
 
     const label = endpoint ? endpointName(endpoint) : name;
@@ -97,7 +126,46 @@ export function ClusterDropdown({ align = 'end', className, onOpenChange, open, 
     const isStacked = shape === 'stacked' || shape === 'suffix-stacked';
     const isLead = shape === 'stacked-lead';
 
-    const LeadGlyph = ICON_SETS[useAtomValue(iconSetAtom)].provenance[known ? 'known' : 'unknown'];
+    /**
+     * v3.5 reads the two facts differently, and only on its own trigger (`ClusterCustomLastBody` is the
+     * menu that goes with it):
+     *
+     * - A healthy connection is stated in the menu's grey rather than in the brand green. Colour is spent
+     *   on what wants a reader to stop — connecting, and failed — and a permanently green chip on a page
+     *   that is working spends it on the ordinary case.
+     * - Provenance is three-way, not two: the stamp for an endpoint the app knows, the struck-through stamp
+     *   for a remote one nobody has vouched for, and nothing at all for a validator on this machine —
+     *   there is no third party in that connection to vouch or fail to vouch for it.
+     *
+     *   `undefined` is a fourth answer, and the one that ends the green flash: the cluster settles a
+     *   render or two before its endpoint does, so on the way to a custom endpoint the chip passed
+     *   through "no endpoint yet", which reads as the shipping case and painted the green stamp for a
+     *   frame. The query string knows better than the selection does — it already says `cluster=custom`
+     *   — so while it does and the endpoint is missing, the chip says nothing rather than guessing.
+     */
+    const asV35 = body === 'custom-last';
+    /**
+     * On the Custom cluster the endpoint arrives a render *after* the cluster does, and for that one frame
+     * `endpoint` is undefined — which reads as "no custom endpoint at all", i.e. `known`, and painted a
+     * green stamp and a green word on the chip for a fraction of a second before the real answer landed.
+     * A fact nobody can read at that speed is not worth stating: until the endpoint is in hand there is
+     * nothing to say about its provenance, so the mark is simply absent.
+     */
+    const headedForCustom = cluster === Cluster.Custom || searchParams?.get('cluster') === clusterSlug(Cluster.Custom);
+    const provenance = headedForCustom && endpoint === undefined ? undefined : endpointProvenance(endpoint?.href);
+    const showLead = asV35 ? provenance === 'known' || provenance === 'unknown' : true;
+    const leadKind = asV35 ? (provenance === 'known' ? 'known' : 'unknown') : known ? 'known' : 'unknown';
+    const LeadGlyph = ICON_SETS[useAtomValue(iconSetAtom)].provenance[leadKind];
+    // `outer-space-300`, the grey this menu's captions are set in, spelled as the palette writes it.
+    const CONNECTED_GREY = 'oklch(70.297% 0.0218 185.24)';
+    /**
+     * The endpoint's name in the stamp's own colour, and white where there is no stamp. The mark is 11px
+     * at the head of a 134px chip — the smallest thing on the bar — while the name is what anyone
+     * actually reads; saying the same fact in the name's colour puts it where the eye already is. A local
+     * validator carries no stamp and so no tint: there is nothing being claimed about it.
+     */
+    const labelColour = !asV35 || !showLead ? undefined : RPC_STYLE[leadKind].colour;
+    const factsColour = asV35 && status === ClusterStatus.Connected ? CONNECTED_GREY : undefined;
 
     // Only for the focus rule: a keyboard focus lights it, and so does the panel being up.
     const [focused, setFocused] = React.useState(false);
@@ -129,15 +197,27 @@ export function ClusterDropdown({ align = 'end', className, onOpenChange, open, 
                                 {/* The provenance leads the name: it qualifies what the name refers to, and
                                     reading it after the fact is reading it too late. */}
                                 <span className="flex min-w-0 items-center gap-0.5 text-sm leading-[14px] text-white">
-                                    <span className="flex shrink-0 items-center" style={{ color: rpc.colour }}>
-                                        <LeadGlyph size={11} />
+                                    {showLead && (
+                                        <span
+                                            className="flex shrink-0 items-center"
+                                            style={{
+                                                color: asV35 ? RPC_STYLE[leadKind].colour : rpc.colour,
+                                            }}
+                                        >
+                                            <LeadGlyph size={11} />
+                                        </span>
+                                    )}
+                                    <span
+                                        className="min-w-0 truncate"
+                                        style={labelColour ? { color: labelColour } : undefined}
+                                    >
+                                        {label}
                                     </span>
-                                    <span className="min-w-0 truncate">{label}</span>
                                 </span>
                                 {/* Caps, like every other status line in the bar; the phrasing is what
                                     differs here, not the setting. */}
                                 <span className="flex min-w-0 items-center gap-1 text-[10px] uppercase leading-[12px] tracking-[0.08em]">
-                                    <ClusterFacts size={11} status={status} titleCase />
+                                    <ClusterFacts colour={factsColour} size={11} status={status} titleCase />
                                 </span>
                             </span>
                             {chevron}
@@ -180,16 +260,26 @@ export function ClusterDropdown({ align = 'end', className, onOpenChange, open, 
                 </button>
             </PopoverTrigger>
 
-            {/* A menu's width, not the panel's 350: rows need less room than full-width pills did. Capped
-                to the viewport less the gutters on phones. Height is the content's — no cap, no inner
-                scroll (see v3 for why). */}
+            {/* 360: a menu's width rather than the slide-over panel's, but wide enough for the widest
+                thing a row has to say — "unknown · not connected" beside a group heading, which at 320
+                had to wrap. Capped to the viewport less the gutters on phones. Height is the content's —
+                no cap, no inner scroll (see v3 for why). */}
             <PopoverContent
                 align={align}
                 sideOffset={4}
                 collisionPadding={16}
-                className="w-[320px] max-w-[calc(100vw-2rem)] p-1.5 shadow-[0_16px_48px_-16px_rgba(0,0,0,0.9)]"
+                className="w-[360px] max-w-[calc(100vw-2rem)] p-1.5 shadow-[0_16px_48px_-16px_rgba(0,0,0,0.9)]"
             >
-                <ClusterDropdownBody />
+                {body === 'field-first' ? (
+                    <ClusterFieldFirstBody />
+                ) : body === 'custom-last' ? (
+                    // Only the controlled case can be shut from inside, and every bar that opens this
+                    // menu drives it (one thing open at a time), so there is no uncontrolled case to
+                    // cover here.
+                    <ClusterCustomLastBody onDismiss={() => onOpenChange?.(false)} />
+                ) : (
+                    <ClusterDropdownBody />
+                )}
             </PopoverContent>
         </Popover>
     );

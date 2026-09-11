@@ -3,7 +3,7 @@
 import { cn } from '@components/shared/utils';
 import React, { useState } from 'react';
 
-import { ClusterDropdown } from './ClusterDropdown';
+import { ClusterDropdown, type ClusterDropdownBodyKind } from './ClusterDropdown';
 import { MorphSearch } from './MorphSearch';
 import { NavLinks, NavMenu } from './NavGroup';
 import { BAR_CLASSES, BrandLockup, GUTTER_CLASSES, useNavRoutes } from './shared';
@@ -17,10 +17,21 @@ import type { INavbarProps } from './types';
  * layout, the same aurora, the same graded rule.
  *
  * The phrase needs a wider control, and the rest insets below sm are computed from that width, so the two
- * move together: 130 at xs is what the 343px row can spare once the wordmark, the lens and the menu have
- * taken theirs, and the square parks against it rather than over it.
+ * move together: 134 at xs is what the 343px row can spare once the wordmark, the lens and the menu have
+ * taken theirs, and the square parks against it rather than over it. Four pixels over the old 130, for the
+ * word CONNECTED, which was being clipped — and they come out of the search field rather than out of the
+ * gaps: the trailing block is `ml-auto` and the field between is what flexes, so the block asking for
+ * 38 + 8 + 134 + 8 + 38 = 226 simply leaves the field two fewer. Spending the gap instead was visibly
+ * wrong: the search square and the cluster control sat closer together than anything else on the bar.
+ *
+ * `clusterBody` is v3.4's whole difference (`NavbarV18`): the bar is this one to the pixel, and only the
+ * switcher inside the popover changes. A prop rather than a copy of this file — a duplicate would drift
+ * from it on the next change to the bar, and the review would then be comparing two things at once.
  */
-export function NavbarV17({ children }: INavbarProps) {
+export function NavbarV17({
+    children,
+    clusterBody = 'menu',
+}: INavbarProps & { clusterBody?: ClusterDropdownBodyKind }) {
     const [searchOpened, setSearchOpened] = useState(false);
     const [clusterOpened, setClusterOpened] = useState(false);
     const [menuOpened, setMenuOpened] = useState(false);
@@ -78,8 +89,13 @@ export function NavbarV17({ children }: INavbarProps) {
                 <div className="contents lg:flex lg:min-w-0 lg:items-center lg:gap-2">
                     {/* Below sm the frame is its contents wide and no wider: `right` parks it beside the menu
                     (gutter 16 + menu 38 + gap 6 / 8 = 60 / 62) and `left` is the row less that and the
-                    frame's own width — lens 38 + the network's fixed 88 / 136 — so both insets stay
-                    numbers and the open/close motion still animates (an `auto` edge would snap). The
+                    frame's own width — lens 38 + the network's fixed 80 / 134 — so both insets stay
+                    numbers and the open/close motion still animates (an `auto` edge would snap).
+
+                    These are literals, so they have to be re-derived whenever the network control's width
+                    is: at xs, 16 + 38 + 8 + 134 + 8 = 204, and the left edge is that plus the lens's own
+                    38. They were 200/238 for a 130px control, which left the square four pixels nearer the
+                    network than the network is to the menu — the one visible seam in the row. The
                     widths are what the row can spare at rest: 289 − brand 112 − 2 gaps − menu 38 leaves
                     127 at 320, and 343 − 112 − 16 − 38 leaves 177 at 375.
                     From sm it is in flow: `flex-1` up to 640, then `ml-auto` — an auto margin takes what is
@@ -103,7 +119,7 @@ export function NavbarV17({ children }: INavbarProps) {
                         // The auto margin holds the field against the controls while the row is a flex line;
                         // from md the middle column is what sets its place, and the cap is the column's.
                         dockClassName="sm:ml-auto sm:max-w-[720px] lg:ml-0 lg:max-w-none"
-                        restClassName="left-[calc(100%-184px)] right-[146px] xs:left-[calc(100%-238px)] xs:right-[200px]"
+                        restClassName="left-[calc(100%-184px)] right-[146px] xs:left-[calc(100%-242px)] xs:right-[204px]"
                     >
                         {children}
                     </MorphSearch>
@@ -114,11 +130,12 @@ export function NavbarV17({ children }: INavbarProps) {
                     <div className="ml-auto flex shrink-0 items-center gap-1.5 xs:gap-2 sm:ml-0">
                         <span aria-hidden className="block h-[38px] w-[38px] sm:hidden" />
                         <ClusterDropdown
+                            body={clusterBody}
                             shape="stacked-lead"
                             align="end"
                             open={clusterOpened}
                             onOpenChange={onClusterOpenChange}
-                            className="w-[80px] xs:w-[130px] sm:w-[142px] md:w-[170px]"
+                            className="w-[80px] xs:w-[134px] sm:w-[142px] md:w-[170px]"
                         />
                     </div>
                 </div>

@@ -5,7 +5,7 @@ import { useDebounceCallback } from '@react-hook/debounce';
 import { Cluster } from '@utils/cluster';
 import { useSetAtom } from 'jotai';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import { useClusterHref } from './use-cluster-href';
 
@@ -16,6 +16,12 @@ const COMMIT_DELAY_MS = 500;
 export type CustomUrlDraft = {
     /** Call on every keystroke. */
     onChange: (next: string) => void;
+    /**
+     * Put an endpoint in the field and commit it at once, for a value the user picked rather than typed —
+     * a bookmark in the list. A click is a decision, not a pause in typing, so it does not wait out the
+     * debounce.
+     */
+    select: (next: string) => void;
     /** What the field shows. */
     value: string;
 };
@@ -25,9 +31,10 @@ export type CustomUrlDraft = {
  * the `customUrl` query param, which is what makes a custom cluster shareable. So the field and the URL
  * bar track each other in both directions:
  *
- * - Field → URL. Typing navigates, debounced. Typing an endpoint is a first-party action, so it is also
- *   the consent — the origin is approved before the navigation lands, or the reader would meet the user's
- *   own endpoint as an unvetted inbound one and prompt for what they just typed.
+ * - Field → URL. Typing navigates, debounced; a picked endpoint (`select`) navigates at once. Either way
+ *   it is a first-party action, so it is also the consent — the origin is approved before the navigation
+ *   lands, or the reader would meet the user's own endpoint as an unvetted inbound one and prompt for
+ *   what they just typed.
  * - URL → field. A saved cluster, an in-app link or a declined prompt changes the endpoint without anyone
  *   touching the field, which has to follow or it shows an endpoint the app is not on.
  *
@@ -61,9 +68,16 @@ export function useCustomUrlDraft(): CustomUrlDraft {
         if (resolvedUrl !== sentUrl) setDraftUrl(resolvedUrl);
     }
 
+    // What the field is meant to hold right now, which is not always what a pending commit was given: the
+    // debounce cannot be cancelled (`useDebounceCallback` exposes no handle), so a value that has since
+    // been superseded — by another keystroke, or by a bookmark being picked mid-pause — is dropped when it
+    // finally fires rather than navigating over the newer choice. A ref, because the check happens inside
+    // a callback that must not be re-created per keystroke.
+    const intended = useRef(resolvedUrl);
+
     // `replace` rather than `push`: editing one field should not leave a history entry per typing pause,
     // each holding a half-typed URL.
-    const commit = useDebounceCallback((url: string) => {
+    const commitNow = (url: string) => {
         // An empty field clears the endpoint instead of leaving the previous one in the URL.
         if (url.trim() === '') {
             setSentUrl(undefined);
@@ -74,15 +88,27 @@ export function useCustomUrlDraft(): CustomUrlDraft {
         // strips each one on arrival.
         const typedEndpoint = parseRpcEndpoint(url);
         if (typedEndpoint === undefined) return;
+        // Typing or picking an endpoint is a first-party action, so it is also the consent.
         approveOrigin(typedEndpoint);
         setSentUrl(url);
         router.replace(buildHref({ cluster: Cluster.Custom, customUrl: url }));
+    };
+
+    const commit = useDebounceCallback((url: string) => {
+        if (url !== intended.current) return;
+        commitNow(url);
     }, COMMIT_DELAY_MS);
 
     return {
         onChange: (next: string) => {
+            intended.current = next;
             setDraftUrl(next);
             commit(next);
+        },
+        select: (next: string) => {
+            intended.current = next;
+            setDraftUrl(next);
+            commitNow(next);
         },
         value: draftUrl,
     };

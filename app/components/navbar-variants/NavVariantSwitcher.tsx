@@ -4,18 +4,20 @@ import { cn } from '@components/shared/utils';
 import { useAtom } from 'jotai';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
-import { Star } from 'react-feather';
+import { ChevronDown, Star } from 'react-feather';
 
 import { NAV_PREVIEW_PATH } from '@/app/nav-preview/path';
 
 import { ICON_SET_IDS, ICON_SET_LABELS, iconSetAtom } from './icon-sets';
 import { NAV_VARIANTS_ENABLED } from './nav-variant-storage';
 import { NAV_VARIANTS, navVariantAtom } from './registry';
+import { SAVE_FLOW_VARIANTS, saveFlowVariantAtom } from './save-flow-variants';
 import { PLAQUE_MARGIN, useDraggablePlaque } from './use-draggable-plaque';
 
 const STORAGE_KEY = 'explorer:navVariantSwitcherPosition';
 const WIDTH_KEY = 'explorer:navVariantSwitcherWidth';
 const SHORTLIST_KEY = 'explorer:navVariantShortlist';
+const COLLAPSED_KEY = 'explorer:navVariantSwitcherCollapsed';
 const DEFAULT_WIDTH = 200;
 const MIN_WIDTH = 160;
 const MAX_WIDTH = 520;
@@ -26,6 +28,16 @@ function readShortlist() {
         return localStorage.getItem(SHORTLIST_KEY) !== 'false';
     } catch {
         return true;
+    }
+}
+
+/** Open by default: a plate that started folded would leave a reviewer hunting for the thing they came
+ *  for. Folded is a choice, so it is the one that is remembered. */
+function readCollapsed() {
+    try {
+        return localStorage.getItem(COLLAPSED_KEY) === 'true';
+    } catch {
+        return false;
     }
 }
 
@@ -60,6 +72,7 @@ function readWidth() {
 export function NavVariantSwitcher() {
     const [variant, setVariant] = useAtom(navVariantAtom);
     const [iconSet, setIconSet] = useAtom(iconSetAtom);
+    const [saveFlow, setSaveFlow] = useAtom(saveFlowVariantAtom);
     const { dragging, onHandlePointerDown, position, ready, ref, reset } = useDraggablePlaque(STORAGE_KEY);
     // Suppressed inside the preview harness's frame: a fixed plate there covers the very layout being
     // reviewed, and the harness keeps its own copy outside the frame. Checked after mount because the
@@ -79,6 +92,25 @@ export function NavVariantSwitcher() {
     // Read after mount, like everything else here, so the server-rendered markup is not contradicted.
     const [shortlist, setShortlist] = useState(true);
     useEffect(() => setShortlist(readShortlist()), []);
+
+    /**
+     * Folded, the plate is its header and nothing else. On a phone the three lists run to half the screen
+     * and stand over the very bar being reviewed — and most of the time the reviewer is looking, not
+     * switching. Remembered like the position and the width, so the choice survives a page navigation.
+     */
+    const [collapsed, setCollapsed] = useState(false);
+    useEffect(() => setCollapsed(readCollapsed()), []);
+    const toggleCollapsed = useCallback(() => {
+        setCollapsed(current => {
+            const next = !current;
+            try {
+                localStorage.setItem(COLLAPSED_KEY, String(next));
+            } catch {
+                /* storage unavailable — the choice still holds for this page view */
+            }
+            return next;
+        });
+    }, []);
     const toggleShortlist = useCallback(() => {
         setShortlist(current => {
             const next = !current;
@@ -188,7 +220,21 @@ export function NavVariantSwitcher() {
                     <GripDots />
                 </button>
 
-                <span className="whitespace-nowrap text-xs uppercase tracking-wide text-neutral-500">Navigation</span>
+                <button
+                    type="button"
+                    aria-expanded={!collapsed}
+                    aria-label={collapsed ? 'Show the variant lists' : 'Fold the variant lists away'}
+                    title={collapsed ? 'Show the variants' : 'Fold away'}
+                    onClick={toggleCollapsed}
+                    className="flex cursor-pointer items-center gap-1 whitespace-nowrap border-0 bg-transparent p-0 text-xs uppercase tracking-wide text-neutral-500 transition-colors hover:text-neutral-300"
+                >
+                    <ChevronDown
+                        size={13}
+                        aria-hidden
+                        className={cn('shrink-0 transition-transform', collapsed && '-rotate-90')}
+                    />
+                    Navigation
+                </button>
 
                 {/* Filled while the list is the shortlist, hollow while it is everything. */}
                 <button
@@ -200,18 +246,33 @@ export function NavVariantSwitcher() {
                     className={cn(
                         'ml-auto flex shrink-0 cursor-pointer items-center border-0 bg-transparent px-1 py-0 transition-colors',
                         shortlist ? 'text-[#1dd79b]' : 'text-neutral-500 hover:text-neutral-300',
+                        // Nothing to filter while the lists are folded away.
+                        collapsed && 'hidden',
                     )}
                 >
                     <Star size={15} aria-hidden fill={shortlist ? 'currentColor' : 'none'} />
                 </button>
             </div>
 
-            <div className="flex flex-col overflow-hidden rounded-lg border border-solid border-white/10">
+            {/* Folded, everything below the header goes — the plate keeps only its grip, its name and the
+                two toggles, which is what it is for while a reviewer is looking rather than switching. */}
+            <div
+                className={cn(
+                    'flex-col overflow-hidden rounded-lg border border-solid border-white/10',
+                    collapsed ? 'hidden' : 'flex',
+                )}
+            >
                 {shown.map(({ id, name }) => (
                     <button
                         key={id}
                         type="button"
                         aria-pressed={id === variant}
+                        // `onPointerDown` as well as `onClick`: these rows carry hover styles, and a
+                        // touch browser spends the first tap on showing that hover — the choice only
+                        // landed on the second. Acting on the press makes one tap enough, and the click
+                        // that follows sets the same id again, which changes nothing. `onClick` stays for
+                        // the keyboard, which never presses a pointer.
+                        onPointerDown={() => setVariant(id)}
                         onClick={() => setVariant(id)}
                         className={cn(
                             'flex cursor-pointer items-baseline gap-2 border-0 px-2 py-1.5 text-left text-xs transition-colors',
@@ -231,6 +292,50 @@ export function NavVariantSwitcher() {
                 ))}
             </div>
 
+            {/* How the dropdown offers to keep the endpoint in its field under a name. Its own list rather
+                than a cross of bar × flow: every bar past the first two opens the same dropdown, so this
+                is one choice inside all of them. Labelled, unlike the two lists above — by the third
+                group an unlabelled column of names stops saying what it is a list of. */}
+            <span
+                className={cn(
+                    'px-2 pt-0.5 text-[10px] uppercase tracking-wide text-neutral-500',
+                    collapsed && 'hidden',
+                )}
+            >
+                RPC save flow
+            </span>
+            <div
+                className={cn(
+                    'flex-col overflow-hidden rounded-lg border border-solid border-white/10',
+                    collapsed ? 'hidden' : 'flex',
+                )}
+            >
+                {SAVE_FLOW_VARIANTS.map(({ id, name }, index) => (
+                    <button
+                        key={id}
+                        type="button"
+                        aria-pressed={id === saveFlow}
+                        onPointerDown={() => setSaveFlow(id)}
+                        onClick={() => setSaveFlow(id)}
+                        className={cn(
+                            'flex cursor-pointer items-baseline gap-2 border-0 px-2 py-1.5 text-left text-xs transition-colors',
+                            id === saveFlow
+                                ? 'bg-heavy-metal-800 text-white'
+                                : 'bg-transparent text-neutral-500 hover:text-neutral-200',
+                        )}
+                    >
+                        {/* Lettered, because the ids are words and the words are already the second
+                            column: `s1 field / s2 prompt / s3 morph` would print the same thing twice. */}
+                        <span className="w-10 shrink-0 font-medium uppercase tabular-nums">
+                            {String.fromCharCode(97 + index)}
+                        </span>
+                        <span className="truncate" title={name}>
+                            {name}
+                        </span>
+                    </button>
+                ))}
+            </div>
+
             {/* The connection glyph, which is a design decision of its own and reads differently at 10px
                 than it does in a sketch. Named rather than numbered: three digits in a row say nothing.
                 Shown only while the full list is: with the shortlist up, the review is choosing between
@@ -238,7 +343,7 @@ export function NavVariantSwitcher() {
             <div
                 className={cn(
                     'flex-col overflow-hidden rounded-lg border border-solid border-white/10',
-                    shortlist ? 'hidden' : 'flex',
+                    shortlist || collapsed ? 'hidden' : 'flex',
                 )}
             >
                 {ICON_SET_IDS.map(id => (
@@ -246,6 +351,7 @@ export function NavVariantSwitcher() {
                         key={id}
                         type="button"
                         aria-pressed={id === iconSet}
+                        onPointerDown={() => setIconSet(id)}
                         onClick={() => setIconSet(id)}
                         className={cn(
                             'flex cursor-pointer items-baseline gap-2 border-0 px-2 py-1.5 text-left text-xs transition-colors',

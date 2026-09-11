@@ -5,6 +5,10 @@ export type { ClusterInfo } from './lib/types';
 export { type CustomUrlDecision, decideCustomUrl, isCustomUrlCarryable } from './lib/resolve-cluster';
 export { DEFAULT_RPC_ENDPOINT, parseRpcEndpoint, rpcEndpoint, type RpcEndpoint } from './lib/rpc-endpoint';
 export { isLocalRpcUrl, shouldUseDirectRpc } from './lib/should-use-direct-rpc';
+// The hosts the deployment vouches for. Read by a surface that marks an endpoint as vouched-for or not
+// while it is being typed, which is the same question `decideCustomUrl` asks — but asked about the field's
+// contents rather than about a navigation, so it cannot go through that decision.
+export { getWhitelistedRpcHostnames } from './lib/whitelisted-rpcs';
 export { approvedOriginsAtom, approveRpcOriginAtom } from './model/approved-origins';
 export { ClusterProvider, type ClusterState, StateContext } from './model/cluster-provider';
 export { customUrlEnabledAtom } from './model/custom-url-enabled';

@@ -23,13 +23,14 @@ export function SavedClusterList({ savedClusters, status }: SavedClusterListProp
     const buildHref = useClusterHref();
     const router = useRouter();
 
-    const handleDelete = (name: string) => {
+    // By URL, which is what an entry is: its name may be blank and may repeat, so it cannot address one.
+    const handleDelete = (url: string) => {
         const activeUrl = endpoint?.href;
-        const wasActive = cluster === Cluster.Custom && savedClusters.find(c => c.name === name)?.url === activeUrl;
-        removeSavedCluster(name);
+        const wasActive = cluster === Cluster.Custom && url === activeUrl;
+        removeSavedCluster(url);
         // Deleting the entry the page is pointed at leaves an endpoint with no home, so fall back to the
-        // default cluster — unless another entry still names the same URL.
-        const stillSaved = savedClusters.some(c => c.name !== name && c.url === activeUrl);
+        // default cluster — unless another entry still holds the same URL.
+        const stillSaved = savedClusters.some(c => c.url !== url && c.url === activeUrl);
         if (wasActive && !stillSaved) {
             router.push(buildHref({ cluster: DEFAULT_CLUSTER, customUrl: '' }));
         }
@@ -58,7 +59,7 @@ type SavedClusterItemProps = {
     saved: SavedCluster;
     status: ClusterStatus;
     isActive: boolean;
-    onDelete: (name: string) => void;
+    onDelete: (url: string) => void;
 };
 
 function SavedClusterItem({ saved, status, isActive, onDelete }: SavedClusterItemProps) {
@@ -97,8 +98,10 @@ function SavedClusterItem({ saved, status, isActive, onDelete }: SavedClusterIte
                     and cn is clsx-only, so a display override would ride on Tailwind's emission order.
                     `text-dk-gray-700` sits on the child so it beats the active compound's status color,
                     keeping the host as fine print whether or not this entry is selected. */}
-                <span className="block truncate">{saved.name}</span>
-                {savedEndpoint && savedEndpoint.host !== saved.name && (
+                {/* An entry saved from the navbar's field may carry no name yet; its host stands in for
+                    one, rather than leaving an unlabelled pill. */}
+                <span className="block truncate">{saved.name || savedEndpoint?.host || saved.url}</span>
+                {savedEndpoint && saved.name !== '' && savedEndpoint.host !== saved.name && (
                     <span
                         className="block truncate text-xs text-dk-gray-700"
                         data-testid={`saved-cluster-host-${saved.name}`}
@@ -121,7 +124,7 @@ function SavedClusterItem({ saved, status, isActive, onDelete }: SavedClusterIte
                 className="absolute right-1 top-1/2 -translate-y-1/2 !border-transparent"
                 onClick={e => {
                     e.stopPropagation();
-                    onDelete(saved.name);
+                    onDelete(saved.url);
                 }}
                 data-testid={`delete-cluster-${saved.name}`}
                 aria-label={`Delete ${saved.name}`}
