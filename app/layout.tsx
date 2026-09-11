@@ -19,7 +19,7 @@ import { TokenInfoBatchProvider } from '@/app/entities/token-info';
 import { CookieConsent } from '@/app/features/cookie';
 import { VisibilityProvider } from '@/app/shared/lib/visibility';
 import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
-import { rubikFont } from '@/app/styles';
+import { robotoMonoFont, rubikFont } from '@/app/styles';
 import { botIdProtectedRoutes } from '@/config/botid-middleware.mjs';
 
 export const metadata: Metadata = {
@@ -37,7 +37,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ analytics, children }: { analytics: React.ReactNode; children: React.ReactNode }) {
     return (
-        <html lang="en" className={`${rubikFont.variable}`}>
+        <html lang="en" className={`${rubikFont.variable} ${robotoMonoFont.variable}`}>
             <head>
                 <link rel="icon" href="/favicon.png" type="image/png" />
                 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />

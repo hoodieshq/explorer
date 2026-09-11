@@ -20,6 +20,11 @@ vi.mock('@features/receipt/server', async importOriginal => {
         OG_IMAGE_SIZE: { height: 630, width: 1200 },
         createReceipt: vi.fn(),
         isReceiptEnabled: true,
+        // The real loader reads the TTFs through `new URL(..., import.meta.url)`,
+        // which the bundler rewrites to an asset the edge runtime can fetch. Under
+        // vitest there is no such rewrite — the URL stays `file://` and fetch
+        // refuses it — and these tests are about routing, not font bytes.
+        loadOgFonts: vi.fn(async () => []),
     };
 });
 

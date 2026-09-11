@@ -2,6 +2,7 @@ import {
     BaseReceiptImage,
     createReceipt,
     isReceiptEnabled,
+    loadOgFonts,
     OG_IMAGE_SIZE,
     parseCompositeSignature,
     ReceiptError,
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest, props: Props) {
 
         const imageResponse = new ImageResponse(<BaseReceiptImage data={receipt} />, {
             ...OG_IMAGE_SIZE,
+            fonts: await loadOgFonts(),
         });
         const imageBuffer = await imageResponse.arrayBuffer();
 
