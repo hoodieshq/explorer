@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@components/shared/utils';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 
 import { ClusterDropdown, type ClusterDropdownBodyKind } from './ClusterDropdown';
 import { MorphSearch } from './MorphSearch';
@@ -17,12 +17,16 @@ import type { INavbarProps } from './types';
  * layout, the same aurora, the same graded rule.
  *
  * The phrase needs a wider control, and the rest insets below sm are computed from that width, so the two
- * move together: 134 at xs is what the 343px row can spare once the wordmark, the lens and the menu have
- * taken theirs, and the square parks against it rather than over it. Four pixels over the old 130, for the
- * word CONNECTED, which was being clipped — and they come out of the search field rather than out of the
- * gaps: the trailing block is `ml-auto` and the field between is what flexes, so the block asking for
- * 38 + 8 + 134 + 8 + 38 = 226 simply leaves the field two fewer. Spending the gap instead was visibly
- * wrong: the search square and the cluster control sat closer together than anything else on the bar.
+ * move together: 131 at xs is what the 343px row has left once the wordmark, the lens's slot, the menu
+ * and the three 8px gaps have taken theirs — 343 − 112 − 38 − 38 − 24 — so the row is full to the
+ * pixel and nothing in it can be pushed past the gutter. It was 134 for a while, chosen for the word
+ * CONNECTED, and that was three pixels more than the row had: below sm the search field is out of flow
+ * and its slot is a fixed 38px inside a `shrink-0` block, so nothing could give, and the row overflowed.
+ * At exactly 375–377px the menu button stood up to 3px into the right gutter, the open search field —
+ * which stops at that gutter — left that sliver of it showing, and the collapsed square, placed by the
+ * arithmetic below rather than by the flow, sat 3px farther from the network control than that control
+ * did from the menu. The word still fits: with the chip's 6px side padding below sm there are 119px
+ * inside, and NOT CONNECTED at that size is under 100.
  *
  * `clusterBody` is v3.4's whole difference (`NavbarV18`): the bar is this one to the pixel, and only the
  * switcher inside the popover changes. A prop rather than a copy of this file — a duplicate would drift
@@ -36,6 +40,8 @@ export function NavbarV17({
     const [clusterOpened, setClusterOpened] = useState(false);
     const [menuOpened, setMenuOpened] = useState(false);
     const routes = useNavRoutes();
+    // The spacer the collapsed search square rests over, for `MorphSearch` to measure its insets from.
+    const slotRef = useRef<HTMLSpanElement>(null);
 
     // One thing open at a time.
     const onSearchOpenChange = (open: boolean) => {
@@ -93,11 +99,15 @@ export function NavbarV17({
                     numbers and the open/close motion still animates (an `auto` edge would snap).
 
                     These are literals, so they have to be re-derived whenever the network control's width
-                    is: at xs, 16 + 38 + 8 + 134 + 8 = 204, and the left edge is that plus the lens's own
-                    38. They were 200/238 for a 130px control, which left the square four pixels nearer the
-                    network than the network is to the menu — the one visible seam in the row. The
-                    widths are what the row can spare at rest: 289 − brand 112 − 2 gaps − menu 38 leaves
-                    127 at 320, and 343 − 112 − 16 − 38 leaves 177 at 375.
+                    is: at xs, 16 + 38 + 8 + 131 + 8 = 201, and the left edge is that plus the lens's own
+                    38. They are the first paint only, though — what the server renders and what shows
+                    before any script runs. Once mounted, the square is placed by measuring the spacer it
+                    stands in for (`slotRef`), so it sits exactly where the flow put that spacer and its
+                    gap to the network control is the row's own gap, whatever the arithmetic says. The
+                    literals have drifted from the flow twice now — once four pixels near, once three
+                    far — and each time the seam was the only visible fault in the row; measuring is what
+                    stops a third. The widths are what the row can spare at rest: 289 − brand 112 − 2 gaps
+                    − menu 38 leaves 127 at 320, and 343 − 112 − 16 − 38 leaves 177 at 375.
                     From sm it is in flow: `flex-1` up to 640, then `ml-auto` — an auto margin takes what is
                     left over *after* the grow, so the surplus lands to the left of the block instead of
                     stretching it, holding the block against the links at the right end. It has to be the
@@ -119,7 +129,8 @@ export function NavbarV17({
                         // The auto margin holds the field against the controls while the row is a flex line;
                         // from md the middle column is what sets its place, and the cap is the column's.
                         dockClassName="sm:ml-auto sm:max-w-[720px] lg:ml-0 lg:max-w-none"
-                        restClassName="left-[calc(100%-184px)] right-[146px] xs:left-[calc(100%-242px)] xs:right-[204px]"
+                        restClassName="left-[calc(100%-184px)] right-[146px] xs:left-[calc(100%-239px)] xs:right-[201px]"
+                        slotRef={slotRef}
                     >
                         {children}
                     </MorphSearch>
@@ -128,14 +139,14 @@ export function NavbarV17({
                     = 286 in the 289px row at 320. `ml-auto` is that row's, where the square is out of flow;
                     from sm the block's own auto margin has already pushed everything to the edge. */}
                     <div className="ml-auto flex shrink-0 items-center gap-1.5 xs:gap-2 sm:ml-0">
-                        <span aria-hidden className="block h-[38px] w-[38px] sm:hidden" />
+                        <span ref={slotRef} aria-hidden className="block h-[38px] w-[38px] sm:hidden" />
                         <ClusterDropdown
                             body={clusterBody}
                             shape="stacked-lead"
                             align="end"
                             open={clusterOpened}
                             onOpenChange={onClusterOpenChange}
-                            className="w-[80px] xs:w-[134px] sm:w-[142px] md:w-[170px]"
+                            className="w-[80px] xs:w-[131px] sm:w-[142px] md:w-[170px]"
                         />
                     </div>
                 </div>

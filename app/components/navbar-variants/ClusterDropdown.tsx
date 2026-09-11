@@ -170,11 +170,17 @@ export function ClusterDropdown({
     // Only for the focus rule: a keyboard focus lights it, and so does the panel being up.
     const [focused, setFocused] = React.useState(false);
 
+    // `translate-y-px` on the lead shape: its two lines of small caps sit optically high in the 38px
+    // control — caps have no descenders to weigh the bottom of the box — so the whole of the content,
+    // chevron included, is set one pixel down. The other shapes centre a single line and need nothing.
     const chevron = (
         <ChevronDown
             size={14}
             aria-hidden
-            className="shrink-0 text-neutral-400 transition-transform duration-200 group-data-[state=open]:rotate-180"
+            className={cn(
+                'shrink-0 text-neutral-400 transition-transform duration-200 group-data-[state=open]:rotate-180',
+                isLead && 'translate-y-px',
+            )}
         />
     );
 
@@ -193,7 +199,7 @@ export function ClusterDropdown({
                 >
                     {isLead ? (
                         <>
-                            <span className="flex min-w-0 flex-1 flex-col items-stretch justify-center gap-0.5">
+                            <span className="flex min-w-0 flex-1 translate-y-px flex-col items-stretch justify-center gap-0.5">
                                 {/* The provenance leads the name: it qualifies what the name refers to, and
                                     reading it after the fact is reading it too late. */}
                                 <span className="flex min-w-0 items-center gap-0.5 text-sm leading-[14px] text-white">
@@ -221,8 +227,10 @@ export function ClusterDropdown({
                                     </span>
                                 </span>
                                 {/* Caps, like every other status line in the bar; the phrasing is what
-                                    differs here, not the setting. */}
-                                <span className="flex min-w-0 items-center gap-1 text-[10px] uppercase leading-[12px] tracking-[0.08em]">
+                                    differs here, not the setting. Set a pixel up against the column's own
+                                    pixel down: the name wanted the nudge, the status line did not — at
+                                    10px caps the gap between the two read a pixel too wide. */}
+                                <span className="flex min-w-0 -translate-y-px items-center gap-1 text-[10px] uppercase leading-[12px] tracking-[0.08em]">
                                     <ClusterFacts
                                         colour={factsColour}
                                         glyphClass={asV35 ? 'hidden' : undefined}

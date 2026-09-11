@@ -2,32 +2,27 @@
 
 import { Button } from '@components/shared/ui/button';
 import { IconButton } from '@components/shared/ui/icon-button';
-import { Input } from '@components/shared/ui/input';
 import { cn } from '@components/shared/utils';
 import { approveRpcOriginAtom, parseRpcEndpoint } from '@entities/cluster';
-import {
-    MAX_CLUSTER_NAME_LENGTH,
-    type SavedCluster,
-    useClusterHref,
-    useSavedClusters,
-} from '@features/cluster-switcher/client';
+import { type SavedCluster, useClusterHref, useSavedClusters } from '@features/cluster-switcher/client';
 import { Cluster, DEFAULT_CLUSTER } from '@utils/cluster';
 import { useSetAtom } from 'jotai';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Edit2, MoreHorizontal, Trash2 } from 'react-feather';
 
 import {
     ACTIVE_ROW_CLASSES,
     INACTIVE_ROW_CLASSES,
+    MENU_SECONDARY_BUTTON_CLASSES,
     ROW_HOVER_FROM_GROUP,
     STACKED_ROW_CLASSES,
 } from './cluster-row-classes';
 import { endpointProvenance } from './endpoint-provenance';
+import { EndpointForm } from './EndpointForm';
 import { STROKE_ON_24 } from './icon-sets';
 import { KnownMark, UnknownMark } from './known-mark';
-import { FIELD_CAPTION_CLASSES } from './SaveEndpointFlow';
 
 /**
  * A kept endpoint: the name it was saved under, its host as fine print, and — while it is the one in use —
@@ -39,10 +34,10 @@ import { FIELD_CAPTION_CLASSES } from './SaveEndpointFlow';
  * half of that, and they printed straight over the name and host. Everything in this row is in flow now,
  * so a long name truncates instead of colliding.
  *
- * **An entry may have no name.** Saving is one click and naming is a second thought, so the row is where a
- * name is written — either straight after the save (`naming`, opened by the Save button in the field) or
- * any time later from the pencil. Unnamed, the row is headed by its host, which is the only thing there is
- * to call it; the name, once written, takes that place and the host drops to fine print.
+ * **An entry may have no name.** Older entries were kept unnamed, and a name may still be cleared, so the
+ * row has to stand without one: unnamed, it is headed by its host, which is the only thing there is to
+ * call it; the name, once written from the pencil, takes that place and the host drops to fine print. The
+ * pencil is the row's only form — a new endpoint is named under the field it was typed into, not here.
  *
  * Identity is the URL, never the name: names may be blank and may repeat. Deleting and renaming address
  * the entry by `saved.url`.
@@ -70,6 +65,7 @@ export function SavedEndpointRow({
     onPick,
     onRestore,
     removed,
+    undoWindowMs,
     saved,
     savedClusters,
     subdued,
@@ -111,12 +107,15 @@ export function SavedEndpointRow({
     removed?: boolean;
     /** Puts it back. Only meaningful while `removed`. */
     onRestore?: () => void;
+    /**
+     * How long the way back stays open, for the drain drawn along the foot of a `removed` row: a thin bar
+     * that empties over exactly this long, so the reader can see the deadline coming rather than have the
+     * row vanish under them. Without it the row is struck out and stays that way.
+     */
+    undoWindowMs?: number;
     /** The pencil asks; the surface decides which row is open. */
     onEditOpen?: () => void;
-    /**
-     * Closed. `cancelled` tells a surface whether to undo what it did when it opened this — v3.5 hands
-     * the outline and the cursor back to the field when a naming it opened is dismissed.
-     */
+    /** Closed. `cancelled` says whether by the cross rather than the tick, for a surface that cares. */
     onEditClose?: (cancelled: boolean) => void;
     /**
      * Given, the row puts its endpoint back in the Custom field instead of being a link to it, so the
@@ -193,7 +192,8 @@ export function SavedEndpointRow({
     if (editing)
         return (
             <li data-testid={`saved-cluster-${saved.url}`}>
-                <EditRow
+                <EndpointForm
+                    intent="edit"
                     saved={saved}
                     onCancel={() => onEditClose?.(true)}
                     onSave={(name, nextUrl) => updateSavedCluster({ name, nextUrl, url: saved.url })}
@@ -300,13 +300,14 @@ export function SavedEndpointRow({
                     <Button
                         variant="outline"
                         size="sm"
-                        className="cursor-pointer"
+                        className={MENU_SECONDARY_BUTTON_CLASSES}
                         onClick={onRestore}
                         data-testid={`restore-cluster-${saved.url}`}
                     >
                         Restore
                     </Button>
                 </span>
+                {undoWindowMs !== undefined && <UndoDrain durationMs={undoWindowMs} url={saved.url} />}
             </li>
         );
 
@@ -480,125 +481,36 @@ function RowControl({
 }
 
 /**
- * The row while it is being edited: the same plate the chosen row wears, holding the name and the address.
+ * The time left to take a deletion back, as a hairline along the foot of the row that empties from the
+ * right over the whole window. A bar and not a count: the question it answers is "do I still have time?",
+ * which a shrinking line says at a glance and a number has to be read. It is driven by one CSS transition
+ * started a frame after mount — the bar is painted full first, so the transition has something to run
+ * from — rather than by a ticking timer, so nothing re-renders while it drains.
  *
- * Both, because an entry is a name *and* a URL, and a typo in the second used to mean deleting the entry
- * and saving it again from the field. The name's controls ride inside its field, as the bar's Save does —
- * at this width a row of field-height buttons beside a field left too little of the field to read a name
- * in, and outweighed the thing being asked for.
- *
- * Nothing is required of the name. The tick on an empty name leaves the entry unnamed — the host keeps
- * standing in for it, and the pencil is still there tomorrow. The address is not free: the store refuses
- * one that is not an endpoint, and one another entry already holds, and says which.
+ * Inset to the row's own text edges and set a pixel above its floor, so it reads as part of the struck-out
+ * row rather than as a rule between rows.
  */
-function EditRow({
-    onCancel,
-    onDone,
-    onSave,
-    saved,
-}: {
-    onCancel: () => void;
-    onDone: () => void;
-    onSave: (name: string, url: string) => void;
-    saved: SavedCluster;
-}) {
-    const [name, setName] = useState(saved.name);
-    const [url, setUrl] = useState(saved.url);
-    const [error, setError] = useState<string | undefined>(undefined);
-    const host = parseRpcEndpoint(saved.url)?.host ?? '';
-
-    const commit = () => {
-        try {
-            onSave(name, url.trim());
-        } catch (cause) {
-            setError(cause instanceof Error ? cause.message : 'Could not save this endpoint.');
-            return;
-        }
-        onDone();
-    };
-
-    // Enter commits from either field, Escape backs out of both. Escape is stopped here because this
-    // popover closes on it, and a key that both left the edit and shut the menu would lose the entry the
-    // edit was about.
-    const onKeyDown = (event: React.KeyboardEvent) => {
-        if (event.key === 'Enter') {
-            event.preventDefault();
-            commit();
-        }
-        if (event.key === 'Escape') {
-            event.stopPropagation();
-            onCancel();
-        }
-    };
-
+function UndoDrain({ durationMs, url }: { durationMs: number; url: string }) {
+    const [draining, setDraining] = useState(false);
+    useEffect(() => {
+        const frame = requestAnimationFrame(() => setDraining(true));
+        return () => cancelAnimationFrame(frame);
+    }, []);
     return (
-        <div
-            className={cn(
-                'flex w-full flex-col gap-1.5 rounded-md border border-solid px-3 pb-3 pt-2 text-sm text-white',
-                ACTIVE_ROW_CLASSES,
-            )}
-            data-testid={`rename-cluster-form-${saved.url}`}
+        <span
+            aria-hidden
+            className="pointer-events-none absolute bottom-1 left-3 right-3 block h-0.5 overflow-hidden rounded-full bg-outer-space-800"
+            data-testid={`undo-drain-${url}`}
         >
-            {/* One caption for both ways in — straight after a save, or from the pencil later. The form
-                is the same either way, and it holds both halves of the entry, so it says so. */}
-            <span className={FIELD_CAPTION_CLASSES}>Edit endpoint name and address</span>
-            {/* Plain field, nothing riding inside it. The pair used to sit in this one, which was right
-                while the form *was* this one field; with two of them, controls parked in the first said
-                they belonged to the name alone — and they answer for the whole form. */}
-            <Input
-                type="text"
-                variant="dark"
-                aria-label={`Name for ${saved.url}`}
-                placeholder="Name"
-                value={name}
-                maxLength={MAX_CLUSTER_NAME_LENGTH}
-                onChange={e => setName(e.target.value)}
-                onKeyDown={onKeyDown}
-                data-testid={`rename-cluster-input-${saved.url}`}
-                autoFocus
+            <span
+                className="block h-full w-full origin-left bg-outer-space-300"
+                style={{
+                    transform: draining ? 'scaleX(0)' : 'scaleX(1)',
+                    transitionDuration: `${durationMs}ms`,
+                    transitionProperty: 'transform',
+                    transitionTimingFunction: 'linear',
+                }}
             />
-            {/* The address, editable rather than stated: it is half of what an entry is. Monospace, like
-                every other address in this menu. */}
-            <Input
-                type="url"
-                variant="dark"
-                className="font-mono text-[11px]"
-                aria-label={`Address for ${saved.name || host}`}
-                placeholder="Address"
-                value={url}
-                onChange={e => setUrl(e.target.value)}
-                onKeyDown={onKeyDown}
-                data-testid={`edit-cluster-url-${saved.url}`}
-            />
-            {error && (
-                <span className="text-xs leading-snug text-[#b45be1]" data-testid={`rename-cluster-error-${saved.url}`}>
-                    {error}
-                </span>
-            )}
-            {/* The form's own answer and dismissal, once, under both fields — and in words now that they
-                are out of the field: a tick reads as an answer only where it sits inside the thing it
-                answers for, and this pair answers for the whole form. Left-aligned with the fields above
-                them, and Save first, so the reader's eye lands on the answer rather than on the way out. */}
-            {/* The form's own answer and dismissal, in words now that they are out of the field: a tick
-                reads as an answer only where it sits inside the thing it answers for, and this pair
-                answers for the whole form. Left-aligned with the fields above them, Save first, so the
-                eye lands on the answer rather than on the way out. Deleting is not here — it is one of
-                the row's own controls, where reaching for it costs one click rather than two. */}
-            <span className="flex items-center gap-1.5">
-                <Button
-                    variant="accent"
-                    size="sm"
-                    className="cursor-pointer"
-                    onClick={commit}
-                    title="Save this endpoint"
-                    data-testid={`confirm-rename-cluster-${saved.url}`}
-                >
-                    Save
-                </Button>
-                <Button variant="outline" size="sm" className="cursor-pointer" onClick={onCancel}>
-                    Cancel
-                </Button>
-            </span>
-        </div>
+        </span>
     );
 }

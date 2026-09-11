@@ -39,11 +39,11 @@ vi.mock('@entities/cluster', async importOriginal => {
 
 import { approvedOriginsAtom } from '@entities/cluster';
 
-import { useCustomUrlDraft } from '../use-custom-url-draft';
+import { type CustomUrlDraftOptions, useCustomUrlDraft } from '../use-custom-url-draft';
 
-function setupDraft() {
+function setupDraft(options?: CustomUrlDraftOptions) {
     const store = createStore();
-    const view = renderHook(() => useCustomUrlDraft(), {
+    const view = renderHook(() => useCustomUrlDraft(options), {
         wrapper: ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>,
     });
 
@@ -202,6 +202,32 @@ describe('useCustomUrlDraft', () => {
 
     // The echo guard covers one arrival and no more. Saving a cluster starts by typing its URL, so a
     // guard left standing would match that entry's click and leave the field showing the endpoint before.
+    // The navbar's menu has Go, so there typing is deciding and nothing applies itself: the page behind
+    // the menu must not change until the reader says so.
+    describe('with commitOnType off', () => {
+        it('should show the keystrokes and commit none of them', () => {
+            const draft = setupDraft({ commitOnType: false });
+            draft.type('http://my-node:8899');
+            draft.settle();
+
+            expect(draft.value()).toBe('http://my-node:8899');
+            expect(nav.replace).not.toHaveBeenCalled();
+            expect(draft.store.get(approvedOriginsAtom)).toEqual([]);
+        });
+
+        // Go and a picked entry go through `select`, which is a decision rather than a pause.
+        it('should still commit a selected endpoint at once', () => {
+            const draft = setupDraft({ commitOnType: false });
+            draft.select('http://my-node:8899');
+
+            expect(nav.replace).toHaveBeenCalledWith(
+                `/?cluster=custom&customUrl=${encodeURIComponent('http://my-node:8899')}&sort=fee`,
+                { scroll: false },
+            );
+            expect(draft.store.get(approvedOriginsAtom)).toEqual(['http://my-node:8899']);
+        });
+    });
+
     it('should follow a re-selected endpoint it committed earlier', () => {
         const draft = setupDraft();
 

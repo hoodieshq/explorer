@@ -11,10 +11,11 @@ import { atomWithStorage, createJSONStorage } from 'jotai/utils';
  * savable, so the option existed but could not be found), it is small enough not to compete with the
  * endpoint field, and it says a name is part of saving rather than saving first and labelling later.
  *
- * - `omnibox` — the field with its own Save inside it, at the right-hand end. One click keeps the endpoint
- *   there and then, unnamed; the name is asked for in the row that appears below, and may be left blank
- *   and written later. Picking a row puts its endpoint back in the field rather than navigating from under
- *   the reader.
+ * - `omnibox` — the field with Go inside it, at the right-hand end, and Save as a plain button under it.
+ *   Nothing applies itself: Go (or Enter) puts the address to use. Save unfolds the name right there,
+ *   under the field, with Save and Cancel under it; Go steps aside meanwhile. Save is disabled rather
+ *   than absent while there is nothing to keep. Picking a row puts its endpoint back in
+ *   the field rather than navigating from under the reader.
  * - `prompt` — a compact "Save as…" button beside the field; the name row unfolds under it when asked for.
  * - `field`  — the name field is simply always there, under the endpoint, with a small Save beside it.
  *   Nothing to open, and the suggested name is visible as its placeholder.
@@ -22,7 +23,7 @@ import { atomWithStorage, createJSONStorage } from 'jotai/utils';
  *   so the 320px popover shows one field at a time rather than two.
  */
 export const SAVE_FLOW_VARIANTS = [
-    { id: 'omnibox', name: 'Save inside the field' },
+    { id: 'omnibox', name: 'Go in the field, Save under it' },
     { id: 'field', name: 'Name field always up' },
     { id: 'prompt', name: 'Button, then the name' },
     { id: 'morph', name: 'Field becomes the name' },

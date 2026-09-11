@@ -17,6 +17,13 @@ import { useAtomValue } from 'jotai';
 import React, { useState } from 'react';
 import { Bookmark, Check, X } from 'react-feather';
 
+import {
+    FIELD_CAPTION_CLASSES,
+    FIELD_MENU_BORDER_CLASSES,
+    MENU_PRIMARY_BUTTON_CLASSES,
+    MENU_SECONDARY_BUTTON_CLASSES,
+} from './cluster-row-classes';
+import { EndpointForm } from './EndpointForm';
 import { STROKE_ON_24 } from './icon-sets';
 import { saveFlowVariantAtom } from './save-flow-variants';
 
@@ -25,8 +32,8 @@ import { saveFlowVariantAtom } from './save-flow-variants';
  *
  * The field and the offer are one component because the review variants (`save-flow-variants.ts`) differ
  * in exactly how the two are arranged — beside each other, stacked with a name field of its own, one in
- * place of the other, or the offer *inside* the field as a browser's star — so a component that owned only
- * the offer could not express them.
+ * place of the other, or Go in the field with the offer as a button under it — so a component that owned
+ * only the offer could not express them.
  *
  * Everything that is not layout is shared: the field's debounced commit and consent are
  * `useCustomUrlDraft`'s, the name's cap, normalization and suggested default are the feature's
@@ -38,10 +45,11 @@ import { saveFlowVariantAtom } from './save-flow-variants';
 /**
  * Every control here is the app's own `Button` (or `IconButton`, which is `Button` at `size="icon"`), so
  * the switcher's buttons are the switcher's buttons and not a second set that merely resembles them.
- * Save is `variant="default"` — the app's grey fill with a rule — and not the brand accent: green is what
- * this palette spends on a primary action and on a healthy connection, and a green chip standing
- * permanently in the bar claimed both. The accent is left for the tick that commits a name, which is a
- * momentary, deliberate confirmation.
+ * The accent is spent on the one primary action of each step — Go in the field, Save in the form — because
+ * green is what this palette spends on a primary action and on a healthy connection, and a second green
+ * control beside either claimed both. Everything secondary is the outlined button: the "Save…" that opens
+ * the form, the form's Cancel, a removed row's Restore. (The review-only flows further down still use
+ * the grey-filled `default`; they are not the shipping surface.)
  *
  * Two things are passed per instance rather than baked in: `cursor-pointer`, because the `tw` lineage
  * leaves the UA cursor alone, and a matched height where a control stands beside a field (`Input` is
@@ -49,10 +57,6 @@ import { saveFlowVariantAtom } from './save-flow-variants';
  */
 /** Beside an `h-9` field, an icon button has to be its height rather than the 28px square it defaults to. */
 const FIELD_ICON_BUTTON_CLASSES = 'h-9 w-9 cursor-pointer';
-
-/** The caption above a field, in the panel's caption voice one step smaller — it labels a control, not a
- *  group of rows. */
-export const FIELD_CAPTION_CLASSES = 'text-[10px] font-medium uppercase tracking-[0.12em] text-outer-space-300';
 
 /** Failures are the consent dialog's magenta, which is this palette's "no". */
 const ERROR_CLASSES = 'text-xs leading-snug text-[#b45be1]';
@@ -101,48 +105,51 @@ function useEndpointSave(url: string, savedClusters: SavedCluster[]) {
         setNaming(false);
     };
 
-    /** The one-click save: the endpoint is kept as it is, and the name is asked for in the list. */
-    const saveUnnamed = () => {
-        if (!isEndpoint) {
-            setError(new Error('Enter a full RPC URL first — https://host or http://localhost:8899.'));
-            return;
-        }
-        try {
-            addSavedCluster({ name: '', url });
-        } catch (cause) {
-            setError(new Error('Not enough storage space. Try removing an endpoint you no longer use.', { cause }));
-        }
+    /**
+     * Writes a new entry outright, for a form that holds its own name and address (`EndpointForm`). The
+     * same two refusals the store applies to an edit, in the same words, so the form says the same thing
+     * whichever way it was opened: the address has to be an endpoint, and it cannot be one already kept.
+     * The store's own add would silently replace the entry on that URL, which is not what "save" means
+     * from a field.
+     */
+    const keep = (name: string, nextUrl: string) => {
+        if (!parseRpcEndpoint(nextUrl)) throw new Error('That is not a full RPC URL.');
+        if (savedClusters.some(saved => saved.url === nextUrl))
+            throw new Error('Another saved endpoint has that address.');
+        addSavedCluster({ name: normalizeClusterName(name), url: nextUrl });
     };
 
-    const save = () => {
+    /** Writes the entry. `true` once it is kept, so a caller can act on the save and not on the click. */
+    const save = (): boolean => {
         if (!isEndpoint) {
             setError(new Error('Enter a full RPC URL first — https://host or http://localhost:8899.'));
-            return;
+            return false;
         }
         if (!willStore) {
             setError(new Error('Give the endpoint a name.'));
-            return;
+            return false;
         }
         try {
             addSavedCluster({ name: willStore, url });
         } catch (cause) {
             // localStorage is the only failure mode here, and it is always the quota.
             setError(new Error('Not enough storage space. Try removing an endpoint you no longer use.', { cause }));
-            return;
+            return false;
         }
         close();
+        return true;
     };
 
     return {
         close,
         error,
         isEndpoint,
+        keep,
         name: name ?? '',
         naming,
         onNameChange: setName,
         open,
         save,
-        saveUnnamed,
         savedAs,
         suggestion,
         typed,
@@ -159,7 +166,7 @@ export function CustomEndpointFields({
 }: {
     /** Owned by the dropdown, not by this component: the saved list writes into the same field. */
     draft: CustomUrlDraft;
-    /** Reports the endpoint the Save button just kept, so the list can open its name field. */
+    /** Reports the endpoint just kept under a name, so the surface can hand the outline to its new row. */
     onSaved: (url: string) => void;
     savedClusters: SavedCluster[];
 }) {
@@ -194,9 +201,10 @@ export function CustomEndpointFields({
 }
 
 /**
- * The endpoint field with its Save inside it, on its own — for a surface with no variants to switch
- * between that simply wants this control (`ClusterFieldFirstBody`, the v3.4 menu). Naming still happens in
- * the list: `onSaved` names the endpoint just kept, and that row opens its name field.
+ * The endpoint field with Go inside it and Save under it, on its own — for a surface with no variants to
+ * switch between that simply wants this control (`ClusterFieldFirstBody`, the v3.4 menu, and
+ * `ClusterCustomLastBody`, the v3.5 one). Naming happens right here, under the field; `onSaved` reports
+ * the endpoint once it is kept, so the surface can hand the outline to the row that has just appeared.
  */
 export function EndpointFieldWithSave({
     draft,
@@ -222,6 +230,7 @@ export function EndpointFieldWithSave({
     onFocus?: () => void;
     /** Ran once the address has been applied from the field — the surface that owns the menu shuts it. */
     onGo?: () => void;
+    /** Ran once the address has been kept under a name. */
     onSaved: (url: string) => void;
     savedClusters: SavedCluster[];
 }) {
@@ -245,20 +254,35 @@ export function EndpointFieldWithSave({
 }
 
 /**
- * `omnibox` — the endpoint field with its own Save inside it, at the right-hand end, the way a browser
- * keeps the favourite control in the address bar rather than beside it. Always there, costing no line of
- * its own.
+ * `omnibox` — the endpoint field with Go inside it, at the right-hand end, and Save as a plain button on
+ * the line under it.
  *
- * Save takes one click and asks nothing: the endpoint joins the list below immediately, unnamed, and the
- * name is asked for *there* — in the row that just appeared, where the reader can see what they are
- * naming. Left blank it stays blank and the row shows its host; the name can be written any time after,
- * from the row's own rename control. Nothing is lost by not answering, which is the point: the old flow
- * made naming a gate in front of saving.
+ * Nothing in the field applies itself. It is edited freely, and Go — or Enter, which is the keyboard's
+ * Go — is what puts the address to use. Typing used to navigate on its own after a pause, which changed
+ * the page behind the menu under a half-decided address, and on a keyboard made a Go button a second way
+ * to do what the field already did. With the field waiting to be told, the button *is* the control, so
+ * it stands there on every device, before the reader reaches for it, and is only ever disabled: a field
+ * without a full RPC URL has nothing to go to yet.
+ *
+ * Save is the same kind of thing — a button that says what it does, always on screen and greyed out
+ * rather than gone when there is nothing to keep: no URL yet, half a URL, or an address already in the
+ * list, where it reads "Saved". A control that comes and goes has to be found first (the old full-width
+ * offer appeared only once the field held something savable, so a first-time reader never learned
+ * endpoints could be kept); one that is disabled is already found and only has to be explained, which
+ * the line under the field does (`missing`).
+ *
+ * Save asks for the name right where it was pressed, in the very form the list edits an entry with
+ * (`EndpointForm`): the field and its Go give way to that form, with the typed address already in its
+ * second field, and Cancel brings the field back. One form for both errands, so keeping an endpoint and
+ * correcting one look and behave the same — the two used to be two forms that merely resembled each
+ * other. The name used to be asked for up in the list, in the row the save had just created, which meant
+ * the answer to a button pressed here appeared somewhere else, and backing out of it had to delete an
+ * entry that should never have existed yet.
  *
  * The field is the app's `Input`, not a hand-rolled frame, so it carries the same height, radius, focus
- * ring and dark treatment as every other field. The button rides inside it — absolutely placed, with the
- * field's right padding opened up to clear it — which is what "inside the field" has to mean for a
- * component that owns its own border.
+ * ring and dark treatment as every other field. Go rides inside it — absolutely placed, with the field's
+ * right padding opened up to clear it — which is what "inside the field" has to mean for a component that
+ * owns its own border.
  */
 function AddressBar({
     fieldClassName,
@@ -274,18 +298,18 @@ function AddressBar({
     fieldClassName?: string;
     fieldRef?: React.RefObject<HTMLInputElement | null>;
     onChange: (next: string) => void;
-    /** Applies what is in the field now, without waiting out the typing pause. */
+    /** Applies what is in the field now. */
     onCommit: (url: string) => void;
     onFocus?: () => void;
     onGo?: () => void;
-    /** Tells the list which row to open a name field on: the one just saved. */
+    /** Ran once the address has been kept under a name. */
     onSaved: (url: string) => void;
     save: Save;
     url: string;
 }) {
     const kept = save.savedAs !== undefined;
     /**
-     * What is wrong with what has been typed, said under the field rather than only in the button's
+     * What is wrong with what has been typed, said under the field rather than only in the buttons'
      * `title`: a control that is greyed out with no reason given reads as broken, and a tooltip is no
      * answer on a touch screen.
      *
@@ -305,138 +329,153 @@ function AddressBar({
      * silence was there to avoid.
      */
     const canSave = !kept && save.isEndpoint;
+
+    /** Go, by button or by Enter: the address applies at once and the menu gets out of the way. */
+    const go = () => {
+        onCommit(url);
+        onGo?.();
+    };
+
     /**
-     * Whether the reader is in the field, which is the only time Go has anything to do. It is let go of a
-     * beat after the blur rather than on it: a tap on Go blurs the field first, and a button taken out of
-     * the document between the finger landing and the click leaves the click with nowhere to go.
+     * Whether the form stands where the field was. Backing out of it puts the cursor back in the address
+     * field — the reader was in the middle of something there, and Escape or Cancel should not leave them
+     * on nothing. The field is not in the tree until the form has gone, so the focus is placed by the
+     * effect below, on the render that brings the field back.
      */
-    const [inField, setInField] = useState(false);
-    const leaving = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-    React.useEffect(() => () => clearTimeout(leaving.current), []);
+    const [naming, setNaming] = useState(false);
+    const inputRef = React.useRef<HTMLInputElement | null>(null);
+    const refocus = React.useRef(false);
+    React.useEffect(() => {
+        if (naming || !refocus.current) return;
+        refocus.current = false;
+        inputRef.current?.focus();
+    }, [naming]);
+    /** The address the form kept, which may differ from what the field held if it was corrected there. */
+    const keptUrl = React.useRef(url);
+
+    if (naming)
+        return (
+            <EndpointForm
+                intent="create"
+                saved={{ name: '', url }}
+                onCancel={() => {
+                    refocus.current = true;
+                    setNaming(false);
+                }}
+                onSave={(name, nextUrl) => {
+                    save.keep(name, nextUrl);
+                    keptUrl.current = nextUrl;
+                }}
+                onDone={() => {
+                    setNaming(false);
+                    // The field follows an address corrected in the form, or it would show one endpoint
+                    // while the list had just been handed another.
+                    if (keptUrl.current !== url) onChange(keptUrl.current);
+                    onSaved(keptUrl.current);
+                }}
+            />
+        );
 
     return (
         <>
             <div className="relative">
-                {/* Keeping the address is a bookmark, and a bookmark belongs where a browser keeps one:
-                    at the head of the address, before the thing it marks. A bare glyph and not a chip —
-                    inside the field there is only room for one box, and the field is already it; the
-                    row's own pencil and bin are drawn the same way, so the menu's quiet controls all
-                    look alike. It still carries a 28px square of hit area, which is the least a thumb
-                    can be asked to find. Filled once it is kept — the same glyph answering its own
-                    question, so the state needs no second word for it. */}
-                <IconButton
-                    variant="ghost"
-                    onClick={() => {
-                        save.saveUnnamed();
-                        onSaved(url);
-                    }}
-                    disabled={!canSave}
-                    aria-label={
-                        kept ? `Already saved${save.savedAs ? ` as “${save.savedAs}”` : ''}` : 'Save this endpoint'
-                    }
-                    title={
-                        kept
-                            ? `Already saved${save.savedAs ? ` as “${save.savedAs}”` : ''}`
-                            : canSave
-                              ? 'Save this endpoint — you can name it in the list below'
-                              : (missing ?? 'Enter a full RPC URL to save it')
-                    }
-                    className={cn(
-                        // `!` throughout because `cn` is clsx-only: a plain `bg-*`/`text-*` here would be
-                        // settled against the variant by Tailwind's emission order, not by intent.
-                        // `disabled:!opacity-100` because the button's own half-fade on top of these
-                        // colours would leave the glyph too faint to read as a control at all — and both
-                        // of its unavailable states are states worth reading.
-                        'absolute left-1 top-1/2 -translate-y-1/2 cursor-pointer !bg-transparent transition-colors disabled:!opacity-100',
-                        // 14px rather than the 12px an icon button draws — the size the row's own pencil
-                        // and bin stand at, since this is the same kind of thing: a control, not a mark
-                        // to read. `!` because `cn` is clsx-only and both this and the size compound's
-                        // `[&_svg]:size-3` are the same arbitrary variant.
-                        '[&_svg]:!size-3.5',
-                        // White for both states that are about *this* address — saveable, and already
-                        // kept, which the filled glyph says. Grey is for the one case where the bookmark
-                        // has nothing to act on: no full URL typed yet. A kept endpoint drawn grey read
-                        // as a dead control rather than as the mark of something safely put away.
-                        kept || canSave ? '!text-white' : '!text-neutral-500',
-                    )}
-                    data-testid="save-custom-cluster-btn"
-                    icon={<Bookmark strokeWidth={STROKE_ON_24} aria-hidden fill={kept ? 'currentColor' : 'none'} />}
-                />
                 <Input
-                    ref={fieldRef}
+                    ref={node => {
+                        inputRef.current = node;
+                        if (fieldRef) fieldRef.current = node;
+                    }}
                     type="url"
                     variant="dark"
                     value={url}
                     aria-label="Custom RPC URL"
                     placeholder="https://"
                     onChange={e => onChange(e.target.value)}
-                    // Enter is the reader saying "this one, now": the endpoint goes live without waiting
-                    // out the typing pause, the field lets go of the focus — on a phone that is what puts
-                    // the keyboard away — and the menu shuts. Enter is the keyboard's Go, so it ends the
-                    // errand the same way; leaving the menu standing over the page it had just changed
-                    // read as nothing having happened.
+                    // Enter is the reader saying "this one, now": the endpoint goes live, the field lets
+                    // go of the focus — on a phone that is what puts the keyboard away — and the menu
+                    // shuts. It answers to the same rule as the button: half an address is nothing to go
+                    // to, so on one the key does nothing rather than shutting the menu over an unchanged
+                    // page.
                     onKeyDown={event => {
                         if (event.key !== 'Enter') return;
                         event.preventDefault();
-                        onCommit(url);
+                        if (!save.isEndpoint) return;
                         event.currentTarget.blur();
-                        onGo?.();
+                        go();
                     }}
-                    onFocus={() => {
-                        clearTimeout(leaving.current);
-                        setInField(true);
-                        onFocus?.();
-                    }}
-                    onBlur={() => {
-                        leaving.current = setTimeout(() => setInField(false), 200);
-                    }}
-                    // Room for the bookmark's 28px square at the head, 4px clear of it — and for Go's
-                    // word at the tail only where Go is drawn, so a keyboard's field does not carry a
-                    // hole for a button it never shows. `pl-*`/`pr-*` rather than a wrapper's padding:
-                    // the field draws its own box, so the text has to stop short of the control, not the
-                    // box — and Tailwind emits these after `px`, which is what lets them beat the
-                    // field's own `px-4`.
-                    className={cn('pl-9', inField && '[@media(hover:none)]:pr-11', fieldClassName)}
+                    onFocus={onFocus}
+                    // Room at the tail for Go's word with the button's own padding either side, 4px clear
+                    // of it. `pr-*` rather than a wrapper's padding: the field draws its own box, so the
+                    // text has to stop short of the control, not the box — and Tailwind emits `pr` after
+                    // `px`, which is what lets it beat the field's own `px-4`.
+                    // The menu's own rule on the field, matched to the rows' plates; see the constant.
+                    className={cn('pr-10', FIELD_MENU_BORDER_CLASSES, fieldClassName)}
                     data-testid="custom-url-omnibox"
                 />
                 {/* Go ends the errand, so it sits at the far end of the address, where a send button
                     lives — and it is a word, not a glyph, so it keeps a word's width: the label with the
                     button's own padding either side of it, not a square it has to be squeezed into.
 
-                    In the field only: Go answers a question the reader is in the middle of asking, and a
-                    field nobody is typing in is not asking it — the address already applies itself. Out of
-                    the field the button would be a permanent chip riding in the middle of the menu with
-                    nothing to do, which is what a field this small can least afford.
+                    Always drawn, on every device. It used to appear only while the field had the focus
+                    and only on touch, on the grounds that the field applied itself and a keyboard had
+                    Enter; now that the field waits to be told, the button is how it is told, and a
+                    control that is the way has to be visible before the reader reaches for it.
 
-                    Touch only. A keyboard already has Go — it is Enter, which does the same three things
-                    — so on a pointer device the button is a second way to do what the field's own key
-                    does, taking room from the address to say it. A phone has no Enter worth the name:
-                    the key is on a keyboard covering half the screen, and the button is the way out.
-
-                    `right-1`: the field is `h-9` and the button `h-7`, so centring it leaves exactly 4px
-                    above and below, and the side gap has to match or it reads as off-centre in its well. */}
-                {inField && (
-                    <Button
-                        variant="accent"
-                        size="sm"
-                        onClick={() => {
-                            onCommit(url);
-                            onGo?.();
-                        }}
-                        disabled={!save.isEndpoint}
-                        title={save.isEndpoint ? 'Use this endpoint' : (missing ?? 'Enter a full RPC URL to use it')}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer [@media(hover:hover)]:hidden"
-                        data-testid="go-custom-cluster-btn"
-                    >
-                        Go
-                    </Button>
-                )}
+                    Its box is set by its distance from the field's edges — 4px above, below and to the
+                    right — rather than by a height of its own: the field is `h-9`, which leaves the
+                    button the 28px the other small buttons here are, and the three insets cannot come
+                    apart whatever the field's box turns out to be. `!h-auto` because `size="sm"` would
+                    otherwise pin the height and let the insets drift. */}
+                <Button
+                    variant="accent"
+                    size="sm"
+                    onClick={go}
+                    disabled={!save.isEndpoint}
+                    title={save.isEndpoint ? 'Use this endpoint' : (missing ?? 'Enter a full RPC URL to use it')}
+                    className={cn('absolute inset-y-1 right-1 !h-auto', MENU_PRIMARY_BUTTON_CLASSES)}
+                    data-testid="go-custom-cluster-btn"
+                >
+                    Go
+                </Button>
             </div>
             {missing && (
                 <span className={HINT_CLASSES} data-testid="save-disabled-reason">
                     {missing}
                 </span>
             )}
+            {/* Keeping the address, as a button under the field: the outlined button, the one every
+                secondary action in this menu wears — the form's Cancel, a removed row's Restore — and
+                not the accent, which is spent on Go above it; two green controls on one field would be
+                two primary actions. The same size as Go and no wider than its word, so the two read as
+                one pair of controls belonging to the field. `self-start`,
+                because the plate is a column and would otherwise stretch it to the field's width. The
+                bookmark fills in once the address is kept, and the word changes with it, so the state is
+                told twice over and read once.
+
+                The ellipsis is the promise that a name is asked for before anything is kept — the same
+                mark the `prompt` flow's "Save as…" carries, and the reason a press here does not read as
+                the save itself. Pressed, the field and this button give way to `EndpointForm` above.
+
+                Disabled, never absent. `aria-label` carries the name it is kept under, which the word
+                alone cannot: "Saved" is the state, "already saved as X" is the fact behind it. */}
+            <Button
+                variant="outline"
+                size="sm"
+                className={cn(MENU_SECONDARY_BUTTON_CLASSES, 'self-start')}
+                onClick={() => setNaming(true)}
+                disabled={!canSave}
+                aria-label={kept ? `Already saved${save.savedAs ? ` as “${save.savedAs}”` : ''}` : 'Save this endpoint'}
+                title={
+                    kept
+                        ? `Already saved${save.savedAs ? ` as “${save.savedAs}”` : ''}`
+                        : canSave
+                          ? 'Keep this endpoint under a name'
+                          : (missing ?? 'Enter a full RPC URL to save it')
+                }
+                data-testid="save-custom-cluster-btn"
+            >
+                <Bookmark strokeWidth={STROKE_ON_24} aria-hidden fill={kept ? 'currentColor' : 'none'} />
+                {kept ? 'Saved' : 'Save…'}
+            </Button>
         </>
     );
 }

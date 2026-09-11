@@ -15,7 +15,7 @@ import { useClusterHref } from './use-cluster-href';
 const COMMIT_DELAY_MS = 500;
 
 export type CustomUrlDraft = {
-    /** Call on every keystroke. */
+    /** Call on every keystroke. Whether a pause in the keystrokes applies the endpoint is `commitOnType`'s. */
     onChange: (next: string) => void;
     /**
      * Put an endpoint in the field and commit it at once, for a value the user picked rather than typed —
@@ -27,15 +27,28 @@ export type CustomUrlDraft = {
     value: string;
 };
 
+export type CustomUrlDraftOptions = {
+    /**
+     * Whether a pause in typing applies the endpoint on its own. On by default, which is how the
+     * slide-over panel's field works: it has no control of its own for applying an address, so the pause
+     * is the commit. The navbar's menu passes `false`, because its field has Go: an address that applied
+     * itself mid-thought changed the page behind the menu before the reader had finished deciding on it,
+     * and made the button a second way to do what the field already did. `select` commits either way — a
+     * picked or confirmed endpoint is a decision, not a pause.
+     */
+    commitOnType?: boolean;
+};
+
 /**
  * The state behind the custom endpoint field, which edits a value it does not own: the endpoint lives in
  * the `customUrl` query param, which is what makes a custom cluster shareable. So the field and the URL
  * bar track each other in both directions:
  *
- * - Field → URL. Typing navigates, debounced; a picked endpoint (`select`) navigates at once. Either way
- *   it is a first-party action, so it is also the consent — the origin is approved before the navigation
- *   lands, or the reader would meet the user's own endpoint as an unvetted inbound one and prompt for
- *   what they just typed.
+ * - Field → URL. Typing navigates, debounced (unless `commitOnType` is off, in which case typing only
+ *   edits the draft); a picked or confirmed endpoint (`select`) navigates at once. Either way it is a
+ *   first-party action, so it is also the consent — the origin is approved before the navigation lands,
+ *   or the reader would meet the user's own endpoint as an unvetted inbound one and prompt for what they
+ *   just typed.
  * - URL → field. A saved cluster, an in-app link or a declined prompt changes the endpoint without anyone
  *   touching the field, which has to follow or it shows an endpoint the app is not on.
  *
@@ -47,7 +60,7 @@ export type CustomUrlDraft = {
  * All three are compared as strings, since `RpcEndpoint.href` is the URL as given: a re-parsed endpoint
  * with a new object identity cannot trip the guard.
  */
-export function useCustomUrlDraft(): CustomUrlDraft {
+export function useCustomUrlDraft({ commitOnType = true }: CustomUrlDraftOptions = {}): CustomUrlDraft {
     // Always set on the Custom cluster, where the reader falls back to the default endpoint. Empty on
     // every other cluster, which is what the field shows while it is hidden.
     const { endpoint } = useCluster();
@@ -117,7 +130,7 @@ export function useCustomUrlDraft(): CustomUrlDraft {
         onChange: (next: string) => {
             intended.current = next;
             setDraftUrl(next);
-            commit(next);
+            if (commitOnType) commit(next);
         },
         select: (next: string) => {
             intended.current = next;

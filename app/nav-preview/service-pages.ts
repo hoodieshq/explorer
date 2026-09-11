@@ -20,4 +20,10 @@ export const SERVICE_PAGES: ServicePage[] = [
         note: 'Every state of the navbar cluster button, side by side.',
         path: '/nav-preview/cluster-states',
     },
+    {
+        id: 'consent-dialogs',
+        label: 'custom RPC consent dialogs',
+        note: 'Both questions the custom-endpoint consent dialog asks, side by side.',
+        path: '/nav-preview/consent-dialogs',
+    },
 ];

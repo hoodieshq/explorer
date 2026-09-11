@@ -11,7 +11,7 @@ import {
 } from '@features/cluster-switcher/client';
 import { Cluster, clusterName, CLUSTERS, clusterSlug } from '@utils/cluster';
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import {
     ACTIVE_ROW_CLASSES,
@@ -20,6 +20,7 @@ import {
     FIELD_QUIET_FOCUS_CLASSES,
     INACTIVE_ROW_CLASSES,
     ROW_CLASSES,
+    ROW_TEXT_INSET_CLASSES,
 } from './cluster-row-classes';
 import { DeveloperRow } from './ClusterDropdownBody';
 import { KnownMark } from './known-mark';
@@ -50,32 +51,44 @@ import { EndpointFieldWithSave } from './SaveEndpointFlow';
  * `SavedEndpointRow` (edit, delete, and the rules about what a delete leaves behind), and
  * `EndpointFieldWithSave`.
  */
+/** How long a deleted endpoint can be taken back — the same number the row's drain runs on. */
+const UNDO_WINDOW_MS = 10_000;
+
 export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void }) {
     const { cluster, endpoint } = useCluster();
-    const { removeSavedCluster, restoreSavedCluster, savedClusters } = useSavedClusters();
+    const { restoreSavedCluster, savedClusters } = useSavedClusters();
     const buildHref = useClusterHref();
-    const draft = useCustomUrlDraft();
+    // Typing edits the field and nothing more: Go, Enter or a picked entry is what applies an address.
+    // With the pause committing on its own, the page behind the menu changed under a half-decided URL.
+    const draft = useCustomUrlDraft({ commitOnType: false });
     /**
-     * The one entry open for editing, and whether it was opened by a save (in which case dismissing it
-     * hands the field back its outline and its cursor) or by the reader's own pencil.
+     * The one entry open for editing, from the reader's own pencil. Naming a *new* endpoint is not this:
+     * that happens under the field, where Save was pressed, and the row only ever edits what is kept.
      *
      * One at a time, and held here rather than in each row: opening a second entry closes the first,
      * discarding whatever was half-typed in it. Two open forms in a menu this size have no answer to
      * "which of these am I changing?", and the one you were not looking at is the one that would have
      * been saved by mistake.
      */
-    const [editing, setEditing] = useState<{ fromSave: boolean; url: string } | undefined>(undefined);
+    const [editing, setEditing] = useState<string | undefined>(undefined);
     /** The one row whose actions are unfolded (touch). One at a time, for the reason the row's prop gives. */
     const [actionsUrl, setActionsUrl] = useState<string | undefined>(undefined);
     /**
-     * The last endpoint removed, and where it stood, offered back for as long as this menu is open. A
-     * delete is one click and the list is the only record of an address anyone typed — there is nowhere
-     * else to look it up — so the seconds before the menu closes are worth being able to take it back in.
-     * Closing the popover unmounts this body, which is the offer expiring: after that the deletion is
+     * The last endpoint removed, and where it stood, offered back for ten seconds. A delete is one click
+     * and the list is the only record of an address anyone typed — there is nowhere else to look it up —
+     * so the seconds after are worth being able to take it back in. Ten of them and no more: a struck-out
+     * row left standing turned the list into a record of what had been deleted rather than of what is
+     * kept, and the row itself shows the time draining so the deadline is not a surprise. Closing the
+     * popover unmounts this body, which ends the offer early; either way, after that the deletion is
      * simply done.
      */
     const [removed, setRemoved] = useState<({ at: number } & SavedCluster) | undefined>(undefined);
-    /** So the cursor can be put back in the field if the naming it opened is dismissed. */
+    useEffect(() => {
+        if (removed === undefined) return;
+        const timer = setTimeout(() => setRemoved(undefined), UNDO_WINDOW_MS);
+        return () => clearTimeout(timer);
+    }, [removed]);
+    /** The address field, for the caret placement below. */
     const fieldRef = useRef<HTMLInputElement>(null);
     /**
      * The caret is placed at the end of the text once, on the first reach into the field, and never again.
@@ -145,7 +158,7 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
             {/* Both headings carry the search panel's group spacing (`SearchGroupHeading`): twice the
                 air above as below, because a heading belongs to what follows it. The first one needs less
                 above it — there is the popover's own padding and nothing to be separated from. */}
-            <div className={cn(CAPTION_CLASSES, 'px-3 pb-2 pt-2')}>Cluster</div>
+            <div className={cn(CAPTION_CLASSES, ROW_TEXT_INSET_CLASSES, 'pb-2 pt-2')}>Cluster</div>
 
             <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
                 {CLUSTERS.filter(net => net !== Cluster.Custom).map(net => (
@@ -183,7 +196,7 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
                 <>
                     {/* Named, unlike v3.4's, because here the list is not equipment under a field — it is
                         the second group of choices in the menu, and it needs to say whose they are. */}
-                    <div className={cn(CAPTION_CLASSES, 'px-3 pb-2 pt-6')}>Your endpoints</div>
+                    <div className={cn(CAPTION_CLASSES, ROW_TEXT_INSET_CLASSES, 'pb-2 pt-6')}>Your endpoints</div>
                     <ul className="m-0 flex list-none flex-col gap-0.5 p-0" data-testid="saved-clusters-section">
                         {listed.map(saved => (
                             <SavedEndpointRow
@@ -205,6 +218,7 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
                                 }
                                 locked={saved.url === pinned.url}
                                 removed={saved === removed}
+                                undoWindowMs={UNDO_WINDOW_MS}
                                 onRestore={() => {
                                     if (removed) restoreSavedCluster(removed);
                                     setRemoved(undefined);
@@ -218,20 +232,9 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
                                 savedClusters={savedClusters}
                                 cluster={cluster}
                                 activeUrl={endpoint?.href}
-                                editing={editing?.url === saved.url}
-                                onEditOpen={() => setEditing({ fromSave: false, url: saved.url })}
-                                // Dismissed rather than committed, and opened by a save: cancelling the
-                                // form the save opened cancels the save. The two are one act — a click on
-                                // the bookmark and the name it asks for — so leaving it by Cancel has to
-                                // put the address back where it was, unkept, rather than leave a nameless
-                                // entry behind and a filled bookmark saying the opposite. The field then
-                                // takes back the outline and the cursor it had when it saved.
-                                onEditClose={cancelled => {
-                                    if (cancelled && editing?.fromSave) {
-                                        removeSavedCluster(editing.url);
-                                        setCustomChosen(true);
-                                        fieldRef.current?.focus();
-                                    }
+                                editing={editing === saved.url}
+                                onEditOpen={() => setEditing(saved.url)}
+                                onEditClose={() => {
                                     setEditing(undefined);
                                     // The row comes back as a row, so it comes back folded: the actions
                                     // were open because the reader was on their way into this form, and
@@ -261,7 +264,7 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
 
                 The search panel's group spacing (`SearchGroupHeading`): twice the air above as below,
                 because a heading belongs to what follows it. */}
-            <div className={cn(CAPTION_CLASSES, 'px-3 pb-2 pt-6')}>Custom RPC URL</div>
+            <div className={cn(CAPTION_CLASSES, ROW_TEXT_INSET_CLASSES, 'pb-2 pt-6')}>Custom RPC URL</div>
 
             {/* The plate is a row's box with the field inside it, so "chosen" is drawn in the menu's own
                 language on the menu's own element — and the field stays the design system's field. */}
@@ -291,14 +294,9 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
                             node?.setSelectionRange(node.value.length, node.value.length);
                         });
                     }}
-                    // Saving hands the endpoint over to the list, and the cursor with it: the row that
-                    // just appeared opens its name field, so the field here stops being the chosen thing
-                    // and lets go of the outline. The typing that follows is about the name, not the
-                    // address.
-                    onSaved={url => {
-                        setCustomChosen(false);
-                        setEditing({ fromSave: true, url });
-                    }}
+                    // Named and kept, the endpoint is the list's now: the row that has just appeared for
+                    // it takes the outline, and the field here lets go of it.
+                    onSaved={() => setCustomChosen(false)}
                     // `listed`, not `savedClusters`: the pinned default is in the list as far as the
                     // reader is concerned, so the field must not offer to save it a second time. It reads
                     // "Saved" on that address, like any other endpoint already kept.

@@ -52,7 +52,9 @@ export function ClusterFieldFirstBody() {
     const { cluster, endpoint } = useCluster();
     const { savedClusters } = useSavedClusters();
     const buildHref = useClusterHref();
-    const draft = useCustomUrlDraft();
+    // Typing edits the field and nothing more: Go, Enter or a picked entry is what applies an address.
+    // With the pause committing on its own, the page behind the menu changed under a half-decided URL.
+    const draft = useCustomUrlDraft({ commitOnType: false });
     /** The one entry open for editing: opening another closes it, so a menu never holds two half-filled
      *  forms with no way to tell which one a save would take. */
     const [editingUrl, setEditingUrl] = useState<string | undefined>(undefined);
@@ -132,7 +134,8 @@ export function ClusterFieldFirstBody() {
                     <EndpointFieldWithSave
                         draft={fieldDraft}
                         onFocus={() => setCustomChosen(true)}
-                        onSaved={setEditingUrl}
+                        // Named under the field; the new row takes the outline from it.
+                        onSaved={() => setCustomChosen(false)}
                         savedClusters={savedClusters}
                     />
                 </li>

@@ -17,7 +17,13 @@ import { useAtom, useAtomValue } from 'jotai';
 import Link from 'next/link';
 import React, { useState } from 'react';
 
-import { ACTIVE_ROW_CLASSES, CAPTION_CLASSES, INACTIVE_ROW_CLASSES, ROW_CLASSES } from './cluster-row-classes';
+import {
+    ACTIVE_ROW_CLASSES,
+    CAPTION_CLASSES,
+    INACTIVE_ROW_CLASSES,
+    ROW_CLASSES,
+    ROW_TEXT_INSET_CLASSES,
+} from './cluster-row-classes';
 import { ICON_SETS, iconSetAtom } from './icon-sets';
 import { saveFlowVariantAtom } from './save-flow-variants';
 import { SavedEndpointRow } from './SavedEndpointRow';
@@ -261,10 +267,9 @@ export function ClusterDropdownBody() {
                     active={showCustomPlate}
                     draft={fieldDraft}
                     onOpen={() => setCustomOpen(true)}
-                    onSaved={url => {
-                        setCustomOpen(true);
-                        setEditingUrl(url);
-                    }}
+                    // Named under the field now, so nothing in the list has to open for it; the plate
+                    // stays up because the reader is still in it.
+                    onSaved={() => setCustomOpen(true)}
                     savedClusters={savedClusters}
                     activeFacts={activeFacts}
                 />
@@ -404,18 +409,33 @@ export function DeveloperRow() {
     };
 
     return (
-        <div className="flex items-start justify-between gap-3 px-3 pb-1.5 pt-1">
+        <div className={cn('flex items-start justify-between gap-3 pb-1.5 pt-1', ROW_TEXT_INSET_CLASSES)}>
             <label htmlFor="nav-cluster-trust-toggle" className="flex min-w-0 cursor-pointer flex-col leading-tight">
                 {/* White, like the row it switches: this is the setting's name, the line under it is what
                     the setting does. */}
-                <span className="text-sm text-white">Trust any customUrl param</span>
+                {/* Said the way the dialog it opens says it, in plain words: the setting is about servers
+                    that links choose, and "customUrl param" named the mechanism rather than the thing. */}
+                <span className="text-sm text-white">Trust any RPC server</span>
                 <span className="mt-1 text-xs text-outer-space-300">
-                    Connect without asking. Only for your own endpoints.
+                    {/* The one word first: what this switch is has to be read before what it does, and a
+                        reader skimming a menu reads the first word. In the warning's colour only while the
+                        switch is on — lit, it is a state the menu is reporting; off, it is a description,
+                        and a red word beside an idle switch read as an alarm about nothing. */}
+                    <span className={cn(enabled && 'text-dk-danger')}>Unsafe.</span> Lets links connect to their own
+                    server without asking. Only for your own endpoints.
                 </span>
             </label>
             <Switch
                 id="nav-cluster-trust-toggle"
-                className="mt-0.5"
+                // `-mr-0.5`: the switch's box carries a 2px transparent border (the room its focus ring
+                // needs), so its visible track sat 2px short of the edge the address field reaches.
+                // On, the track is the warning's colour, not the accent: the accent is what a healthy
+                // connection and a primary action wear, and this being on is neither — it is the same
+                // state the dialog that turned it on was coloured for. Off, the track is the grey the
+                // menu's rules are drawn in (`neutral-600`) rather than the component's near-white: on
+                // that the white thumb all but vanished, and the whole control read as a pale slab. `!`
+                // because `cn` is clsx-only.
+                className="-mr-0.5 mt-0.5 data-[state=checked]:!bg-dk-danger data-[state=unchecked]:!bg-neutral-600"
                 checked={enabled}
                 onCheckedChange={onCheckedChange}
             />

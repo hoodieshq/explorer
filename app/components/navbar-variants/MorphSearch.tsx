@@ -236,7 +236,8 @@ export function MorphSearch({
     // offsetParent, since nothing between them is positioned). A passive effect, not a layout one: the
     // spacer is a later sibling, and React attaches refs and runs layout effects in one tree-order pass,
     // so at this component's layout effect the spacer's ref is still null. The box stays `invisible` until
-    // the first measurement lands, so it is never painted at a stale place. Re-measured whenever the row or
+    // the first measurement lands, so it is never painted at a stale place — unless the caller also gave
+    // rest insets as classes, which then stand in for the first paint. Re-measured whenever the row or
     // the spacer changes size, since the text row beside the spacer reflows with the viewport.
     useEffect(() => {
         const slot = slotRef?.current;
@@ -261,10 +262,11 @@ export function MorphSearch({
      * An inset shadow, which is what this was, cannot be it: a shadow is drawn inside the padding box, a
      * pixel in from the border it is meant to be, and that pixel shows.
      *
-     * A background cannot be faded, so the ring is *grown* instead: the gradient layer goes from no size
-     * at all to the full box, anchored at the corner it comes from, which reads as light spreading out of
-     * that corner and drawing back into it. The border's own colour goes transparent underneath, so the
-     * grey rule is what shows until the light covers it.
+     * The ring fades in and out. A background cannot be faded, but the rule over it can: the gradient is
+     * painted in full for as long as it is mounted, under the frame's own opaque grey rule, and it is that
+     * rule's colour that moves — to transparent, which lets the light through, and back to grey, which
+     * covers it. It used to be *grown* instead, from no size at the bottom-left corner to the whole box,
+     * which read as light spreading out of a corner; a plain fade was asked for in its place.
      *
      * Durations are per property rather than one for all: the morph's `left`/`right` keep their 300ms in
      * both directions, while the ring takes 100ms in and four times that out.
@@ -294,10 +296,10 @@ export function MorphSearch({
                   backgroundOrigin: 'border-box',
                   backgroundPosition: '0 0, left bottom',
                   backgroundRepeat: 'no-repeat',
-                  backgroundSize: focused ? '100% 100%, 100% 100%' : '100% 100%, 0% 0%',
+                  backgroundSize: '100% 100%, 100% 100%',
                   borderColor: focused ? 'transparent' : undefined,
-                  transitionDuration: focused ? '300ms, 300ms, 100ms, 100ms' : '300ms, 300ms, 400ms, 400ms',
-                  transitionProperty: 'left, right, background-size, border-color',
+                  transitionDuration: focused ? '300ms, 300ms, 100ms' : '300ms, 300ms, 400ms',
+                  transitionProperty: 'left, right, border-color',
               }
             : focusGlow === 'halo'
               ? {
@@ -407,7 +409,10 @@ export function MorphSearch({
             className={cn(
                 'absolute bottom-0 top-0 z-10 flex items-center overflow-hidden',
                 'transition-[left,right,background-color,border-color] duration-300 ease-out motion-reduce:transition-none',
-                slotRef && !slotInsets && 'invisible',
+                // Hidden until measured only where there is nothing else to place it by: a caller that
+                // also hands in rest insets as classes has given the first paint a place, and the
+                // measurement then corrects it rather than revealing it.
+                slotRef && !slotInsets && !restClassName && 'invisible',
                 'group/frame',
                 frameClasses,
                 dock.frame,

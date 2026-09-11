@@ -91,45 +91,43 @@ describe('ClusterDropdownBody', () => {
         });
     });
 
-    // The Save button inside the field: one click keeps the endpoint, and the name is asked for in the row
-    // that appears — where it can be left blank and written later.
+    // The Save button under the field: it unfolds the name right there, and nothing is kept until the
+    // tick. The row's own form is for editing what is already in the list.
     describe('the omnibox save flow', () => {
         const SAVE = 'save-custom-cluster-btn';
 
-        it('should keep the endpoint on the first click, with no name', () => {
+        it('should ask for the name under the field and keep nothing yet', () => {
             const { store } = renderBody({ variant: 'omnibox' });
             fireEvent.click(screen.getByTestId(SAVE));
-            expect(store.get(savedClustersAtom)).toEqual([{ name: '', url: CUSTOM_URL }]);
-        });
-
-        it('should ask for the name in the row it just saved', () => {
-            renderBody({ variant: 'omnibox' });
+            expect(screen.getByTestId('cluster-name-input')).toBeInTheDocument();
             expect(screen.queryByTestId(`rename-cluster-input-${CUSTOM_URL}`)).not.toBeInTheDocument();
-            fireEvent.click(screen.getByTestId(SAVE));
-            expect(screen.getByTestId(`rename-cluster-input-${CUSTOM_URL}`)).toHaveValue('');
-            // The placeholder names the field rather than guessing at a name: the host is already on the
-            // row, and offering it here read as a value that had been filled in. One word, because the
-            // caption above the pair has already said what they are endpoints of.
-            expect(screen.getByTestId(`rename-cluster-input-${CUSTOM_URL}`)).toHaveAttribute('placeholder', 'Name');
+            expect(store.get(savedClustersAtom)).toEqual([]);
         });
 
         it('should store the name written there', () => {
             const { store } = renderBody({ variant: 'omnibox' });
             fireEvent.click(screen.getByTestId(SAVE));
-            fireEvent.change(screen.getByTestId(`rename-cluster-input-${CUSTOM_URL}`), {
-                target: { value: 'My validator' },
-            });
-            fireEvent.click(screen.getByTestId(`confirm-rename-cluster-${CUSTOM_URL}`));
+            fireEvent.change(screen.getByTestId('cluster-name-input'), { target: { value: 'My validator' } });
+            fireEvent.click(screen.getByTestId('confirm-save-cluster-btn'));
             expect(store.get(savedClustersAtom)).toEqual([{ name: 'My validator', url: CUSTOM_URL }]);
+            expect(screen.queryByTestId('cluster-name-input')).not.toBeInTheDocument();
         });
 
-        // The point of saving first: an unanswered name costs nothing.
-        it('should leave the entry unnamed when the name is left blank', () => {
+        // As when editing: nothing is required of the name, and an unnamed entry is headed by its host.
+        it('should keep the entry unnamed when the name is left blank', () => {
             const { store } = renderBody({ variant: 'omnibox' });
             fireEvent.click(screen.getByTestId(SAVE));
-            fireEvent.click(screen.getByTestId(`confirm-rename-cluster-${CUSTOM_URL}`));
+            expect(screen.getByTestId('cluster-name-input')).toHaveAttribute('placeholder', 'Endpoint name');
+            fireEvent.keyDown(screen.getByTestId('cluster-name-input'), { key: 'Enter' });
             expect(store.get(savedClustersAtom)).toEqual([{ name: '', url: CUSTOM_URL }]);
-            expect(screen.queryByTestId(`rename-cluster-input-${CUSTOM_URL}`)).not.toBeInTheDocument();
+        });
+
+        it('should keep nothing when the naming is dismissed', () => {
+            const { store } = renderBody({ variant: 'omnibox' });
+            fireEvent.click(screen.getByTestId(SAVE));
+            fireEvent.click(screen.getByTestId('cancel-save-cluster-btn'));
+            expect(store.get(savedClustersAtom)).toEqual([]);
+            expect(screen.getByTestId(SAVE)).toBeEnabled();
         });
 
         it('should head an unnamed entry with its host, since that is all there is to call it', () => {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { Cluster, ClusterStatus } from '@utils/cluster';
 import { createStore, Provider } from 'jotai';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -193,6 +193,43 @@ describe('ClusterCustomLastBody (v3.5)', () => {
         ]);
     });
 
+    // Ten seconds, and the row says how many are left: a struck-out row left standing turned the list
+    // into a record of deletions, and a row that vanished without warning took the way back with it.
+    it('should withdraw the way back after ten seconds, drawing the time draining meanwhile', () => {
+        vi.useFakeTimers();
+        try {
+            const { store } = renderBody([{ name: 'Staging', url: OTHER_URL }]);
+            fireEvent.click(screen.getByTestId(`delete-cluster-${OTHER_URL}`));
+            expect(screen.getByTestId(`undo-drain-${OTHER_URL}`)).toBeInTheDocument();
+            act(() => vi.advanceTimersByTime(9_900));
+            expect(screen.getByTestId(`restore-cluster-${OTHER_URL}`)).toBeInTheDocument();
+            act(() => vi.advanceTimersByTime(200));
+            expect(screen.queryByTestId(`restore-cluster-${OTHER_URL}`)).not.toBeInTheDocument();
+            expect(screen.queryByTestId(`saved-cluster-${OTHER_URL}`)).not.toBeInTheDocument();
+            expect(store.get(savedClustersAtom)).toEqual([]);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    // A second deletion starts its own ten seconds; the first one's clock must not cut it short.
+    it('should give a later deletion its own ten seconds', () => {
+        vi.useFakeTimers();
+        try {
+            renderBody([
+                { name: 'Staging', url: OTHER_URL },
+                { name: 'Local', url: 'http://localhost:9999' },
+            ]);
+            fireEvent.click(screen.getByTestId(`delete-cluster-${OTHER_URL}`));
+            act(() => vi.advanceTimersByTime(8_000));
+            fireEvent.click(screen.getByTestId('delete-cluster-http://localhost:9999'));
+            act(() => vi.advanceTimersByTime(5_000));
+            expect(screen.getByTestId('restore-cluster-http://localhost:9999')).toBeInTheDocument();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it('should put it back where it stood', () => {
         const { store } = renderBody([
             { name: 'Staging', url: OTHER_URL },
@@ -353,18 +390,31 @@ describe('ClusterCustomLastBody (v3.5)', () => {
         expect(onDismiss).toHaveBeenCalled();
     });
 
-    // Go answers a question the reader is in the middle of asking; a field nobody is typing in is not
-    // asking it, and a button standing there permanently takes room from the address for nothing.
-    it('should keep Go out of the field until the reader is in it', () => {
+    // Nothing in the field applies itself, so Go is how an address is put to use — and a control that is
+    // the way has to be there before the reader reaches for it, on a keyboard as much as on a phone.
+    it('should offer Go before the field is reached into', () => {
         renderBody();
-        expect(screen.queryByTestId('go-custom-cluster-btn')).not.toBeInTheDocument();
-        fireEvent.focus(screen.getByTestId('custom-url-omnibox'));
         expect(screen.getByTestId('go-custom-cluster-btn')).toBeInTheDocument();
     });
 
+    // Typing is deciding, not choosing: the page behind the menu must not change under a half-decided
+    // address, however long the pause.
+    it('should not apply a typed endpoint until Go is pressed', () => {
+        vi.useFakeTimers();
+        try {
+            renderBody();
+            const field = screen.getByTestId('custom-url-omnibox');
+            fireEvent.change(field, { target: { value: 'http://typed-node:8899' } });
+            act(() => vi.advanceTimersByTime(2000));
+            expect(field).toHaveValue('http://typed-node:8899');
+            expect(nav.replace).not.toHaveBeenCalled();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     // Go is the field's way of saying "this one" — the same errand as picking a row, so it ends the same
-    // way: applied, and the menu out of the way. (It is drawn on touch only; the CSS that hides it where
-    // there is a keyboard is a media query, which jsdom has nothing to say about.)
+    // way: applied, and the menu out of the way.
     it('should apply the typed endpoint and shut the menu when Go is pressed', () => {
         const { onDismiss } = renderBody();
         const field = screen.getByTestId('custom-url-omnibox');
@@ -384,6 +434,40 @@ describe('ClusterCustomLastBody (v3.5)', () => {
         fireEvent.focus(field);
         fireEvent.change(field, { target: { value: 'my-validator' } });
         expect(screen.getByTestId('go-custom-cluster-btn')).toBeDisabled();
+    });
+
+    // Enter answers to the same rule as the button: on half an address it must not shut the menu over a
+    // page it has not changed.
+    it('should ignore Enter while the field holds half an address', () => {
+        const { onDismiss } = renderBody();
+        const field = screen.getByTestId('custom-url-omnibox');
+        fireEvent.focus(field);
+        fireEvent.change(field, { target: { value: 'my-validator' } });
+        nav.replace.mockClear();
+        fireEvent.keyDown(field, { key: 'Enter' });
+        expect(nav.replace).not.toHaveBeenCalled();
+        expect(onDismiss).not.toHaveBeenCalled();
+    });
+
+    // A button that comes and goes has to be found; one that is greyed out is already found.
+    it('should keep Save on screen, disabled, while there is nothing to keep', () => {
+        renderBody();
+        const field = screen.getByTestId('custom-url-omnibox');
+        fireEvent.change(field, { target: { value: 'my-validator' } });
+        expect(screen.getByTestId('save-custom-cluster-btn')).toBeDisabled();
+        fireEvent.change(field, { target: { value: '' } });
+        expect(screen.getByTestId('save-custom-cluster-btn')).toBeDisabled();
+        fireEvent.change(field, { target: { value: OTHER_URL } });
+        expect(screen.getByTestId('save-custom-cluster-btn')).toBeEnabled();
+    });
+
+    // The ellipsis says a name is asked for before anything is kept.
+    it('should offer "Save…" on a new address and read "Saved" once it is kept', () => {
+        renderBody();
+        expect(screen.getByTestId('save-custom-cluster-btn')).toHaveTextContent('Save…');
+        renderBody([{ name: 'My validator', url: CUSTOM_URL }]);
+        expect(screen.getAllByTestId('save-custom-cluster-btn').at(-1)).toHaveTextContent('Saved');
+        expect(screen.getAllByTestId('save-custom-cluster-btn').at(-1)).toBeDisabled();
     });
 
     it('should shut the menu when an endpoint is picked from the list', () => {
@@ -473,50 +557,111 @@ describe('ClusterCustomLastBody (v3.5)', () => {
         expect(screen.getAllByTestId('custom-field-plate').at(-1)).not.toHaveClass('border-white/10');
     });
 
-    // Saving hands the endpoint to the list and the cursor with it: the row that appears opens its name
-    // field, so the address field stops being the chosen thing.
-    it('should let go of the outline when an endpoint is saved', () => {
+    // The name is asked for where Save was pressed — under the field — and nothing is kept until it is
+    // answered. The list's own form is for editing what is already there.
+    it('should ask for the name under the field, keeping nothing yet', () => {
+        const { store } = renderBody();
+        fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
+        expect(screen.getByTestId('cluster-name-input')).toHaveValue('');
+        expect(screen.getByTestId('cluster-name-input')).toHaveAttribute('placeholder', 'Endpoint name');
+        // The very form the list edits with, with the typed address already in it: the field and its Go
+        // have given way to it.
+        expect(screen.getByTestId('save-cluster-url')).toHaveValue(CUSTOM_URL);
+        expect(screen.queryByTestId('custom-url-omnibox')).not.toBeInTheDocument();
+        expect(screen.queryByTestId('go-custom-cluster-btn')).not.toBeInTheDocument();
+        expect(screen.queryByTestId(`rename-cluster-input-${CUSTOM_URL}`)).not.toBeInTheDocument();
+        expect(screen.queryByTestId(`pick-cluster-${CUSTOM_URL}`)).not.toBeInTheDocument();
+        expect(store.get(savedClustersAtom)).toEqual([]);
+    });
+
+    // The reader is still working in the plate while they name the endpoint, so it keeps the outline.
+    it('should keep the outline on the field while the name is being asked for', () => {
         renderBody();
         fireEvent.focus(screen.getByTestId('custom-url-omnibox'));
-        expect(screen.getByTestId('custom-field-plate')).toHaveClass('border-white/10');
         fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
-        expect(screen.getByTestId(`rename-cluster-input-${CUSTOM_URL}`)).toBeInTheDocument();
-        expect(screen.getByTestId('custom-field-plate')).not.toHaveClass('border-white/10');
+        expect(screen.getByTestId('custom-field-plate')).toHaveClass('border-white/10');
     });
 
-    it('should take the outline and the cursor back when the naming is dismissed', () => {
+    it('should put the cursor back in the field when the naming is dismissed', () => {
         renderBody();
         fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        fireEvent.click(screen.getByTestId('cancel-save-cluster-btn'));
         expect(screen.getByTestId('custom-field-plate')).toHaveClass('border-white/10');
         expect(screen.getByTestId('custom-url-omnibox')).toHaveFocus();
+        // ...and Go is back, the address being open to question again.
+        expect(screen.getByTestId('go-custom-cluster-btn')).toBeInTheDocument();
     });
 
-    // Cancelling the form the save opened cancels the save: the two are one act, so an entry must not be
-    // left behind — nor a filled bookmark saying the address is kept when it is not.
-    it('should take the entry back when the naming is dismissed', () => {
-        renderBody();
+    // Backing out keeps nothing: there was never an entry to take back, so none can be left behind.
+    it('should keep nothing when the naming is dismissed', () => {
+        const { store } = renderBody();
         fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
-        expect(screen.getByTestId(`rename-cluster-input-${CUSTOM_URL}`)).toBeInTheDocument();
-        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        fireEvent.click(screen.getByTestId('cancel-save-cluster-btn'));
+        expect(store.get(savedClustersAtom)).toEqual([]);
         expect(screen.queryByTestId(`pick-cluster-${CUSTOM_URL}`)).not.toBeInTheDocument();
         expect(screen.getByTestId('save-custom-cluster-btn')).toBeEnabled();
     });
 
-    // ...and committing it keeps it, cancel being the only way out that undoes anything.
-    it('should keep the entry once the name is committed', () => {
-        renderBody();
+    // ...and the tick keeps it under the name written, which then heads its new row in the list.
+    it('should keep the entry under the name written once it is committed', () => {
+        const { store } = renderBody();
         fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
-        fireEvent.click(screen.getByTestId(`confirm-rename-cluster-${CUSTOM_URL}`));
-        expect(screen.getByTestId(`pick-cluster-${CUSTOM_URL}`)).toBeInTheDocument();
+        fireEvent.change(screen.getByTestId('cluster-name-input'), { target: { value: 'My validator' } });
+        fireEvent.click(screen.getByTestId('confirm-save-cluster-btn'));
+        expect(store.get(savedClustersAtom)).toEqual([{ name: 'My validator', url: CUSTOM_URL }]);
+        expect(screen.getByTestId(`pick-cluster-${CUSTOM_URL}`)).toHaveTextContent('My validator');
         expect(screen.getByTestId('save-custom-cluster-btn')).toBeDisabled();
     });
 
-    it('should keep the outline off once the name is committed', () => {
-        renderBody();
+    // As when editing: nothing is required of the name, and an unnamed entry is headed by its host.
+    it('should keep the entry unnamed when the name is left blank', () => {
+        const { store } = renderBody();
         fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
-        fireEvent.click(screen.getByTestId(`confirm-rename-cluster-${CUSTOM_URL}`));
+        fireEvent.click(screen.getByTestId('confirm-save-cluster-btn'));
+        expect(store.get(savedClustersAtom)).toEqual([{ name: '', url: CUSTOM_URL }]);
+        expect(screen.getByTestId(`pick-cluster-${CUSTOM_URL}`)).toHaveTextContent('my-validator:8899');
+    });
+
+    // The address is half of the entry, so the form lets it be corrected before it is kept — and the
+    // field follows, or it would show one endpoint while the list had just been handed another.
+    it('should keep the address as corrected in the form', () => {
+        const { store } = renderBody();
+        fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
+        fireEvent.change(screen.getByTestId('save-cluster-url'), { target: { value: OTHER_URL } });
+        fireEvent.click(screen.getByTestId('confirm-save-cluster-btn'));
+        expect(store.get(savedClustersAtom)).toEqual([{ name: '', url: OTHER_URL }]);
+        expect(screen.getByTestId('custom-url-omnibox')).toHaveValue(OTHER_URL);
+    });
+
+    // The same two refusals an edit meets, in the same words.
+    it('should refuse to keep half an address, saying so under the form', () => {
+        const { store } = renderBody();
+        fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
+        fireEvent.change(screen.getByTestId('save-cluster-url'), { target: { value: 'my-validator' } });
+        fireEvent.click(screen.getByTestId('confirm-save-cluster-btn'));
+        expect(screen.getByTestId('save-cluster-error')).toHaveTextContent('not a full RPC URL');
+        expect(store.get(savedClustersAtom)).toEqual([]);
+        expect(screen.getByTestId('save-cluster-url')).toBeInTheDocument();
+    });
+
+    it('should refuse an address another entry already holds', () => {
+        const { store } = renderBody([{ name: 'Staging', url: OTHER_URL }]);
+        fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
+        fireEvent.change(screen.getByTestId('save-cluster-url'), { target: { value: OTHER_URL } });
+        fireEvent.click(screen.getByTestId('confirm-save-cluster-btn'));
+        expect(screen.getByTestId('save-cluster-error')).toHaveTextContent('Another saved endpoint');
+        expect(store.get(savedClustersAtom)).toEqual([{ name: 'Staging', url: OTHER_URL }]);
+    });
+
+    // Named and kept, the endpoint is the list's: its new row takes the outline from the field.
+    it('should hand the outline to the new row once the name is committed', () => {
+        renderBody();
+        fireEvent.focus(screen.getByTestId('custom-url-omnibox'));
+        fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
+        fireEvent.change(screen.getByTestId('cluster-name-input'), { target: { value: 'Mine' } });
+        fireEvent.click(screen.getByTestId('confirm-save-cluster-btn'));
         expect(screen.getByTestId('custom-field-plate')).not.toHaveClass('border-white/10');
+        expect(screen.getByTestId(`pick-cluster-${CUSTOM_URL}`)).toHaveAttribute('aria-current', 'true');
     });
 
     // As in v3.4: the connection is on the control that opens the menu, not repeated inside it.

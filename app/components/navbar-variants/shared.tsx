@@ -44,8 +44,10 @@ const CONTROL_GROUND = 'oklch(30.098% 0.01205 160.58)';
  * the bottom-left corner and all but gone by the far one, painted to the border box with the fill laid
  * back over the padding box so the corner radius survives — `border-image` would drop it.
  *
- * A background cannot be faded, so the light is *grown*: the gradient layer goes from no size to the whole
- * box, anchored at the corner it comes from. 100ms in, four times that out, as the field has it.
+ * The light fades in and out rather than growing out of a corner. A background cannot be faded, but the
+ * rule over it can: the gradient is painted in full the whole time, under the control's own opaque grey
+ * rule, and it is that rule's colour that moves — to transparent, which lets the light through, and back
+ * to grey, which covers it. 100ms in, four times that out, as the field has it.
  *
  * Taken as a whole rather than as a class per state: an inline background-size would beat any utility, so
  * both halves of the switch have to come from here. `lit` covers focus *and* the open surface — tapping a
@@ -62,10 +64,10 @@ export function focusRuleStyle(lit: boolean): CSSProperties {
         backgroundOrigin: 'border-box',
         backgroundPosition: '0 0, left bottom',
         backgroundRepeat: 'no-repeat',
-        backgroundSize: lit ? '100% 100%, 100% 100%' : '100% 100%, 0% 0%',
+        backgroundSize: '100% 100%, 100% 100%',
         borderColor: lit ? 'transparent' : undefined,
         transitionDuration: lit ? '100ms' : '400ms',
-        transitionProperty: 'background-size, border-color',
+        transitionProperty: 'border-color',
     };
 }
 

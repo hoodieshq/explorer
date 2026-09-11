@@ -81,6 +81,18 @@ export const INACTIVE_ROW_CLASSES = 'border-transparent bg-transparent';
 export const CAPTION_CLASSES = 'text-xs font-normal uppercase text-outer-space-300';
 
 /**
+ * The side inset for anything in this menu that is *not* a row — a caption, the developer setting — so its
+ * text lines up with the rows' text. A row's text sits 13px in: its 12px padding plus the 1px rule every
+ * row reserves. A caption with the rows' own `px-3` and no rule of its own therefore landed a pixel left of
+ * the text under it, and the switch a pixel right of the rows' facts.
+ */
+export const ROW_TEXT_INSET_CLASSES = 'px-[13px]';
+
+/** The caption above a field, in the panel's caption voice one step smaller — it labels a control, not a
+ *  group of rows. */
+export const FIELD_CAPTION_CLASSES = 'text-[10px] font-medium uppercase tracking-[0.12em] text-outer-space-300';
+
+/**
  * The Custom choice while it is the one in use: not a row but a plate, holding the name of the choice and
  * the field that belongs to it on one ground. The field used to sit outside the fill, which made it look
  * like a section that merely followed the row rather than the equipment *of* it.
@@ -104,8 +116,12 @@ export const CUSTOM_PLATE_CLASSES = 'flex w-full flex-col gap-1.5 rounded-md bor
  * on its own element, and the field goes on behaving like every other field in the app.
  *
  * Pair it with `ACTIVE_ROW_CLASSES` / `INACTIVE_ROW_CLASSES`, exactly as a row is.
+ *
+ * `pb-3` against `pt-2`, the same as an unfolded row's plate (`CUSTOM_PLATE_CLASSES`) and the edit form's:
+ * the plate holds the endpoint form when Save is pressed, and with 8px under it that form sat four pixels
+ * shorter than the very same form in the list above — the one place a reader sees the two together.
  */
-export const FIELD_PLATE_CLASSES = 'flex w-full flex-col gap-1.5 rounded-md border border-solid px-3 py-2';
+export const FIELD_PLATE_CLASSES = 'flex w-full flex-col gap-1.5 rounded-md border border-solid px-3 pb-3 pt-2';
 
 /**
  * The field's focus mark, quieted for a menu — thinner, not recoloured. The design system announces focus
@@ -119,3 +135,35 @@ export const FIELD_PLATE_CLASSES = 'flex w-full flex-col gap-1.5 rounded-md bord
  */
 export const FIELD_QUIET_FOCUS_CLASSES =
     'focus-visible:!ring-1 focus-visible:!ring-accent focus-visible:!ring-offset-0';
+
+/**
+ * A field's rule at rest, matched to the outlined button's (`variant="outline"`, `neutral-600`) — the
+ * "Save…" that stands right under the address field, the form's Cancel, a row's Restore — so a field and
+ * the button beside it are drawn in one line. The design system's dark field draws its rule in
+ * `outer-space-950`, a near black that on this ground read as no rule at all. `!important` because `cn`
+ * is clsx-only and the variant's own `border-*` would otherwise win by emission order. Focus is still the
+ * ring's to say.
+ */
+export const FIELD_MENU_BORDER_CLASSES = '!border-neutral-600';
+
+/**
+ * A secondary button in this menu — the "Save…" that opens the form, its Cancel, a removed row's Restore:
+ * the outlined button standing on the field's own ground rather than on none. Outlined alone it was a rule
+ * around a hole: these buttons stand on the chosen row's plate, and a transparent fill on that plate is
+ * the plate, so the button had only its 1px rule to be seen by. `heavy-metal-900` is what the fields in
+ * the same plate are filled with, so a button and a field read as two controls on one footing, and it is
+ * a clear step darker than the plate's `outer-space-800`. Hover lifts it half a step, still short of the
+ * plate. `!important` for the reason every override here carries it: `cn` is clsx-only.
+ */
+export const MENU_SECONDARY_BUTTON_CLASSES = 'cursor-pointer !bg-heavy-metal-900 hover:!bg-heavy-metal-850';
+
+/**
+ * A primary button in this menu — Go in the field, Save in the form — sized to read the same as the
+ * secondary one beside it. Both boxes are 28px, but a box is not what the eye measures: the outlined
+ * button's rule is a dark grey a shade off the ground, so what reads as the button is the 26px of fill
+ * inside it, while the accent one was filled to its very edge and so read two pixels taller and wider.
+ * The accent button therefore carries the same 1px rule, transparent, and paints its fill inside it
+ * (`bg-clip-padding`): the same 26px shape, on the same 28px box, with the same hit area. `!border`
+ * because the accent variant sets `border-0` and `cn` is clsx-only.
+ */
+export const MENU_PRIMARY_BUTTON_CLASSES = 'cursor-pointer !border border-solid border-transparent bg-clip-padding';
