@@ -96,12 +96,29 @@ describe('PmpDetailsCard', () => {
         expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('company');
     });
 
+    it('should show the payload data hash on a rendered card, not only in DataPayloadSection isolation', () => {
+        const ix = makeIx(
+            getSetDataInstructionDataEncoder().encode({
+                compression: Compression.None,
+                data: new TextEncoder().encode(DOC),
+                dataSource: DataSource.Direct,
+                encoding: Encoding.Utf8,
+                format: Format.Json,
+            }) as Uint8Array,
+            [METADATA_PDA, AUTHORITY, PMP, PMP, PMP],
+        );
+
+        renderCard(ix);
+
+        expect(screen.getByTestId('pmp-payload-data-hash')).toBeInTheDocument();
+    });
+
     it('should render the updated hints and the header-only note for a 4-byte setData', () => {
         renderCard(makeIx(new Uint8Array([3, 1, 0, 1]), [METADATA_PDA, AUTHORITY, PMP]));
 
         expect(screen.getByTestId('instruction-card-title')).toHaveTextContent('ProgramMetadata: SetData');
         expect(screen.getByTestId('pmp-config-format')).toHaveTextContent('JSON');
-        expect(screen.getByTestId('pmp-header-only-note')).toBeInTheDocument();
+        expect(screen.getByTestId('pmp-no-payload')).toBeInTheDocument();
         expect(screen.queryByTestId('pmp-config-data-source')).not.toBeInTheDocument();
     });
 

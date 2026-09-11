@@ -1,5 +1,6 @@
 /* eslint-disable no-restricted-syntax -- test assertions use RegExp for pattern matching */
 import { gen } from '@__fixtures__/gen';
+import { PMP_DECODED_RENDER_CAP_BYTES } from '@entities/pmp-account';
 import type { Account } from '@providers/accounts';
 import { FetchStatus } from '@providers/cache';
 import type { Address } from '@solana/kit';
@@ -47,17 +48,18 @@ function pack(content: string, compression: Compression): Uint8Array {
     return packDirectData({ compression, content, encoding: Encoding.Utf8 }).data as Uint8Array;
 }
 
-function renderSection(content: PmpPayloadInstruction, cap?: number) {
+function renderSection(pmpIx: PmpPayloadInstruction) {
     return render(
         <table>
             <tbody>
-                <DataPayloadSection content={content} cap={cap} />
+                <DataPayloadSection pmpIx={pmpIx} />
             </tbody>
         </table>,
     );
 }
 
 const JSON_CONFIG = { compression: Compression.None, encoding: Encoding.Utf8, format: Format.Json };
+const JSON_ZLIB_CONFIG = { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json };
 
 const BUFFER_ADDRESS = gen.address(1);
 const METADATA_ADDRESS = gen.address(2);
@@ -137,7 +139,7 @@ describe('DataPayloadSection', () => {
         await userEvent.click(screen.getByRole('tab', { name: 'Raw' }));
 
         // RawDataField owns the hex grid and the byte count, so asserting on them proves it is wired up.
-        const raw = screen.getByTestId('pmp-payload-raw');
+        const raw = screen.getByTestId('pmp-raw-payload');
         expect(raw).toHaveTextContent('de ad be ef');
         expect(raw).toHaveTextContent('4 bytes');
         expect(screen.getByRole('tab', { name: 'Hex' })).toBeInTheDocument();
@@ -154,6 +156,28 @@ describe('DataPayloadSection', () => {
         await openDecodedTab();
 
         expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('1.0.0');
+    });
+
+    it('should hash the UNPACKED bytes, so a zlib and a plain fixture of the same document hash the same', () => {
+        const view = renderSection({
+            config: JSON_ZLIB_CONFIG,
+            dataSource: DataSource.Direct,
+            kind: 'setData',
+            payload: pack(DOC, Compression.Zlib),
+        });
+        const zlibHash = screen.getByTestId('pmp-payload-data-hash').textContent;
+        view.unmount();
+
+        renderSection({
+            config: JSON_CONFIG,
+            dataSource: DataSource.Direct,
+            kind: 'setData',
+            payload: pack(DOC, Compression.None),
+        });
+        const plainHash = screen.getByTestId('pmp-payload-data-hash').textContent;
+
+        expect(zlibHash).toContain('Data Hash');
+        expect(zlibHash).toBe(plainHash);
     });
 
     it('should render a Yaml payload as verbatim text rather than as a parsed document', async () => {
@@ -195,9 +219,24 @@ describe('DataPayloadSection', () => {
     it('should state that a header-only setData carries no new payload without surfacing a decode failure', () => {
         renderSection({ config: JSON_CONFIG, kind: 'setData' });
 
-        expect(screen.getByTestId('pmp-header-only-note')).toBeInTheDocument();
+        expect(screen.getByTestId('pmp-no-payload')).toBeInTheDocument();
         expect(screen.queryByTestId('pmp-decode-error')).not.toBeInTheDocument();
         expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
+    });
+
+    it('should render no data hash row for a header-only setData, which never builds a decoded payload', () => {
+        renderSection({ config: JSON_CONFIG, kind: 'setData' });
+
+        expect(screen.getByTestId('pmp-no-payload')).toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-payload-data-hash')).not.toBeInTheDocument();
+    });
+
+    it('should state that a setData naming no source account carries no payload rather than read an account', () => {
+        renderSection({ config: JSON_CONFIG, dataSource: DataSource.Direct, kind: 'setData' });
+
+        expect(screen.getByTestId('pmp-no-payload')).toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-account-loading')).not.toBeInTheDocument();
+        expect(mockFetchAccountInfo).not.toHaveBeenCalled();
     });
 
     it('should show the source buffer address when setData carries no inline payload', () => {
@@ -235,7 +274,7 @@ describe('DataPayloadSection', () => {
 
         // A non-Direct source gets no special-cased note in this section: the card's `Data Source` config row
         // already names it, so the section stays a plain bytes view rather than repeating the same fact.
-        expect(screen.getByTestId('pmp-payload-raw')).toBeInTheDocument();
+        expect(screen.getByTestId('pmp-raw-payload')).toBeInTheDocument();
         expect(screen.getByRole('tab', { name: 'Decoded' })).toBeInTheDocument();
         expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
     });
@@ -271,43 +310,53 @@ describe('DataPayloadSection', () => {
         expect(screen.getByRole('tab', { name: 'Raw' })).toBeInTheDocument();
     });
 
+    it('should render no data hash row when the payload fails to decode', async () => {
+        renderSection({
+            config: { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json },
+            dataSource: DataSource.Direct,
+            kind: 'setData',
+            payload: new Uint8Array([1, 2, 3, 4]),
+        });
+        await openDecodedTab();
+
+        expect(screen.getByTestId('pmp-decode-error')).toBeInTheDocument();
+        expect(screen.queryByTestId('pmp-payload-data-hash')).not.toBeInTheDocument();
+    });
+
     it('should render a bounded view with the byte count and a download when the payload exceeds the cap', async () => {
-        renderSection(
-            {
-                config: JSON_CONFIG,
-                dataSource: DataSource.Direct,
-                kind: 'setData',
-                payload: new Uint8Array(2048).fill(0x41),
-            },
-            8,
-        );
+        renderSection({
+            config: JSON_CONFIG,
+            dataSource: DataSource.Direct,
+            kind: 'setData',
+            payload: new Uint8Array(PMP_DECODED_RENDER_CAP_BYTES + 1),
+        });
         await openDecodedTab();
 
         const oversized = screen.getByTestId('pmp-payload-oversized');
         expect(oversized).toHaveTextContent(/too large/i);
-        // The DECOMPRESSED size, which is what the cap is measured on - the on-chain payload here is 2048 bytes
-        // uncompressed, so the two happen to match, but the number reported is the decoded one.
-        expect(oversized).toHaveTextContent('2048 bytes');
+        // The DECOMPRESSED size, which is what the cap is measured on - the on-chain payload here is uncompressed,
+        // so the two happen to match, but the number reported is the decoded one.
+        expect(oversized).toHaveTextContent(`${PMP_DECODED_RENDER_CAP_BYTES + 1} bytes`);
         expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
         expect(oversized).toHaveTextContent(/use download\/copy/i);
         expect(screen.getByLabelText('Download')).toBeInTheDocument();
     });
 
     it('should report both the unpacked and the stored size when an oversized payload was compressed', async () => {
-        renderSection(
-            {
-                config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
-                dataSource: DataSource.Direct,
-                kind: 'setData',
-                payload: gzip(new Uint8Array(20480)),
-            },
-            8,
-        );
+        const stored = gzip(new Uint8Array(PMP_DECODED_RENDER_CAP_BYTES + 1));
+        renderSection({
+            config: { compression: Compression.Gzip, encoding: Encoding.Utf8, format: Format.Json },
+            dataSource: DataSource.Direct,
+            kind: 'setData',
+            payload: stored,
+        });
         await openDecodedTab();
 
         const oversized = screen.getByTestId('pmp-payload-oversized');
-        expect(oversized).toHaveTextContent('20480 bytes unpacked from 55 stored');
-        // Sits in the field header beside the 20,480, saying which of the two counts this download carries.
+        expect(oversized).toHaveTextContent(
+            `${PMP_DECODED_RENDER_CAP_BYTES + 1} bytes unpacked from ${stored.length} stored`,
+        );
+        // Sits in the field header beside the unpacked count, saying which of the two counts this download carries.
         expect(screen.getByTestId('pmp-bytes-badge-uncompressed')).toHaveTextContent('uncompressed');
     });
 
@@ -442,6 +491,13 @@ describe('DataPayloadSection', () => {
 
         expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('"name": "company"');
         expect(screen.getByRole('tab', { name: 'Raw' })).toBeInTheDocument();
+    });
+
+    it('should render the data hash row on the source-account path too, from its own call site', () => {
+        mockUseAccountInfo.mockReturnValue(fetchedEntry(bufferAccountData(pack(DOC, Compression.None))));
+        renderSection(DEFERRED_SET_DATA);
+
+        expect(screen.getByTestId('pmp-payload-data-hash')).toBeInTheDocument();
     });
 
     it('should say the payload is empty rather than render a blank document', async () => {
