@@ -17,6 +17,7 @@ import { useAtomValue } from 'jotai';
 import React, { useState } from 'react';
 import { Bookmark, Check, X } from 'react-feather';
 
+import { STROKE_ON_24 } from './icon-sets';
 import { saveFlowVariantAtom } from './save-flow-variants';
 
 /**
@@ -181,7 +182,9 @@ export function CustomEndpointFields({
 
     return (
         <>
-            {variant === 'omnibox' && <AddressBar onChange={onChange} onSaved={onSaved} save={save} url={value} />}
+            {variant === 'omnibox' && (
+                <AddressBar onChange={onChange} onCommit={draft.select} onSaved={onSaved} save={save} url={value} />
+            )}
             {variant === 'field' && <AlwaysUpName save={save} urlField={urlField} />}
             {variant === 'prompt' && <PromptThenName save={save} urlField={urlField} />}
             {variant === 'morph' && <MorphToName save={save} url={value} urlField={urlField} />}
@@ -199,8 +202,8 @@ export function EndpointFieldWithSave({
     draft,
     fieldClassName,
     fieldRef,
-    lead,
     onFocus,
+    onGo,
     onSaved,
     savedClusters,
 }: {
@@ -217,6 +220,8 @@ export function EndpointFieldWithSave({
     lead?: React.ReactNode;
     /** Reaching into the field is choosing it, which a surface may want to know. */
     onFocus?: () => void;
+    /** Ran once the address has been applied from the field — the surface that owns the menu shuts it. */
+    onGo?: () => void;
     onSaved: (url: string) => void;
     savedClusters: SavedCluster[];
 }) {
@@ -226,9 +231,10 @@ export function EndpointFieldWithSave({
             <AddressBar
                 fieldClassName={fieldClassName}
                 fieldRef={fieldRef}
-                lead={lead}
                 onChange={draft.onChange}
+                onCommit={draft.select}
                 onFocus={onFocus}
+                onGo={onGo}
                 onSaved={onSaved}
                 save={save}
                 url={draft.value}
@@ -257,19 +263,21 @@ export function EndpointFieldWithSave({
 function AddressBar({
     fieldClassName,
     fieldRef,
-    lead,
     onChange,
+    onCommit,
     onFocus,
+    onGo,
     onSaved,
     save,
     url,
 }: {
     fieldClassName?: string;
     fieldRef?: React.RefObject<HTMLInputElement | null>;
-    /** Rendered inside the field at its left edge, the way a browser keeps the padlock there. */
-    lead?: React.ReactNode;
     onChange: (next: string) => void;
+    /** Applies what is in the field now, without waiting out the typing pause. */
+    onCommit: (url: string) => void;
     onFocus?: () => void;
+    onGo?: () => void;
     /** Tells the list which row to open a name field on: the one just saved. */
     onSaved: (url: string) => void;
     save: Save;
@@ -297,46 +305,27 @@ function AddressBar({
      * silence was there to avoid.
      */
     const canSave = !kept && save.isEndpoint;
+    /**
+     * Whether the reader is in the field, which is the only time Go has anything to do. It is let go of a
+     * beat after the blur rather than on it: a tap on Go blurs the field first, and a button taken out of
+     * the document between the finger landing and the click leaves the click with nowhere to go.
+     */
+    const [inField, setInField] = useState(false);
+    const leaving = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    React.useEffect(() => () => clearTimeout(leaving.current), []);
 
     return (
         <>
             <div className="relative">
-                {lead !== undefined && (
-                    // 10px in, which centres a 13px glyph in the 32px well the field's `pl-8` opens.
-                    <span className="pointer-events-none absolute left-2.5 top-1/2 flex -translate-y-1/2 items-center">
-                        {lead}
-                    </span>
-                )}
-                <Input
-                    ref={fieldRef}
-                    type="url"
-                    variant="dark"
-                    value={url}
-                    aria-label="Custom RPC URL"
-                    placeholder="https://"
-                    onChange={e => onChange(e.target.value)}
-                    onFocus={onFocus}
-                    // Room for the button inside the field, wide enough for the longer "Saved" state so
-                    // the text does not reflow when it changes. `pr-*` rather than a wrapper's padding:
-                    // the field draws its own box, so the text has to stop short of the control, not the
-                    // box — and Tailwind emits `pr` after `px`, which is what lets it beat the field's
-                    // own `px-4`.
-                    className={cn('pr-[84px]', lead !== undefined && 'pl-8', fieldClassName)}
-                    data-testid="custom-url-omnibox"
-                />
-                {/* Inside the field, and a button in its own right. `default` and not the brand accent:
-                    green is what the app spends on a primary action and on a good connection, and a
-                    permanent green chip in the bar claimed both while the actual subject of the plate is
-                    the endpoint. Grey fill with a rule reads as a button without competing. Once the
-                    endpoint is kept it drops to the outline treatment, disabled — the same shape, visibly
-                    spent.
-
-                    `right-1` and not a wider inset: the field is `h-9` and the button `h-7`, so centring
-                    it vertically leaves exactly 4px above and below, and the side gap has to be the same
-                    4px or the button reads as sitting off-centre in its own well. */}
-                <Button
-                    variant={kept ? 'outline' : 'default'}
-                    size="sm"
+                {/* Keeping the address is a bookmark, and a bookmark belongs where a browser keeps one:
+                    at the head of the address, before the thing it marks. A bare glyph and not a chip —
+                    inside the field there is only room for one box, and the field is already it; the
+                    row's own pencil and bin are drawn the same way, so the menu's quiet controls all
+                    look alike. It still carries a 28px square of hit area, which is the least a thumb
+                    can be asked to find. Filled once it is kept — the same glyph answering its own
+                    question, so the state needs no second word for it. */}
+                <IconButton
+                    variant="ghost"
                     onClick={() => {
                         save.saveUnnamed();
                         onSaved(url);
@@ -352,12 +341,96 @@ function AddressBar({
                               ? 'Save this endpoint — you can name it in the list below'
                               : (missing ?? 'Enter a full RPC URL to save it')
                     }
-                    className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer"
+                    className={cn(
+                        // `!` throughout because `cn` is clsx-only: a plain `bg-*`/`text-*` here would be
+                        // settled against the variant by Tailwind's emission order, not by intent.
+                        // `disabled:!opacity-100` because the button's own half-fade on top of these
+                        // colours would leave the glyph too faint to read as a control at all — and both
+                        // of its unavailable states are states worth reading.
+                        'absolute left-1 top-1/2 -translate-y-1/2 cursor-pointer !bg-transparent transition-colors disabled:!opacity-100',
+                        // 14px rather than the 12px an icon button draws — the size the row's own pencil
+                        // and bin stand at, since this is the same kind of thing: a control, not a mark
+                        // to read. `!` because `cn` is clsx-only and both this and the size compound's
+                        // `[&_svg]:size-3` are the same arbitrary variant.
+                        '[&_svg]:!size-3.5',
+                        // White for both states that are about *this* address — saveable, and already
+                        // kept, which the filled glyph says. Grey is for the one case where the bookmark
+                        // has nothing to act on: no full URL typed yet. A kept endpoint drawn grey read
+                        // as a dead control rather than as the mark of something safely put away.
+                        kept || canSave ? '!text-white' : '!text-neutral-500',
+                    )}
                     data-testid="save-custom-cluster-btn"
-                >
-                    {kept ? <Check aria-hidden /> : undefined}
-                    {kept ? 'Saved' : 'Save'}
-                </Button>
+                    icon={<Bookmark strokeWidth={STROKE_ON_24} aria-hidden fill={kept ? 'currentColor' : 'none'} />}
+                />
+                <Input
+                    ref={fieldRef}
+                    type="url"
+                    variant="dark"
+                    value={url}
+                    aria-label="Custom RPC URL"
+                    placeholder="https://"
+                    onChange={e => onChange(e.target.value)}
+                    // Enter is the reader saying "this one, now": the endpoint goes live without waiting
+                    // out the typing pause, the field lets go of the focus — on a phone that is what puts
+                    // the keyboard away — and the menu shuts. Enter is the keyboard's Go, so it ends the
+                    // errand the same way; leaving the menu standing over the page it had just changed
+                    // read as nothing having happened.
+                    onKeyDown={event => {
+                        if (event.key !== 'Enter') return;
+                        event.preventDefault();
+                        onCommit(url);
+                        event.currentTarget.blur();
+                        onGo?.();
+                    }}
+                    onFocus={() => {
+                        clearTimeout(leaving.current);
+                        setInField(true);
+                        onFocus?.();
+                    }}
+                    onBlur={() => {
+                        leaving.current = setTimeout(() => setInField(false), 200);
+                    }}
+                    // Room for the bookmark's 28px square at the head, 4px clear of it — and for Go's
+                    // word at the tail only where Go is drawn, so a keyboard's field does not carry a
+                    // hole for a button it never shows. `pl-*`/`pr-*` rather than a wrapper's padding:
+                    // the field draws its own box, so the text has to stop short of the control, not the
+                    // box — and Tailwind emits these after `px`, which is what lets them beat the
+                    // field's own `px-4`.
+                    className={cn('pl-9', inField && '[@media(hover:none)]:pr-11', fieldClassName)}
+                    data-testid="custom-url-omnibox"
+                />
+                {/* Go ends the errand, so it sits at the far end of the address, where a send button
+                    lives — and it is a word, not a glyph, so it keeps a word's width: the label with the
+                    button's own padding either side of it, not a square it has to be squeezed into.
+
+                    In the field only: Go answers a question the reader is in the middle of asking, and a
+                    field nobody is typing in is not asking it — the address already applies itself. Out of
+                    the field the button would be a permanent chip riding in the middle of the menu with
+                    nothing to do, which is what a field this small can least afford.
+
+                    Touch only. A keyboard already has Go — it is Enter, which does the same three things
+                    — so on a pointer device the button is a second way to do what the field's own key
+                    does, taking room from the address to say it. A phone has no Enter worth the name:
+                    the key is on a keyboard covering half the screen, and the button is the way out.
+
+                    `right-1`: the field is `h-9` and the button `h-7`, so centring it leaves exactly 4px
+                    above and below, and the side gap has to match or it reads as off-centre in its well. */}
+                {inField && (
+                    <Button
+                        variant="accent"
+                        size="sm"
+                        onClick={() => {
+                            onCommit(url);
+                            onGo?.();
+                        }}
+                        disabled={!save.isEndpoint}
+                        title={save.isEndpoint ? 'Use this endpoint' : (missing ?? 'Enter a full RPC URL to use it')}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer [@media(hover:hover)]:hidden"
+                        data-testid="go-custom-cluster-btn"
+                    >
+                        Go
+                    </Button>
+                )}
             </div>
             {missing && (
                 <span className={HINT_CLASSES} data-testid="save-disabled-reason">
@@ -394,7 +467,7 @@ function AlwaysUpName({ save, urlField }: { save: Save; urlField: React.ReactNod
                     }
                     data-testid="save-custom-cluster-btn"
                 >
-                    <Bookmark aria-hidden />
+                    <Bookmark strokeWidth={STROKE_ON_24} aria-hidden />
                     Save
                 </Button>
             </div>
@@ -422,7 +495,7 @@ function PromptThenName({ save, urlField }: { save: Save; urlField: React.ReactN
                         title={save.isEndpoint ? 'Keep this endpoint under a name' : 'Enter a full RPC URL to save it'}
                         data-testid="save-custom-cluster-btn"
                     >
-                        <Bookmark aria-hidden />
+                        <Bookmark strokeWidth={STROKE_ON_24} aria-hidden />
                         Save as…
                     </Button>
                 )}
@@ -460,7 +533,7 @@ function MorphToName({ save, url, urlField }: { save: Save; url: string; urlFiel
                     title={save.isEndpoint ? 'Keep this endpoint under a name' : 'Enter a full RPC URL to save it'}
                     aria-label="Save this endpoint under a name"
                     data-testid="save-custom-cluster-btn"
-                    icon={<Bookmark aria-hidden />}
+                    icon={<Bookmark strokeWidth={STROKE_ON_24} aria-hidden />}
                 />
             </div>
         );
@@ -506,7 +579,7 @@ function NameRow({ save }: { save: Save }) {
                     aria-label="Save this name"
                     title={`Keep this endpoint as “${save.willStore}”`}
                     data-testid="confirm-save-cluster-btn"
-                    icon={<Check aria-hidden />}
+                    icon={<Check strokeWidth={STROKE_ON_24} aria-hidden />}
                 />
                 {/* Outlined, like the list's own naming row: beside a filled OK, a ghost glyph does not
                     read as a button. */}
@@ -516,7 +589,7 @@ function NameRow({ save }: { save: Save }) {
                     onClick={save.close}
                     aria-label="Cancel saving"
                     title="Cancel"
-                    icon={<X aria-hidden />}
+                    icon={<X strokeWidth={STROKE_ON_24} aria-hidden />}
                 />
             </span>
         </div>
@@ -583,7 +656,7 @@ function SavedRow({ savedAs, urlField }: { savedAs: string; urlField: React.Reac
                 className={cn(FIELD_CAPTION_CLASSES, 'flex items-center gap-1.5 text-[#1dd79b]')}
                 data-testid="endpoint-saved-as"
             >
-                <Check size={12} aria-hidden />
+                <Check size={12} strokeWidth={STROKE_ON_24} aria-hidden />
                 Saved as “{savedAs}”
             </span>
         </>

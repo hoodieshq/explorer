@@ -40,10 +40,10 @@ import { EndpointFieldWithSave } from './SaveEndpointFlow';
  * - **The connection is not stated in here.** As in v3.4: it lives on the control that opens the menu,
  *   which is on screen the whole time; inside, it was the same fact in a second place.
  *
- * `onDismiss` shuts the menu, and only the two things that *are* a choice call it: a cluster row and a
- * saved endpoint. On a phone the popover stands over the page it has just changed, so a value applied
- * behind it reads as nothing having happened. Everything else here — the field, the save, the row's edit
- * and delete — is work inside the menu and leaves it open.
+ * `onDismiss` shuts the menu, and only the things that *are* a choice call it: a cluster row, a
+ * saved endpoint, and Go in the field. On a phone the popover stands over the page it has just changed, so
+ * a value applied behind it reads as nothing having happened. Everything else here — typing, the save,
+ * the row's edit and delete — is work inside the menu and leaves it open.
  *
  * Everything underneath is the feature's own and shared with the other bodies: `useCustomUrlDraft`,
  * `SavedEndpointRow` (edit, delete, and the rules about what a delete leaves behind), and
@@ -51,7 +51,7 @@ import { EndpointFieldWithSave } from './SaveEndpointFlow';
  */
 export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void }) {
     const { cluster, endpoint } = useCluster();
-    const { restoreSavedCluster, savedClusters } = useSavedClusters();
+    const { removeSavedCluster, restoreSavedCluster, savedClusters } = useSavedClusters();
     const buildHref = useClusterHref();
     const draft = useCustomUrlDraft();
     /**
@@ -64,6 +64,8 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
      * been saved by mistake.
      */
     const [editing, setEditing] = useState<{ fromSave: boolean; url: string } | undefined>(undefined);
+    /** The one row whose actions are unfolded (touch). One at a time, for the reason the row's prop gives. */
+    const [actionsUrl, setActionsUrl] = useState<string | undefined>(undefined);
     /**
      * The last endpoint removed, and where it stood, offered back for as long as this menu is open. A
      * delete is one click and the list is the only record of an address anyone typed — there is nowhere
@@ -154,11 +156,13 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
                             aria-current={net === cluster ? 'true' : undefined}
                             className={cn(ROW_CLASSES, net === cluster ? ACTIVE_ROW_CLASSES : INACTIVE_ROW_CLASSES)}
                         >
-                            {clusterName(net)}
-                            {/* Every cluster up here is one the app ships with, so every one of them
-                                carries the mark — the same one the saved endpoints it knows carry below,
-                                so the reader learns it once. */}
-                            <KnownMark />
+                            {/* Following the name, as the endpoints below do it: every cluster up here is
+                                one the app ships with, so each carries the mark, beside the name it
+                                belongs to. */}
+                            <span className="flex items-center gap-1.5">
+                                {clusterName(net)}
+                                <KnownMark withLabel={net === cluster} />
+                            </span>
                         </Link>
                     </li>
                 ))}
@@ -184,11 +188,18 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
                                 }
                                 // By URL, not by identity: the app's own address is never an entry to
                                 // edit or delete, however it came to be in the list.
+                                actionsOpen={actionsUrl === saved.url}
+                                onActionsToggle={() =>
+                                    setActionsUrl(open => (open === saved.url ? undefined : saved.url))
+                                }
                                 locked={saved.url === pinned.url}
                                 removed={saved === removed}
                                 onRestore={() => {
                                     if (removed) restoreSavedCluster(removed);
                                     setRemoved(undefined);
+                                    // The row comes back as a row, so its actions come back folded: the
+                                    // button that was open belonged to the entry being deleted.
+                                    setActionsUrl(undefined);
                                 }}
                                 markUnknown
                                 markVetted
@@ -198,15 +209,23 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
                                 activeUrl={endpoint?.href}
                                 editing={editing?.url === saved.url}
                                 onEditOpen={() => setEditing({ fromSave: false, url: saved.url })}
-                                // Dismissed rather than committed, and opened by a save: the reader did
-                                // not want to name it after all, so the field takes back the outline and
-                                // the cursor it had when it saved.
+                                // Dismissed rather than committed, and opened by a save: cancelling the
+                                // form the save opened cancels the save. The two are one act — a click on
+                                // the bookmark and the name it asks for — so leaving it by Cancel has to
+                                // put the address back where it was, unkept, rather than leave a nameless
+                                // entry behind and a filled bookmark saying the opposite. The field then
+                                // takes back the outline and the cursor it had when it saved.
                                 onEditClose={cancelled => {
                                     if (cancelled && editing?.fromSave) {
+                                        removeSavedCluster(editing.url);
                                         setCustomChosen(true);
                                         fieldRef.current?.focus();
                                     }
                                     setEditing(undefined);
+                                    // The row comes back as a row, so it comes back folded: the actions
+                                    // were open because the reader was on their way into this form, and
+                                    // leaving it is the end of that errand.
+                                    setActionsUrl(undefined);
                                 }}
                                 // Picking one loads it into the field, as in v3.4 — and folds the field
                                 // away, since a choice made in the list is not a request to type.
@@ -243,6 +262,9 @@ export function ClusterCustomLastBody({ onDismiss }: { onDismiss?: () => void })
                     draft={fieldDraft}
                     fieldClassName={FIELD_QUIET_FOCUS_CLASSES}
                     fieldRef={fieldRef}
+                    // Go is the same errand as picking a row — an endpoint has been chosen — so it ends
+                    // the same way: the address applies and the menu gets out of the way.
+                    onGo={() => onDismiss?.()}
                     // Reaching into an empty field starts it at the address of a validator on this
                     // machine — the commonest thing anyone types here, and the one nobody enjoys typing.
                     // Only when empty: a field that already holds an endpoint is holding it on purpose.

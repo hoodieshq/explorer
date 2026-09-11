@@ -89,6 +89,7 @@ export function ClusterProvenance({ known, labelClass, size }: { known: boolean;
 
 export function ClusterFacts({
     colour: colourOverride,
+    glyphClass,
     labelClass,
     size,
     status,
@@ -100,6 +101,12 @@ export function ClusterFacts({
      * interrupting a reader over.
      */
     colour?: string;
+    /**
+     * How a surface drops the mark and keeps the word — the mirror of `labelClass`. v3.5's chip says the
+     * connection in words alone: beside a provenance stamp, a second small glyph made the line a row of
+     * badges to decode, and the word is the half a reader can take in at a glance.
+     */
+    glyphClass?: string;
     /** How a chip drops the word on the narrow rows, where the marks say enough. */
     labelClass?: string;
     size: number;
@@ -121,7 +128,7 @@ export function ClusterFacts({
         <>
             {/* The colour rides a wrapper rather than the glyph, so every set can draw in `currentColor`
                 and none of them has to know what the caption's palette is. */}
-            <span className="flex shrink-0 items-center" style={{ color: colour }}>
+            <span className={cn('flex shrink-0 items-center', glyphClass)} style={{ color: colour }}>
                 <Glyph size={size} />
             </span>
             <span className={cn('truncate', pulse, labelClass)} style={{ color: colour }}>

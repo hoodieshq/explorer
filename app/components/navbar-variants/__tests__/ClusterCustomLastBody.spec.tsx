@@ -119,6 +119,30 @@ describe('ClusterCustomLastBody (v3.5)', () => {
         expect(field.selectionStart).toBe(4);
     });
 
+    // Enter is "this one, now": the endpoint goes live without waiting out the typing pause, and the
+    // field lets go of the focus — on a phone that is what puts the keyboard away.
+    it('should apply the typed endpoint on Enter and let go of the focus', () => {
+        renderBody();
+        const field = screen.getByTestId<HTMLInputElement>('custom-url-omnibox');
+        fireEvent.focus(field);
+        fireEvent.change(field, { target: { value: 'http://typed-node:8899' } });
+        nav.replace.mockClear();
+        fireEvent.keyDown(field, { key: 'Enter' });
+        expect(String(nav.replace.mock.calls[0]?.[0])).toContain('typed-node');
+        expect(field).not.toHaveFocus();
+    });
+
+    // Enter is the keyboard's Go, so it ends the errand the same way: a menu left standing over the page
+    // it has just changed reads as nothing having happened.
+    it('should shut the menu on Enter', () => {
+        const { onDismiss } = renderBody();
+        const field = screen.getByTestId('custom-url-omnibox');
+        fireEvent.focus(field);
+        fireEvent.change(field, { target: { value: 'http://typed-node:8899' } });
+        fireEvent.keyDown(field, { key: 'Enter' });
+        expect(onDismiss).toHaveBeenCalled();
+    });
+
     // A field that already holds an endpoint is holding it on purpose.
     it('should leave a field that already holds an endpoint alone', () => {
         renderBody();
@@ -185,6 +209,66 @@ describe('ClusterCustomLastBody (v3.5)', () => {
 
     // Deleting is behind the deliberate step of opening the entry, beside Save and Cancel but away from
     // them.
+    // Touch: one button in the corner, and the pair unfolds leftwards out of it — delete furthest out,
+    // the ordinary action in the middle. (The query that hides it on a pointer device has no effect in
+    // jsdom, so the button is reachable here whatever the device would be.)
+    it('should fold the row controls behind one button, and unfold them on demand', () => {
+        renderBody([{ name: 'Staging', url: OTHER_URL }]);
+        const toggle = screen.getByTestId(`row-actions-${OTHER_URL}`);
+        expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+        fireEvent.click(toggle);
+        expect(screen.getByTestId(`row-actions-${OTHER_URL}`)).toHaveAttribute('aria-expanded', 'true');
+        expect(screen.getByTestId(`rename-cluster-${OTHER_URL}`)).toBeInTheDocument();
+        expect(screen.getByTestId(`delete-cluster-${OTHER_URL}`)).toBeInTheDocument();
+    });
+
+    // Two sets open at once gave the list two right-hand edges of live buttons, and the reader's own
+    // place in it was no longer the row they had touched.
+    it('should fold one row away when another is opened', () => {
+        renderBody([
+            { name: 'Staging', url: OTHER_URL },
+            { name: 'Local', url: 'http://localhost:9999' },
+        ]);
+        fireEvent.click(screen.getByTestId(`row-actions-${OTHER_URL}`));
+        fireEvent.click(screen.getByTestId('row-actions-http://localhost:9999'));
+        expect(screen.getByTestId(`row-actions-${OTHER_URL}`)).toHaveAttribute('aria-expanded', 'false');
+        expect(screen.getByTestId('row-actions-http://localhost:9999')).toHaveAttribute('aria-expanded', 'true');
+    });
+
+    // The actions were open on the way into the form; leaving it ends that errand.
+    it('should fold the actions away when the edit form is left', () => {
+        renderBody([{ name: 'Staging', url: OTHER_URL }]);
+        fireEvent.click(screen.getByTestId(`row-actions-${OTHER_URL}`));
+        fireEvent.click(screen.getByTestId(`rename-cluster-${OTHER_URL}`));
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        expect(screen.getByTestId(`row-actions-${OTHER_URL}`)).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('should fold them away when the edit is committed too', () => {
+        renderBody([{ name: 'Staging', url: OTHER_URL }]);
+        fireEvent.click(screen.getByTestId(`row-actions-${OTHER_URL}`));
+        fireEvent.click(screen.getByTestId(`rename-cluster-${OTHER_URL}`));
+        fireEvent.click(screen.getByTestId(`confirm-rename-cluster-${OTHER_URL}`));
+        expect(screen.getByTestId(`row-actions-${OTHER_URL}`)).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    // The button that was open belonged to the entry being deleted; the row comes back folded.
+    it('should fold the actions away when a removed endpoint is restored', () => {
+        renderBody([{ name: 'Staging', url: OTHER_URL }]);
+        fireEvent.click(screen.getByTestId(`row-actions-${OTHER_URL}`));
+        fireEvent.click(screen.getByTestId(`delete-cluster-${OTHER_URL}`));
+        fireEvent.click(screen.getByTestId(`restore-cluster-${OTHER_URL}`));
+        expect(screen.getByTestId(`row-actions-${OTHER_URL}`)).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('should fold them back from the same corner', () => {
+        renderBody([{ name: 'Staging', url: OTHER_URL }]);
+        fireEvent.click(screen.getByTestId(`row-actions-${OTHER_URL}`));
+        fireEvent.click(screen.getByTestId(`row-actions-${OTHER_URL}`));
+        expect(screen.getByTestId(`row-actions-${OTHER_URL}`)).toHaveAttribute('aria-expanded', 'false');
+    });
+
     // A row control, one click — the undo standing behind it is what makes that safe.
     it('should delete from the row', () => {
         const { store } = renderBody([{ name: 'Staging', url: OTHER_URL }]);
@@ -193,16 +277,14 @@ describe('ClusterCustomLastBody (v3.5)', () => {
         expect(screen.getByTestId(`restore-cluster-${OTHER_URL}`)).toBeInTheDocument();
     });
 
-    // The mark stands in the same corner the controls use, and steps aside for them on hover — a hand
-    // over the row is reaching for the pencil, not for a badge.
-    it('should keep the provenance mark out of the way of the row controls', () => {
+    // Beside the name it belongs to, and not in the corner the row's controls use.
+    it('should stand the provenance mark right after the name', () => {
         renderBody([{ name: 'Staging', url: OTHER_URL }]);
-        expect(screen.getByTestId(`provenance-mark-${OTHER_URL}`)).toHaveClass(
-            'absolute',
-            'right-1.5',
-            'top-1.5',
-            '[@media(hover:hover)]:group-hover/row:opacity-0',
-        );
+        const mark = screen.getByTestId(`provenance-mark-${OTHER_URL}`);
+        expect(mark).not.toHaveClass('absolute');
+        expect(
+            screen.getByText('Staging').compareDocumentPosition(mark) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
     });
 
     // The gap under a heading must be the heading's own, not the list's: both groups are a caption with
@@ -240,7 +322,7 @@ describe('ClusterCustomLastBody (v3.5)', () => {
         renderBody();
         const button = screen.getByTestId('save-custom-cluster-btn');
         expect(button).toBeDisabled();
-        expect(button).toHaveTextContent('Saved');
+        expect(button.getAttribute('aria-label')).toContain('Already saved');
     });
 
     // Their entry is the same endpoint under a name they chose; two rows for one address is one too many.
@@ -269,6 +351,39 @@ describe('ClusterCustomLastBody (v3.5)', () => {
         const { onDismiss } = renderBody();
         fireEvent.click(screen.getByRole('link', { name: 'Devnet' }));
         expect(onDismiss).toHaveBeenCalled();
+    });
+
+    // Go answers a question the reader is in the middle of asking; a field nobody is typing in is not
+    // asking it, and a button standing there permanently takes room from the address for nothing.
+    it('should keep Go out of the field until the reader is in it', () => {
+        renderBody();
+        expect(screen.queryByTestId('go-custom-cluster-btn')).not.toBeInTheDocument();
+        fireEvent.focus(screen.getByTestId('custom-url-omnibox'));
+        expect(screen.getByTestId('go-custom-cluster-btn')).toBeInTheDocument();
+    });
+
+    // Go is the field's way of saying "this one" — the same errand as picking a row, so it ends the same
+    // way: applied, and the menu out of the way. (It is drawn on touch only; the CSS that hides it where
+    // there is a keyboard is a media query, which jsdom has nothing to say about.)
+    it('should apply the typed endpoint and shut the menu when Go is pressed', () => {
+        const { onDismiss } = renderBody();
+        const field = screen.getByTestId('custom-url-omnibox');
+        fireEvent.focus(field);
+        fireEvent.change(field, { target: { value: 'http://typed-node:8899' } });
+        nav.replace.mockClear();
+        fireEvent.click(screen.getByTestId('go-custom-cluster-btn'));
+        expect(String(nav.replace.mock.calls[0]?.[0])).toContain('typed-node');
+        expect(onDismiss).toHaveBeenCalled();
+    });
+
+    // Nothing to go to yet: half an address applied is a broken connection, and the button says so by
+    // refusing rather than by an error after the fact.
+    it('should not offer Go until the field holds a full RPC URL', () => {
+        renderBody();
+        const field = screen.getByTestId('custom-url-omnibox');
+        fireEvent.focus(field);
+        fireEvent.change(field, { target: { value: 'my-validator' } });
+        expect(screen.getByTestId('go-custom-cluster-btn')).toBeDisabled();
     });
 
     it('should shut the menu when an endpoint is picked from the list', () => {
@@ -375,6 +490,26 @@ describe('ClusterCustomLastBody (v3.5)', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
         expect(screen.getByTestId('custom-field-plate')).toHaveClass('border-white/10');
         expect(screen.getByTestId('custom-url-omnibox')).toHaveFocus();
+    });
+
+    // Cancelling the form the save opened cancels the save: the two are one act, so an entry must not be
+    // left behind — nor a filled bookmark saying the address is kept when it is not.
+    it('should take the entry back when the naming is dismissed', () => {
+        renderBody();
+        fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
+        expect(screen.getByTestId(`rename-cluster-input-${CUSTOM_URL}`)).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+        expect(screen.queryByTestId(`pick-cluster-${CUSTOM_URL}`)).not.toBeInTheDocument();
+        expect(screen.getByTestId('save-custom-cluster-btn')).toBeEnabled();
+    });
+
+    // ...and committing it keeps it, cancel being the only way out that undoes anything.
+    it('should keep the entry once the name is committed', () => {
+        renderBody();
+        fireEvent.click(screen.getByTestId('save-custom-cluster-btn'));
+        fireEvent.click(screen.getByTestId(`confirm-rename-cluster-${CUSTOM_URL}`));
+        expect(screen.getByTestId(`pick-cluster-${CUSTOM_URL}`)).toBeInTheDocument();
+        expect(screen.getByTestId('save-custom-cluster-btn')).toBeDisabled();
     });
 
     it('should keep the outline off once the name is committed', () => {

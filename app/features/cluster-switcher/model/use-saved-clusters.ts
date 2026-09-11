@@ -27,7 +27,7 @@ export function useSavedClusters() {
         addSavedCluster: useSetAtom(addSavedClusterAtom),
         removeSavedCluster: useSetAtom(removeSavedClusterAtom),
         restoreSavedCluster: useSetAtom(restoreSavedClusterAtom),
-        updateSavedCluster: useSetAtom(updateSavedClusterAtom),
         savedClusters: useAtomValue(savedClustersAtom),
+        updateSavedCluster: useSetAtom(updateSavedClusterAtom),
     };
 }

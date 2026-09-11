@@ -63,7 +63,7 @@ export const NAV_VARIANT_IDS = NAV_VARIANTS.map(v => v.id);
  * — which is what should have happened when `v1` became `v1.1` and this went on naming a variant that no
  * longer existed.
  */
-export const DEFAULT_NAV_VARIANT: NavVariantId = 'v3.3';
+export const DEFAULT_NAV_VARIANT: NavVariantId = 'v3.5';
 
 /** The entry for it, so the id and the rendered component cannot name two different variants. The `??` is
  *  unreachable — the id above is checked against this very list — but the lookup itself runs at runtime. */

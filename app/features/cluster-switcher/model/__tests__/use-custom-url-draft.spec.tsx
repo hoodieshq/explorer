@@ -102,8 +102,11 @@ describe('useCustomUrlDraft', () => {
         draft.settle();
 
         // Unrelated params belong to the page underneath and survive the switch.
+        // `scroll: false` throughout: this fires mid-typing, and the App Router would otherwise throw
+        // the page back to the top on every pause.
         expect(nav.replace).toHaveBeenCalledWith(
             `/?cluster=custom&customUrl=${encodeURIComponent('http://my-node:8899')}&sort=fee`,
+            { scroll: false },
         );
     });
 
@@ -136,7 +139,7 @@ describe('useCustomUrlDraft', () => {
         draft.type('');
         draft.settle();
 
-        expect(nav.replace).toHaveBeenCalledWith('/?cluster=custom&sort=fee');
+        expect(nav.replace).toHaveBeenCalledWith('/?cluster=custom&sort=fee', { scroll: false });
     });
 
     // A saved cluster, an in-app link or a declined prompt changes the endpoint without anyone touching

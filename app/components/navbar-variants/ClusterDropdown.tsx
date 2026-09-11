@@ -197,6 +197,12 @@ export function ClusterDropdown({
                                 {/* The provenance leads the name: it qualifies what the name refers to, and
                                     reading it after the fact is reading it too late. */}
                                 <span className="flex min-w-0 items-center gap-0.5 text-sm leading-[14px] text-white">
+                                    {/* 12px, the size the menu below draws it at, so the chip and the list
+                                        show one mark rather than two of different sizes.
+
+                                        No vertical nudge: it had a pixel down while the sign was smaller,
+                                        and the sign has since grown — with the extra height taken off its
+                                        top, that pixel became a slump against a 14px line. */}
                                     {showLead && (
                                         <span
                                             className="flex shrink-0 items-center"
@@ -204,7 +210,7 @@ export function ClusterDropdown({
                                                 color: asV35 ? RPC_STYLE[leadKind].colour : rpc.colour,
                                             }}
                                         >
-                                            <LeadGlyph size={11} />
+                                            <LeadGlyph size={12} />
                                         </span>
                                     )}
                                     <span
@@ -217,7 +223,13 @@ export function ClusterDropdown({
                                 {/* Caps, like every other status line in the bar; the phrasing is what
                                     differs here, not the setting. */}
                                 <span className="flex min-w-0 items-center gap-1 text-[10px] uppercase leading-[12px] tracking-[0.08em]">
-                                    <ClusterFacts colour={factsColour} size={11} status={status} titleCase />
+                                    <ClusterFacts
+                                        colour={factsColour}
+                                        glyphClass={asV35 ? 'hidden' : undefined}
+                                        size={11}
+                                        status={status}
+                                        titleCase
+                                    />
                                 </span>
                             </span>
                             {chevron}

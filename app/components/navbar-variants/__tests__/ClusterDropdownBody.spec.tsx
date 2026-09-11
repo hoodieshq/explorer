@@ -172,7 +172,7 @@ describe('ClusterDropdownBody', () => {
             renderBody({ saved: [{ name: 'My validator', url: CUSTOM_URL }], variant: 'omnibox' });
             openCustomPlate();
             expect(screen.queryByTestId('save-disabled-reason')).not.toBeInTheDocument();
-            expect(screen.getByTestId('save-custom-cluster-btn')).toHaveTextContent('Saved');
+            expect(screen.getByTestId('save-custom-cluster-btn').getAttribute('aria-label')).toContain('Already saved');
         });
 
         it('should report the endpoint in the field as already kept', () => {
@@ -180,7 +180,8 @@ describe('ClusterDropdownBody', () => {
             openCustomPlate();
             const button = screen.getByTestId(SAVE);
             expect(button).toBeDisabled();
-            expect(button).toHaveTextContent('Saved');
+            // The bookmark fills in rather than changing its word, so "kept" is read off the name.
+            expect(button.getAttribute('aria-label')).toContain('Already saved');
         });
 
         it('should put a picked entry back in the field rather than only navigating', () => {

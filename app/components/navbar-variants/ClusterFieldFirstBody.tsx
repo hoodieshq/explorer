@@ -51,6 +51,8 @@ export function ClusterFieldFirstBody() {
     /** The one entry open for editing: opening another closes it, so a menu never holds two half-filled
      *  forms with no way to tell which one a save would take. */
     const [editingUrl, setEditingUrl] = useState<string | undefined>(undefined);
+    /** The one row whose actions are unfolded (touch), for the reason the row's own prop gives. */
+    const [actionsUrl, setActionsUrl] = useState<string | undefined>(undefined);
 
     const onCustom = cluster === Cluster.Custom;
     /**
@@ -133,6 +135,10 @@ export function ClusterFieldFirstBody() {
                         {savedClusters.map(saved => (
                             <SavedEndpointRow
                                 key={saved.url}
+                                actionsOpen={actionsUrl === saved.url}
+                                onActionsToggle={() =>
+                                    setActionsUrl(open => (open === saved.url ? undefined : saved.url))
+                                }
                                 markVetted
                                 subdued
                                 saved={saved}
@@ -141,7 +147,12 @@ export function ClusterFieldFirstBody() {
                                 activeUrl={endpoint?.href}
                                 editing={editingUrl === saved.url}
                                 onEditOpen={() => setEditingUrl(saved.url)}
-                                onEditClose={() => setEditingUrl(undefined)}
+                                onEditClose={() => {
+                                    setEditingUrl(undefined);
+                                    // Folded again: the actions were open on the way into this form, and
+                                    // leaving it ends that errand.
+                                    setActionsUrl(undefined);
+                                }}
                                 // Picking from the list is choosing the list: it hands the fill back to
                                 // the row that was picked.
                                 onPick={url => {

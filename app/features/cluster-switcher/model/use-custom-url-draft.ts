@@ -77,11 +77,17 @@ export function useCustomUrlDraft(): CustomUrlDraft {
 
     // `replace` rather than `push`: editing one field should not leave a history entry per typing pause,
     // each holding a half-typed URL.
+    //
+    // `scroll: false` on every one of them: the App Router scrolls to the top of the document on a
+    // navigation, and this one fires *while the reader is typing* — a pause in the middle of a URL threw
+    // the page back to the top under their hands. The endpoint changing is not a new page arriving; it is
+    // the same page, told where to get its data. The repo does this wherever a control writes to the query
+    // string (`HistoryFilterBar`, `NavigationTabs`).
     const commitNow = (url: string) => {
         // An empty field clears the endpoint instead of leaving the previous one in the URL.
         if (url.trim() === '') {
             setSentUrl(undefined);
-            router.replace(buildHref({ cluster: Cluster.Custom, customUrl: '' }));
+            router.replace(buildHref({ cluster: Cluster.Custom, customUrl: '' }), { scroll: false });
             return;
         }
         // Half-typed values are not endpoints yet: navigating on them churns the URL, and the reader
@@ -91,7 +97,7 @@ export function useCustomUrlDraft(): CustomUrlDraft {
         // Typing or picking an endpoint is a first-party action, so it is also the consent.
         approveOrigin(typedEndpoint);
         setSentUrl(url);
-        router.replace(buildHref({ cluster: Cluster.Custom, customUrl: url }));
+        router.replace(buildHref({ cluster: Cluster.Custom, customUrl: url }), { scroll: false });
     };
 
     const commit = useDebounceCallback((url: string) => {

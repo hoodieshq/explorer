@@ -16,7 +16,7 @@ import { useSetAtom } from 'jotai';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import React, { useRef, useState } from 'react';
-import { Edit2, Trash2 } from 'react-feather';
+import { Edit2, MoreHorizontal, Trash2 } from 'react-feather';
 
 import {
     ACTIVE_ROW_CLASSES,
@@ -25,6 +25,7 @@ import {
     STACKED_ROW_CLASSES,
 } from './cluster-row-classes';
 import { endpointProvenance } from './endpoint-provenance';
+import { STROKE_ON_24 } from './icon-sets';
 import { KnownMark, UnknownMark } from './known-mark';
 import { FIELD_CAPTION_CLASSES } from './SaveEndpointFlow';
 
@@ -57,11 +58,13 @@ export function SavedEndpointRow({
     activeFacts,
     activeUrl,
     cluster,
+    actionsOpen,
     editing,
     locked,
     markUnknown,
     markVetted,
     onDeleted,
+    onActionsToggle,
     onEditClose,
     onEditOpen,
     onPick,
@@ -77,6 +80,21 @@ export function SavedEndpointRow({
     /** The endpoint the page is actually on, for deciding what a delete leaves behind. */
     activeUrl: string | undefined;
     cluster: Cluster;
+    /**
+     * Touch only: whether this row's controls are unfolded from behind its one button.
+     *
+     * On a pointer device they can hide until the cursor arrives, which is what keeps the list reading as
+     * a set of choices. A touch screen has no such moment, so they were simply always there — two live
+     * targets on every row, on the side a thumb swipes from. One button unfolds them leftwards instead:
+     * delete furthest out, the ordinary action in the middle, and the button itself stays put to fold them
+     * back.
+     *
+     * Held by the surface, like `editing`, so only one row is ever unfolded: a second set opening while
+     * the first stood there gave the list two right-hand edges of live buttons, and the reader's own
+     * place in it was no longer the row they had touched.
+     */
+    actionsOpen?: boolean;
+    onActionsToggle?: () => void;
     /**
      * Whether this row is the one being edited. Held by the surface rather than by the row, so that only
      * one entry is open at a time: opening another used to leave the first standing, and a menu with two
@@ -152,6 +170,7 @@ export function SavedEndpointRow({
      * `pointercancel` is what the browser sends when it takes the gesture over for a scroll.
      */
     const pickedByPointer = useRef(false);
+
     const pressedAt = useRef<{ x: number; y: number } | undefined>(undefined);
     /** Farther than this and the gesture was a drag, whatever it started as. */
     const TAP_SLOP = 10;
@@ -165,7 +184,10 @@ export function SavedEndpointRow({
         removeSavedCluster(saved.url);
         onDeleted?.(saved);
         const stillSaved = savedClusters.some(c => c.url !== saved.url && c.url === activeUrl);
-        if (wasActive && !stillSaved) router.push(buildHref({ cluster: DEFAULT_CLUSTER, customUrl: '' }));
+        // `scroll: false`, as everywhere this menu navigates: the reader is in a popover over the page,
+        // and the endpoint changing under it is no reason to throw the page itself back to the top.
+        if (wasActive && !stillSaved)
+            router.push(buildHref({ cluster: DEFAULT_CLUSTER, customUrl: '' }), { scroll: false });
     };
 
     if (editing)
@@ -183,11 +205,13 @@ export function SavedEndpointRow({
     // Unnamed, the host is the heading rather than a second line under an empty one.
     const heading = saved.name || savedEndpoint?.host || saved.url;
     const provenance = endpointProvenance(saved.url);
+    // Spelled out on the row in use and nowhere else: one worked example teaches the column, and a word
+    // on every line would caption a list whose subject is the names.
     const mark =
         markVetted && provenance === 'known' ? (
-            <KnownMark />
+            <KnownMark withLabel={active} />
         ) : markUnknown && provenance === 'unknown' ? (
-            <UnknownMark />
+            <UnknownMark withLabel={active} />
         ) : undefined;
     /**
      * Set as a search result is (`SearchResultItem`): the name in white 14px medium, the address under it
@@ -201,21 +225,32 @@ export function SavedEndpointRow({
         // carries a line height of its own (`text-[13px]`, `text-[11px]`), so both inherited the row's
         // 20px and an 11px address sat a third of a line away from the name it belongs to. A unitless
         // 1.25 computes from each line's own size, so the pair closes up without the two lines colliding.
-        // `flex-1`, so the column fills the row: without it the stack hugged its own text, and the mark
-        // pinned to the end of the name's line stopped an inch short of where the cluster rows above put
-        // theirs — it read as sitting beside the name rather than in a column of marks.
+        // `flex-1`, so the column fills the row rather than hugging its own text.
         <span className="flex min-w-0 flex-1 flex-col leading-tight">
-            <span
-                className={cn(
-                    'truncate',
-                    subdued ? 'text-[13px] font-normal text-outer-space-200' : 'text-sm font-medium text-white',
-                    saved.name === '' && 'font-mono',
-                    // Struck through and faded while it is gone: the row states its own condition, so the
-                    // control beside it needs no sentence to explain what it would undo.
-                    removed && 'line-through opacity-60',
+            {/* The mark follows the name, close enough to belong to it. Ahead of it, every name in the
+                list started a glyph in from the left; at the row's far end it shared a corner with the
+                controls and had to hide the moment a hand came near.
+
+                A local address carries none: there is no third party in that connection to vouch or fail
+                to vouch for it, so a mark either way would be a verdict on the reader's own desk. */}
+            <span className="flex min-w-0 items-center gap-1.5">
+                <span
+                    className={cn(
+                        'truncate',
+                        subdued ? 'text-[13px] font-normal text-outer-space-200' : 'text-sm font-medium text-white',
+                        saved.name === '' && 'font-mono',
+                        // Struck through and faded while it is gone: the row states its own condition, so
+                        // the control beside it needs no sentence to explain what it would undo.
+                        removed && 'line-through opacity-60',
+                    )}
+                >
+                    {heading}
+                </span>
+                {mark !== undefined && (
+                    <span className="flex shrink-0 items-center" data-testid={`provenance-mark-${saved.url}`}>
+                        {mark}
+                    </span>
                 )}
-            >
-                {heading}
             </span>
             {savedEndpoint && saved.name !== '' && savedEndpoint.host !== saved.name && (
                 <span
@@ -243,7 +278,10 @@ export function SavedEndpointRow({
         // Room for the two controls — kept even on a row that has none, so the provenance marks of every
         // row stand in one column. A locked row would otherwise be wider than its neighbours and its mark
         // would sit alone, out to the right of theirs. Four more where their gap is four wider.
-        'pr-14 [@media(hover:none)]:pr-[60px]',
+        // On a pointer device the pair is what has to be cleared; on touch it is one button, or three
+        // once they are unfolded.
+        'pr-14',
+        actionsOpen ? '[@media(hover:none)]:pr-[104px]' : '[@media(hover:none)]:pr-9',
         ROW_HOVER_FROM_GROUP,
         active ? ACTIVE_ROW_CLASSES : INACTIVE_ROW_CLASSES,
     );
@@ -318,25 +356,6 @@ export function SavedEndpointRow({
                     {contents}
                 </Link>
             )}
-            {/* The provenance mark stands in the row's top-right corner, the same corner the controls
-                use — and gives it up to them on hover, since they are what a hand is reaching for once it
-                is over the row. A mark trailing the name instead landed wherever that name happened to
-                stop, so two rows' marks never lined up. */}
-            {mark !== undefined && (
-                <span
-                    aria-hidden
-                    className={cn(
-                        'pointer-events-none absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center transition-opacity',
-                        // Same corner as the controls, so where those are permanent this steps aside for
-                        // good rather than only under a cursor that will never come.
-                        '[@media(hover:hover)]:group-hover/row:opacity-0',
-                        !locked && '[@media(hover:none)]:opacity-0',
-                    )}
-                    data-testid={`provenance-mark-${saved.url}`}
-                >
-                    {mark}
-                </span>
-            )}
             {locked ? undefined : (
                 <>
                     {/* Over the row rather than inside the link, because a button inside an anchor is
@@ -351,22 +370,47 @@ export function SavedEndpointRow({
                         are permanent and a thumb is a blunt instrument, so the two 28px targets that sit
                         two pixels apart under a mouse get six. */}
                     <span className="pointer-events-none absolute right-1.5 top-1.5 flex items-center gap-0.5 [@media(hover:none)]:gap-1.5">
-                        <RowControl
-                            label={saved.name === '' ? `Name ${heading}` : `Rename ${saved.name}`}
-                            title={saved.name === '' ? 'Name this endpoint' : 'Rename this endpoint'}
-                            onClick={() => onEditOpen?.()}
-                            testId={`rename-cluster-${saved.url}`}
+                        {/* Folded away on touch until the button below asks for them; on a pointer device
+                            the cursor is the ask, so this wrapper stays out of the way.
+
+                            Delete first in the source, so it ends up furthest from the corner the thumb
+                            arrives at: the pair unfolds leftwards, and the ordinary action is the one that
+                            lands under the finger, with the destructive one a deliberate reach past it. */}
+                        <span
+                            className={cn(
+                                'flex items-center gap-0.5 [@media(hover:none)]:gap-1.5',
+                                !actionsOpen && '[@media(hover:none)]:hidden',
+                            )}
                         >
-                            <Edit2 size={13} aria-hidden />
-                        </RowControl>
+                            <RowControl
+                                label={`Delete ${heading}`}
+                                title="Delete this endpoint"
+                                onClick={onDelete}
+                                danger
+                                testId={`delete-cluster-${saved.url}`}
+                            >
+                                <Trash2 size={14} strokeWidth={STROKE_ON_24} aria-hidden />
+                            </RowControl>
+                            <RowControl
+                                label={saved.name === '' ? `Name ${heading}` : `Rename ${saved.name}`}
+                                title={saved.name === '' ? 'Name this endpoint' : 'Rename this endpoint'}
+                                onClick={() => onEditOpen?.()}
+                                testId={`rename-cluster-${saved.url}`}
+                            >
+                                <Edit2 size={14} strokeWidth={STROKE_ON_24} aria-hidden />
+                            </RowControl>
+                        </span>
+                        {/* Touch only: the one button that unfolds the pair, and folds it again. It keeps
+                            the corner the pair grows out of, so the thing under the thumb never moves. */}
                         <RowControl
-                            label={`Delete ${heading}`}
-                            title="Delete this endpoint"
-                            onClick={onDelete}
-                            danger
-                            testId={`delete-cluster-${saved.url}`}
+                            label={actionsOpen ? `Hide actions for ${heading}` : `Actions for ${heading}`}
+                            title={actionsOpen ? 'Hide' : 'Edit or delete'}
+                            onClick={() => onActionsToggle?.()}
+                            expanded={actionsOpen ?? false}
+                            className="[@media(hover:hover)]:hidden"
+                            testId={`row-actions-${saved.url}`}
                         >
-                            <Trash2 size={14} aria-hidden />
+                            <MoreHorizontal size={14} strokeWidth={STROKE_ON_24} aria-hidden />
                         </RowControl>
                     </span>
                 </>
@@ -377,14 +421,19 @@ export function SavedEndpointRow({
 
 function RowControl({
     children,
+    className,
     danger,
+    expanded,
     label,
     onClick,
     testId,
     title,
 }: {
     children: React.ReactNode;
+    className?: string;
     danger?: boolean;
+    /** Set on the button that folds the others out, so it says which state it is in. */
+    expanded?: boolean;
     label: string;
     onClick: () => void;
     testId: string;
@@ -397,18 +446,29 @@ function RowControl({
             title={title}
             onClick={onClick}
             className={cn(
-                // Two overrides on top of the variant, both with `!` because `cn` is clsx-only and a
-                // plain `text-*` would be settled by Tailwind's emission order: the muted idle colour,
-                // and the destructive tint on the bin's hover.
+                // Three overrides on top of the variant, all with `!` because `cn` is clsx-only and a
+                // plain `text-*`/`[&_svg]:size-*` would be settled by Tailwind's emission order rather
+                // than by intent: the idle colour, the glyph's size on touch, and the destructive tint on
+                // the bin's hover. They are drawn light rather than faint — a control you are meant to
+                // use should not have to be hunted for.
+                //
+                // 14px everywhere, over the 12px an icon button draws: these are the only controls a row
+                // has, and at the house stroke weight they read as line work rather than as chrome. Two
+                // over the stamp's 12, because these are things to hit and that one is only to read. One
+                // size on every device, because a control that changes size with the input device is two
+                // controls to learn.
+                //
                 // Revealed by hover on a pointer device; always there where there is no hover to reveal
                 // them with. A phone has no way to ask a row to show its controls, so on touch they are
                 // part of the row.
-                'pointer-events-auto cursor-pointer !text-neutral-500 opacity-0 transition-[opacity,color]',
+                'pointer-events-auto cursor-pointer !text-neutral-300 opacity-0 transition-[opacity,color] [&_svg]:!size-3.5',
                 // The hover half is behind `@media (hover: hover)`, so a touch screen's emulated hover
                 // cannot claim a tap; the `hover:none` half is what makes them permanent there instead.
                 'focus-visible:opacity-100 [@media(hover:hover)]:group-hover/row:opacity-100 [@media(hover:none)]:opacity-100',
                 danger ? '[@media(hover:hover)]:hover:!text-[#b45be1]' : '[@media(hover:hover)]:hover:!text-white',
+                className,
             )}
+            aria-expanded={expanded}
             data-testid={testId}
             icon={children}
         />

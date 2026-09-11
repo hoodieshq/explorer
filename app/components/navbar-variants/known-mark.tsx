@@ -14,6 +14,9 @@ export const KNOWN_COLOUR = '#1dd79b';
 /** The provenance amber, the tone the shipping cluster button turns for an endpoint nobody vouched for. */
 export const UNKNOWN_COLOUR = '#e08214';
 
+/** The word beside the mark, in the caption voice every other status in this menu uses. */
+const MARK_LABEL_CLASSES = 'text-[10px] font-medium uppercase tracking-[0.12em]';
+
 /**
  * "The app knows this one" — the stamp the switcher already uses for a vouched-for endpoint, drawn from
  * whichever icon set the review has chosen so it cannot drift from the caption's glyph.
@@ -25,17 +28,22 @@ export const UNKNOWN_COLOUR = '#e08214';
  * Visual only, with a tooltip: an `sr-only` word inside the row would join the link's accessible name,
  * so "Mainnet Beta" would read as "Mainnet Beta known endpoint" — and the fact is already stated in words
  * by the trigger's own caption. The mark is a shorthand for it in the list, not a second announcement.
+ *
+ * `withLabel` writes the word out beside it. Kept for the row in use and no other: a column of stamps
+ * teaches itself if one of them is spelled out, and spelling out all of them would put a caption on every
+ * line of a list whose subject is the names.
  */
-export function KnownMark({ size = 13, title }: { size?: number; title?: string }) {
+export function KnownMark({ size = 12, title, withLabel }: { size?: number; title?: string; withLabel?: boolean }) {
     const Glyph = ICON_SETS[useAtomValue(iconSetAtom)].provenance.known;
     return (
         <span
             aria-hidden
-            className="flex shrink-0 items-center"
+            className="flex shrink-0 items-center gap-1"
             style={{ color: KNOWN_COLOUR }}
             title={title ?? 'A known endpoint — one this deployment ships with or vouches for'}
         >
             <Glyph size={size} />
+            {withLabel && <span className={MARK_LABEL_CLASSES}>known</span>}
         </span>
     );
 }
@@ -48,16 +56,17 @@ export function KnownMark({ size = 13, title }: { size?: number; title?: string 
  * third party in that connection to trust or distrust, so a warning about it would be a verdict on their
  * own desk (`endpointProvenance`).
  */
-export function UnknownMark({ size = 13, title }: { size?: number; title?: string }) {
+export function UnknownMark({ size = 12, title, withLabel }: { size?: number; title?: string; withLabel?: boolean }) {
     const Glyph = ICON_SETS[useAtomValue(iconSetAtom)].provenance.unknown;
     return (
         <span
             aria-hidden
-            className="flex shrink-0 items-center"
+            className="flex shrink-0 items-center gap-1"
             style={{ color: UNKNOWN_COLOUR }}
             title={title ?? 'Nobody has vouched for this endpoint'}
         >
             <Glyph size={size} />
+            {withLabel && <span className={MARK_LABEL_CLASSES}>unknown</span>}
         </span>
     );
 }

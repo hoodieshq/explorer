@@ -32,7 +32,7 @@ export function SavedClusterList({ savedClusters, status }: SavedClusterListProp
         // default cluster — unless another entry still holds the same URL.
         const stillSaved = savedClusters.some(c => c.url !== url && c.url === activeUrl);
         if (wasActive && !stillSaved) {
-            router.push(buildHref({ cluster: DEFAULT_CLUSTER, customUrl: '' }));
+            router.push(buildHref({ cluster: DEFAULT_CLUSTER, customUrl: '' }), { scroll: false });
         }
     };
 

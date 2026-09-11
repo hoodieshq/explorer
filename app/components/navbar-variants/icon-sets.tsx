@@ -79,7 +79,12 @@ export const iconSetAtom = (() => {
  * rather than to their 2.0 default.
  */
 const STROKE_ON_16 = 1.4;
-const STROKE_ON_24 = 2.1;
+/**
+ * Exported because it is the house weight, not a private detail of these glyphs: anything drawn on a
+ * 24-unit box in this menu — Feather's own icons included, which take the weight as a prop — is held to
+ * it, so a pencil beside a stamp is the same line and not a lighter one.
+ */
+export const STROKE_ON_24 = 2.1;
 
 /**
  * Set 2 — the ladder of bars a router or a phone prints for signal strength. Read as strength rather than
@@ -208,8 +213,108 @@ function scallopPath(centre: number, radius: number, lobes: number) {
 
 const STAMP_EDGE = scallopPath(12, 8, 9);
 
-/** Set 4's provenance: a stamp, struck through when nothing has vouched for the endpoint. */
-function Stamp({ className, size, vouched }: ConnectionGlyphProps & { vouched: boolean }) {
+/**
+ * A triangle with its corners rounded, built rather than drawn: each corner is an arc of `radius` between
+ * the two points where the sides stop short of the vertex.
+ *
+ * `strokeLinejoin="round"` cannot do this — it rounds a join by half the stroke width, which at this
+ * weight is a fraction of a pixel and reads as a sharp point. The arcs are what make the sign look drawn
+ * rather than cut.
+ */
+function roundedTrianglePath(points: readonly (readonly [number, number])[], radius: number): string {
+    const at = (index: number) => points[(index + points.length) % points.length];
+    const toward = (from: readonly [number, number], to: readonly [number, number]): [number, number] => {
+        const [dx, dy] = [to[0] - from[0], to[1] - from[1]];
+        const length = Math.hypot(dx, dy);
+        return [from[0] + (dx / length) * radius, from[1] + (dy / length) * radius];
+    };
+
+    let path = '';
+    for (let index = 0; index < points.length; index++) {
+        const corner = at(index);
+        const entry = toward(corner, at(index - 1));
+        const exit = toward(corner, at(index + 1));
+        // Clockwise points, so every corner turns the same way: sweep 1 throughout.
+        path += `${index === 0 ? 'M' : 'L'}${entry[0].toFixed(2)} ${entry[1].toFixed(2)}`;
+        path += `A${radius} ${radius} 0 0 1 ${exit[0].toFixed(2)} ${exit[1].toFixed(2)}`;
+    }
+    return `${path}Z`;
+}
+
+/**
+ * The sign's outline, drawn to the edges of the box and *equilateral* — built from the base rather than
+ * from three literal points, which is how it drifted: the old triangle was 20.8 wide and 19.8 tall, a
+ * degree and a half off on each base angle, and read as a slightly pinched version of a sign everyone
+ * knows by heart.
+ *
+ * Weight, not thickness, is what had to be matched against the stamp: both are stroked at `STROKE_ON_24`,
+ * but the stamp's scalloped edge lays down about a third more ink than a triangle of the same box, so at
+ * equal size the warning read as the lighter of the two. Size is the only lever left once the stroke is
+ * fixed, so this is as wide as the box allows — 22.6 puts the outermost ink at 0.72 and 23.28 with the
+ * rounding and half the stroke accounted for.
+ *
+ * And lifted inside the box: a triangle carries its mass along the bottom, so centred by its bounding box
+ * it sits low against a round glyph beside it and the caption reads as a step down rather than a line.
+ * 1.3 units is about a pixel at the 12px this is drawn at.
+ */
+const WARNING_LIFT = 1.3;
+/** How much bigger the sign is drawn than the size it is given — see `Warning`. */
+const WARNING_SCALE = 1.14;
+const WARNING_BASE = 22.6;
+const WARNING_BASE_Y = 21.4 - WARNING_LIFT;
+
+const WARNING_TRIANGLE = roundedTrianglePath(
+    [
+        [12, WARNING_BASE_Y - (WARNING_BASE * Math.sqrt(3)) / 2],
+        [12 + WARNING_BASE / 2, WARNING_BASE_Y],
+        [12 - WARNING_BASE / 2, WARNING_BASE_Y],
+    ],
+    3.2,
+);
+
+function Warning({ className, size }: ConnectionGlyphProps) {
+    return (
+        <svg
+            // Drawn a seventh larger than the box it is asked for, with the stroke divided by the same
+            // factor so the *line* stays exactly the stamp's — the geometry already fills its 24-unit box,
+            // so the only way left to give the sign more presence is to render that box bigger. About a
+            // pixel at the 12px this is drawn at, taken off the top and the sides in proportion.
+            width={size * WARNING_SCALE}
+            height={size * WARNING_SCALE}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={className}
+            aria-hidden
+        >
+            <path d={WARNING_TRIANGLE} strokeWidth={STROKE_ON_24 / WARNING_SCALE} />
+            {/* Left at the size it was while the triangle grew around it: the bar stops short of the dot
+                by its own width, and that gap is what reads as an exclamation rather than a broken line. */}
+            <line
+                x1={12}
+                y1={10.4 - WARNING_LIFT}
+                x2={12}
+                y2={14.4 - WARNING_LIFT}
+                strokeWidth={STROKE_ON_24 / WARNING_SCALE}
+            />
+            <line
+                x1={12}
+                y1={17 - WARNING_LIFT}
+                x2={12}
+                y2={17 - WARNING_LIFT}
+                strokeWidth={STROKE_ON_24 / WARNING_SCALE}
+            />
+        </svg>
+    );
+}
+
+/**
+ * Set 4's provenance: a stamp with a tick, for an endpoint something has vouched for. Its opposite is not
+ * this shape struck through but a different sign altogether — see `Warning`.
+ */
+function Stamp({ className, size }: ConnectionGlyphProps) {
     return (
         <svg
             width={size}
@@ -225,11 +330,7 @@ function Stamp({ className, size, vouched }: ConnectionGlyphProps & { vouched: b
             {/* Edge and mark at one weight, the connection glyph's: they were 1.5 and 2, which put three
                 different lines in a caption two glyphs wide. */}
             <path d={STAMP_EDGE} strokeWidth={STROKE_ON_24} />
-            {vouched ? (
-                <polyline points="8.4 12.2 11 14.7 15.8 9.3" strokeWidth={STROKE_ON_24} />
-            ) : (
-                <line x1={7.5} y1={16.5} x2={16.5} y2={7.5} strokeWidth={STROKE_ON_24} />
-            )}
+            <polyline points="8.4 12.2 11 14.7 15.8 9.3" strokeWidth={STROKE_ON_24} />
         </svg>
     );
 }
@@ -292,8 +393,8 @@ export const ICON_SETS: Record<IconSetId, IconSet> = {
     set4: {
         connection: SET_4,
         provenance: {
-            known: props => <Stamp {...props} vouched />,
-            unknown: props => <Stamp {...props} vouched={false} />,
+            known: props => <Stamp {...props} />,
+            unknown: props => <Warning {...props} />,
         },
     },
 };
