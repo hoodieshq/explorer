@@ -14,6 +14,14 @@ const nextConfig = {
     // Use separate build directory for dev server to avoid conflicts with production builds
     distDir: process.env.NODE_ENV === 'production' ? '.next' : '.next-dev',
     outputFileTracingRoot: projectRoot,
+    // The OG routes read these off disk at runtime to hand satori real font bytes and the glow bitmap. Nothing
+    // imports them, so tracing cannot infer them from the module graph - name them or the deploy ships a
+    // function whose `readFile` throws ENOENT.
+    outputFileTracingIncludes: {
+        '/og/feature-gate/[address]': ['./public/fonts/**'],
+        '/og/receipt/[signature]': ['./public/fonts/**'],
+        '/og/tx/[signature]': ['./public/fonts/**', './public/img/og/**'],
+    },
     images: {
         remotePatterns: [
             {
