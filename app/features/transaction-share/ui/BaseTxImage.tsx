@@ -99,7 +99,7 @@ export function BaseTxImage({ data, glows }: BaseTxImageProps) {
     );
 }
 
-function Header({ dateUtc, status }: { dateUtc: string | undefined; status: TxShareData['status'] | undefined }) {
+function Header({ dateUtc, status }: { dateUtc: string | undefined; status: TxShareData['status'] }) {
     return (
         <div
             style={{
@@ -268,7 +268,7 @@ function programLabel({ nameLookup, programName }: InstructionSummary): string {
  */
 function footerCells(data: TxShareData): { label: string; mono?: boolean; value: string }[] {
     return [
-        { label: 'Fee', value: data.fee },
+        { label: 'Fee', value: data.fee ?? EMPTY_VALUE },
         { label: 'Slot', value: data.slot.toLocaleString('en-US') },
         { label: 'Version', value: data.version ?? EMPTY_VALUE },
         {
@@ -279,7 +279,7 @@ function footerCells(data: TxShareData): { label: string; mono?: boolean; value:
     ];
 }
 
-function StatusBadge({ status }: { status: TxShareData['status'] }) {
+function StatusBadge({ status }: { status: NonNullable<TxShareData['status']> }) {
     const pill = status === 'failed' ? PILL.failed : PILL.success;
 
     return (

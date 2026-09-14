@@ -175,6 +175,16 @@ describe('should shape the transaction behind an OG image', () => {
 
         expect(result).toMatchObject({ data: { dateUtc: '-' }, kind: 'ok' });
     });
+
+    it('should leave the fee and the status absent when the transaction carries no meta', async () => {
+        mocks.getTx.mockResolvedValue({ ...TX, meta: null });
+
+        const result = await getTxShareData(SIGNATURE, Cluster.MainnetBeta);
+
+        expect(result).toMatchObject({ kind: 'ok' });
+        expect(result).toHaveProperty('data.fee', undefined);
+        expect(result).toHaveProperty('data.status', undefined);
+    });
 });
 
 describe('should map every failure to a result rather than throwing', () => {

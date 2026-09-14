@@ -166,6 +166,18 @@ export const NoInstructions: Story = {
     },
 };
 
+// A transaction the RPC returned without `meta`, which carries both the fee and the execution result.
+export const MissingMeta: Story = {
+    args: { data: { ...txShareData, fee: undefined, status: undefined } },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+
+        expect(canvas.queryByTestId('tx-image-status')).not.toBeInTheDocument();
+        expect(canvas.getByText('Fee')).toBeInTheDocument();
+        expect(canvas.getByText('-')).toBeInTheDocument();
+    },
+};
+
 // Every optional footer field absent at once, which is also the only story that exercises a missing signer.
 export const MissingFooterValues: Story = {
     args: { data: { ...txShareData, signer: undefined, version: undefined } },

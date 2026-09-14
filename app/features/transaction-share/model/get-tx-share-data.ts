@@ -23,9 +23,9 @@ export type TxShareData = {
     signature: string;
     /** "Aug 31, 2026 at 11:00:00 UTC" */
     dateUtc: string;
-    /** "0.000005 SOL" */
-    fee: string;
-    status: 'success' | 'failed';
+    /** "0.000005 SOL". Absent when the RPC returned no `meta`, which carries both the fee and the result. */
+    fee?: string;
+    status?: 'success' | 'failed';
     instructions: InstructionSummary[];
     /** Required: every transaction the RPC returns was confirmed in a slot. */
     slot: number;
@@ -119,16 +119,13 @@ function idlProgramIds(summaries: InstructionSummary[]): string[] {
 function toShareData(signature: string, tx: TransactionWithMeta, instructions: InstructionSummary[]): TxShareData {
     return {
         dateUtc: formatDateUtc(tx.blockTime),
-        // `meta` is absent only when the RPC returned no execution result, which a confirmed
-        // transaction always carries. Zero keeps the row printable instead of blanking it.
-        fee: `${lamportsToSolString(tx.meta?.fee ?? 0)} SOL`,
+        fee: tx.meta ? `${lamportsToSolString(tx.meta.fee)} SOL` : undefined,
         instructions,
         signature,
         // The fee payer is always the first account key, which is what the detail card reads too.
         signer: tx.transaction.message.accountKeys[0]?.pubkey.toBase58(),
         slot: tx.slot,
-        // Absent metadata carries no execution result, which is not a success, so it reads as failed.
-        status: tx.meta?.err === null ? 'success' : 'failed',
+        status: tx.meta ? (tx.meta.err === null ? 'success' : 'failed') : undefined,
         version: tx.version === undefined ? undefined : formatTransactionVersion(tx.version),
     };
 }
