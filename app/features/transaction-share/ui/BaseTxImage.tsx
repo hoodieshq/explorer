@@ -50,13 +50,13 @@ const LOGO = { height: '28px', width: '229px' } as const;
 
 type BaseTxImageProps = {
     data: TxShareData | undefined;
-    /** Both glows are base64 data URIs. [failedGlow, successGlow] */
-    glows: [string, string];
+    /** Both glows are base64 data URIs. */
+    glows: { failed: string; success: string };
 };
 
 export function BaseTxImage({ data, glows }: BaseTxImageProps) {
     // A card with no transaction has no status to colour, so it takes the success glow.
-    const glow = data?.status === 'failed' ? glows[0] : glows[1];
+    const glow = data?.status === 'failed' ? glows.failed : glows.success;
 
     return (
         <div

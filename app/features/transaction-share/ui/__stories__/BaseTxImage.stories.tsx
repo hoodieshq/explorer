@@ -6,6 +6,7 @@ import type { Meta, StoryObj } from '@storybook-config/types';
 import { expect, within } from 'storybook/test';
 
 import { MAX_INSTRUCTION_ROWS } from '../../lib/constants';
+import type { OgGlows } from '../../lib/og-glows';
 import type { TxShareData } from '../../model/get-tx-share-data';
 import { BaseTxImage } from '../BaseTxImage';
 
@@ -14,8 +15,7 @@ const UNKNOWN_PROGRAM_ID = gen.address(2);
 
 // A browser resolves these paths on its own. The route hands the same two images in as data URIs, because
 // satori resolves no relative URL - see `loadOgGlows`.
-// Glow for failed tx first, success second.
-const GLOWS: [string, string] = ['/img/og/pink_gradient.png', '/img/og/green_gradient.png'];
+const GLOWS: OgGlows = { failed: '/img/og/pink_gradient.png', success: '/img/og/green_gradient.png' };
 
 /**
  * `value`, or a thrown error naming what was missing. Measuring against an absent element reads as a

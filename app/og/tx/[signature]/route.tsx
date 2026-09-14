@@ -44,7 +44,7 @@ export async function GET(request: NextRequest, props: Props) {
         // Both loaders cache after the first call, so this is one read per instance, not per request.
         const [fonts, glows] = await Promise.all([loadOgFonts(FONTS_TO_LOAD), loadOgGlows()]);
 
-        const imageResponse = new ImageResponse(<BaseTxImage data={data} glows={[glows.failed, glows.success]} />, {
+        const imageResponse = new ImageResponse(<BaseTxImage data={data} glows={glows} />, {
             ...IMAGE_SIZE,
             fonts,
         });
