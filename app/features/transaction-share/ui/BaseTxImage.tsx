@@ -2,7 +2,7 @@ import { truncateAddress } from '@entities/address';
 import { type InstructionSummary, UNKNOWN_PROGRAM_NAME } from '@entities/transaction-data';
 
 import { Logo } from '@/app/shared/components/SolanaLogo';
-import { pluralUnits } from '@/app/utils';
+import { pluralWord } from '@/app/utils';
 
 import { MAX_INSTRUCTION_ROWS } from '../lib/constants';
 import type { TxShareData } from '../model/get-tx-share-data';
@@ -180,7 +180,7 @@ function Body({ data }: { data: TxShareData }) {
                             ...TYPO.body,
                         }}
                     >
-                        {`and ${overflow} more ${pluralUnits(overflow, 'instruction')}`}
+                        {`and ${overflow} more ${pluralWord(overflow, 'instruction')}`}
                     </span>
                 )}
             </div>
