@@ -134,13 +134,24 @@ export const ExactlyAtCap: Story = {
     },
 };
 
-export const OverCap: Story = {
+export const OverCapMultipleIxs: Story = {
     args: { data: { ...txShareData, instructions: makeInstructions(MAX_INSTRUCTION_ROWS + 4) } },
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
 
         expect(canvas.getAllByTestId('tx-image-instruction')).toHaveLength(MAX_INSTRUCTION_ROWS);
         expect(canvas.getByTestId('tx-image-instruction-overflow')).toHaveTextContent('and 4 more instructions');
+    },
+};
+
+// Test pluralization of the "and N more instructions" line.
+export const OverCapSingleIx: Story = {
+    args: { data: { ...txShareData, instructions: makeInstructions(MAX_INSTRUCTION_ROWS + 1) } },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+
+        expect(canvas.getAllByTestId('tx-image-instruction')).toHaveLength(MAX_INSTRUCTION_ROWS);
+        expect(canvas.getByTestId('tx-image-instruction-overflow').textContent).toBe('and 1 more instruction');
     },
 };
 
