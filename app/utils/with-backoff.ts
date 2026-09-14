@@ -28,10 +28,31 @@ export function withBackoff<T>(fn: () => Promise<T>, options?: BackoffOptions): 
             // fatal error throw the same way and neither logs a retry it is not about to make.
             if (retries <= 0 || !shouldRetry(error)) throw error;
             Logger.debug('[utils:with-backoff] Retrying after failure', { delay, error, retriesLeft: retries });
-            await new Promise(resolve => setTimeout(resolve, delay));
+            await sleep(delay, abortSignal);
             return attempt(retries - 1, delay * factor);
         }
     }
 
     return attempt(maxRetries, initialDelay);
+}
+
+/**
+ * Resolves on the delay or on the caller's abort, whichever lands first.
+ *
+ * Never rejects: the `throwIfAborted` reports the abort in the next attempt from the withBackoff fn.
+ */
+function sleep(delay: number, abortSignal?: AbortSignal): Promise<void> {
+    return new Promise(resolve => {
+        function onAbort() {
+            clearTimeout(timer);
+            resolve();
+        }
+
+        const timer = setTimeout(() => {
+            abortSignal?.removeEventListener('abort', onAbort);
+            resolve();
+        }, delay);
+
+        abortSignal?.addEventListener('abort', onAbort, { once: true });
+    });
 }

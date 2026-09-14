@@ -136,6 +136,24 @@ describe('withBackoff', () => {
         expect(fn).toHaveBeenCalledTimes(1);
     });
 
+    it('should stop waiting as soon as the controller aborts the signal', async () => {
+        const fn = vi.fn().mockRejectedValue(new Error('error'));
+        const deadline = new AbortController();
+
+        const promise = withBackoff(fn, { abortSignal: deadline.signal, initialDelay: 1000, maxRetries: 1 });
+
+        // Let the first attempt fail, which schedules the 1000ms retry delay.
+        await vi.advanceTimersByTimeAsync(100);
+        expect(vi.getTimerCount()).toBe(1);
+
+        deadline.abort();
+
+        expect(vi.getTimerCount()).toBe(0);
+        // The clock never reaches 1000ms: only a delay that the abort cut short settles here.
+        await expect(promise).rejects.toHaveProperty('name', 'AbortError');
+        expect(fn).toHaveBeenCalledTimes(1);
+    });
+
     it('should retry as usual while the deadline holds', async () => {
         const fn = vi.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValue('ok');
         const deadline = new AbortController();
