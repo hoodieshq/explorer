@@ -1,6 +1,6 @@
 import '../../styles/styles.css';
 
-import { isReceiptEnabled, RECEIPT_BASE_URL, RECEIPT_OG_IMAGE_VERSION } from '@features/receipt/env';
+import { isReceiptEnabled, RECEIPT_BASE_URL, RECEIPT_OG_IMAGE_VERSION } from '@features/receipt/server';
 import { buildCompositeSignature, getClusterParam } from '@features/receipt/server';
 import { getTxOgImageUrl, getTxOpenGraph } from '@features/transaction-share/server';
 import { IMAGE_SIZE } from '@shared/lib/og/image-size';
