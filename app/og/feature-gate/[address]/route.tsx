@@ -7,8 +7,6 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { Logger } from '@/app/shared/lib/logger';
 
-export const runtime = 'edge';
-
 const CACHE_DURATION = 24 * 60 * 60; // 24 hours — feature gate data rarely changes
 const CACHE_HEADERS = {
     'Cache-Control': `public, max-age=${CACHE_DURATION}, s-maxage=${CACHE_DURATION}, stale-while-revalidate=60`,

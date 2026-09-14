@@ -12,8 +12,6 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { Logger } from '@/app/shared/lib/logger';
 
-export const runtime = 'edge';
-
 const CACHE_DURATION = 30 * 60; // 30 minutes
 const DEFAULT_CACHE_HEADERS = {
     'Cache-Control': `public, max-age=${CACHE_DURATION}, s-maxage=${CACHE_DURATION}, stale-while-revalidate=60`,
