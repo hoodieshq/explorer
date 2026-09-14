@@ -1,5 +1,5 @@
 import { gen } from '@__fixtures__/gen';
-import { getTxShareData, type TxShareData } from '@features/transaction-share/server';
+import { getTxShareData, type OgGlows, type TxShareData } from '@features/transaction-share/server';
 import { Cluster } from '@utils/cluster';
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
@@ -143,11 +143,10 @@ describe('should handle GET /og/tx/[signature]', () => {
 
         const [element] = vi.mocked(ImageResponse).mock.calls[0];
         // `ReactElement` declares its props as `unknown`, so the shape this route passes is named here.
-        // Order matters and nothing else checks it: the card reads index 0 as the failed glow.
-        expect((element.props as { glows?: [string, string] }).glows).toEqual([
-            'data:image/png;base64,failed',
-            'data:image/png;base64,ok',
-        ]);
+        expect((element.props as { glows?: OgGlows }).glows).toEqual({
+            failed: 'data:image/png;base64,failed',
+            success: 'data:image/png;base64,ok',
+        });
     });
 
     it('should return 502 when the data layer errors', async () => {
