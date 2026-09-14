@@ -36,13 +36,13 @@ export async function getIdlNames({
     // `settleWithin` stops awaiting at the budget but cannot cancel, so this carries the same deadline
     // down to the RPC. Own controller rather than `AbortSignal.timeout`: one timer for the stage, fired at
     // the moment the budget lapses, and an `AbortError` the catch below can tell apart from a real fault.
-    const abortSignal = new AbortController();
+    const abortController = new AbortController();
 
     try {
         const settled = await settleWithin(
             IDL_FETCH_BUDGET_MS,
             resolvable.map(programId =>
-                resolveProgramEntry({ abortSignal: abortSignal.signal, cluster, programId, url }),
+                resolveProgramEntry({ abortSignal: abortController.signal, cluster, programId, url }),
             ),
         );
 
@@ -50,7 +50,7 @@ export async function getIdlNames({
     } finally {
         // Anything unsettled here has outlived the budget: aborting frees its connection instead of
         // leaving the request, and the retry behind it, running after the image has been rendered.
-        abortSignal.abort();
+        abortController.abort();
     }
 }
 
