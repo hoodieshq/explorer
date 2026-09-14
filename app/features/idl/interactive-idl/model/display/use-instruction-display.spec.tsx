@@ -19,7 +19,8 @@ vi.mock('./get-form-instruction-display', () => ({
 
 const FETCH_ACCOUNT = vi.fn();
 const createFetchDisplayAccount = vi.fn(() => FETCH_ACCOUNT);
-vi.mock('../../lib/fetch-display-account', () => ({
+vi.mock('@entities/idl/lib/fetch-display-account', async importOriginal => ({
+    ...(await importOriginal<typeof import('@entities/idl/lib/fetch-display-account')>()),
     createFetchDisplayAccount: () => createFetchDisplayAccount(),
 }));
 
@@ -43,14 +44,12 @@ const INSTRUCTION = {
 
 const PROGRAM = { buildInstruction: vi.fn(), getInstructionDisplay: vi.fn() } as unknown as UnifiedProgram;
 
-// `withProgram` rather than an optional program: passing `undefined` would fall back to the default.
 function setup({ withProgram = true }: { withProgram?: boolean } = {}) {
     const store = createStore();
     if (withProgram) store.set(programAtom, PROGRAM);
 
     const wrapper = ({ children }: { children: ReactNode }) => <Provider store={store}>{children}</Provider>;
 
-    // The form is captured so a test can change a value and drive a second resolve.
     const formRef: { current?: ReturnType<typeof useInstructionForm>['form'] } = {};
 
     const view = renderHook(
@@ -161,7 +160,6 @@ describe('useInstructionDisplay', () => {
         });
         await waitFor(() => expect(getFormInstructionDisplay).toHaveBeenCalledTimes(1));
 
-        // Changing a value restarts the effect, so the still-pending first run loses ownership.
         await act(async () => {
             formRef.current?.setValue('arguments.transferSol.amount', '2000000000');
             vi.advanceTimersByTime(400);

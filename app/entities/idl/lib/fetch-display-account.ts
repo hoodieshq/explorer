@@ -1,5 +1,5 @@
 import type { FetchAccountFn } from '@codama/dynamic-instructions';
-import type { SolanaRpc } from '@entities/cluster';
+import type { SolanaRpc } from '@entities/cluster/@x/idl';
 import { type Address, fetchEncodedAccount, type MaybeEncodedAccount } from '@solana/kit';
 
 /**

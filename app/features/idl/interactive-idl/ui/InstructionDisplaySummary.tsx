@@ -1,4 +1,5 @@
 import type { InstructionDisplay } from '@codama/dynamic-instructions';
+import { BaseInstructionDisplay } from '@entities/idl';
 import { useState } from 'react';
 import { ChevronDown } from 'react-feather';
 
@@ -49,21 +50,7 @@ export function InstructionDisplaySummary({
             >
                 <div className="overflow-hidden">
                     <div className="border-t border-neutral-800 px-3 py-2.5">
-                        <p className="break-all text-xs text-white" data-testid="instruction-display-intent">
-                            {display.interpolatedIntent ?? display.intent}
-                        </p>
-
-                        {display.fields.length > 0 && (
-                            <dl className="mt-3 space-y-1.5">
-                                {/* Index key: an argument and an account can share a name, so labels are not unique. */}
-                                {display.fields.map((field, index) => (
-                                    <div key={index} className="flex gap-3 text-xs">
-                                        <dt className="w-28 shrink-0 text-neutral-400">{field.label}</dt>
-                                        <dd className="min-w-0 break-all text-neutral-200">{field.value}</dd>
-                                    </div>
-                                ))}
-                            </dl>
-                        )}
+                        <BaseInstructionDisplay display={display} />
                     </div>
                 </div>
             </div>

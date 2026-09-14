@@ -1,4 +1,7 @@
 import { BaseInstructionCard } from '@components/common/BaseInstructionCard';
+// Reached by module path, not the feature barrel: the barrel pulls in IdlInstructionCard, which
+// renders this card, and the resulting import cycle is a bundler hazard for no gain.
+import { InstructionDisplayPopover } from '@features/decode-instruction-with-idl/ui/InstructionDisplayPopover';
 import { FetchStatus } from '@providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@providers/transactions/raw';
 import { ParsedInstruction, SignatureResult, TransactionInstruction } from '@solana/web3.js';
@@ -70,7 +73,19 @@ export function InstructionCard({
             raw={raw}
             onRequestRaw={canFetchRaw ? fetchRawTrigger : undefined}
             rawUnavailable={rawUnavailable}
-            headerButtons={headerButtons}
+            headerButtons={
+                <>
+                    {headerButtons}
+                    {/* Inner instructions never carry raw wire bytes, so there is nothing to summarise. */}
+                    {childIndex === undefined && (
+                        <InstructionDisplayPopover
+                            raw={raw}
+                            programId={ix.programId.toString()}
+                            onRequestRaw={canFetchRaw ? fetchRawTrigger : undefined}
+                        />
+                    )}
+                </>
+            }
             collapsible={collapsible}
         >
             {children}

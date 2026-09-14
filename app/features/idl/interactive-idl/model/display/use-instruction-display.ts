@@ -2,11 +2,11 @@ import 'client-only';
 
 import type { InstructionDisplay } from '@codama/dynamic-instructions';
 import { useSolanaRpc } from '@entities/cluster';
+import { createFetchDisplayAccount } from '@entities/idl';
 import { useAtomValue } from 'jotai';
 import { useEffect, useRef, useState } from 'react';
 import { type UseFormReturn, useWatch } from 'react-hook-form';
 
-import { createFetchDisplayAccount } from '../../lib/fetch-display-account';
 import { programAtom } from '../state-atoms';
 import type { InstructionFormData } from '../use-instruction-form';
 import { getFormInstructionDisplay } from './get-form-instruction-display';
