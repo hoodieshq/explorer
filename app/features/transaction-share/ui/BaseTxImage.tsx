@@ -180,7 +180,7 @@ function Body({ data }: { data: TxShareData }) {
                             ...TYPO.body,
                         }}
                     >
-                        {`and ${overflow} more ${pluralUnits(overflow, "instruction")}`}
+                        {`and ${overflow} more ${pluralUnits(overflow, 'instruction')}`}
                     </span>
                 )}
             </div>
