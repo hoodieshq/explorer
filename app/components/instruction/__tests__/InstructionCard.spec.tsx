@@ -26,17 +26,28 @@ vi.mock('@components/common/BaseInstructionCard', () => ({
     BaseInstructionCard: ({
         onRequestRaw,
         rawUnavailable,
+        headerButtons,
     }: {
         onRequestRaw?: () => void;
         rawUnavailable?: boolean;
+        headerButtons?: React.ReactNode;
     }) => (
-        <button
-            data-can-request={onRequestRaw !== undefined}
-            data-raw-unavailable={rawUnavailable === true}
-            onClick={() => onRequestRaw?.()}
-        >
-            Raw
-        </button>
+        <>
+            <button
+                data-can-request={onRequestRaw !== undefined}
+                data-raw-unavailable={rawUnavailable === true}
+                onClick={() => onRequestRaw?.()}
+            >
+                Raw
+            </button>
+            {headerButtons}
+        </>
+    ),
+}));
+
+vi.mock('@features/decode-instruction-with-idl/ui/InstructionDisplayPopover', () => ({
+    InstructionDisplayPopover: ({ programId, raw }: { programId: string; raw?: TransactionInstruction }) => (
+        <div data-testid="display-popover" data-program-id={programId} data-has-raw={raw !== undefined} />
     ),
 }));
 
@@ -130,5 +141,51 @@ describe('InstructionCard', () => {
         renderCard({ childIndex: 0 });
 
         expect(screen.getByRole('button').dataset.canRequest).toBe('false');
+    });
+
+    it('should offer the display summary on a top-level instruction', () => {
+        renderCard();
+
+        expect(screen.getByTestId('display-popover').dataset.programId).toBe(PROGRAM_ID.toString());
+    });
+
+    it('should not offer the display summary on an inner instruction', () => {
+        rawDetails = legacyRawDetails();
+
+        renderCard({ childIndex: 0 });
+
+        expect(screen.queryByTestId('display-popover')).not.toBeInTheDocument();
+    });
+
+    it('should hand the fetched raw instruction to the display summary', () => {
+        rawDetails = legacyRawDetails();
+
+        renderCard();
+
+        expect(screen.getByTestId('display-popover').dataset.hasRaw).toBe('true');
+    });
+
+    it('should read the display summary off the rendered instruction when no fetch supplies one', () => {
+        const instruction = new TransactionInstruction({ data: Buffer.from([1]), keys: [], programId: PROGRAM_ID });
+
+        render(
+            <SignatureContext.Provider value="">
+                <InstructionCard title="Transfer" result={{ err: null }} index={0} ix={instruction} />
+            </SignatureContext.Provider>,
+        );
+
+        expect(screen.getByTestId('display-popover').dataset.hasRaw).toBe('true');
+    });
+
+    it('should withhold a raw instruction from the display summary for an RPC-pre-parsed one', () => {
+        const parsed = {
+            parsed: { info: {}, type: 'transfer' },
+            program: 'system',
+            programId: PROGRAM_ID,
+        } as unknown as React.ComponentProps<typeof InstructionCard>['ix'];
+
+        renderCard({ ix: parsed });
+
+        expect(screen.getByTestId('display-popover').dataset.hasRaw).toBe('false');
     });
 });

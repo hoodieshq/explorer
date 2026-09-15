@@ -1,4 +1,7 @@
 import { BaseInstructionCard } from '@components/common/BaseInstructionCard';
+// Reached by module path, not the feature barrel: the barrel pulls in IdlInstructionCard, which
+// renders this card, and the resulting import cycle is a bundler hazard for no gain.
+import { InstructionDisplayPopover } from '@features/decode-instruction-with-idl/ui/InstructionDisplayPopover';
 import { FetchStatus } from '@providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@providers/transactions/raw';
 import { ParsedInstruction, SignatureResult, TransactionInstruction } from '@solana/web3.js';
@@ -56,6 +59,10 @@ export function InstructionCard({
     // Inner instructions never carry raw wire data, so their Raw view is the same with or without
     // it; only the top-level list has rows to lose.
     const rawUnavailable = rawFetched && raw === undefined && childIndex === undefined;
+    // Cards that decode wire bytes themselves (codama, anchor) hand the instruction down as `ix`, and on
+    // the inspector there is no signature to fetch a raw transaction against. Read the bytes off `ix`
+    // when it carries them, so the summary does not depend on the raw fetch landing.
+    const rawForDisplay = raw ?? ('parsed' in ix ? undefined : ix);
 
     return (
         <BaseInstructionCard
@@ -70,7 +77,19 @@ export function InstructionCard({
             raw={raw}
             onRequestRaw={canFetchRaw ? fetchRawTrigger : undefined}
             rawUnavailable={rawUnavailable}
-            headerButtons={headerButtons}
+            headerButtons={
+                <>
+                    {headerButtons}
+                    {/* Inner instructions never carry raw wire bytes, so there is nothing to summarise. */}
+                    {childIndex === undefined && (
+                        <InstructionDisplayPopover
+                            raw={rawForDisplay}
+                            programId={ix.programId.toString()}
+                            onRequestRaw={canFetchRaw ? fetchRawTrigger : undefined}
+                        />
+                    )}
+                </>
+            }
             collapsible={collapsible}
         >
             {children}

@@ -30,3 +30,7 @@ export { getProvider } from './model/anchor/anchor-provider';
 export { useProgramIdls, type ProgramIdls } from './model/use-program-idls';
 export { useFormatCodamaIdl } from './model/use-format-codama-idl';
 export { getIdlSpecType } from './model/converters/convert-legacy-idl';
+
+export { createFetchDisplayAccount, memoizeFetchAccount } from './lib/fetch-display-account';
+export { hasDisplayMetadata } from './lib/has-display-metadata';
+export { BaseInstructionDisplay } from './ui/BaseInstructionDisplay';

@@ -1,11 +1,14 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 
+import { gen } from '@__fixtures__/gen';
 import { createProgramClient } from '@codama/dynamic-client';
+import { type Address, address, lamports, type MaybeEncodedAccount } from '@solana/kit';
 import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import type { RootNode } from 'codama';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { encodeMint } from '../__mocks__/codama/encode-mint';
 import type { BaseIdl } from '../unified-program.d';
 import { CodamaUnifiedProgram } from './codama-program';
 
@@ -160,6 +163,83 @@ describe('CodamaUnifiedProgram', () => {
                 ),
                 // eslint-disable-next-line no-restricted-syntax -- regex needed to match partial error message
             ).rejects.toThrow(/Could not convert "pollId" argument/);
+        });
+    });
+
+    describe('getInstructionDisplay', () => {
+        const systemDisplayIdl = loadIdl('system-program-display-idl.json');
+        const tokenDisplayIdl = loadIdl('token-program-display-idl.json');
+        const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+
+        const source = gen.publicKey(1);
+        const destination = gen.publicKey(2);
+        const mint = gen.publicKey(3);
+        const mintAuthority = gen.publicKey(4);
+
+        it('should interpolate the intent sentence from display metadata', async () => {
+            const program = createProgram(systemDisplayIdl);
+
+            const display = await program.getInstructionDisplay('transferSol', { destination, source }, ['1500000000']);
+
+            expect(display?.intent).toBe('Transfer SOL');
+            expect(display?.interpolatedIntent).toBe(
+                `Transfer 1.5 SOL from ${source.toBase58()} to ${destination.toBase58()}`,
+            );
+        });
+
+        it('should label fields from display metadata', async () => {
+            const program = createProgram(systemDisplayIdl);
+
+            const display = await program.getInstructionDisplay('transferSol', { destination, source }, ['1500000000']);
+
+            expect(display?.fields).toEqual([
+                { label: 'Amount', value: '1.5 SOL' },
+                { label: 'From', value: source.toBase58() },
+                { label: 'To', value: destination.toBase58() },
+            ]);
+        });
+
+        it('should fall back to a titleCased intent when the IDL carries no display metadata', async () => {
+            const program = createProgram(systemIdl);
+
+            const display = await program.getInstructionDisplay('transferSol', { destination, source }, ['1500000000']);
+
+            expect(display?.intent).toBe('Transfer Sol');
+            expect(display?.interpolatedIntent).toBeNull();
+        });
+
+        it('should resolve an injected account field when fetchAccount is supplied', async () => {
+            const program = createProgram(tokenDisplayIdl, TOKEN_PROGRAM);
+            const fetchAccount = vi.fn(async (queried: Address): Promise<MaybeEncodedAccount> => ({
+                address: queried,
+                data: encodeMint({ decimals: 6, mintAuthority: mintAuthority.toBase58() }),
+                executable: false,
+                exists: true,
+                lamports: lamports(1_000_000n),
+                programAddress: address(TOKEN_PROGRAM.toBase58()),
+                space: 82n,
+            }));
+
+            const display = await program.getInstructionDisplay(
+                'mintTo',
+                { mint, mintAuthority, token: destination },
+                ['1500000'],
+                { fetchAccount },
+            );
+
+            expect(display?.interpolatedIntent).toBe(`Mint 1.5 ${mint.toBase58()} to ${destination.toBase58()}`);
+            expect(fetchAccount).toHaveBeenCalledWith(mint.toBase58());
+        });
+
+        it('should mark the amount raw and withhold the sentence when fetchAccount is absent', async () => {
+            const program = createProgram(tokenDisplayIdl, TOKEN_PROGRAM);
+
+            const display = await program.getInstructionDisplay('mintTo', { mint, mintAuthority, token: destination }, [
+                '1500000',
+            ]);
+
+            expect(display?.interpolatedIntent).toBeNull();
+            expect(display?.fields).toContainEqual({ label: 'Amount', value: '1500000 (raw)' });
         });
     });
 });

@@ -1,3 +1,4 @@
+import type { GetInstructionDisplayOptions, InstructionDisplay } from '@codama/dynamic-instructions';
 import type { PublicKey, Transaction, TransactionInstruction, VersionedTransaction } from '@solana/web3.js';
 
 /**
@@ -32,6 +33,17 @@ export interface UnifiedProgram {
         accounts: UnifiedAccounts,
         args: UnifiedArguments,
     ): Promise<TransactionInstruction>;
+
+    /**
+     * Resolve the sRFC 39 display for an instruction.
+     * Optional: only IDL standards whose nodes can carry `display` metadata implement it.
+     */
+    getInstructionDisplay?(
+        instructionName: string,
+        accounts: UnifiedAccounts,
+        args: UnifiedArguments,
+        options?: GetInstructionDisplayOptions,
+    ): Promise<InstructionDisplay | undefined>;
 }
 
 export type UnifiedAccounts = Record<string, PublicKey | null>;
