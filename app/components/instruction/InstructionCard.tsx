@@ -59,6 +59,10 @@ export function InstructionCard({
     // Inner instructions never carry raw wire data, so their Raw view is the same with or without
     // it; only the top-level list has rows to lose.
     const rawUnavailable = rawFetched && raw === undefined && childIndex === undefined;
+    // Cards that decode wire bytes themselves (codama, anchor) hand the instruction down as `ix`, and on
+    // the inspector there is no signature to fetch a raw transaction against. Read the bytes off `ix`
+    // when it carries them, so the summary does not depend on the raw fetch landing.
+    const rawForDisplay = raw ?? ('parsed' in ix ? undefined : ix);
 
     return (
         <BaseInstructionCard
@@ -79,7 +83,7 @@ export function InstructionCard({
                     {/* Inner instructions never carry raw wire bytes, so there is nothing to summarise. */}
                     {childIndex === undefined && (
                         <InstructionDisplayPopover
-                            raw={raw}
+                            raw={rawForDisplay}
                             programId={ix.programId.toString()}
                             onRequestRaw={canFetchRaw ? fetchRawTrigger : undefined}
                         />

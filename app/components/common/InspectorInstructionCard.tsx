@@ -3,6 +3,9 @@ import { Button } from '@components/shared/ui/button';
 import { CollapsibleCard } from '@components/shared/ui/collapsible-card';
 import { cn } from '@components/shared/utils';
 import { ProgramField } from '@entities/instruction-card';
+// Reached by module path, not the feature barrel: the barrel pulls in IdlInstructionCard, which
+// renders this card, and the resulting import cycle is a bundler hazard for no gain.
+import { InstructionDisplayPopover } from '@features/decode-instruction-with-idl/ui/InstructionDisplayPopover';
 import { useScrollAnchor } from '@providers/scroll-anchor';
 import { ParsedInstruction, SignatureResult, TransactionInstruction } from '@solana/web3.js';
 import getInstructionCardScrollAnchorId from '@utils/get-instruction-card-scroll-anchor-id';
@@ -56,6 +59,9 @@ export function InspectorInstructionCard({
     const scrollAnchorRef = useScrollAnchor(
         getInstructionCardScrollAnchorId(childIndex != null ? [index + 1, childIndex + 1] : [index + 1]),
     );
+    // The inspector decodes the wire message itself, so `ix` is already the raw instruction and no
+    // `raw` prop arrives. Same fallback the Raw view below uses.
+    const rawForDisplay = raw ?? ('parsed' in ix ? undefined : ix);
 
     return (
         <CollapsibleCard
@@ -70,17 +76,27 @@ export function InspectorInstructionCard({
                 </>
             }
             headerButtons={
-                <Button
-                    ui="dashkit"
-                    size="sm"
-                    variant={showRaw ? 'black' : 'white'}
-                    active={showRaw}
-                    disabled={defaultRaw}
-                    className={cn('flex items-center', defaultRaw && '!pointer-events-auto cursor-not-allowed')}
-                    onClick={rawClickHandler}
-                >
-                    <Code className="mr-1.5" size={13} /> Raw
-                </Button>
+                <>
+                    <Button
+                        ui="dashkit"
+                        size="sm"
+                        variant={showRaw ? 'black' : 'white'}
+                        active={showRaw}
+                        disabled={defaultRaw}
+                        className={cn('flex items-center', defaultRaw && '!pointer-events-auto cursor-not-allowed')}
+                        onClick={rawClickHandler}
+                    >
+                        <Code className="mr-1.5" size={13} /> Raw
+                    </Button>
+                    {/* Inner instructions never carry raw wire bytes, so there is nothing to summarise. */}
+                    {childIndex === undefined && (
+                        <InstructionDisplayPopover
+                            raw={rawForDisplay}
+                            programId={ix.programId.toString()}
+                            onRequestRaw={onRequestRaw}
+                        />
+                    )}
+                </>
             }
         >
             <BaseTable ui="dashkit" variant="card" nowrap className="[&>tbody>tr:first-child>td]:!border-t-0">

@@ -164,4 +164,28 @@ describe('InstructionCard', () => {
 
         expect(screen.getByTestId('display-popover').dataset.hasRaw).toBe('true');
     });
+
+    it('should read the display summary off the rendered instruction when no fetch supplies one', () => {
+        const instruction = new TransactionInstruction({ data: Buffer.from([1]), keys: [], programId: PROGRAM_ID });
+
+        render(
+            <SignatureContext.Provider value="">
+                <InstructionCard title="Transfer" result={{ err: null }} index={0} ix={instruction} />
+            </SignatureContext.Provider>,
+        );
+
+        expect(screen.getByTestId('display-popover').dataset.hasRaw).toBe('true');
+    });
+
+    it('should withhold a raw instruction from the display summary for an RPC-pre-parsed one', () => {
+        const parsed = {
+            parsed: { info: {}, type: 'transfer' },
+            program: 'system',
+            programId: PROGRAM_ID,
+        } as unknown as React.ComponentProps<typeof InstructionCard>['ix'];
+
+        renderCard({ ix: parsed });
+
+        expect(screen.getByTestId('display-popover').dataset.hasRaw).toBe('false');
+    });
 });
