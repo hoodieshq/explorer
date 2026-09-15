@@ -2,7 +2,7 @@ import { IMAGE_SIZE } from '@shared/lib/og/image-size';
 import { Cluster, clusterSlug, type ServerCluster } from '@utils/cluster';
 import type { Metadata } from 'next/types';
 
-import { TX_OG_BASE_URL } from './constants';
+import { TX_OG_BASE_URL } from '../env';
 
 /**
  * Open Graph tags for a transaction page.

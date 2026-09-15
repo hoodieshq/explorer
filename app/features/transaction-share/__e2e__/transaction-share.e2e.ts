@@ -83,10 +83,6 @@ test.describe('transaction page open graph tags', () => {
         expect(await metaProperty(page, 'og:image:width')).toBe('1200');
         expect(await metaProperty(page, 'og:image:height')).toBe('630');
         expect(await metaName(page, 'twitter:card')).toBe('summary_large_image');
-
-        // Asserted by suffix, not in full. `TX_OG_BASE_URL` reads `VERCEL_PROJECT_PRODUCTION_URL`, which is
-        // unset locally, so the origin here is the canonical explorer one rather than this dev server. The
-        // image itself is exercised above by requesting the route relative to `baseURL`.
         expect(await metaProperty(page, 'og:image')).toContain(`/og/tx/${VALID_TX}`);
         expect(await metaProperty(page, 'og:url')).toContain(`/tx/${VALID_TX}`);
     });
