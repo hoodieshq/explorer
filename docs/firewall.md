@@ -65,7 +65,7 @@ not user-agent, so that cannot be tested from here. Unverified crawlers and SEO 
 Name: Bypass transaction pages
 Description: Transaction /tx/<sig> pages
 Rule:
-    If `Request Path` `Starts with` `/tx/`
+    If `Request Path` `Matches expression` `^/tx/[1-9A-HJ-NP-Za-km-z]{86,88}/?$`
     Then `Bypass`
 ```
 
