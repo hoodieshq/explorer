@@ -42,6 +42,9 @@ vi.mock('@entities/transaction-data/server', () => ({ findTransactionCluster: mo
 vi.mock('../../api/get-tx', () => ({ getTx: mocks.getTx }));
 vi.mock('../../api/get-idl-names', () => ({ getIdlNames: mocks.getIdlNames }));
 
+const env = vi.hoisted(() => ({ isClusterProbeEnabled: true }));
+vi.mock('../../env', () => env);
+
 import { MAX_INSTRUCTION_ROWS } from '../../lib/constants';
 import { getTxShareData } from '../get-tx-share-data';
 
@@ -112,12 +115,9 @@ function txWith(instructions: (ParsedInstruction | PartiallyDecodedInstruction)[
 
 const TX = txWith([]);
 
-// Braced deliberately: a concise body would return the mock, and vitest calls a function returned from
-// `beforeEach` as a teardown - which would invoke `getTx` with no arguments after every test.
 beforeEach(() => {
+    env.isClusterProbeEnabled = true;
     mocks.getTx.mockResolvedValue(TX);
-    // The empty map is the "no IDL named anything" answer, so every case that does not care about IDLs
-    // behaves exactly as it did before this stage existed.
     mocks.getIdlNames.mockResolvedValue(new Map());
 });
 
@@ -166,6 +166,26 @@ describe('should shape the transaction behind an OG image', () => {
             signature: SIGNATURE,
         });
         expect(result.kind).toBe('ok');
+    });
+
+    it('should probe mainnet only when cluster probing is disabled', async () => {
+        env.isClusterProbeEnabled = false;
+        mocks.findTransactionCluster.mockResolvedValue({ cluster: Cluster.MainnetBeta, kind: 'found' });
+
+        const result = await getTxShareData(SIGNATURE);
+
+        expect(mocks.findTransactionCluster).toHaveBeenCalledWith([Cluster.MainnetBeta], SIGNATURE, {
+            abortSignal: expect.any(AbortSignal),
+        });
+        expect(result.kind).toBe('ok');
+    });
+
+    it('should report not-found rather than reaching devnet when cluster probing is disabled', async () => {
+        env.isClusterProbeEnabled = false;
+        mocks.findTransactionCluster.mockResolvedValue({ kind: 'not-found' });
+
+        await expect(getTxShareData(SIGNATURE)).resolves.toEqual({ kind: 'not-found' });
+        expect(mocks.getTx).not.toHaveBeenCalled();
     });
 
     it('should print a placeholder when the transaction has no block time', async () => {

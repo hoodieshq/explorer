@@ -14,6 +14,7 @@ import { Logger } from '@/app/shared/lib/logger';
 
 import { getIdlNames } from '../api/get-idl-names';
 import { getTx } from '../api/get-tx';
+import { isClusterProbeEnabled } from '../env';
 import { MAX_INSTRUCTION_ROWS } from '../lib/constants';
 
 /**
@@ -79,6 +80,7 @@ type ResolvedCluster = { kind: 'found'; cluster: ServerCluster } | NotFoundResul
  * Clusters to probe, in order, when the link carried no `?cluster=`.
  */
 const PROBE_ORDER: readonly ServerCluster[] = [Cluster.MainnetBeta, Cluster.Devnet, Cluster.Testnet];
+const MAINNET_ONLY_PROBE: readonly ServerCluster[] = [Cluster.MainnetBeta];
 
 /**
  * The caller's cluster when the link carried one, otherwise the entity's probe.
@@ -90,7 +92,8 @@ async function resolveCluster(
 ): Promise<ResolvedCluster> {
     if (cluster !== undefined) return { cluster, kind: 'found' };
 
-    const result = await findTransactionCluster(PROBE_ORDER, signature, { abortSignal });
+    const clusters = isClusterProbeEnabled ? PROBE_ORDER : MAINNET_ONLY_PROBE;
+    const result = await findTransactionCluster(clusters, signature, { abortSignal });
 
     switch (result.kind) {
         case 'found':
