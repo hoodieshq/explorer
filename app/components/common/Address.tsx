@@ -86,9 +86,7 @@ export function Address({
     const isMidTruncateCandidate = (!noTruncate || !!nickname) && !overrideText && addressLabel === address;
 
     const editBtnRef = useRef<HTMLButtonElement>(null);
-    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation({
-        enabled: isMidTruncateCandidate,
-        text: address,
+    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation(isMidTruncateCandidate, address, {
         trailingRef: editBtnRef,
     });
 

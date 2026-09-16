@@ -26,10 +26,8 @@ type Props = {
 };
 
 export function HashValue({ value, alignRight }: Props) {
-    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation({
-        enabled: true,
+    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation(true, value, {
         midTruncateChars: HASH_MID_TRUNCATE_CHARS,
-        text: value,
     });
 
     const visibleText = isMidTruncated ? midTruncatedText : value;

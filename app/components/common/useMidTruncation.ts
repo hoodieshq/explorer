@@ -9,23 +9,19 @@ const COPY_ICON_RESERVED_PX = 24;
 
 type UseMidTruncationOptions = {
     midTruncateChars?: number;
-    enabled: boolean;
-    text: string;
     trailingRef?: RefObject<HTMLElement | null>;
 };
 
 /**
  * Measures whether `text` overflows its container and, if so, signals mid-truncation
  * (e.g. "So111...11112"). Pass `trailingRef` for any sibling element whose width + margin-left
- * should be subtracted from the available space (e.g. an edit button). `midTruncateChars` controls how many
- * leading/trailing characters survive truncation, defaulting to 5.
+ * should be subtracted from the available space (e.g. an edit button).
+ * `midTruncateChars` controls how many leading/trailing characters survive truncation, defaulting to 5.
  */
-export function useMidTruncation({
+export function useMidTruncation(enabled: boolean, text: string, {
     midTruncateChars = DEFAULT_MID_TRUNCATE_CHARS,
-    enabled,
-    text,
     trailingRef,
-}: UseMidTruncationOptions) {
+}: UseMidTruncationOptions = {}) {
     const rowRef = useRef<HTMLDivElement>(null);
     const hiddenTextRef = useRef<HTMLSpanElement>(null);
     const [isMidTruncated, setIsMidTruncated] = useState(false);

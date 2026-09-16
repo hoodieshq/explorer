@@ -18,10 +18,8 @@ function Harness({
     withTrailing?: boolean;
 }) {
     const trailingRef = useRef<HTMLButtonElement>(null);
-    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation({
-        enabled,
+    const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation(enabled, text, {
         midTruncateChars: chars,
-        text,
         trailingRef: withTrailing ? trailingRef : undefined,
     });
     return (
