@@ -169,14 +169,13 @@ describe('resolveBufferConfigFromBytes', () => {
         });
     });
 
-    it('should hash the unpacked bytes, so a zlib body and a plain body agree', () => {
+    it('should return dataHash from the unpacked bytes (zlib and plain)', () => {
         expect(resolveBufferConfigFromBytes(deflate(utf8(JSON_DOC)))).toMatchObject({ dataHash: JSON_DOC_HASH });
         expect(resolveBufferConfigFromBytes(utf8(JSON_DOC))).toMatchObject({ dataHash: JSON_DOC_HASH });
     });
 
-    it('should hash the trimmed bytes when the slack trim decided what the payload is', () => {
+    it('should return dataHash from the trimmed bytes', () => {
         const body = concat([utf8(JSON_DOC), new Uint8Array(64)]);
-
         expect(resolveBufferConfigFromBytes(body)).toMatchObject({ dataHash: JSON_DOC_HASH, kind: 'text' });
     });
 });

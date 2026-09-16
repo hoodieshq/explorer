@@ -32,13 +32,13 @@ export const Default: Story = {
     },
 };
 
-/** Narrow container triggers mid-truncation: "70398679…253c965b" */
 export const Truncated: Story = {
     args: {
         value: EXAMPLE_HASH,
     },
     decorators: [
         Story => (
+            // narrow container should trigger hash string truncation.
             <div style={{ width: 200 }}>
                 <Story />
             </div>

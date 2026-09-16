@@ -1,4 +1,4 @@
-import { PayloadHashRow, type PmpAccountReadResult, pmpPayloadHash } from '@entities/pmp-account';
+import { getPayloadDataHash, PayloadHashRow, type PmpAccountReadResult } from '@entities/pmp-account';
 
 import { METADATA_CONFIG_FIELDS, METADATA_HEADER_FIELDS } from '../lib/pmp-field-descriptors';
 import type { MetadataPayloadDecodeResult } from '../model/use-decode-metadata-payload';
@@ -52,7 +52,7 @@ function MetadataPayloadRow({ payloadResult }: { payloadResult: MetadataPayloadD
         );
     }
 
-    const hash = pmpPayloadHash(payloadResult.payload);
+    const hash = getPayloadDataHash(payloadResult.payload);
 
     return (
         <>

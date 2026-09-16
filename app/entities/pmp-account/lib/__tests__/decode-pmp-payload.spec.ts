@@ -6,7 +6,7 @@ import { fromUtf8 } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 
 import { PMP_DECODE_BUDGET_BYTES, PMP_DECODED_RENDER_CAP_BYTES, PMP_MAX_UNPACKED_BYTES } from '../constants';
-import { decodePmpPayload, decodeUnpackedPayload, pmpPayloadHash } from '../decode-pmp-payload';
+import { decodePmpPayload, decodeUnpackedPayload, getPayloadDataHash } from '../decode-pmp-payload';
 
 const DOC = '{"name":"company","version":"1.0.0"}';
 /** The same document as `DOC`, indented - a `Format.Json` payload is re-serialised before it reaches the card. */
@@ -302,13 +302,10 @@ describe('decodeUnpackedPayload', () => {
     });
 });
 
-/**
- * `dataHash` and the `pmpPayloadHash` narrowing helper.
- */
-describe('pmpPayloadHash', () => {
+describe('getPayloadDataHash', () => {
     const DOC_HASH = '71a11603b19f7c631fdf01c3693be5bf9906fd593d468ec769f118e34f86f771';
 
-    it('should hash the unpacked bytes, so compression cannot change the value', () => {
+    it('should return hash from PmpPayloadDecodeResult (zlib or plain)', () => {
         const config = { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json };
         const zlib = decodePmpPayload({ config, data: pack(DOC, Compression.Zlib) });
         const plain = decodePmpPayload({
@@ -316,11 +313,11 @@ describe('pmpPayloadHash', () => {
             data: pack(DOC, Compression.None),
         });
 
-        expect(pmpPayloadHash(zlib)).toBe(DOC_HASH);
-        expect(pmpPayloadHash(plain)).toBe(DOC_HASH);
+        expect(getPayloadDataHash(zlib)).toBe(DOC_HASH);
+        expect(getPayloadDataHash(plain)).toBe(DOC_HASH);
     });
 
-    it('should carry a hash on the oversized arm, which has bytes but no document', () => {
+    it('should return hash from oversized PmpPayloadDecodeResult', () => {
         const result = decodeUnpackedPayload({
             bytes: fromUtf8(DOC),
             cap: 8,
@@ -328,31 +325,31 @@ describe('pmpPayloadHash', () => {
         });
 
         expect(result.kind).toBe('oversized');
-        expect(pmpPayloadHash(result)).toBe(DOC_HASH);
+        expect(getPayloadDataHash(result)).toBe(DOC_HASH);
     });
 
-    it('should report no hash for the arms that carry no bytes', () => {
-        expect(pmpPayloadHash({ kind: 'empty' })).toBeUndefined();
-        expect(pmpPayloadHash({ kind: 'unpack-overflow', limit: 1 })).toBeUndefined();
+    it('should return no hash for the result without bytes', () => {
+        expect(getPayloadDataHash({ kind: 'empty' })).toBeUndefined();
+        expect(getPayloadDataHash({ kind: 'unpack-overflow', limit: 1 })).toBeUndefined();
     });
 
-    it('should keep the hash when the bytes unpacked and only the encoding step failed', () => {
+    it('should return hash when the bytes unpacked and only the encoding step failed', () => {
         const result = decodeUnpackedPayload({
             bytes: fromUtf8(DOC),
             config: { compression: Compression.None, encoding: 99 as Encoding, format: Format.Json },
         });
 
         expect(result.kind).toBe('failed');
-        expect(pmpPayloadHash(result)).toBe(DOC_HASH);
+        expect(getPayloadDataHash(result)).toBe(DOC_HASH);
     });
 
-    it('should report no hash when the unpack itself failed, so no bytes were ever produced', () => {
+    it('should return no hash when the unpacking failed', () => {
         const result = decodePmpPayload({
             config: { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json },
             data: new Uint8Array([1, 2, 3, 4]),
         });
 
         expect(result.kind).toBe('failed');
-        expect(pmpPayloadHash(result)).toBeUndefined();
+        expect(getPayloadDataHash(result)).toBeUndefined();
     });
 });

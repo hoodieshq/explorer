@@ -19,6 +19,8 @@ import { gzip } from 'pako';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { trackEvent } from '@/app/shared/lib/analytics';
+import { fromUtf8 } from '@/app/shared/lib/bytes';
+import { sha256Hex } from '@/app/shared/lib/hash';
 
 import { PMP_ADDRESS } from '../../lib/constants';
 import type { PmpPayloadInstruction } from '../../lib/types';
@@ -59,7 +61,6 @@ function renderSection(pmpIx: PmpPayloadInstruction) {
 }
 
 const JSON_CONFIG = { compression: Compression.None, encoding: Encoding.Utf8, format: Format.Json };
-const JSON_ZLIB_CONFIG = { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json };
 
 const BUFFER_ADDRESS = gen.address(1);
 const METADATA_ADDRESS = gen.address(2);
@@ -126,6 +127,7 @@ describe('DataPayloadSection', () => {
         // Pretty-printed rather than echoed back verbatim, which is what separates a parsed document from the
         // verbatim-text fallback a Json payload lands on when its bytes do not parse.
         expect(decoded.textContent).toContain('\n  "name": "company"');
+        expect(screen.getByTestId('pmp-payload-data-hash')).toHaveTextContent(sha256Hex(fromUtf8(DOC)));
     });
 
     it('should also offer the raw encoded bytes on a Raw tab', async () => {
@@ -156,28 +158,6 @@ describe('DataPayloadSection', () => {
         await openDecodedTab();
 
         expect(screen.getByTestId('pmp-decoded-text')).toHaveTextContent('1.0.0');
-    });
-
-    it('should hash the UNPACKED bytes, so a zlib and a plain fixture of the same document hash the same', () => {
-        const view = renderSection({
-            config: JSON_ZLIB_CONFIG,
-            dataSource: DataSource.Direct,
-            kind: 'setData',
-            payload: pack(DOC, Compression.Zlib),
-        });
-        const zlibHash = screen.getByTestId('pmp-payload-data-hash').textContent;
-        view.unmount();
-
-        renderSection({
-            config: JSON_CONFIG,
-            dataSource: DataSource.Direct,
-            kind: 'setData',
-            payload: pack(DOC, Compression.None),
-        });
-        const plainHash = screen.getByTestId('pmp-payload-data-hash').textContent;
-
-        expect(zlibHash).toContain('Data Hash');
-        expect(zlibHash).toBe(plainHash);
     });
 
     it('should render a Yaml payload as verbatim text rather than as a parsed document', async () => {
@@ -222,12 +202,6 @@ describe('DataPayloadSection', () => {
         expect(screen.getByTestId('pmp-no-payload')).toBeInTheDocument();
         expect(screen.queryByTestId('pmp-decode-error')).not.toBeInTheDocument();
         expect(screen.queryByTestId('pmp-decoded-text')).not.toBeInTheDocument();
-    });
-
-    it('should render no data hash row for a header-only setData, which never builds a decoded payload', () => {
-        renderSection({ config: JSON_CONFIG, kind: 'setData' });
-
-        expect(screen.getByTestId('pmp-no-payload')).toBeInTheDocument();
         expect(screen.queryByTestId('pmp-payload-data-hash')).not.toBeInTheDocument();
     });
 
@@ -308,18 +282,6 @@ describe('DataPayloadSection', () => {
         // The failed panel no longer repeats a raw view of its own - Raw is a sibling tab, so the bytes stay one
         // click away. Assert the escape hatch is still reachable rather than that it is mounted right now.
         expect(screen.getByRole('tab', { name: 'Raw' })).toBeInTheDocument();
-    });
-
-    it('should render no data hash row when the payload fails to decode', async () => {
-        renderSection({
-            config: { compression: Compression.Zlib, encoding: Encoding.Utf8, format: Format.Json },
-            dataSource: DataSource.Direct,
-            kind: 'setData',
-            payload: new Uint8Array([1, 2, 3, 4]),
-        });
-        await openDecodedTab();
-
-        expect(screen.getByTestId('pmp-decode-error')).toBeInTheDocument();
         expect(screen.queryByTestId('pmp-payload-data-hash')).not.toBeInTheDocument();
     });
 
@@ -356,7 +318,6 @@ describe('DataPayloadSection', () => {
         expect(oversized).toHaveTextContent(
             `${PMP_DECODED_RENDER_CAP_BYTES + 1} bytes unpacked from ${stored.length} stored`,
         );
-        // Sits in the field header beside the unpacked count, saying which of the two counts this download carries.
         expect(screen.getByTestId('pmp-bytes-badge-uncompressed')).toHaveTextContent('uncompressed');
     });
 

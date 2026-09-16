@@ -12,7 +12,7 @@ export type ConfigResolutionFromBytesResult =
     | {
           kind: 'text';
           compression: Compression;
-          /** sha256 over `payload`, the same unpacked bytes the row displays - a reader can reproduce it off chain. */
+          /** sha256 over the UNPACKED bytes. User can reproduce it off-chain from the document. */
           dataHash: string;
           /** The unpacked bytes, carried so a declared-config upgrade never inflates the body a second time. */
           payload: Uint8Array;
@@ -24,7 +24,6 @@ export type ConfigResolutionFromBytesResult =
     | {
           kind: 'binary';
           compression: Compression;
-          /** sha256 over `payload`, the same unpacked bytes the row displays - see `text`'s `dataHash` above. */
           dataHash: string;
           payload: Uint8Array;
       }
@@ -35,7 +34,6 @@ export type ConfigResolutionFromBytesResult =
           kind: 'oversized';
           bytes: Uint8Array;
           budget: number;
-          /** sha256 over `bytes`, offered for copy and download - see `text`'s `dataHash` above. */
           dataHash: string;
       }
     | { kind: 'overflow'; limit: number };

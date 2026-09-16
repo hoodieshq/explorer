@@ -93,8 +93,7 @@ describe('PmpAccountCard', () => {
         expect(screen.getByTestId('pmp-account-dataSource')).toHaveTextContent('Direct');
         expect(screen.getByTestId('pmp-account-dataLength')).toHaveTextContent('byte(s)');
         expect(screen.queryByTestId('pmp-account-decoded-pending')).not.toBeInTheDocument();
-        // First 8 hex chars of DECODED's dataHash ('f'.repeat(64)) survive HashValue's mid-truncation either way.
-        expect(screen.getByTestId('pmp-payload-data-hash')).toHaveTextContent('f'.repeat(64).slice(0, 8));
+        expect(screen.getByTestId('pmp-payload-data-hash')).toHaveTextContent(DECODED.dataHash);
     });
 
     it('should show the payload data hash for an oversized Metadata payload', async () => {
@@ -171,8 +170,7 @@ describe('PmpAccountCard', () => {
         expect(screen.getByTestId('pmp-account-compression')).toHaveTextContent('Zlib');
         expect(screen.getByTestId('pmp-account-format')).toHaveTextContent('JSON');
         expect(screen.getByTestId('pmp-account-document')).toHaveTextContent('company');
-        // First 8 hex chars survive HashValue's mid-truncation regardless of the width jsdom reports.
-        expect(screen.getByTestId('pmp-payload-data-hash')).toHaveTextContent(resolved.dataHash.slice(0, 8));
+        expect(screen.getByTestId('pmp-payload-data-hash')).toHaveTextContent(resolved.dataHash);
 
         expect(screen.queryByTestId('pmp-account-encoding')).not.toBeInTheDocument();
         expect(screen.queryByTestId('pmp-account-dataSource')).not.toBeInTheDocument();

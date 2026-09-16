@@ -21,7 +21,7 @@ import { useResolveBufferConfigOnchain } from './use-resolve-buffer-config-oncha
  *
  * Two strategies to resolve a Buffer's config are "Resolution from bytes" and "Resolution from instructions (Lookup)".
  * - Resolution from bytes tries to resolve config from bytes. It runs first.
- * - Lookup tries to resolve config from the on-chain instructions that hold the config (initialize, setData, etc).
+ * - Lookup tries to resolve config from the on-chain instructions that holds the config (initialize, setData, etc).
  */
 export function useResolveBufferConfig({ account, address }: { account: BufferAccount | undefined; address: string }) {
     const configFromBytes = useResolveBufferConfigFromBytes(account);
@@ -30,9 +30,6 @@ export function useResolveBufferConfig({ account, address }: { account: BufferAc
     // cached one must not outlive the bytes it was resolved against. Fingerprinting the body rather than keying on
     // the account's identity is what keeps that cheap - the provider hands back a new object on every fetch, so an
     // identity key would re-run the scan even when the chain returned the very same bytes.
-    // The fingerprint hashes the STORED, still-compressed bytes, and it is a cache key rather than anything
-    // displayed. Do not unify it with the content hash over the unpacked bytes: re-packing identical content
-    // yields the same content hash but different stored bytes, so a content-hash key would miss a config change.
     const fingerprint = React.useMemo(() => (account ? sha256Hex(bytes(account.data)) : ''), [account]);
 
     const enabled = shouldResolveOnchain(configFromBytes.status === 'ready' ? configFromBytes.result : undefined);

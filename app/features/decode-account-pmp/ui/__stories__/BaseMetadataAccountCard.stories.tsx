@@ -70,10 +70,7 @@ export const MetadataUnbrokenText: Story = {
     args: argsFor(metadataAccountData(pack(`https://example.com/${'x'.repeat(600)}`, Compression.Zlib), 'security')),
 };
 
-/**
- * Past the decode budget: `PayloadHashRow` is the only line about the payload's content, since `oversized` carries
- * no document to render alongside it.
- */
+/** Past the decode budget. */
 export const MetadataOversizedPayload: Story = {
     args: argsFor(metadataAccountData(pack(OVERSIZED_DOC, Compression.Zlib))),
 };

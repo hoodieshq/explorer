@@ -26,7 +26,7 @@ export { decodePmpAccount } from './lib/decode-pmp-account';
 export {
     decodePmpPayload,
     decodeUnpackedPayload,
-    pmpPayloadHash,
+    getPayloadDataHash,
     toDocumentText,
     unpackBounded,
 } from './lib/decode-pmp-payload';

@@ -32,10 +32,7 @@ export const IDL_DOC = JSON.stringify({
     version: '1.0.0',
 });
 
-/**
- * One byte past the render cap, so unpacking it always lands on the `oversized` arm. Content this uniform
- * compresses down to almost nothing, which keeps every fixture built from it cheap despite the size.
- */
+/** One byte past the render cap, so unpacking it always lands on the `oversized` arm. */
 export const OVERSIZED_DOC = 'x'.repeat(PMP_DECODED_RENDER_CAP_BYTES + 1);
 
 export function pack(content: string, compression: Compression): Uint8Array {

@@ -1,12 +1,12 @@
 import { RawDataField } from '@components/shared/RawDataField';
 import {
     decodePmpPayload,
+    getPayloadDataHash,
     PayloadHashRow,
     PMP_COMPRESSED_BYTES_LABELS,
     PMP_UNCOMPRESSED_BYTES_LABEL,
     type PmpAccountDecodeResult,
     type PmpPayloadDecodeResult,
-    pmpPayloadHash,
 } from '@entities/pmp-account';
 import { PublicKey } from '@solana/web3.js';
 import { Compression, DataSource } from '@solana-program/program-metadata';
@@ -50,7 +50,8 @@ export function DataPayloadSection({ pmpIx }: { pmpIx: PmpPayloadInstruction }) 
     if (dataSource === undefined) return <NoPayloadNote />;
 
     if (payload === undefined) {
-        // no payload bytes in the instruction args but there is an account that holds them.
+        // No payload bytes in the instruction args.
+        // But there is an account that contains payload.
         return payloadAccountAddress ? (
             <AccountRows address={payloadAccountAddress} dataSource={dataSource} pmpIx={pmpIx} />
         ) : (
@@ -60,7 +61,7 @@ export function DataPayloadSection({ pmpIx }: { pmpIx: PmpPayloadInstruction }) 
 
     if (!decoded) return <></>;
 
-    const hash = pmpPayloadHash(decoded);
+    const hash = getPayloadDataHash(decoded);
     return (
         <>
             {hash !== undefined && <PayloadHashRow columns={CARD_TABLE_COLUMNS} hash={hash} />}
@@ -122,7 +123,7 @@ function AccountRows({
     const accountPayloadResult = usePmpAccountPayload({ address, config: pmpIx.config });
     const hash =
         accountPayloadResult.status === 'ready' && accountPayloadResult.result.kind === 'payload'
-            ? pmpPayloadHash(accountPayloadResult.result.payload)
+            ? getPayloadDataHash(accountPayloadResult.result.payload)
             : undefined;
 
     return (
@@ -216,11 +217,6 @@ function AccountContentBody({
     );
 }
 
-/**
- * `compression` and `stored` are the SOURCE's own - the instruction's hints and bytes on the inline path, the
- * account's own header and body on the account path - not `pmpIx.config`, which can differ once a later
- * `setData` reconfigures an account an older `initialize` still names.
- */
 function DecodedTabs({
     compression,
     decoded,
@@ -232,7 +228,6 @@ function DecodedTabs({
     onTabChange: (tab: PmpTab) => void;
     stored: Uint8Array;
 }) {
-    // Radix hands back a plain string.
     const handleValueChange = (value: string) => {
         if (value === 'decoded' || value === 'raw') onTabChange(value);
     };

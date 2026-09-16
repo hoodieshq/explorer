@@ -109,10 +109,7 @@ export const BufferLookupFailed: Story = {
     },
 };
 
-/**
- * Past the decode budget: `PayloadHashRow` is the only line about the payload's content, since `oversized` carries
- * no document to render alongside it.
- */
+/** Payload past the decode budget. */
 export const BufferOversizedPayload: Story = {
     args: bufferArgsFor(pack(OVERSIZED_DOC, Compression.Gzip)),
 };

@@ -197,7 +197,7 @@ function BufferPayloadRow({
         return <PayloadRows payload={payload} />;
     }
 
-    // If config not found or payload could not be decoded, fall back to rendering whatever we could get from bytes.
+    // If config not found or payload could not be decoded, fall back to rendering whatever we decoded from bytes.
     // Rendered as a document directly rather than through `PayloadRows`. The `text` arm was produced BY a strict UTF-8
     // decode of these very bytes, so the binary test inside `PayloadRows` would re-run a decode whose answer is known.
     if (fromBytesConfig.kind === 'text') {

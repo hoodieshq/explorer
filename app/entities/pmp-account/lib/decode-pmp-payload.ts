@@ -122,8 +122,7 @@ export function decodeUnpackedPayload({
     }
 }
 
-/** The unpacked-bytes digest, for the two arms that have bytes. `undefined` where there are none to hash. */
-export function pmpPayloadHash(payload: PmpPayloadDecodeResult): string | undefined {
+export function getPayloadDataHash(payload: PmpPayloadDecodeResult): string | undefined {
     return payload.kind === 'empty' || payload.kind === 'unpack-overflow' ? undefined : payload.dataHash;
 }
 
