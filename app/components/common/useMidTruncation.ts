@@ -18,10 +18,11 @@ type UseMidTruncationOptions = {
  * should be subtracted from the available space (e.g. an edit button).
  * `midTruncateChars` controls how many leading/trailing characters survive truncation, defaulting to 5.
  */
-export function useMidTruncation(enabled: boolean, text: string, {
-    midTruncateChars = DEFAULT_MID_TRUNCATE_CHARS,
-    trailingRef,
-}: UseMidTruncationOptions = {}) {
+export function useMidTruncation(
+    enabled: boolean,
+    text: string,
+    { midTruncateChars = DEFAULT_MID_TRUNCATE_CHARS, trailingRef }: UseMidTruncationOptions = {},
+) {
     const rowRef = useRef<HTMLDivElement>(null);
     const hiddenTextRef = useRef<HTMLSpanElement>(null);
     const [isMidTruncated, setIsMidTruncated] = useState(false);
