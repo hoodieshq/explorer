@@ -60,8 +60,6 @@ describe('toInstructionCUDisplay', () => {
             expect(display.displayValue).toBe('150');
         });
 
-        // There is no "no figure at all" case to cover: `scheduledUnits` is never 0, so the fallback
-        // chain always resolves. format-instruction-logs.spec pins that at the one place that sets it.
         it('should size the bar by the same figure it displays', () => {
             const display = toInstructionCUDisplay([
                 cuData({ computeUnits: 5000 }),
@@ -71,6 +69,23 @@ describe('toInstructionCUDisplay', () => {
 
             expect(display.map(d => d.displayCU)).toEqual([5000, 150, 3000]);
             expect(display.map(d => d.displayValue)).toEqual(['5,000', '150', '~3,000']);
+        });
+
+        it('should fall back to the measured figure when no reserve is scheduled', () => {
+            const [display] = toInstructionCUDisplay([cuData({ computeUnits: 150, scheduledUnits: undefined })]);
+
+            expect(display.displayCU).toBe(150);
+            expect(display.displayValue).toBe('150');
+        });
+
+        it('should show a dash when a v1 row has neither a measurement nor a default', () => {
+            const [display] = toInstructionCUDisplay([
+                cuData({ computeUnits: 0, defaultUnits: 0, scheduledUnits: undefined }),
+            ]);
+
+            expect(display.displayCU).toBe(0);
+            expect(display.displayValue).toBe('-');
+            expect(display.isEstimate).toBe(false);
         });
     });
 });

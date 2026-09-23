@@ -75,12 +75,7 @@ describe('formatInstructionLogs', () => {
             expect(result[1].programName).toBeUndefined();
         });
 
-        /**
-         * The reserve is what makes `computeUnits || defaultUnits || scheduledUnits` total, so no consumer
-         * needs a floor of its own. It is set unconditionally and is never 0 — pinned here because
-         * `toInstructionCUDisplay` drops its fallback on the strength of it.
-         */
-        it('should carry a non-zero schedule reserve on every row, logged or not', () => {
+        it('should carry a non-zero schedule reserve on every pre-v1 row, logged or not', () => {
             const instructions = [mockInstruction('TokenProgram'), mockInstruction('UnknownProgram')];
             const instructionLogs = [mockInstructionLog(5000), mockInstructionLog(0)];
 
@@ -92,7 +87,7 @@ describe('formatInstructionLogs', () => {
             });
 
             expect(result.map(r => r.scheduledUnits)).toEqual([DEFAULT_RESERVED_CU, DEFAULT_RESERVED_CU]);
-            expect(result.every(r => r.scheduledUnits > 0)).toBe(true);
+            expect(result.every(r => (r.scheduledUnits ?? 0) > 0)).toBe(true);
         });
 
         it('should report 0 default units for a program that is not a builtin', () => {
@@ -420,6 +415,32 @@ describe('formatInstructionLogs', () => {
             );
 
             expect(warn).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('v1 transaction tests', () => {
+        it('should leave scheduledUnits absent because v1 reserves nothing per instruction', () => {
+            const result = formatInstructionLogs({
+                cluster: Cluster.MainnetBeta,
+                epoch: 0n,
+                instructionLogs: [mockInstructionLog(150)],
+                instructions: [mockInstruction('TokenProgram')],
+                transactionVersion: 1,
+            });
+
+            expect(result[0].scheduledUnits).toBeUndefined();
+        });
+
+        it('should still report what the logs measured', () => {
+            const result = formatInstructionLogs({
+                cluster: Cluster.MainnetBeta,
+                epoch: 0n,
+                instructionLogs: [mockInstructionLog(150)],
+                instructions: [mockInstruction('TokenProgram')],
+                transactionVersion: 1,
+            });
+
+            expect(result[0].computeUnits).toBe(150);
         });
     });
 });

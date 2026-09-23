@@ -5,20 +5,18 @@ import type { InstructionCUData } from './types';
  * `label` or `legendLabel` and cannot bypass the positional fallback those apply.
  */
 export type InstructionCUDisplay = Omit<InstructionCUData, 'name'> & {
-    // The CU figure the bar is sized by. Falls back `computeUnits` → `defaultUnits` → `scheduledUnits`,
-    // the last of which is never 0, so an instruction the logs said nothing about still occupies a
-    // visible segment.
+    // The CU figure the bar is sized by. Falls back `computeUnits` -> `defaultUnits` -> `scheduledUnits`,
+    // then to 0 when none applies - a v1 row with no measurement and no default has no figure at all.
     displayCU: number;
     // Chart tooltip title, before the program qualifier.
     label: string;
     // Legend entry: the instruction's position, then its name — `Unknown Instruction` when nothing
     // resolved one, so every row in the list reads the same shape.
     legendLabel: string;
-    // The CU figure as shown, with a ~ prefix when it is the schedule's estimate.
+    // The CU figure as shown, with a ~ prefix when it is the schedule's estimate, or a dash when 0.
     displayValue: string;
-    // True only for the schedule's reserve (`scheduledUnits`) — the one figure that is a guess. A
-    // measured `computeUnits` and a builtin's fixed `defaultUnits` are both real costs, so the tooltip
-    // presents neither as an estimate.
+    // True only when `scheduledUnits` is present and neither `computeUnits` nor `defaultUnits` supplies a
+    // figure - the schedule's reserve is the one number that is ever a guess.
     isEstimate: boolean;
 };
 
@@ -28,14 +26,17 @@ export type InstructionCUDisplay = Omit<InstructionCUData, 'name'> & {
  */
 export function toInstructionCUDisplay(instructions: InstructionCUData[]): InstructionCUDisplay[] {
     return instructions.map((item, i) => {
-        // `scheduledUnits` is never 0, so this resolves to a real figure on every row — see types.ts.
-        const value = item.computeUnits || item.defaultUnits || item.scheduledUnits;
-        const isEstimate = !item.computeUnits && !item.defaultUnits;
+        // v1 schedules no reserve, so the chain can end with nothing: the logs said nothing about this
+        // instruction and there is no per-instruction budget to fall back on.
+        const value = item.computeUnits || item.defaultUnits || item.scheduledUnits || 0;
+        const isEstimate = !item.computeUnits && !item.defaultUnits && item.scheduledUnits !== undefined;
+        // A row with no figure reads as a dash. A bare 0 would look like a measurement of zero.
+        const displayValue = value === 0 ? '-' : `${isEstimate ? '~' : ''}${value.toLocaleString()}`;
 
         return {
             ...item,
             displayCU: value,
-            displayValue: `${isEstimate ? '~' : ''}${value.toLocaleString()}`,
+            displayValue,
             isEstimate,
             // The tooltip shows one row at a time, so an unnamed instruction is identified by its
             // position alone — `Unknown Instruction` there would read the same on every unnamed row.
