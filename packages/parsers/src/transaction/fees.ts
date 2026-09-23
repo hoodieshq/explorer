@@ -2,7 +2,12 @@ import { getTransactionConfig } from './config.js';
 import { LAMPORTS_PER_SIGNATURE } from './constants.js';
 import type { ParsedTransaction } from './types.js';
 
-/** Priority fee from legacy or v0 transactions. */
+/**
+ * Priority fee from legacy or v0 transactions.
+ *
+ * Floored at 0: precompile signatures push the base fee above the signature count alone,
+ * so the subtraction can go negative.
+ */
 export function derivePriorityFeeLamports({
     feeLamports,
     signatureCount,

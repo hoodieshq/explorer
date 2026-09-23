@@ -71,11 +71,14 @@ describe('toInstructionCUDisplay', () => {
             expect(display.map(d => d.displayValue)).toEqual(['5,000', '150', '~3,000']);
         });
 
-        it('should fall back to the measured figure when no reserve is scheduled', () => {
-            const [display] = toInstructionCUDisplay([cuData({ computeUnits: 150, scheduledUnits: undefined })]);
+        it('should fall back to default units when no measurement or reserve applies', () => {
+            const [display] = toInstructionCUDisplay([
+                cuData({ computeUnits: 0, defaultUnits: 750, scheduledUnits: undefined }),
+            ]);
 
-            expect(display.displayCU).toBe(150);
-            expect(display.displayValue).toBe('150');
+            expect(display.displayCU).toBe(750);
+            expect(display.displayValue).toBe('750');
+            expect(display.isEstimate).toBe(false);
         });
 
         it('should show a dash when a v1 row has neither a measurement nor a default', () => {

@@ -32,9 +32,8 @@ import type { ParsedTransaction, RpcJsonParsedTransaction, RpcJsonTransaction, T
 const BLOCKHASH = { blockhash: blockhash(gen.blockhash(7)), lastValidBlockHeight: 100n } as const;
 const FEE_PAYER = gen.address(1);
 const PROGRAM_ADDRESS = gen.address(2);
-const INSTRUCTION_DATA = new Uint8Array([1, 2, 3]);
-// An arbitrary decodable base58 string.
-const INSTRUCTION_DATA_BASE58 = '2Jq';
+export const INSTRUCTION_DATA = new Uint8Array([1, 2, 3]);
+export const INSTRUCTION_DATA_BASE58 = 'Ldp';
 
 type CompiledMessageFixture = CompiledTransactionMessage & CompiledTransactionMessageWithLifetime;
 
@@ -115,6 +114,30 @@ export function v0CompiledWithLookupTable(): {
     );
 
     return { compiled, loadedAddress: LOOKUP_TABLE_LOADED_ADDRESS, lookupTableAddress: LOOKUP_TABLE_ADDRESS };
+}
+
+const SECOND_SIGNER = gen.address(20);
+
+/** A legacy message with two required signers, for a wire-size test that exercises the per-signer multiplication. */
+export function twoSignerLegacyTransaction(): { compiled: CompiledMessageFixture; messageBytes: Uint8Array } {
+    const compiled = compileTransactionMessage(
+        pipe(
+            createTransactionMessage({ version: 'legacy' }),
+            m => setTransactionMessageFeePayer(FEE_PAYER, m),
+            m => setTransactionMessageLifetimeUsingBlockhash(BLOCKHASH, m),
+            m =>
+                appendTransactionMessageInstruction(
+                    {
+                        accounts: [{ address: SECOND_SIGNER, role: AccountRole.READONLY_SIGNER }],
+                        data: INSTRUCTION_DATA,
+                        programAddress: PROGRAM_ADDRESS,
+                    },
+                    m,
+                ),
+        ),
+    );
+
+    return { compiled, messageBytes: encode(compiled) };
 }
 
 function encode(compiled: CompiledTransactionMessage): Uint8Array {

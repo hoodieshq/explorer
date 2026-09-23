@@ -12,6 +12,7 @@ import {
 import type { RpcTransactionResponse } from '../types.js';
 import { UnsupportedTransactionVersionError } from '../version.js';
 import {
+    INSTRUCTION_DATA,
     jsonParsedResponse,
     jsonResponse,
     legacyTransaction,
@@ -64,7 +65,7 @@ describe('fromCompiledMessage', () => {
         expect(transaction.accounts).toHaveLength(v0Transaction.compiled().staticAccounts.length);
     });
 
-    it('should return unmatched addresses for tx with lookup table', () => {
+    it('should return unmatched addresses for a v0 message with no listed lookup tables', () => {
         const transaction = fromCompiledMessage(v0Transaction.compiled(), {
             loadedAddresses: { readonly: [gen.address(6)], writable: [gen.address(5)] },
         });
@@ -81,6 +82,17 @@ describe('fromCompiledMessage', () => {
         expect(getAddressTableLookups(transaction)).toEqual([
             { accountKey: lookupTableAddress, readonlyIndexes: [], writableIndexes: [0] },
         ]);
+    });
+
+    it('should return unmatched addresses for a v0 message with more loaded addresses than its lookup table lists', () => {
+        const { compiled, loadedAddress } = v0CompiledWithLookupTable();
+        const extraAddress = gen.address(12);
+
+        const transaction = fromCompiledMessage(compiled, {
+            loadedAddresses: { readonly: [], writable: [loadedAddress, extraAddress] },
+        });
+
+        expect(transaction.unmatchedLookupTableAddresses).toEqual([extraAddress]);
     });
 });
 
@@ -133,7 +145,7 @@ describe('fromRpcTransaction', () => {
         const transaction = fromRpcTransaction(jsonResponse(1));
 
         expect(transaction.version).toBe(1);
-        expect(transaction.instructions[0].data).toBeInstanceOf(Uint8Array);
+        expect(transaction.instructions[0].data).toEqual(INSTRUCTION_DATA);
     });
 
     it('should read a v0 JSON response with an address table lookup', () => {
@@ -218,14 +230,14 @@ describe('fromRpcTransaction', () => {
         ).toThrow(UnsupportedTransactionVersionError);
     });
 
-    it('should reject a header with counts exceed the account list', () => {
+    it('should reject a header with counts exceeding the account list', () => {
         const response = jsonResponse(0);
         response.transaction.message.header.numRequiredSignatures = 99;
 
         expect(() => fromRpcTransaction(response)).toThrow('out of range for');
     });
 
-    it('should reject a header with signer count is zero', () => {
+    it('should reject a header with a zero signer count', () => {
         const response = jsonResponse(0);
         response.transaction.message.header.numRequiredSignatures = 0;
 

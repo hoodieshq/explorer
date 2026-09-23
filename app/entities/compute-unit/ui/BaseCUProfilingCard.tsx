@@ -211,7 +211,9 @@ function useCUProfileChartOptions(totalCU: number): ChartOptions<'bar'> {
                     grid: {
                         display: false,
                     },
-                    max: totalCU,
+                    // A v1 transaction can leave every row's figure at 0, so totalCU can be 0 too. Setting
+                    // max to 0 there collapses the scale - omit it and let Chart.js pick its own range.
+                    ...(totalCU > 0 ? { max: totalCU } : {}),
                     stacked: true,
                     ticks: {
                         display: false,

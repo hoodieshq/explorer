@@ -18,7 +18,7 @@ export type AccountResolutionParams = {
 
 export type AccountResolutionResult = {
     accounts: TransactionAccount[];
-    /** Loaded addresses not found in a listed lookup table. Absent when the message listed no tables. */
+    /** Loaded addresses missing from every listed lookup table. Absent when the encoding omits them. */
     unmatchedLookupTableAddresses?: readonly Address[];
 };
 

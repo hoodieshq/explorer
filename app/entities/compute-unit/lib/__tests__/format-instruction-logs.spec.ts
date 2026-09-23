@@ -431,7 +431,7 @@ describe('formatInstructionLogs', () => {
             expect(result[0].scheduledUnits).toBeUndefined();
         });
 
-        it('should still report what the logs measured', () => {
+        it('should still report the measured CU when v1 leaves no reserve', () => {
             const result = formatInstructionLogs({
                 cluster: Cluster.MainnetBeta,
                 epoch: 0n,
@@ -441,6 +441,7 @@ describe('formatInstructionLogs', () => {
             });
 
             expect(result[0].computeUnits).toBe(150);
+            expect(result[0].scheduledUnits).toBeUndefined();
         });
     });
 });
