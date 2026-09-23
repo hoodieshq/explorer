@@ -408,15 +408,12 @@ The move also fixes a bug in `formatInstructionLogs`. v1 has no per-instruction 
 ### Priority fee
 
 ```ts
-// app/entities/transaction-fee
+// packages/parsers/src/transaction/fees.ts
 export function resolvePriorityFeeLamports(
     transaction: ParsedTransaction,
     meta: { feeLamports: number | undefined },
 ): number | undefined;
 ```
-
-This one stays in the app. The derived path subtracts `LAMPORTS_PER_SIGNATURE`, a network fee constant the
-explorer already owns, and its result feeds the SIMD-0553 projection in the same entity.
 
 ## Decisions
 
@@ -554,9 +551,6 @@ export type RpcTransactionConfig = {
 ```
 
 ### `transaction/parse-transaction.ts`
-
-Every way into the union sits in one file. `fromRpcTransaction` routes a wire-encoded response through
-`fromMessageBytes`, which decodes and hands off to `fromCompiledMessage`, so the three share their tail.
 
 ```ts
 export function fromCompiledMessage(
