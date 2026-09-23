@@ -49,8 +49,14 @@ export function CUProfilingSection({ signature }: SignatureProps) {
 
         const epoch = getEpochForSlot(clusterInfo.epochSchedule, BigInt(slot));
 
-        return formatInstructionLogs({ cluster, epoch, instructionLogs, instructions });
-    }, [instructions, instructionLogs, cluster, slot, clusterInfo]);
+        return formatInstructionLogs({
+            cluster,
+            epoch,
+            instructionLogs,
+            instructions,
+            transactionVersion: transactionWithMeta?.version,
+        });
+    }, [instructions, instructionLogs, cluster, slot, clusterInfo, transactionWithMeta?.version]);
 
     // Keyed on the error, so this reports the fetch actually failing rather than the ordinary first
     // render, where the schedule has simply not arrived yet. An effect, not the render body: the render
