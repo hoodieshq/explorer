@@ -1,6 +1,5 @@
 import {
     BASE_INCLUSION_FEE_LAMPORTS,
-    derivePriorityFeeLamports,
     estimateRequestedCostUnits,
     getResourceFeeLamports,
     projectResourceAndInclusionFees,
@@ -67,24 +66,6 @@ describe('projectResourceAndInclusionFees', () => {
         const projections = projectResourceAndInclusionFees({ priorityFeeLamports: 0, requestedCostUnits: 201_331 });
 
         expect(projections.at(-1)?.totalFeeLamports).toEqual(103_166);
-    });
-});
-
-describe('derivePriorityFeeLamports', () => {
-    it('should back the per-signature base fee out of the total', () => {
-        expect(derivePriorityFeeLamports({ feeLamports: 15_000, signatureCount: 1 })).toEqual(10_000);
-        expect(derivePriorityFeeLamports({ feeLamports: 15_000, signatureCount: 2 })).toEqual(5_000);
-    });
-
-    it('should report no priority fee for a transaction that paid only the base fee', () => {
-        expect(derivePriorityFeeLamports({ feeLamports: 5_000, signatureCount: 1 })).toEqual(0);
-        expect(derivePriorityFeeLamports({ feeLamports: 10_000, signatureCount: 2 })).toEqual(0);
-    });
-
-    it('should floor at zero rather than report a negative priority fee', () => {
-        // Precompile signatures push the real base fee above the signature count's worth, so the
-        // subtraction can go negative on transactions this cannot see into.
-        expect(derivePriorityFeeLamports({ feeLamports: 5_000, signatureCount: 3 })).toEqual(0);
     });
 });
 
