@@ -32,7 +32,7 @@ describe('readComputeUnitLimitFromInstruction', () => {
         expect(readComputeUnitLimitFromInstruction(instruction)).toBe(50_000);
     });
 
-    it('should return undefined for not ComputeBudget programs', () => {
+    it('should return undefined for a non-ComputeBudget program', () => {
         expect(
             readComputeUnitLimitFromInstruction({
                 accounts: [],
@@ -82,7 +82,7 @@ describe('readComputeUnitPriceFromInstruction', () => {
         expect(readComputeUnitPriceFromInstruction(instruction)).toBe(5n);
     });
 
-    it('should return undefined for not ComputeBudget programs', () => {
+    it('should return undefined for a non-ComputeBudget program', () => {
         expect(
             readComputeUnitPriceFromInstruction({
                 accounts: [],

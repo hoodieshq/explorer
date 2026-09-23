@@ -33,7 +33,7 @@ config reader, and the shared `TransactionVersion` union, consumed by both the a
 #### Scenario: A component needs a transaction's size limit
 
 - **WHEN** a component renders a transaction's serialized size against its limit
-- **THEN** it calls `transactionSizeLimit(version)` from the package
+- **THEN** it calls `transactionSizeLimit(transaction)` from the package
 - **AND** no `version === 1` literal appears under `app/features/transaction` or `app/components/inspector`
 
 #### Scenario: A single-signer legacy transaction is measured

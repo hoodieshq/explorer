@@ -8,7 +8,7 @@ import {
     V1_TRANSACTION_SIZE_LIMIT,
 } from '../size.js';
 import type { ParsedTransaction } from '../types.js';
-import { legacyTransaction, v1Transaction } from './fixtures.js';
+import { legacyTransaction, twoSignerLegacyTransaction, v1Transaction } from './fixtures.js';
 
 const BASE = {
     accounts: [],
@@ -59,5 +59,11 @@ describe('transactionWireSize', () => {
         const signerCount = v1Transaction.compiled().header.numSignerAccounts;
 
         expect(transactionWireSize(messageBytes)).toBe(64 * signerCount + messageBytes.length);
+    });
+
+    it('should count signature bytes per signer for a two-signer legacy tx', () => {
+        const { messageBytes } = twoSignerLegacyTransaction();
+
+        expect(transactionWireSize(messageBytes)).toBe(269);
     });
 });

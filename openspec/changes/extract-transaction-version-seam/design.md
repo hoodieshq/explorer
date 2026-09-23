@@ -66,6 +66,7 @@ type TransactionBase = {
     lifetimeToken: string;
     numSignerAccounts: number;
     signatures: readonly (string | undefined)[];
+    unmatchedLookupTableAddresses?: readonly Address[];
 };
 
 export type ParsedTransaction =
@@ -79,6 +80,8 @@ export type ParsedTransaction =
 - v1 removed lookup tables and legacy tx never had them.
 - `addressTableLookups` is optional because `jsonParsed` never names the tables: `undefined` means the
   encoding did not report them, `[]` means there are none.
+- `unmatchedLookupTableAddresses` lists loaded addresses missing from every listed lookup table. Absent when
+  the encoding omits them.
 - `config` sits on the v1 and is optional, because a tx may set no limits at all.
 - `TransactionConfig` repeats kit's `V1TransactionConfig` field for field, under a name the union can use on
   any version. kit does export that type, so the comment in `v1-message-bridge.ts` saying otherwise is stale.
@@ -208,7 +211,7 @@ const transaction = fromRpcTransaction(envelope);
 `fromRpcTransaction` picks between them internally. We move the tests, including `kit-parity.spec.ts`,
 which checks both against kit's `decompileTransactionMessage` and proves the move changes nothing.
 
-The resolver sets `lookupCountsMismatch: boolean` when the lookup counts do not cover `loadedAddresses`. The package returns that flag on the transaction instead of logging it, because it has no logger. MCP keeps its warning, and other consumers choose for themselves.
+The resolver returns `unmatchedLookupTableAddresses`, the loaded addresses the lookup counts do not cover. The package returns that list on the transaction instead of logging it, because it has no logger. MCP keeps its warning, and other consumers choose for themselves.
 
 ## Usage
 
@@ -529,6 +532,15 @@ export type TransactionConfig = {
     priorityFeeLamports?: bigint;
 };
 
+type TransactionBase = {
+    accounts: readonly TransactionAccount[];
+    instructions: readonly TransactionInstruction[];
+    lifetimeToken: string;
+    numSignerAccounts: number;
+    signatures: readonly (string | undefined)[];
+    unmatchedLookupTableAddresses?: readonly Address[];
+};
+
 export type ParsedTransaction =
     | (TransactionBase & { version: 'legacy' })
     | (TransactionBase & { version: 0; addressTableLookups?: readonly AddressTableLookup[] })
@@ -572,8 +584,8 @@ function resolveV0Accounts(params: AccountResolutionParams): AccountResolutionRe
 
 export type AccountResolutionResult = {
     accounts: TransactionAccount[];
-    /** Set when the lookup table index counts do not cover `loadedAddresses`. Attribution is partial. */
-    lookupCountsMismatch?: true;
+    /** Loaded addresses missing from every listed lookup table. Absent when the encoding omits them. */
+    unmatchedLookupTableAddresses?: readonly Address[];
 };
 ```
 
