@@ -140,6 +140,22 @@ export function twoSignerLegacyTransaction(): { compiled: CompiledMessageFixture
     return { compiled, messageBytes: encode(compiled) };
 }
 
+/** A legacy message with a header override. */
+export function legacyTransactionWithHeader(header: Partial<CompiledMessageFixture['header']>): {
+    compiled: CompiledMessageFixture;
+    messageBytes: Uint8Array;
+} {
+    const base = compiledMessageFor('legacy');
+    const compiled = { ...base, header: { ...base.header, ...header } };
+
+    return {
+        compiled,
+        get messageBytes() {
+            return encode(compiled);
+        },
+    };
+}
+
 function encode(compiled: CompiledTransactionMessage): Uint8Array {
     return new Uint8Array(getCompiledTransactionMessageEncoder().encode(compiled));
 }

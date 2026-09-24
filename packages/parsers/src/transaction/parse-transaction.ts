@@ -39,7 +39,16 @@ export function fromCompiledMessage(
     message: CompiledTransactionMessage & CompiledTransactionMessageWithLifetime,
     options: FromMessageOptions = {},
 ): ParsedTransaction {
-    const loadedAddresses = widenLoadedAddresses(options.loadedAddresses);
+    validateHeaderIntegrity(
+        {
+            numReadonlySignedAccounts: message.header.numReadonlySignerAccounts,
+            numReadonlyUnsignedAccounts: message.header.numReadonlyNonSignerAccounts,
+            numRequiredSignatures: message.header.numSignerAccounts,
+        },
+        message.staticAccounts.length,
+    );
+
+    const loadedAddresses = groupLoadedAddresses(options.loadedAddresses);
     const lookups = message.version === 0 ? toCompiledAddressTableLookups(message.addressTableLookups) : [];
     const resolved = resolveAccounts({
         addressTableLookups: message.version === 0 ? lookups : undefined,
@@ -80,12 +89,12 @@ export function fromMessageBytes(bytes: Uint8Array, options: FromMessageOptions 
 }
 
 export function fromRpcTransaction(response: RpcTransactionResponse): ParsedTransaction {
-    const version = normalizeVersion(response.version);
     const loadedAddresses = response.meta?.loadedAddresses;
     const { transaction } = response;
 
     // Property-based narrowing excludes the wire tuple in the else branch.
     if ('message' in transaction) {
+        const version = normalizeVersion(response.version);
         return isRpcJsonTransaction(transaction)
             ? fromJsonTransaction(transaction, version, loadedAddresses)
             : fromJsonParsedTransaction(transaction, version);
@@ -134,7 +143,7 @@ function isRpcJsonTransaction(
     return 'header' in transaction.message;
 }
 
-function widenLoadedAddresses(
+function groupLoadedAddresses(
     loadedAddresses: FromMessageOptions['loadedAddresses'],
 ): { readonly: Address[]; writable: Address[] } | undefined {
     if (!loadedAddresses) return undefined;
@@ -265,7 +274,7 @@ function fromJsonTransaction(
     const resolved = resolveAccounts({
         addressTableLookups: version === 0 ? lookups : undefined,
         header: resolvedHeader,
-        loadedAddresses: widenLoadedAddresses(loadedAddresses),
+        loadedAddresses: groupLoadedAddresses(loadedAddresses),
         staticKeys: accountKeys.map(key => address(key)),
         version,
     });

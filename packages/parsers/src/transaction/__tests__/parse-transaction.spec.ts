@@ -16,6 +16,7 @@ import {
     jsonParsedResponse,
     jsonResponse,
     legacyTransaction,
+    legacyTransactionWithHeader,
     unsignedWireResponse,
     v0CompiledWithLookupTable,
     v0Transaction,
@@ -94,6 +95,24 @@ describe('fromCompiledMessage', () => {
 
         expect(transaction.unmatchedLookupTableAddresses).toEqual([extraAddress]);
     });
+
+    it('should reject a compiled message with a zero signer count', () => {
+        const { compiled } = legacyTransactionWithHeader({ numSignerAccounts: 0 });
+
+        expect(() => fromCompiledMessage(compiled)).toThrow('out of range for');
+    });
+
+    it('should reject a compiled message with a negative readonly signer count', () => {
+        const { compiled } = legacyTransactionWithHeader({ numReadonlySignerAccounts: -1 });
+
+        expect(() => fromCompiledMessage(compiled)).toThrow('negative readonly account count');
+    });
+
+    it('should reject a compiled message where readonly signers exceed available accounts', () => {
+        const { compiled } = legacyTransactionWithHeader({ numReadonlySignerAccounts: 1 });
+
+        expect(() => fromCompiledMessage(compiled)).toThrow('exceed available accounts');
+    });
 });
 
 describe('fromMessageBytes', () => {
@@ -109,6 +128,12 @@ describe('fromMessageBytes', () => {
 
     it('should decode a v0 message', () => {
         expect(fromMessageBytes(v0Transaction.messageBytes())).toEqual(fromCompiledMessage(v0Transaction.compiled()));
+    });
+
+    it('should reject message bytes with an invalid header', () => {
+        const { messageBytes } = legacyTransactionWithHeader({ numSignerAccounts: 0 });
+
+        expect(() => fromMessageBytes(messageBytes)).toThrow('out of range for');
     });
 });
 
@@ -130,6 +155,12 @@ describe('fromRpcTransaction', () => {
 
     it('should decode a base58-encoded response to the same value as a base64 one', () => {
         expect(fromRpcTransaction(wireResponse(1, 'base58'))).toEqual(fromRpcTransaction(wireResponse(1, 'base64')));
+    });
+
+    it.each(['base64', 'base58'] as const)('should parse a %s wire response with no version reported', encoding => {
+        const { transaction } = wireResponse(1, encoding);
+
+        expect(fromRpcTransaction({ transaction }).version).toBe(1);
     });
 
     it('should accept loaded addresses from wire response meta', () => {

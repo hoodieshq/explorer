@@ -57,9 +57,9 @@ export type ParsedTransaction =
     | (TransactionBase & { version: 1; config?: TransactionConfig });
 
 /**
- * `loadedAddresses` is RPC-shaped: plain strings, because that is what every caller holds. The
- * constructors widen it to `Address` before resolution. kit's own `LoadedAddresses` type is
- * `Address[]`, so it is assignable here too.
+ * `loadedAddresses` is RPC-shaped: plain strings, because that is what every caller holds.
+ * The constructors widen it to `Address` before resolution.
+ * kit's own `LoadedAddresses` type is `Address[]`, so it is assignable here too.
  */
 export type FromMessageOptions = {
     loadedAddresses?: { readonly: readonly string[]; writable: readonly string[] } | null;
