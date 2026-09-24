@@ -50,8 +50,14 @@ describe('resolvePriorityFeeLamports', () => {
         expect(resolvePriorityFeeLamports(transaction, { feeLamports: 9_999 })).toBe(24);
     });
 
-    it('should treat a v1 transaction with no declared fee as paying none', () => {
+    it('should return undefined for a v1 transaction with no declared fee', () => {
         const transaction = v1TransactionWithConfig(undefined);
+
+        expect(resolvePriorityFeeLamports(transaction, { feeLamports: 8_000 })).toBeUndefined();
+    });
+
+    it('should return zero for a v1 transaction that declares a zero fee', () => {
+        const transaction = v1TransactionWithConfig({ priorityFeeLamports: 0n });
 
         expect(resolvePriorityFeeLamports(transaction, { feeLamports: 8_000 })).toBe(0);
     });

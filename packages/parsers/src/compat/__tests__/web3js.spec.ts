@@ -3,7 +3,8 @@ import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { describe, expect, it } from 'vitest';
 
 import { gen } from '../../__tests__/gen.js';
-import { toKitAddress, toKitInstruction, toLegacyPublicKey } from '../index.js';
+import type { TransactionInstruction as PackageTransactionInstruction } from '../../transaction/types.js';
+import { toKitAddress, toKitInstruction, toLegacyInstruction, toLegacyPublicKey } from '../index.js';
 
 const PROGRAM_ID = new PublicKey(gen.tokenProgram);
 const KEYS = [
@@ -53,5 +54,40 @@ describe('address bridging', () => {
 
         expect(kitAddress).toBe(PROGRAM_ID.toBase58());
         expect(toLegacyPublicKey(kitAddress).equals(PROGRAM_ID)).toBe(true);
+    });
+});
+
+describe('toLegacyInstruction', () => {
+    const instruction: PackageTransactionInstruction = {
+        accounts: [
+            { address: gen.systemProgram, signer: true, source: 'static', writable: true },
+            { address: gen.sysvarRent, signer: true, source: 'static', writable: false },
+            { address: gen.sysvarClock, signer: false, source: 'static', writable: true },
+            { address: gen.voteProgram, signer: false, source: 'static', writable: false },
+        ],
+        data: new Uint8Array([1, 2]),
+        programAddress: gen.tokenProgram,
+    };
+
+    it('should preserve signer and writable flags through a round trip', () => {
+        const kitIx = toKitInstruction(toLegacyInstruction(instruction));
+
+        expect(kitIx.programAddress).toBe(instruction.programAddress);
+        expect(kitIx.data).toEqual(Buffer.from([1, 2]));
+        expect(kitIx.accounts.map(account => account.address)).toEqual(
+            instruction.accounts.map(account => account.address),
+        );
+        expect(kitIx.accounts.map(account => account.role)).toEqual([
+            AccountRole.WRITABLE_SIGNER,
+            AccountRole.READONLY_SIGNER,
+            AccountRole.WRITABLE,
+            AccountRole.READONLY,
+        ]);
+    });
+
+    it('should throw for an instruction with no data', () => {
+        const parsedInstruction: PackageTransactionInstruction = { accounts: [], programAddress: gen.tokenProgram };
+
+        expect(() => toLegacyInstruction(parsedInstruction)).toThrow(gen.tokenProgram);
     });
 });
