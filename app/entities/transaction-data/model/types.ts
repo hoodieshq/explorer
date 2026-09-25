@@ -1,3 +1,4 @@
+import type { ParsedTransaction } from '@explorer/parsers/transaction';
 import type { TransactionVersion } from '@solana/kit';
 import type {
     CompiledInnerInstruction,
@@ -23,6 +24,8 @@ export type TransactionConfig = V1TransactionConfig;
  * version widened to cover v1, which web3.js `TransactionVersion` cannot describe.
  */
 export type TransactionWithMeta = Omit<ParsedTransactionWithMeta, 'version'> & {
+    /** The package's union transaction, built from the same response. Absent when the RPC omits a version. */
+    parsedTransaction?: ParsedTransaction;
     version?: TransactionVersion;
 };
 
@@ -33,6 +36,8 @@ type RawTransactionBase = {
         postBalances: number[];
         preBalances: number[];
     };
+    /** The package's union transaction, built from `messageBytes`. Absent when parsing the bytes fails. */
+    parsedTransaction?: ParsedTransaction;
     /**
      * Wire size in bytes: signatures plus the compiled message, as the network holds it.
      *

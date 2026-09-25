@@ -1,3 +1,4 @@
+import type { ParsedTransaction } from '@explorer/parsers/transaction';
 import type { TransactionVersion } from '@solana/kit';
 import type { VersionedBlockResponse } from '@solana/web3.js';
 
@@ -10,6 +11,8 @@ import type { V1TransactionConfig } from '@/app/shared/lib/v1-message-bridge';
  * version widened to cover v1, which web3.js `TransactionVersion` cannot describe.
  */
 export type BlockTransaction = Omit<VersionedBlockResponse['transactions'][number], 'version'> & {
+    /** The package's union transaction, built from the same wire bytes as `transaction`. */
+    parsedTransaction: ParsedTransaction;
     transactionConfig?: V1TransactionConfig;
     version: TransactionVersion;
 };

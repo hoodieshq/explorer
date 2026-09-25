@@ -1,7 +1,7 @@
+import type { ReportedTransactionVersion } from '@explorer/parsers/transaction';
+
 import type { CompiledInnerInstruction, CompiledInstruction, ConfirmationStatus } from '../rpc/types.js';
 import type { SafeNumeric } from '../shared/types.js';
-
-export type TransactionVersion = 'legacy' | 0 | null;
 
 export type ResolvedAccount = {
     address: string;
@@ -16,7 +16,7 @@ type TransactionPayloadContextBase = {
     slot: number;
     blockTime: SafeNumeric;
     feeLamports: SafeNumeric;
-    version: TransactionVersion;
+    version: ReportedTransactionVersion;
     computeUnitsConsumed: SafeNumeric;
     logMessages: readonly string[] | null;
     recentBlockhash: string | null;
@@ -89,7 +89,8 @@ type TransactionPayloadEntityBase = {
     block_time: SafeNumeric;
     fee_lamports: SafeNumeric;
     signers: string[];
-    transaction_version: TransactionVersion;
+    /** `null` reports that the caller omitted the version ceiling. A decoded message always has a version. */
+    transaction_version: ReportedTransactionVersion;
     recent_blockhash: string | null;
     compute_units_consumed: SafeNumeric;
     confirmation_status: ConfirmationStatus | null;

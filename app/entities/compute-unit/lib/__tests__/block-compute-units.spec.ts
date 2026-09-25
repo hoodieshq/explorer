@@ -1,5 +1,7 @@
 import type { BlockWithV1 } from '@entities/block-data/@x/compute-unit';
-import { ComputeBudgetProgram, PublicKey } from '@solana/web3.js';
+import type { ParsedTransaction } from '@explorer/parsers/transaction';
+import { address } from '@solana/kit';
+import { ComputeBudgetProgram } from '@solana/web3.js';
 import { Cluster } from '@utils/cluster';
 
 import { alloc, writeUint32LE } from '@/app/shared/lib/bytes';
@@ -23,16 +25,20 @@ function mockTransaction({
     const data = alloc(5);
     data[0] = 2; // SetComputeUnitLimit instruction type
     writeUint32LE(data, requestedUnits, 1);
-    const programId = ComputeBudgetProgram.programId;
+    const programAddress = address(ComputeBudgetProgram.programId.toBase58());
+
+    const parsedTransaction: ParsedTransaction = {
+        accounts: [],
+        instructions: [{ accounts: [], data, programAddress }],
+        lifetimeToken: 'lifetime',
+        numSignerAccounts: 0,
+        signatures: [],
+        version: 'legacy',
+    };
 
     return {
         meta: hasMeta ? { computeUnitsConsumed: consumed, costUnits: cost, err: null } : null,
-        transaction: {
-            message: {
-                compiledInstructions: [{ data, programIdIndex: 0 }],
-                staticAccountKeys: [new PublicKey(programId.toBase58())],
-            },
-        },
+        parsedTransaction,
     };
 }
 

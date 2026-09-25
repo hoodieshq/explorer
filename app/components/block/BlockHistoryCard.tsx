@@ -4,7 +4,8 @@ import { Signature } from '@components/common/Signature';
 import { SolBalance } from '@components/common/SolBalance';
 import { cn } from '@components/shared/utils';
 import { BLOCK_TRANSACTION_VERSIONS, type BlockWithV1 } from '@entities/block-data';
-import { estimateRequestedComputeUnits } from '@entities/compute-unit';
+import { toSupportedCluster } from '@entities/compute-unit';
+import { getRequestedComputeUnits } from '@explorer/parsers/transaction';
 import { useCluster } from '@providers/cluster';
 import type { TransactionVersion } from '@solana/kit';
 import { ConfirmedTransactionMeta, PublicKey, TransactionSignature, VOTE_PROGRAM_ID } from '@solana/web3.js';
@@ -118,29 +119,21 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockWithV1; epoch: 
                 signature = tx.transaction.signatures[0];
             }
 
-            const programIndexes = tx.transaction.message.compiledInstructions
-                .map(ix => ix.programIdIndex)
-                .concat(
-                    tx.meta?.innerInstructions?.flatMap(ix => {
-                        return ix.instructions.map(ix => ix.programIdIndex);
-                    }) || [],
-                );
-
-            const indexMap = new Map<number, number>();
-            programIndexes.forEach(programIndex => {
-                const count = indexMap.get(programIndex) || 0;
-                indexMap.set(programIndex, count + 1);
-            });
-
             const invocations = new Map<string, number>();
-            const accountKeys = tx.transaction.message.getAccountKeys({
-                accountKeysFromLookups: tx.meta?.loadedAddresses,
+            const countInvocation = (programAddress: string) => {
+                invocations.set(programAddress, (invocations.get(programAddress) ?? 0) + 1);
+            };
+
+            tx.parsedTransaction.instructions.forEach(instruction => countInvocation(instruction.programAddress));
+            tx.meta?.innerInstructions?.forEach(inner => {
+                inner.instructions.forEach(innerInstruction => {
+                    const account = tx.parsedTransaction.accounts[innerInstruction.programIdIndex];
+                    invariant(account, `account key index ${innerInstruction.programIdIndex} out of range`);
+                    countInvocation(account.address);
+                });
             });
-            indexMap.forEach((count, i) => {
-                const accountKey = accountKeys.get(i);
-                invariant(accountKey, `account key index ${i} out of range`);
-                const programId = accountKey.toBase58();
-                invocations.set(programId, count);
+
+            invocations.forEach((_count, programId) => {
                 const programTransactionCount = invokedPrograms.get(programId) || 0;
                 invokedPrograms.set(programId, programTransactionCount + 1);
             });
@@ -163,8 +156,10 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockWithV1; epoch: 
                 // ignore parsing errors because some old logs aren't parsable
             }
 
-            // Calculate reserved compute units
-            const reservedComputeUnits = estimateRequestedComputeUnits(tx, epoch, cluster);
+            const reservedComputeUnits = getRequestedComputeUnits(tx.parsedTransaction, {
+                cluster: toSupportedCluster(cluster),
+                epoch,
+            }).value;
 
             return {
                 computeUnits,
@@ -199,13 +194,8 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockWithV1; epoch: 
                 }
 
                 const tx = block.transactions[index];
-                const accountKeys = tx.transaction.message.getAccountKeys({
-                    accountKeysFromLookups: tx.meta?.loadedAddresses,
-                });
-                return accountKeys
-                    .keySegments()
-                    .flat()
-                    .find(key => key.equals(accountFilter));
+                const filterAddress = accountFilter.toBase58();
+                return tx.parsedTransaction.accounts.some(account => account.address === filterAddress);
             })
             .filter(({ version }) => versionFilter === null || version === versionFilter);
 

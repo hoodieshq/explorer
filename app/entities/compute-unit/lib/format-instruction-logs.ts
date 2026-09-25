@@ -1,10 +1,11 @@
+import { getDefaultComputeUnits } from '@explorer/parsers/programs/compute-budget';
+import type { TransactionVersion } from '@explorer/parsers/transaction';
 import type { Cluster } from '@utils/cluster';
 import type { InstructionLogs } from '@utils/program-logs';
 
 import { Logger } from '@/app/shared/lib/logger';
 
 import { getReservedComputeUnits } from './compute-units-schedule';
-import { getDefaultComputeUnits } from './default-compute-units';
 import type { InstructionCUData, InstructionCUInput } from './types';
 
 /**
@@ -15,6 +16,7 @@ import type { InstructionCUData, InstructionCUInput } from './types';
  *   returns them — including any entry that belongs to no instruction, which this drops.
  * @param cluster - The cluster to use for epoch-aware lookups
  * @param epoch - The epoch to use for historical lookups
+ * @param transactionVersion - v1 reserves nothing per instruction, so scheduledUnits stays absent when this is 1
  * @returns Array of InstructionCUData mapping each instruction to its CU consumption
  */
 export function formatInstructionLogs({
@@ -22,11 +24,13 @@ export function formatInstructionLogs({
     instructionLogs,
     cluster,
     epoch,
+    transactionVersion,
 }: {
     instructions: readonly InstructionCUInput[];
     instructionLogs: InstructionLogs[];
     cluster: Cluster;
     epoch: bigint;
+    transactionVersion?: TransactionVersion;
 }): InstructionCUData[] {
     const invocations = toTopLevelInvocations(instructionLogs);
 
@@ -45,7 +49,7 @@ export function formatInstructionLogs({
     }
 
     return instructions.map((instruction, index) => {
-        const programId = instruction.programId.toBase58();
+        const { programId } = instruction;
 
         return {
             computeUnits: invocations[index]?.computeUnits ?? 0,
@@ -53,7 +57,9 @@ export function formatInstructionLogs({
             name: instruction.name,
             programId,
             programName: instruction.programName,
-            scheduledUnits: getReservedComputeUnits({ cluster, epoch, programId }),
+            ...(transactionVersion === 1
+                ? {}
+                : { scheduledUnits: getReservedComputeUnits({ cluster, epoch, programId }) }),
         };
     });
 }

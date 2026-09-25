@@ -12,7 +12,6 @@ import {
     ResponsiveGridRow,
     TIGHT_CARD,
 } from '@/app/components/block/shared';
-import { invariant } from '@/app/shared/lib/invariant';
 import { Card } from '@/app/shared/ui/Card';
 import { DataListCard } from '@/app/shared/ui/DataListCard';
 import { KeyValue } from '@/app/shared/ui/key-value';
@@ -35,26 +34,25 @@ function computeProgramStats(block: BlockWithV1): ProgramStats {
 
     let totalInstructions = 0;
     block.transactions.forEach(tx => {
-        const message = tx.transaction.message;
-        totalInstructions += message.compiledInstructions.length;
+        const { accounts, instructions } = tx.parsedTransaction;
+        totalInstructions += instructions.length;
         const programUsed = new Set<string>();
-        const accountKeys = tx.transaction.message.getAccountKeys({
-            accountKeysFromLookups: tx.meta?.loadedAddresses,
-        });
-        const trackProgram = (index: number) => {
-            if (index >= accountKeys.length) return;
-            const programId = accountKeys.get(index);
-            invariant(programId, `account key index ${index} out of range`);
-            const programAddress = programId.toBase58();
+        const trackProgram = (programAddress: string) => {
             programUsed.add(programAddress);
             const frequency = ixFrequency.get(programAddress);
             ixFrequency.set(programAddress, frequency ? frequency + 1 : 1);
         };
 
-        message.compiledInstructions.forEach(ix => trackProgram(ix.programIdIndex));
+        instructions.forEach(instruction => trackProgram(instruction.programAddress));
         tx.meta?.innerInstructions?.forEach(inner => {
             totalInstructions += inner.instructions.length;
-            inner.instructions.forEach(innerIx => trackProgram(innerIx.programIdIndex));
+            inner.instructions.forEach(innerIx => {
+                // `meta` sits outside the union, so an out-of-range index here is malformed RPC data,
+                // not something the parser already validated.
+                const account = accounts[innerIx.programIdIndex];
+                if (account === undefined) return;
+                trackProgram(account.address);
+            });
         });
 
         const successful = tx.meta?.err === null;

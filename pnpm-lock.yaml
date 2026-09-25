@@ -830,6 +830,9 @@ importers:
 
   packages/parsers:
     dependencies:
+      '@solana-program/compute-budget':
+        specifier: 0.18.0
+        version: 0.18.0(@solana/kit@8.3.0(bufferutil@4.0.7)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)(utf-8-validate@5.0.10))
       '@solana-program/system':
         specifier: 0.14.0
         version: 0.14.0(@solana/kit@8.3.0(bufferutil@4.0.7)(fastestsmallesttextencoderdecoder@1.0.22)(typescript@5.7.3)(utf-8-validate@5.0.10))

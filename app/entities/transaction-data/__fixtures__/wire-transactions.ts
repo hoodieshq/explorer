@@ -1,5 +1,6 @@
 import { gen } from '@__fixtures__/gen';
 import {
+    AccountRole,
     address,
     appendTransactionMessageInstruction,
     blockhash,
@@ -20,6 +21,8 @@ export const FEE_PAYER = address(gen.address(1));
 export const RECIPIENT = address(gen.address(2));
 const PROGRAM = address(gen.address(3));
 const BLOCKHASH = blockhash(gen.blockhash());
+export const LOOKUP_TABLE_ADDRESS = address(gen.address(4));
+export const LOOKUP_TABLE_LOADED_ADDRESS = address(gen.address(5));
 
 export type V1ConfigOverrides = {
     computeUnitLimit?: number;
@@ -46,6 +49,33 @@ export function createV1TransactionBytes(config: V1ConfigOverrides): Uint8Array 
         // The cast is needed only because the `@ts-expect-error` above leaves the message typed as
         // `legacy | 0`; this setter is constrained to `{ version: 1 }`.
         m => setTransactionMessagePriorityFeeLamports(config.priorityFeeLamports, m as typeof m & { version: 1 }),
+    );
+
+    return new Uint8Array(getTransactionEncoder().encode(compileTransaction(message)));
+}
+
+/** Wire bytes of an unsigned v0 transaction whose one instruction reads an address-lookup-table account. */
+export function createV0TransactionWithLookupTableBytes(): Uint8Array {
+    const message = pipe(
+        createTransactionMessage({ version: 0 }),
+        m => setTransactionMessageFeePayer(FEE_PAYER, m),
+        m => setTransactionMessageLifetimeUsingBlockhash({ blockhash: BLOCKHASH, lastValidBlockHeight: 100n }, m),
+        m =>
+            appendTransactionMessageInstruction(
+                {
+                    accounts: [
+                        {
+                            address: LOOKUP_TABLE_LOADED_ADDRESS,
+                            addressIndex: 0,
+                            lookupTableAddress: LOOKUP_TABLE_ADDRESS,
+                            role: AccountRole.WRITABLE,
+                        },
+                    ],
+                    data: new Uint8Array([1]),
+                    programAddress: PROGRAM,
+                },
+                m,
+            ),
     );
 
     return new Uint8Array(getTransactionEncoder().encode(compileTransaction(message)));

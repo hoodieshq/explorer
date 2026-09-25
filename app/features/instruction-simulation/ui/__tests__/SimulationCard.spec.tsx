@@ -3,8 +3,12 @@ import { render, screen } from '@testing-library/react';
 import { Cluster } from '@utils/cluster';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createV1TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
+import { bridgeV1MessageBytes } from '@/app/shared/lib/v1-message-bridge';
+
 const { useSimulation, useSimulationInstructionNames, CUProfilingCard } = vi.hoisted(() => ({
-    CUProfilingCard: vi.fn(() => null),
+    CUProfilingCard: vi.fn((_props: Record<string, unknown>) => null),
     useSimulation: vi.fn(),
     useSimulationInstructionNames: vi.fn(),
 }));
@@ -100,5 +104,19 @@ describe('SimulatorCard CU profiling', () => {
 
         expect(screen.queryByText(UNAVAILABLE)).not.toBeInTheDocument();
         expect(CUProfilingCard).not.toHaveBeenCalled();
+    });
+
+    it('should pass transaction version 1 for a bridged v1 message', () => {
+        useSimulationInstructionNames.mockReturnValue({
+            instructions: [{ name: 'Transfer Checked', programId: { toBase58: () => 'TokenProgram' } }],
+            unresolvable: false,
+        });
+        const { messageBytes } = parseTransactionBytes(createV1TransactionBytes({ computeUnitLimit: 300_000 }));
+        const { message } = bridgeV1MessageBytes(messageBytes);
+
+        render(<SimulatorCard message={message} showTokenBalanceChanges={false} />);
+
+        const props = CUProfilingCard.mock.calls.at(-1)?.[0];
+        expect(props?.transactionVersion).toBe(1);
     });
 });

@@ -1,6 +1,8 @@
 import { gen } from '@__fixtures__/gen';
 import { SystemProgram } from '@solana/web3.js';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+
+import { Logger } from '@/app/shared/lib/logger';
 
 import { adaptParsedTransaction, type RpcParsedTransaction } from '../adapt-parsed-transaction';
 
@@ -9,6 +11,11 @@ const RECIPIENT = gen.address(2);
 const SYSTEM_PROGRAM = SystemProgram.programId.toBase58();
 const MINT = gen.address(3);
 const BLOCKHASH = gen.blockhash();
+const UNKNOWN_ACCOUNT = gen.address(4);
+
+afterEach(() => {
+    vi.clearAllMocks();
+});
 
 type RpcMeta = NonNullable<RpcParsedTransaction['meta']>;
 
@@ -128,13 +135,20 @@ describe('adaptParsedTransaction', () => {
 
     // Cards render these payloads with JSON.stringify, which throws on a bigint, and the receipt
     // model validates them against superstruct `number()` schemas.
-    it('should leave no bigint anywhere in the adapted transaction', () => {
+    it('should leave no bigint anywhere in the result', () => {
         const result = adaptParsedTransaction(
             createResponse({ meta: createMeta({ err: { InstructionError: [1n, { Custom: 6001n }] } }) }),
         );
 
         expect(() => JSON.stringify(result)).not.toThrow();
         expect(findBigIntPath(result)).toBeUndefined();
+    });
+
+    it("should carry the union's parsed instruction payload as numbers", () => {
+        const parsedIx = adaptParsedTransaction(createResponse()).parsedTransaction?.instructions[0];
+        const parsed = parsedIx && 'parsed' in parsedIx ? (parsedIx.parsed as { info: { lamports: number } }) : undefined;
+
+        expect(parsed?.info.lamports).toBe(100_000_000);
     });
 
     it('should convert instruction error indices and codes so the error formatters can do arithmetic', () => {
@@ -178,6 +192,44 @@ describe('adaptParsedTransaction', () => {
         expect(result.meta?.loadedAddresses).toBeUndefined();
         expect(result.meta?.computeUnitsConsumed).toBeUndefined();
         expect(result.meta?.costUnits).toBeUndefined();
+    });
+
+    it('should build the union transaction next to the web3.js transaction', () => {
+        const parsed = adaptParsedTransaction(createResponse()).parsedTransaction;
+
+        expect(parsed?.version).toBe(0);
+        expect(parsed?.accounts.map(account => account.address)).toEqual([FEE_PAYER, RECIPIENT]);
+        expect(parsed?.instructions[0].programAddress).toBe(SYSTEM_PROGRAM);
+        // jsonParsed never reports lookup tables, unlike the wire encoding's `[]` for the same case.
+        expect(parsed?.version === 0 ? parsed.addressTableLookups : 'wrong version').toBeUndefined();
+    });
+
+    it('should build no union and log nothing when the RPC omits the version', () => {
+        const result = adaptParsedTransaction(createResponse({ version: undefined }));
+
+        expect(result.parsedTransaction).toBeUndefined();
+        expect(Logger.error).not.toHaveBeenCalled();
+    });
+
+    it('should build no union and log the failure when an instruction names an unresolvable account', () => {
+        const response = createResponse({
+            transaction: {
+                message: {
+                    accountKeys: [
+                        { pubkey: FEE_PAYER, signer: true, source: 'transaction', writable: true },
+                        { pubkey: RECIPIENT, signer: false, source: 'lookupTable', writable: true },
+                    ],
+                    instructions: [{ accounts: [UNKNOWN_ACCOUNT], data: '3Bxs4', programId: SYSTEM_PROGRAM }],
+                    recentBlockhash: BLOCKHASH,
+                },
+                signatures: [gen.signature(1)],
+            },
+        });
+
+        const result = adaptParsedTransaction(response);
+
+        expect(result.parsedTransaction).toBeUndefined();
+        expect(Logger.error).toHaveBeenCalled();
     });
 });
 

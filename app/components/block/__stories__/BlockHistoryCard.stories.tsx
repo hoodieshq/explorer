@@ -1,5 +1,5 @@
 import type { BlockWithV1 } from '@entities/block-data';
-import { PublicKey } from '@solana/web3.js';
+import { address } from '@solana/kit';
 import { nextjsParameters, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
@@ -17,7 +17,7 @@ const emptyBlock = {
 } as unknown as BlockWithV1;
 
 // Programs the synthetic transactions invoke. Deliberately excludes the Compute Budget program so
-// `estimateRequestedComputeUnits` never tries to parse the (empty) instruction data — it just adds the
+// `getRequestedComputeUnits` never tries to parse the (empty) instruction data — it just adds the
 // per-program reserved units, which is enough to populate the "Reserved CUs" column. Vote is last so it
 // can be added only as a *secondary* program (never alone) — otherwise the card's default "All Except
 // Votes" filter would hide those rows and the counts would look off.
@@ -50,17 +50,22 @@ function logsForTx(programIdxs: number[], failed: boolean): string[] {
     return logs;
 }
 
+const PROGRAM_ADDRESSES = PROGRAM_IDS.map(id => address(id));
+
+// Every account this synthetic block ever references, so `parsedTransaction.accounts` matches the
+// program-index space `programIdxs` addresses into.
+const ACCOUNTS = PROGRAM_ADDRESSES.map(programAddress => ({
+    address: programAddress,
+    signer: false,
+    source: 'static' as const,
+    writable: false,
+}));
+
 // Minimal stand-in for a VersionedBlockResponse — only the shape BlockHistoryCard reads. Every 4th tx
 // fails; each invokes a rotating primary program, and every 3rd also invokes a second one, so the
 // filter dropdown and the "Invoked Programs" column show a realistic spread. Each tx also carries program
 // logs so the optional Compute column (its data comes from parsed program logs) is populated.
 function makeBlock(txCount: number): BlockWithV1 {
-    const keys = PROGRAM_IDS.map(id => new PublicKey(id));
-    const accountKeys = {
-        get: (i: number) => keys[i],
-        keySegments: () => [keys],
-        length: keys.length,
-    };
     const transactions = Array.from({ length: txCount }, (_, k) => {
         const failed = k % 4 === 0;
         // Primary rotates over the non-vote programs and is invoked a varying number of times (1..12) so
@@ -80,12 +85,15 @@ function makeBlock(txCount: number): BlockWithV1 {
                 innerInstructions: [],
                 logMessages: logsForTx(programIdxs, failed),
             },
+            parsedTransaction: {
+                accounts: ACCOUNTS,
+                instructions: programIdxs.map(idx => ({ accounts: [], programAddress: PROGRAM_ADDRESSES[idx] })),
+                lifetimeToken: 'lifetime',
+                numSignerAccounts: 0,
+                signatures: [],
+                version: 'legacy' as const,
+            },
             transaction: {
-                message: {
-                    compiledInstructions: programIdxs.map(idx => ({ data: new Uint8Array(), programIdIndex: idx })),
-                    getAccountKeys: () => accountKeys,
-                    staticAccountKeys: keys,
-                },
                 signatures: [signatureFor(k)],
             },
         };

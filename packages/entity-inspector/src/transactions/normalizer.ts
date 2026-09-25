@@ -1,5 +1,12 @@
-// Ported from the solana-mcp-official fork (feat/account-resolver) — validates the probe's message
-// integrity before index resolution so a malformed RPC response fails loudly, not with wrong data.
+// Message integrity, account resolution and version narrowing come from @explorer/parsers/transaction.
+// What stays here is payload work: status, fee, confirmations and the inner instructions meta carries.
+import {
+    fromRpcTransaction,
+    type ReportedTransactionVersion,
+    type TransactionVersion,
+    UnsupportedTransactionVersionError,
+} from '@explorer/parsers/transaction';
+
 import { type InspectorLogger, ns } from '../logger.js';
 import { asRecord, asSafeNumeric } from '../shared/parse-helpers.js';
 import { err, ok, type Result } from '../shared/result.js';
@@ -11,8 +18,7 @@ import type {
     SignatureStatusValue,
     TransactionProbeEnvelope,
 } from '../rpc/types.js';
-import type { TransactionPayloadContext, TransactionVersion } from './types.js';
-import { selectAccountResolver } from './account-resolver.js';
+import type { TransactionPayloadContext } from './types.js';
 
 function toAccountKeyString(accountKey: string | { pubkey: string }): string {
     if (typeof accountKey === 'string') {
@@ -26,11 +32,9 @@ function toAccountKeyString(accountKey: string | { pubkey: string }): string {
     );
 }
 
-function validateInstructionIndices(
-    instructions: readonly CompiledInstruction[],
-    accountKeyCount: number,
-    label: string,
-): void {
+// Inner instructions ride on `meta`, which the parsed transaction leaves out, so MCP checks their
+// indices itself. Outer instruction and header checks belong to `fromRpcTransaction`.
+function validateInnerInstructionIndices(instructions: readonly CompiledInstruction[], accountKeyCount: number): void {
     for (const ix of instructions) {
         if (
             ix.programIdIndex < 0 ||
@@ -38,73 +42,46 @@ function validateInstructionIndices(
             ix.accounts.some(idx => idx < 0 || idx >= accountKeyCount)
         ) {
             throw new Error(
-                `Unexpected transaction probe: ${label} index out of bounds (programIdIndex=${ix.programIdIndex}, accounts=[${ix.accounts.join(',')}], accountKeyCount=${accountKeyCount}).`,
+                `Unexpected transaction probe: inner instruction index out of bounds (programIdIndex=${ix.programIdIndex}, accounts=[${ix.accounts.join(',')}], accountKeyCount=${accountKeyCount}).`,
             );
         }
     }
 }
 
-function validateHeaderIntegrity(
-    header: {
-        numRequiredSignatures: number;
-        numReadonlySignedAccounts: number;
-        numReadonlyUnsignedAccounts: number;
-    },
-    staticKeyCount: number,
-): void {
-    const { numRequiredSignatures, numReadonlySignedAccounts, numReadonlyUnsignedAccounts } = header;
-
-    if (numRequiredSignatures <= 0 || numRequiredSignatures > staticKeyCount) {
-        throw new Error(
-            `Unexpected transaction probe: numRequiredSignatures (${numRequiredSignatures}) out of range for ${staticKeyCount} account keys.`,
-        );
-    }
-
-    if (numReadonlySignedAccounts < 0 || numReadonlyUnsignedAccounts < 0) {
-        throw new Error(
-            `Unexpected transaction probe: negative readonly account count (signed=${numReadonlySignedAccounts}, unsigned=${numReadonlyUnsignedAccounts}).`,
-        );
-    }
-
-    if (
-        numReadonlySignedAccounts >= numRequiredSignatures ||
-        numReadonlyUnsignedAccounts > staticKeyCount - numRequiredSignatures
-    ) {
-        throw new Error(
-            `Unexpected transaction probe: readonly counts (signed=${numReadonlySignedAccounts}, unsigned=${numReadonlyUnsignedAccounts}) exceed available accounts (signers=${numRequiredSignatures}, total=${staticKeyCount}).`,
-        );
-    }
-}
-
-function validateInstructionIntegrity(
+function validateInnerInstructionIntegrity(
     instructions: readonly CompiledInstruction[],
     innerInstructions: readonly CompiledInnerInstruction[] | null,
     totalKeyCount: number,
 ): void {
-    validateInstructionIndices(instructions, totalKeyCount, 'instruction');
+    if (!innerInstructions) {
+        return;
+    }
 
-    if (innerInstructions) {
-        for (const group of innerInstructions) {
-            if (group.index < 0 || group.index >= instructions.length) {
-                throw new Error(
-                    `Unexpected transaction probe: inner instruction group index (${group.index}) out of bounds for ${instructions.length} instructions.`,
-                );
-            }
-            validateInstructionIndices(group.instructions, totalKeyCount, 'inner instruction');
+    for (const group of innerInstructions) {
+        if (group.index < 0 || group.index >= instructions.length) {
+            throw new Error(
+                `Unexpected transaction probe: inner instruction group index (${group.index}) out of bounds for ${instructions.length} instructions.`,
+            );
         }
+        validateInnerInstructionIndices(group.instructions, totalKeyCount);
     }
 }
 
-// Only legacy and v0 exist on-chain, and the RPC layer requests maxSupportedTransactionVersion 0.
-function normalizeVersion(rawVersion: 'legacy' | number | bigint | null | undefined): TransactionVersion {
-    if (rawVersion === 'legacy' || rawVersion === null || rawVersion === undefined) {
-        return rawVersion ?? null;
+/**
+ * What the RPC reported, before the message is decoded.
+ *
+ * `null` means the caller omitted the version ceiling. The parsed union has no such arm, so this
+ * mapping lives here, next to the payload field that keeps it.
+ */
+function toReportedVersion(rawVersion: 'legacy' | number | bigint | null | undefined): ReportedTransactionVersion {
+    if (rawVersion === null || rawVersion === undefined) {
+        return null;
     }
     const version = typeof rawVersion === 'bigint' ? Number(rawVersion) : rawVersion;
-    if (version !== 0) {
-        throw new Error(`Unexpected transaction probe: unsupported transaction version (${String(rawVersion)}).`);
+    if (version === 'legacy' || version === 0 || version === 1) {
+        return version;
     }
-    return version;
+    throw new UnsupportedTransactionVersionError(version);
 }
 
 function isKnownConfirmationStatus(value: string): value is ConfirmationStatus {
@@ -168,37 +145,45 @@ export function normalizeTransactionProbe(
         throw new Error('Unexpected transaction probe: slot is not a safe number.');
     }
 
-    const { header, accountKeys } = envelope.transaction.message;
+    const { header, accountKeys, addressTableLookups } = envelope.transaction.message;
     const instructions = Array.from(envelope.transaction.message.instructions ?? []);
     const meta = envelope.meta;
     const innerInstructions = meta?.innerInstructions ? Array.from(meta.innerInstructions) : null;
+    const recentBlockhash = envelope.transaction.message.recentBlockhash ?? null;
 
-    const staticKeys = accountKeys.map(toAccountKeyString);
-    validateHeaderIntegrity(header, staticKeys.length);
+    const reportedVersion = toReportedVersion(envelope.version);
+    // An omitted version means the caller set no ceiling, and the RPC then returns legacy only.
+    const parsedVersion: TransactionVersion = reportedVersion ?? 'legacy';
 
-    const version = normalizeVersion(envelope.version);
-    const resolver = selectAccountResolver(version);
-    const {
-        accountKeys: allKeys,
-        lookupCountsMismatch,
-        resolvedAccounts,
-    } = resolver({
-        addressTableLookups: envelope.transaction.message.addressTableLookups,
-        header,
-        loadedAddresses: meta?.loadedAddresses,
-        staticKeys,
+    // MCP reports the queried signature and the envelope's blockhash. The parsed signatures and
+    // lifetime token have no reader here.
+    const transaction = fromRpcTransaction({
+        meta: { loadedAddresses: meta?.loadedAddresses ?? null },
+        transaction: {
+            message: {
+                accountKeys: accountKeys.map(toAccountKeyString),
+                // Kept absent when the message omits them, so `[]` still reads as "declares none".
+                ...(addressTableLookups !== undefined && { addressTableLookups }),
+                header,
+                instructions,
+                recentBlockhash: recentBlockhash ?? '',
+            },
+            signatures: [],
+        },
+        version: parsedVersion,
     });
-    if (lookupCountsMismatch) {
-        logger.warn(ns('address table lookup counts do not cover the loaded addresses'), { signature });
+
+    const allKeys = transaction.accounts.map(account => account.address);
+    if (transaction.unmatchedLookupTableAddresses || transaction.unmatchedLookupTableIndexes) {
+        logger.warn(ns('address table lookup counts do not match the loaded addresses'), { signature });
     }
 
-    validateInstructionIntegrity(instructions, innerInstructions, allKeys.length);
+    validateInnerInstructionIntegrity(instructions, innerInstructions, allKeys.length);
 
     const { numRequiredSignatures, numReadonlySignedAccounts, numReadonlyUnsignedAccounts } = header;
 
     const computeUnitsConsumed = meta ? asSafeNumeric(meta.computeUnitsConsumed ?? null) : null;
     const logMessages = meta?.logMessages ? Array.from(meta.logMessages) : null;
-    const recentBlockhash = envelope.transaction.message.recentBlockhash ?? null;
 
     const statusValue = signatureStatus?.value ?? null;
     const rawStatus = statusValue?.confirmationStatus ?? null;
@@ -225,10 +210,10 @@ export function normalizeTransactionProbe(
         numReadonlyUnsignedAccounts,
         numRequiredSignatures,
         recentBlockhash,
-        resolvedAccounts,
+        resolvedAccounts: [...transaction.accounts],
         signature,
         slot,
-        version,
+        version: reportedVersion,
     };
 
     if (meta === null) {

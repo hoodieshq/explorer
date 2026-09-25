@@ -1,5 +1,5 @@
 import type { BlockWithV1 } from '@entities/block-data';
-import type { TransactionVersion } from '@solana/kit';
+import { address, type TransactionVersion } from '@solana/kit';
 import { PublicKey } from '@solana/web3.js';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
@@ -29,10 +29,6 @@ vi.mock('@components/common/Signature', () => ({
 
 vi.mock('@components/common/SolBalance', () => ({
     SolBalance: ({ lamports }: { lamports: number }) => <span>{lamports}</span>,
-}));
-
-vi.mock('@entities/compute-unit', () => ({
-    estimateRequestedComputeUnits: () => 0,
 }));
 
 vi.mock('@utils/program-logs', () => ({
@@ -77,7 +73,7 @@ function makeBlock(): BlockWithV1 {
 }
 
 function makeTransaction(signature: string, version: TransactionVersion, program: string) {
-    const keys = [new PublicKey(program), new PublicKey(ACCOUNT)];
+    const programAddress = address(program);
     return {
         meta: {
             costUnits: 1,
@@ -87,14 +83,18 @@ function makeTransaction(signature: string, version: TransactionVersion, program
             loadedAddresses: undefined,
             logMessages: [],
         },
+        parsedTransaction: {
+            accounts: [
+                { address: programAddress, signer: false, source: 'static' as const, writable: false },
+                { address: address(ACCOUNT), signer: false, source: 'static' as const, writable: false },
+            ],
+            instructions: [{ accounts: [], programAddress }],
+            lifetimeToken: 'lifetime',
+            numSignerAccounts: 0,
+            signatures: [],
+            version,
+        },
         transaction: {
-            message: {
-                compiledInstructions: [{ data: new Uint8Array(), programIdIndex: 0 }],
-                getAccountKeys: () => ({
-                    get: (index: number) => keys[index],
-                    keySegments: () => [keys],
-                }),
-            },
             signatures: [signature],
         },
         version,
