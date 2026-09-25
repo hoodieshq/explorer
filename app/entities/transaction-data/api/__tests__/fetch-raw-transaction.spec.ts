@@ -5,9 +5,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { toBase64 } from '@/app/shared/lib/bytes';
 
 import {
+    createV0TransactionWithLookupTableBytes,
     createV1TransactionBytes,
     createWeb3TransactionBytes,
     FEE_PAYER,
+    LOOKUP_TABLE_LOADED_ADDRESS,
     RECIPIENT,
 } from '../../__fixtures__/wire-transactions';
 import { fetchRawTransaction } from '../fetch-raw-transaction';
@@ -62,53 +64,16 @@ describe('fetchRawTransaction', () => {
         await expect(fetchRawTransaction(URL, SIGNATURE)).resolves.toBeNull();
     });
 
-    it('should expose a v1 transaction as bytes and resource limits, without a web3.js view', async () => {
+    it('should expose a v1 transaction as bytes without a web3.js view', async () => {
         const bytes = createV1TransactionBytes({ computeUnitLimit: 8442, priorityFeeLamports: 10_000n });
         respondWith(transactionResult(bytes));
 
         const raw = await fetchRawTransaction(URL, SIGNATURE);
 
         expect(raw?.version).toBe(1);
-        expect(raw?.transactionConfig).toEqual({
-            computeUnitLimit: 8442,
-            heapSize: undefined,
-            loadedAccountsDataSizeLimit: undefined,
-            priorityFeeLamports: 10_000n,
-        });
         expect(raw?.message).toBeUndefined();
         expect(raw?.transaction).toBeUndefined();
         expect(bytes.subarray(0, raw?.messageBytes.length)).toEqual(raw?.messageBytes);
-    });
-
-    it('should read every resource limit a v1 message carries', async () => {
-        respondWith(
-            transactionResult(
-                createV1TransactionBytes({
-                    computeUnitLimit: 8442,
-                    heapSize: 262_144,
-                    loadedAccountsDataSizeLimit: 75_013,
-                    priorityFeeLamports: 10_000n,
-                }),
-            ),
-        );
-
-        const raw = await fetchRawTransaction(URL, SIGNATURE);
-
-        expect(raw?.transactionConfig).toEqual({
-            computeUnitLimit: 8442,
-            heapSize: 262_144,
-            loadedAccountsDataSizeLimit: 75_013,
-            priorityFeeLamports: 10_000n,
-        });
-    });
-
-    it('should leave the resource limits undefined for a v1 message that sets none', async () => {
-        respondWith(transactionResult(createV1TransactionBytes({})));
-
-        const raw = await fetchRawTransaction(URL, SIGNATURE);
-
-        expect(raw?.version).toBe(1);
-        expect(raw?.transactionConfig).toBeUndefined();
     });
 
     it.each(['legacy' as const, 0 as const])(
@@ -121,10 +86,61 @@ describe('fetchRawTransaction', () => {
             expect(raw?.version).toBe(version);
             expect(raw?.message?.staticAccountKeys[0].toBase58()).toBe(FEE_PAYER);
             expect(raw?.transaction?.instructions).toHaveLength(1);
-            // Only v1 carries message-level limits.
-            expect(raw?.transactionConfig).toBeUndefined();
         },
     );
+
+    it('should build the union transaction from the same bytes as a v1 message', async () => {
+        respondWith(transactionResult(createV1TransactionBytes({})));
+
+        const raw = await fetchRawTransaction(URL, SIGNATURE);
+        const parsed = raw?.parsedTransaction;
+
+        expect(parsed?.version).toBe(1);
+        expect(parsed?.instructions).toHaveLength(1);
+        expect(parsed?.instructions[0].accounts[0].address).toBe(RECIPIENT);
+    });
+
+    it.each(['legacy' as const, 0 as const])(
+        'should build the union transaction from the same bytes as a %s message',
+        async version => {
+            respondWith(transactionResult(createWeb3TransactionBytes(version), null, version));
+
+            const raw = await fetchRawTransaction(URL, SIGNATURE);
+
+            expect(raw?.parsedTransaction?.version).toBe(version);
+        },
+    );
+
+    it('should carry an empty address table lookups list for a v0 message with no lookup tables', async () => {
+        respondWith(transactionResult(createWeb3TransactionBytes(0), null, 0));
+
+        const raw = await fetchRawTransaction(URL, SIGNATURE);
+        const parsed = raw?.parsedTransaction;
+
+        // `[]` means the message lists none, distinct from `undefined` for an encoding that omits them.
+        expect(parsed?.version === 0 ? parsed.addressTableLookups : undefined).toEqual([]);
+    });
+
+    it("should resolve a v0 instruction's lookup-table account from the RPC's reported loaded address", async () => {
+        respondWith(
+            transactionResult(
+                createV0TransactionWithLookupTableBytes(),
+                {
+                    loadedAddresses: { readonly: [], writable: [LOOKUP_TABLE_LOADED_ADDRESS] },
+                    postBalances: [],
+                    preBalances: [],
+                },
+                0,
+            ),
+        );
+
+        const raw = await fetchRawTransaction(URL, SIGNATURE);
+        const lookupAccount = raw?.parsedTransaction?.accounts.find(
+            account => account.address === LOOKUP_TABLE_LOADED_ADDRESS,
+        );
+
+        expect(lookupAccount?.source).toBe('lookupTable');
+    });
 
     it.each(['legacy' as const, 0 as const, 1 as const])(
         'should report the wire size of a %s transaction, signatures included',

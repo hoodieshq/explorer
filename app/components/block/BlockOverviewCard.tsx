@@ -9,6 +9,7 @@ import { summarizeBlockComputeUnits } from '@entities/compute-unit';
 import { useCluster } from '@providers/cluster';
 import { PublicKey } from '@solana/web3.js';
 import { IBRL_EXPLORER_URL } from '@utils/env';
+import { useMemo } from 'react';
 import { ExternalLink } from 'react-feather';
 
 import { Timestamp } from '@/app/components/shared/ui/timestamp';
@@ -43,7 +44,7 @@ export function BlockOverviewCard({
         requested: totalRequestedCUs,
         cost: totalCostUnits,
         max: maxComputeUnits,
-    } = summarizeBlockComputeUnits({ block, cluster, epoch });
+    } = useMemo(() => summarizeBlockComputeUnits({ block, cluster, epoch }), [block, cluster, epoch]);
 
     const { entries: versionEntries } = summarizeBlockTransactionVersions(block);
 

@@ -1,3 +1,4 @@
+import { fromRpcTransaction, isV1MessageBytes } from '@explorer/parsers/transaction';
 import {
     createSolanaRpc,
     getBase58Decoder,
@@ -11,7 +12,7 @@ import { PublicKey, VersionedMessage } from '@solana/web3.js';
 import { create } from 'superstruct';
 
 import { Logger } from '@/app/shared/lib/logger';
-import { bridgeV1MessageBytes, isV1MessageBytes } from '@/app/shared/lib/v1-message-bridge';
+import { bridgeV1MessageBytes } from '@/app/shared/lib/v1-message-bridge';
 
 import {
     BlockResponseSchema,
@@ -84,10 +85,11 @@ function adaptTransactionOrDrop(rpcTransaction: unknown, index: number, slot: nu
 }
 
 /**
- * Adapts one block transaction from its wire bytes into the web3.js-shaped view the cards read.
+ * Adapts one block transaction from its wire bytes into the web3.js-shaped view the cards read,
+ * plus the package's union transaction built from the same wire bytes.
  *
  * The cards need web3.js's `VersionedMessage` for `getAccountKeys` and `isAccountWritable`;
- * `bridgeV1MessageBytes` supplies that interface for v1 and also yields the resource limits.
+ * `bridgeV1MessageBytes` supplies that interface for v1.
  */
 function adaptTransaction(rpcTransaction: BlockTransactionResponse): BlockTransaction {
     const wireBytes = new Uint8Array(getBase64Encoder().encode(rpcTransaction.transaction[0]));
@@ -100,8 +102,11 @@ function adaptTransaction(rpcTransaction: BlockTransactionResponse): BlockTransa
 
     return {
         meta: adaptMeta(rpcTransaction.meta),
+        parsedTransaction: fromRpcTransaction({
+            meta: { loadedAddresses: rpcTransaction.meta?.loadedAddresses },
+            transaction: rpcTransaction.transaction,
+        }),
         transaction: { message, signatures: toBase58Signatures(transaction.signatures) },
-        transactionConfig: bridged?.transactionConfig,
         version: bridged ? 1 : message.version,
     };
 }

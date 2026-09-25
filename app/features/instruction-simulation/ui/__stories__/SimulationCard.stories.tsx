@@ -26,5 +26,6 @@ export const Idle: Story = {
     args: {
         message: idleMessage,
         showTokenBalanceChanges: false,
+        version: 0,
     },
 };

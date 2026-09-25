@@ -14,7 +14,7 @@ import { type InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 import { withNumbersInsteadOfBigInts } from '@/app/shared/lib/bigint-to-number';
 import { toBase64 } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
-import { UnsignedV1WireTransaction, V1MessageView } from '@/app/shared/lib/v1-message-bridge';
+import { UnsignedV1WireTransaction, type V1MessageView } from '@/app/shared/lib/v1-message-bridge';
 import { toKitAddress, toLegacyPublicKey } from '@/app/shared/lib/web3js-compat';
 
 import { buildTokenBalances, type TokenBalanceData } from './build-token-balances';
@@ -37,9 +37,13 @@ export type SimulationResult = {
     unitsConsumed: number | undefined;
 };
 
+/** A bridged v1 message reports version 0 from its own getter, so the wire version travels beside it. */
+export type SimulationInput =
+    { version: 1; message: V1MessageView } | { version: 'legacy' | 0; message: VersionedMessage };
+
 type SimulateOptions = {
     rpc: SolanaRpc;
-    message: VersionedMessage;
+    transaction: SimulationInput;
     cluster: Cluster;
     accountBalances?: { preBalances: number[]; postBalances: number[] };
 };
@@ -50,15 +54,15 @@ type SimulateOptions = {
  */
 export async function simulateTransaction({
     rpc,
-    message,
+    transaction,
     cluster,
     accountBalances,
 }: SimulateOptions): Promise<SimulationResult> {
     let raw;
     try {
-        raw = await runSimulation(rpc, message);
+        raw = await runSimulation(rpc, transaction);
     } catch (cause) {
-        throw (await inactiveV1GateError(rpc, message, cause)) ?? cause;
+        throw (await inactiveV1GateError(rpc, transaction.version, cause)) ?? cause;
     }
 
     const result = interpretSimulation(raw, cluster, accountBalances);
@@ -66,14 +70,19 @@ export async function simulateTransaction({
     // Match the error the RPC returned rather than the interpreted one, which reports any failure
     // carrying logs as a bare `TransactionError`.
     if (raw.simResult.err === UNSUPPORTED_VERSION) {
-        const gate = await inactiveV1GateError(rpc, message);
+        const gate = await inactiveV1GateError(rpc, transaction.version);
         if (gate) {
             return { ...result, error: gate.message };
         }
     }
 
-    if (raw.simResult.err === MAX_LOADED_ACCOUNTS_DATA_SIZE_EXCEEDED && message instanceof V1MessageView) {
-        const explained = await explainLoadedAccountsDataSize(rpc, message, raw.accountKeys, raw.parsedAccountsPre);
+    if (raw.simResult.err === MAX_LOADED_ACCOUNTS_DATA_SIZE_EXCEEDED && transaction.version === 1) {
+        const explained = await explainLoadedAccountsDataSize(
+            rpc,
+            transaction.message,
+            raw.accountKeys,
+            raw.parsedAccountsPre,
+        );
         return explained ? { ...result, error: explained } : result;
     }
 
@@ -98,10 +107,10 @@ const UNSUPPORTED_VERSION = 'UnsupportedVersion';
  */
 async function inactiveV1GateError(
     rpc: SolanaRpc,
-    message: VersionedMessage,
+    version: SimulationInput['version'],
     cause?: unknown,
 ): Promise<Error | undefined> {
-    if (!(message instanceof V1MessageView)) {
+    if (version !== 1) {
         return undefined;
     }
 
@@ -136,7 +145,8 @@ type RawSimulation = {
  * Execute the RPC calls: resolve lookup tables, fetch pre-simulation account
  * state, and run the simulation. Returns raw data for interpretation.
  */
-async function runSimulation(rpc: SolanaRpc, message: VersionedMessage): Promise<RawSimulation> {
+async function runSimulation(rpc: SolanaRpc, transaction: SimulationInput): Promise<RawSimulation> {
+    const { message } = transaction;
     const lookupTables = await resolveAddressLookupTables(rpc, message);
     const accountKeys = message.getAccountKeys({ addressLookupTableAccounts: lookupTables }).keySegments().flat();
     const addresses = accountKeys.map(key => toKitAddress(key));
@@ -148,10 +158,12 @@ async function runSimulation(rpc: SolanaRpc, message: VersionedMessage): Promise
 
     // A v1 message must be sent in the v1 wire envelope (message first); the stock
     // VersionedTransaction envelope is signatures-first and nodes reject it for v1.
-    const transaction =
-        message instanceof V1MessageView ? new UnsignedV1WireTransaction(message) : new VersionedTransaction(message);
+    const wireTransaction =
+        transaction.version === 1
+            ? new UnsignedV1WireTransaction(transaction.message)
+            : new VersionedTransaction(transaction.message);
     const { value: simResult } = await rpc
-        .simulateTransaction(toBase64(transaction.serialize()) as Base64EncodedWireTransaction, {
+        .simulateTransaction(toBase64(wireTransaction.serialize()) as Base64EncodedWireTransaction, {
             accounts: {
                 addresses,
                 encoding: 'base64',

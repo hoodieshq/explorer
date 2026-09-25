@@ -119,6 +119,41 @@ describe('resolveAccounts', () => {
         expect(result.unmatchedLookupTableAddresses).toEqual([gen.address(6)]);
     });
 
+    it('should return unfilled lookup indexes grouped by table', () => {
+        const tableA = gen.address(10);
+        const tableB = gen.address(11);
+
+        const result = resolveAccounts({
+            addressTableLookups: [
+                { accountKey: tableA, readonlyIndexes: [], writableIndexes: [4, 7] },
+                { accountKey: tableB, readonlyIndexes: [5], writableIndexes: [2] },
+            ],
+            header: HEADER,
+            loadedAddresses: { readonly: [], writable: [gen.address(5)] },
+            staticKeys: [gen.address(1), gen.address(2), gen.address(3), gen.address(4)],
+            version: 0,
+        });
+
+        expect(result.unmatchedLookupTableIndexes).toEqual([
+            { accountKey: tableA, readonlyIndexes: [], writableIndexes: [7] },
+            { accountKey: tableB, readonlyIndexes: [5], writableIndexes: [2] },
+        ]);
+        expect(result.unmatchedLookupTableAddresses).toBeUndefined();
+    });
+
+    it('should report nothing unmatched when lookups and loaded addresses line up', () => {
+        const result = resolveAccounts({
+            addressTableLookups: [{ accountKey: gen.address(9), readonlyIndexes: [1], writableIndexes: [0] }],
+            header: HEADER,
+            loadedAddresses: { readonly: [gen.address(6)], writable: [gen.address(5)] },
+            staticKeys: [gen.address(1), gen.address(2), gen.address(3), gen.address(4)],
+            version: 0,
+        });
+
+        expect(result.unmatchedLookupTableAddresses).toBeUndefined();
+        expect(result.unmatchedLookupTableIndexes).toBeUndefined();
+    });
+
     it('should not return unmatched addresses for tx without lookup tables', () => {
         const { accounts, unmatchedLookupTableAddresses } = resolveAccounts({
             header: HEADER,

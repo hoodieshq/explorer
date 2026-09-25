@@ -357,7 +357,13 @@ async function resolveTransaction(
             }),
         ]);
 
-        const transactionContext = normalizeTransactionProbe(identifier, transactionProbe, signatureStatus, logger);
+        const transactionContext = normalizeTransactionProbe(
+            identifier,
+            transactionProbe,
+            signatureStatus,
+            logger,
+            cluster,
+        );
         if (transactionContext === null) {
             return toToolResult({
                 errors: [notFound()],

@@ -1,9 +1,13 @@
 import { FetchStatus } from '@providers/cache';
+import { VersionedMessage } from '@solana/web3.js';
 import { render, screen } from '@testing-library/react';
 import { ClusterStatus } from '@utils/cluster';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createV1TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import {
+    createV1TransactionBytes,
+    createWeb3TransactionBytes,
+} from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
 import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
 
 import { PermalinkView } from '../InspectorPage';
@@ -74,6 +78,26 @@ afterEach(() => {
 const props = { reset: () => {}, showTokenBalanceChanges: false, signature: 'sig' };
 const renderView = () => render(<PermalinkView {...props} />);
 
+function web3Entry(version: 'legacy' | 0) {
+    const wireBytes = createWeb3TransactionBytes(version);
+    const { messageBytes } = parseTransactionBytes(wireBytes);
+    return {
+        entry: makeEntry({
+            message: VersionedMessage.deserialize(messageBytes),
+            messageBytes,
+            signatures: [],
+            version,
+        }),
+        wireBytes,
+    };
+}
+
+function v1Entry() {
+    const wireBytes = createV1TransactionBytes({});
+    const { messageBytes } = parseTransactionBytes(wireBytes);
+    return { entry: makeEntry({ messageBytes, signatures: [], version: 1 }), wireBytes };
+}
+
 describe('PermalinkView', () => {
     it('should fetch at confirmed commitment on mount', () => {
         renderView();
@@ -134,5 +158,18 @@ describe('PermalinkView', () => {
         renderView();
 
         expect(screen.getByText('The inspector does not support v1 transactions')).toBeInTheDocument();
+    });
+
+    it.each([
+        { build: () => web3Entry('legacy'), limit: 1232, version: 'legacy' },
+        { build: () => web3Entry(0), limit: 1232, version: 'v0' },
+        { build: v1Entry, limit: 4096, version: 'v1' },
+    ])('should report the wire size against the $version size limit', ({ build, limit }) => {
+        const { entry, wireBytes } = build();
+        cacheEntry = entry;
+
+        renderView();
+
+        expect(screen.getByText(`${wireBytes.length} / ${limit} bytes`)).toBeInTheDocument();
     });
 });

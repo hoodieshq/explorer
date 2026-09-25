@@ -191,6 +191,25 @@ describe('fromRpcTransaction', () => {
         ]);
     });
 
+    it('should return unfilled lookup indexes', () => {
+        const response = jsonResponse(0);
+        const table = gen.address(9);
+        response.transaction.message.addressTableLookups = [
+            { accountKey: table, readonlyIndexes: [], writableIndexes: [3] },
+        ];
+
+        expect(fromRpcTransaction(response).unmatchedLookupTableIndexes).toEqual([
+            { accountKey: table, readonlyIndexes: [], writableIndexes: [3] },
+        ]);
+    });
+
+    it('should leave lookups unreported when a v0 JSON response omits them', () => {
+        const transaction = fromRpcTransaction(jsonResponse(0));
+
+        expect(transaction.version).toBe(0);
+        expect('addressTableLookups' in transaction).toBe(false);
+    });
+
     it('should read a jsonParsed response with RPC-resolved account roles', () => {
         const transaction = fromRpcTransaction(jsonParsedResponse(1));
 

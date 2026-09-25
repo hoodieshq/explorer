@@ -13,7 +13,6 @@ import {
     type ResponsiveCell,
     ResponsiveGridRow,
 } from '@/app/components/block/shared';
-import { invariant } from '@/app/shared/lib/invariant';
 import { DataListCard } from '@/app/shared/ui/DataListCard';
 
 type AccountStats = {
@@ -37,17 +36,10 @@ export function BlockAccountsCard({ block, blockSlot }: { block: BlockWithV1; bl
     const accountStats = React.useMemo(() => {
         const statsMap = new Map<string, AccountStats>();
         block.transactions.forEach(tx => {
-            const message = tx.transaction.message;
             const txSet = new Map<string, boolean>();
-            const accountKeys = message.getAccountKeys({
-                accountKeysFromLookups: tx.meta?.loadedAddresses,
-            });
-            message.compiledInstructions.forEach(ix => {
-                ix.accountKeyIndexes.forEach(index => {
-                    const accountKey = accountKeys.get(index);
-                    invariant(accountKey, `account key index ${index} out of range`);
-                    const address = accountKey.toBase58();
-                    txSet.set(address, message.isAccountWritable(index));
+            tx.parsedTransaction.instructions.forEach(instruction => {
+                instruction.accounts.forEach(account => {
+                    txSet.set(account.address, account.writable);
                 });
             });
 

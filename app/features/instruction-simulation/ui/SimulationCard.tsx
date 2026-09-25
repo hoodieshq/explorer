@@ -1,20 +1,18 @@
 import { ProgramLogsCardBody } from '@components/ProgramLogsCardBody';
 import { generateTokenBalanceRows, TokenBalancesCardInner } from '@features/transaction';
 import { useCluster } from '@providers/cluster';
-import type { VersionedMessage } from '@solana/web3.js';
 import React, { useMemo } from 'react';
 
 import { Button } from '@/app/components/shared/ui/button';
 import { CollapsibleCard } from '@/app/components/shared/ui/collapsible-card';
 import { baseCardVariants, Card, CardBody, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 
-import { useSimulation } from '../model/use-simulation';
+import { type SimulationInput, useSimulation } from '../model/use-simulation';
 import { useSimulationInstructionNames } from '../model/use-simulation-instruction-names';
 import { BaseSimulatorCUProfilingCard } from './BaseSimulatorCUProfilingCard';
 import { SolBalanceChangesCard } from './SolBalanceChangesCard';
 
-type SimulatorCardProps = {
-    message: VersionedMessage;
+type SimulatorCardProps = SimulationInput & {
     showTokenBalanceChanges: boolean;
     accountBalances?: {
         preBalances: number[];
@@ -22,9 +20,10 @@ type SimulatorCardProps = {
     };
 };
 
-export function SimulatorCard({ message, showTokenBalanceChanges, accountBalances }: SimulatorCardProps) {
+export function SimulatorCard(props: SimulatorCardProps) {
+    const { message, version, showTokenBalanceChanges, accountBalances } = props;
     const { cluster, url } = useCluster();
-    const simulation = useSimulation(message, accountBalances);
+    const simulation = useSimulation(props, accountBalances);
     // Lookup-table-resolved keys only exist once the simulation has run, so naming waits for them.
     const { instructions: namedInstructions, unresolvable } = useSimulationInstructionNames({
         accountKeys: simulation.status === 'done' ? simulation.result.accountKeys : undefined,
@@ -119,6 +118,7 @@ export function SimulatorCard({ message, showTokenBalanceChanges, accountBalance
                         unitsConsumed={unitsConsumed}
                         cluster={cluster}
                         epoch={epoch}
+                        transactionVersion={version}
                     />
                 ))}
             {succeeded && !!solBalanceChanges?.length && <SolBalanceChangesCard balanceChanges={solBalanceChanges} />}

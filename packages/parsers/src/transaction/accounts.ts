@@ -20,6 +20,8 @@ export type AccountResolutionResult = {
     accounts: TransactionAccount[];
     /** Loaded addresses missing from every listed lookup table. Absent when the encoding omits them. */
     unmatchedLookupTableAddresses?: readonly Address[];
+    /** Lookup table indexes which are not matched by any loaded addresses. Absent when the encoding omits the tables. */
+    unmatchedLookupTableIndexes?: readonly AddressTableLookup[];
 };
 
 /**
@@ -34,20 +36,29 @@ export function resolveAccounts(params: AccountResolutionParams): AccountResolut
 
     const loadedWritable = params.loadedAddresses?.writable ?? [];
     const loadedReadonly = params.loadedAddresses?.readonly ?? [];
-    const { readonlyMap, writableMap } = buildLookupTableMap(params.addressTableLookups);
+    const lookupIndexes = flattenLookupTables(params.addressTableLookups);
 
     const accounts = [
         ...staticAccounts,
-        ...loadedWritable.map((address, i) => toLoadedAccount(address, writableMap[i], true)),
-        ...loadedReadonly.map((address, i) => toLoadedAccount(address, readonlyMap[i], false)),
+        ...loadedWritable.map((address, i) => toLoadedAccount(address, tableAt(lookupIndexes.writable, i), true)),
+        ...loadedReadonly.map((address, i) => toLoadedAccount(address, tableAt(lookupIndexes.readonly, i), false)),
     ];
 
-    const unmatched =
-        params.addressTableLookups === undefined
-            ? []
-            : [...loadedWritable.slice(writableMap.length), ...loadedReadonly.slice(readonlyMap.length)];
+    if (params.addressTableLookups === undefined) {
+        return { accounts };
+    }
 
-    return { accounts, ...(unmatched.length > 0 ? { unmatchedLookupTableAddresses: unmatched } : {}) };
+    const unmatchedAddresses = [
+        ...loadedWritable.slice(lookupIndexes.writable.length),
+        ...loadedReadonly.slice(lookupIndexes.readonly.length),
+    ];
+    const unmatchedIndexes = findUnmatchedLookupIndexes(lookupIndexes, loadedWritable.length, loadedReadonly.length);
+
+    return {
+        accounts,
+        ...(unmatchedAddresses.length > 0 && { unmatchedLookupTableAddresses: unmatchedAddresses }),
+        ...(unmatchedIndexes.length > 0 && { unmatchedLookupTableIndexes: unmatchedIndexes }),
+    };
 }
 
 function classifyStaticKeys(staticKeys: readonly Address[], header: MessageHeader): TransactionAccount[] {
@@ -64,25 +75,56 @@ function classifyStaticKeys(staticKeys: readonly Address[], header: MessageHeade
     });
 }
 
+type LookupTableIndex = { lookupTableAddress: Address; index: number };
+type FlattenedLookupTables = { readonly: LookupTableIndex[]; writable: LookupTableIndex[] };
+
 /**
- * Maps each loaded address position to the table that supplied it.
- *
- * The lookup entries are ordered, and their writable and readonly index counts line up one-to-one with
- * the flattened `loadedAddresses` arrays.
+ * Lists every lookup table index in the order Solana loads them.
+ * Each list joins the tables' indexes in table order, so position `i` lines up with `loadedAddresses`.
  */
-function buildLookupTableMap(addressTableLookups: readonly AddressTableLookup[] | undefined): {
-    readonlyMap: Address[];
-    writableMap: Address[];
-} {
-    const readonlyMap: Address[] = [];
-    const writableMap: Address[] = [];
+function flattenLookupTables(addressTableLookups: readonly AddressTableLookup[] | undefined): FlattenedLookupTables {
+    const readonly: LookupTableIndex[] = [];
+    const writable: LookupTableIndex[] = [];
 
     for (const lookup of addressTableLookups ?? []) {
-        for (let i = 0; i < lookup.writableIndexes.length; i++) writableMap.push(lookup.accountKey);
-        for (let i = 0; i < lookup.readonlyIndexes.length; i++) readonlyMap.push(lookup.accountKey);
+        for (const index of lookup.writableIndexes) writable.push({ index, lookupTableAddress: lookup.accountKey });
+        for (const index of lookup.readonlyIndexes) readonly.push({ index, lookupTableAddress: lookup.accountKey });
     }
 
-    return { readonlyMap, writableMap };
+    return { readonly, writable };
+}
+
+/** A loaded address past the last lookup table index has no table to attribute. */
+function tableAt(indexes: readonly LookupTableIndex[], position: number): Address | undefined {
+    return position < indexes.length ? indexes[position].lookupTableAddress : undefined;
+}
+
+/** Lookup table indexes which are not matched by any loaded addresses. */
+function findUnmatchedLookupIndexes(
+    lookupIndexes: FlattenedLookupTables,
+    loadedWritableCount: number,
+    loadedReadonlyCount: number,
+): AddressTableLookup[] {
+    const tables = new Map<Address, { readonlyIndexes: number[]; writableIndexes: number[] }>();
+    const indexesOf = (lookupTableAddress: Address) => {
+        const existing = tables.get(lookupTableAddress);
+        if (existing) return existing;
+        const created: { readonlyIndexes: number[]; writableIndexes: number[] } = {
+            readonlyIndexes: [],
+            writableIndexes: [],
+        };
+        tables.set(lookupTableAddress, created);
+        return created;
+    };
+
+    for (const entry of lookupIndexes.writable.slice(loadedWritableCount)) {
+        indexesOf(entry.lookupTableAddress).writableIndexes.push(entry.index);
+    }
+    for (const entry of lookupIndexes.readonly.slice(loadedReadonlyCount)) {
+        indexesOf(entry.lookupTableAddress).readonlyIndexes.push(entry.index);
+    }
+
+    return [...tables].map(([lookupTableAddress, indexes]) => ({ accountKey: lookupTableAddress, ...indexes }));
 }
 
 function toLoadedAccount(

@@ -6,6 +6,7 @@
 // column react to the same run.
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { cn } from '@components/shared/utils';
+import type { TransactionVersion } from '@explorer/parsers/transaction';
 import { useCluster } from '@providers/cluster';
 import type { VersionedMessage } from '@solana/web3.js';
 import React from 'react';
@@ -53,9 +54,11 @@ function SimEmptyHint({ children, simulation }: { children: React.ReactNode; sim
 export function InspectorSimulationPanel({
     simulation,
     message,
+    version,
 }: {
     simulation: SimulationState;
     message: VersionedMessage;
+    version: TransactionVersion;
 }) {
     const { cluster, url } = useCluster();
 
@@ -150,6 +153,7 @@ export function InspectorSimulationPanel({
                                 unitsConsumed={result.unitsConsumed}
                                 cluster={cluster}
                                 epoch={result.epoch}
+                                transactionVersion={version}
                                 headerless
                             />
                         )}

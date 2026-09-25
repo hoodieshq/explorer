@@ -3,8 +3,12 @@ import { render, screen } from '@testing-library/react';
 import { Cluster } from '@utils/cluster';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createV1TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
+import { bridgeV1MessageBytes } from '@/app/shared/lib/v1-message-bridge';
+
 const { useSimulation, useSimulationInstructionNames, CUProfilingCard } = vi.hoisted(() => ({
-    CUProfilingCard: vi.fn(() => null),
+    CUProfilingCard: vi.fn((_props: Record<string, unknown>) => null),
     useSimulation: vi.fn(),
     useSimulationInstructionNames: vi.fn(),
 }));
@@ -53,7 +57,7 @@ describe('SimulatorCard CU profiling', () => {
     it('should say why CU profiling is unavailable when the message cannot be named', () => {
         useSimulationInstructionNames.mockReturnValue({ instructions: [], unresolvable: true });
 
-        render(<SimulatorCard message={MESSAGE} showTokenBalanceChanges={false} />);
+        render(<SimulatorCard message={MESSAGE} version={0} showTokenBalanceChanges={false} />);
 
         expect(screen.getByText(UNAVAILABLE)).toBeInTheDocument();
         expect(CUProfilingCard).not.toHaveBeenCalled();
@@ -65,7 +69,7 @@ describe('SimulatorCard CU profiling', () => {
             unresolvable: false,
         });
 
-        render(<SimulatorCard message={MESSAGE} showTokenBalanceChanges={false} />);
+        render(<SimulatorCard message={MESSAGE} version={0} showTokenBalanceChanges={false} />);
 
         expect(CUProfilingCard).toHaveBeenCalled();
         expect(screen.queryByText(UNAVAILABLE)).not.toBeInTheDocument();
@@ -80,7 +84,7 @@ describe('SimulatorCard CU profiling', () => {
         });
         useSimulationInstructionNames.mockReturnValue({ instructions: [], unresolvable: true });
 
-        render(<SimulatorCard message={MESSAGE} showTokenBalanceChanges={false} />);
+        render(<SimulatorCard message={MESSAGE} version={0} showTokenBalanceChanges={false} />);
 
         expect(screen.queryByText(UNAVAILABLE)).not.toBeInTheDocument();
         expect(CUProfilingCard).not.toHaveBeenCalled();
@@ -96,9 +100,23 @@ describe('SimulatorCard CU profiling', () => {
         });
         useSimulationInstructionNames.mockReturnValue({ instructions: [], unresolvable: true });
 
-        render(<SimulatorCard message={MESSAGE} showTokenBalanceChanges={false} />);
+        render(<SimulatorCard message={MESSAGE} version={0} showTokenBalanceChanges={false} />);
 
         expect(screen.queryByText(UNAVAILABLE)).not.toBeInTheDocument();
         expect(CUProfilingCard).not.toHaveBeenCalled();
+    });
+
+    it('should pass the declared transaction version to CU profiling', () => {
+        useSimulationInstructionNames.mockReturnValue({
+            instructions: [{ name: 'Transfer Checked', programId: { toBase58: () => 'TokenProgram' } }],
+            unresolvable: false,
+        });
+        const { messageBytes } = parseTransactionBytes(createV1TransactionBytes({ computeUnitLimit: 300_000 }));
+        const { message } = bridgeV1MessageBytes(messageBytes);
+
+        render(<SimulatorCard message={message} version={1} showTokenBalanceChanges={false} />);
+
+        const props = CUProfilingCard.mock.calls.at(-1)?.[0];
+        expect(props?.transactionVersion).toBe(1);
     });
 });

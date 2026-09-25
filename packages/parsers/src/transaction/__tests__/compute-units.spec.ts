@@ -7,6 +7,7 @@ import {
     transactionWithInstructions,
     transfer,
     v1TransactionWithConfig,
+    v1TransactionWithLimitAndInstructions,
 } from './fixtures.js';
 
 const CONTEXT = { cluster: 'mainnet-beta', epoch: 1000n } as const;
@@ -28,6 +29,21 @@ describe('getRequestedComputeUnits', () => {
         const transaction = v1TransactionWithConfig({ computeUnitLimit: 5_000_000 });
 
         expect(getRequestedComputeUnits(transaction, CONTEXT)).toEqual({ source: 'declared', value: 1_400_000 });
+    });
+
+    it('should read a v1 limit from the config and ignore limit instructions', () => {
+        const transaction = v1TransactionWithLimitAndInstructions(10_000, [setComputeUnitLimit(999_999)]);
+
+        expect(getRequestedComputeUnits(transaction, CONTEXT)).toEqual({ source: 'declared', value: 10_000 });
+    });
+
+    it('should honour the first of two limit instructions', () => {
+        const transaction = transactionWithInstructions('legacy', [
+            setComputeUnitLimit(100_000),
+            setComputeUnitLimit(200_000),
+        ]);
+
+        expect(getRequestedComputeUnits(transaction, CONTEXT)).toEqual({ source: 'declared', value: 100_000 });
     });
 
     it('should report a SetComputeUnitLimit instruction as declared', () => {

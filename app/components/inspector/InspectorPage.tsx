@@ -3,19 +3,20 @@
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
 import { SolBalance } from '@components/common/SolBalance';
+import {
+    fromMessageBytes,
+    getV1ResourceLimits,
+    isV1MessageBytes,
+    type ParsedTransaction,
+    transactionSizeLimit,
+    transactionWireSize,
+} from '@explorer/parsers/transaction';
 import { usePrevious } from '@mantine/hooks';
 import { useFetchAccountInfo } from '@providers/accounts';
 import { FetchStatus } from '@providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@providers/transactions/raw';
 import { getBase58Decoder, getBase58Encoder } from '@solana/kit';
-import {
-    type CompiledInnerInstruction,
-    Connection,
-    MessageV0,
-    PACKET_DATA_SIZE,
-    PublicKey,
-    VersionedMessage,
-} from '@solana/web3.js';
+import { type CompiledInnerInstruction, Connection, MessageV0, PublicKey, VersionedMessage } from '@solana/web3.js';
 import { generated, getBatchTransactionPda, PROGRAM_ADDRESS as SQUADS_V4_PROGRAM_ADDRESS } from '@sqds/multisig';
 import { ClusterStatus } from '@utils/cluster';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -31,12 +32,7 @@ import { useCluster } from '@/app/providers/cluster';
 import { DownloadDropdown } from '@/app/shared/components/DownloadDropdown';
 import { toBase64 } from '@/app/shared/lib/bytes';
 import { useBreakpoint } from '@/app/shared/lib/use-breakpoint';
-import {
-    bridgeV1MessageBytes,
-    isV1MessageBytes,
-    V1_TRANSACTION_SIZE_LIMIT,
-    type V1TransactionConfig,
-} from '@/app/shared/lib/v1-message-bridge';
+import { bridgeV1MessageBytes, type V1MessageView } from '@/app/shared/lib/v1-message-bridge';
 import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { KeyValue } from '@/app/shared/ui/key-value';
 import { BaseNavigationTabs } from '@/app/shared/ui/navigation-tabs/ui/BaseNavigationTabs';
@@ -50,6 +46,7 @@ import { InspectorSimulationPanel } from './InspectorSimulationPanel';
 import { InstructionsSection } from './InstructionsSection';
 import { MIN_MESSAGE_LENGTH, RawInput } from './RawInputCard';
 import { TransactionSignatures } from './SignaturesCard';
+import { deserializeLegacyOrV0Message } from './utils';
 
 const BASE58_ENCODER = getBase58Encoder();
 const BASE58_DECODER = getBase58Decoder();
@@ -58,7 +55,7 @@ const { Batch, VaultBatchTransaction, VaultTransaction, batchDiscriminator } = g
 
 // Convert a Squads VaultTransactionMessage (shared by VaultTransaction and the inner
 // transactions of a Batch) into a web3.js VersionedMessage the inspector can render.
-export function vaultMessageToVersionedMessage(message: typeof VaultTransaction.prototype.message): VersionedMessage {
+export function vaultMessageToVersionedMessage(message: typeof VaultTransaction.prototype.message): MessageV0 {
     return new MessageV0({
         addressTableLookups: message.addressTableLookups.map(x => ({
             ...x,
@@ -81,23 +78,22 @@ export function vaultMessageToVersionedMessage(message: typeof VaultTransaction.
     });
 }
 
+/**
+ * `version` is the wire version. A bridged v1 `message` reports 0 from its own getter.
+ * Only v1 carries `parsedTransaction`: a v0 message with lookup tables needs loaded addresses the bytes lack.
+ */
 export type TransactionData = {
     rawMessage: Uint8Array;
-    message: VersionedMessage;
-    /**
-     * Set when `rawMessage` holds a v1 message. `message` is then a bridged view whose
-     * `version` getter still reports 0, so version-dependent rendering must read this field.
-     */
-    version?: 1;
-    /** Message-level resource limits; v1 only, and only when the message sets at least one. */
-    transactionConfig?: V1TransactionConfig;
     signatures?: (string | undefined)[];
     accountBalances?: {
         preBalances: number[];
         postBalances: number[];
     };
     compiledInnerInstructions?: CompiledInnerInstruction[];
-};
+} & (
+    | { version: 1; message: V1MessageView; parsedTransaction: ParsedTransaction }
+    | { version: 'legacy' | 0; message: VersionedMessage; parsedTransaction?: undefined }
+);
 
 export type SquadsProposalAccountData = {
     account: string;
@@ -211,15 +207,17 @@ function decodeUrlParams(
         }
 
         if (isV1MessageBytes(buffer)) {
-            const { message, transactionConfig } = bridgeV1MessageBytes(buffer);
-            return [{ message, rawMessage: buffer, signatures, transactionConfig, version: 1 }, params, refreshUrl];
+            const { message } = bridgeV1MessageBytes(buffer);
+            const parsedTransaction = fromMessageBytes(buffer);
+            return [{ message, parsedTransaction, rawMessage: buffer, signatures, version: 1 }, params, refreshUrl];
         }
 
-        const message = VersionedMessage.deserialize(buffer);
-        const data = {
+        const message = deserializeLegacyOrV0Message(buffer);
+        const data: TransactionData = {
             message,
             rawMessage: buffer,
             signatures,
+            version: message.version,
         };
         return [data, params, refreshUrl];
     } catch (_err) {
@@ -238,7 +236,7 @@ function SquadsProposalInspectorCard({ account, onClear }: { account: string; on
         setSelected(0);
     }, [account]);
 
-    const fetcher = React.useCallback(async (): Promise<(VersionedMessage | undefined)[]> => {
+    const fetcher = React.useCallback(async (): Promise<(MessageV0 | undefined)[]> => {
         const connection = new Connection(url);
         const pubkey = new PublicKey(account);
 
@@ -345,6 +343,7 @@ function SquadsProposalInspectorCard({ account, onClear }: { account: string; on
                         message,
                         rawMessage: message.serialize(),
                         signatures: undefined,
+                        version: message.version,
                     }}
                     onClear={onClear}
                     showTokenBalanceChanges={false}
@@ -504,16 +503,17 @@ export function PermalinkView({
         }
     }, [transaction, fetchConfirmedTx, status]);
 
-    // The inspector renders a web3.js `VersionedMessage`; a v1 message gets there through a
-    // bridged view over the wire bytes, which also carries the message's resource limits so
-    // every entry path derives them from the same decode. The view is memoized because its
-    // identity keys the downstream account-fetching effects and memos.
+    // Only a v1 transaction arrives without a web3.js message. It renders through a bridged view over its bytes.
+    // Memoize the view because its identity keys the downstream account-fetching effects and memos.
     const bridged = React.useMemo(() => {
-        if (!transaction || transaction.message || transaction.version !== 1) {
+        if (!transaction || transaction.message) {
             return undefined;
         }
         try {
-            return bridgeV1MessageBytes(transaction.messageBytes);
+            return {
+                message: bridgeV1MessageBytes(transaction.messageBytes).message,
+                parsedTransaction: fromMessageBytes(transaction.messageBytes),
+            };
         } catch {
             return undefined;
         }
@@ -527,9 +527,23 @@ export function PermalinkView({
         return <ErrorCard text="Transaction was not found" retry={reset} retryText="Reset" />;
     }
 
-    const { message, messageBytes, signatures, meta } = transaction;
-    const resolvedMessage = message ?? bridged?.message;
-    if (!resolvedMessage) {
+    const { messageBytes, signatures, meta } = transaction;
+    const common = {
+        accountBalances: meta,
+        compiledInnerInstructions: trustedInnerInstructions(meta?.innerInstructions, {
+            cluster,
+            slot: transaction.slot,
+        }),
+        rawMessage: messageBytes,
+        signatures,
+    };
+
+    let tx: TransactionData;
+    if (transaction.message) {
+        tx = { ...common, message: transaction.message, version: transaction.version };
+    } else if (bridged) {
+        tx = { ...common, ...bridged, version: transaction.version };
+    } else {
         return (
             <ErrorCard
                 text={`The inspector does not support v${transaction.version} transactions`}
@@ -539,17 +553,6 @@ export function PermalinkView({
         );
     }
 
-    const tx: TransactionData = {
-        accountBalances: meta,
-        compiledInnerInstructions: trustedInnerInstructions(meta?.innerInstructions, {
-            cluster,
-            slot: transaction.slot,
-        }),
-        message: resolvedMessage,
-        rawMessage: messageBytes,
-        signatures,
-        ...(bridged ? { transactionConfig: bridged.transactionConfig, version: 1 as const } : undefined),
-    };
     return <LoadedView transaction={tx} onClear={reset} showTokenBalanceChanges={showTokenBalanceChanges} />;
 }
 
@@ -599,7 +602,7 @@ function LoadedView({
     // mirroring the TX details page's Tokens card.
     showTokenBalanceChanges: boolean;
 }) {
-    const { message, rawMessage, signatures, accountBalances, compiledInnerInstructions, version, transactionConfig } =
+    const { message, rawMessage, signatures, accountBalances, compiledInnerInstructions, version, parsedTransaction } =
         transaction;
     const { isXxl } = useBreakpoint();
 
@@ -610,7 +613,7 @@ function LoadedView({
         }
     }, [message, fetchAccountInfo]);
 
-    const simulation = useSimulation(message, accountBalances);
+    const simulation = useSimulation(transaction, accountBalances);
     const simDone = simulation.status === 'done';
 
     // Token-balance rows come from the simulation result, so they exist only after a successful run that
@@ -649,13 +652,7 @@ function LoadedView({
 
     return (
         <>
-            <OverviewCard
-                message={message}
-                raw={rawMessage}
-                onClear={onClear}
-                isV1={version === 1}
-                transactionConfig={transactionConfig}
-            />
+            <OverviewCard message={message} raw={rawMessage} onClear={onClear} parsedTransaction={parsedTransaction} />
             <BaseNavigationTabs
                 scrollSpy
                 tabs={tabs}
@@ -679,10 +676,8 @@ function LoadedView({
                     `#tokens` section anchor; it renders only once a run has produced token rows (matching
                     the gated Tokens tab above). */}
                 {tokenBalanceRows && tokenBalanceRows.length > 0 && <TokenBalancesCardInner rows={tokenBalanceRows} />}
-                {/* Renders (with its own `#address-lookups` anchor) only when the message references lookup
-                    tables — otherwise it returns null, matching the gated tab above. A v1 message carries
-                    static accounts only, so there are no lookups to render. */}
-                {version !== 1 && <AddressTableLookupsCard message={message} />}
+                {/* Gated like the Address Lookups tab above. The card carries its own `#address-lookups` anchor. */}
+                {hasLookups && <AddressTableLookupsCard message={message} />}
                 {/* Programs & Logs — the two-column row copied from the TX details page. At xxl it goes
                     full-bleed to the viewport: Instructions (Programs) on the left, and the Simulation
                     control + Logs + CU profiling in the sticky right column. */}
@@ -691,7 +686,7 @@ function LoadedView({
                         <InstructionsSection message={message} compiledInnerInstructions={compiledInnerInstructions} />
                     </div>
                     <div className="scrollbar-hide xxl:sticky xxl:top-[70px] xxl:max-h-[calc(100vh-90px)] xxl:min-w-0 xxl:flex-[1_1_0%] xxl:overflow-y-auto xxl:rounded-b-lg">
-                        <InspectorSimulationPanel simulation={simulation} message={message} />
+                        <InspectorSimulationPanel simulation={simulation} message={message} version={version} />
                     </div>
                 </div>
             </div>
@@ -708,25 +703,20 @@ function OverviewCard({
     raw,
     onClear,
     signature,
-    isV1,
-    transactionConfig,
+    parsedTransaction,
 }: {
     message: VersionedMessage;
     raw: Uint8Array;
     onClear: () => void;
     signature?: string;
-    isV1?: boolean;
-    transactionConfig?: V1TransactionConfig;
+    parsedTransaction?: ParsedTransaction;
 }) {
     const fee = message.header.numRequiredSignatures * DEFAULT_FEES.lamportsPerSignature;
     const feePayerValidator = createFeePayerValidator(fee);
 
-    // The v1 wire envelope has no signature-count byte — the count is read from the message header.
-    const size = React.useMemo(() => {
-        const sigBytes = (isV1 ? 0 : 1) + 64 * message.header.numRequiredSignatures;
-        return sigBytes + raw.length;
-    }, [message, raw, isV1]);
-    const sizeLimit = isV1 ? V1_TRANSACTION_SIZE_LIMIT : PACKET_DATA_SIZE;
+    const size = React.useMemo(() => transactionWireSize(raw), [raw]);
+    const sizeLimit = transactionSizeLimit(raw);
+    const v1ResourceLimits = parsedTransaction ? getV1ResourceLimits(parsedTransaction) : undefined;
 
     // Heading + actions sit OUTSIDE the card (matching the TX details Summary card), then the label|value
     // rows inside a dashkit card.
@@ -750,28 +740,22 @@ function OverviewCard({
                 <KeyValue label="Fees">
                     <SolBalance lamports={fee} />
                 </KeyValue>
-                {isV1 && (
-                    <KeyValue label="Transaction Version">
-                        <span className="uppercase">v1</span>
-                    </KeyValue>
-                )}
-                {transactionConfig?.computeUnitLimit !== undefined && (
-                    <KeyValue label="Compute unit limit">
-                        {transactionConfig.computeUnitLimit.toLocaleString('en-US')}
-                    </KeyValue>
-                )}
-                {transactionConfig?.priorityFeeLamports !== undefined && (
-                    <KeyValue label="Priority fee (total)">
-                        <SolBalance lamports={transactionConfig.priorityFeeLamports} />
-                    </KeyValue>
-                )}
-                {transactionConfig?.loadedAccountsDataSizeLimit !== undefined && (
-                    <KeyValue label="Loaded accounts data size limit">
-                        {transactionConfig.loadedAccountsDataSizeLimit.toLocaleString('en-US')}
-                    </KeyValue>
-                )}
-                {transactionConfig?.heapSize !== undefined && (
-                    <KeyValue label="Heap size">{transactionConfig.heapSize.toLocaleString('en-US')}</KeyValue>
+                {v1ResourceLimits && (
+                    <>
+                        <KeyValue label="Transaction Version">
+                            <span className="uppercase">v1</span>
+                        </KeyValue>
+                        <KeyValue label="Compute unit limit">
+                            {v1ResourceLimits.computeUnitLimit.toLocaleString('en-US')}
+                        </KeyValue>
+                        <KeyValue label="Priority fee (total)">
+                            <SolBalance lamports={v1ResourceLimits.priorityFeeLamports} />
+                        </KeyValue>
+                        <KeyValue label="Loaded accounts data size limit">
+                            {v1ResourceLimits.loadedAccountsDataSizeLimitBytes.toLocaleString('en-US')}
+                        </KeyValue>
+                        <KeyValue label="Heap size">{v1ResourceLimits.heapSizeBytes.toLocaleString('en-US')}</KeyValue>
+                    </>
                 )}
                 <KeyValue label="Fee payer">
                     {message.staticAccountKeys.length === 0 ? (

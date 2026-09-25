@@ -10,7 +10,9 @@ import useSWRMutation from 'swr/mutation';
 import { toHex } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 
-import { simulateTransaction, type SimulationResult } from '../lib/simulate-transaction';
+import { simulateTransaction, type SimulationInput, type SimulationResult } from '../lib/simulate-transaction';
+
+export type { SimulationInput };
 
 export type SimulationState =
     | { status: 'idle'; simulate: () => void }
@@ -21,17 +23,17 @@ export type SimulationState =
 type AccountBalances = { preBalances: number[]; postBalances: number[] };
 
 type SimulationArg = {
-    message: VersionedMessage;
+    transaction: SimulationInput;
     cluster: ReturnType<typeof useCluster>['cluster'];
     accountBalances: AccountBalances | undefined;
 };
 
-export function useSimulation(message: VersionedMessage, accountBalances?: AccountBalances): SimulationState {
+export function useSimulation(transaction: SimulationInput, accountBalances?: AccountBalances): SimulationState {
     const { cluster, url } = useCluster();
 
     // Fingerprint the message so the SWR key changes when the transaction changes,
     // preventing stale cached data from flashing for a different transaction.
-    const messageFingerprint = useMemo(() => messageToFingerprint(message), [message]);
+    const messageFingerprint = useMemo(() => messageToFingerprint(transaction.message), [transaction.message]);
 
     const { trigger, data, error, isMutating } = useSWRMutation(
         ['simulate', url, messageFingerprint],
@@ -39,8 +41,8 @@ export function useSimulation(message: VersionedMessage, accountBalances?: Accou
             simulateTransaction({
                 accountBalances: arg.accountBalances,
                 cluster: arg.cluster,
-                message: arg.message,
                 rpc: getRpc(url),
+                transaction: arg.transaction,
             }),
         {
             onError: (cause: unknown) => {
@@ -51,8 +53,8 @@ export function useSimulation(message: VersionedMessage, accountBalances?: Accou
     );
 
     const simulate = useCallback(
-        () => void trigger({ accountBalances, cluster, message }),
-        [trigger, accountBalances, cluster, message],
+        () => void trigger({ accountBalances, cluster, transaction }),
+        [trigger, accountBalances, cluster, transaction],
     );
 
     if (isMutating) return { status: 'simulating' };

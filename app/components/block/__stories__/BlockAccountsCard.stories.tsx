@@ -1,4 +1,4 @@
-import { PublicKey } from '@solana/web3.js';
+import { address } from '@solana/kit';
 import { nextjsParameters, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
@@ -33,20 +33,30 @@ const ACCOUNT_IDS = [
     'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s',
 ];
 
+const ACCOUNT_ADDRESSES = ACCOUNT_IDS.map(id => address(id));
+
 // Minimal stand-in for a VersionedBlockResponse — just the shape BlockAccountsCard reads. Account j
 // is referenced in every (j+1)-th transaction (descending usage); every 3rd account is writable, so
 // the read-write / read-only split varies across rows.
 function makeBlock(txCount: number) {
-    const keys = ACCOUNT_IDS.map(id => new PublicKey(id));
-    const accountKeys = { get: (i: number) => keys[i], length: keys.length };
     const transactions = Array.from({ length: txCount }, (_, k) => {
-        const accountKeyIndexes = ACCOUNT_IDS.map((_, j) => j).filter(j => k % (j + 1) === 0);
-        const message = {
-            compiledInstructions: [{ accountKeyIndexes }],
-            getAccountKeys: () => accountKeys,
-            isAccountWritable: (i: number) => i % 3 === 0,
+        const accountIndexes = ACCOUNT_IDS.map((_, j) => j).filter(j => k % (j + 1) === 0);
+        const accounts = accountIndexes.map(j => ({
+            address: ACCOUNT_ADDRESSES[j],
+            signer: false,
+            source: 'static' as const,
+            writable: j % 3 === 0,
+        }));
+        return {
+            parsedTransaction: {
+                accounts: [],
+                instructions: [{ accounts, programAddress: ACCOUNT_ADDRESSES[0] }],
+                lifetimeToken: 'lifetime',
+                numSignerAccounts: 0,
+                signatures: [],
+                version: 'legacy' as const,
+            },
         };
-        return { meta: { loadedAddresses: undefined }, transaction: { message } };
     });
     return { transactions } as any;
 }
