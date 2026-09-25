@@ -7,9 +7,7 @@ import type { TransactionWithMeta } from '../model/types';
 /**
  * Fetches a transaction for the detail page.
  *
- * The v1 resource limits are not part of this response — the `jsonParsed` encoding drops them.
- * They are read from the wire bytes {@link fetchRawTransaction} already fetches for the download
- * button and the inspector.
+ * For v1, the response carries the resource limits, and `parsedTransaction` exposes them via `getTransactionConfig`.
  *
  * The signal is optional because the page fetches this behind a cache the visitor can abandon by
  * navigating away, while a server route answering a crawler has a deadline and nobody to abandon it.

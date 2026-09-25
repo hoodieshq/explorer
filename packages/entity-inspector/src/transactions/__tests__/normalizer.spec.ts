@@ -1,6 +1,8 @@
+import { SolanaError } from '@solana/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { InspectorLogger } from '../../logger.js';
+import { testAddress } from '../../__tests__/gen.js';
 import type { SignatureStatusEnvelope } from '../../rpc/types.js';
 import type { ResolvedAccount, TransactionPayloadContext } from '../types.js';
 import { normalizeTransactionProbe } from '../normalizer.js';
@@ -11,6 +13,21 @@ const logger: InspectorLogger = {
     info: vi.fn(),
     warn: vi.fn(),
 };
+
+const SIGNER_1 = testAddress(1);
+const SIGNER_2 = testAddress(2);
+const PROGRAM_1 = testAddress(3);
+const READONLY_1 = testAddress(4);
+const ACCOUNT_A = testAddress(5);
+const ACCOUNT_B = testAddress(6);
+const ACCOUNT_C = testAddress(7);
+const LOOKUP_TABLE_A = testAddress(10);
+const LOOKUP_TABLE_B = testAddress(11);
+const LOADED_WRITABLE_1 = testAddress(21);
+const LOADED_WRITABLE_2 = testAddress(22);
+const LOADED_WRITABLE_3 = testAddress(23);
+const LOADED_READONLY_1 = testAddress(31);
+const BLOCKHASH = testAddress(41);
 
 type Role = { address: string; signer: boolean; writable: boolean };
 
@@ -35,14 +52,14 @@ function makeFullEnvelope(overrides: Record<string, unknown> = {}): Record<strin
         slot: 123,
         transaction: {
             message: {
-                accountKeys: ['signer-1', { pubkey: 'signer-2' }, 'program-1', 'readonly-1'],
+                accountKeys: [SIGNER_1, { pubkey: SIGNER_2 }, PROGRAM_1, READONLY_1],
                 header: {
                     numReadonlySignedAccounts: 1,
                     numReadonlyUnsignedAccounts: 1,
                     numRequiredSignatures: 2,
                 },
                 instructions: [{ accounts: [0, 1], data: '3Bxs', programIdIndex: 2 }],
-                recentBlockhash: 'GHtXQBbU2vKfGsFqgEz',
+                recentBlockhash: BLOCKHASH,
             },
         },
         version: 0,
@@ -64,14 +81,14 @@ function singleSignerMessage(instructions: unknown) {
     return {
         transaction: {
             message: {
-                accountKeys: ['signer-1'],
+                accountKeys: [SIGNER_1],
                 header: {
                     numReadonlySignedAccounts: 0,
                     numReadonlyUnsignedAccounts: 0,
                     numRequiredSignatures: 1,
                 },
                 instructions,
-                recentBlockhash: 'GHtX',
+                recentBlockhash: BLOCKHASH,
             },
         },
     };
@@ -102,7 +119,7 @@ describe('transaction normalizer', () => {
 
     it('should normalize mixed account key shapes and successful status', () => {
         expect(mustNormalize(makeFullEnvelope())).toMatchObject({
-            accountKeys: ['signer-1', 'signer-2', 'program-1', 'readonly-1'],
+            accountKeys: [SIGNER_1, SIGNER_2, PROGRAM_1, READONLY_1],
             blockTime: 456,
             feeLamports: 5000,
             numRequiredSignatures: 2,
@@ -156,6 +173,27 @@ describe('transaction normalizer', () => {
         ).toThrow('Unexpected transaction probe: accountKey is not a string or {pubkey: string}: {"pubkey":42}');
     });
 
+    it('should throw on an account key that is not a valid address', () => {
+        expect(() =>
+            normalize(
+                makeFullEnvelope({
+                    meta: null,
+                    transaction: {
+                        message: {
+                            accountKeys: ['not-an-address'],
+                            header: {
+                                numReadonlySignedAccounts: 0,
+                                numReadonlyUnsignedAccounts: 0,
+                                numRequiredSignatures: 1,
+                            },
+                            instructions: [],
+                        },
+                    },
+                }),
+            ),
+        ).toThrow(SolanaError);
+    });
+
     it('should throw on negative required signature count', () => {
         expect(() =>
             normalize(
@@ -163,7 +201,7 @@ describe('transaction normalizer', () => {
                     meta: null,
                     transaction: {
                         message: {
-                            accountKeys: ['signer-1'],
+                            accountKeys: [SIGNER_1],
                             header: {
                                 numReadonlySignedAccounts: 0,
                                 numReadonlyUnsignedAccounts: 0,
@@ -198,17 +236,76 @@ describe('transaction normalizer', () => {
         expect(mustNormalize(makeFullEnvelope({ version: 0 }))).toMatchObject({ version: 0 });
         expect(mustNormalize(makeFullEnvelope({ version: 'legacy' }))).toMatchObject({ version: 'legacy' });
         expect(mustNormalize(makeFullEnvelope({ version: undefined }))).toMatchObject({ version: null });
+        expect(mustNormalize(makeFullEnvelope({ version: null }))).toMatchObject({ version: null });
     });
 
     it('should narrow a bigint version to its numeric value', () => {
         expect(mustNormalize(makeFullEnvelope({ version: BigInt(0) }))).toMatchObject({ version: 0 });
+        expect(mustNormalize(makeFullEnvelope({ version: BigInt(1) }))).toMatchObject({ version: 1 });
+    });
+
+    it('should report a v1 transaction and resolve its static accounts', () => {
+        const normalized = mustNormalize(
+            makeFullEnvelope({
+                meta: {
+                    err: null,
+                    fee: 5000,
+                    loadedAddresses: { readonly: [], writable: [] },
+                },
+                transaction: {
+                    message: {
+                        accountKeys: [SIGNER_1, PROGRAM_1],
+                        header: {
+                            numReadonlySignedAccounts: 0,
+                            numReadonlyUnsignedAccounts: 1,
+                            numRequiredSignatures: 1,
+                        },
+                        instructions: [{ accounts: [0], data: '3Bxs', programIdIndex: 1 }],
+                        recentBlockhash: BLOCKHASH,
+                    },
+                },
+                version: 1,
+            }),
+        );
+
+        expect(normalized.version).toBe(1);
+        expect(normalized.accountKeys).toEqual([SIGNER_1, PROGRAM_1]);
+        expect(normalized.resolvedAccounts).toEqual([
+            staticAccount({ address: SIGNER_1, signer: true, writable: true }),
+            staticAccount({ address: PROGRAM_1, signer: false, writable: false }),
+        ]);
+    });
+
+    it('should ignore loaded addresses on a v1 transaction', () => {
+        const normalized = mustNormalize(
+            makeFullEnvelope({
+                meta: {
+                    err: null,
+                    fee: 5000,
+                    loadedAddresses: { readonly: [LOADED_READONLY_1], writable: [LOADED_WRITABLE_1] },
+                },
+                transaction: {
+                    message: {
+                        accountKeys: [SIGNER_1, PROGRAM_1],
+                        header: {
+                            numReadonlySignedAccounts: 0,
+                            numReadonlyUnsignedAccounts: 1,
+                            numRequiredSignatures: 1,
+                        },
+                        instructions: [{ accounts: [0], data: '3Bxs', programIdIndex: 1 }],
+                        recentBlockhash: BLOCKHASH,
+                    },
+                },
+                version: 1,
+            }),
+        );
+
+        expect(normalized.accountKeys).toEqual([SIGNER_1, PROGRAM_1]);
     });
 
     it('should throw on unsupported numeric versions', () => {
-        expect(() => normalize(makeFullEnvelope({ version: 1 }))).toThrow('unsupported transaction version (1)');
-        expect(() => normalize(makeFullEnvelope({ version: BigInt(2) }))).toThrow(
-            'unsupported transaction version (2)',
-        );
+        expect(() => normalize(makeFullEnvelope({ version: 2 }))).toThrow('Unsupported transaction version: 2');
+        expect(() => normalize(makeFullEnvelope({ version: BigInt(3) }))).toThrow('Unsupported transaction version: 3');
     });
 
     it('should normalize computeUnitsConsumed from bigint', () => {
@@ -262,13 +359,13 @@ describe('transaction normalizer', () => {
     });
 
     it('should extract recentBlockhash and default it to null', () => {
-        expect(mustNormalize(makeFullEnvelope()).recentBlockhash).toBe('GHtXQBbU2vKfGsFqgEz');
+        expect(mustNormalize(makeFullEnvelope()).recentBlockhash).toBe(BLOCKHASH);
 
         const withoutHash = mustNormalize(
             makeFullEnvelope({
                 transaction: {
                     message: {
-                        accountKeys: ['signer-1', 'signer-2', 'program-1', 'readonly-1'],
+                        accountKeys: [SIGNER_1, SIGNER_2, PROGRAM_1, READONLY_1],
                         header: {
                             numReadonlySignedAccounts: 1,
                             numReadonlyUnsignedAccounts: 1,
@@ -311,7 +408,7 @@ describe('transaction normalizer', () => {
                 makeFullEnvelope({
                     transaction: {
                         message: {
-                            accountKeys: ['a', 'b', 'c'],
+                            accountKeys: [ACCOUNT_A, ACCOUNT_B, ACCOUNT_C],
                             header: {
                                 numReadonlySignedAccounts: 2,
                                 numReadonlyUnsignedAccounts: 0,
@@ -331,7 +428,7 @@ describe('transaction normalizer', () => {
                 makeFullEnvelope({
                     transaction: {
                         message: {
-                            accountKeys: ['a', 'b'],
+                            accountKeys: [ACCOUNT_A, ACCOUNT_B],
                             header: {
                                 numReadonlySignedAccounts: 0,
                                 numReadonlyUnsignedAccounts: 0,
@@ -351,7 +448,7 @@ describe('transaction normalizer', () => {
                 makeFullEnvelope({
                     transaction: {
                         message: {
-                            accountKeys: ['a', 'b', 'c'],
+                            accountKeys: [ACCOUNT_A, ACCOUNT_B, ACCOUNT_C],
                             header: {
                                 numReadonlySignedAccounts: 0,
                                 numReadonlyUnsignedAccounts: 5,
@@ -373,10 +470,10 @@ describe('transaction normalizer', () => {
             expect(() =>
                 normalize(
                     makeFullEnvelope({
-                        transaction: { message: { accountKeys: ['signer-1'], header, instructions: [] } },
+                        transaction: { message: { accountKeys: [SIGNER_1], header, instructions: [] } },
                     }),
                 ),
-            ).toThrow('Unexpected transaction probe:');
+            ).toThrow('negative readonly account count');
         }
     });
 
@@ -387,7 +484,7 @@ describe('transaction normalizer', () => {
                     meta: null,
                     transaction: {
                         message: {
-                            accountKeys: ['a'],
+                            accountKeys: [ACCOUNT_A],
                             header: {
                                 numReadonlySignedAccounts: 0,
                                 numReadonlyUnsignedAccounts: 0,
@@ -407,7 +504,7 @@ describe('transaction normalizer', () => {
                 meta: { err: null, fee: 5000 },
                 transaction: {
                     message: {
-                        accountKeys: ['signer-1'],
+                        accountKeys: [SIGNER_1],
                         header: {
                             numReadonlySignedAccounts: 0,
                             numReadonlyUnsignedAccounts: 0,
@@ -504,7 +601,7 @@ describe('transaction normalizer', () => {
                     ...singleSignerMessage([{ accounts: [0], data: 'abc', programIdIndex: 5 }]),
                 }),
             ),
-        ).toThrow('Unexpected transaction probe:');
+        ).toThrow('instruction index out of bounds');
         expect(() =>
             normalize(
                 makeFullEnvelope({
@@ -512,7 +609,7 @@ describe('transaction normalizer', () => {
                     ...singleSignerMessage([{ accounts: [0, 99], data: 'abc', programIdIndex: 0 }]),
                 }),
             ),
-        ).toThrow('Unexpected transaction probe:');
+        ).toThrow('instruction index out of bounds');
         expect(() =>
             normalize(
                 makeFullEnvelope({
@@ -529,21 +626,21 @@ describe('transaction normalizer', () => {
                 meta: { err: null, fee: 5000, innerInstructions },
                 transaction: {
                     message: {
-                        accountKeys: ['signer-1'],
+                        accountKeys: [SIGNER_1],
                         header: {
                             numReadonlySignedAccounts: 0,
                             numReadonlyUnsignedAccounts: 0,
                             numRequiredSignatures: 1,
                         },
                         instructions: [{ accounts: [0], data: 'abc', programIdIndex: 0 }],
-                        recentBlockhash: 'GHtX',
+                        recentBlockhash: BLOCKHASH,
                     },
                 },
             });
 
         expect(() =>
             normalize(envelope([{ index: 0, instructions: [{ accounts: [0], data: 'abc', programIdIndex: 99 }] }])),
-        ).toThrow('Unexpected transaction probe:');
+        ).toThrow('Unexpected transaction probe: inner instruction index out of bounds');
         expect(() =>
             normalize(envelope([{ index: 0, instructions: [{ accounts: [-1], data: 'abc', programIdIndex: 0 }] }])),
         ).toThrow('inner instruction index out of bounds (programIdIndex=0, accounts=[-1]');
@@ -559,14 +656,14 @@ describe('transaction normalizer', () => {
                 },
                 transaction: {
                     message: {
-                        accountKeys: ['signer-1'],
+                        accountKeys: [SIGNER_1],
                         header: {
                             numReadonlySignedAccounts: 0,
                             numReadonlyUnsignedAccounts: 0,
                             numRequiredSignatures: 1,
                         },
                         instructions: [{ accounts: [0], data: 'abc', programIdIndex: 0 }],
-                        recentBlockhash: 'GHtX',
+                        recentBlockhash: BLOCKHASH,
                     },
                 },
             });
@@ -588,20 +685,24 @@ describe('transaction normalizer', () => {
 
     it('should include resolvedAccounts with source in the normalized output', () => {
         expect(mustNormalize(makeFullEnvelope()).resolvedAccounts).toEqual([
-            staticAccount({ address: 'signer-1', signer: true, writable: true }),
-            staticAccount({ address: 'signer-2', signer: true, writable: false }),
-            staticAccount({ address: 'program-1', signer: false, writable: true }),
-            staticAccount({ address: 'readonly-1', signer: false, writable: false }),
+            staticAccount({ address: SIGNER_1, signer: true, writable: true }),
+            staticAccount({ address: SIGNER_2, signer: true, writable: false }),
+            staticAccount({ address: PROGRAM_1, signer: false, writable: true }),
+            staticAccount({ address: READONLY_1, signer: false, writable: false }),
         ]);
     });
 
     it('should merge loadedAddresses for v0 transactions', () => {
         const normalized = mustNormalize(
             makeFullEnvelope({
-                meta: { err: null, fee: 5000, loadedAddresses: { readonly: ['alt-r1'], writable: ['alt-w1'] } },
+                meta: {
+                    err: null,
+                    fee: 5000,
+                    loadedAddresses: { readonly: [LOADED_READONLY_1], writable: [LOADED_WRITABLE_1] },
+                },
                 transaction: {
                     message: {
-                        accountKeys: ['signer', 'program'],
+                        accountKeys: [SIGNER_1, PROGRAM_1],
                         header: {
                             numReadonlySignedAccounts: 0,
                             numReadonlyUnsignedAccounts: 1,
@@ -614,13 +715,14 @@ describe('transaction normalizer', () => {
             }),
         );
 
-        expect(normalized.accountKeys).toEqual(['signer', 'program', 'alt-w1', 'alt-r1']);
+        expect(normalized.accountKeys).toEqual([SIGNER_1, PROGRAM_1, LOADED_WRITABLE_1, LOADED_READONLY_1]);
         expect(normalized.resolvedAccounts).toEqual([
-            staticAccount({ address: 'signer', signer: true, writable: true }),
-            staticAccount({ address: 'program', signer: false, writable: false }),
-            lookupTableAccount({ address: 'alt-w1', signer: false, writable: true }),
-            lookupTableAccount({ address: 'alt-r1', signer: false, writable: false }),
+            staticAccount({ address: SIGNER_1, signer: true, writable: true }),
+            staticAccount({ address: PROGRAM_1, signer: false, writable: false }),
+            lookupTableAccount({ address: LOADED_WRITABLE_1, signer: false, writable: true }),
+            lookupTableAccount({ address: LOADED_READONLY_1, signer: false, writable: false }),
         ]);
+        expect(logger.warn).not.toHaveBeenCalled();
     });
 
     it('should tag loaded accounts with their lookup table address', () => {
@@ -629,14 +731,17 @@ describe('transaction normalizer', () => {
                 meta: {
                     err: null,
                     fee: 5000,
-                    loadedAddresses: { readonly: ['alt-r1'], writable: ['alt-w1', 'alt-w2'] },
+                    loadedAddresses: {
+                        readonly: [LOADED_READONLY_1],
+                        writable: [LOADED_WRITABLE_1, LOADED_WRITABLE_2],
+                    },
                 },
                 transaction: {
                     message: {
-                        accountKeys: ['signer'],
+                        accountKeys: [SIGNER_1],
                         addressTableLookups: [
-                            { accountKey: 'ALT-A', readonlyIndexes: [1], writableIndexes: [0] },
-                            { accountKey: 'ALT-B', readonlyIndexes: [], writableIndexes: [2] },
+                            { accountKey: LOOKUP_TABLE_A, readonlyIndexes: [1], writableIndexes: [0] },
+                            { accountKey: LOOKUP_TABLE_B, readonlyIndexes: [], writableIndexes: [2] },
                         ],
                         header: {
                             numReadonlySignedAccounts: 0,
@@ -651,28 +756,33 @@ describe('transaction normalizer', () => {
         );
 
         expect(normalized.resolvedAccounts[1]).toEqual(
-            lookupTableAccount({ address: 'alt-w1', signer: false, writable: true }, 'ALT-A'),
+            lookupTableAccount({ address: LOADED_WRITABLE_1, signer: false, writable: true }, LOOKUP_TABLE_A),
         );
         expect(normalized.resolvedAccounts[2]).toEqual(
-            lookupTableAccount({ address: 'alt-w2', signer: false, writable: true }, 'ALT-B'),
+            lookupTableAccount({ address: LOADED_WRITABLE_2, signer: false, writable: true }, LOOKUP_TABLE_B),
         );
         expect(normalized.resolvedAccounts[3]).toEqual(
-            lookupTableAccount({ address: 'alt-r1', signer: false, writable: false }, 'ALT-A'),
+            lookupTableAccount({ address: LOADED_READONLY_1, signer: false, writable: false }, LOOKUP_TABLE_A),
         );
     });
 
-    it('should warn when the lookup indexes do not cover the loaded addresses', () => {
+    it.each([
+        {
+            case: 'more loaded addresses than lookup indexes',
+            loaded: [LOADED_WRITABLE_1, LOADED_WRITABLE_2],
+            indexes: [0],
+        },
+        { case: 'more lookup indexes than loaded addresses', loaded: [LOADED_WRITABLE_1], indexes: [0, 1] },
+    ])('should warn when the lookup counts mismatch with $case', ({ indexes, loaded }) => {
         mustNormalize(
             makeFullEnvelope({
-                meta: {
-                    err: null,
-                    fee: 5000,
-                    loadedAddresses: { readonly: [], writable: ['alt-w1', 'alt-w2'] },
-                },
+                meta: { err: null, fee: 5000, loadedAddresses: { readonly: [], writable: loaded } },
                 transaction: {
                     message: {
-                        accountKeys: ['signer'],
-                        addressTableLookups: [{ accountKey: 'ALT-A', readonlyIndexes: [], writableIndexes: [0] }],
+                        accountKeys: [SIGNER_1],
+                        addressTableLookups: [
+                            { accountKey: LOOKUP_TABLE_A, readonlyIndexes: [], writableIndexes: indexes },
+                        ],
                         header: {
                             numReadonlySignedAccounts: 0,
                             numReadonlyUnsignedAccounts: 0,
@@ -686,7 +796,7 @@ describe('transaction normalizer', () => {
         );
 
         expect(logger.warn).toHaveBeenCalledWith(
-            '[entity-inspector] address table lookup counts do not cover the loaded addresses',
+            '[entity-inspector] address table lookup counts do not match the loaded addresses',
             { signature: 'sig' },
         );
     });
@@ -697,7 +807,7 @@ describe('transaction normalizer', () => {
                 meta: { err: null, fee: 5000, loadedAddresses },
                 transaction: {
                     message: {
-                        accountKeys: ['signer'],
+                        accountKeys: [SIGNER_1],
                         header: {
                             numReadonlySignedAccounts: 0,
                             numReadonlyUnsignedAccounts: 0,
@@ -712,14 +822,17 @@ describe('transaction normalizer', () => {
         expect(
             mustNormalize(
                 envelope([{ accounts: [0, 2], data: '3Bxs', programIdIndex: 1 }], {
-                    readonly: ['alt-r1'],
-                    writable: ['alt-w1'],
+                    readonly: [LOADED_READONLY_1],
+                    writable: [LOADED_WRITABLE_1],
                 }),
             ).accountKeys,
         ).toHaveLength(3);
         expect(() =>
             normalize(
-                envelope([{ accounts: [0], data: '3Bxs', programIdIndex: 5 }], { readonly: [], writable: ['alt-w1'] }),
+                envelope([{ accounts: [0], data: '3Bxs', programIdIndex: 5 }], {
+                    readonly: [],
+                    writable: [LOADED_WRITABLE_1],
+                }),
             ),
         ).toThrow('instruction index out of bounds');
     });
@@ -730,7 +843,7 @@ describe('transaction normalizer', () => {
                 meta: { err: null, fee: 5000, loadedAddresses: null },
                 transaction: {
                     message: {
-                        accountKeys: ['signer'],
+                        accountKeys: [SIGNER_1],
                         header: {
                             numReadonlySignedAccounts: 0,
                             numReadonlyUnsignedAccounts: 0,
@@ -743,7 +856,7 @@ describe('transaction normalizer', () => {
             }),
         );
 
-        expect(normalized.accountKeys).toEqual(['signer']);
+        expect(normalized.accountKeys).toEqual([SIGNER_1]);
     });
 
     it('should validate the header against the static key count, not the merged total', () => {
@@ -752,11 +865,14 @@ describe('transaction normalizer', () => {
                 meta: {
                     err: null,
                     fee: 5000,
-                    loadedAddresses: { readonly: [], writable: ['alt-w1', 'alt-w2', 'alt-w3'] },
+                    loadedAddresses: {
+                        readonly: [],
+                        writable: [LOADED_WRITABLE_1, LOADED_WRITABLE_2, LOADED_WRITABLE_3],
+                    },
                 },
                 transaction: {
                     message: {
-                        accountKeys: ['signer-1', 'signer-2'],
+                        accountKeys: [SIGNER_1, SIGNER_2],
                         header: {
                             numReadonlySignedAccounts: 0,
                             numReadonlyUnsignedAccounts: 0,

@@ -1,4 +1,4 @@
-import { PublicKey } from '@solana/web3.js';
+import { address } from '@solana/kit';
 import { nextjsParameters, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
@@ -24,20 +24,25 @@ const PROGRAM_IDS = [
     'So11111111111111111111111111111111111111112',
 ];
 
+const PROGRAM_ADDRESSES = PROGRAM_IDS.map(id => address(id));
+
 // Minimal stand-in for a VersionedBlockResponse — just the shape BlockProgramsCard reads. Program j
 // appears in every (j+1)-th transaction, giving a descending usage distribution; every 5th tx is
 // marked failed (`err`) so Success Rate lands below 100%. All txs carry `meta`, so the Success Rate
 // column shows.
 function makeBlock(txCount: number) {
-    const keys = PROGRAM_IDS.map(id => new PublicKey(id));
-    const accountKeys = { get: (i: number) => keys[i], length: keys.length };
     const transactions = Array.from({ length: txCount }, (_, k) => {
-        const compiledInstructions = PROGRAM_IDS.map((_, j) => j)
-            .filter(j => k % (j + 1) === 0)
-            .map(j => ({ programIdIndex: j }));
+        const programIdxs = PROGRAM_IDS.map((_, j) => j).filter(j => k % (j + 1) === 0);
         return {
             meta: { err: k % 5 === 0 ? { InstructionError: [0, 'Custom'] } : null, innerInstructions: [] },
-            transaction: { message: { compiledInstructions, getAccountKeys: () => accountKeys } },
+            parsedTransaction: {
+                accounts: [],
+                instructions: programIdxs.map(j => ({ accounts: [], programAddress: PROGRAM_ADDRESSES[j] })),
+                lifetimeToken: 'lifetime',
+                numSignerAccounts: 0,
+                signatures: [],
+                version: 'legacy' as const,
+            },
         };
     });
     return { transactions } as any;

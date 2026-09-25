@@ -1,7 +1,8 @@
 import { DEFAULT_SIGNATURE } from '@__fixtures__/gen';
 import { createWeb3TransactionBytes } from '@entities/transaction-data/__fixtures__/wire-transactions';
-import { getBase58Decoder } from '@solana/kit';
-import type { ParsedTransactionWithMeta } from '@solana/web3.js';
+import { fromRpcTransaction, type ParsedTransaction, type RpcTransactionResponse } from '@explorer/parsers/transaction';
+import { address, getBase58Decoder } from '@solana/kit';
+import type { ParsedInstruction, ParsedMessageAccount, ParsedTransactionWithMeta, PartiallyDecodedInstruction } from '@solana/web3.js';
 import { ComputeBudgetProgram, PublicKey, SystemProgram, TransactionMessage, VersionedMessage } from '@solana/web3.js';
 import {
     mockParsedTransactionDetails,
@@ -16,6 +17,54 @@ export { DEFAULT_SIGNATURE };
 
 const BASE58_DECODER = getBase58Decoder();
 
+function toRpcAccountKey(account: ParsedMessageAccount) {
+    return {
+        pubkey: account.pubkey.toBase58(),
+        signer: account.signer,
+        // Legacy transactions carry no `source` at all; jsonParsed always reports one.
+        source: account.source ?? 'transaction',
+        writable: account.writable,
+    };
+}
+
+function toRpcInstruction(instruction: ParsedInstruction | PartiallyDecodedInstruction) {
+    if ('parsed' in instruction) {
+        return {
+            parsed: instruction.parsed,
+            program: instruction.program,
+            programId: instruction.programId.toBase58(),
+        };
+    }
+
+    return {
+        accounts: instruction.accounts.map(account => account.toBase58()),
+        data: instruction.data,
+        programId: instruction.programId.toBase58(),
+    };
+}
+
+/** Builds the package's union from the same web3.js-shaped fixture the jsonParsed adapter reads. */
+function buildParsedTransaction(tx: ParsedTransactionWithMeta): ParsedTransaction {
+    const response: RpcTransactionResponse = {
+        transaction: {
+            message: {
+                accountKeys: tx.transaction.message.accountKeys.map(toRpcAccountKey),
+                instructions: tx.transaction.message.instructions.map(toRpcInstruction),
+                recentBlockhash: tx.transaction.message.recentBlockhash,
+            },
+            signatures: [...tx.transaction.signatures],
+        },
+        version: typeof tx.version === 'number' ? (tx.version as 0 | 1) : 'legacy',
+    };
+
+    return fromRpcTransaction(response);
+}
+
+/** Attaches the union `SummaryCard` reads alongside the web3.js view the rest of the fixture keeps. */
+function withParsedTransaction(tx: ParsedTransactionWithMeta): ParsedTransactionWithMeta {
+    return { ...tx, parsedTransaction: buildParsedTransaction(tx) } as unknown as ParsedTransactionWithMeta;
+}
+
 export const FEE_PAYER = new PublicKey('9noXzpXnkyEcKF3AeXqUHTdR59V5uvrRBUZ9bwfQwxNq');
 export const RECIPIENT = new PublicKey('GsbwXfJraMomNxBcpR3DBr9yoWR2PmN93PEaYJz7MSTN');
 export const TOKEN_ACCOUNT = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
@@ -24,7 +73,7 @@ export const TOKEN_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwy
 export const MOCK_STATUS = mockTransactionStatus();
 export const MOCK_FAILED_STATUS = mockTransactionStatus({ err: { InstructionError: [0, 'GenericError'] } });
 
-const BASE_TX = {
+const BASE_TX = withParsedTransaction({
     blockTime: 1_716_000_000,
     meta: {
         // A System transfer consumes 150 units, and `costUnits` is the *executed* cost, so it has to
@@ -106,20 +155,20 @@ const BASE_TX = {
         signatures: [DEFAULT_SIGNATURE],
     },
     version: 'legacy',
-} as unknown as ParsedTransactionWithMeta;
+} as unknown as ParsedTransactionWithMeta);
 
 export const MOCK_PARSED_TX = mockParsedTransactionDetails({ transactionWithMeta: BASE_TX });
 
 /**
  * A Compute Budget `SetComputeUnitLimit` instruction in the shape the RPC serves it: a partially
- * decoded instruction whose data is base58, which is what the requested-CU estimator reads.
+ * decoded instruction whose data is base58, which is what `getRequestedComputeUnits` reads.
  */
 function withComputeUnitLimit(units: number) {
     const data = alloc(5);
     data[0] = 2; // SetComputeUnitLimit
     writeUint32LE(data, units, 1);
 
-    return {
+    return withParsedTransaction({
         ...BASE_TX,
         transaction: {
             ...BASE_TX.transaction,
@@ -136,7 +185,7 @@ function withComputeUnitLimit(units: number) {
                 ],
             },
         },
-    } as unknown as ParsedTransactionWithMeta;
+    } as unknown as ParsedTransactionWithMeta);
 }
 
 /** Accurately budgeted: requests 1,000 compute units and consumes 150 of them. */
@@ -191,4 +240,35 @@ export const MOCK_NO_LOGS_TX = mockParsedTransactionDetails({
         ...BASE_TX,
         meta: { ...BASE_TX.meta, logMessages: null } as unknown as ParsedTransactionWithMeta['meta'],
     },
+});
+
+/**
+ * A v1 transaction that declares no resource limits at all. On devnet an undeclared compute unit
+ * limit budgets zero, so a landed transaction of this kind fails at its first instruction with
+ * `ComputationalBudgetExceeded` and zero consumed units.
+ */
+const V1_NO_CONFIG_PARSED_TRANSACTION: ParsedTransaction = {
+    accounts: [
+        { address: address(FEE_PAYER.toBase58()), signer: true, source: 'static', writable: true },
+        { address: address(RECIPIENT.toBase58()), signer: false, source: 'static', writable: true },
+    ],
+    instructions: [],
+    lifetimeToken: '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d',
+    numSignerAccounts: 1,
+    signatures: [DEFAULT_SIGNATURE],
+    version: 1,
+};
+
+export const MOCK_V1_NO_CONFIG_TX = mockParsedTransactionDetails({
+    transactionWithMeta: {
+        ...BASE_TX,
+        meta: {
+            ...BASE_TX.meta,
+            computeUnitsConsumed: 0,
+            costUnits: 0,
+            err: { InstructionError: [0, 'ComputationalBudgetExceeded'] },
+        },
+        parsedTransaction: V1_NO_CONFIG_PARSED_TRANSACTION,
+        version: 1,
+    } as unknown as ParsedTransactionWithMeta,
 });

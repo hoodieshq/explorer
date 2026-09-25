@@ -1,5 +1,21 @@
+import { gen } from '@__fixtures__/gen';
 import type * as SolanaKit from '@solana/kit';
+import {
+    AccountRole,
+    type Address,
+    address,
+    appendTransactionMessageInstruction,
+    blockhash,
+    compileTransaction,
+    createTransactionMessage,
+    getTransactionEncoder,
+    pipe,
+    setTransactionMessageFeePayer,
+    setTransactionMessageLifetimeUsingBlockhash,
+} from '@solana/kit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { toBase64 } from '@/app/shared/lib/bytes';
 
 import { LEGACY_BLOCK_RESPONSE, V1_BLOCK_RESPONSE } from '../../__fixtures__/block-responses';
 import { fetchBlock } from '../fetch-block';
@@ -21,6 +37,71 @@ function respondWith(result: unknown) {
 
 function requestBody() {
     return JSON.parse(fetchMock.mock.calls[0][1].body);
+}
+
+const V0_FEE_PAYER = address(gen.address(11));
+const V0_PROGRAM = address(gen.address(12));
+const V0_LOOKUP_TABLE_ADDRESS = address(gen.address(13));
+const V0_LOOKUP_TABLE_LOADED_ADDRESS = address(gen.address(14));
+const V0_BLOCKHASH = blockhash(gen.blockhash());
+
+type LookupTableOverride = { loadedAddress: Address; lookupTableAddress: Address };
+
+/** Wire bytes of an unsigned v0 transaction, optionally with one instruction reading an ALT account. */
+function v0TransactionBytes(lookup?: LookupTableOverride): Uint8Array {
+    const instruction = lookup
+        ? {
+              accounts: [
+                  {
+                      address: lookup.loadedAddress,
+                      addressIndex: 0,
+                      lookupTableAddress: lookup.lookupTableAddress,
+                      role: AccountRole.WRITABLE,
+                  },
+              ],
+              data: new Uint8Array([1]),
+              programAddress: V0_PROGRAM,
+          }
+        : { data: new Uint8Array([1]), programAddress: V0_PROGRAM };
+
+    const message = pipe(
+        createTransactionMessage({ version: 0 }),
+        m => setTransactionMessageFeePayer(V0_FEE_PAYER, m),
+        m => setTransactionMessageLifetimeUsingBlockhash({ blockhash: V0_BLOCKHASH, lastValidBlockHeight: 100n }, m),
+        m => appendTransactionMessageInstruction(instruction, m),
+    );
+
+    return new Uint8Array(getTransactionEncoder().encode(compileTransaction(message)));
+}
+
+/** A `getBlock` response with one v0 transaction, optionally reporting one loaded ALT address. */
+function v0BlockResponse(lookup?: LookupTableOverride) {
+    return {
+        blockTime: 1_787_266_078,
+        blockhash: 'SURFNETxSAFEHASHxxxxxxxxxxxxxxxxxxx1a429ax9',
+        parentSlot: 440_572_821,
+        previousBlockhash: 'SURFNETxSAFEHASHxxxxxxxxxxxxxxxxxxx1a429ax8',
+        rewards: [],
+        transactions: [
+            {
+                meta: {
+                    computeUnitsConsumed: 150,
+                    err: null,
+                    fee: 5000,
+                    innerInstructions: [],
+                    loadedAddresses: lookup
+                        ? { readonly: [], writable: [lookup.loadedAddress] }
+                        : { readonly: [], writable: [] },
+                    logMessages: [],
+                    postBalances: [1, 1],
+                    postTokenBalances: [],
+                    preBalances: [1, 1],
+                    preTokenBalances: [],
+                },
+                transaction: [toBase64(v0TransactionBytes(lookup)), 'base64'],
+            },
+        ],
+    };
 }
 
 beforeEach(() => {
@@ -207,5 +288,57 @@ describe('fetchBlock', () => {
         expect(block?.transactions[0].transaction.signatures).toEqual([
             '3S16GMLh2fH28SAhXWRRqogYudd8MPvZD39Ee22ZS6F2jeJQLhYNpKfdkZxo49dnKDsoXvtdBxQFRaDbvd1QnZaW',
         ]);
+    });
+
+    it('should build the union transaction next to the web3.js message for a v1 transaction', async () => {
+        respondWith(V1_BLOCK_RESPONSE);
+
+        const block = await fetchBlock(URL, SLOT);
+
+        expect(block?.transactions[0].parsedTransaction.version).toBe(1);
+    });
+
+    it('should build the union transaction next to the web3.js message for a legacy transaction', async () => {
+        respondWith(LEGACY_BLOCK_RESPONSE);
+
+        const block = await fetchBlock(URL, SLOT);
+
+        expect(block?.transactions[0].parsedTransaction.version).toBe('legacy');
+    });
+
+    it('should carry an empty address table lookups list for a v0 transaction with no lookup tables', async () => {
+        respondWith(v0BlockResponse());
+
+        const block = await fetchBlock(URL, SLOT);
+        const parsed = block?.transactions[0].parsedTransaction;
+
+        // `[]` means the message lists none, distinct from `undefined` for an encoding that omits them.
+        expect(parsed?.version === 0 ? parsed.addressTableLookups : undefined).toEqual([]);
+    });
+
+    it("should resolve a v0 instruction's lookup-table account from the block meta's loaded address", async () => {
+        respondWith(
+            v0BlockResponse({ loadedAddress: V0_LOOKUP_TABLE_LOADED_ADDRESS, lookupTableAddress: V0_LOOKUP_TABLE_ADDRESS }),
+        );
+
+        const block = await fetchBlock(URL, SLOT);
+        const lookupAccount = block?.transactions[0].parsedTransaction.accounts.find(
+            account => account.address === V0_LOOKUP_TABLE_LOADED_ADDRESS,
+        );
+
+        expect(lookupAccount?.source).toBe('lookupTable');
+    });
+
+    it('should drop a v0 transaction whose lookup-table account the meta does not report', async () => {
+        const response = v0BlockResponse({
+            loadedAddress: V0_LOOKUP_TABLE_LOADED_ADDRESS,
+            lookupTableAddress: V0_LOOKUP_TABLE_ADDRESS,
+        });
+        response.transactions[0].meta.loadedAddresses = { readonly: [], writable: [] };
+        respondWith(response);
+
+        const block = await fetchBlock(URL, SLOT);
+
+        expect(block?.transactions).toEqual([]);
     });
 });

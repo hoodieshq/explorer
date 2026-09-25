@@ -20,12 +20,10 @@ export function derivePriorityFeeLamports({
 /**
  * The priority fee a transaction pays, in lamports.
  *
- * - v1 declares the total on the message.
+ * - v1 declares the total on the message. An undeclared fee is 0, which is what the runtime charges.
  * - Legacy and v0 txs price per compute unit, so their total must be derived from the fee reported by the RPC.
  *
- * `undefined` covers two cases:
- * - a v1 message that declares no fee.
- * - a legacy or v0 tx whose RPC fee is unknown.
+ * `undefined` means a legacy or v0 tx whose RPC fee is unknown.
  */
 export function resolvePriorityFeeLamports(
     transaction: ParsedTransaction,
@@ -33,7 +31,7 @@ export function resolvePriorityFeeLamports(
 ): number | undefined {
     const declared = getTransactionConfig(transaction)?.priorityFeeLamports;
     if (transaction.version === 1) {
-        return declared === undefined ? undefined : Number(declared);
+        return Number(declared ?? 0n);
     }
     if (meta.feeLamports === undefined) {
         return undefined;

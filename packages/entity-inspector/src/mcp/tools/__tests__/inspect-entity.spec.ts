@@ -2,7 +2,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { InspectorLogger } from '../../../logger.js';
-import { gen } from '../../../__tests__/gen.js';
+import { gen, testAddress } from '../../../__tests__/gen.js';
 import {
     addressLookupTableRawProbe,
     compressedNftDasAsset,
@@ -21,6 +21,8 @@ import { SourceUnavailableError } from '../../../rpc/rpc.js';
 import { handleInspectEntity, type InspectEntityDependencies, splitBuilderErrors } from '../inspect-entity.js';
 
 const ACCOUNT_IDENTIFIER = gen.systemProgram;
+const TX_SIGNER = testAddress(51);
+const TX_PROGRAM = testAddress(52);
 const TRANSACTION_IDENTIFIER =
     '4ReKprwf3WdLHRrzp4ctPWNBsQDPL3VZz3zMmoZfcGJMJCHh5Vq937mPdyxhCbw54wNnA6hZ7KfNpQdpt13yY7A9';
 
@@ -35,7 +37,7 @@ function transactionProbe(overrides: Record<string, unknown> = {}): Record<strin
         slot: 123,
         transaction: {
             message: {
-                accountKeys: ['signer-address', 'program-address'],
+                accountKeys: [TX_SIGNER, TX_PROGRAM],
                 header: {
                     numReadonlySignedAccounts: 0,
                     numReadonlyUnsignedAccounts: 1,
@@ -139,8 +141,8 @@ describe('inspect_entity handler', () => {
             payload: {
                 entity: {
                     accounts: [
-                        { address: 'signer-address', signer: true, source: 'static', writable: true },
-                        { address: 'program-address', signer: false, source: 'static', writable: false },
+                        { address: TX_SIGNER, signer: true, source: 'static', writable: true },
+                        { address: TX_PROGRAM, signer: false, source: 'static', writable: false },
                     ],
                     block_time: 456,
                     confirmation_status: 'finalized',
@@ -148,16 +150,16 @@ describe('inspect_entity handler', () => {
                     fee_lamports: 5000,
                     instructions: [
                         {
-                            accounts: ['signer-address'],
+                            accounts: [TX_SIGNER],
                             data: '3Bxs',
                             inner_instructions: [],
-                            program_id: 'program-address',
+                            program_id: TX_PROGRAM,
                             source: 'raw',
                         },
                     ],
                     kind: 'transaction',
                     signature: TRANSACTION_IDENTIFIER,
-                    signers: ['signer-address'],
+                    signers: [TX_SIGNER],
                     slot: 123,
                     status: 'success',
                 },
@@ -240,9 +242,9 @@ describe('inspect_entity handler', () => {
         const envelope = parseEnvelope(result);
 
         expect(decodeInstructionFallback).toHaveBeenCalledWith({
-            accounts: [{ address: 'signer-address', signer: true, writable: true }],
+            accounts: [{ address: TX_SIGNER, signer: true, writable: true }],
             data: '3Bxs',
-            programId: 'program-address',
+            programId: TX_PROGRAM,
         });
         expect(envelope).toMatchObject({
             payload: {
@@ -1010,7 +1012,7 @@ describe('inspect_entity handler', () => {
 
         await handleInspectEntity({ cluster: 'devnet', identifier: TRANSACTION_IDENTIFIER }, dependencies);
 
-        expect(resolveIdlClient).toHaveBeenCalledWith('program-address', 'devnet');
+        expect(resolveIdlClient).toHaveBeenCalledWith(TX_PROGRAM, 'devnet');
     });
 
     it('should warn through the console logger by default when DAS lookup fails', async () => {

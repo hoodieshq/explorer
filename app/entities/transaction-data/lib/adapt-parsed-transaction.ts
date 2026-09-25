@@ -1,3 +1,4 @@
+import { fromRpcTransaction, type ParsedTransaction } from '@explorer/parsers/transaction';
 import type { TransactionVersion } from '@solana/kit';
 import {
     type ParsedInstruction,
@@ -9,6 +10,7 @@ import {
 } from '@solana/web3.js';
 
 import { withNumbersInsteadOfBigInts } from '@/app/shared/lib/bigint-to-number';
+import { Logger } from '@/app/shared/lib/logger';
 
 import type { TransactionWithMeta } from '../model/types';
 
@@ -96,10 +98,12 @@ export type RpcParsedTransaction = Readonly<{
 /* eslint-disable unicorn/no-null */
 export function adaptParsedTransaction(response: RpcParsedTransaction): TransactionWithMeta {
     const { message, signatures } = response.transaction;
+    const version = adaptVersion(response.version);
 
     return {
         blockTime: response.blockTime === null ? null : Number(response.blockTime),
         meta: adaptMeta(response.meta),
+        parsedTransaction: buildParsedTransaction(response, version),
         slot: Number(response.slot),
         transaction: {
             message: {
@@ -109,12 +113,35 @@ export function adaptParsedTransaction(response: RpcParsedTransaction): Transact
             },
             signatures: [...signatures],
         },
-        version: adaptVersion(response.version),
+        version,
     };
 }
 
 function adaptVersion(version: RpcParsedTransaction['version']): TransactionVersion | undefined {
     return typeof version === 'bigint' ? (Number(version) as TransactionVersion) : version;
+}
+
+/**
+ * Builds the union from the same response, or returns undefined rather than throw.
+ * jsonParsed omits `version` for some transactions. Any other parse failure is logged.
+ */
+function buildParsedTransaction(
+    response: RpcParsedTransaction,
+    version: TransactionVersion | undefined,
+): ParsedTransaction | undefined {
+    if (version === undefined) return undefined;
+
+    try {
+        return fromRpcTransaction({
+            meta: { loadedAddresses: response.meta?.loadedAddresses },
+            // Before construction, not after: the union's `data` is a Uint8Array, which the helper flattens.
+            transaction: withNumbersInsteadOfBigInts(response.transaction),
+            version,
+        });
+    } catch (error) {
+        Logger.error(error, { module: '[transaction-data]', signature: response.transaction.signatures[0] });
+        return undefined;
+    }
 }
 
 function adaptMeta(meta: RpcMeta | null): TransactionWithMeta['meta'] {

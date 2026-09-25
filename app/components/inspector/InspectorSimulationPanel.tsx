@@ -18,6 +18,7 @@ import { BaseSimulatorCUProfilingCard } from '@/app/features/instruction-simulat
 import { LastSimulatedAt } from '@/app/features/instruction-simulation/ui/LastSimulatedAt';
 import { SIM_ZONE_STYLE } from '@/app/features/instruction-simulation/ui/sim-zone-style';
 import { SimulateButton } from '@/app/features/instruction-simulation/ui/SimulateButton';
+import { V1MessageView } from '@/app/shared/lib/v1-message-bridge';
 
 function SimulatedTitle({ children }: { children: React.ReactNode }) {
     return (
@@ -62,6 +63,8 @@ export function InspectorSimulationPanel({
     const result = simulation.status === 'done' ? simulation.result : undefined;
     const logs = result?.logs;
     const hasLogs = !!logs?.length;
+    // The inherited `version` getter reports 0 for a bridged v1 message, so v1 is read off the class instead.
+    const transactionVersion = message instanceof V1MessageView ? 1 : message.version;
 
     // Lookup-table-resolved keys only exist once the simulation has run, so naming waits for them.
     const { instructions: namedInstructions, unresolvable } = useSimulationInstructionNames({
@@ -150,6 +153,7 @@ export function InspectorSimulationPanel({
                                 unitsConsumed={result.unitsConsumed}
                                 cluster={cluster}
                                 epoch={result.epoch}
+                                transactionVersion={transactionVersion}
                                 headerless
                             />
                         )}

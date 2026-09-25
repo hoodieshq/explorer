@@ -15,6 +15,10 @@ import { instructionParserDispatcher } from '@/app/tx/instruction-parser-dispatc
 import { ADDRESS_TABLE_LOOKUPS_CARD_TITLE } from '../AddressTableLookupsCard';
 import { TransactionInspectorPage } from '../InspectorPage';
 
+function rowValue(label: string): string | null | undefined {
+    return screen.getByText(label).nextElementSibling?.textContent;
+}
+
 vi.mock('next/navigation', () => ({
     usePathname: vi.fn(() => '/tx/inspector'),
     useRouter: vi.fn(),
@@ -76,6 +80,8 @@ describe('TransactionInspectorPage with a v1 ?message= param', () => {
         expect(screen.getByText('Compute unit limit')).toBeInTheDocument();
         expect(screen.getByText('300,000')).toBeInTheDocument();
         expect(screen.getByText('Priority fee (total)')).toBeInTheDocument();
+        expect(rowValue('Loaded accounts data size limit')).toBe('0');
+        expect(rowValue('Heap size')).toBe('32,768');
         // fee payer, recipient, program — the Account List title no longer carries the account count.
         expect(screen.getByText('Account List')).toBeInTheDocument();
         // v1 messages carry static accounts only, so neither the lookups card nor the

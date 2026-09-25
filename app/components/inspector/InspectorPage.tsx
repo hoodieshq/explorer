@@ -3,6 +3,10 @@
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
 import { SolBalance } from '@components/common/SolBalance';
+import {
+    V1_DEFAULT_HEAP_SIZE_BYTES,
+    V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT_BYTES,
+} from '@explorer/parsers/transaction';
 import { usePrevious } from '@mantine/hooks';
 import { useFetchAccountInfo } from '@providers/accounts';
 import { FetchStatus } from '@providers/cache';
@@ -765,13 +769,18 @@ function OverviewCard({
                         <SolBalance lamports={transactionConfig.priorityFeeLamports} />
                     </KeyValue>
                 )}
-                {transactionConfig?.loadedAccountsDataSizeLimit !== undefined && (
+                {isV1 && (
                     <KeyValue label="Loaded accounts data size limit">
-                        {transactionConfig.loadedAccountsDataSizeLimit.toLocaleString('en-US')}
+                        {(
+                            transactionConfig?.loadedAccountsDataSizeLimit ??
+                            V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT_BYTES
+                        ).toLocaleString('en-US')}
                     </KeyValue>
                 )}
-                {transactionConfig?.heapSize !== undefined && (
-                    <KeyValue label="Heap size">{transactionConfig.heapSize.toLocaleString('en-US')}</KeyValue>
+                {isV1 && (
+                    <KeyValue label="Heap size">
+                        {(transactionConfig?.heapSize ?? V1_DEFAULT_HEAP_SIZE_BYTES).toLocaleString('en-US')}
+                    </KeyValue>
                 )}
                 <KeyValue label="Fee payer">
                     {message.staticAccountKeys.length === 0 ? (

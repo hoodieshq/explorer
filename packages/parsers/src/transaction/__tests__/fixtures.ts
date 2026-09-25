@@ -210,6 +210,27 @@ export function transactionWithInstructions(
     return fromCompiledMessage(compileTransactionMessage(message));
 }
 
+/** A v1 message declaring a limit and carrying instructions, for tests that set the two against each other. */
+export function v1TransactionWithLimitAndInstructions(
+    computeUnitLimit: number,
+    instructions: readonly Instruction[],
+): ParsedTransaction {
+    const compiled = compileTransactionMessage(
+        pipe(
+            createTransactionMessage({ version: 1 }),
+            m => setTransactionMessageFeePayer(FEE_PAYER, m),
+            m => setTransactionMessageLifetimeUsingBlockhash(BLOCKHASH, m),
+            m => appendTransactionMessageInstructions(instructions, m),
+        ),
+    );
+
+    return fromCompiledMessage({
+        ...compiled,
+        configMask: TRANSACTION_CONFIG_COMPUTE_UNIT_LIMIT_BIT_MASK,
+        configValues: [{ kind: 'u32', value: computeUnitLimit }],
+    });
+}
+
 export function setComputeUnitLimit(units: number): Instruction {
     return getSetComputeUnitLimitInstruction({ units });
 }

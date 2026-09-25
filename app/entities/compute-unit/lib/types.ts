@@ -1,19 +1,22 @@
+import type { Address } from '@solana/kit';
+
 /**
  * One instruction as `formatInstructionLogs` takes it: its program, plus display names when the caller
- * resolved them. `programId` is structural rather than a `PublicKey` because only the base58 address is
- * read — that keeps this entity independent of any one key representation.
+ * resolved them. `programId` is a kit `Address` - a caller holding a web3.js `PublicKey` converts with
+ * `toKitAddress` at its own boundary, so this entity depends on no key representation.
  *
  * Rows must stay in transaction order and must not be filtered. `formatInstructionLogs` pairs row `i`
  * with the `i`th top-level invocation in the logs, so dropping a row shifts every later one onto
  * another instruction's CU figure.
  */
 export type InstructionCUInput = {
-    programId: { toBase58(): string };
+    programId: Address;
     name?: string;
     programName?: string;
 };
 
 export type InstructionCUData = {
+    // A plain string: this is opaque display data, carried through rather than read as an address again.
     programId: string;
     // What the logs reported. 0 means the logs said nothing, not that the instruction consumed nothing.
     computeUnits: number;

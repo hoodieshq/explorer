@@ -212,7 +212,7 @@ describe('useSimulationInstructionNames', () => {
             rerender();
 
             expect(result.current.instructions.map(row => row.name)).toEqual(['Transfer Checked', 'Route V2']);
-            expect(result.current.instructions.map(row => row.programId.toBase58())).toEqual([
+            expect(result.current.instructions.map(row => row.programId)).toEqual([
                 TOKEN_PROGRAM.toBase58(),
                 JUPITER_PROGRAM.toBase58(),
             ]);

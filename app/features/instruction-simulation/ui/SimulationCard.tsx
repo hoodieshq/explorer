@@ -6,6 +6,7 @@ import React, { useMemo } from 'react';
 
 import { Button } from '@/app/components/shared/ui/button';
 import { CollapsibleCard } from '@/app/components/shared/ui/collapsible-card';
+import { V1MessageView } from '@/app/shared/lib/v1-message-bridge';
 import { baseCardVariants, Card, CardBody, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 
 import { useSimulation } from '../model/use-simulation';
@@ -25,6 +26,8 @@ type SimulatorCardProps = {
 export function SimulatorCard({ message, showTokenBalanceChanges, accountBalances }: SimulatorCardProps) {
     const { cluster, url } = useCluster();
     const simulation = useSimulation(message, accountBalances);
+    // The inherited `version` getter reports 0 for a bridged v1 message, so v1 is read off the class instead.
+    const transactionVersion = message instanceof V1MessageView ? 1 : message.version;
     // Lookup-table-resolved keys only exist once the simulation has run, so naming waits for them.
     const { instructions: namedInstructions, unresolvable } = useSimulationInstructionNames({
         accountKeys: simulation.status === 'done' ? simulation.result.accountKeys : undefined,
@@ -119,6 +122,7 @@ export function SimulatorCard({ message, showTokenBalanceChanges, accountBalance
                         unitsConsumed={unitsConsumed}
                         cluster={cluster}
                         epoch={epoch}
+                        transactionVersion={transactionVersion}
                     />
                 ))}
             {succeeded && !!solBalanceChanges?.length && <SolBalanceChangesCard balanceChanges={solBalanceChanges} />}

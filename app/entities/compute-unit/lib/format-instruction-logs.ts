@@ -1,6 +1,5 @@
 import { getDefaultComputeUnits } from '@explorer/parsers/programs/compute-budget';
 import type { TransactionVersion } from '@explorer/parsers/transaction';
-import type { Address } from '@solana/kit';
 import type { Cluster } from '@utils/cluster';
 import type { InstructionLogs } from '@utils/program-logs';
 
@@ -50,13 +49,11 @@ export function formatInstructionLogs({
     }
 
     return instructions.map((instruction, index) => {
-        const programId = instruction.programId.toBase58();
+        const { programId } = instruction;
 
         return {
             computeUnits: invocations[index]?.computeUnits ?? 0,
-            // Cast rather than validate: this reads an arbitrary program ID, and an unrecognized one
-            // simply misses the table lookup below rather than being rejected outright.
-            defaultUnits: getDefaultComputeUnits(programId as Address),
+            defaultUnits: getDefaultComputeUnits(programId),
             name: instruction.name,
             programId,
             programName: instruction.programName,

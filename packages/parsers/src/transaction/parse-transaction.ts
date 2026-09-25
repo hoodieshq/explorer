@@ -175,8 +175,11 @@ function toCompiledAddressTableLookups(
     }));
 }
 
-function toRpcAddressTableLookups(lookups: RpcJsonTransaction['message']['addressTableLookups']): AddressTableLookup[] {
-    return (lookups ?? []).map(lookup => ({ ...lookup, accountKey: address(lookup.accountKey) }));
+/** `undefined` stays `undefined`, so a response that never reported the tables is not read as listing none. */
+function toRpcAddressTableLookups(
+    lookups: RpcJsonTransaction['message']['addressTableLookups'],
+): AddressTableLookup[] | undefined {
+    return lookups?.map(lookup => ({ ...lookup, accountKey: address(lookup.accountKey) }));
 }
 
 /**
@@ -356,6 +359,9 @@ function buildTransaction(parts: {
         signatures: parts.signatures,
         ...(parts.resolved.unmatchedLookupTableAddresses && {
             unmatchedLookupTableAddresses: parts.resolved.unmatchedLookupTableAddresses,
+        }),
+        ...(parts.resolved.unmatchedLookupTableIndexes && {
+            unmatchedLookupTableIndexes: parts.resolved.unmatchedLookupTableIndexes,
         }),
     };
 

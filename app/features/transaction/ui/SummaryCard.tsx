@@ -8,15 +8,16 @@ import { SolBalance } from '@components/common/SolBalance';
 import { Badge } from '@components/shared/ui/badge';
 import { Button } from '@components/shared/ui/button';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
-import { estimateRequestedComputeUnitsForParsedTransaction } from '@entities/compute-unit';
+import { toSupportedCluster } from '@entities/compute-unit';
 import { formatTransactionVersion } from '@entities/transaction-data';
 import {
     BaseResourceFeeProjection,
-    derivePriorityFeeLamports,
     estimateRequestedCostUnits,
     isSimd0553FeeEnabled,
     projectResourceAndInclusionFees,
+    resolvePriorityFeeLamports,
 } from '@entities/transaction-fee';
+import { getRequestedComputeUnits, getV1ResourceLimits, transactionSizeLimit } from '@explorer/parsers/transaction';
 import { ViewReceiptButton } from '@features/receipt';
 import { FetchStatus } from '@providers/cache';
 import { useCluster, useClusterInfo } from '@providers/cluster';
@@ -26,8 +27,7 @@ import {
     useTransactionDetails,
     useTransactionStatus,
 } from '@providers/transactions';
-import type { TransactionVersion } from '@solana/kit';
-import { PACKET_DATA_SIZE, ParsedTransaction, SystemInstruction, SystemProgram } from '@solana/web3.js';
+import { ParsedTransaction, SystemInstruction, SystemProgram } from '@solana/web3.js';
 import { ClusterStatus } from '@utils/cluster';
 import { displayTimestamp, displayTimestampUtc } from '@utils/date';
 import { SignatureProps } from '@utils/index';
@@ -41,7 +41,6 @@ import { ZoomIn } from 'react-feather';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
 import { DownloadDropdown } from '@/app/shared/components/DownloadDropdown';
 import { AUTO_REFRESH_INTERVAL, AutoRefresh, WithAutoRefreshProp } from '@/app/shared/lib/use-auto-refresh';
-import { V1_TRANSACTION_SIZE_LIMIT } from '@/app/shared/lib/v1-message-bridge';
 import { Card } from '@/app/shared/ui/Card';
 import { KeyValue, TextValue } from '@/app/shared/ui/key-value';
 import { getEpochForSlot } from '@/app/utils/epoch-schedule';
@@ -91,9 +90,6 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
 
     const serializedRawData = rawDetails?.data?.raw?.messageBytes;
     const serializedSize = rawDetails?.data?.raw?.serializedSize;
-    // Read the version off the raw details rather than the parsed ones, so the size and the limit it
-    // is compared against always come from the same fetch.
-    const rawVersion = rawDetails?.data?.raw?.version;
 
     useEffect(() => {
         if (!rawDetails && clusterStatus === ClusterStatus.Connected) {
@@ -137,30 +133,26 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
     const { info } = status.data;
 
     const transactionWithMeta = details?.data?.transactionWithMeta;
+    const parsedTransaction = transactionWithMeta?.parsedTransaction;
     const fee = transactionWithMeta?.meta?.fee;
     const costUnits = transactionWithMeta?.meta?.costUnits;
     const computeUnitsConsumed = transactionWithMeta?.meta?.computeUnitsConsumed;
-    const transactionConfig = rawDetails?.data?.raw?.transactionConfig;
-    // v1 declares its compute unit limit on the message; every earlier version has to have it
-    // reconstructed from the Compute Budget instructions, which v1 does not carry.
-    const reservedCUs =
-        transactionConfig?.computeUnitLimit ??
-        (transactionWithMeta?.transaction && transactionWithMeta.version !== 1
-            ? estimateRequestedComputeUnitsForParsedTransaction(
-                  transactionWithMeta.transaction,
-                  clusterInfo ? getEpochForSlot(clusterInfo.epochSchedule, BigInt(info.slot)) : undefined,
-                  cluster,
-              )
-            : undefined);
+    const v1ResourceLimits = parsedTransaction ? getV1ResourceLimits(parsedTransaction) : undefined;
+    // An undeclared v1 limit budgets zero at the runtime rather than leaving it unknown, so this is
+    // defined whenever the union parsed, not only when a limit was declared.
+    const reservedCUs = parsedTransaction
+        ? getRequestedComputeUnits(parsedTransaction, {
+              cluster: toSupportedCluster(cluster),
+              epoch: clusterInfo ? getEpochForSlot(clusterInfo.epochSchedule, BigInt(info.slot)) : undefined,
+          }).value
+        : undefined;
     const transaction = transactionWithMeta?.transaction;
     const blockhash = transaction?.message.recentBlockhash;
     const version = transactionWithMeta?.version;
     const feePayer = transaction?.message.accountKeys[0]?.pubkey;
-    const priorityFeeLamports = readPriorityFeeLamports({
-        declared: transactionConfig?.priorityFeeLamports,
-        feeLamports: fee,
-        signatureCount: transaction?.signatures.length,
-    });
+    const priorityFeeLamports = parsedTransaction
+        ? resolvePriorityFeeLamports(parsedTransaction, { feeLamports: fee })
+        : undefined;
     // SIMD-0553 charges the cost units a transaction *requested*, while `costUnits` reports what it
     // executed, so the requested compute limit is needed to correct it. Without one there is nothing
     // honest to project, and the row is left out.
@@ -334,26 +326,26 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
                 )}
 
                 {/* v1 message-level resource limits */}
-                {transactionConfig?.priorityFeeLamports !== undefined && (
-                    <KeyValue
-                        label={
-                            <InfoTooltip text="A total amount paid for prioritization, unlike the per-compute-unit price used before v1">
-                                Priority fee (total)
-                            </InfoTooltip>
-                        }
-                    >
-                        <SolBalance lamports={transactionConfig.priorityFeeLamports} />
-                    </KeyValue>
-                )}
-                {transactionConfig?.loadedAccountsDataSizeLimit !== undefined && (
-                    <KeyValue label="Loaded accounts data size limit">
-                        <TextValue>{transactionConfig.loadedAccountsDataSizeLimit.toLocaleString('en-US')}</TextValue>
-                    </KeyValue>
-                )}
-                {transactionConfig?.heapSize !== undefined && (
-                    <KeyValue label="Heap size">
-                        <TextValue>{transactionConfig.heapSize.toLocaleString('en-US')}</TextValue>
-                    </KeyValue>
+                {v1ResourceLimits && (
+                    <>
+                        <KeyValue
+                            label={
+                                <InfoTooltip text="A total amount paid for prioritization, unlike the per-compute-unit price used before v1">
+                                    Priority fee (total)
+                                </InfoTooltip>
+                            }
+                        >
+                            <SolBalance lamports={v1ResourceLimits.priorityFeeLamports} />
+                        </KeyValue>
+                        <KeyValue label="Loaded accounts data size limit">
+                            <TextValue>
+                                {v1ResourceLimits.loadedAccountsDataSizeLimitBytes.toLocaleString('en-US')}
+                            </TextValue>
+                        </KeyValue>
+                        <KeyValue label="Heap size">
+                            <TextValue>{v1ResourceLimits.heapSizeBytes.toLocaleString('en-US')}</TextValue>
+                        </KeyValue>
+                    </>
                 )}
 
                 {version !== undefined && (
@@ -362,7 +354,7 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
                     </KeyValue>
                 )}
 
-                {serializedSize !== undefined && (
+                {serializedSize !== undefined && serializedRawData !== undefined && (
                     <KeyValue
                         label={
                             <InfoTooltip text="Size on the wire: signatures plus the compiled message">
@@ -375,7 +367,7 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
                         {/* No over-limit styling here, unlike the inspector: a transaction that landed is
                             necessarily within the limit. The cap is context for headroom. */}
                         <span className="text-xs text-outer-space-300">
-                            Max is {transactionSizeLimit(rawVersion).toLocaleString('en-US')} bytes
+                            Max is {transactionSizeLimit(serializedRawData).toLocaleString('en-US')} bytes
                         </span>
                     </KeyValue>
                 )}
@@ -399,39 +391,4 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
             </Card>
         </section>
     );
-}
-
-/**
- * SIMD-0553 carries priority fees over unchanged, so projecting a total needs them split out of the
- * single summed `fee` the RPC reports. v1 declares its total priority fee on the message; every
- * earlier version has to have it backed out of the total.
- */
-function readPriorityFeeLamports({
-    declared,
-    feeLamports,
-    signatureCount,
-}: {
-    declared: bigint | number | undefined;
-    feeLamports: number | undefined;
-    signatureCount: number | undefined;
-}): number | undefined {
-    if (declared !== undefined) {
-        return Number(declared);
-    }
-    if (feeLamports === undefined || signatureCount === undefined) {
-        return undefined;
-    }
-    return derivePriorityFeeLamports({ feeLamports, signatureCount });
-}
-
-/**
- * v1 raised the ceiling past the UDP packet size every earlier version is bounded by. Matches the
- * inspector's limit, so the same transaction reads the same on both pages.
- *
- * Deliberately not kit's `getTransactionSizeLimit`: that one masks the first message byte and treats
- * `1` as v1, but a legacy message opens with its signer count — so every single-signer legacy
- * transaction comes back as 4096. Keyed off the decoded version, which can't be confused that way.
- */
-function transactionSizeLimit(version: TransactionVersion | undefined): number {
-    return version === 1 ? V1_TRANSACTION_SIZE_LIMIT : PACKET_DATA_SIZE;
 }

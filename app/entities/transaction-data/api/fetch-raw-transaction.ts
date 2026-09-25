@@ -1,3 +1,4 @@
+import { fromMessageBytes, type ParsedTransaction } from '@explorer/parsers/transaction';
 import {
     createSolanaRpc,
     decodeTransactionFromRpcResponse,
@@ -9,6 +10,7 @@ import {
 } from '@solana/kit';
 import { type DecompileArgs, type Finality, PublicKey, TransactionMessage, VersionedMessage } from '@solana/web3.js';
 
+import { Logger } from '@/app/shared/lib/logger';
 import { readV1TransactionConfig } from '@/app/shared/lib/v1-message-bridge';
 
 import type { RawTransaction } from '../model/types';
@@ -63,6 +65,7 @@ export async function fetchRawTransaction(
                   preBalances: meta.preBalances.map(Number),
               }
             : undefined,
+        parsedTransaction: buildParsedTransaction(messageBytes, meta?.loadedAddresses, signatures, signature),
         serializedSize: getTransactionSize(transaction),
         signatures,
         slot: Number(response.slot),
@@ -97,6 +100,21 @@ function toBase58Signatures(signatures: Transaction['signatures']): (string | un
 }
 
 type RpcLoadedAddresses = Readonly<{ readonly: readonly string[]; writable: readonly string[] }>;
+
+/** Builds the union from the same bytes and loaded addresses the web3.js view uses. */
+function buildParsedTransaction(
+    messageBytes: Uint8Array,
+    loadedAddresses: RpcLoadedAddresses | undefined,
+    signatures: (string | undefined)[],
+    signature: string,
+): ParsedTransaction | undefined {
+    try {
+        return fromMessageBytes(messageBytes, { loadedAddresses, signatures });
+    } catch (error) {
+        Logger.error(error, { module: '[transaction-data]', signature });
+        return undefined;
+    }
+}
 
 function decodeWithWeb3(
     messageBytes: Uint8Array,

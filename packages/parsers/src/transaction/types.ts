@@ -45,6 +45,8 @@ type TransactionBase = {
     signatures: readonly (string | undefined)[];
     /** Loaded addresses missing from every listed lookup table. Absent when the encoding omits them. */
     unmatchedLookupTableAddresses?: readonly Address[];
+    /** Lookup table indexes which are not matched by any loaded addresses. Absent when the encoding omits the tables. */
+    unmatchedLookupTableIndexes?: readonly AddressTableLookup[];
 };
 
 export type ParsedTransaction =
