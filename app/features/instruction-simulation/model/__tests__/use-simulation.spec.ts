@@ -27,7 +27,9 @@ describe('useSimulation', () => {
     });
 
     it('should return idle status before simulation', () => {
-        const { result } = renderHook(() => useSimulation(createMockMessage()), { wrapper: swrWrapper() });
+        const { result } = renderHook(() => useSimulation({ message: createMockMessage(), version: 0 }), {
+            wrapper: swrWrapper(),
+        });
 
         expect(result.current.status).toBe('idle');
         expect(typeof getSimulate(result.current)).toBe('function');
@@ -37,7 +39,9 @@ describe('useSimulation', () => {
         const successResult = createSuccessResult({ epoch: 42n, unitsConsumed: 200 });
         mockSimulateTransaction.mockResolvedValue(successResult);
 
-        const { result } = renderHook(() => useSimulation(createMockMessage()), { wrapper: swrWrapper() });
+        const { result } = renderHook(() => useSimulation({ message: createMockMessage(), version: 0 }), {
+            wrapper: swrWrapper(),
+        });
 
         await act(async () => {
             getSimulate(result.current)();
@@ -49,10 +53,24 @@ describe('useSimulation', () => {
         });
     });
 
+    it('should pass the declared version to simulateTransaction', async () => {
+        const transaction = { message: createMockMessage(), version: 'legacy' as const };
+
+        const { result } = renderHook(() => useSimulation(transaction), { wrapper: swrWrapper() });
+
+        await act(async () => {
+            getSimulate(result.current)();
+        });
+
+        expect(mockSimulateTransaction).toHaveBeenCalledWith(expect.objectContaining({ transaction }));
+    });
+
     it('should transition to error when simulateTransaction rejects', async () => {
         mockSimulateTransaction.mockRejectedValue(new Error('Network timeout'));
 
-        const { result } = renderHook(() => useSimulation(createMockMessage()), { wrapper: swrWrapper() });
+        const { result } = renderHook(() => useSimulation({ message: createMockMessage(), version: 0 }), {
+            wrapper: swrWrapper(),
+        });
 
         await act(async () => {
             getSimulate(result.current)();
@@ -70,7 +88,9 @@ describe('useSimulation', () => {
                 }),
         );
 
-        const { result } = renderHook(() => useSimulation(createMockMessage()), { wrapper: swrWrapper() });
+        const { result } = renderHook(() => useSimulation({ message: createMockMessage(), version: 0 }), {
+            wrapper: swrWrapper(),
+        });
 
         await act(async () => {
             getSimulate(result.current)();

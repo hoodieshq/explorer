@@ -149,6 +149,8 @@ describe('TransactionInspectorPage with a ?message= param', () => {
         expect(screen.getByText('Compute unit limit')).toBeInTheDocument();
         expect(screen.getByText('300,000')).toBeInTheDocument();
         expect(screen.getByText('Priority fee (total)')).toBeInTheDocument();
+        expect(rowValue('Loaded accounts data size limit')).toBe('0');
+        expect(rowValue('Heap size')).toBe('32,768');
         expect(screen.getByText('Account List')).toBeInTheDocument();
         // v1 messages carry static accounts only, so neither the lookups card nor the
         // lookup-derived account badges appear.
@@ -183,6 +185,10 @@ function setParam(name: string, value: string) {
     vi.mocked(useSearchParams).mockReturnValue(
         new URLSearchParams({ [name]: value }) as unknown as ReturnType<typeof useSearchParams>,
     );
+}
+
+function rowValue(label: string): string | null | undefined {
+    return screen.getByText(label).nextElementSibling?.textContent;
 }
 
 function renderPage(options: { transactions?: boolean } = {}) {
