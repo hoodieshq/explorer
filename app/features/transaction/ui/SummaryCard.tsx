@@ -9,7 +9,7 @@ import { SolBalance } from '@components/common/SolBalance';
 import { Badge } from '@components/shared/ui/badge';
 import { Button } from '@components/shared/ui/button';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
-import { estimateRequestedComputeUnitsForParsedTransaction } from '@entities/compute-unit';
+import { toScheduleCluster } from '@entities/compute-unit';
 import { formatTransactionVersion } from '@entities/transaction-data';
 import {
     BaseResourceFeeProjection,
@@ -18,6 +18,7 @@ import {
     isSimd0553FeeEnabled,
     projectResourceAndInclusionFees,
 } from '@entities/transaction-fee';
+import { getRequestedComputeUnits } from '@explorer/parsers/transaction';
 import { ViewReceiptButton } from '@features/receipt';
 import { FetchStatus } from '@providers/cache';
 import { useCluster, useEpochSchedule } from '@providers/cluster';
@@ -143,21 +144,17 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
     const { info } = status.data;
 
     const transactionWithMeta = details?.data?.transactionWithMeta;
+    const parsedTransaction = transactionWithMeta?.parsedTransaction;
     const fee = transactionWithMeta?.meta?.fee;
     const costUnits = transactionWithMeta?.meta?.costUnits;
     const computeUnitsConsumed = transactionWithMeta?.meta?.computeUnitsConsumed;
     const transactionConfig = rawDetails?.data?.raw?.transactionConfig;
-    // v1 declares its compute unit limit on the message; every earlier version has to have it
-    // reconstructed from the Compute Budget instructions, which v1 does not carry.
-    const reservedCUs =
-        transactionConfig?.computeUnitLimit ??
-        (transactionWithMeta?.transaction && transactionWithMeta.version !== 1
-            ? estimateRequestedComputeUnitsForParsedTransaction(
-                  transactionWithMeta.transaction,
-                  epochSchedule ? getEpochForSlot(epochSchedule, BigInt(info.slot)) : undefined,
-                  cluster,
-              )
-            : undefined);
+    const reservedCUs = parsedTransaction
+        ? getRequestedComputeUnits(parsedTransaction, {
+              cluster: toScheduleCluster(cluster),
+              epoch: epochSchedule ? getEpochForSlot(epochSchedule, BigInt(info.slot)) : undefined,
+          }).value
+        : undefined;
     const transaction = transactionWithMeta?.transaction;
     const blockhash = transaction?.message.recentBlockhash;
     const version = transactionWithMeta?.version;
