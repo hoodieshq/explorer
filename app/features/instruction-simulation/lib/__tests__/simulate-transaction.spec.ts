@@ -1,5 +1,11 @@
 import type { SolanaRpc } from '@entities/cluster';
-import { type AddressLookupTableAccount, Keypair, PublicKey, type VersionedMessage } from '@solana/web3.js';
+import {
+    type AddressLookupTableAccount,
+    Keypair,
+    PublicKey,
+    type VersionedMessage,
+    VersionedTransaction,
+} from '@solana/web3.js';
 import { SYSTEM_PROGRAM_ADDRESS } from '@solana-program/system';
 import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import { Cluster } from '@utils/cluster';
@@ -29,7 +35,17 @@ vi.mock('@utils/program-logs', () => ({
     parseProgramLogs: (...args: unknown[]) => mockParseProgramLogs(...args),
 }));
 
-import { simulateTransaction } from '../simulate-transaction';
+const { UnsignedV1WireTransaction } = vi.hoisted(() => ({
+    UnsignedV1WireTransaction: vi.fn().mockImplementation(function () {
+        return { serialize: () => new Uint8Array(0) };
+    }),
+}));
+vi.mock('@/app/shared/lib/v1-message-bridge', async importOriginal => ({
+    ...(await importOriginal<typeof import('@/app/shared/lib/v1-message-bridge')>()),
+    UnsignedV1WireTransaction,
+}));
+
+import { simulateTransaction, type SimulationInput } from '../simulate-transaction';
 
 const ACCOUNT_KEY_1 = Keypair.generate().publicKey;
 // Intentionally the Token program — this key doubles as an account key and a program owner
@@ -248,7 +264,7 @@ describe('simulateTransaction', () => {
             }),
         );
 
-        const result = await simulate(rpc, message);
+        const result = await simulate(rpc, { message, version: 0 });
 
         expect(rpc.getMultipleAccounts).toHaveBeenCalledWith(
             [toKitAddress(lookupTableKey)],
@@ -359,7 +375,7 @@ describe('simulateTransaction', () => {
             const postAmount = 2_500_000n;
             const rpc = setupTokenAccountRpc(preAmount, postAmount);
 
-            const result = await simulate(rpc, createTokenMessage());
+            const result = await simulate(rpc, { message: createTokenMessage(), version: 0 });
 
             expect(result).toMatchObject({ error: undefined });
             if (!result.tokenBalanceData) throw new Error('expected tokenBalanceData');
@@ -380,7 +396,7 @@ describe('simulateTransaction', () => {
         it('should handle token accounts with zero amount', async () => {
             const rpc = setupTokenAccountRpc(0n, 0n);
 
-            const result = await simulate(rpc, createTokenMessage());
+            const result = await simulate(rpc, { message: createTokenMessage(), version: 0 });
 
             expect(result).toMatchObject({ error: undefined });
             expect(result.tokenBalanceData?.postTokenBalances[0]).toMatchObject({ uiTokenAmount: { amount: '0' } });
@@ -390,7 +406,7 @@ describe('simulateTransaction', () => {
             const largeAmount = 9_000_000_000_000_000n;
             const rpc = setupTokenAccountRpc(0n, largeAmount);
 
-            const result = await simulate(rpc, createTokenMessage());
+            const result = await simulate(rpc, { message: createTokenMessage(), version: 0 });
 
             expect(result).toMatchObject({ error: undefined });
             expect(result.tokenBalanceData?.postTokenBalances[0]).toMatchObject({
@@ -401,8 +417,16 @@ describe('simulateTransaction', () => {
 });
 
 describe('v1 transactions', () => {
-    function v1Message(config: Parameters<typeof createV1TransactionBytes>[0] = {}): VersionedMessage {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
+    function v1Message(config: Parameters<typeof createV1TransactionBytes>[0] = {}) {
         return bridgeV1MessageBytes(parseTransactionBytes(createV1TransactionBytes(config)).messageBytes).message;
+    }
+
+    function v1Input(config: Parameters<typeof createV1TransactionBytes>[0] = {}): SimulationInput {
+        return { message: v1Message(config), version: 1 };
     }
 
     function rpcWithFeature(activated: boolean, overrides?: Partial<Record<string, unknown>>): SolanaRpc {
@@ -424,7 +448,7 @@ describe('v1 transactions', () => {
             simulateTransaction: rpcReject(new Error('invalid transaction: UnsupportedVersion')),
         });
 
-        await expect(simulate(rpc, v1Message())).rejects.toThrow('does not support v1 transactions');
+        await expect(simulate(rpc, v1Input())).rejects.toThrow('does not support v1 transactions');
     });
 
     it('should name the feature gate when the node returns UnsupportedVersion as a simulation error', async () => {
@@ -432,7 +456,7 @@ describe('v1 transactions', () => {
             simulateTransaction: rpcCall(createSimulationResponse({ err: 'UnsupportedVersion', logs: [] })),
         });
 
-        const result = await simulate(rpc, v1Message());
+        const result = await simulate(rpc, v1Input());
 
         expect(result.error).toContain('does not support v1 transactions');
     });
@@ -442,7 +466,7 @@ describe('v1 transactions', () => {
             simulateTransaction: rpcReject(new Error('rpc down')),
         });
 
-        await expect(simulate(rpc, v1Message())).rejects.toThrow('rpc down');
+        await expect(simulate(rpc, v1Input())).rejects.toThrow('rpc down');
     });
 
     it('should surface the original failure when the feature gate cannot be read', async () => {
@@ -451,7 +475,7 @@ describe('v1 transactions', () => {
             simulateTransaction: rpcReject(new Error('rpc down')),
         });
 
-        await expect(simulate(rpc, v1Message())).rejects.toThrow('rpc down');
+        await expect(simulate(rpc, v1Input())).rejects.toThrow('rpc down');
     });
 
     it('should name the feature gate when UnsupportedVersion arrives alongside logs', async () => {
@@ -461,7 +485,7 @@ describe('v1 transactions', () => {
             ),
         });
 
-        const result = await simulate(rpc, v1Message());
+        const result = await simulate(rpc, v1Input());
 
         expect(result.error).toContain('does not support v1 transactions');
     });
@@ -472,13 +496,31 @@ describe('v1 transactions', () => {
             simulateTransaction: rpcReject(cause),
         });
 
-        await expect(simulate(rpc, v1Message())).rejects.toMatchObject({ cause });
+        await expect(simulate(rpc, v1Input())).rejects.toMatchObject({ cause });
+    });
+
+    it('should send a message declared as v1 in the v1 wire envelope', async () => {
+        const message = v1Message();
+
+        await simulate(rpcWithFeature(true), { message, version: 1 });
+
+        expect(UnsignedV1WireTransaction).toHaveBeenCalledWith(message);
+        expect(VersionedTransaction).not.toHaveBeenCalled();
+    });
+
+    it('should send a bridged message declared as v0 in the stock envelope', async () => {
+        const message = v1Message();
+
+        await simulate(rpcWithFeature(true), { message, version: 0 });
+
+        expect(VersionedTransaction).toHaveBeenCalledWith(message);
+        expect(UnsignedV1WireTransaction).not.toHaveBeenCalled();
     });
 
     it('should not read the feature gate when a v1 simulation succeeds', async () => {
         const rpc = rpcWithFeature(true);
 
-        await simulate(rpc, v1Message());
+        await simulate(rpc, v1Input());
 
         expect(rpc.simulateTransaction).toHaveBeenCalled();
         expect(rpc.getAccountInfo).not.toHaveBeenCalled();
@@ -509,9 +551,7 @@ describe('v1 transactions', () => {
         }
 
         it('should report the size the runtime loaded against the limit the message sets', async () => {
-            const message = v1Message({ loadedAccountsDataSizeLimit: 74_900 });
-
-            const result = await simulate(rpcRejectingForSize(), message);
+            const result = await simulate(rpcRejectingForSize(), v1Input({ loadedAccountsDataSizeLimit: 74_900 }));
 
             expect(result.error).toContain('this transaction loads 74,928 bytes');
             expect(result.error).toContain('74,800 bytes of account data');
@@ -532,7 +572,7 @@ describe('v1 transactions', () => {
                 [{ data: { parsed: {}, program: 'x', space: 500_000n }, owner: UPGRADEABLE_LOADER.toBase58() }],
             );
 
-            const result = await simulate(rpc, v1Message({ loadedAccountsDataSizeLimit: 1024 }));
+            const result = await simulate(rpc, v1Input({ loadedAccountsDataSizeLimit: 1024 }));
 
             // 500,036 bytes of data across three accounts, each charged 64 bytes of metadata
             expect(result.error).toContain('this transaction loads 500,228 bytes');
@@ -552,7 +592,7 @@ describe('v1 transactions', () => {
                 { data: { parsed: {}, program: 'x', space: 500_000n }, owner: UPGRADEABLE_LOADER.toBase58() },
             ]);
 
-            const result = await simulate(rpc, v1Message({ loadedAccountsDataSizeLimit: 1024 }));
+            const result = await simulate(rpc, v1Input({ loadedAccountsDataSizeLimit: 1024 }));
 
             // 500,036 bytes of data across two accounts, each charged 64 bytes of metadata
             expect(result.error).toContain('this transaction loads 500,164 bytes');
@@ -569,14 +609,14 @@ describe('v1 transactions', () => {
                 },
             ]);
 
-            const result = await simulate(rpc, v1Message({ loadedAccountsDataSizeLimit: 1024 }));
+            const result = await simulate(rpc, v1Input({ loadedAccountsDataSizeLimit: 1024 }));
 
             expect(rpc.getMultipleAccounts).toHaveBeenCalledTimes(1);
             expect(result.error).toContain('this transaction loads 500,128 bytes');
         });
 
         it('should report the size as a floor when the accounts it can see fit under the limit', async () => {
-            const result = await simulate(rpcRejectingForSize(), v1Message({ loadedAccountsDataSizeLimit: 200_000 }));
+            const result = await simulate(rpcRejectingForSize(), v1Input({ loadedAccountsDataSizeLimit: 200_000 }));
 
             expect(result.error).toContain('this transaction loads at least 74,928 bytes');
             expect(result.error).toContain('within the 200,000 byte limit set in the v1 message config');
@@ -598,13 +638,13 @@ describe('v1 transactions', () => {
                 ),
             });
 
-            const result = await simulate(rpc, v1Message({ loadedAccountsDataSizeLimit: 74_900 }));
+            const result = await simulate(rpc, v1Input({ loadedAccountsDataSizeLimit: 74_900 }));
 
             expect(result.error).toContain('this transaction loads 74,928 bytes');
         });
 
         it('should name the unset limit as zero when the message sets none', async () => {
-            const result = await simulate(rpcRejectingForSize(), v1Message());
+            const result = await simulate(rpcRejectingForSize(), v1Input());
 
             expect(result.error).toContain('this transaction loads 74,928 bytes');
             expect(result.error).toContain('sets no loaded accounts data size limit');
@@ -622,7 +662,7 @@ describe('v1 transactions', () => {
             // program data lookup — fail.
             vi.mocked(rpc.getMultipleAccounts).mockReturnValueOnce(sendError(new Error('rpc down')));
 
-            const result = await simulate(rpc, v1Message({ loadedAccountsDataSizeLimit: 1024 }));
+            const result = await simulate(rpc, v1Input({ loadedAccountsDataSizeLimit: 1024 }));
 
             expect(result.error).toBe('MaxLoadedAccountsDataSizeExceeded');
         });
@@ -733,14 +773,14 @@ function createSimulationResponse(overrides?: Record<string, unknown>) {
 
 function simulate(
     rpc: SolanaRpc,
-    message?: VersionedMessage,
+    transaction: SimulationInput = { message: createMockMessage(), version: 0 },
     accountBalances?: { preBalances: number[]; postBalances: number[] },
 ) {
     return simulateTransaction({
         accountBalances,
         cluster: Cluster.Devnet,
-        message: message ?? createMockMessage(),
         rpc,
+        transaction,
     });
 }
 

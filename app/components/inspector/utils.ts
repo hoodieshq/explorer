@@ -1,13 +1,25 @@
 import {
     AccountMeta,
+    Message,
     MessageAddressTableLookup,
     MessageCompiledInstruction,
+    MessageV0,
     PublicKey,
     TransactionInstruction,
     VersionedMessage,
 } from '@solana/web3.js';
 
 import { toBuffer } from '@/app/shared/lib/bytes';
+
+/**
+ * Deserializes message bytes that the v1 sniff has already ruled out.
+ * web3.js `VersionedMessage.deserialize` can also return a v1 message, so its type cannot promise legacy or v0.
+ */
+export function deserializeLegacyOrV0Message(bytes: Uint8Array): Message | MessageV0 {
+    return VersionedMessage.deserializeMessageVersion(bytes) === 'legacy'
+        ? Message.from(bytes)
+        : MessageV0.deserialize(bytes);
+}
 
 type LookupsForAccountKeyIndex = { lookupTableIndex: number; lookupTableKey: PublicKey };
 

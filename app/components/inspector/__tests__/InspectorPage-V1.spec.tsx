@@ -4,7 +4,10 @@ import React from 'react';
 import { describe, expect, test, vi } from 'vitest';
 
 import { InstructionParserProvider } from '@/app/entities/instruction-parser';
-import { createV1TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import {
+    createV1TransactionBytes,
+    type V1ConfigOverrides,
+} from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
 import { AccountsProvider } from '@/app/providers/accounts';
 import { ClusterProvider } from '@/app/providers/cluster';
 import { ScrollAnchorProvider } from '@/app/providers/scroll-anchor';
@@ -14,6 +17,34 @@ import { instructionParserDispatcher } from '@/app/tx/instruction-parser-dispatc
 
 import { ADDRESS_TABLE_LOOKUPS_CARD_TITLE } from '../AddressTableLookupsCard';
 import { TransactionInspectorPage } from '../InspectorPage';
+
+function rowValue(label: string): string | null | undefined {
+    return screen.getByText(label).nextElementSibling?.textContent;
+}
+
+async function mockMessageParam(config: V1ConfigOverrides) {
+    const { messageBytes } = parseTransactionBytes(createV1TransactionBytes(config));
+    const params = new URLSearchParams();
+    params.set('message', encodeURIComponent(toBase64(messageBytes)));
+
+    vi.spyOn(await import('next/navigation'), 'useSearchParams').mockReturnValue(
+        params as unknown as ReturnType<typeof useSearchParams>,
+    );
+}
+
+function renderInspector() {
+    return render(
+        <ScrollAnchorProvider>
+            <ClusterProvider>
+                <AccountsProvider>
+                    <InstructionParserProvider dispatcher={instructionParserDispatcher}>
+                        <TransactionInspectorPage showTokenBalanceChanges={false} />
+                    </InstructionParserProvider>
+                </AccountsProvider>
+            </ClusterProvider>
+        </ScrollAnchorProvider>,
+    );
+}
 
 vi.mock('next/navigation', () => ({
     usePathname: vi.fn(() => '/tx/inspector'),
@@ -29,15 +60,6 @@ vi.mock('@/app/features/instruction-simulation/model/use-simulation', () => ({
 
 describe('TransactionInspectorPage with a v1 ?message= param', () => {
     beforeEach(async () => {
-        const { messageBytes } = parseTransactionBytes(
-            createV1TransactionBytes({ computeUnitLimit: 300_000, priorityFeeLamports: 50n }),
-        );
-        const params = new URLSearchParams();
-        params.set('message', encodeURIComponent(toBase64(messageBytes)));
-
-        vi.spyOn(await import('next/navigation'), 'useSearchParams').mockReturnValue(
-            params as unknown as ReturnType<typeof useSearchParams>,
-        );
         vi.spyOn(await import('next/navigation'), 'useRouter').mockReturnValue({
             push: vi.fn(),
             replace: vi.fn(),
@@ -58,17 +80,8 @@ describe('TransactionInspectorPage with a v1 ?message= param', () => {
     });
 
     test('should render the transaction with its resource-limit rows', async () => {
-        render(
-            <ScrollAnchorProvider>
-                <ClusterProvider>
-                    <AccountsProvider>
-                        <InstructionParserProvider dispatcher={instructionParserDispatcher}>
-                            <TransactionInspectorPage showTokenBalanceChanges={false} />
-                        </InstructionParserProvider>
-                    </AccountsProvider>
-                </ClusterProvider>
-            </ScrollAnchorProvider>,
-        );
+        await mockMessageParam({ computeUnitLimit: 300_000, priorityFeeLamports: 50n });
+        renderInspector();
 
         expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
         expect(screen.queryByText('Inspector Input')).toBeNull();
@@ -76,11 +89,24 @@ describe('TransactionInspectorPage with a v1 ?message= param', () => {
         expect(screen.getByText('Compute unit limit')).toBeInTheDocument();
         expect(screen.getByText('300,000')).toBeInTheDocument();
         expect(screen.getByText('Priority fee (total)')).toBeInTheDocument();
+        expect(rowValue('Loaded accounts data size limit')).toBe('0');
+        expect(rowValue('Heap size')).toBe('32,768');
         // fee payer, recipient, program — the Account List title no longer carries the account count.
         expect(screen.getByText('Account List')).toBeInTheDocument();
         // v1 messages carry static accounts only, so neither the lookups card nor the
         // lookup-derived account badges appear.
         expect(screen.queryByText(ADDRESS_TABLE_LOOKUPS_CARD_TITLE)).toBeNull();
         expect(screen.queryByText('Address Table Lookup')).toBeNull();
+    });
+
+    test('should render runtime defaults when the message declares no limits', async () => {
+        await mockMessageParam({});
+        renderInspector();
+
+        expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
+        expect(rowValue('Compute unit limit')).toBe('0');
+        expect(rowValue('Priority fee (total)')).toBe('◎0');
+        expect(rowValue('Loaded accounts data size limit')).toBe('0');
+        expect(rowValue('Heap size')).toBe('32,768');
     });
 });
