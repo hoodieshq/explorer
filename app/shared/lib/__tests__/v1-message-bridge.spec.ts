@@ -10,26 +10,11 @@ import {
 } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
 
 import { parseTransactionBytes } from '../parse-transaction-bytes';
-import { bridgeV1MessageBytes, isV1MessageBytes, UnsignedV1WireTransaction, V1MessageView } from '../v1-message-bridge';
+import { bridgeV1MessageBytes, UnsignedV1WireTransaction, V1MessageView } from '../v1-message-bridge';
 
 function v1MessageBytes(config: Parameters<typeof createV1TransactionBytes>[0] = {}): Uint8Array {
     return parseTransactionBytes(createV1TransactionBytes(config)).messageBytes;
 }
-
-describe('isV1MessageBytes', () => {
-    it('should identify v1 message bytes', () => {
-        expect(isV1MessageBytes(v1MessageBytes())).toBe(true);
-    });
-
-    it.each([['legacy'], [0]] as const)('should reject %s message bytes', version => {
-        const { messageBytes } = parseTransactionBytes(createWeb3TransactionBytes(version));
-        expect(isV1MessageBytes(messageBytes)).toBe(false);
-    });
-
-    it('should reject empty input', () => {
-        expect(isV1MessageBytes(new Uint8Array(0))).toBe(false);
-    });
-});
 
 describe('bridgeV1MessageBytes', () => {
     it('should map the compiled message onto the web3.js view', () => {

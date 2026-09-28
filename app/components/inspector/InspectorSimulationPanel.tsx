@@ -51,11 +51,11 @@ function SimEmptyHint({ children, simulation }: { children: React.ReactNode; sim
 export function InspectorSimulationPanel({
     simulation,
     message,
-    transactionVersion,
+    version,
 }: {
     simulation: SimulationState;
     message: VersionedMessage;
-    transactionVersion: TransactionVersion;
+    version: TransactionVersion;
 }) {
     const { cluster, url } = useCluster();
 
@@ -150,7 +150,7 @@ export function InspectorSimulationPanel({
                                 unitsConsumed={result.unitsConsumed}
                                 cluster={cluster}
                                 epoch={result.epoch}
-                                transactionVersion={transactionVersion}
+                                transactionVersion={version}
                                 headerless
                             />
                         )}

@@ -27,6 +27,7 @@ type Story = StoryObj<typeof meta>;
 const args = {
     message: idleMessage,
     showTokenBalanceChanges: false,
+    version: 0 as const,
 };
 
 export const Mobile: Story = {
