@@ -45,7 +45,10 @@ export {
     type SolanaRpc,
     StateContext,
     useCluster,
+    useClusterConnectionFailed,
     useClusterInfo,
+    type ClusterInfoResult,
+    useClusterInfoResult,
     useClusterModal,
     useSolanaRpc,
 } from '@entities/cluster';

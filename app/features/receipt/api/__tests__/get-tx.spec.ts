@@ -1,55 +1,31 @@
-import { Connection } from '@solana/web3.js';
+import { fetchTransactionDetails } from '@entities/transaction-data';
+import { findTransactionCluster } from '@entities/transaction-data/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Cluster } from '@/app/utils/cluster';
+import { Cluster, serverClusterUrl } from '@/app/utils/cluster';
 
 import { mockSingleTransferTransaction } from '../../mocks/single-transfer';
 import { getTx } from '../get-tx';
 
-vi.mock('@solana/web3.js', async () => {
-    const actual = await vi.importActual('@solana/web3.js');
-    return {
-        ...actual,
-        Connection: vi.fn(),
-    };
-});
-
-vi.mock('../../env', () => ({
-    isClusterProbeEnabled: true,
-}));
+// Both halves of the read live in the entity now, on separate barrels: the transaction fetch on the
+// universal `index.ts`, the cluster probe on the server-only one.
+vi.mock('@entities/transaction-data', () => ({ fetchTransactionDetails: vi.fn() }));
+vi.mock('@entities/transaction-data/server', () => ({ findTransactionCluster: vi.fn() }));
 
 describe('getTx', () => {
     const mockSignature = '5yKzCuw1e9d58HcnzSL31cczfXUux2H4Ga5TAR2RcQLE5W8BiTAC9x9MvhLtc4h99sC9XxLEAjhrXyfKezdMkZFV';
-
-    let mockConnection: {
-        getSignatureStatus: ReturnType<typeof vi.fn>;
-        getParsedTransaction: ReturnType<typeof vi.fn>;
-    };
 
     beforeEach(() => {
         vi.clearAllMocks();
         vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        mockConnection = {
-            getParsedTransaction: vi.fn(),
-            getSignatureStatus: vi.fn(),
-        };
-
-        vi.mocked(Connection).mockImplementation(function () {
-            return mockConnection as unknown as Connection;
-        });
+        vi.mocked(findTransactionCluster).mockResolvedValue({ kind: 'not-found' });
     });
 
     describe('successful cases', () => {
-        it('should return transaction and cluster when found', async () => {
-            mockConnection.getSignatureStatus.mockResolvedValueOnce({
-                value: {
-                    confirmationStatus: 'confirmed',
-                    slot: 12345,
-                },
-            });
-
-            mockConnection.getParsedTransaction.mockResolvedValueOnce(mockSingleTransferTransaction);
+        it('should return transaction and cluster when the probe finds mainnet', async () => {
+            vi.mocked(findTransactionCluster).mockResolvedValue({ cluster: Cluster.MainnetBeta, kind: 'found' });
+            vi.mocked(fetchTransactionDetails).mockResolvedValueOnce(mockSingleTransferTransaction);
 
             const result = await getTx(mockSignature);
 
@@ -57,52 +33,38 @@ describe('getTx', () => {
                 cluster: Cluster.MainnetBeta,
                 transaction: mockSingleTransferTransaction,
             });
-            expect(mockConnection.getSignatureStatus).toHaveBeenCalledTimes(1);
-            expect(mockConnection.getParsedTransaction).toHaveBeenCalledTimes(1);
+            expect(fetchTransactionDetails).toHaveBeenCalledTimes(1);
+            expect(fetchTransactionDetails).toHaveBeenCalledWith(serverClusterUrl(Cluster.MainnetBeta), mockSignature);
         });
 
-        it('should return transaction and cluster when found on devnet', async () => {
-            mockConnection.getSignatureStatus.mockResolvedValueOnce({ value: null }).mockResolvedValueOnce({
-                value: {
-                    confirmationStatus: 'confirmed',
-                    slot: 67890,
-                },
-            });
+        it('should skip the probe when the caller already knows the cluster', async () => {
+            vi.mocked(fetchTransactionDetails).mockResolvedValueOnce(mockSingleTransferTransaction);
 
-            mockConnection.getParsedTransaction.mockResolvedValueOnce(mockSingleTransferTransaction);
+            const result = await getTx(mockSignature, undefined, Cluster.Devnet);
 
-            const result = await getTx(mockSignature);
+            expect(result.cluster).toBe(Cluster.Devnet);
+            expect(findTransactionCluster).not.toHaveBeenCalled();
+        });
+    });
 
-            expect(result).toEqual({
-                cluster: Cluster.Devnet,
-                transaction: mockSingleTransferTransaction,
-            });
-            expect(mockConnection.getSignatureStatus).toHaveBeenCalledTimes(2);
-            expect(mockConnection.getParsedTransaction).toHaveBeenCalledTimes(1);
+    describe('cluster probing', () => {
+        it('should probe mainnet only', async () => {
+            await expect(getTx(mockSignature)).rejects.toThrow('Cluster not found');
+
+            expect(findTransactionCluster).toHaveBeenCalledWith([Cluster.MainnetBeta], mockSignature);
         });
     });
 
     describe('error handling', () => {
         it('should throw error when cluster is not found', async () => {
-            mockConnection.getSignatureStatus.mockResolvedValue({
-                value: null,
-            });
-
             await expect(getTx(mockSignature)).rejects.toThrow('Cluster not found');
 
-            expect(mockConnection.getSignatureStatus).toHaveBeenCalledTimes(3);
+            expect(fetchTransactionDetails).not.toHaveBeenCalled();
         });
 
         it('should throw error when transaction is not found', async () => {
-            mockConnection.getSignatureStatus.mockResolvedValue({
-                value: {
-                    confirmationStatus: 'confirmed',
-                    slot: 12345,
-                },
-            });
-
-            mockConnection.getParsedTransaction.mockResolvedValueOnce(null);
-            mockConnection.getParsedTransaction.mockResolvedValueOnce(null);
+            vi.mocked(findTransactionCluster).mockResolvedValue({ cluster: Cluster.MainnetBeta, kind: 'found' });
+            vi.mocked(fetchTransactionDetails).mockResolvedValueOnce(null);
 
             await expect(getTx(mockSignature)).rejects.toSatisfy((error: Error) => {
                 return (
@@ -113,16 +75,11 @@ describe('getTx', () => {
             });
         });
 
-        it('should throw error when getParsedTransaction throws an error', async () => {
-            mockConnection.getSignatureStatus.mockResolvedValue({
-                value: {
-                    confirmationStatus: 'confirmed',
-                    slot: 12345,
-                },
-            });
+        it('should throw error when the transaction fetch throws an error', async () => {
+            vi.mocked(findTransactionCluster).mockResolvedValue({ cluster: Cluster.MainnetBeta, kind: 'found' });
 
             const fetchError = new Error('Failed to fetch');
-            mockConnection.getParsedTransaction.mockRejectedValueOnce(fetchError);
+            vi.mocked(fetchTransactionDetails).mockRejectedValueOnce(fetchError);
 
             await expect(getTx(mockSignature)).rejects.toSatisfy((error: Error) => {
                 return error.message === 'Failed to fetch transaction' && error.cause === fetchError;
@@ -130,31 +87,17 @@ describe('getTx', () => {
         });
 
         it('should throw immediately on mainnet network error', async () => {
-            mockConnection.getSignatureStatus.mockRejectedValueOnce(new Error('Forbidden access'));
+            const probeError = new Error('Forbidden access');
+            vi.mocked(findTransactionCluster).mockResolvedValue({
+                cluster: Cluster.MainnetBeta,
+                error: probeError,
+                kind: 'error',
+            });
 
-            await expect(getTx(mockSignature)).rejects.toThrow('Failed to check the mainnet-beta');
-            expect(mockConnection.getSignatureStatus).toHaveBeenCalledTimes(1);
+            await expect(getTx(mockSignature)).rejects.toSatisfy((error: Error) => {
+                return error.message === 'Failed to check the mainnet-beta' && error.cause === probeError;
+            });
+            expect(fetchTransactionDetails).not.toHaveBeenCalled();
         });
-
-        it('should throw on probe cluster network error', async () => {
-            // Mainnet succeeds but tx not found
-            mockConnection.getSignatureStatus.mockResolvedValueOnce({ value: null });
-            // Devnet fails with network error
-            mockConnection.getSignatureStatus.mockRejectedValueOnce(new Error('Network error'));
-
-            await expect(getTx(mockSignature)).rejects.toThrow('Failed to check the devnet');
-            expect(mockConnection.getSignatureStatus).toHaveBeenCalledTimes(2);
-        });
-    });
-
-    it('should check all clusters', async () => {
-        mockConnection.getSignatureStatus.mockResolvedValue({
-            value: null,
-        });
-
-        await expect(getTx(mockSignature)).rejects.toThrow('Cluster not found');
-
-        expect(Connection).toHaveBeenCalledTimes(3);
-        expect(mockConnection.getSignatureStatus).toHaveBeenCalledTimes(3);
     });
 });

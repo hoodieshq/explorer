@@ -1,4 +1,5 @@
 import { toErrorReason } from '@entities/pmp-account';
+import { MAX_SUPPORTED_TRANSACTION_VERSION } from '@solana/kit';
 import type { Connection } from '@solana/web3.js';
 import { PublicKey } from '@solana/web3.js';
 
@@ -19,9 +20,7 @@ export const PMP_LOOKUP_MAX_SIGNATURES = 8;
  * config does not exist on chain yet, the other is a buffer whose commit fell off the end of the scan.
  */
 export type ConfigResolutionOnchainResult =
-    | ConfigResolutionFromTxResult
-    | { kind: 'max-signatures-limit' }
-    | { kind: 'failed'; reason: string };
+    ConfigResolutionFromTxResult | { kind: 'max-signatures-limit' } | { kind: 'failed'; reason: string };
 
 /**
  * Walks a buffer's recent history newest-first and returns the first config any transaction resolved.
@@ -45,7 +44,9 @@ export async function findConfigInTransactions(
             // A failed transaction never wrote a header, so its declared config was never committed.
             if (entry.err) continue;
 
-            const tx = await connection.getTransaction(entry.signature, { maxSupportedTransactionVersion: 0 });
+            const tx = await connection.getTransaction(entry.signature, {
+                maxSupportedTransactionVersion: MAX_SUPPORTED_TRANSACTION_VERSION,
+            });
             if (!tx || tx.meta?.err) continue;
 
             // Newest wins: a later setData supersedes an earlier one, so the first match ends the scan. Tested on

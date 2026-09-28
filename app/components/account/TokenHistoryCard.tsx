@@ -16,7 +16,7 @@ import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
 import { cn } from '@components/shared/utils';
 import { useTokenInfo } from '@entities/token-info';
-import { type ByteArray } from '@entities/transaction-data';
+import { trustedInnerInstructions } from '@entities/transaction-data';
 import { isMangoInstruction, parseMangoInstructionTitle } from '@explorer/decoder-mango/detection';
 import { isSerumInstruction, parseSerumInstructionTitle } from '@explorer/decoder-serum/detection';
 import { ProxiedImage } from '@features/metadata';
@@ -33,7 +33,6 @@ import { useFetchRawTransaction, useRawTransactionDetails } from '@providers/tra
 import { ConfirmedSignatureInfo, ParsedInstruction, PartiallyDecodedInstruction, PublicKey } from '@solana/web3.js';
 import { Cluster } from '@utils/cluster';
 import { displayTimestampUtc, unixTimestampToMs } from '@utils/date';
-import { INNER_INSTRUCTIONS_START_SLOT } from '@utils/index';
 import { getTokenProgramInstructionName, InstructionType } from '@utils/instruction';
 import { displayAddress, intoTransactionInstruction, TokenLabelInfo } from '@utils/tx';
 import Link from 'next/link';
@@ -47,8 +46,10 @@ import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/comp
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/shared/ui/popover';
 import { Skeleton } from '@/app/components/shared/ui/skeleton';
 import { INITIAL_TOKENS_TO_FETCH, INITIAL_VISIBLE_COUNT, LOAD_MORE_COUNT } from '@/app/features/token-history/config';
+import { type ByteArray } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 import { useVisibility } from '@/app/shared/lib/visibility';
+import { toKitAddress } from '@/app/shared/lib/web3js-compat';
 import { RelativeTime } from '@/app/shared/RelativeTime';
 import { Card, CardFooter } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
@@ -142,7 +143,7 @@ function TokenHistoryTable({
     const fetchHistories = React.useCallback(
         (refresh?: boolean) => {
             tokensToFetch.forEach(token => {
-                fetchAccountHistory(token.pubkey, false, refresh);
+                fetchAccountHistory(toKitAddress(token.pubkey), false, refresh);
             });
         },
         [tokensToFetch, fetchAccountHistory],
@@ -157,7 +158,7 @@ function TokenHistoryTable({
             newTokens.forEach(token => {
                 const address = token.pubkey.toBase58();
                 if (!accountHistories[address]) {
-                    fetchAccountHistory(token.pubkey, false, true);
+                    fetchAccountHistory(toKitAddress(token.pubkey), false, true);
                 }
             });
             prevTokensToFetchCount.current = tokensToFetchCount;
@@ -396,9 +397,9 @@ function TokenHistoryTable({
     );
 }
 
-// Resolves one mint's label through the shared token-info batch provider (the same cache the holdings rows use).
-// Fetches on mount and coalesces with the holdings fetch into one batched POST.
-// The cache-aware provider then skips this mint on any later re-request (filter change, holdings Load More).
+// Resolves one mint's label through the batch provider, which coalesces the dropdown's mints into one
+// POST and skips a mint it has already resolved. The holdings card resolves its own list separately, so
+// a mint on both pays for two lookups.
 function TokenFilterLabel({ mint }: { mint: string }) {
     const { cluster, genesisHash } = useCluster();
     const info = useTokenInfo(true, mint, cluster, genesisHash);
@@ -724,7 +725,7 @@ function TokenProgramsCell({ signature }: { signature: string }) {
         <div ref={ref} className="mt-1 flex flex-col">
             {visible.map((instruction, i) => (
                 <span key={i} className="text-sm">
-                    <span className="text-muted">{instruction.program}: </span>
+                    <span className="text-muted">{instruction.programName}: </span>
                     <span className="text-white">{instruction.name}</span>
                 </span>
             ))}
@@ -1079,11 +1080,12 @@ function InstructionTypeContent({
 
             const innerInstructions: (ParsedInstruction | PartiallyDecodedInstruction)[] = [];
 
-            if (
-                transactionWithMeta.meta?.innerInstructions &&
-                (cluster !== Cluster.MainnetBeta || transactionWithMeta.slot >= INNER_INSTRUCTIONS_START_SLOT)
-            ) {
-                transactionWithMeta.meta.innerInstructions.forEach(innerIx => {
+            const trusted = trustedInnerInstructions(transactionWithMeta.meta?.innerInstructions, {
+                cluster,
+                slot: transactionWithMeta.slot,
+            });
+            if (trusted) {
+                trusted.forEach(innerIx => {
                     if (innerIx.index === index) {
                         innerIx.instructions.forEach(inner => {
                             innerInstructions.push(inner);

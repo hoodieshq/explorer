@@ -1,7 +1,1 @@
-export {
-    getZkElGamalProofAccountLabel,
-    isZkElGamalProofInstruction,
-    parseZkElGamalProofInstruction,
-    resolveZkElGamalProofName,
-    type ZkElGamalProofInstruction,
-} from './lib/instruction';
+export { getZkElGamalProofInstructionName, isZkElGamalProofProgram } from './lib/instruction';

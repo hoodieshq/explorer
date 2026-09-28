@@ -3,7 +3,7 @@ import { PUBLIC_KEY_LENGTH } from '@solana/web3.js';
 import { Cluster, clusterFromSlug, clusterSlug, type ServerCluster } from '@utils/cluster';
 import { NextResponse } from 'next/server';
 
-import { GENESIS_HASHES } from '@/app/entities/chain-id/lib/const';
+import { GENESIS_HASHES } from '@/app/entities/chain-id/server';
 import { resolveSearchTokens, SEARCH_CACHE_HEADERS } from '@/app/features/search/server';
 import { NO_STORE_HEADERS } from '@/app/shared/lib/http-utils';
 
@@ -80,20 +80,6 @@ export async function GET(request: Request) {
         return NextResponse.json(
             { meta: { total: tokens.length }, query: trimmed, queryType, results: { tokens }, success: true },
             { headers: SEARCH_CACHE_HEADERS },
-        );
-    }
-
-    // SIMD-296 is an experimental cluster not covered by Jupiter/UTL token lists.
-    if (cluster === Cluster.Simd296) {
-        return NextResponse.json(
-            {
-                meta: { total: 0 },
-                query: trimmed,
-                queryType: detectQueryType(trimmed),
-                results: { tokens: [] },
-                success: true,
-            },
-            { headers: NO_STORE_HEADERS },
         );
     }
 

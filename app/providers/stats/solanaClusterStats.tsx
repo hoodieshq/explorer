@@ -1,6 +1,6 @@
 'use client';
 
-import { useCluster, useSolanaRpc } from '@providers/cluster';
+import { getRpc, useCluster } from '@providers/cluster';
 import { Cluster } from '@utils/cluster';
 import useTabVisibility from '@utils/use-tab-visibility';
 import React from 'react';
@@ -42,8 +42,6 @@ const initialPerformanceInfo: PerformanceInfo = {
 };
 
 const initialDashboardInfo: DashboardInfo = {
-    avgSlotTime_1h: 0,
-    avgSlotTime_1min: 0,
     epochInfo: {
         absoluteSlot: BigInt(0),
         blockHeight: BigInt(0),
@@ -51,6 +49,7 @@ const initialDashboardInfo: DashboardInfo = {
         slotIndex: BigInt(0),
         slotsInEpoch: BigInt(0),
     },
+    msPerSlot_1h: 0,
     status: ClusterStatsStatus.Loading,
 };
 
@@ -78,14 +77,17 @@ export const PerformanceContext: React.Context<PerformanceState | undefined> = R
 type Props = { children: React.ReactNode };
 
 export function SolanaClusterStatsProvider({ children }: Props) {
-    const { cluster, url } = useCluster();
-    const rpc = useSolanaRpc();
+    const { cluster, connectableUrl, url } = useCluster();
     const [active, setActive] = React.useState(false);
     const [dashboardInfo, dispatchDashboardInfo] = React.useReducer(dashboardInfoReducer, initialDashboardInfo);
     const [performanceInfo, dispatchPerformanceInfo] = React.useReducer(performanceInfoReducer, initialPerformanceInfo);
     const { visible: isTabVisible } = useTabVisibility();
     React.useEffect(() => {
-        if (!active || !isTabVisible || !url) return;
+        // `url` always resolves, so guarding on it polls the fallback endpoint while a custom URL is still
+        // awaiting consent — a node the visitor never chose. `connectableUrl` is absent until that settles.
+        if (!active || !isTabVisible || !connectableUrl) return;
+
+        const rpc = getRpc(connectableUrl);
 
         let lastSlot: bigint | null = null;
         let stale = false;
@@ -232,7 +234,7 @@ export function SolanaClusterStatsProvider({ children }: Props) {
             clearInterval(blockTimeInterval);
             stale = true;
         };
-    }, [active, cluster, isTabVisible, rpc, url]);
+    }, [active, cluster, connectableUrl, isTabVisible, url]);
 
     // Reset when cluster changes
     React.useEffect(() => {

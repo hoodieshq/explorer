@@ -7,12 +7,14 @@ import { Signature } from '@components/common/Signature';
 import { Slot } from '@components/common/Slot';
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { cn } from '@components/shared/utils';
-import { deriveScaledUiAmountMultiplier, useTokenInfo } from '@entities/token-info';
+import { deriveScaledUiAmountMultiplier, orderMintsByVerification, type TokenInfo } from '@entities/token-info';
+import { useTokenInfos } from '@entities/token-info/client';
 import { useAccountHistory } from '@features/transaction-history/model/use-account-history';
 import { useFetchAccountHistory } from '@features/transaction-history/model/use-fetch-account-history';
 import { TokenInfoWithPubkey, useAccountOwnedTokens, useFetchAccountOwnedTokens } from '@providers/accounts/tokens';
 import { FetchStatus } from '@providers/cache';
 import { useCluster } from '@providers/cluster';
+import { address } from '@solana/kit';
 import { PublicKey } from '@solana/web3.js';
 import { displayTimestampUtc, unixTimestampToMs } from '@utils/date';
 import { useClusterPath } from '@utils/url';
@@ -49,34 +51,22 @@ const useQueryDisplay = (): Display => {
     }
 };
 
-// The card is a collapsible section: the "Token Holdings" heading is lifted out above the surface with a
-// chevron toggle + height animation (shared `CollapsibleSection`, `className=""` so the surface comes from
-// the `<Card>` below). The Summary/Detailed dropdown rides along as the section's `actions`.
-//
-// `layout` picks how the holdings are rendered inside the card:
-// - `table` (default) — the shared `<BaseTable>` (a real `<table>`), keeping the original dashkit surface.
-// - `grid` — a CSS-grid list built from `div`s, mirroring the transaction page's Accounts/Token Balances
-//   tables. Desktop visuals match `table`; the internals differ so the two can diverge on mobile later.
-// `expandable` (grid layout only) turns each holding into a spoiler: a chevron opens the row to reveal that
-// token account's recent transactions plus a link to its account page. A design variant for the tokens tab.
-export function OwnedTokensCard({
-    address,
-    layout = 'table',
-    expandable = false,
-}: {
+type OwnedTokensCardProps = {
     address: string;
     layout?: OwnedTokensLayout;
     expandable?: boolean;
-}) {
+};
+
+/** `HoldingsCard` stays split out because its hooks may not sit behind the guards below. */
+export function OwnedTokensCard({ address, layout = 'table', expandable = false }: OwnedTokensCardProps) {
     const pubkey = useMemo(() => new PublicKey(address), [address]);
     const ownedTokens = useAccountOwnedTokens(address);
     const fetchAccountTokens = useFetchAccountOwnedTokens();
     const refresh = () => fetchAccountTokens(pubkey);
-    const [visibleCount, setVisibleCount] = React.useState(HOLDINGS_INITIAL_VISIBLE_COUNT);
     const display = useQueryDisplay();
 
     // Fetch owned tokens
-    React.useEffect(() => {
+    useEffect(() => {
         if (!ownedTokens) refresh();
     }, [address]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -97,7 +87,55 @@ export function OwnedTokensCard({
         return <ErrorCard retry={refresh} retryText="Try Again" text={'No token holdings found'} />;
     }
 
-    const loadMore = () => setVisibleCount(c => c + HOLDINGS_LOAD_MORE_COUNT);
+    return <HoldingsCard display={display} expandable={expandable} layout={layout} tokens={tokens} />;
+}
+
+type HoldingsCardProps = {
+    display: Display;
+    expandable: boolean;
+    layout: OwnedTokensLayout;
+    tokens: TokenInfoWithPubkey[];
+};
+
+// The card is a collapsible section: the "Token Holdings" heading is lifted out above the surface with a
+// chevron toggle + height animation (shared `CollapsibleSection`, `className=""` so the surface comes from
+// the `<Card>` below). The Summary/Detailed dropdown rides along as the section's `actions`.
+//
+// `layout` picks how the holdings are rendered inside the card:
+// - `table` (default) — the shared `<BaseTable>` (a real `<table>`), keeping the original dashkit surface.
+// - `grid` — a CSS-grid list built from `div`s, mirroring the transaction page's Accounts/Token Balances
+//   tables. Desktop visuals match `table`; the internals differ so the two can diverge on mobile later.
+// `expandable` (grid layout only) turns each holding into a spoiler: a chevron opens the row to reveal that
+// token account's recent transactions plus a link to its account page. A design variant for the tokens tab.
+function HoldingsCard({ display, expandable, layout, tokens }: HoldingsCardProps) {
+    const { cluster, genesisHash } = useCluster();
+    const [visibleCount, setVisibleCount] = useState(HOLDINGS_INITIAL_VISIBLE_COUNT);
+
+    const holdings = useMemo(() => aggregateByMint(tokens), [tokens]);
+    const mints = useMemo(() => Array.from(holdings.keys()), [holdings]);
+
+    // Every mint, not just the visible ones: ordering needs each mint's verified status.
+    const { isLoading, tokenInfos } = useTokenInfos(mints, cluster, genesisHash);
+
+    // A permutation of `mints`, so its length is the distinct mint count the footer reports.
+    const orderedMints = useMemo(() => orderMintsByVerification(mints, tokenInfos), [mints, tokenInfos]);
+
+    // Hold the spinner rather than paint an arbitrary order that reshuffles a moment later.
+    if (isLoading) {
+        return <LoadingCard message="Loading token holdings" />;
+    }
+
+    const visibleHoldings = orderedMints.slice(0, visibleCount).flatMap(mintAddress => {
+        const token = holdings.get(mintAddress);
+        return token ? [{ mintAddress, token, tokenInfo: tokenInfos.get(mintAddress) }] : [];
+    });
+    const footer = (
+        <TokensCardFooter
+            loadMore={() => setVisibleCount(count => count + HOLDINGS_LOAD_MORE_COUNT)}
+            totalCount={orderedMints.length}
+            visibleCount={visibleCount}
+        />
+    );
 
     return (
         <CollapsibleSection
@@ -113,11 +151,11 @@ export function OwnedTokensCard({
                 // gives the card the same tone as the row separators; `rounded-lg` is the 8px radius.
                 <Card variant="tight" className="rounded-lg border-outer-space-800 bg-outer-space-900">
                     {expandable ? (
-                        <ExpandableTokensGrid tokens={tokens} visibleCount={visibleCount} />
+                        <ExpandableTokensGrid holdings={visibleHoldings} />
                     ) : (
-                        <TokensGrid tokens={tokens} visibleCount={visibleCount} />
+                        <TokensGrid holdings={visibleHoldings} />
                     )}
-                    <TokensCardFooter tokens={tokens} visibleCount={visibleCount} loadMore={loadMore} />
+                    {footer}
                 </Card>
             ) : (
                 <Card ui="dashkit" marginBottom="none">
@@ -138,13 +176,17 @@ export function OwnedTokensCard({
                                 </BaseTable.HeaderCell>
                             </BaseTable.Row>
                         </BaseTable.Head>
-                        {display === 'detail' ? (
-                            <HoldingsDetail tokens={tokens} visibleCount={visibleCount} />
-                        ) : (
-                            <HoldingsSummary tokens={tokens} visibleCount={visibleCount} />
-                        )}
+                        <BaseTable.Body>
+                            {visibleHoldings.map(holding => (
+                                <TokenRow
+                                    key={holding.mintAddress}
+                                    {...holding}
+                                    showAccountAddress={display === 'detail'}
+                                />
+                            ))}
+                        </BaseTable.Body>
                     </BaseTable>
-                    <TokensCardFooter tokens={tokens} visibleCount={visibleCount} loadMore={loadMore} />
+                    {footer}
                 </Card>
             )}
         </CollapsibleSection>
@@ -154,91 +196,56 @@ export function OwnedTokensCard({
 type MappedToken = {
     amount: string;
     decimals: number;
-    pubkey?: string;
+    pubkey: string;
     rawAmount: string;
     scaledUiAmountMultiplier: string;
 };
 
-// Collapses the raw token-account list into one row per mint, summing balances across accounts of the same
-// mint. `withPubkey` keeps the (last-seen) account address for the Detailed display; Summary drops it.
-// Shared by both the table bodies and the grid so the two layouts stay identical in what they show.
-function useMappedTokens(tokens: TokenInfoWithPubkey[], withPubkey: boolean): [string, MappedToken][] {
-    return useMemo(() => {
-        const tokensMap = new Map<string, MappedToken>();
-
-        tokens.forEach(({ info: token, pubkey }) => {
-            const mintAddress = token.mint.toBase58();
-            const existingToken = tokensMap.get(mintAddress);
-
-            const decimals = token.tokenAmount.decimals;
-            let amount = token.tokenAmount.uiAmountString;
-            // Accumulated alongside `amount` so the tooltip's pre-scaling value matches the total the row renders.
-            let rawAmount = token.tokenAmount.amount;
-
-            if (existingToken) {
-                amount = new BigNumber(existingToken.amount).plus(token.tokenAmount.uiAmountString).toString();
-                rawAmount = new BigNumber(existingToken.rawAmount).plus(token.tokenAmount.amount).toString();
-            }
-
-            tokensMap.set(mintAddress, {
-                amount,
-                decimals,
-                ...(withPubkey ? { pubkey: pubkey.toBase58() } : {}),
-                rawAmount,
-                // Multiplier is a per-mint ratio, so one account's raw/ui pair is enough to derive it.
-                scaledUiAmountMultiplier: deriveScaledUiAmountMultiplier(
-                    token.tokenAmount.amount,
-                    decimals,
-                    token.tokenAmount.uiAmountString,
-                ),
-            });
-        });
-
-        return Array.from(tokensMap.entries());
-    }, [tokens, withPubkey]);
-}
-
-function HoldingsDetail({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; visibleCount: number }) {
-    const visibleTokens = useMappedTokens(tokens, true).slice(0, visibleCount);
-
-    return (
-        <tbody>
-            {visibleTokens.map(([mintAddress, token]) => (
-                <TokenRow key={mintAddress} mintAddress={mintAddress} token={token} showAccountAddress={true} />
-            ))}
-        </tbody>
-    );
-}
-
-function HoldingsSummary({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; visibleCount: number }) {
-    // The Map build is memoized on `tokens`; only this materialize-and-slice runs per render, O(unique mints).
-    // Negligible even at a few thousand mints. If a profile ever flags it, iterate the Map and break at visibleCount.
-    const visibleTokens = useMappedTokens(tokens, false).slice(0, visibleCount);
-
-    return (
-        <tbody>
-            {visibleTokens.map(([mintAddress, token]) => (
-                <TokenRow key={mintAddress} mintAddress={mintAddress} token={token} showAccountAddress={false} />
-            ))}
-        </tbody>
-    );
-}
-
-type TokenRowProps = {
+// One visible row: a mint's aggregated balance plus its resolved metadata from the card's bulk lookup.
+type Holding = {
     mintAddress: string;
     token: MappedToken;
-    showAccountAddress: boolean;
+    tokenInfo: TokenInfo | undefined;
 };
 
-function TokenRow({ mintAddress, token, showAccountAddress }: TokenRowProps) {
-    const { cluster, genesisHash } = useCluster();
-    // Each visible row fetches its mint metadata once via useTokenInfo (coalesced into the app-wide
-    // batched POST) and feeds it to the mint Address as tokenLabelInfo - no second fetch.
-    const tokenInfo = useTokenInfo(true, mintAddress, cluster, genesisHash);
+/** Insertion order is RPC order, which the verification tiering preserves within a tier. */
+function aggregateByMint(tokens: TokenInfoWithPubkey[]): Map<string, MappedToken> {
+    const byMint = new Map<string, MappedToken>();
 
+    for (const { info: token, pubkey } of tokens) {
+        const mintAddress = token.mint.toBase58();
+        const existing = byMint.get(mintAddress);
+        const decimals = token.tokenAmount.decimals;
+
+        let amount = token.tokenAmount.uiAmountString;
+        // Accumulated alongside `amount` so the tooltip's pre-scaling value matches the total the row renders.
+        let rawAmount = token.tokenAmount.amount;
+        if (existing) {
+            amount = new BigNumber(existing.amount).plus(token.tokenAmount.uiAmountString).toString();
+            rawAmount = new BigNumber(existing.rawAmount).plus(token.tokenAmount.amount).toString();
+        }
+
+        byMint.set(mintAddress, {
+            amount,
+            decimals,
+            pubkey: pubkey.toBase58(),
+            rawAmount,
+            // Multiplier is a per-mint ratio, so one account's raw/ui pair is enough to derive it.
+            scaledUiAmountMultiplier: deriveScaledUiAmountMultiplier(
+                token.tokenAmount.amount,
+                decimals,
+                token.tokenAmount.uiAmountString,
+            ),
+        });
+    }
+
+    return byMint;
+}
+
+function TokenRow({ mintAddress, showAccountAddress, token, tokenInfo }: Holding & { showAccountAddress: boolean }) {
     return (
-        <tr>
-            <td className="w-px p-0 text-center">
+        <BaseTable.Row>
+            <BaseTable.Cell className="w-px p-0 text-center">
                 <ProxiedImage
                     alt="Token icon"
                     className="h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
@@ -246,23 +253,23 @@ function TokenRow({ mintAddress, token, showAccountAddress }: TokenRowProps) {
                     uri={tokenInfo?.logoURI ?? undefined}
                     width={16}
                 />
-            </td>
-            {showAccountAddress && token.pubkey && (
-                <td>
+            </BaseTable.Cell>
+            {showAccountAddress && (
+                <BaseTable.Cell>
                     <Address pubkey={new PublicKey(token.pubkey)} link />
-                </td>
+                </BaseTable.Cell>
             )}
-            <td>
+            <BaseTable.Cell>
                 <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
-            </td>
-            <td>
+            </BaseTable.Cell>
+            <BaseTable.Cell>
                 {token.amount} {tokenInfo?.symbol ?? 'tokens'}
                 <ScaledUiAmountMultiplierTooltip
                     rawAmount={new BigNumber(token.rawAmount).shiftedBy(-(token.decimals || 0)).toString()}
                     scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}
                 />
-            </td>
-        </tr>
+            </BaseTable.Cell>
+        </BaseTable.Row>
     );
 }
 
@@ -285,11 +292,6 @@ const gridCellVariants = cva('flex items-center px-3 py-2.5', {
     },
 });
 
-type GridRowProps = {
-    mintAddress: string;
-    token: MappedToken;
-};
-
 // The grid is always the detailed view — Logo / Mint Address / Account Address / Total Balance. (Summary vs
 // Detailed only applies to the legacy table.) Two renderings toggled at `sm`: below it each holding is a
 // labels-left block (no shared header, every field carries its own left label, so long base58 keys read
@@ -297,15 +299,13 @@ type GridRowProps = {
 // takes a `minmax(auto,220px)` track (a touch wider than the transaction page's 180px Post Balance column,
 // so long amounts + symbols breathe), and the two address columns take the remaining width as
 // `minmax(0,1fr)` and mid-truncate.
-function TokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; visibleCount: number }) {
-    const visibleTokens = useMappedTokens(tokens, true).slice(0, visibleCount);
-
+function TokensGrid({ holdings }: { holdings: Holding[] }) {
     return (
         <>
             {/* Mobile (< sm): labels-left list. */}
             <div className="sm:hidden">
-                {visibleTokens.map(([mintAddress, token]) => (
-                    <MobileTokenRow key={mintAddress} mintAddress={mintAddress} token={token} />
+                {holdings.map(holding => (
+                    <MobileTokenRow key={holding.mintAddress} {...holding} />
                 ))}
             </div>
 
@@ -333,8 +333,8 @@ function TokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; v
                             Total Balance
                         </div>
                     </div>
-                    {visibleTokens.map(([mintAddress, token]) => (
-                        <GridTokenRow key={mintAddress} mintAddress={mintAddress} token={token} />
+                    {holdings.map(holding => (
+                        <GridTokenRow key={holding.mintAddress} {...holding} />
                     ))}
                 </div>
             </div>
@@ -345,11 +345,7 @@ function TokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; v
 // Mobile row (< sm): one labels-left line per field (Mint / Account / Total Balance). Labels sit in a
 // fixed-width column so the values line up; the value wrappers are `min-w-0` so `<Address>` mid-truncates
 // instead of overflowing. The logo rides inline just before the Mint address.
-function MobileTokenRow({ mintAddress, token }: GridRowProps) {
-    const { cluster, genesisHash } = useCluster();
-    // Same lazy per-row enrichment as the desktop rows: one batched useTokenInfo fetch per mint.
-    const tokenInfo = useTokenInfo(true, mintAddress, cluster, genesisHash);
-
+function MobileTokenRow({ mintAddress, token, tokenInfo }: Holding) {
     return (
         <div className="flex flex-col gap-1 border-t border-solid border-outer-space-800 px-3 py-3 text-sm text-white first:border-t-0">
             <div className="flex items-center gap-2">
@@ -367,14 +363,12 @@ function MobileTokenRow({ mintAddress, token }: GridRowProps) {
                     <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
                 </div>
             </div>
-            {token.pubkey && (
-                <div className="flex items-baseline gap-2">
-                    <span className="w-24 shrink-0 text-outer-space-300">Account</span>
-                    <div className="min-w-0 flex-1">
-                        <Address pubkey={new PublicKey(token.pubkey)} link />
-                    </div>
+            <div className="flex items-baseline gap-2">
+                <span className="w-24 shrink-0 text-outer-space-300">Account</span>
+                <div className="min-w-0 flex-1">
+                    <Address pubkey={new PublicKey(token.pubkey)} link />
                 </div>
-            )}
+            </div>
             <div className="flex items-baseline gap-2">
                 <span className="w-24 shrink-0 text-outer-space-300">Total Balance</span>
                 <span className="min-w-0 flex-1 break-words">
@@ -389,11 +383,7 @@ function MobileTokenRow({ mintAddress, token }: GridRowProps) {
     );
 }
 
-function GridTokenRow({ mintAddress, token }: GridRowProps) {
-    const { cluster, genesisHash } = useCluster();
-    // Same lazy per-row enrichment as the table `TokenRow`: one batched useTokenInfo fetch per mint.
-    const tokenInfo = useTokenInfo(true, mintAddress, cluster, genesisHash);
-
+function GridTokenRow({ mintAddress, token, tokenInfo }: Holding) {
     return (
         <div role="row" className="contents">
             <div role="cell" className={gridCellVariants({ column: 'logo' })}>
@@ -410,11 +400,9 @@ function GridTokenRow({ mintAddress, token }: GridRowProps) {
             <div role="cell" className={gridCellVariants({ column: 'address' })}>
                 <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
             </div>
-            {token.pubkey && (
-                <div role="cell" className={gridCellVariants({ column: 'address' })}>
-                    <Address pubkey={new PublicKey(token.pubkey)} link />
-                </div>
-            )}
+            <div role="cell" className={gridCellVariants({ column: 'address' })}>
+                <Address pubkey={new PublicKey(token.pubkey)} link />
+            </div>
             <div role="cell" className={gridCellVariants({ column: 'balance' })}>
                 {token.amount} {tokenInfo?.symbol ?? 'tokens'}
                 <ScaledUiAmountMultiplierTooltip
@@ -433,15 +421,13 @@ const EXPANDABLE_GRID_TEMPLATE = 'grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_mi
 
 // Variant 3: the holdings grid where each row is a spoiler. Mirrors TokensGrid's columns (Logo / Mint /
 // Account / Total Balance) and adds a chevron; opening a row reveals its recent transactions.
-function ExpandableTokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithPubkey[]; visibleCount: number }) {
-    const visibleTokens = useMappedTokens(tokens, true).slice(0, visibleCount);
-
+function ExpandableTokensGrid({ holdings }: { holdings: Holding[] }) {
     return (
         <>
             {/* Mobile (< sm): expandable labels-left blocks. */}
             <div className="sm:hidden">
-                {visibleTokens.map(([mintAddress, token]) => (
-                    <ExpandableMobileRow key={mintAddress} mintAddress={mintAddress} token={token} />
+                {holdings.map(holding => (
+                    <ExpandableMobileRow key={holding.mintAddress} {...holding} />
                 ))}
             </div>
 
@@ -467,8 +453,8 @@ function ExpandableTokensGrid({ tokens, visibleCount }: { tokens: TokenInfoWithP
                         </div>
                         <div role="columnheader" className={gridCellVariants({ role: 'header' })} />
                     </div>
-                    {visibleTokens.map(([mintAddress, token]) => (
-                        <ExpandableGridRow key={mintAddress} mintAddress={mintAddress} token={token} />
+                    {holdings.map(holding => (
+                        <ExpandableGridRow key={holding.mintAddress} {...holding} />
                     ))}
                 </div>
             </div>
@@ -497,9 +483,7 @@ function SpoilerToggle({ expanded, onToggle }: { expanded: boolean; onToggle: ()
     );
 }
 
-function ExpandableGridRow({ mintAddress, token }: GridRowProps) {
-    const { cluster, genesisHash } = useCluster();
-    const tokenInfo = useTokenInfo(true, mintAddress, cluster, genesisHash);
+function ExpandableGridRow({ mintAddress, token, tokenInfo }: Holding) {
     const [expanded, setExpanded] = useState(false);
 
     return (
@@ -517,7 +501,7 @@ function ExpandableGridRow({ mintAddress, token }: GridRowProps) {
                 <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
             </div>
             <div role="cell" className={gridCellVariants({ column: 'address' })}>
-                {token.pubkey ? <Address pubkey={new PublicKey(token.pubkey)} link /> : '—'}
+                <Address pubkey={new PublicKey(token.pubkey)} link />
             </div>
             <div role="cell" className={gridCellVariants({ column: 'balance' })}>
                 {token.amount} {tokenInfo?.symbol ?? 'tokens'}
@@ -527,31 +511,27 @@ function ExpandableGridRow({ mintAddress, token }: GridRowProps) {
                 />
             </div>
             <div role="cell" className={cn(gridCellVariants({}), 'justify-end')}>
-                {token.pubkey && <SpoilerToggle expanded={expanded} onToggle={() => setExpanded(v => !v)} />}
+                <SpoilerToggle expanded={expanded} onToggle={() => setExpanded(v => !v)} />
             </div>
-            {token.pubkey && (
-                <div
-                    className={cn(
-                        // Start at grid line 2 (skip the logo column) so the panel — with its own px-3 —
-                        // lines up under the Mint Address column instead of the row's left edge.
-                        'col-[2/-1] grid transition-[grid-template-rows,opacity] duration-200 ease-in-out',
-                        expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
-                    )}
-                >
-                    <div className="min-h-0 overflow-hidden">
-                        <div className="px-3 pb-9">
-                            <RecentTokenTransactions accountAddress={token.pubkey} enabled={expanded} />
-                        </div>
+            <div
+                className={cn(
+                    // Start at grid line 2 (skip the logo column) so the panel — with its own px-3 —
+                    // lines up under the Mint Address column instead of the row's left edge.
+                    'col-[2/-1] grid transition-[grid-template-rows,opacity] duration-200 ease-in-out',
+                    expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                )}
+            >
+                <div className="min-h-0 overflow-hidden">
+                    <div className="px-3 pb-9">
+                        <RecentTokenTransactions accountAddress={token.pubkey} enabled={expanded} />
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }
 
-function ExpandableMobileRow({ mintAddress, token }: GridRowProps) {
-    const { cluster, genesisHash } = useCluster();
-    const tokenInfo = useTokenInfo(true, mintAddress, cluster, genesisHash);
+function ExpandableMobileRow({ mintAddress, token, tokenInfo }: Holding) {
     const [expanded, setExpanded] = useState(false);
 
     return (
@@ -568,16 +548,14 @@ function ExpandableMobileRow({ mintAddress, token }: GridRowProps) {
                 <div className="min-w-0 flex-1">
                     <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
                 </div>
-                {token.pubkey && <SpoilerToggle expanded={expanded} onToggle={() => setExpanded(v => !v)} />}
+                <SpoilerToggle expanded={expanded} onToggle={() => setExpanded(v => !v)} />
             </div>
-            {token.pubkey && (
-                <div className="flex items-baseline gap-2">
-                    <span className="w-24 shrink-0 text-outer-space-300">Account</span>
-                    <div className="min-w-0 flex-1">
-                        <Address pubkey={new PublicKey(token.pubkey)} link />
-                    </div>
+            <div className="flex items-baseline gap-2">
+                <span className="w-24 shrink-0 text-outer-space-300">Account</span>
+                <div className="min-w-0 flex-1">
+                    <Address pubkey={new PublicKey(token.pubkey)} link />
                 </div>
-            )}
+            </div>
             <div className="flex items-baseline gap-2">
                 <span className="w-24 shrink-0 text-outer-space-300">Total Balance</span>
                 <span className="min-w-0 flex-1 break-words">
@@ -588,20 +566,18 @@ function ExpandableMobileRow({ mintAddress, token }: GridRowProps) {
                     />
                 </span>
             </div>
-            {token.pubkey && (
-                <div
-                    className={cn(
-                        'grid transition-[grid-template-rows,opacity] duration-200 ease-in-out',
-                        expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
-                    )}
-                >
-                    <div className="min-h-0 overflow-hidden">
-                        <div className="mt-2">
-                            <RecentTokenTransactions accountAddress={token.pubkey} enabled={expanded} />
-                        </div>
+            <div
+                className={cn(
+                    'grid transition-[grid-template-rows,opacity] duration-200 ease-in-out',
+                    expanded ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                )}
+            >
+                <div className="min-h-0 overflow-hidden">
+                    <div className="mt-2">
+                        <RecentTokenTransactions accountAddress={token.pubkey} enabled={expanded} />
                     </div>
                 </div>
-            )}
+            </div>
         </div>
     );
 }
@@ -609,14 +585,14 @@ function ExpandableMobileRow({ mintAddress, token }: GridRowProps) {
 // The spoiler body: the token account's most recent transactions, fetched lazily on first expand (gated by
 // `enabled`), plus a link to the full token-account page.
 function RecentTokenTransactions({ accountAddress, enabled }: { accountAddress: string; enabled: boolean }) {
-    const pubkey = useMemo(() => new PublicKey(accountAddress), [accountAddress]);
+    const kitAddress = useMemo(() => address(accountAddress), [accountAddress]);
     const history = useAccountHistory(accountAddress);
     const fetchHistory = useFetchAccountHistory(RECENT_TX_LIMIT);
     const viewAllPath = useClusterPath({ pathname: `/address/${accountAddress}` });
 
     useEffect(() => {
         if (enabled && !history) {
-            fetchHistory(pubkey, false, true);
+            fetchHistory(kitAddress, false, true);
         }
     }, [enabled, accountAddress]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -662,20 +638,14 @@ function RecentTokenTransactions({ accountAddress, enabled }: { accountAddress: 
 }
 
 function TokensCardFooter({
-    tokens,
-    visibleCount,
     loadMore,
+    totalCount,
+    visibleCount,
 }: {
-    tokens: TokenInfoWithPubkey[];
-    visibleCount: number;
     loadMore: () => void;
+    totalCount: number;
+    visibleCount: number;
 }) {
-    // Count unique mints to get actual token count (not account count)
-    const totalCount = useMemo(() => {
-        const uniqueMints = new Set(tokens.map(t => t.info.mint.toBase58()));
-        return uniqueMints.size;
-    }, [tokens]);
-
     if (visibleCount >= totalCount) {
         return null;
     }
