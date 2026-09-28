@@ -1,4 +1,4 @@
-import { createSolanaRpc } from '@solana/kit';
+import { createSolanaRpc, MAX_SUPPORTED_TRANSACTION_VERSION } from '@solana/kit';
 
 import type { SupportedCluster } from '../config.js';
 import { DAS_REQUEST_TIMEOUT_MS, RPC_REQUEST_TIMEOUT_MS } from '../shared/constants.js';
@@ -119,7 +119,8 @@ export function createRpcClient(rpcEndpoints: Record<SupportedCluster, string>):
             const request = rpc.getTransaction(signature, {
                 commitment: options?.commitment ?? 'finalized',
                 encoding: options?.encoding ?? 'json',
-                maxSupportedTransactionVersion: options?.maxSupportedTransactionVersion ?? 0,
+                maxSupportedTransactionVersion:
+                    options?.maxSupportedTransactionVersion ?? MAX_SUPPORTED_TRANSACTION_VERSION,
             });
             return await sendWithTimeout(request, RPC_REQUEST_TIMEOUT_MS);
         } catch (error) {
