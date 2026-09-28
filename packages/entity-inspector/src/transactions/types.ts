@@ -1,7 +1,7 @@
+import type { ReportedTransactionVersion, RequestedComputeUnits } from '@explorer/parsers/transaction';
+
 import type { CompiledInnerInstruction, CompiledInstruction, ConfirmationStatus } from '../rpc/types.js';
 import type { SafeNumeric } from '../shared/types.js';
-
-export type TransactionVersion = 'legacy' | 0 | null;
 
 export type ResolvedAccount = {
     address: string;
@@ -11,13 +11,22 @@ export type ResolvedAccount = {
     lookupTableAddress?: string;
 };
 
+/** Effective v1 limits. Each one is the declared value, or the runtime default where the message declares none. */
+export type TransactionResourceLimits = {
+    computeUnitLimit: number;
+    heapSizeBytes: number;
+    loadedAccountsDataSizeLimitBytes: number;
+    priorityFeeLamports: SafeNumeric;
+};
+
 type TransactionPayloadContextBase = {
     signature: string;
     slot: number;
     blockTime: SafeNumeric;
     feeLamports: SafeNumeric;
-    version: TransactionVersion;
+    version: ReportedTransactionVersion;
     computeUnitsConsumed: SafeNumeric;
+    requestedComputeUnits: RequestedComputeUnits;
     logMessages: readonly string[] | null;
     recentBlockhash: string | null;
     confirmationStatus: ConfirmationStatus | null;
@@ -29,6 +38,8 @@ type TransactionPayloadContextBase = {
     numReadonlyUnsignedAccounts: number;
     instructions: readonly CompiledInstruction[];
     innerInstructions: readonly CompiledInnerInstruction[] | null;
+    /** Absent for legacy and v0. They budget through Compute Budget instructions. */
+    resourceLimits?: TransactionResourceLimits;
 };
 
 export type TransactionPayloadContext =
@@ -89,9 +100,22 @@ type TransactionPayloadEntityBase = {
     block_time: SafeNumeric;
     fee_lamports: SafeNumeric;
     signers: string[];
-    transaction_version: TransactionVersion;
+    /** `null` reports that the caller omitted the version ceiling. A decoded message always has a version. */
+    transaction_version: ReportedTransactionVersion;
     recent_blockhash: string | null;
+    /** v1 only. Each limit is the declared value, or the runtime default where the message declares none. */
+    resource_limits?: {
+        compute_unit_limit: number;
+        heap_size_bytes: number;
+        loaded_accounts_data_size_limit_bytes: number;
+        priority_fee_lamports: SafeNumeric;
+    };
     compute_units_consumed: SafeNumeric;
+    /**
+     * `declared` reads the transaction's own limit. `calculated` sums per-instruction reserves at the slot's epoch.
+     * `fallback` marks a v1 transaction with no declared limit. The runtime budgets it zero.
+     */
+    requested_compute_units: { source: RequestedComputeUnits['source']; value: number };
     confirmation_status: ConfirmationStatus | null;
     confirmations: number | 'max' | null;
     log_messages: readonly string[] | null;

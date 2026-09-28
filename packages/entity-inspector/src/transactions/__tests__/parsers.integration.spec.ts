@@ -36,6 +36,7 @@ describe('@explorer/parsers integration', () => {
             numReadonlyUnsignedAccounts: 1,
             numRequiredSignatures: 1,
             recentBlockhash: null,
+            requestedComputeUnits: { source: 'calculated', value: 200_000 },
             resolvedAccounts: accounts,
             signature: 'sig',
             slot: 123,

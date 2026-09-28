@@ -1,4 +1,4 @@
-import { createSolanaRpc } from '@solana/kit';
+import { createSolanaRpc, MAX_SUPPORTED_TRANSACTION_VERSION } from '@solana/kit';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RPC_REQUEST_TIMEOUT_MS } from '../../shared/constants.js';
@@ -10,7 +10,9 @@ const { getAccountInfoMock, getSignatureStatusesMock, getTransactionMock } = vi.
     getTransactionMock: vi.fn(),
 }));
 
-vi.mock('@solana/kit', () => ({
+// Only the transport is mocked. The version ceiling stays kit's real constant, which is what the RPC call pins.
+vi.mock('@solana/kit', async importOriginal => ({
+    ...(await importOriginal<typeof import('@solana/kit')>()),
     createSolanaRpc: vi.fn(() => ({
         getAccountInfo: getAccountInfoMock,
         getSignatureStatuses: getSignatureStatusesMock,
@@ -89,17 +91,18 @@ describe('solana rpc adapter', () => {
         expect(sendMock).toHaveBeenCalledWith({ abortSignal: timeoutSignal });
     });
 
-    it('should fetch transaction with maxSupportedTransactionVersion = 0', async () => {
+    it('should fetch transaction with the kit version ceiling by default', async () => {
         const sendMock = vi.fn().mockResolvedValue({ slot: 1 });
         getTransactionMock.mockReturnValue({ send: sendMock });
 
         const result = await client.fetchTransaction('signature', 'mainnet-beta');
 
+        expect(MAX_SUPPORTED_TRANSACTION_VERSION).toBe(1);
         expect(result).toEqual({ slot: 1 });
         expect(getTransactionMock).toHaveBeenCalledWith('signature', {
             commitment: 'finalized',
             encoding: 'json',
-            maxSupportedTransactionVersion: 0,
+            maxSupportedTransactionVersion: MAX_SUPPORTED_TRANSACTION_VERSION,
         });
     });
 
