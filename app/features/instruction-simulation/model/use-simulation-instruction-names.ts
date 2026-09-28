@@ -1,5 +1,7 @@
+import type { InstructionCUInput } from '@entities/compute-unit';
 import { type NamedInstruction, resolveNamesFromData } from '@entities/transaction-data';
 import { useResolvedInstructionNames } from '@entities/transaction-data/client';
+import { toKitAddress } from '@explorer/parsers/compat';
 import type { PublicKey, VersionedMessage } from '@solana/web3.js';
 import { useEffect, useMemo } from 'react';
 
@@ -13,7 +15,7 @@ type KeyIndexMismatch = { accountKeyCount: number; programIdIndex: number };
  * "the simulation has not run yet". Both yield no rows, and only the first owes the user an explanation.
  */
 export type SimulationInstructionNames = {
-    instructions: NamedInstruction[];
+    instructions: InstructionCUInput[];
     unresolvable: boolean;
 };
 
@@ -48,9 +50,18 @@ export function useSimulationInstructionNames({
         });
     }, [mismatch]);
 
-    const instructions = useResolvedInstructionNames(rows);
+    const namedInstructions = useResolvedInstructionNames(rows);
 
-    return useMemo(() => ({ instructions, unresolvable: Boolean(mismatch) }), [instructions, mismatch]);
+    return useMemo(
+        () => ({
+            instructions: namedInstructions.map(({ programId, ...rest }) => ({
+                ...rest,
+                programId: toKitAddress(programId),
+            })),
+            unresolvable: Boolean(mismatch),
+        }),
+        [namedInstructions, mismatch],
+    );
 }
 
 function resolveRows(

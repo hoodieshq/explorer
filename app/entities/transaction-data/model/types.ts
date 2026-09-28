@@ -1,3 +1,4 @@
+import type { ParsedTransaction } from '@explorer/parsers/transaction';
 import type { TransactionVersion } from '@solana/kit';
 import type {
     CompiledInnerInstruction,
@@ -23,6 +24,11 @@ export type TransactionConfig = V1TransactionConfig;
  * version widened to cover v1, which web3.js `TransactionVersion` cannot describe.
  */
 export type TransactionWithMeta = Omit<ParsedTransactionWithMeta, 'version'> & {
+    /**
+     * Built from the same response via {@link packages/parsers/transaction}.
+     * Absent when the RPC omits a version or the response does not parse.
+     */
+    parsedTransaction?: ParsedTransaction;
     version?: TransactionVersion;
 };
 

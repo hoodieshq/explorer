@@ -2,6 +2,7 @@ import { CollapsibleCard } from '@components/shared/ui/collapsible-card';
 import { BaseCUProfilingCard, formatInstructionLogs } from '@entities/compute-unit';
 import { type NamedInstruction, resolveInstructionNames, type TransactionWithMeta } from '@entities/transaction-data';
 import { useResolvedInstructionNames } from '@entities/transaction-data/client';
+import { toKitAddress } from '@explorer/parsers/compat';
 import { useCluster, useEpochScheduleResult } from '@providers/cluster';
 import { useTransactionDetails } from '@providers/transactions';
 import type { Cluster } from '@utils/cluster';
@@ -48,8 +49,17 @@ export function CUProfilingSection({ signature }: SignatureProps) {
 
         const epoch = getEpochForSlot(epochSchedule, BigInt(slot));
 
-        return formatInstructionLogs({ cluster, epoch, instructionLogs, instructions });
-    }, [instructions, instructionLogs, cluster, slot, epochSchedule]);
+        return formatInstructionLogs({
+            cluster,
+            epoch,
+            instructionLogs,
+            instructions: instructions.map(({ programId, ...rest }) => ({
+                ...rest,
+                programId: toKitAddress(programId),
+            })),
+            transactionVersion: transactionWithMeta?.version,
+        });
+    }, [instructions, instructionLogs, cluster, slot, epochSchedule, transactionWithMeta?.version]);
 
     if (!logMessages || logMessages.length === 0) return undefined;
 
