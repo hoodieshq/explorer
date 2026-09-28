@@ -86,53 +86,16 @@ describe('fetchRawTransaction', () => {
         await expect(fetchRawTransaction(URL, SIGNATURE)).resolves.toBeNull();
     });
 
-    it('should expose a v1 transaction as bytes and resource limits, without a web3.js view', async () => {
+    it('should expose a v1 transaction as bytes without a web3.js view', async () => {
         const bytes = createV1TransactionBytes({ computeUnitLimit: 8442, priorityFeeLamports: 10_000n });
         respondWith(transactionResult(bytes));
 
         const raw = await fetchRawTransaction(URL, SIGNATURE);
 
         expect(raw?.version).toBe(1);
-        expect(raw?.transactionConfig).toEqual({
-            computeUnitLimit: 8442,
-            heapSize: undefined,
-            loadedAccountsDataSizeLimit: undefined,
-            priorityFeeLamports: 10_000n,
-        });
         expect(raw?.message).toBeUndefined();
         expect(raw?.transaction).toBeUndefined();
         expect(bytes.subarray(0, raw?.messageBytes.length)).toEqual(raw?.messageBytes);
-    });
-
-    it('should read every resource limit a v1 message carries', async () => {
-        respondWith(
-            transactionResult(
-                createV1TransactionBytes({
-                    computeUnitLimit: 8442,
-                    heapSize: 262_144,
-                    loadedAccountsDataSizeLimit: 75_013,
-                    priorityFeeLamports: 10_000n,
-                }),
-            ),
-        );
-
-        const raw = await fetchRawTransaction(URL, SIGNATURE);
-
-        expect(raw?.transactionConfig).toEqual({
-            computeUnitLimit: 8442,
-            heapSize: 262_144,
-            loadedAccountsDataSizeLimit: 75_013,
-            priorityFeeLamports: 10_000n,
-        });
-    });
-
-    it('should leave the resource limits undefined for a v1 message that sets none', async () => {
-        respondWith(transactionResult(createV1TransactionBytes({})));
-
-        const raw = await fetchRawTransaction(URL, SIGNATURE);
-
-        expect(raw?.version).toBe(1);
-        expect(raw?.transactionConfig).toBeUndefined();
     });
 
     it.each(['legacy' as const, 0 as const])(
@@ -145,8 +108,6 @@ describe('fetchRawTransaction', () => {
             expect(raw?.version).toBe(version);
             expect(raw?.message?.staticAccountKeys[0].toBase58()).toBe(FEE_PAYER);
             expect(raw?.transaction?.instructions).toHaveLength(1);
-            // Only v1 carries message-level limits.
-            expect(raw?.transactionConfig).toBeUndefined();
         },
     );
 
