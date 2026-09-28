@@ -10,8 +10,6 @@ import {
 } from '@solana/kit';
 import { type DecompileArgs, type Finality, PublicKey, TransactionMessage, VersionedMessage } from '@solana/web3.js';
 
-import { readV1TransactionConfig } from '@/app/shared/lib/v1-message-bridge';
-
 import type { RawTransaction } from '../model/types';
 
 /**
@@ -76,11 +74,7 @@ export async function fetchRawTransaction(
     };
 
     if (compiledMessage.version === 1) {
-        return {
-            ...base,
-            transactionConfig: readV1TransactionConfig(compiledMessage, { module: '[transaction-data]', signature }),
-            version: 1,
-        };
+        return { ...base, version: 1 };
     }
 
     return {

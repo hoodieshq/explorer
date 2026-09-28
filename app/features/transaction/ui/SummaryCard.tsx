@@ -1,4 +1,3 @@
-// TODO(HOO-1664): take requested CUs, priority fee and size limit from @explorer/parsers/transaction.
 import { Address } from '@components/common/Address';
 import { ErrorCard } from '@components/common/ErrorCard';
 import { InfoTooltip } from '@components/common/InfoTooltip';
@@ -13,12 +12,12 @@ import { Timestamp } from '@components/shared/ui/timestamp';
 import { formatTransactionVersion } from '@entities/transaction-data';
 import {
     BaseResourceFeeProjection,
-    derivePriorityFeeLamports,
     estimateRequestedCostUnits,
     isSimd0553FeeEnabled,
     projectResourceAndInclusionFees,
+    resolvePriorityFeeLamports,
 } from '@entities/transaction-fee';
-import { getRequestedComputeUnits } from '@explorer/parsers/transaction';
+import { getRequestedComputeUnits, getV1ResourceLimits, transactionSizeLimit } from '@explorer/parsers/transaction';
 import { ViewReceiptButton } from '@features/receipt';
 import { FetchStatus } from '@providers/cache';
 import { useCluster, useEpochSchedule } from '@providers/cluster';
@@ -28,8 +27,7 @@ import {
     useTransactionDetails,
     useTransactionStatus,
 } from '@providers/transactions';
-import type { TransactionVersion } from '@solana/kit';
-import { PACKET_DATA_SIZE, ParsedTransaction, SystemInstruction, SystemProgram } from '@solana/web3.js';
+import { ParsedTransaction, SystemInstruction, SystemProgram } from '@solana/web3.js';
 import { clusterSlug, ClusterStatus } from '@utils/cluster';
 import { SignatureProps } from '@utils/index';
 import { getTransactionInstructionError } from '@utils/program-err';
@@ -42,7 +40,6 @@ import { ZoomIn } from 'react-feather';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
 import { DownloadDropdown } from '@/app/shared/components/DownloadDropdown';
 import { AutoRefresh, useAutoRefreshInterval, WithAutoRefreshProp } from '@/app/shared/lib/use-auto-refresh';
-import { V1_TRANSACTION_SIZE_LIMIT } from '@/app/shared/lib/v1-message-bridge';
 import { type KeyValueRowInput, KeyValueRows, TextValue } from '@/app/shared/ui/key-value';
 import { OverviewCard } from '@/app/shared/ui/OverviewCard';
 import { getEpochForSlot } from '@/app/utils/epoch-schedule';
@@ -92,9 +89,6 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
 
     const serializedRawData = rawDetails?.data?.raw?.messageBytes;
     const serializedSize = rawDetails?.data?.raw?.serializedSize;
-    // Read the version off the raw details rather than the parsed ones, so the size and the limit it
-    // is compared against always come from the same fetch.
-    const rawVersion = rawDetails?.data?.raw?.version;
     const blockTime = rawDetails?.data?.raw?.blockTime ?? details?.data?.transactionWithMeta?.blockTime ?? undefined;
     const transactionFetchesSucceeded = isFetched(rawDetails) && isFetched(details);
 
@@ -147,7 +141,7 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
     const fee = transactionWithMeta?.meta?.fee;
     const costUnits = transactionWithMeta?.meta?.costUnits;
     const computeUnitsConsumed = transactionWithMeta?.meta?.computeUnitsConsumed;
-    const transactionConfig = rawDetails?.data?.raw?.transactionConfig;
+    const v1ResourceLimits = parsedTransaction ? getV1ResourceLimits(parsedTransaction) : undefined;
     const reservedCUs = parsedTransaction
         ? getRequestedComputeUnits(parsedTransaction, {
               cluster: clusterSlug(cluster),
@@ -158,11 +152,9 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
     const blockhash = transaction?.message.recentBlockhash;
     const version = transactionWithMeta?.version;
     const feePayer = transaction?.message.accountKeys[0]?.pubkey;
-    const priorityFeeLamports = readPriorityFeeLamports({
-        declared: transactionConfig?.priorityFeeLamports,
-        feeLamports: fee,
-        signatureCount: transaction?.signatures.length,
-    });
+    const priorityFeeLamports = parsedTransaction
+        ? resolvePriorityFeeLamports(parsedTransaction, { feeLamports: fee === undefined ? undefined : BigInt(fee) })
+        : undefined;
     // SIMD-0553 charges the cost units a transaction *requested*, while `costUnits` reports what it
     // executed, so the requested compute limit is needed to correct it. Without one there is nothing
     // honest to project, and the row is left out.
@@ -173,7 +165,8 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
         reservedCUs !== undefined &&
         priorityFeeLamports !== undefined
             ? projectResourceAndInclusionFees({
-                  priorityFeeLamports,
+                  // The projection works in numbers, and no real priority fee comes near 2^53 lamports.
+                  priorityFeeLamports: Number(priorityFeeLamports),
                   requestedCostUnits: estimateRequestedCostUnits({
                       computeUnitsConsumed,
                       executedCostUnits: costUnits,
@@ -279,45 +272,46 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
                 label: 'CUs Consumed',
                 value: <TextValue mono={false}>{computeUnitsConsumed.toLocaleString('en-US')}</TextValue>,
             },
-        transactionConfig?.priorityFeeLamports !== undefined && {
+        v1ResourceLimits && {
             label: (
                 <InfoTooltip text="A total amount paid for prioritization, unlike the per-compute-unit price used before v1">
                     Priority fee (total)
                 </InfoTooltip>
             ),
-            value: <SolBalance lamports={transactionConfig.priorityFeeLamports} />,
+            value: <SolBalance lamports={v1ResourceLimits.priorityFeeLamports} />,
         },
-        transactionConfig?.loadedAccountsDataSizeLimit !== undefined && {
+        v1ResourceLimits && {
             label: 'Loaded accounts data size limit',
-            value: <TextValue>{transactionConfig.loadedAccountsDataSizeLimit.toLocaleString('en-US')}</TextValue>,
+            value: <TextValue>{v1ResourceLimits.loadedAccountsDataSizeLimitBytes.toLocaleString('en-US')}</TextValue>,
         },
-        transactionConfig?.heapSize !== undefined && {
+        v1ResourceLimits && {
             label: 'Heap size',
-            value: <TextValue>{transactionConfig.heapSize.toLocaleString('en-US')}</TextValue>,
+            value: <TextValue>{v1ResourceLimits.heapSizeBytes.toLocaleString('en-US')}</TextValue>,
         },
         version !== undefined && {
             label: 'Transaction Version',
             value: formatTransactionVersion(version),
             valueClassName: 'uppercase',
         },
-        serializedSize !== undefined && {
-            label: (
-                <InfoTooltip text="Size on the wire: signatures plus the compiled message">
-                    Transaction size
-                </InfoTooltip>
-            ),
-            value: (
-                <>
-                    {serializedSize.toLocaleString('en-US')} bytes
-                    {/* No over-limit styling here, unlike the inspector: a transaction that landed is
-                        necessarily within the limit. The cap is context for headroom. */}
-                    <span className="text-outer-space-300">
-                        Max is {transactionSizeLimit(rawVersion).toLocaleString('en-US')} bytes
-                    </span>
-                </>
-            ),
-            valueClassName: 'flex-wrap items-baseline gap-x-2',
-        },
+        serializedSize !== undefined &&
+            serializedRawData !== undefined && {
+                label: (
+                    <InfoTooltip text="Size on the wire: signatures plus the compiled message">
+                        Transaction size
+                    </InfoTooltip>
+                ),
+                value: (
+                    <>
+                        {serializedSize.toLocaleString('en-US')} bytes
+                        {/* No over-limit styling here, unlike the inspector: a transaction that landed is
+                            necessarily within the limit. The cap is context for headroom. */}
+                        <span className="text-outer-space-300">
+                            Max is {transactionSizeLimit(serializedRawData).toLocaleString('en-US')} bytes
+                        </span>
+                    </>
+                ),
+                valueClassName: 'flex-wrap items-baseline gap-x-2',
+            },
         blockTime !== undefined && {
             label: 'Timestamp',
             value: <Timestamp unixTimestamp={blockTime} />,
@@ -375,39 +369,4 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
 
 function isFetched(entry?: { status: FetchStatus }): boolean {
     return entry?.status === FetchStatus.Fetched;
-}
-
-/**
- * SIMD-0553 carries priority fees over unchanged, so projecting a total needs them split out of the
- * single summed `fee` the RPC reports. v1 declares its total priority fee on the message; every
- * earlier version has to have it backed out of the total.
- */
-function readPriorityFeeLamports({
-    declared,
-    feeLamports,
-    signatureCount,
-}: {
-    declared: bigint | number | undefined;
-    feeLamports: number | undefined;
-    signatureCount: number | undefined;
-}): number | undefined {
-    if (declared !== undefined) {
-        return Number(declared);
-    }
-    if (feeLamports === undefined || signatureCount === undefined) {
-        return undefined;
-    }
-    return derivePriorityFeeLamports({ feeLamports, signatureCount });
-}
-
-/**
- * v1 raised the ceiling past the UDP packet size every earlier version is bounded by. Matches the
- * inspector's limit, so the same transaction reads the same on both pages.
- *
- * Deliberately not kit's `getTransactionSizeLimit`: that one masks the first message byte and treats
- * `1` as v1, but a legacy message opens with its signer count — so every single-signer legacy
- * transaction comes back as 4096. Keyed off the decoded version, which can't be confused that way.
- */
-function transactionSizeLimit(version: TransactionVersion | undefined): number {
-    return version === 1 ? V1_TRANSACTION_SIZE_LIMIT : PACKET_DATA_SIZE;
 }
