@@ -57,7 +57,7 @@ export function InspectorInstructionCard({
         return setShowRaw(r => !r);
     };
     const scrollAnchorRef = useScrollAnchor(
-        getInstructionCardScrollAnchorId(childIndex != null ? [index + 1, childIndex + 1] : [index + 1]),
+        getInstructionCardScrollAnchorId(childIndex !== undefined ? [index + 1, childIndex + 1] : [index + 1]),
     );
     // The inspector decodes the wire message itself, so `ix` is already the raw instruction and no
     // `raw` prop arrives. Same fallback the Raw view below uses.
