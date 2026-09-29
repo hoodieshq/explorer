@@ -3,7 +3,6 @@ import { Address } from '@components/common/Address';
 import { Epoch } from '@components/common/Epoch';
 import { Slot } from '@components/common/Slot';
 import { SolBalance } from '@components/common/SolBalance';
-import { TableCardBody } from '@components/common/TableCardBody';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
 import { cn } from '@components/shared/utils';
 import { useRawAccountDataOnMount, useRefreshAccount } from '@entities/account';
@@ -131,15 +130,18 @@ function SysvarAccountSlotHistory({
 // Grid-based key/value row for the reworked Stake History account card, mirroring the vote/block Overview
 // cards so account overview cards stay consistent across pages. The `1fr` value column lets a long mono
 // value wrap (`break-all`) instead of forcing the whole card into horizontal scroll on narrow screens.
+// The label track follows the tx summary's `LABEL_WIDTH` (`clamp(84px,20%,240px)`, shared/ui/key-value), with
+// a 108px floor instead of 84px (same as the stake history mobile rows) so "Balance (SOL)" stays on one line.
+// Written out because Tailwind's JIT needs the literal class.
 type OverviewRowProps = React.HTMLAttributes<HTMLDivElement> & { divider?: boolean };
 function OverviewRow({ children, className, divider, ...props }: OverviewRowProps) {
     return (
         <div
             className={cn(
-                'grid min-h-9 grid-cols-[clamp(100px,25%,200px)_1fr] items-baseline gap-2 px-3 py-2.5 md:px-4',
+                'grid min-h-9 grid-cols-[clamp(108px,20%,240px)_1fr] items-baseline gap-6 px-3 py-2.5',
                 // `last:border-b-0` drops the trailing divider so it can't double up with the card's
                 // own bottom border — the shared idiom used across the account/transaction cards.
-                divider && 'border-1 border-b border-white/10 [border-bottom-style:solid] last:border-b-0',
+                divider && 'border-1 border-b border-outer-space-800 [border-bottom-style:solid] last:border-b-0',
                 className,
             )}
             {...props}
@@ -177,14 +179,11 @@ function OverviewValue({
 }
 
 // Raw account bytes — mounted only while the Raw toggle is on so its SWR fetch (useRawAccountDataOnMount)
-// doesn't run for the common case. Kept in the shared BaseTable format the other account cards use.
+// doesn't run for the common case. The shared KeyValue rows render straight into the card, without the
+// dashkit table wrapper (same as the account card's Raw view).
 function StakeHistoryRawAccountRows({ account }: { account: Account }) {
     const { data, isLoading } = useRawAccountDataOnMount(account.pubkey);
-    return (
-        <TableCardBody>
-            <BaseRawAccountRows account={account} rawData={data} isLoading={isLoading} />
-        </TableCardBody>
-    );
+    return <BaseRawAccountRows account={account} rawData={data} isLoading={isLoading} />;
 }
 
 // The Stake History account overview, reworked to match the vote account card: the "Sysvar: Stake History"
@@ -217,12 +216,10 @@ function SysvarAccountStakeHistory({ account }: { account: Account; sysvarAccoun
                 </div>
             </div>
 
-            {/* Card outline matched to the block/vote pages' tight cards: visible `outer-space-800` border,
-                8px radius, no dashkit shadow. `overflow-hidden` clips the row dividers to the corners. */}
-            <Card
-                variant="tight"
-                className={cn('mb-9 lg:mb-12', 'overflow-hidden !rounded-lg border-outer-space-800 bg-outer-space-900')}
-            >
+            {/* Tailwind surface from design-system tokens only (no dashkit): `outer-space-900` is the closest
+                non-dk token to the dashkit card bg. mb-6 = the 24px gap to the tabs the other account
+                overviews have. `overflow-hidden` clips the row dividers to the corners. */}
+            <Card variant="tight" className="mb-6 overflow-hidden rounded-lg border-outer-space-800 bg-outer-space-900">
                 {showRaw ? (
                     <StakeHistoryRawAccountRows account={account} />
                 ) : (

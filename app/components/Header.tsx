@@ -31,7 +31,8 @@ export function Header({ address, account, tokenInfo, isTokenInfoLoading }: Head
     );
 
     return (
-        <div className="mb-9 lg:mb-12">
+        // Same spacing as the transaction page header: 24px to the first block on mobile, 60px from lg.
+        <div className="mb-3 lg:mb-12">
             <div className="flex flex-col items-start gap-4 pb-3 pt-2 lg:flex-row lg:items-end lg:justify-between lg:gap-1">
                 <AccountHeader
                     address={address}

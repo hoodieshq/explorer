@@ -33,8 +33,8 @@ export function StakeHistoryCard({
     return (
         <CollapsibleSection title="Stake History" className="">
             {layout === 'grid' ? (
-                // Surface matched to the vote/token history grids, in pure Tailwind: `outer-space-900` bg
-                // (dashkit `dk-gray-800-dark`), `outer-space-800` border (the row-separator tone), 8px radius.
+                // Tailwind surface from design-system tokens only (no dashkit). `outer-space-900` is the
+                // closest non-dk token to the dashkit card bg `#1e2423`: 1 rgb unit darker, not visible.
                 <Card variant="tight" className="rounded-lg border-outer-space-800 bg-outer-space-900">
                     <StakeHistoryGrid entries={stakeHistory} />
                 </Card>
@@ -171,29 +171,32 @@ function GridStakeHistoryRow({ entry }: { entry: StakeHistoryEntry }) {
     );
 }
 
+// Label column and gap follow the tx summary rows (`LABEL_WIDTH` = `clamp(84px,20%,240px)`, shared/ui/key-value,
+// and a 24px gap), except the floor is 108px instead of 84px, same as the Sysvar overview rows above.
+// Written out because Tailwind's JIT needs literal classes.
 function MobileStakeHistoryRow({ entry }: { entry: StakeHistoryEntry }) {
     return (
-        <div className="flex flex-col gap-1 border-t border-solid border-outer-space-800 px-3 py-3 text-sm text-white first:border-t-0">
-            <div className="flex items-start gap-2">
-                <span className="w-36 shrink-0 text-outer-space-300">Epoch</span>
+        <div className="flex flex-col gap-1 border-t border-solid border-outer-space-800 px-3 py-2.5 text-sm text-white first:border-t-0">
+            <div className="flex items-start gap-6">
+                <span className="w-[clamp(108px,20%,240px)] shrink-0 text-outer-space-300">Epoch</span>
                 <div className="min-w-0 flex-1 font-mono">
                     <Epoch epoch={entry.epoch} link />
                 </div>
             </div>
-            <div className="flex items-start gap-2">
-                <span className="w-36 shrink-0 text-outer-space-300">Effective (SOL)</span>
+            <div className="flex items-start gap-6">
+                <span className="w-[clamp(108px,20%,240px)] shrink-0 text-outer-space-300">Effective (SOL)</span>
                 <div className="min-w-0 flex-1 font-mono">
                     <SolBalance lamports={entry.stakeHistory.effective} />
                 </div>
             </div>
-            <div className="flex items-start gap-2">
-                <span className="w-36 shrink-0 text-outer-space-300">Activating (SOL)</span>
+            <div className="flex items-start gap-6">
+                <span className="w-[clamp(108px,20%,240px)] shrink-0 text-outer-space-300">Activating (SOL)</span>
                 <div className="min-w-0 flex-1 font-mono">
                     <SolBalance lamports={entry.stakeHistory.activating} />
                 </div>
             </div>
-            <div className="flex items-start gap-2">
-                <span className="w-36 shrink-0 text-outer-space-300">Deactivating (SOL)</span>
+            <div className="flex items-start gap-6">
+                <span className="w-[clamp(108px,20%,240px)] shrink-0 text-outer-space-300">Deactivating (SOL)</span>
                 <div className="min-w-0 flex-1 font-mono">
                     <SolBalance lamports={entry.stakeHistory.deactivating} />
                 </div>
