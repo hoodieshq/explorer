@@ -25,6 +25,7 @@ import useSWR from 'swr';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { trustedInnerInstructions } from '@/app/entities/transaction-data';
+import { InstructionsReadOut } from '@/app/features/decode-instruction-with-idl';
 import { useSimulation } from '@/app/features/instruction-simulation/model/use-simulation';
 import { generateTokenBalanceRows, TokenBalancesCardInner } from '@/app/features/transaction';
 import { useCluster } from '@/app/providers/cluster';
@@ -47,7 +48,7 @@ import { AccountsCard } from './AccountsCard';
 import { AddressTableLookupsCard } from './AddressTableLookupsCard';
 import { AddressWithContext, createFeePayerValidator } from './AddressWithContext';
 import { InspectorSimulationPanel } from './InspectorSimulationPanel';
-import { InstructionsSection } from './InstructionsSection';
+import { InstructionsSection, useDecodedMessage } from './InstructionsSection';
 import { MIN_MESSAGE_LENGTH, RawInput } from './RawInputCard';
 import { TransactionSignatures } from './SignaturesCard';
 
@@ -742,6 +743,7 @@ function OverviewCard({
                 </div>
             </div>
             <Card ui="dashkit">
+                <OverviewReadOut message={message} />
                 <KeyValue label="Serialized Size / Limit">
                     <span className={size > sizeLimit ? 'text-dk-warning-on-dark' : undefined}>
                         {size} / {sizeLimit} bytes
@@ -797,5 +799,19 @@ function OverviewCard({
                 </KeyValue>
             </Card>
         </section>
+    );
+}
+
+// The read-out needs the message's instructions with their lookups resolved; until then (or if a lookup
+// fails, which the Instructions section reports) there is nothing to read.
+function OverviewReadOut({ message }: { message: VersionedMessage }) {
+    const decodedMessage = useDecodedMessage(message);
+    if (decodedMessage.status !== 'ready') return undefined;
+
+    return (
+        <InstructionsReadOut
+            instructions={decodedMessage.decoded.instructions}
+            className="border-0 border-b border-solid border-dark-border"
+        />
     );
 }

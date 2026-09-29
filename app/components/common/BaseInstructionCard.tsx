@@ -32,6 +32,8 @@ type InstructionProps = {
     rawUnavailable?: boolean;
     // Extra buttons rendered in the card header next to Raw
     headerButtons?: React.ReactNode;
+    // Full-width row at the top of the card body, above the Raw or decoded rows (e.g. the instruction intent)
+    bodyTop?: React.ReactNode;
     // Show a Collapse/Expand button that hides all card content
     collapsible?: boolean;
 };
@@ -50,6 +52,7 @@ export function BaseInstructionCard({
     onRequestRaw,
     rawUnavailable,
     headerButtons,
+    bodyTop,
     collapsible = false,
 }: InstructionProps) {
     const [resultClass] = ixResult(result, index);
@@ -101,6 +104,7 @@ export function BaseInstructionCard({
         >
             <BaseTable ui="dashkit" variant="card" nowrap className="[&>tbody>tr:first-child>td]:!border-t-0">
                 <BaseTable.Body>
+                    {bodyTop && <BodyTopRow>{bodyTop}</BodyTopRow>}
                     {showRaw ? (
                         <>
                             <BaseTable.Row>
@@ -151,6 +155,18 @@ export function BaseInstructionCard({
                 </BaseTable.Body>
             </BaseTable>
         </CollapsibleCard>
+    );
+}
+
+export function BodyTopRow({ children }: { children: React.ReactNode }) {
+    return (
+        <BaseTable.Row>
+            {/* `!p-0`: the card table pins edge-cell padding with higher-specificity selectors, and this row's
+                content brings its own. */}
+            <BaseTable.Cell colSpan={3} className="!p-0">
+                {children}
+            </BaseTable.Cell>
+        </BaseTable.Row>
     );
 }
 

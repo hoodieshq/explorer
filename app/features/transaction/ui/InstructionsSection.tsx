@@ -49,7 +49,12 @@ import {
 } from '@features/decode-instruction-ed25519';
 import { isLighthouseInstruction, LighthouseDetailsCard } from '@features/decode-instruction-lighthouse';
 import { isProgramMetadataInstruction } from '@features/decode-instruction-pmp/detection';
-import { IdlInstructionCard, useIdlInstructionDecode } from '@features/decode-instruction-with-idl';
+import {
+    IdlInstructionCard,
+    IntentExpansionProvider,
+    ShowAllIntentsButton,
+    useIdlInstructionDecode,
+} from '@features/decode-instruction-with-idl';
 import { isZkElGamalProofInstruction, ZkElGamalProofDetailsCard } from '@features/decode-instruction-zk-elgamal-proof';
 import { PythDetailsCard } from '@features/instruction-program-pyth';
 import { MetaplexTokenMetadataDetailsCard } from '@features/mpl-token-metadata';
@@ -140,44 +145,46 @@ export function InstructionsSection({ signature }: SignatureProps) {
     }
 
     return (
-        <CollapsibleSection id="programs" title="Programs" className="">
-            <TxInstructionSurface result={result}>
-                <React.Suspense fallback={<LoadingCard message="Loading Instructions" />}>
-                    {transaction.message.instructions.map((instruction, index) => {
-                        const innerCards: JSX.Element[] = [];
+        <IntentExpansionProvider>
+            <CollapsibleSection id="programs" title="Programs" className="" actions={<ShowAllIntentsButton />}>
+                <TxInstructionSurface result={result}>
+                    <React.Suspense fallback={<LoadingCard message="Loading Instructions" />}>
+                        {transaction.message.instructions.map((instruction, index) => {
+                            const innerCards: JSX.Element[] = [];
 
-                        if (index in innerInstructions) {
-                            innerInstructions[index].forEach((ix, childIndex) => {
-                                const res = (
-                                    <InstructionCard
-                                        key={`${index}-${childIndex}`}
-                                        index={index}
-                                        ix={ix}
-                                        result={result}
-                                        signature={signature}
-                                        tx={transaction}
-                                        childIndex={childIndex}
-                                    />
-                                );
-                                innerCards.push(res);
-                            });
-                        }
+                            if (index in innerInstructions) {
+                                innerInstructions[index].forEach((ix, childIndex) => {
+                                    const res = (
+                                        <InstructionCard
+                                            key={`${index}-${childIndex}`}
+                                            index={index}
+                                            ix={ix}
+                                            result={result}
+                                            signature={signature}
+                                            tx={transaction}
+                                            childIndex={childIndex}
+                                        />
+                                    );
+                                    innerCards.push(res);
+                                });
+                            }
 
-                        return (
-                            <InstructionCard
-                                key={`${index}`}
-                                index={index}
-                                ix={instruction}
-                                result={result}
-                                signature={signature}
-                                tx={transaction}
-                                innerCards={innerCards}
-                            />
-                        );
-                    })}
-                </React.Suspense>
-            </TxInstructionSurface>
-        </CollapsibleSection>
+                            return (
+                                <InstructionCard
+                                    key={`${index}`}
+                                    index={index}
+                                    ix={instruction}
+                                    result={result}
+                                    signature={signature}
+                                    tx={transaction}
+                                    innerCards={innerCards}
+                                />
+                            );
+                        })}
+                    </React.Suspense>
+                </TxInstructionSurface>
+            </CollapsibleSection>
+        </IntentExpansionProvider>
     );
 }
 

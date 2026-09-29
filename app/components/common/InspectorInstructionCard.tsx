@@ -5,7 +5,7 @@ import { cn } from '@components/shared/utils';
 import { ProgramField } from '@entities/instruction-card';
 // Reached by module path, not the feature barrel: the barrel pulls in IdlInstructionCard, which
 // renders this card, and the resulting import cycle is a bundler hazard for no gain.
-import { InstructionDisplayPopover } from '@features/decode-instruction-with-idl/ui/InstructionDisplayPopover';
+import { useInstructionIntentSlots } from '@features/decode-instruction-with-idl/ui/InstructionIntent';
 import { useScrollAnchor } from '@providers/scroll-anchor';
 import { ParsedInstruction, SignatureResult, TransactionInstruction } from '@solana/web3.js';
 import getInstructionCardScrollAnchorId from '@utils/get-instruction-card-scroll-anchor-id';
@@ -14,6 +14,7 @@ import { Code } from 'react-feather';
 
 import { BaseTable } from '@/app/shared/ui/Table';
 
+import { BodyTopRow } from './BaseInstructionCard';
 import { BaseRawDetails } from './BaseRawDetails';
 import { BaseRawParsedDetails } from './BaseRawParsedDetails';
 
@@ -62,6 +63,13 @@ export function InspectorInstructionCard({
     // The inspector decodes the wire message itself, so `ix` is already the raw instruction and no
     // `raw` prop arrives. Same fallback the Raw view below uses.
     const rawForDisplay = raw ?? ('parsed' in ix ? undefined : ix);
+    const intent = useInstructionIntentSlots({
+        // Inner instructions never carry raw wire bytes, so there is nothing to summarise.
+        eligible: childIndex === undefined,
+        onRequestRaw,
+        programId: ix.programId.toString(),
+        raw: rawForDisplay,
+    });
 
     return (
         <CollapsibleCard
@@ -76,7 +84,8 @@ export function InspectorInstructionCard({
                 </>
             }
             headerButtons={
-                <>
+                <div className="flex items-center gap-1.5">
+                    {intent.button}
                     <Button
                         ui="dashkit"
                         size="sm"
@@ -88,19 +97,12 @@ export function InspectorInstructionCard({
                     >
                         <Code className="mr-1.5" size={13} /> Raw
                     </Button>
-                    {/* Inner instructions never carry raw wire bytes, so there is nothing to summarise. */}
-                    {childIndex === undefined && (
-                        <InstructionDisplayPopover
-                            raw={rawForDisplay}
-                            programId={ix.programId.toString()}
-                            onRequestRaw={onRequestRaw}
-                        />
-                    )}
-                </>
+                </div>
             }
         >
             <BaseTable ui="dashkit" variant="card" nowrap className="[&>tbody>tr:first-child>td]:!border-t-0">
                 <BaseTable.Body>
+                    {intent.panel && <BodyTopRow>{intent.panel}</BodyTopRow>}
                     <ProgramField programId={ix.programId} showExtendedInfo={showRaw} />
                     {showRaw ? (
                         'parsed' in ix ? (

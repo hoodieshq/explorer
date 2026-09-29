@@ -3,7 +3,7 @@ import type { FetchAccountFn, InstructionDisplay } from '@codama/dynamic-instruc
 import { normalizeAccounts } from '../codama/normalize-accounts';
 import { populateAccounts, populateArguments } from '../idl-executor';
 import type { UnifiedProgram } from '../unified-program.d';
-import { flattenNestedRecord, type InstructionFormData } from '../use-instruction-form';
+import { flattenNestedRecord, type InstructionCallParams, type InstructionFormData } from '../use-instruction-form';
 
 /**
  * Resolve the display for an instruction from raw form values.
@@ -24,12 +24,30 @@ export async function getFormInstructionDisplay({
     values: InstructionFormData;
     fetchAccount?: FetchAccountFn;
 }): Promise<InstructionDisplay | undefined> {
+    return getCallInstructionDisplay({
+        fetchAccount,
+        instructionName,
+        params: { accounts: flattenNestedRecord(values.accounts), arguments: flattenNestedRecord(values.arguments) },
+        program,
+    });
+}
+
+/** The same resolution for already-flattened call params, as the execute path hands them over. */
+export async function getCallInstructionDisplay({
+    program,
+    instructionName,
+    params,
+    fetchAccount,
+}: {
+    program: UnifiedProgram;
+    instructionName: string;
+    params: InstructionCallParams;
+    fetchAccount?: FetchAccountFn;
+}): Promise<InstructionDisplay | undefined> {
     if (!program.getInstructionDisplay) return undefined;
 
-    const accounts = normalizeAccounts(
-        populateAccounts(flattenNestedRecord(values.accounts), instructionName) as Record<string, string>,
-    );
-    const args = populateArguments(flattenNestedRecord(values.arguments), instructionName);
+    const accounts = normalizeAccounts(populateAccounts(params.accounts, instructionName) as Record<string, string>);
+    const args = populateArguments(params.arguments, instructionName);
 
     return program.getInstructionDisplay(instructionName, accounts, args, { fetchAccount });
 }

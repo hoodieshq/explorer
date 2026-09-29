@@ -45,10 +45,23 @@ vi.mock('@components/common/BaseInstructionCard', () => ({
     ),
 }));
 
-vi.mock('@features/decode-instruction-with-idl/ui/InstructionDisplayPopover', () => ({
-    InstructionDisplayPopover: ({ programId, raw }: { programId: string; raw?: TransactionInstruction }) => (
-        <div data-testid="display-popover" data-program-id={programId} data-has-raw={raw !== undefined} />
-    ),
+// The intent's own behaviour has its specs; here only what the card hands it matters.
+vi.mock('@features/decode-instruction-with-idl/ui/InstructionIntent', () => ({
+    useInstructionIntentSlots: ({
+        eligible,
+        programId,
+        raw,
+    }: {
+        eligible?: boolean;
+        programId: string;
+        raw?: TransactionInstruction;
+    }) => ({
+        button:
+            eligible === false ? undefined : (
+                <div data-testid="display-popover" data-program-id={programId} data-has-raw={raw !== undefined} />
+            ),
+        panel: undefined,
+    }),
 }));
 
 function renderCard(props: Partial<React.ComponentProps<typeof InstructionCard>> = {}) {
@@ -143,13 +156,13 @@ describe('InstructionCard', () => {
         expect(screen.getByRole('button').dataset.canRequest).toBe('false');
     });
 
-    it('should offer the display summary on a top-level instruction', () => {
+    it('should offer the intent on a top-level instruction', () => {
         renderCard();
 
         expect(screen.getByTestId('display-popover').dataset.programId).toBe(PROGRAM_ID.toString());
     });
 
-    it('should not offer the display summary on an inner instruction', () => {
+    it('should not offer the intent on an inner instruction', () => {
         rawDetails = legacyRawDetails();
 
         renderCard({ childIndex: 0 });
@@ -157,7 +170,7 @@ describe('InstructionCard', () => {
         expect(screen.queryByTestId('display-popover')).not.toBeInTheDocument();
     });
 
-    it('should hand the fetched raw instruction to the display summary', () => {
+    it('should hand the fetched raw instruction to the intent', () => {
         rawDetails = legacyRawDetails();
 
         renderCard();
@@ -165,7 +178,7 @@ describe('InstructionCard', () => {
         expect(screen.getByTestId('display-popover').dataset.hasRaw).toBe('true');
     });
 
-    it('should read the display summary off the rendered instruction when no fetch supplies one', () => {
+    it('should read the intent off the rendered instruction when no fetch supplies one', () => {
         const instruction = new TransactionInstruction({ data: Buffer.from([1]), keys: [], programId: PROGRAM_ID });
 
         render(
@@ -177,7 +190,7 @@ describe('InstructionCard', () => {
         expect(screen.getByTestId('display-popover').dataset.hasRaw).toBe('true');
     });
 
-    it('should withhold a raw instruction from the display summary for an RPC-pre-parsed one', () => {
+    it('should withhold a raw instruction from the intent for an RPC-pre-parsed one', () => {
         const parsed = {
             parsed: { info: {}, type: 'transfer' },
             program: 'system',

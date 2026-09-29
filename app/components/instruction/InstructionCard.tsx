@@ -1,7 +1,7 @@
 import { BaseInstructionCard } from '@components/common/BaseInstructionCard';
 // Reached by module path, not the feature barrel: the barrel pulls in IdlInstructionCard, which
 // renders this card, and the resulting import cycle is a bundler hazard for no gain.
-import { InstructionDisplayPopover } from '@features/decode-instruction-with-idl/ui/InstructionDisplayPopover';
+import { useInstructionIntentSlots } from '@features/decode-instruction-with-idl/ui/InstructionIntent';
 import { FetchStatus } from '@providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@providers/transactions/raw';
 import { ParsedInstruction, SignatureResult, TransactionInstruction } from '@solana/web3.js';
@@ -63,6 +63,13 @@ export function InstructionCard({
     // the inspector there is no signature to fetch a raw transaction against. Read the bytes off `ix`
     // when it carries them, so the summary does not depend on the raw fetch landing.
     const rawForDisplay = raw ?? ('parsed' in ix ? undefined : ix);
+    const intent = useInstructionIntentSlots({
+        // Inner instructions never carry raw wire bytes, so there is nothing to summarise.
+        eligible: childIndex === undefined,
+        onRequestRaw: canFetchRaw ? fetchRawTrigger : undefined,
+        programId: ix.programId.toString(),
+        raw: rawForDisplay,
+    });
 
     return (
         <BaseInstructionCard
@@ -80,16 +87,10 @@ export function InstructionCard({
             headerButtons={
                 <>
                     {headerButtons}
-                    {/* Inner instructions never carry raw wire bytes, so there is nothing to summarise. */}
-                    {childIndex === undefined && (
-                        <InstructionDisplayPopover
-                            raw={rawForDisplay}
-                            programId={ix.programId.toString()}
-                            onRequestRaw={canFetchRaw ? fetchRawTrigger : undefined}
-                        />
-                    )}
+                    {intent.button}
                 </>
             }
+            bodyTop={intent.panel}
             collapsible={collapsible}
         >
             {children}

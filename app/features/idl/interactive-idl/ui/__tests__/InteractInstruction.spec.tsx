@@ -1,5 +1,4 @@
 /* eslint-disable no-restricted-syntax, no-restricted-globals -- test assertions use RegExp for pattern matching */
-import type { InstructionDisplay } from '@codama/dynamic-instructions';
 import { IdlType } from '@coral-xyz/anchor/dist/cjs/idl';
 import type { InstructionData } from '@entities/idl';
 import { Accordion } from '@radix-ui/react-accordion';
@@ -9,6 +8,7 @@ import userEvent from '@testing-library/user-event';
 import { type ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type { InstructionReadback } from '../../model/display/use-instruction-readback';
 import type { InstructionStatus } from '../../model/use-instruction';
 import { InteractInstruction } from '../InteractInstruction';
 
@@ -33,18 +33,20 @@ vi.mock('../../model/use-pdas', () => ({
     usePdas: () => ({}),
 }));
 
-const displayMock = vi.hoisted(() => ({ current: undefined as InstructionDisplay | undefined }));
+const readbackMock = vi.hoisted(() => ({
+    current: undefined as InstructionReadback | undefined,
+}));
 
-// Mock the display hook: it reads the cluster rpc and the program atom, and has its own spec.
-vi.mock('../../model/display/use-instruction-display', () => ({
-    useInstructionDisplay: () => displayMock.current,
+// Mock the readback hook: it reads the program atom, and has its own spec.
+vi.mock('../../model/display/use-instruction-readback', () => ({
+    useInstructionReadback: () => readbackMock.current,
 }));
 
 describe('InteractInstruction', () => {
     beforeEach(() => {
         walletMock.canSign = false;
         walletMock.publicKey = null;
-        displayMock.current = undefined;
+        readbackMock.current = undefined;
     });
 
     // Helper to render InteractInstruction with accordion expanded
@@ -325,35 +327,38 @@ describe('InteractInstruction', () => {
         });
     });
 
-    describe('instruction display', () => {
-        it('should not render the display note while no display resolves', () => {
+    describe('instruction readback', () => {
+        it('should not render the readback when the instruction has no intent template', () => {
             renderInteractInstruction(createInstruction({ name: 'transferSol' }));
 
-            expect(screen.queryByTestId('instruction-display-summary')).not.toBeInTheDocument();
+            expect(screen.queryByTestId('instruction-readback')).not.toBeInTheDocument();
         });
 
-        it('should render the interpolated sentence when a display resolves', () => {
-            displayMock.current = {
-                fields: [{ label: 'Amount', value: '1.5 SOL' }],
-                intent: 'Transfer SOL',
-                interpolatedIntent: 'Transfer 1.5 SOL',
+        it('should render the template with a slot for each missing value', () => {
+            readbackMock.current = {
+                missing: ['destination'],
+                parts: [
+                    { kind: 'text', text: 'Transfer ' },
+                    { isAddress: false, kind: 'filled', name: 'amount', text: '1' },
+                    { kind: 'text', text: ' to ' },
+                    { kind: 'missing', name: 'destination' },
+                ],
+                sentence: undefined,
             };
 
             renderInteractInstruction(createInstruction({ name: 'transferSol' }));
 
-            expect(screen.getByTestId('instruction-display-intent')).toHaveTextContent('Transfer 1.5 SOL');
+            expect(screen.getByTestId('readback-template')).toHaveTextContent('Transfer 1 to destination');
+            expect(screen.getByText('Add destination to complete it.')).toBeInTheDocument();
         });
 
-        it('should fall back to the intent when the sentence is withheld', () => {
-            displayMock.current = {
-                fields: [{ label: 'Amount', value: '1500000 (raw)' }],
-                intent: 'Mint tokens',
-                interpolatedIntent: null,
-            };
+        it('should render the SDK sentence once the form is complete', () => {
+            readbackMock.current = { missing: [], parts: [], sentence: 'Transfer 1.5 SOL' };
 
-            renderInteractInstruction(createInstruction({ name: 'mintTo' }));
+            renderInteractInstruction(createInstruction({ name: 'transferSol' }));
 
-            expect(screen.getByTestId('instruction-display-intent')).toHaveTextContent('Mint tokens');
+            expect(screen.getByTestId('intent-sentence')).toHaveTextContent('Transfer 1.5 SOL');
+            expect(screen.getByText('Execute sends this to your wallet to sign.')).toBeInTheDocument();
         });
     });
 });

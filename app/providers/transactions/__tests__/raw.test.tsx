@@ -33,6 +33,28 @@ beforeEach(() => {
 });
 
 describe('useFetchRawTransaction', () => {
+    it('should send one request when the same transaction is asked for twice while in flight', async () => {
+        let resolveFetch: (value: null) => void = () => {};
+        fetchRawTransaction.mockImplementation(() => new Promise(resolve => (resolveFetch = resolve)));
+        const { result } = renderHook(() => useFetchRawTransaction(), { wrapper });
+
+        result.current('in-flight-sig');
+        result.current('in-flight-sig');
+        expect(fetchRawTransaction).toHaveBeenCalledTimes(1);
+
+        resolveFetch(null);
+        await waitFor(() =>
+            expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ status: FetchStatus.Fetched })),
+        );
+
+        // Once settled, a new request goes out again.
+        fetchRawTransaction.mockResolvedValue(null);
+        await waitFor(() => {
+            result.current('in-flight-sig');
+            expect(fetchRawTransaction).toHaveBeenCalledTimes(2);
+        });
+    });
+
     it('should dispatch FetchFailed when the fetch throws', async () => {
         fetchRawTransaction.mockRejectedValue(new Error('rpc boom'));
         const { result } = renderHook(() => useFetchRawTransaction(), { wrapper });

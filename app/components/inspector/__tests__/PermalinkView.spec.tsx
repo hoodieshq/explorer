@@ -48,6 +48,8 @@ vi.mock('../AddressTableLookupsCard', () => ({
 }));
 vi.mock('../InstructionsSection', () => ({
     InstructionsSection: () => <div data-testid="instructions-section" />,
+    // The Overview read-out waits on the same decode; a pending one keeps it out of these tests.
+    useDecodedMessage: () => ({ status: 'loading' }),
 }));
 vi.mock('../SignaturesCard', () => ({
     TransactionSignatures: () => <div data-testid="signatures-card" />,
