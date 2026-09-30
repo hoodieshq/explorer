@@ -32,7 +32,8 @@ export function BaseIntentSentence({
     className,
 }: { sentence: string; className?: string } & VariantProps<typeof sentenceVariants>) {
     return (
-        <p className={cn(sentenceVariants({ size }), className)} data-testid="intent-sentence">
+        // A <div>, not a <p>: the addresses inside are `Address` rows, which render block <div>s.
+        <div className={cn(sentenceVariants({ size }), className)} data-testid="intent-sentence">
             {/* Index key: the same address can appear twice in one sentence, so values are not unique. */}
             {splitIntentSentence(sentence).map((part, index) =>
                 part.kind === 'address' ? (
@@ -41,7 +42,7 @@ export function BaseIntentSentence({
                     <span key={index}>{part.text}</span>
                 ),
             )}
-        </p>
+        </div>
     );
 }
 
