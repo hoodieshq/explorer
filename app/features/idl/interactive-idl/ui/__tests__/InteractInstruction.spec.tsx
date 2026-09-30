@@ -334,7 +334,7 @@ describe('InteractInstruction', () => {
             expect(screen.queryByTestId('instruction-readback')).not.toBeInTheDocument();
         });
 
-        it('should render the template with a slot for each missing value', () => {
+        it('should ask to fill in the form while a value is missing', () => {
             readbackMock.current = {
                 missing: ['destination'],
                 parts: [
@@ -348,8 +348,8 @@ describe('InteractInstruction', () => {
 
             renderInteractInstruction(createInstruction({ name: 'transferSol' }));
 
-            expect(screen.getByTestId('readback-template')).toHaveTextContent('Transfer 1 to destination');
-            expect(screen.getByText('Add destination to complete it.')).toBeInTheDocument();
+            expect(screen.getByText('Fill in all fields to see the intent.')).toBeInTheDocument();
+            expect(screen.queryByTestId('readback-template')).not.toBeInTheDocument();
         });
 
         it('should render the SDK sentence once the form is complete', () => {

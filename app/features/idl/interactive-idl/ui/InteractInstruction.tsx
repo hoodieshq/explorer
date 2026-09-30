@@ -159,11 +159,7 @@ export function InteractInstruction({
                     )}
                     {readback && (
                         <div className="px-6 pb-4">
-                            <BaseInstructionReadback
-                                parts={readback.parts}
-                                missing={readback.missing}
-                                sentence={readback.sentence}
-                            />
+                            <BaseInstructionReadback parts={readback.parts} sentence={readback.sentence} />
                         </div>
                     )}
 

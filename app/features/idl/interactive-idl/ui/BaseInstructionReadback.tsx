@@ -1,35 +1,28 @@
 import { cn } from '@components/shared/utils';
 import { BaseIntentSentence } from '@entities/idl';
-import { cva } from 'class-variance-authority';
 
 import type { ReadbackPart } from '../model/display/build-readback';
 
-const slotVariants = cva('rounded font-mono', {
-    variants: {
-        kind: {
-            filled: 'bg-dark-accent/10 px-1 py-px text-sm text-dark-accent',
-            missing: 'border border-dashed border-neutral-500 px-1.5 text-sm text-neutral-400',
-        },
-    },
-});
+// A value the form already holds, shown in place while the SDK's own sentence is still on its way.
+const FILLED_SLOT = 'rounded bg-dark-accent/10 px-1 py-px font-mono text-sm text-dark-accent';
 
 /**
  * "Intent" above Execute: the instruction's intent as one line, always visible.
- * Dashed slots name what is still missing; once complete, the SDK's formatted sentence takes over.
+ * Until every field is filled it asks for them; once complete, the SDK's formatted sentence takes over.
  * No field list — the form above already is one.
  */
 export function BaseInstructionReadback({
     parts,
-    missing,
     sentence,
     className,
 }: {
     parts: ReadbackPart[];
-    missing: string[];
-    /** The SDK's sentence for a complete form; the template parts render while it is absent. */
+    /** The SDK's sentence for a complete form; the filled template renders while it is on its way. */
     sentence?: string;
     className?: string;
 }) {
+    const complete = parts.every(part => part.kind !== 'missing');
+
     return (
         <div
             className={cn(
@@ -50,6 +43,11 @@ export function BaseInstructionReadback({
 
             {sentence ? (
                 <BaseIntentSentence sentence={sentence} size="sm" />
+            ) : !complete ? (
+                // The label's tone, so the quiet text in the block reads as one colour.
+                <p className="m-0 text-sm leading-normal text-outer-space-300" data-testid="readback-incomplete">
+                    Fill in all fields to see the intent.
+                </p>
             ) : (
                 <p className="m-0 break-words text-sm leading-normal text-white" data-testid="readback-template">
                     {/* Index key: the template is fixed per instruction, so part positions never move. */}
@@ -57,28 +55,16 @@ export function BaseInstructionReadback({
                         part.kind === 'text' ? (
                             <span key={index}>{part.text}</span>
                         ) : part.kind === 'filled' ? (
-                            <span key={index} className={slotVariants({ kind: 'filled' })} title={part.name}>
+                            <span key={index} className={FILLED_SLOT} title={part.name}>
                                 {part.text}
                             </span>
-                        ) : (
-                            <span key={index} className={slotVariants({ kind: 'missing' })}>
-                                {part.name}
-                            </span>
-                        ),
+                        ) : undefined,
                     )}
                 </p>
             )}
 
-            <p className="mb-0 mt-1 text-xs text-outer-space-300">
-                {missing.length > 0
-                    ? `Add ${formatList(missing)} to complete it.`
-                    : 'Execute sends this to your wallet to sign.'}
-            </p>
+            {/* One line in every state. */}
+            <p className="mb-0 mt-1 text-xs text-outer-space-300">Execute sends this to your wallet to sign.</p>
         </div>
     );
-}
-
-function formatList(names: string[]): string {
-    if (names.length <= 1) return names.join('');
-    return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
 }

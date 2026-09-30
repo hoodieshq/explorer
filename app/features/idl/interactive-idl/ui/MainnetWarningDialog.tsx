@@ -14,7 +14,9 @@ import { cn } from '@components/shared/utils';
 import { BaseDisplayFields, BaseIntentSentence } from '@entities/idl';
 import { KeyValue } from '@shared/ui/key-value';
 import { PublicKey } from '@solana/web3.js';
+import { useClusterPath } from '@utils/url';
 import { cva } from 'class-variance-authority';
+import Link from 'next/link';
 import { useId, useState } from 'react';
 import { AlertTriangle, ChevronDown, Send } from 'react-feather';
 
@@ -58,6 +60,8 @@ type MainnetWarningDialogProps = {
  */
 export function MainnetWarningDialog({ open, onOpenChange, onConfirm, onCancel, summary }: MainnetWarningDialogProps) {
     const shown = summary?.status === 'loading' || summary?.status === 'resolved' ? summary : undefined;
+    // Built as the footer builds it, so the terms open on the cluster the page is on.
+    const tosPath = useClusterPath({ pathname: '/tos' });
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -79,15 +83,18 @@ export function MainnetWarningDialog({ open, onOpenChange, onConfirm, onCancel, 
                                     reject it there.
                                 </>
                             ) : (
-                                // With no intent to compare against, the wallet check asks to read it there.
-                                <>Your wallet opens next. Check the instruction there. If it looks wrong, reject it.</>
+                                // With no intent to show, the check falls on what was typed into the form, then on the wallet.
+                                <>
+                                    Make sure the details in the form are correct before continuing. Your wallet opens
+                                    next. Check the instruction there. If it looks wrong, reject it.
+                                </>
                             )}
                         </DialogDescription>
                         <p className="m-0 text-xs text-outer-space-300">
-                            Beta feature, provided as is.{' '}
-                            <a href="/tos" target="_blank" rel="noopener noreferrer">
+                            Beta feature, provided as is. {/* A new tab, so the filled form stays where it is. */}
+                            <Link href={tosPath} target="_blank" rel="noopener noreferrer">
                                 Terms
-                            </a>
+                            </Link>
                         </p>
                     </div>
                     {shown && <SummaryBody summary={shown} />}

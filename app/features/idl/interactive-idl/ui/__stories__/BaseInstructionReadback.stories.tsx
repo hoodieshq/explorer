@@ -16,7 +16,7 @@ const meta: Meta<typeof BaseInstructionReadback> = {
         docs: {
             description: {
                 component: [
-                    "The one-line **Intent** above Execute on the Interact tab (the same word as the instruction cards use). Always visible, no accordion. The intent template renders first and fills in as fields are completed; dashed slots name what is still missing. Once the form is complete the SDK's own sentence takes over, with values formatted (e.g. lamports as SOL). No field list — the form above already is one. Zero RPC.",
+                    "The one-line **Intent** above Execute on the Interact tab (the same word as the instruction cards use). Always visible, no accordion. Until every field is filled it asks for them; once the form is complete the SDK's own sentence takes over, with values formatted (e.g. lamports as SOL). The line under it always reads the same. No field list — the form above already is one. Zero RPC.",
                     '',
                     '## References',
                     '',
@@ -34,7 +34,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Empty: Story = {
     args: {
-        missing: ['amount', 'source', 'destination'],
         parts: [
             { kind: 'text', text: 'Transfer ' },
             { kind: 'missing', name: 'amount' },
@@ -45,15 +44,12 @@ export const Empty: Story = {
         ],
     },
     play: async ({ canvasElement }) => {
-        await expect(
-            within(canvasElement).getByText('Add amount, source and destination to complete it.'),
-        ).toBeVisible();
+        await expect(within(canvasElement).getByText('Fill in all fields to see the intent.')).toBeVisible();
     },
 };
 
 export const PartlyFilled: Story = {
     args: {
-        missing: ['destination'],
         parts: [
             { kind: 'text', text: 'Transfer ' },
             { isAddress: false, kind: 'filled', name: 'amount', text: '1500000000' },
@@ -65,9 +61,22 @@ export const PartlyFilled: Story = {
     },
 };
 
+/** Every field filled, the SDK's sentence still on its way: the typed values stand in. */
+export const Formatting: Story = {
+    args: {
+        parts: [
+            { kind: 'text', text: 'Transfer ' },
+            { isAddress: false, kind: 'filled', name: 'amount', text: '1500000000' },
+            { kind: 'text', text: ' from ' },
+            { isAddress: true, kind: 'filled', name: 'source', text: 'Gjzy5…X1GBv' },
+            { kind: 'text', text: ' to ' },
+            { isAddress: true, kind: 'filled', name: 'destination', text: 'EjYkr…hPE5M' },
+        ],
+    },
+};
+
 export const Complete: Story = {
     args: {
-        missing: [],
         parts: [],
         sentence: `Transfer 1.5 SOL from ${SOURCE} to ${DESTINATION}`,
     },

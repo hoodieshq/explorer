@@ -26,7 +26,7 @@ const meta: Meta<typeof MainnetWarningDialog> = {
         docs: {
             description: {
                 component: [
-                    '"Spend real funds?" before a mainnet execution from the Interact tab. The text asks to compare what is signed with the wallet. With intent metadata the sentence follows at 20px, with the SDK\'s fields and the program behind "Show fields"; Confirm stays locked until the details load. Without metadata only the text stays — the mainnet warning never disappears. One dialog on every screen; the whole box scrolls.',
+                    '"Spend real funds?" before a mainnet execution from the Interact tab. The text asks to compare what is signed with the wallet. With intent metadata the sentence follows at 20px, with the SDK\'s fields and the program behind "Show fields"; Confirm stays locked until the details load. Without metadata the text asks to check the form, then the wallet — the mainnet warning never disappears. One dialog on every screen; the whole box scrolls.',
                     '',
                     '## References',
                     '',
@@ -61,7 +61,7 @@ export const LoadingSummary: Story = {
     },
 };
 
-/** No intent metadata for this instruction: the text alone, still asking to check the wallet. */
+/** No intent metadata for this instruction: the text asks to check the form, then the wallet. */
 export const WithoutMetadata: Story = {
     args: { summary: { status: 'unavailable' } },
 };
