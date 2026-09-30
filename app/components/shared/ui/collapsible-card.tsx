@@ -13,10 +13,15 @@ type CollapsibleCardProps = {
     className?: string;
     headerButtons?: ReactNode;
     collapsible?: boolean;
+    /** False drops the line under the header, for content that draws its own top edge. */
+    headerDivider?: boolean;
 };
 
 export const CollapsibleCard = forwardRef<HTMLDivElement, CollapsibleCardProps>(
-    ({ title, children, defaultExpanded = true, className, headerButtons, collapsible = true }, ref) => {
+    (
+        { title, children, defaultExpanded = true, className, headerButtons, collapsible = true, headerDivider = true },
+        ref,
+    ) => {
         const [expanded, setExpanded] = useState(defaultExpanded);
 
         return (
@@ -28,7 +33,10 @@ export const CollapsibleCard = forwardRef<HTMLDivElement, CollapsibleCardProps>(
             >
                 <BaseCardHeader
                     ui="dashkit"
-                    className={cn('h-auto min-h-[60px] gap-2', collapsible && !expanded && 'border-b-0')}
+                    className={cn(
+                        'h-auto min-h-[60px] gap-2',
+                        ((collapsible && !expanded) || !headerDivider) && 'border-b-0',
+                    )}
                 >
                     <BaseCardTitle ui="dashkit" className="flex min-w-0 items-center break-all">
                         {title}

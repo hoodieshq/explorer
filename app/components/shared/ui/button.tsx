@@ -48,6 +48,13 @@ const buttonVariants = cva([], {
             variant: 'default',
         },
         {
+            // The app's danger colour (`dk-danger`, #b45be1) for confirming a dangerous action — the same purple
+            // as a failed cluster connection and the danger alert. See Design System/Palette → Agreements.
+            class: 'border-0 bg-dk-danger text-white shadow-sm hover:bg-dk-danger/90',
+            ui: 'tw',
+            variant: 'danger',
+        },
+        {
             // border-0 (here and below): UA buttons carry a 2px border and @tailwind base is skipped
             class: 'border-0 bg-red-500 text-neutral-50 shadow-sm hover:bg-red-500/90',
             ui: 'tw',
@@ -163,12 +170,17 @@ const buttonVariants = cva([], {
     ],
     defaultVariants: {
         active: false,
+        dashed: false,
         size: 'default',
         ui: 'tw',
         variant: 'default',
     },
     variants: {
         active: { false: '', true: '' },
+        // "Nothing behind this" state (e.g. an instruction intent that could not be had): a dashed outline and
+        // dimmed label, at the same size. `border-dashed` beats both lineages' `border-solid` by utility order
+        // (solid is emitted first); the label colour is `!` because every variant owns its text colour.
+        dashed: { false: '', true: 'border-dashed !text-neutral-400 hover:!text-neutral-200' },
         size: { compact: '', default: '', icon: '', lg: '', sm: '', tile: '', toolbar: '' },
         ui: { dashkit: '', tw: '' },
         variant: {
@@ -200,9 +212,15 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-    ({ className, active, size, ui, variant, asChild = false, ...props }, ref) => {
+    ({ className, active, dashed, size, ui, variant, asChild = false, ...props }, ref) => {
         const Comp = asChild ? Slot : 'button';
-        return <Comp className={cn(buttonVariants({ active, size, ui, variant }), className)} ref={ref} {...props} />;
+        return (
+            <Comp
+                className={cn(buttonVariants({ active, dashed, size, ui, variant }), className)}
+                ref={ref}
+                {...props}
+            />
+        );
     },
 );
 Button.displayName = 'Button';

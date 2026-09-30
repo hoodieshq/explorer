@@ -74,52 +74,23 @@ export function InstructionsSection({
     message: VersionedMessage;
     compiledInnerInstructions?: CompiledInnerInstruction[];
 }) {
-    const hydratedTables = useAddressLookupTables(
-        message.addressTableLookups.map(lookup => lookup.accountKey.toString()),
-    );
+    const decodedMessage = useDecodedMessage(message, compiledInnerInstructions);
 
-    const failedLookupIndex = hydratedTables.findIndex(table => table?.[1] === FetchStatus.FetchFailed);
-    const lookupTables = hydratedTables.flatMap(table =>
-        table?.[0] instanceof AddressLookupTableAccount ? [table[0]] : [],
-    );
-    const allLookupsResolved = lookupTables.length === hydratedTables.length;
-
-    // `useAddressLookupTables` returns a new array on each render, so the memo below depends on
-    // `lookupTablesKey` instead of `lookupTables`.
-    // A table only gains addresses, so `lastExtendedSlot` and the address count identify its contents.
-    const lookupTablesKey = lookupTables
-        .map(table => `${table.key.toBase58()}:${table.state.lastExtendedSlot}:${table.state.addresses.length}`)
-        .join('|');
-
-    const decoded = useMemo(() => {
-        if (!allLookupsResolved) return undefined;
-        const addressLookupTableAccounts = lookupTables;
-        return {
-            innerByIndex: compiledInnerInstructions
-                ? resolveInnerInstructions(
-                      compiledInnerInstructions,
-                      message.getAccountKeys({ addressLookupTableAccounts }),
-                      message,
-                  )
-                : undefined,
-            instructions: TransactionMessage.decompile(message, { addressLookupTableAccounts }).instructions,
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- `lookupTablesKey` replaces `lookupTables`, which is a new array every render
-    }, [allLookupsResolved, compiledInnerInstructions, lookupTablesKey, message]);
-
-    if (failedLookupIndex >= 0) {
+    if (decodedMessage.status === 'failed') {
         return (
             <ErrorCard
                 text={`Failed to fetch address lookup table: ${message.addressTableLookups[
-                    failedLookupIndex
+                    decodedMessage.failedLookupIndex
                 ].accountKey.toString()}`}
             />
         );
     }
 
-    if (!decoded) {
+    if (decodedMessage.status === 'loading') {
         return <LoadingCard />;
     }
+
+    const { decoded } = decodedMessage;
 
     return (
         <CollapsibleSection id="instructions" title="Instructions" className="">
@@ -158,6 +129,63 @@ export function InstructionsSection({
             </InstructionSurfaceProvider>
         </CollapsibleSection>
     );
+}
+
+type DecodedMessage =
+    | { status: 'loading' }
+    | { status: 'failed'; failedLookupIndex: number }
+    | {
+          status: 'ready';
+          decoded: {
+              instructions: TransactionInstruction[];
+              innerByIndex: ReturnType<typeof resolveInnerInstructions> | undefined;
+          };
+      };
+
+/**
+ * The message's instructions with every address lookup resolved, shared by the Instructions section and
+ * the Overview read-out. The lookup tables come from the accounts cache, so a second caller costs nothing.
+ */
+export function useDecodedMessage(
+    message: VersionedMessage,
+    compiledInnerInstructions?: CompiledInnerInstruction[],
+): DecodedMessage {
+    const hydratedTables = useAddressLookupTables(
+        message.addressTableLookups.map(lookup => lookup.accountKey.toString()),
+    );
+
+    const failedLookupIndex = hydratedTables.findIndex(table => table?.[1] === FetchStatus.FetchFailed);
+    const lookupTables = hydratedTables.flatMap(table =>
+        table?.[0] instanceof AddressLookupTableAccount ? [table[0]] : [],
+    );
+    const allLookupsResolved = lookupTables.length === hydratedTables.length;
+
+    // `useAddressLookupTables` returns a new array on each render, so the memo below depends on
+    // `lookupTablesKey` instead of `lookupTables`.
+    // A table only gains addresses, so `lastExtendedSlot` and the address count identify its contents.
+    const lookupTablesKey = lookupTables
+        .map(table => `${table.key.toBase58()}:${table.state.lastExtendedSlot}:${table.state.addresses.length}`)
+        .join('|');
+
+    const decoded = useMemo(() => {
+        if (!allLookupsResolved) return undefined;
+        const addressLookupTableAccounts = lookupTables;
+        return {
+            innerByIndex: compiledInnerInstructions
+                ? resolveInnerInstructions(
+                      compiledInnerInstructions,
+                      message.getAccountKeys({ addressLookupTableAccounts }),
+                      message,
+                  )
+                : undefined,
+            instructions: TransactionMessage.decompile(message, { addressLookupTableAccounts }).instructions,
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- `lookupTablesKey` replaces `lookupTables`, which is a new array every render
+    }, [allLookupsResolved, compiledInnerInstructions, lookupTablesKey, message]);
+
+    if (failedLookupIndex >= 0) return { failedLookupIndex, status: 'failed' };
+    if (!decoded) return { status: 'loading' };
+    return { decoded, status: 'ready' };
 }
 
 function UndisplayableInstructionCard({ index, childIndex }: { index: number; childIndex: number }) {

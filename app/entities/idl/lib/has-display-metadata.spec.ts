@@ -3,7 +3,7 @@ import path from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-import { hasDisplayMetadata } from './has-display-metadata';
+import { getInstructionIntentTemplate, hasDisplayMetadata } from './has-display-metadata';
 
 function loadIdl(filename: string): unknown {
     const idlPath = path.resolve(__dirname, '../../../features/idl/interactive-idl/model/__mocks__/codama', filename);
@@ -52,5 +52,21 @@ describe('hasDisplayMetadata', () => {
         expect(hasDisplayMetadata('rootNode')).toBe(false);
         expect(hasDisplayMetadata(42)).toBe(false);
         expect(hasDisplayMetadata([])).toBe(false);
+    });
+});
+
+describe('getInstructionIntentTemplate', () => {
+    it('should return the raw template of a named instruction', () => {
+        expect(getInstructionIntentTemplate(loadIdl('system-program-display-idl.json'), 'transferSol')).toBe(
+            'Transfer ${data.amount} from ${accounts.source} to ${accounts.destination}',
+        );
+    });
+
+    it('should be undefined for an instruction the IDL does not describe', () => {
+        expect(getInstructionIntentTemplate(loadIdl('system-program-display-idl.json'), 'missing')).toBeUndefined();
+    });
+
+    it('should be undefined for an IDL without display nodes', () => {
+        expect(getInstructionIntentTemplate(loadIdl('system-program-idl.json'), 'transferSol')).toBeUndefined();
     });
 });

@@ -86,6 +86,10 @@ async function loadRawTransaction(
     }
 }
 
+// Several consumers can ask for the same transaction within one commit (e.g. the Summary read-out and a
+// card's Intent), before any of them sees the Fetching status. One request in flight serves them all.
+const inFlightRawTransactions = new Set<string>();
+
 export function useFetchRawTransaction() {
     const dispatch = React.useContext(DispatchContext);
     if (!dispatch) {
@@ -95,7 +99,15 @@ export function useFetchRawTransaction() {
     const { cluster, url } = useCluster();
     return React.useCallback(
         (signature: TransactionSignature, commitment?: Finality) => {
-            url && loadRawTransaction(dispatch, signature, cluster, url, commitment);
+            if (!url) return;
+
+            const key = `${url}|${signature}|${commitment ?? ''}`;
+            if (inFlightRawTransactions.has(key)) return;
+
+            inFlightRawTransactions.add(key);
+            void loadRawTransaction(dispatch, signature, cluster, url, commitment).finally(() =>
+                inFlightRawTransactions.delete(key),
+            );
         },
         [dispatch, cluster, url],
     );

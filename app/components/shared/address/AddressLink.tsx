@@ -16,17 +16,19 @@ type Props = {
     address: Address;
     /** Replace the middle of the address with an ellipsis, keeping `head`/`tail` chars on each side. */
     truncate?: Truncate;
+    /** Show the copy button before the link. Off where the address sits inside prose, e.g. an intent sentence. */
+    copyable?: boolean;
     className?: string;
     'aria-label'?: string;
 };
 
-export function AddressLink({ address, truncate, className, 'aria-label': ariaLabel }: Props) {
+export function AddressLink({ address, truncate, copyable = true, className, 'aria-label': ariaLabel }: Props) {
     const href = useClusterPath({ pathname: `/address/${address}` });
     const displayText = truncate ? abbreviateAddress(address, truncate) : address;
 
     return (
         <span className={cn('inline-flex items-center gap-1.5 font-mono text-dk-sm', className)}>
-            <CopyButton text={address} />
+            {copyable && <CopyButton text={address} />}
             <Link
                 href={href}
                 className="text-dk-primary-dark hover:text-dark-accent"

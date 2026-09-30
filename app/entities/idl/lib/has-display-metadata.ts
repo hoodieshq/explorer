@@ -16,12 +16,29 @@ export function hasDisplayMetadata(idl: unknown): boolean {
     const instructions = root.program?.instructions;
     if (!Array.isArray(instructions)) return false;
 
-    return instructions.some(hasInterpolatedIntent);
+    return instructions.some(instruction => getInterpolatedIntent(instruction) !== undefined);
 }
 
-function hasInterpolatedIntent(instruction: unknown): boolean {
+/**
+ * The raw sRFC 39 template of one instruction (`Transfer ${data.amount} to ${accounts.destination}`), for
+ * renderers that need the sentence shape before every value exists. Undefined when the IDL carries none.
+ */
+export function getInstructionIntentTemplate(idl: unknown, instructionName: string): string | undefined {
+    const root = idl as MaybeRootNode | undefined;
+    if (root?.kind !== 'rootNode') return undefined;
+
+    const instructions = root.program?.instructions;
+    if (!Array.isArray(instructions)) return undefined;
+
+    const instruction = instructions.find(
+        candidate => (candidate as { name?: unknown } | undefined)?.name === instructionName,
+    );
+    return getInterpolatedIntent(instruction);
+}
+
+function getInterpolatedIntent(instruction: unknown): string | undefined {
     const intent = (instruction as { display?: { interpolatedIntent?: unknown } } | undefined)?.display
         ?.interpolatedIntent;
 
-    return typeof intent === 'string' && intent.length > 0;
+    return typeof intent === 'string' && intent.length > 0 ? intent : undefined;
 }
