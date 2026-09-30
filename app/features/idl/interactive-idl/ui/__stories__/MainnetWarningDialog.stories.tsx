@@ -26,7 +26,7 @@ const meta: Meta<typeof MainnetWarningDialog> = {
         docs: {
             description: {
                 component: [
-                    '"Spend real funds?" before a mainnet execution from the Interact tab. With intent metadata, the summary of what will be signed goes on top with the SDK\'s formatted fields, followed by a prompt to compare it with the wallet. Confirm stays locked until the details load. Without metadata it falls back to the plain warning — the mainnet warning never disappears.',
+                    '"Spend real funds?" before a mainnet execution from the Interact tab. The text asks to compare what is signed with the wallet. With intent metadata the sentence follows at 20px, with the SDK\'s fields and the program behind "Show fields"; Confirm stays locked until the details load. Without metadata only the text stays — the mainnet warning never disappears. One dialog on every screen; the whole box scrolls.',
                     '',
                     '## References',
                     '',
@@ -34,7 +34,7 @@ const meta: Meta<typeof MainnetWarningDialog> = {
                     '- [BaseIntentSentence](?path=/docs/entities-idl-baseintentsentence--docs) — the summary sentence.',
                     '- [BaseInstructionDisplay](?path=/docs/entities-idl-baseinstructiondisplay--docs) — its field rows (`BaseDisplayFields`), plus a Program row.',
                     '- [Skeleton](?path=/docs/components-shared-skeleton--docs) — details still loading.',
-                    '- [Button](?path=/docs/components-shared-button--docs) (`outline` / `danger`, `size="sm"`) — Cancel and confirm.',
+                    '- [Button](?path=/docs/components-shared-button--docs) (`danger` / `outline`, `size="lg"`) — confirm and Cancel; `ghost` for "Show fields".',
                 ].join('\n'),
             },
         },
@@ -61,7 +61,7 @@ export const LoadingSummary: Story = {
     },
 };
 
-/** No intent metadata for this instruction: today's warning, unchanged. */
+/** No intent metadata for this instruction: the text alone, still asking to check the wallet. */
 export const WithoutMetadata: Story = {
     args: { summary: { status: 'unavailable' } },
 };

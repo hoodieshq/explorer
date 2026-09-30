@@ -26,13 +26,29 @@ export function BaseInstructionDisplay({ display, className }: { display: Instru
  * Label/value rows of the display's fallback list, laid out as the Overview card's rows ({@link KeyValue}),
  * top-left aligned so a long value wraps under its own start. Addresses use the app's {@link Address}.
  */
-export function BaseDisplayFields({ fields, className }: { fields: InstructionDisplay['fields']; className?: string }) {
+export function BaseDisplayFields({
+    fields,
+    labelWidth,
+    className,
+}: {
+    fields: InstructionDisplay['fields'];
+    /** The label column's width class; the shared KeyValue column when omitted. */
+    labelWidth?: string;
+    className?: string;
+}) {
     return (
         // The rhythm of an account's expanded details (AccountExpandedContent): `flat` rows, 6px apart.
         <div className={cn('flex flex-col gap-1.5', className)} data-testid="intent-fields">
             {/* Index key: an argument and an account can share a name, so labels are not unique. */}
             {fields.map((field, index) => (
-                <KeyValue key={index} label={field.label} align="start" density="flat" divider={false}>
+                <KeyValue
+                    key={index}
+                    label={field.label}
+                    labelWidth={labelWidth}
+                    align="start"
+                    density="flat"
+                    divider={false}
+                >
                     {isAddress(field.value) ? (
                         <Address pubkey={new PublicKey(field.value)} link noNicknameEditing />
                     ) : (
