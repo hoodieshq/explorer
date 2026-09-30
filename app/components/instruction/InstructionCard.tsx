@@ -64,9 +64,8 @@ export function InstructionCard({
     // when it carries them, so the summary does not depend on the raw fetch landing.
     const rawForDisplay = raw ?? ('parsed' in ix ? undefined : ix);
     const intent = useInstructionIntentSlots({
-        // Inner instructions never carry raw wire bytes, so there is nothing to summarise.
-        eligible: childIndex === undefined,
-        onRequestRaw: canFetchRaw ? fetchRawTrigger : undefined,
+        // The raw transaction carries only top-level instructions, so fetching it cannot give an inner one bytes.
+        onRequestRaw: canFetchRaw && childIndex === undefined ? fetchRawTrigger : undefined,
         programId: ix.programId.toString(),
         raw: rawForDisplay,
     });

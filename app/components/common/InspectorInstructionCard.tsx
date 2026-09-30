@@ -64,8 +64,6 @@ export function InspectorInstructionCard({
     // `raw` prop arrives. Same fallback the Raw view below uses.
     const rawForDisplay = raw ?? ('parsed' in ix ? undefined : ix);
     const intent = useInstructionIntentSlots({
-        // Inner instructions never carry raw wire bytes, so there is nothing to summarise.
-        eligible: childIndex === undefined,
         onRequestRaw,
         programId: ix.programId.toString(),
         raw: rawForDisplay,
@@ -74,6 +72,8 @@ export function InspectorInstructionCard({
     return (
         <CollapsibleCard
             ref={scrollAnchorRef}
+            // The intent row draws its own top edge in the card outline colour, which replaces the header's line.
+            headerDivider={!intent.panel}
             title={
                 <>
                     <Badge ui="dashkit" variant={resultClass as 'success' | 'warning' | 'dark'} className="mr-1.5">

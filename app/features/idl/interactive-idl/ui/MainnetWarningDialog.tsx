@@ -1,3 +1,4 @@
+import { Address } from '@components/common/Address';
 import { Button } from '@components/shared/ui/button';
 import {
     Dialog,
@@ -10,14 +11,19 @@ import {
 } from '@components/shared/ui/dialog';
 import { Skeleton } from '@components/shared/ui/skeleton';
 import { BaseDisplayFields, BaseIntentSentence } from '@entities/idl';
-import { programNameByAddress } from '@utils/programs';
+import { KeyValue } from '@shared/ui/key-value';
+import { PublicKey } from '@solana/web3.js';
 import { cva } from 'class-variance-authority';
-import { AlertCircle, AlertTriangle, Send } from 'react-feather';
+import { AlertCircle, Send } from 'react-feather';
 
 import type { MainnetSummary } from '../model/display/use-mainnet-summary';
 
 // The summary carries full-width field rows (addresses), so the dialog widens when it has one.
-const contentVariants = cva('', { variants: { withSummary: { false: '', true: 'max-w-md' } } });
+// The whole box is one scroll: title, text, summary and buttons move together on a short screen, with
+// nothing pinned. The close mark is positioned inside the box, so it scrolls with it too.
+const contentVariants = cva('max-h-[calc(100dvh-2rem)] overflow-y-auto', {
+    variants: { withSummary: { false: '', true: 'max-w-md' } },
+});
 
 type MainnetWarningDialogProps = {
     open: boolean;
@@ -41,7 +47,8 @@ export function MainnetWarningDialog({ open, onOpenChange, onConfirm, onCancel, 
             <DialogContent className={contentVariants({ withSummary: hasSummary })}>
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
-                        <AlertCircle className="text-destructive" size={16} />
+                        {/* The app's danger colour, as the RPC consent dialog and a failed cluster connection use. */}
+                        <AlertCircle className="text-dk-danger" size={16} />
                         Spend real funds?
                     </DialogTitle>
                 </DialogHeader>
@@ -53,7 +60,7 @@ export function MainnetWarningDialog({ open, onOpenChange, onConfirm, onCancel, 
                         </Button>
                     </DialogClose>
                     <Button
-                        variant="destructive"
+                        variant="danger"
                         size="sm"
                         onClick={onConfirm}
                         disabled={summary?.status === 'loading'}
@@ -70,65 +77,67 @@ export function MainnetWarningDialog({ open, onOpenChange, onConfirm, onCancel, 
 
 function SummaryBody({ summary }: { summary: Extract<MainnetSummary, { status: 'loading' | 'resolved' }> }) {
     return (
-        <div className="flex flex-col gap-3">
-            <DialogDescription>You&apos;re on Mainnet. This can&apos;t be undone.</DialogDescription>
+        <div className="flex flex-col gap-3" aria-live="polite" data-testid="mainnet-summary">
+            {/* One statement of the stakes and of the check to make (the wallet should show the same instruction:
+                the habit clear signing depends on), with the terms as its fine print right under it. `m-0`: the
+                description renders a <p>, which picks up the global paragraph margin otherwise. */}
+            <div className="flex flex-col gap-1">
+                <DialogDescription className="m-0">
+                    You&apos;re on Mainnet. This can&apos;t be undone. Your wallet opens next. It should show the same
+                    instruction. If it doesn&apos;t, reject it there.
+                </DialogDescription>
+                <BetaNote />
+            </div>
 
-            <div
-                className="flex flex-col gap-2.5 rounded-lg border border-solid border-dark-border bg-heavy-metal-950 p-3.5"
-                aria-live="polite"
-                data-testid="mainnet-summary"
-            >
-                <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-neutral-400">Summary</span>
+            {/* The plate holds only the sentence — what is being signed; the fields sit under it as plain rows. */}
+            {/* The intent blocks' ground (the page background), so the summary reads as the same thing here. */}
+            <div className="flex flex-col gap-2 rounded-lg border border-solid border-outer-space-800 bg-dark-background p-3">
+                <span className="text-[11px] font-medium uppercase tracking-[0.1em] text-outer-space-300">Intent</span>
                 {summary.status === 'loading' ? (
                     <div className="flex flex-col gap-2" data-testid="mainnet-summary-loading">
                         <Skeleton className="h-4 w-[85%]" />
                         <Skeleton className="h-4 w-1/2" />
                     </div>
                 ) : (
-                    <>
-                        <BaseIntentSentence
-                            sentence={summary.display.interpolatedIntent ?? summary.display.intent}
-                            className="text-lg font-medium leading-snug"
-                        />
-                        <BaseDisplayFields
-                            fields={[
-                                ...summary.display.fields,
-                                {
-                                    label: 'Program',
-                                    value: programNameByAddress(summary.programId) ?? summary.programId,
-                                },
-                            ]}
-                        />
-                    </>
+                    <BaseIntentSentence
+                        sentence={summary.display.interpolatedIntent ?? summary.display.intent}
+                        size="lg"
+                    />
                 )}
             </div>
 
-            <p className="m-0 flex items-start gap-2 text-sm text-neutral-300">
-                <AlertTriangle className="mt-0.5 shrink-0 text-yellow-300" size={14} />
-                Your wallet opens next. It should show the same instruction. If it doesn&apos;t, reject it there.
-            </p>
-            <p className="m-0 text-xs text-neutral-500">
-                Beta feature, provided as is.{' '}
-                <a href="/tos" target="_blank" rel="noopener noreferrer">
-                    Terms
-                </a>
-            </p>
+            {summary.status === 'resolved' && (
+                <div className="flex flex-col gap-1.5">
+                    <BaseDisplayFields fields={summary.display.fields} />
+                    <KeyValue label="Program" align="start" density="flat" divider={false}>
+                        <Address pubkey={new PublicKey(summary.programId)} link noNicknameEditing />
+                    </KeyValue>
+                </div>
+            )}
         </div>
     );
 }
 
+// Worded as the summary's lines; with no intent to compare against, the wallet check asks to read it there.
 function PlainWarningBody() {
     return (
-        <div className="space-y-2 pl-6">
-            <DialogDescription>
-                You&apos;re connected to Mainnet. Any SOL you send now is permanent and costs real money. Make sure the
-                details are correct before continuing.
+        <div className="flex flex-col gap-1">
+            <DialogDescription className="m-0">
+                You&apos;re on Mainnet. This can&apos;t be undone. Your wallet opens next. Check the instruction there.
+                If it looks wrong, reject it.
             </DialogDescription>
-            <p className="text-sm text-neutral-400">
-                Please take note that this is a beta version feature and is provided on an &quot;as is&quot; and
-                &quot;as available&quot; basis. Solana Explorer does not provide any warranties and will not be liable
-                for any loss, direct or indirect, through continued use of this feature.
-            </p>
+            <BetaNote />
         </div>
+    );
+}
+
+function BetaNote() {
+    return (
+        <p className="m-0 text-xs text-outer-space-300">
+            Beta feature, provided as is.{' '}
+            <a href="/tos" target="_blank" rel="noopener noreferrer">
+                Terms
+            </a>
+        </p>
     );
 }

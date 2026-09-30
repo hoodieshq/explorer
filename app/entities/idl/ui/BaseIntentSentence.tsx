@@ -1,34 +1,59 @@
-import { AddressLink } from '@components/shared/address';
+import { Address } from '@components/common/Address';
 import { cn } from '@components/shared/utils';
-import type { Address } from '@solana/kit';
+import { useCluster } from '@providers/cluster';
+import { PublicKey } from '@solana/web3.js';
+import { displayAddress } from '@utils/tx';
+import { cva, type VariantProps } from 'class-variance-authority';
 
-import { splitIntentSentence } from '../lib/intent-text';
+import { shortenAddress, splitIntentSentence } from '../lib/intent-text';
 
-const SENTENCE_TRUNCATE = { head: 5, tail: 5 };
+// Size is a variant, not a className override: `cn` keeps both font-size classes and stylesheet order would
+// decide. Addresses inherit the size, so they read at the same size as the words around them.
+const sentenceVariants = cva('m-0 break-words text-white', {
+    defaultVariants: { size: 'base' },
+    variants: {
+        size: {
+            base: 'text-base leading-normal',
+            lg: 'text-lg font-medium leading-snug',
+            sm: 'text-sm leading-normal',
+            xl: 'text-xl font-medium leading-snug',
+        },
+    },
+});
 
 /**
- * An SDK-resolved intent sentence with its addresses shortened and linked.
- * The full addresses stay one hop away: in the link title and in the field rows next to the sentence.
+ * An SDK-resolved intent sentence with its addresses rendered by the app's own {@link Address}: link, copy
+ * button, and the same cross-page hover highlight as every other address. Known addresses show their label;
+ * others are shortened to keep the sentence on one line.
  */
-export function BaseIntentSentence({ sentence, className }: { sentence: string; className?: string }) {
+export function BaseIntentSentence({
+    sentence,
+    size,
+    className,
+}: { sentence: string; className?: string } & VariantProps<typeof sentenceVariants>) {
     return (
-        <p
-            className={cn('m-0 break-words text-base leading-normal text-white', className)}
-            data-testid="intent-sentence"
-        >
+        <p className={cn(sentenceVariants({ size }), className)} data-testid="intent-sentence">
             {/* Index key: the same address can appear twice in one sentence, so values are not unique. */}
             {splitIntentSentence(sentence).map((part, index) =>
                 part.kind === 'address' ? (
-                    <AddressLink
-                        key={index}
-                        address={part.address as Address}
-                        truncate={SENTENCE_TRUNCATE}
-                        copyable={false}
-                    />
+                    <SentenceAddress key={index} address={part.address} />
                 ) : (
                     <span key={index}>{part.text}</span>
                 ),
             )}
         </p>
+    );
+}
+
+function SentenceAddress({ address }: { address: string }) {
+    const { cluster } = useCluster();
+    // `Address` shows a known label by itself; only a bare address needs the short form.
+    const overrideText = displayAddress(address, cluster) === address ? shortenAddress(address) : undefined;
+
+    return (
+        // `Address` lays itself out as a full-width row; the inline-block keeps it inside the sentence's flow.
+        <span className="inline-block max-w-full align-bottom">
+            <Address pubkey={new PublicKey(address)} link noNicknameEditing overrideText={overrideText} />
+        </span>
     );
 }

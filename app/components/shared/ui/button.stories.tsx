@@ -16,6 +16,7 @@ const twVariantOptions = [
     'default',
     'accent',
     'compact',
+    'danger',
     'destructive',
     'ghost',
     'link',
@@ -54,6 +55,7 @@ const dashkitSizeOptions = ['default', 'sm', 'lg'] as const satisfies readonly B
 const twVariantIcons: Record<TwVariant, typeof Check | typeof X | typeof Download | typeof ArrowRight> = {
     accent: Check,
     compact: Check,
+    danger: X,
     default: Check,
     destructive: X,
     ghost: ArrowRight,
@@ -67,6 +69,7 @@ const meta: Meta<typeof Button> = {
     argTypes: {
         active: { control: 'boolean' },
         asChild: { control: 'boolean' },
+        dashed: { control: 'boolean' },
         disabled: { control: 'boolean' },
         size: { control: 'select', options: sizeOptions },
         ui: { control: 'select', options: ['tw', 'dashkit'] },
@@ -139,6 +142,7 @@ export const WithIcons: Story = {
         > = {
             accent: { icon: Check, label: 'Success' },
             compact: { icon: Check, label: 'Compact' },
+            danger: { icon: X, label: 'Spend' },
             default: { icon: Check, label: 'Success' },
             destructive: { icon: X, label: 'Delete' },
             ghost: { icon: ArrowRight, label: 'Continue', position: 'right' },
@@ -343,6 +347,25 @@ function DashkitToggleDemo() {
 export const DashkitToggleGroup: Story = {
     name: 'Dashkit / Toggle (btn-black active)',
     render: () => <DashkitToggleDemo />,
+};
+
+/** `dashed`: the same toggle when there is nothing behind it — dashed outline, dimmed label, same size. */
+export const DashkitToggleDashed: Story = {
+    name: 'Dashkit / Toggle dashed',
+    play: async ({ canvasElement }) => {
+        const [closed] = within(canvasElement).getAllByRole('button');
+        await expect(closed.className).toContain('border-dashed');
+    },
+    render: () => (
+        <div className="flex gap-4">
+            <Button ui="dashkit" size="sm" variant="white" dashed className="flex items-center">
+                <ExternalLink size={13} className="mr-1.5" /> Closed
+            </Button>
+            <Button ui="dashkit" size="sm" variant="black" active dashed className="flex items-center">
+                <ExternalLink size={13} className="mr-1.5" /> Open
+            </Button>
+        </div>
+    ),
 };
 
 export const DashkitAsLink: Story = {

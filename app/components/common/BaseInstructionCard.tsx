@@ -72,6 +72,8 @@ export function BaseInstructionCard({
         <CollapsibleCard
             ref={scrollAnchorRef}
             collapsible={collapsible}
+            // The top row draws its own top edge in the card outline colour, which replaces the header's line.
+            headerDivider={!bodyTop}
             title={
                 <span className="flex min-w-0 flex-1 items-center">
                     <Badge
@@ -160,7 +162,8 @@ export function BaseInstructionCard({
 
 export function BodyTopRow({ children }: { children: React.ReactNode }) {
     return (
-        <BaseTable.Row>
+        // The next row's top border is dropped: the content draws its own bottom edge, and two lines would stack.
+        <BaseTable.Row className="[&+tr>td]:!border-t-0">
             {/* `!p-0`: the card table pins edge-cell padding with higher-specificity selectors, and this row's
                 content brings its own. */}
             <BaseTable.Cell colSpan={3} className="!p-0">

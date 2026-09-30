@@ -1,4 +1,4 @@
-import { nextjsParameters, withCluster } from '@storybook-config/decorators';
+import { nextjsParameters, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { expect, within } from 'storybook/test';
 
@@ -9,14 +9,14 @@ const DESTINATION = 'EjYkrNiQNd6QHhKx5yYARxWXvSNsJ11CLJPhgUrhPE5M';
 
 const meta: Meta<typeof BaseInstructionReadback> = {
     component: BaseInstructionReadback,
-    decorators: [withCluster],
+    decorators: [withCluster, withTokenInfoBatch],
     globals: { viewport: { value: 'responsive' } },
     parameters: {
         ...nextjsParameters,
         docs: {
             description: {
                 component: [
-                    "The one-line **Summary** above Execute on the Interact tab. Always visible, no accordion. The intent template renders first and fills in as fields are completed; dashed slots name what is still missing. Once the form is complete the SDK's own sentence takes over, with values formatted (e.g. lamports as SOL). No field list — the form above already is one. Zero RPC.",
+                    "The one-line **Intent** above Execute on the Interact tab (the same word as the instruction cards use). Always visible, no accordion. The intent template renders first and fills in as fields are completed; dashed slots name what is still missing. Once the form is complete the SDK's own sentence takes over, with values formatted (e.g. lamports as SOL). No field list — the form above already is one. Zero RPC.",
                     '',
                     '## References',
                     '',

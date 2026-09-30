@@ -25,7 +25,7 @@ export type InstructionDisplayState =
 
 const SWR_OPTIONS = {
     // A finished instruction does not change, so a result is kept for the page's lifetime: reopening the
-    // intent, or opening it again through "Show all intents", costs nothing.
+    // intent, or reading it again in "What this transaction does", costs nothing.
     revalidateIfStale: false,
     revalidateOnFocus: false,
     revalidateOnReconnect: false,

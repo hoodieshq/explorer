@@ -17,6 +17,7 @@ import {
     isSimd0553FeeEnabled,
     projectResourceAndInclusionFees,
 } from '@entities/transaction-fee';
+import { InstructionsReadOut } from '@features/decode-instruction-with-idl';
 import { ViewReceiptButton } from '@features/receipt';
 import { FetchStatus } from '@providers/cache';
 import { useCluster, useClusterInfo } from '@providers/cluster';
@@ -35,7 +36,7 @@ import { getTransactionInstructionError } from '@utils/program-err';
 import { intoTransactionInstruction } from '@utils/tx';
 import { useBuildClusterPath, useClusterPath } from '@utils/url';
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ZoomIn } from 'react-feather';
 
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
@@ -396,6 +397,13 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
                         </InfoTooltip>
                     </KeyValue>
                 )}
+                {transaction && (
+                    <TransactionReadOut
+                        transaction={transaction}
+                        rawDetails={rawDetails}
+                        onRequestRaw={() => fetchRaw(signature)}
+                    />
+                )}
             </Card>
         </section>
     );
@@ -434,4 +442,40 @@ function readPriorityFeeLamports({
  */
 function transactionSizeLimit(version: TransactionVersion | undefined): number {
     return version === 1 ? V1_TRANSACTION_SIZE_LIMIT : PACKET_DATA_SIZE;
+}
+
+// "What this transaction does", as on the Inspector's Overview. The intents are built from wire bytes, which
+// this page takes from the raw transaction the card fetches on mount; the parsed instructions only name the
+// programs, so rows can show which program an unavailable intent belongs to.
+function TransactionReadOut({
+    transaction,
+    rawDetails,
+    onRequestRaw,
+}: {
+    transaction: ParsedTransaction;
+    rawDetails: ReturnType<typeof useRawTransactionDetails>;
+    onRequestRaw: () => void;
+}) {
+    const rawInstructions = rawDetails?.data?.raw?.transaction?.instructions;
+    const settled = rawDetails?.status === FetchStatus.Fetched || rawDetails?.status === FetchStatus.FetchFailed;
+
+    const instructions = useMemo(
+        () =>
+            transaction.message.instructions.map((instruction, index) => ({
+                programId: instruction.programId.toBase58(),
+                raw: rawInstructions?.[index],
+            })),
+        [transaction, rawInstructions],
+    );
+
+    return (
+        <InstructionsReadOut
+            instructions={instructions}
+            canRequestRaw={!settled}
+            onRequestRaw={rawDetails ? undefined : onRequestRaw}
+            // Last in the card: the top edge in the intent outline colour is pulled up over the last row's
+            // divider so the two do not stack, and the bottom corners follow the card's.
+            className="-mt-px rounded-b-lg border-0 border-t border-solid border-outer-space-800"
+        />
+    );
 }

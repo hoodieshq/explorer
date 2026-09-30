@@ -1,4 +1,4 @@
-import { nextjsParameters, withClipboardMock, withCluster } from '@storybook-config/decorators';
+import { nextjsParameters, withClipboardMock, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { expect, fn, screen } from 'storybook/test';
 
@@ -20,7 +20,7 @@ const TRANSFER = {
 const meta: Meta<typeof MainnetWarningDialog> = {
     args: { onCancel: fn(), onConfirm: fn(), onOpenChange: fn(), open: true },
     component: MainnetWarningDialog,
-    decorators: [withCluster, withClipboardMock],
+    decorators: [withCluster, withTokenInfoBatch, withClipboardMock],
     parameters: {
         ...nextjsParameters,
         docs: {
@@ -34,7 +34,7 @@ const meta: Meta<typeof MainnetWarningDialog> = {
                     '- [BaseIntentSentence](?path=/docs/entities-idl-baseintentsentence--docs) — the summary sentence.',
                     '- [BaseInstructionDisplay](?path=/docs/entities-idl-baseinstructiondisplay--docs) — its field rows (`BaseDisplayFields`), plus a Program row.',
                     '- [Skeleton](?path=/docs/components-shared-skeleton--docs) — details still loading.',
-                    '- [Button](?path=/docs/components-shared-button--docs) (`outline` / `destructive`, `size="sm"`) — Cancel and confirm.',
+                    '- [Button](?path=/docs/components-shared-button--docs) (`outline` / `danger`, `size="sm"`) — Cancel and confirm.',
                 ].join('\n'),
             },
         },

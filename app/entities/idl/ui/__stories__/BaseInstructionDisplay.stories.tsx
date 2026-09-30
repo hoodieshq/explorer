@@ -1,4 +1,4 @@
-import { nextjsParameters, withClipboardMock, withCluster } from '@storybook-config/decorators';
+import { nextjsParameters, withClipboardMock, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
 import { BaseInstructionDisplay } from '../BaseInstructionDisplay';
@@ -6,7 +6,7 @@ import { NO_SENTENCE_DISPLAY, TRANSFER_SOL_DISPLAY, TRANSFER_TOKENS_DISPLAY } fr
 
 const meta: Meta<typeof BaseInstructionDisplay> = {
     component: BaseInstructionDisplay,
-    decorators: [withCluster, withClipboardMock],
+    decorators: [withCluster, withTokenInfoBatch, withClipboardMock],
     globals: { viewport: { value: 'responsive' } },
     parameters: {
         ...nextjsParameters,

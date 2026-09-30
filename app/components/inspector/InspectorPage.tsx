@@ -743,7 +743,6 @@ function OverviewCard({
                 </div>
             </div>
             <Card ui="dashkit">
-                <OverviewReadOut message={message} />
                 <KeyValue label="Serialized Size / Limit">
                     <span className={size > sizeLimit ? 'text-dk-warning-on-dark' : undefined}>
                         {size} / {sizeLimit} bytes
@@ -797,6 +796,7 @@ function OverviewCard({
                         />
                     )}
                 </KeyValue>
+                <OverviewReadOut message={message} />
             </Card>
         </section>
     );
@@ -810,8 +810,13 @@ function OverviewReadOut({ message }: { message: VersionedMessage }) {
 
     return (
         <InstructionsReadOut
-            instructions={decodedMessage.decoded.instructions}
-            className="border-0 border-b border-solid border-dark-border"
+            instructions={decodedMessage.decoded.instructions.map(raw => ({
+                programId: raw.programId.toBase58(),
+                raw,
+            }))}
+            // Last in the card, as on the transaction page: the top edge in the intent outline colour is pulled
+            // up over the last row's divider so the two do not stack, and the bottom corners follow the card's.
+            className="-mt-px rounded-b-lg border-0 border-t border-solid border-outer-space-800"
         />
     );
 }

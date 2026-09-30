@@ -48,18 +48,22 @@ vi.mock('@components/common/BaseInstructionCard', () => ({
 // The intent's own behaviour has its specs; here only what the card hands it matters.
 vi.mock('@features/decode-instruction-with-idl/ui/InstructionIntent', () => ({
     useInstructionIntentSlots: ({
-        eligible,
+        onRequestRaw,
         programId,
         raw,
     }: {
-        eligible?: boolean;
+        onRequestRaw?: () => void;
         programId: string;
         raw?: TransactionInstruction;
     }) => ({
-        button:
-            eligible === false ? undefined : (
-                <div data-testid="display-popover" data-program-id={programId} data-has-raw={raw !== undefined} />
-            ),
+        button: (
+            <div
+                data-testid="display-popover"
+                data-program-id={programId}
+                data-has-raw={raw !== undefined}
+                data-can-request-raw={onRequestRaw !== undefined}
+            />
+        ),
         panel: undefined,
     }),
 }));
@@ -162,12 +166,16 @@ describe('InstructionCard', () => {
         expect(screen.getByTestId('display-popover').dataset.programId).toBe(PROGRAM_ID.toString());
     });
 
-    it('should not offer the intent on an inner instruction', () => {
-        rawDetails = legacyRawDetails();
-
+    it('should offer the intent on an inner instruction without asking for the raw transaction', () => {
         renderCard({ childIndex: 0 });
 
-        expect(screen.queryByTestId('display-popover')).not.toBeInTheDocument();
+        expect(screen.getByTestId('display-popover').dataset.canRequestRaw).toBe('false');
+    });
+
+    it('should let the intent of a top-level instruction ask for the raw transaction', () => {
+        renderCard();
+
+        expect(screen.getByTestId('display-popover').dataset.canRequestRaw).toBe('true');
     });
 
     it('should hand the fetched raw instruction to the intent', () => {

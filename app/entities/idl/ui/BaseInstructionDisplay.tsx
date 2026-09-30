@@ -1,7 +1,9 @@
 import type { InstructionDisplay } from '@codama/dynamic-instructions';
-import { AddressLink } from '@components/shared/address';
+import { Address } from '@components/common/Address';
 import { cn } from '@components/shared/utils';
+import { KeyValue } from '@shared/ui/key-value';
 import { isAddress } from '@solana/kit';
+import { PublicKey } from '@solana/web3.js';
 
 import { BaseIntentSentence } from './BaseIntentSentence';
 
@@ -20,25 +22,24 @@ export function BaseInstructionDisplay({ display, className }: { display: Instru
     );
 }
 
-/** Label/value rows of the display's fallback list; stacked on narrow screens so long addresses keep their width. */
+/**
+ * Label/value rows of the display's fallback list, laid out as the Overview card's rows ({@link KeyValue}),
+ * top-left aligned so a long value wraps under its own start. Addresses use the app's {@link Address}.
+ */
 export function BaseDisplayFields({ fields, className }: { fields: InstructionDisplay['fields']; className?: string }) {
     return (
-        <dl
-            className={cn('m-0 flex flex-col border-0 border-t border-solid border-white/5 pt-1 text-sm', className)}
-            data-testid="intent-fields"
-        >
+        // The rhythm of an account's expanded details (AccountExpandedContent): `flat` rows, 6px apart.
+        <div className={cn('flex flex-col gap-1.5', className)} data-testid="intent-fields">
             {/* Index key: an argument and an account can share a name, so labels are not unique. */}
             {fields.map((field, index) => (
-                <div
-                    key={index}
-                    className="flex flex-col gap-0.5 py-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4"
-                >
-                    <dt className="shrink-0 font-normal text-neutral-400">{field.label}</dt>
-                    <dd className="m-0 min-w-0 break-all text-white sm:text-right">
-                        {isAddress(field.value) ? <AddressLink address={field.value} /> : field.value}
-                    </dd>
-                </div>
+                <KeyValue key={index} label={field.label} align="start" density="flat" divider={false}>
+                    {isAddress(field.value) ? (
+                        <Address pubkey={new PublicKey(field.value)} link noNicknameEditing />
+                    ) : (
+                        <span className="text-white">{field.value}</span>
+                    )}
+                </KeyValue>
             ))}
-        </dl>
+        </div>
     );
 }

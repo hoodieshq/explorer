@@ -10,11 +10,11 @@ const meta: Meta<typeof BaseInstructionIntentButton> = {
         docs: {
             description: {
                 component: [
-                    'The **Intent** toggle in an instruction card header, next to Raw. A text button rather than an ⓘ mark, because the icon reads as "help". The open state is styled off `aria-expanded`, so it cannot drift from what assistive tech hears. Absent — never disabled — for programs without published intents.',
+                    'The **Intent** toggle in an instruction card header, next to Raw. A text button rather than an ⓘ mark, because the icon reads as "help". The open state is styled off `aria-expanded`, so it cannot drift from what assistive tech hears. Icon-only below `md`. When the intent cannot be had, the outline turns dashed and dimmed — visible with the icon alone, at the same size — and the panel explains why.',
                     '',
                     '## References',
                     '',
-                    '- [Button](?path=/docs/components-shared-button--docs) (`variant="outline" size="sm"`) — the base; `aria-expanded:` utilities add the accent open state.',
+                    '- [Button](?path=/docs/components-shared-button--docs) (`ui="dashkit" size="sm"`, `white` / `black` + `active`, `dashed`) — the same button as the Raw toggle beside it.',
                 ].join('\n'),
             },
         },
@@ -39,3 +39,14 @@ export const Open: Story = {
 };
 
 export const Busy: Story = { args: { busy: true, open: true } };
+
+export const Missing: Story = {
+    args: { missing: true, open: false },
+    play: async ({ canvasElement }) => {
+        await expect(within(canvasElement).getByRole('button', { name: 'Intent unavailable' }).className).toContain(
+            'border-dashed',
+        );
+    },
+};
+
+export const MissingOpen: Story = { args: { missing: true, open: true } };

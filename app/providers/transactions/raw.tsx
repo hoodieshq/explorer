@@ -86,8 +86,8 @@ async function loadRawTransaction(
     }
 }
 
-// Several cards can ask for the same transaction within one commit (e.g. "Show all intents" opening every
-// card at once), before any of them sees the Fetching status. One request in flight serves them all.
+// Several consumers can ask for the same transaction within one commit (e.g. the Summary read-out and a
+// card's Intent), before any of them sees the Fetching status. One request in flight serves them all.
 const inFlightRawTransactions = new Set<string>();
 
 export function useFetchRawTransaction() {
