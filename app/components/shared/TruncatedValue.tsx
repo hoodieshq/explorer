@@ -33,6 +33,9 @@ export type TruncatedValueProps = {
     value: string;
     href?: string;
     truncation?: TruncationOptions;
+    // Drops the inline copy glyph, e.g. where the whole row is one tap target that opens a details view
+    // with its own copy action. The tooltip still carries the full value.
+    noCopy?: boolean;
     className?: string;
 } & VariantProps<typeof truncatedValueVariants>;
 
@@ -54,6 +57,7 @@ export function TruncatedValue({
     truncation = { enabled: true },
     alignItems,
     alignRight,
+    noCopy = false,
     className,
 }: TruncatedValueProps) {
     const { rowRef, hiddenTextRef, isMidTruncated, midTruncatedText } = useMidTruncation(truncation.enabled, value, {
@@ -61,6 +65,36 @@ export function TruncatedValue({
     });
 
     const visibleText = isMidTruncated ? midTruncatedText : value;
+
+    const text = (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                {/* A link is already focusable, so only the plain variant needs a tab stop, and only once truncation hides part of the value. */}
+                <span
+                    tabIndex={isMidTruncated && !href ? 0 : undefined}
+                    className="relative min-w-0 overflow-hidden font-mono"
+                >
+                    {href ? (
+                        <Link href={href} className="font-mono" aria-label={isMidTruncated ? value : undefined}>
+                            {visibleText}
+                        </Link>
+                    ) : (
+                        <>
+                            <span className="font-mono" aria-hidden={isMidTruncated || undefined}>
+                                {visibleText}
+                            </span>
+                            {isMidTruncated && <span className="sr-only">{value}</span>}
+                        </>
+                    )}
+                </span>
+            </TooltipTrigger>
+            {isMidTruncated && (
+                <TooltipContent className="max-w-[min(320px,90vw)]">
+                    <span className="break-all font-mono">{value}</span>
+                </TooltipContent>
+            )}
+        </Tooltip>
+    );
 
     return (
         <div ref={rowRef} className={cn(truncatedValueVariants({ alignItems, alignRight }), className)}>
@@ -73,35 +107,7 @@ export function TruncatedValue({
                     {value}
                 </span>
             )}
-            <Copyable text={value}>
-                <Tooltip>
-                    <TooltipTrigger asChild>
-                        {/* A link is already focusable, so only the plain variant needs a tab stop, and only once truncation hides part of the value. */}
-                        <span
-                            tabIndex={isMidTruncated && !href ? 0 : undefined}
-                            className="relative min-w-0 overflow-hidden font-mono"
-                        >
-                            {href ? (
-                                <Link href={href} className="font-mono" aria-label={isMidTruncated ? value : undefined}>
-                                    {visibleText}
-                                </Link>
-                            ) : (
-                                <>
-                                    <span className="font-mono" aria-hidden={isMidTruncated || undefined}>
-                                        {visibleText}
-                                    </span>
-                                    {isMidTruncated && <span className="sr-only">{value}</span>}
-                                </>
-                            )}
-                        </span>
-                    </TooltipTrigger>
-                    {isMidTruncated && (
-                        <TooltipContent className="max-w-[min(320px,90vw)]">
-                            <span className="break-all font-mono">{value}</span>
-                        </TooltipContent>
-                    )}
-                </Tooltip>
-            </Copyable>
+            {noCopy ? text : <Copyable text={value}>{text}</Copyable>}
         </div>
     );
 }

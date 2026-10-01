@@ -6,10 +6,12 @@ import userEvent from '@testing-library/user-event';
 import { Cluster } from '@utils/cluster';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// next/navigation is used by OwnedTokensCard's display dropdown, which selects the summary vs detail body.
-const { useSearchParamsMock } = vi.hoisted(() => ({ useSearchParamsMock: vi.fn() }));
+// next/navigation is used by OwnedTokensCard's display dropdown, which selects the summary vs detail body,
+// and by the grid rows' Token History filter toggle, which pushes the next URL.
+const { pushMock, useSearchParamsMock } = vi.hoisted(() => ({ pushMock: vi.fn(), useSearchParamsMock: vi.fn() }));
 vi.mock('next/navigation', () => ({
     usePathname: vi.fn(() => '/address/x/tokens'),
+    useRouter: () => ({ push: pushMock }),
     useSearchParams: useSearchParamsMock,
 }));
 
@@ -353,5 +355,97 @@ describe('should render the account address column only in detail display', () =
         render(<OwnedTokensCard address={OWNER} />);
 
         expect(screen.getAllByTestId('address').map(node => node.textContent)).toEqual([TOKEN_ACCOUNT_B, MINT]);
+    });
+});
+
+describe('should filter Token History from a grid row', () => {
+    beforeEach(() => {
+        useClusterMock.mockReturnValue({ cluster: Cluster.MainnetBeta, genesisHash: 'genesis', url: 'http://rpc' });
+        useTokenInfosMock.mockReturnValue(resolved([tokenInfo(MINT, true)]));
+        useAccountOwnedTokensMock.mockReturnValue(makeEntry());
+    });
+
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('should add this mint as the filter, keeping the other params and the scroll position', async () => {
+        useSearchParamsMock.mockReturnValue(new URLSearchParams('cluster=devnet'));
+
+        render(<OwnedTokensCard address={OWNER} layout="grid" filterable />);
+        const toggles = screen.getAllByRole('button', { name: 'Add TKN to Token History filter' });
+        // One per row: only the desktop rows carry the toggle; the mobile rows, rendered alongside, leave it out.
+        expect(toggles).toHaveLength(1);
+        const [toggle] = toggles;
+
+        expect(toggle).toHaveAttribute('aria-pressed', 'false');
+        await userEvent.click(toggle);
+        expect(pushMock).toHaveBeenCalledWith(`/address/x/tokens?cluster=devnet&filter=${MINT}`, { scroll: false });
+    });
+
+    it('should add the mint alongside the tokens already in the filter', async () => {
+        const otherMint = gen.address(7);
+        useSearchParamsMock.mockReturnValue(new URLSearchParams(`cluster=devnet&filter=${otherMint}`));
+
+        render(<OwnedTokensCard address={OWNER} layout="grid" filterable />);
+        const [toggle] = screen.getAllByRole('button', { name: 'Add TKN to Token History filter' });
+
+        await userEvent.click(toggle);
+        expect(pushMock).toHaveBeenCalledWith(`/address/x/tokens?cluster=devnet&filter=${otherMint}&filter=${MINT}`, {
+            scroll: false,
+        });
+    });
+
+    it('should mark the active mint pressed and clear the filter on a second click', async () => {
+        useSearchParamsMock.mockReturnValue(new URLSearchParams(`cluster=devnet&filter=${MINT}`));
+
+        render(<OwnedTokensCard address={OWNER} layout="grid" filterable />);
+        const [toggle] = screen.getAllByRole('button', { name: 'Remove TKN from Token History filter' });
+
+        expect(toggle).toHaveAttribute('aria-pressed', 'true');
+        await userEvent.click(toggle);
+        expect(pushMock).toHaveBeenCalledWith('/address/x/tokens?cluster=devnet', { scroll: false });
+    });
+
+    it('should render no toggle unless the card is filterable', () => {
+        useSearchParamsMock.mockReturnValue(new URLSearchParams());
+
+        render(<OwnedTokensCard address={OWNER} layout="grid" />);
+
+        expect(screen.queryAllByRole('button', { name: 'Add TKN to Token History filter' })).toHaveLength(0);
+        expect(screen.queryAllByRole('button', { name: 'Remove TKN from Token History filter' })).toHaveLength(0);
+    });
+});
+
+describe('should toggle the design-variant switcher from a triple click on the heading', () => {
+    beforeEach(() => {
+        useClusterMock.mockReturnValue({ cluster: Cluster.MainnetBeta, genesisHash: 'genesis', url: 'http://rpc' });
+        useTokenInfosMock.mockReturnValue(resolved());
+        useAccountOwnedTokensMock.mockReturnValue(makeEntry());
+        useSearchParamsMock.mockReturnValue(new URLSearchParams());
+    });
+
+    afterEach(() => {
+        vi.clearAllMocks();
+    });
+
+    it('should call back on the third quick click, not before', async () => {
+        const onTitleTripleClick = vi.fn();
+        render(<OwnedTokensCard address={OWNER} layout="grid" onTitleTripleClick={onTitleTripleClick} />);
+        const heading = screen.getByText('Token Holdings');
+
+        await userEvent.click(heading);
+        await userEvent.click(heading);
+        expect(onTitleTripleClick).not.toHaveBeenCalled();
+
+        await userEvent.click(heading);
+        expect(onTitleTripleClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('should render a plain heading without the callback', () => {
+        render(<OwnedTokensCard address={OWNER} layout="grid" />);
+
+        expect(screen.getByRole('heading', { name: 'Token Holdings' })).toBeInTheDocument();
+        expect(screen.getByText('Token Holdings')).not.toHaveClass('select-none');
     });
 });

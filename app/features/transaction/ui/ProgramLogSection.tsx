@@ -1,30 +1,15 @@
 import { TableCardBody } from '@components/common/TableCardBody';
 import { ProgramLogsCardBody } from '@components/ProgramLogsCardBody';
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
-import { cn } from '@components/shared/utils';
 import { useCluster } from '@providers/cluster';
 import { useTransactionDetails } from '@providers/transactions';
+import { ToggleChip } from '@shared/ui/toggle-chip';
 import { SignatureProps } from '@utils/index';
 import { parseProgramLogs } from '@utils/program-logs';
 import React from 'react';
 
-import { Button } from '@/app/components/shared/ui/button';
 import { BaseCardBody } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
-
-type ChipProps = React.ButtonHTMLAttributes<HTMLButtonElement> & { active?: boolean };
-export function Chip({ children, className, active, ...props }: ChipProps) {
-    return (
-        <Button
-            variant={active ? 'default' : 'outline'}
-            size="sm"
-            className={cn(active && '!border-accent', className)}
-            {...props}
-        >
-            {children}
-        </Button>
-    );
-}
 
 export function ProgramLogSection({ signature }: SignatureProps) {
     const [showRaw, setShowRaw] = React.useState(false);
@@ -45,12 +30,12 @@ export function ProgramLogSection({ signature }: SignatureProps) {
 
     const chips = (
         <>
-            <Chip active={!showRaw} onClick={() => setShowRaw(false)}>
+            <ToggleChip active={!showRaw} onClick={() => setShowRaw(false)}>
                 Parsed
-            </Chip>
-            <Chip active={showRaw} onClick={() => setShowRaw(true)}>
+            </ToggleChip>
+            <ToggleChip active={showRaw} onClick={() => setShowRaw(true)}>
                 RAW
-            </Chip>
+            </ToggleChip>
         </>
     );
 

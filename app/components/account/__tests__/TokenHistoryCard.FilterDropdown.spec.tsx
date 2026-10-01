@@ -1,35 +1,165 @@
 import { PublicKey } from '@solana/web3.js';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { Cluster } from '@utils/cluster';
-import React from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const FILTER_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
+const BONK = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263';
+const USDC_LABEL = 'USDC - USD Coin';
+// No metadata for BONK: a 10-char prefix + ellipsis, matching TRUNCATE_TOKEN_LENGTH.
+const BONK_LABEL = `${BONK.slice(0, 10)}…`;
+let search = '';
 
 vi.mock('next/navigation', () => ({
-    usePathname: vi.fn(() => '/address/x/tokens'),
-    // Selected filter = FILTER_MINT so the toggle button renders that mint's label (the exact regression surface).
-    useSearchParams: vi.fn(() => ({
-        get: vi.fn((k: string) => (k === 'filter' ? FILTER_MINT : null)),
-        has: vi.fn(),
-        toString: () => `filter=${FILTER_MINT}`,
-    })),
+    usePathname: () => '/address/x/tokens',
+    useSearchParams: () => new URLSearchParams(search),
 }));
 
-const { useClusterMock } = vi.hoisted(() => ({ useClusterMock: vi.fn() }));
 vi.mock('@providers/cluster', async importOriginal => {
     const actual = await importOriginal<typeof import('@providers/cluster')>();
-    return { ...actual, useCluster: useClusterMock };
+    return { ...actual, useCluster: () => ({ cluster: Cluster.MainnetBeta, genesisHash: 'genesis' }) };
 });
 
-// Mock the shared per-mint hook so the dropdown resolves labels through the same path the holdings rows use.
-const { useTokenInfoMock } = vi.hoisted(() => ({ useTokenInfoMock: vi.fn() }));
-vi.mock('@entities/token-info', async importOriginal => {
-    const actual = await importOriginal<typeof import('@entities/token-info')>();
-    return { ...actual, useTokenInfo: useTokenInfoMock };
+// The filter labels come from one bulk lookup; only USDC resolves, so BONK exercises the fallback label.
+const { useTokenInfosMock } = vi.hoisted(() => ({ useTokenInfosMock: vi.fn() }));
+vi.mock('@entities/token-info/client', () => ({ useTokenInfos: useTokenInfosMock }));
+
+import { readTokenHistoryFilter, toggleTokenHistoryFilter, TokenHistorySection } from '../TokenHistoryCard';
+
+describe('should lay out the Token History header like the block transactions header', () => {
+    beforeEach(() => {
+        search = 'cluster=devnet';
+        useTokenInfosMock.mockReturnValue({
+            isLoading: false,
+            tokenInfos: new Map([[USDC, { address: USDC, decimals: 6, name: 'USD Coin', symbol: 'USDC' }]]),
+        });
+    });
+
+    it('should count records and show no chips when no filter is set', () => {
+        renderSection(12);
+
+        expect(screen.getByText('12 records')).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: `Clear token filter: ${USDC_LABEL}` })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Clear status filter: Failed' })).not.toBeInTheDocument();
+    });
+
+    it('should label the token chip from the bulk lookup and clear it without dropping other params', () => {
+        search = `filter=${USDC}&status=failed&cluster=devnet`;
+        renderSection(3);
+
+        expect(screen.getByText('3 filtered records')).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: `Clear token filter: ${USDC_LABEL}` })).toHaveAttribute(
+            'href',
+            '/address/x/tokens?status=failed&cluster=devnet',
+        );
+        expect(screen.getByRole('link', { name: 'Clear status filter: Failed' })).toHaveAttribute(
+            'href',
+            `/address/x/tokens?filter=${USDC}&cluster=devnet`,
+        );
+    });
+
+    it('should fall back to a truncated mint when the lookup has no metadata', () => {
+        search = `filter=${BONK}`;
+        renderSection(1);
+
+        expect(screen.getByRole('link', { name: `Clear token filter: ${BONK_LABEL}` })).toBeInTheDocument();
+    });
+
+    it('should show one chip per filtered token, each clearing only its own mint', () => {
+        search = `cluster=devnet&filter=${USDC}&filter=${BONK}`;
+        renderSection(4);
+
+        expect(screen.getByRole('link', { name: `Clear token filter: ${USDC_LABEL}` })).toHaveAttribute(
+            'href',
+            `/address/x/tokens?cluster=devnet&filter=${BONK}`,
+        );
+        expect(screen.getByRole('link', { name: `Clear token filter: ${BONK_LABEL}` })).toHaveAttribute(
+            'href',
+            `/address/x/tokens?cluster=devnet&filter=${USDC}`,
+        );
+    });
+
+    it('should link the Status options and add a Token option to the selection', () => {
+        search = `cluster=devnet&filter=${USDC}`;
+        renderSection(2);
+        fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+
+        expect(screen.getByRole('link', { name: 'Failed' })).toHaveAttribute(
+            'href',
+            `/address/x/tokens?cluster=devnet&filter=${USDC}&status=failed`,
+        );
+        // Selected USDC toggles out; unselected BONK joins it.
+        expect(screen.getByRole('link', { name: USDC_LABEL })).toHaveAttribute(
+            'href',
+            '/address/x/tokens?cluster=devnet',
+        );
+        expect(screen.getByRole('link', { name: BONK_LABEL })).toHaveAttribute(
+            'href',
+            `/address/x/tokens?cluster=devnet&filter=${USDC}&filter=${BONK}`,
+        );
+        expect(screen.getByRole('link', { name: 'All Tokens' })).toHaveAttribute(
+            'href',
+            '/address/x/tokens?cluster=devnet',
+        );
+    });
+
+    it('should narrow the Token options by label or mint address', () => {
+        renderSection(2);
+        const input = screen.getByPlaceholderText('Token');
+
+        // No filter is set, so there are no chips: every token label on screen is a menu option.
+        fireEvent.change(input, { target: { value: 'usd' } });
+        expect(screen.getByRole('link', { name: USDC_LABEL })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: BONK_LABEL })).not.toBeInTheDocument();
+
+        fireEvent.change(input, { target: { value: BONK.slice(0, 6) } });
+        expect(screen.getByRole('link', { name: BONK_LABEL })).toBeInTheDocument();
+
+        fireEvent.change(input, { target: { value: 'nothing-like-this' } });
+        expect(screen.getByText('No matches')).toBeInTheDocument();
+    });
 });
 
-import { FilterDropdown } from '../TokenHistoryCard';
+describe('should keep the token filter as repeated params', () => {
+    it('should read every mint once, in the order added', () => {
+        expect(readTokenHistoryFilter(new URLSearchParams(`filter=${USDC}&filter=${BONK}&filter=${USDC}`))).toEqual([
+            USDC,
+            BONK,
+        ]);
+        expect(readTokenHistoryFilter(new URLSearchParams('cluster=devnet'))).toEqual([]);
+    });
+
+    it('should add a mint, remove it again, and drop the param once empty', () => {
+        const params = new URLSearchParams('cluster=devnet');
+
+        toggleTokenHistoryFilter(params, USDC);
+        toggleTokenHistoryFilter(params, BONK);
+        expect(params.getAll('filter')).toEqual([USDC, BONK]);
+
+        toggleTokenHistoryFilter(params, USDC);
+        expect(params.getAll('filter')).toEqual([BONK]);
+
+        toggleTokenHistoryFilter(params, BONK);
+        expect(params.toString()).toBe('cluster=devnet');
+    });
+});
+
+function renderSection(recordCount: number) {
+    const params = new URLSearchParams(search);
+    const status = params.get('status');
+    return render(
+        <TokenHistorySection
+            tokens={[tokenFor(USDC), tokenFor(BONK)] as any}
+            mints={readTokenHistoryFilter(params)}
+            status={status === 'failed' || status === 'succeeded' ? status : null}
+            recordCount={recordCount}
+            fetching={false}
+            onRefresh={() => undefined}
+        >
+            <div />
+        </TokenHistorySection>,
+    );
+}
 
 function tokenFor(mint: string) {
     return {
@@ -40,33 +170,3 @@ function tokenFor(mint: string) {
         pubkey: new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'),
     };
 }
-
-describe('should label the Token History filter with fetched token metadata', () => {
-    afterEach(() => vi.clearAllMocks());
-
-    it('should show the fetched symbol and name on the selected-filter toggle button', async () => {
-        useClusterMock.mockReturnValue({ cluster: Cluster.MainnetBeta, genesisHash: 'genesis' });
-        useTokenInfoMock.mockReturnValue({
-            address: FILTER_MINT,
-            decimals: 6,
-            logoURI: '',
-            name: 'USD Coin',
-            symbol: 'USDC',
-            verified: true,
-        });
-
-        render(<FilterDropdown filter={FILTER_MINT} tokens={[tokenFor(FILTER_MINT)] as any} />);
-
-        await waitFor(() => expect(screen.getByRole('button').textContent).toContain('USDC - USD Coin'));
-    });
-
-    it('should fall back to a truncated pubkey when metadata is unavailable', async () => {
-        useClusterMock.mockReturnValue({ cluster: Cluster.MainnetBeta, genesisHash: 'genesis' });
-        useTokenInfoMock.mockReturnValue(undefined);
-
-        render(<FilterDropdown filter={FILTER_MINT} tokens={[tokenFor(FILTER_MINT)] as any} />);
-
-        // 10-char prefix + ellipsis, matching TRUNCATE_TOKEN_LENGTH.
-        await waitFor(() => expect(screen.getByRole('button').textContent).toContain(`${FILTER_MINT.slice(0, 10)}…`));
-    });
-});

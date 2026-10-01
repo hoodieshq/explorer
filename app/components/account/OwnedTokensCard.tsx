@@ -14,6 +14,7 @@ import { useFetchAccountHistory } from '@features/transaction-history/model/use-
 import { TokenInfoWithPubkey, useAccountOwnedTokens, useFetchAccountOwnedTokens } from '@providers/accounts/tokens';
 import { FetchStatus } from '@providers/cache';
 import { useCluster } from '@providers/cluster';
+import { ToggleChip } from '@shared/ui/toggle-chip';
 import { address } from '@solana/kit';
 import { PublicKey } from '@solana/web3.js';
 import { displayTimestampUtc, unixTimestampToMs } from '@utils/date';
@@ -21,10 +22,11 @@ import { useClusterPath } from '@utils/url';
 import { BigNumber } from 'bignumber.js';
 import { cva } from 'class-variance-authority';
 import Link from 'next/link';
-import { usePathname, useSearchParams } from 'next/navigation';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown } from 'react-feather';
 
+import { readTokenHistoryFilter, toggleTokenHistoryFilter } from '@/app/components/account/TokenHistoryCard';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/components/shared/ui/dropdown';
@@ -36,7 +38,7 @@ type Display = 'summary' | 'detail' | null;
 
 export type OwnedTokensLayout = 'table' | 'grid';
 
-// Holdings paginate independently of Token History (which stays at 4/4 in @/app/features/token-history/config).
+// Holdings paginate independently of Token History (which pages 20 rows at a time in TokenHistoryCard).
 // A single local declaration next to the only consumer - no shared feature module exists for holdings.
 const HOLDINGS_INITIAL_VISIBLE_COUNT = 20;
 const HOLDINGS_LOAD_MORE_COUNT = 20;
@@ -55,10 +57,27 @@ type OwnedTokensCardProps = {
     address: string;
     layout?: OwnedTokensLayout;
     expandable?: boolean;
+    // Grid layout only: each desktop row gets a toggle that filters the Token History card below to its mint;
+    // the mobile rows leave it out. Off by default, since the toggle is meaningless where no Token History is
+    // rendered.
+    filterable?: boolean;
+    // Grid layout only: the breakpoint where the labels-left mobile rows give way to the desktop table. `sm` by
+    // default; `md` lines the holdings up with a Token History that switches at `md` (tokens-tab variant 2.2).
+    desktopFrom?: GridBreakpoint;
+    // Called on three quick clicks/taps on the "Token Holdings" heading — the tokens tab's hidden toggle for its
+    // design-variant switcher.
+    onTitleTripleClick?: () => void;
 };
 
 /** `HoldingsCard` stays split out because its hooks may not sit behind the guards below. */
-export function OwnedTokensCard({ address, layout = 'table', expandable = false }: OwnedTokensCardProps) {
+export function OwnedTokensCard({
+    address,
+    layout = 'table',
+    expandable = false,
+    filterable = false,
+    desktopFrom = 'sm',
+    onTitleTripleClick,
+}: OwnedTokensCardProps) {
     const pubkey = useMemo(() => new PublicKey(address), [address]);
     const ownedTokens = useAccountOwnedTokens(address);
     const fetchAccountTokens = useFetchAccountOwnedTokens();
@@ -87,12 +106,25 @@ export function OwnedTokensCard({ address, layout = 'table', expandable = false 
         return <ErrorCard retry={refresh} retryText="Try Again" text={'No token holdings found'} />;
     }
 
-    return <HoldingsCard display={display} expandable={expandable} layout={layout} tokens={tokens} />;
+    return (
+        <HoldingsCard
+            desktopFrom={desktopFrom}
+            display={display}
+            expandable={expandable}
+            filterable={filterable}
+            layout={layout}
+            onTitleTripleClick={onTitleTripleClick}
+            tokens={tokens}
+        />
+    );
 }
 
 type HoldingsCardProps = {
+    desktopFrom: GridBreakpoint;
+    onTitleTripleClick?: () => void;
     display: Display;
     expandable: boolean;
+    filterable: boolean;
     layout: OwnedTokensLayout;
     tokens: TokenInfoWithPubkey[];
 };
@@ -107,8 +139,17 @@ type HoldingsCardProps = {
 //   tables. Desktop visuals match `table`; the internals differ so the two can diverge on mobile later.
 // `expandable` (grid layout only) turns each holding into a spoiler: a chevron opens the row to reveal that
 // token account's recent transactions plus a link to its account page. A design variant for the tokens tab.
-function HoldingsCard({ display, expandable, layout, tokens }: HoldingsCardProps) {
+function HoldingsCard({
+    desktopFrom,
+    display,
+    expandable,
+    filterable,
+    layout,
+    onTitleTripleClick,
+    tokens,
+}: HoldingsCardProps) {
     const { cluster, genesisHash } = useCluster();
+    const onTitleClick = useTripleClick(onTitleTripleClick);
     const [visibleCount, setVisibleCount] = useState(HOLDINGS_INITIAL_VISIBLE_COUNT);
 
     const holdings = useMemo(() => aggregateByMint(tokens), [tokens]);
@@ -139,7 +180,16 @@ function HoldingsCard({ display, expandable, layout, tokens }: HoldingsCardProps
 
     return (
         <CollapsibleSection
-            title="Token Holdings"
+            title={
+                onTitleTripleClick ? (
+                    // `select-none`: a triple click would otherwise select the heading text.
+                    <span className="select-none" onClick={onTitleClick}>
+                        Token Holdings
+                    </span>
+                ) : (
+                    'Token Holdings'
+                )
+            }
             className=""
             // Summary/Detailed only applies to the legacy table; the grid is always the detailed view, so it
             // needs no toggle.
@@ -153,7 +203,7 @@ function HoldingsCard({ display, expandable, layout, tokens }: HoldingsCardProps
                     {expandable ? (
                         <ExpandableTokensGrid holdings={visibleHoldings} />
                     ) : (
-                        <TokensGrid holdings={visibleHoldings} />
+                        <TokensGrid desktopFrom={desktopFrom} filterable={filterable} holdings={visibleHoldings} />
                     )}
                     {footer}
                 </Card>
@@ -293,31 +343,39 @@ const gridCellVariants = cva('flex items-center px-3 py-2.5', {
 });
 
 // The grid is always the detailed view — Logo / Mint Address / Account Address / Total Balance. (Summary vs
-// Detailed only applies to the legacy table.) Two renderings toggled at `sm`: below it each holding is a
-// labels-left block (no shared header, every field carries its own left label, so long base58 keys read
-// top-to-bottom); at `sm+` it becomes the CSS-grid table — the logo hugs its icon (`auto`), the balance
+// Detailed only applies to the legacy table.) Two renderings toggled at `desktopFrom` (`sm` unless the caller
+// asks for `md`): below it each holding is a labels-left block (no shared header, every field carries its own
+// left label, so long base58 keys read top-to-bottom); from it up it becomes the CSS-grid table — the logo hugs its icon (`auto`), the balance
 // takes a `minmax(auto,220px)` track (a touch wider than the transaction page's 180px Post Balance column,
 // so long amounts + symbols breathe), and the two address columns take the remaining width as
 // `minmax(0,1fr)` and mid-truncate.
-function TokensGrid({ holdings }: { holdings: Holding[] }) {
+function TokensGrid({
+    desktopFrom,
+    filterable,
+    holdings,
+}: {
+    desktopFrom: GridBreakpoint;
+    filterable: boolean;
+    holdings: Holding[];
+}) {
     return (
         <>
-            {/* Mobile (< sm): labels-left list. */}
-            <div className="sm:hidden">
+            {/* Mobile (below `desktopFrom`): labels-left list. */}
+            <div className={gridMobileVariants({ desktopFrom })}>
                 {holdings.map(holding => (
                     <MobileTokenRow key={holding.mintAddress} {...holding} />
                 ))}
             </div>
 
-            {/* Desktop (sm+): CSS-grid table. `role="table"` + `role="row"` wrappers restore the semantics
+            {/* Desktop (`desktopFrom` up): CSS-grid table. `role="table"` + `role="row"` wrappers restore the semantics
                 the old `<table>` gave screen readers. The row wrappers use `contents` (`display: contents`) so
                 they generate no box and their cells stay direct participants in this grid — ARIA structure
                 without disturbing the CSS-grid column alignment. */}
-            <div className="hidden w-full overflow-x-auto text-sm text-white sm:block">
+            <div className={gridDesktopVariants({ desktopFrom })}>
                 <div
                     role="table"
                     aria-label="Token holdings"
-                    className="grid min-w-full grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(auto,220px)]"
+                    className={cn('grid min-w-full', filterable ? FILTERABLE_GRID_TEMPLATE : GRID_TEMPLATE)}
                 >
                     <div role="row" className="contents">
                         <div role="columnheader" className={gridCellVariants({ column: 'logo', role: 'header' })}>
@@ -332,9 +390,14 @@ function TokensGrid({ holdings }: { holdings: Holding[] }) {
                         <div role="columnheader" className={gridCellVariants({ column: 'balance', role: 'header' })}>
                             Total Balance
                         </div>
+                        {filterable && (
+                            <div role="columnheader" className={gridCellVariants({ role: 'header' })}>
+                                <span className="sr-only">Filter Token History</span>
+                            </div>
+                        )}
                     </div>
                     {holdings.map(holding => (
-                        <GridTokenRow key={holding.mintAddress} {...holding} />
+                        <GridTokenRow key={holding.mintAddress} filterable={filterable} {...holding} />
                     ))}
                 </div>
             </div>
@@ -383,7 +446,7 @@ function MobileTokenRow({ mintAddress, token, tokenInfo }: Holding) {
     );
 }
 
-function GridTokenRow({ mintAddress, token, tokenInfo }: Holding) {
+function GridTokenRow({ filterable, mintAddress, token, tokenInfo }: Holding & { filterable: boolean }) {
     return (
         <div role="row" className="contents">
             <div role="cell" className={gridCellVariants({ column: 'logo' })}>
@@ -410,7 +473,85 @@ function GridTokenRow({ mintAddress, token, tokenInfo }: Holding) {
                     scaledUiAmountMultiplier={token.scaledUiAmountMultiplier}
                 />
             </div>
+            {filterable && (
+                <div role="cell" className={cn(gridCellVariants({}), 'justify-end')}>
+                    <TokenHistoryFilterToggle mintAddress={mintAddress} symbol={tokenInfo?.symbol} />
+                </div>
+            )}
         </div>
+    );
+}
+
+type GridBreakpoint = 'sm' | 'md';
+
+// The two halves of TokensGrid's mobile/desktop switch, one static class set per breakpoint so Tailwind can
+// see them (a `${bp}:` template would be purged).
+const gridMobileVariants = cva('', {
+    defaultVariants: { desktopFrom: 'sm' },
+    variants: { desktopFrom: { md: 'md:hidden', sm: 'sm:hidden' } },
+});
+const gridDesktopVariants = cva('hidden w-full overflow-x-auto text-sm text-white', {
+    defaultVariants: { desktopFrom: 'sm' },
+    variants: { desktopFrom: { md: 'md:block', sm: 'sm:block' } },
+});
+
+// Grid tracks for the holdings table; the filterable variant adds a trailing `auto` column for the toggle.
+const GRID_TEMPLATE = 'grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(auto,220px)]';
+const FILTERABLE_GRID_TEMPLATE = 'grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_minmax(auto,220px)_auto]';
+
+// Desktop-row toggle (the mobile rows go without) that adds this mint to the Token History filter, or takes it
+// out when it is already in; several rows can be in the filter at once. A `ToggleChip`, so on/off look exactly like the Logs section's Parsed /
+// RAW switch. `scroll: false` keeps the page where it is — the history updates in place.
+function TokenHistoryFilterToggle({ mintAddress, symbol }: { mintAddress: string; symbol?: string }) {
+    const router = useRouter();
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const active = readTokenHistoryFilter(searchParams).includes(mintAddress);
+    const tokenName = symbol ?? 'this token';
+    const label = active ? `Remove ${tokenName} from Token History filter` : `Add ${tokenName} to Token History filter`;
+
+    const toggle = () => {
+        const params = new URLSearchParams(searchParams?.toString());
+        toggleTokenHistoryFilter(params, mintAddress);
+        const query = params.toString();
+        router.push(`${pathname}${query ? `?${query}` : ''}`, { scroll: false });
+    };
+
+    return (
+        <ToggleChip
+            active={active}
+            type="button"
+            onClick={toggle}
+            aria-label={label}
+            title={label}
+            // `-my-1` shrinks the 28px chip's margin box to the 20px text line (the logo's `-my-0.5` trick), so it
+            // sits in the row's normal `py-2.5` without making the row taller than the text rows. Overriding the
+            // cell padding instead doesn't work: `cn` is plain clsx, so `py-2.5` and an override both ship and
+            // `py-2.5` wins on CSS order.
+            className="-my-1 shrink-0"
+        >
+            <FilterPlusIcon />
+        </ToggleChip>
+    );
+}
+
+// react-feather ships only a plain `Filter`, so this is its funnel narrowed to the left with a plus in the
+// free lower-right corner. Sized by the Button's `[&_svg]:size-3`, like any icon inside it.
+function FilterPlusIcon() {
+    return (
+        <svg
+            aria-hidden
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={2}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        >
+            <polygon points="18 3 2 3 8.4 10.5 8.4 17 11.6 19 11.6 10.5 18 3" />
+            <line x1="19" y1="14" x2="19" y2="22" />
+            <line x1="15" y1="18" x2="23" y2="18" />
+        </svg>
     );
 }
 
@@ -657,6 +798,24 @@ function TokensCardFooter({
             </Button>
         </CardFooter>
     );
+}
+
+// Three clicks within this window count as a triple click.
+const TRIPLE_CLICK_WINDOW_MS = 600;
+
+// Returns a click handler that calls `onTriple` on every third click landing within TRIPLE_CLICK_WINDOW_MS.
+// Clicks are counted by hand rather than read from `MouseEvent.detail`, which mobile browsers don't reliably
+// increment for repeated taps.
+function useTripleClick(onTriple?: () => void) {
+    const clicks = useRef<number[]>([]);
+    return useCallback(() => {
+        const now = Date.now();
+        clicks.current = [...clicks.current.filter(time => now - time < TRIPLE_CLICK_WINDOW_MS), now];
+        if (clicks.current.length >= 3) {
+            clicks.current = [];
+            onTriple?.();
+        }
+    }, [onTriple]);
 }
 
 type DropdownProps = {

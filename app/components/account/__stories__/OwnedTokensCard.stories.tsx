@@ -271,3 +271,10 @@ export const MixedHoldings: Story = {
     args: { address: ADDRESS },
     decorators: [withMixedTokens],
 };
+
+// Tokens-tab variants 2.1 / 2.2: each row carries the Token History filter toggle, a ToggleChip (outline when
+// off, accent-bordered when its mint is in `?filter=`).
+export const WithTokenHistoryFilter: Story = {
+    args: { address: ADDRESS, filterable: true },
+    decorators: [withMixedTokens],
+};

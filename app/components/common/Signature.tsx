@@ -10,7 +10,7 @@ type Props = {
     signature: TransactionSignature;
     link?: boolean;
     noTruncate?: boolean;
-} & Pick<TruncatedValueProps, 'alignItems' | 'alignRight' | 'className'>;
+} & Pick<TruncatedValueProps, 'alignItems' | 'alignRight' | 'className' | 'noCopy'>;
 
 export function Signature({ signature, link, noTruncate, ...rest }: Props) {
     const transactionPath = useClusterPath({ pathname: `/tx/${signature}` });
