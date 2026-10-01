@@ -4,7 +4,6 @@ import { Epoch } from '@components/common/Epoch';
 import { Slot } from '@components/common/Slot';
 import { SolBalance } from '@components/common/SolBalance';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
-import { cn } from '@components/shared/utils';
 import { useRawAccountDataOnMount, useRefreshAccount } from '@entities/account';
 import { AccountCard, AccountDownloadDropdown } from '@features/account';
 import { Account } from '@providers/accounts';
@@ -27,6 +26,7 @@ import { Code } from 'react-feather';
 import { Button } from '@/app/components/shared/ui/button';
 import { BaseRawAccountRows } from '@/app/shared/ui/BaseRawAccountRows';
 import { Card } from '@/app/shared/ui/Card';
+import { KeyValue } from '@/app/shared/ui/key-value';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 export function SysvarAccountSection({ account, sysvarAccount }: { account: Account; sysvarAccount: SysvarAccount }) {
@@ -127,56 +127,8 @@ function SysvarAccountSlotHistory({
     );
 }
 
-// Grid-based key/value row for the reworked Stake History account card, mirroring the vote/block Overview
-// cards so account overview cards stay consistent across pages. The `1fr` value column lets a long mono
-// value wrap (`break-all`) instead of forcing the whole card into horizontal scroll on narrow screens.
-// The label track follows the tx summary's `LABEL_WIDTH` (`clamp(84px,20%,240px)`, shared/ui/key-value), with
-// a 108px floor instead of 84px (same as the stake history mobile rows) so "Balance (SOL)" stays on one line.
-// Written out because Tailwind's JIT needs the literal class.
-type OverviewRowProps = React.HTMLAttributes<HTMLDivElement> & { divider?: boolean };
-function OverviewRow({ children, className, divider, ...props }: OverviewRowProps) {
-    return (
-        <div
-            className={cn(
-                'grid min-h-9 grid-cols-[clamp(108px,20%,240px)_1fr] items-baseline gap-6 px-3 py-2.5',
-                // `last:border-b-0` drops the trailing divider so it can't double up with the card's
-                // own bottom border — the shared idiom used across the account/transaction cards.
-                divider && 'border-1 border-b border-outer-space-800 [border-bottom-style:solid] last:border-b-0',
-                className,
-            )}
-            {...props}
-        >
-            {children}
-        </div>
-    );
-}
-
-function OverviewLabel({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-    return (
-        <div
-            className={cn('flex flex-wrap items-center gap-1 overflow-hidden text-sm text-outer-space-300', className)}
-            {...props}
-        >
-            {children}
-        </div>
-    );
-}
-
-// `mono` toggles the monospace face — on for hashes/addresses/numbers. `breakAll` lets a long unbreakable
-// token (a pubkey) wrap anywhere instead of forcing horizontal scroll.
-function OverviewValue({
-    children,
-    className,
-    mono = true,
-    breakAll = true,
-    ...props
-}: React.HTMLAttributes<HTMLDivElement> & { mono?: boolean; breakAll?: boolean }) {
-    return (
-        <div className={cn('text-sm text-white', breakAll && 'break-all', mono && 'font-mono', className)} {...props}>
-            {children}
-        </div>
-    );
-}
+// `LABEL_WIDTH` (`clamp(84px,20%,240px)`) with a 108px floor. A literal class, since Tailwind's JIT can't build it.
+const LABEL_WIDTH_108 = 'w-[clamp(108px,20%,240px)]';
 
 // Raw account bytes — mounted only while the Raw toggle is on so its SWR fetch (useRawAccountDataOnMount)
 // doesn't run for the common case. The shared KeyValue rows render straight into the card, without the
@@ -188,7 +140,7 @@ function StakeHistoryRawAccountRows({ account }: { account: Account }) {
 
 // The Stake History account overview, reworked to match the vote account card: the "Sysvar: Stake History"
 // heading is lifted out above a tight `<Card>`, the Refresh / Raw / Download actions sit on the heading
-// row, and Address / Balance render as grid rows that reflow cleanly on mobile.
+// row, and Address / Balance render as the shared KeyValue rows.
 function SysvarAccountStakeHistory({ account }: { account: Account; sysvarAccount: SysvarStakeHistoryAccount }) {
     const refresh = useRefreshAccount();
     const [showRaw, setShowRaw] = React.useState(false);
@@ -223,21 +175,16 @@ function SysvarAccountStakeHistory({ account }: { account: Account; sysvarAccoun
                 {showRaw ? (
                     <StakeHistoryRawAccountRows account={account} />
                 ) : (
+                    // The shared KeyValue rows, same as the tx summary card (and this card's Raw view). The label
+                    // floor is raised from 84px to 108px via `labelWidth` so "Balance (SOL)" stays on one line.
                     <>
-                        <OverviewRow divider>
-                            <OverviewLabel>Address</OverviewLabel>
-                            <OverviewValue className="flex w-full min-w-0 items-baseline">
-                                {/* Address renders its own Copyable (Address.tsx) — don't wrap it in another. */}
-                                <Address pubkey={account.pubkey} raw noTruncate />
-                            </OverviewValue>
-                        </OverviewRow>
-
-                        <OverviewRow divider>
-                            <OverviewLabel>Balance (SOL)</OverviewLabel>
-                            <OverviewValue className="uppercase">
-                                <SolBalance lamports={account.lamports} />
-                            </OverviewValue>
-                        </OverviewRow>
+                        <KeyValue label="Address" labelWidth={LABEL_WIDTH_108}>
+                            {/* Address renders its own Copyable (Address.tsx) — don't wrap it in another. */}
+                            <Address pubkey={account.pubkey} raw noTruncate />
+                        </KeyValue>
+                        <KeyValue label="Balance (SOL)" labelWidth={LABEL_WIDTH_108}>
+                            <SolBalance lamports={account.lamports} />
+                        </KeyValue>
                     </>
                 )}
             </Card>
