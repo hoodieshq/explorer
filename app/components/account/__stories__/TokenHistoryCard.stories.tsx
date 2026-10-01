@@ -17,7 +17,7 @@ import { MockHistoryProvider } from '@storybook-config/__mocks__/MockHistoryProv
 import { createNextjsParameters, nextjsParameters, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Decorator, Meta, StoryObj } from '@storybook-config/types';
 import React from 'react';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { TokenHistoryCard } from '../TokenHistoryCard';
 
@@ -147,8 +147,10 @@ export const FilterMenuOpen: Story = {
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
         await userEvent.click(await canvas.findByRole('button', { name: 'Filters' }));
-        await expect(await canvas.findByRole('link', { name: 'Any status' })).toBeVisible();
-        await expect(canvas.getByRole('link', { name: 'All Tokens' })).toBeVisible();
+        // The menu fades in (`animate-dropdown-menu` starts at opacity 0), and toBeVisible() treats a
+        // transparent element as hidden — so wait out the animation instead of asserting on the first frame.
+        await waitFor(() => expect(canvas.getByRole('link', { name: 'Any status' })).toBeVisible());
+        await waitFor(() => expect(canvas.getByRole('link', { name: 'All Tokens' })).toBeVisible());
     },
 };
 
