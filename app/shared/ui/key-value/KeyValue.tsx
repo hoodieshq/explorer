@@ -7,7 +7,7 @@ import { ROW_PADDING } from '@/app/shared/ui/spacing';
 // Shared label-column width so values line up in one column across every card and Raw-view row.
 export const LABEL_WIDTH = 'w-[clamp(84px,20%,240px)]';
 
-const rowVariants = cva('flex flex-row border-0 border-solid border-dark-border', {
+const rowVariants = cva('flex flex-row border-0 border-solid border-outer-space-850', {
     defaultVariants: { align: 'baseline', density: 'comfortable', divider: true },
     variants: {
         align: {

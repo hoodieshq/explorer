@@ -54,7 +54,7 @@
 | Dynamic | `/block/[slot]/accounts` | 150 kB | 570 kB |
 | Dynamic | `/block/[slot]/programs` | 150 kB | 570 kB |
 | Dynamic | `/block/[slot]/rewards` | 160 kB | 570 kB |
-| Dynamic | `/epoch/[epoch]` | 20 kB | 430 kB |
+| Dynamic | `/epoch/[epoch]` | 20 kB | 450 kB |
 | Static | `/feature-gates` | 50 kB | 460 kB |
 | Dynamic | `/mcp` | — | — |
 | Static | `/mcp/start` | 30 kB | 440 kB |
