@@ -1,8 +1,11 @@
 import { AccountAddressRow, AccountBalanceRow } from '@components/common/Account';
+import { Address } from '@components/common/Address';
 import { Epoch } from '@components/common/Epoch';
 import { Slot } from '@components/common/Slot';
-import { useRefreshAccount } from '@entities/account';
-import { AccountCard } from '@features/account';
+import { SolBalance } from '@components/common/SolBalance';
+import { RefreshButton } from '@components/shared/ui/refresh-button';
+import { useRawAccountDataOnMount, useRefreshAccount } from '@entities/account';
+import { AccountCard, AccountDownloadDropdown } from '@features/account';
 import { Account } from '@providers/accounts';
 import { displayTimestamp, unixTimestampToMs } from '@utils/date';
 import {
@@ -18,7 +21,12 @@ import {
     SysvarStakeHistoryAccount,
 } from '@validators/accounts/sysvar';
 import React from 'react';
+import { Code } from 'react-feather';
 
+import { Button } from '@/app/components/shared/ui/button';
+import { BaseRawAccountRows } from '@/app/shared/ui/BaseRawAccountRows';
+import { Card } from '@/app/shared/ui/Card';
+import { KeyValue } from '@/app/shared/ui/key-value';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 export function SysvarAccountSection({ account, sysvarAccount }: { account: Account; sysvarAccount: SysvarAccount }) {
@@ -119,18 +127,68 @@ function SysvarAccountSlotHistory({
     );
 }
 
+// `LABEL_WIDTH` (`clamp(84px,20%,240px)`) with a 108px floor. A literal class, since Tailwind's JIT can't build it.
+const LABEL_WIDTH_108 = 'w-[clamp(108px,20%,240px)]';
+
+// Raw account bytes — mounted only while the Raw toggle is on so its SWR fetch (useRawAccountDataOnMount)
+// doesn't run for the common case. The shared KeyValue rows render straight into the card, without the
+// dashkit table wrapper (same as the account card's Raw view).
+function StakeHistoryRawAccountRows({ account }: { account: Account }) {
+    const { data, isLoading } = useRawAccountDataOnMount(account.pubkey);
+    return <BaseRawAccountRows account={account} rawData={data} isLoading={isLoading} />;
+}
+
+// The Stake History account overview, reworked to match the vote account card: the "Sysvar: Stake History"
+// heading is lifted out above a tight `<Card>`, the Refresh / Raw / Download actions sit on the heading
+// row, and Address / Balance render as the shared KeyValue rows.
 function SysvarAccountStakeHistory({ account }: { account: Account; sysvarAccount: SysvarStakeHistoryAccount }) {
     const refresh = useRefreshAccount();
+    const [showRaw, setShowRaw] = React.useState(false);
+
     return (
-        <AccountCard
-            title="Sysvar: Stake History"
-            account={account}
-            analyticsSection="sysvar_stake_history_section"
-            refresh={() => refresh(account.pubkey, 'parsed')}
-        >
-            <AccountAddressRow account={account} />
-            <AccountBalanceRow account={account} />
-        </AccountCard>
+        <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+                <h2 className="m-0 text-lg font-normal text-white">Sysvar: Stake History</h2>
+                <div className="flex items-center gap-2">
+                    <RefreshButton
+                        analyticsSection="sysvar_stake_history_section"
+                        onClick={() => refresh(account.pubkey, 'parsed')}
+                    />
+                    <Button
+                        variant={showRaw ? 'default' : 'outline'}
+                        size="sm"
+                        aria-label="Raw"
+                        className={showRaw ? 'shadow-active-sm' : undefined}
+                        onClick={() => setShowRaw(r => !r)}
+                    >
+                        <Code size={12} />
+                        <span className="hidden md:inline">Raw</span>
+                    </Button>
+                    <AccountDownloadDropdown pubkey={account.pubkey} space={account.space} />
+                </div>
+            </div>
+
+            {/* Tailwind surface from design-system tokens only (no dashkit): `outer-space-900` is the closest
+                non-dk token to the dashkit card bg. No bottom margin: the address layout owns the gap to the
+                tabs. `overflow-hidden` clips the row dividers to the corners. */}
+            <Card variant="tight" className="overflow-hidden rounded-lg border-outer-space-800 bg-outer-space-900">
+                {showRaw ? (
+                    <StakeHistoryRawAccountRows account={account} />
+                ) : (
+                    // The shared KeyValue rows, same as the tx summary card (and this card's Raw view). The label
+                    // floor is raised from 84px to 108px via `labelWidth` so "Balance (SOL)" stays on one line.
+                    <>
+                        <KeyValue label="Address" labelWidth={LABEL_WIDTH_108}>
+                            {/* Address renders its own Copyable (Address.tsx) — don't wrap it in another. */}
+                            <Address pubkey={account.pubkey} raw noTruncate />
+                        </KeyValue>
+                        <KeyValue label="Balance (SOL)" labelWidth={LABEL_WIDTH_108}>
+                            <SolBalance lamports={account.lamports} />
+                        </KeyValue>
+                    </>
+                )}
+            </Card>
+        </section>
     );
 }
 
