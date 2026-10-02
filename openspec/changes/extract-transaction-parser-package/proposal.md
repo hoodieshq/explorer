@@ -27,36 +27,32 @@ Alternatives considered:
   but every consumer still holds a different object.
 - **A factory that returns one Tx class per version, with methods such as `tx.sizeLimit()`.** Rejected. Most
   size and config callers hold bytes or a compiled message, not a transaction, so the free functions must exist
-  anyway and every rule would ship twice. The cluster and epoch exist only at render time, so a method that
+  anyway. The cluster and epoch exist only at render time, so a method that
   needs them takes the same arguments as the free function. A bundler cannot drop unused methods, so a page
-  that only checks size would also load the compute unit code. `withNumbersInsteadOfBigInts` rebuilds objects
-  and would drop the methods without a type error.
-
+  that only checks size would also load the compute unit code.
+- **Use kit's transaction helpers directly.** Rejected for the parts kit does not cover. Its account metas
+  carry no `source` or lookup table, its config value codec is internal, `getTransactionSizeLimit` needs a kit
+  `Transaction` that the union never holds, and each of its priority fee helpers covers only some versions.
+  The package still calls kit for instruction normalisation and the config mask predicates.
 
 ## What Changes
 
-- New subpath `@explorer/parsers/transaction`. It carries a `ParsedTransaction` union over legacy, v0 and v1,
-  one constructor per input (`fromRpcTransaction` for any encoding, `fromCompiledMessage` and
-  `fromMessageBytes` for decoded input), and helpers that take no version argument: `transactionSizeLimit`,
-  `transactionWireSize`, `getTransactionConfig`, `getAddressTableLookups`, `hasUnmatchedLookupTables`,
-  `isV1MessageBytes` and `UnsupportedTransactionVersionError`.
-- New subpath `@explorer/parsers/programs/compute-budget`. It takes the feature gate reserve schedule, the
-  per-program defaults and the Compute Budget instruction reader. The two estimators collapse into one
-  `getRequestedComputeUnits`, which also reports where its number came from.
-- `app/entities/compute-unit` keeps the UI work (log pairing, block summary, profiling card) and stops
-  inventing a per-instruction reserve for v1.
-- The package owns the priority fee: the total a v1 message declares, or the one derived from the RPC fee for
-  legacy and v0. `transaction-fee` re-exports it and drops its own copy.
-- Features and components call entity and package helpers. No `version === 1` literals remain under
-  `app/features/transaction` or `app/components/inspector`. Cards render on data presence.
+In delivery order. Step 2 needs only step 1.
+
+1. **Create both packages.** `@explorer/parsers/transaction`, `@explorer/parsers/programs/compute-budget`.
+2. **Switch MCP.** `entity-inspector` parses through `fromRpcTransaction`, drops its account resolver and
+   accepts v1.
+3. **Switch block pages.** `BlockTransaction` carries a `ParsedTransaction`.
+4. **Switch compute units.** The app estimators and default table are deleted.
+5. **Switch SummaryCard and fees.** `transaction-fee` re-exports the package fee.
+6. **Switch the inspector.** The web3.js bridge loses its unused exports.
 
 ## Impact
 
 - `packages/parsers` gains two subpaths. The package gates (agadoo, node-esm, coverage) apply unchanged.
-- `packages/entity-inspector` deletes its local `TransactionVersion`, its account resolver and
-  `selectAccountResolver`. Legacy and v0 MCP payloads must stay byte-identical, proven by snapshots taken
-  before the switch.
-- `app/shared/lib/v1-message-bridge.ts` loses its constants, its byte sniff and its config reader. The web3.js
-  view classes stay until the inspector is kit-native.
+- Legacy and v0 MCP payloads must stay byte-identical, proven by snapshots taken before the switch.
 - Accepted risk: the package declares RPC response shapes, so an RPC output change becomes a package change.
 - Accepted risk: the compute unit feature gate table now updates through a package build, not an app edit.
+- Unverified: `get-transactions-for-address.ts` omits the version ceiling, because
+  `transactionDetails: 'signatures'` returns no message. One run of Triton's method against an address with v1
+  activity confirms that v1 signatures come back.
