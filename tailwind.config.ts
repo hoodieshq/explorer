@@ -148,6 +148,8 @@ const config: Config = {
                     600: 'oklch(49.437% 0.02229 184.23)',
                     700: 'oklch(41.81% 0.01838 180.95)',
                     800: 'oklch(33.501% 0.01351 189.14)',
+                    // Midpoint of 800 and 900 (L, C and hue averaged): row dividers on outer-space-900 cards.
+                    850: 'oklch(29.238% 0.01121 186.82)',
                     900: 'oklch(24.975% 0.0089 184.49)',
                     950: 'oklch(18.651% 0.00656 178.83)',
                 },
