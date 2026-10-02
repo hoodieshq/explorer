@@ -27,11 +27,11 @@ import { gen } from '../../__tests__/gen.js';
 import { fromCompiledMessage } from '../parse-transaction.js';
 import type { ParsedTransaction, RpcJsonParsedTransaction, RpcJsonTransaction, TransactionVersion } from '../types.js';
 
-// kit brands `Blockhash`, so the seeded string is wrapped rather than passed raw - the same shape
-// `app/entities/transaction-data/__fixtures__/wire-transactions.ts` uses.
 const BLOCKHASH = { blockhash: blockhash(gen.blockhash(7)), lastValidBlockHeight: 100n } as const;
 const FEE_PAYER = gen.address(1);
 const PROGRAM_ADDRESS = gen.address(2);
+const LOOKUP_TABLE_ADDRESS = gen.address(9);
+const LOOKUP_TABLE_LOADED_ADDRESS = gen.address(10);
 export const INSTRUCTION_DATA = new Uint8Array([1, 2, 3]);
 export const INSTRUCTION_DATA_BASE58 = 'Ldp';
 
@@ -60,8 +60,7 @@ function compiledMessageFor(version: TransactionVersion): CompiledMessageFixture
             ),
         );
     }
-    // Unlike legacy and v0 above, this instruction names an account, so a v1 fixture exercises the
-    // account-resolution path an instruction with zero accounts never would.
+    // Only the v1 instruction names an account, so v1 specs also cover account resolution.
     return compileTransactionMessage(
         pipe(
             createTransactionMessage({ version: 1 }),
@@ -79,9 +78,6 @@ function compiledMessageFor(version: TransactionVersion): CompiledMessageFixture
         ),
     );
 }
-
-const LOOKUP_TABLE_ADDRESS = gen.address(9);
-const LOOKUP_TABLE_LOADED_ADDRESS = gen.address(10);
 
 /** A v0 message with one address loaded from a lookup table, for a test that needs a real ALT entry. */
 export function v0CompiledWithLookupTable(): {
@@ -116,8 +112,6 @@ export function v0CompiledWithLookupTable(): {
     return { compiled, loadedAddress: LOOKUP_TABLE_LOADED_ADDRESS, lookupTableAddress: LOOKUP_TABLE_ADDRESS };
 }
 
-const SECOND_SIGNER = gen.address(20);
-
 /** A legacy message with two required signers, for a wire-size test that exercises the per-signer multiplication. */
 export function twoSignerLegacyTransaction(): { compiled: CompiledMessageFixture; messageBytes: Uint8Array } {
     const compiled = compileTransactionMessage(
@@ -128,7 +122,7 @@ export function twoSignerLegacyTransaction(): { compiled: CompiledMessageFixture
             m =>
                 appendTransactionMessageInstruction(
                     {
-                        accounts: [{ address: SECOND_SIGNER, role: AccountRole.READONLY_SIGNER }],
+                        accounts: [{ address: gen.address(20), role: AccountRole.READONLY_SIGNER }],
                         data: INSTRUCTION_DATA,
                         programAddress: PROGRAM_ADDRESS,
                     },
@@ -140,7 +134,6 @@ export function twoSignerLegacyTransaction(): { compiled: CompiledMessageFixture
     return { compiled, messageBytes: encode(compiled) };
 }
 
-/** A legacy message with a header override. */
 export function legacyTransactionWithHeader(header: Partial<CompiledMessageFixture['header']>): {
     compiled: CompiledMessageFixture;
     messageBytes: Uint8Array;
@@ -175,7 +168,7 @@ export const v1Transaction = Object.assign(() => fromCompiledMessage(compiledMes
     messageBytes: () => encode(compiledMessageFor(1)),
 });
 
-/** Overrides a compiled v1 message's config, so a spec can express a mask the encoder would refuse to produce. */
+/** Overrides a compiled v1 message's config, so a spec can express any mask. */
 export function v1CompiledWithConfig(overrides: {
     configMask: number;
     configValues: Extract<CompiledTransactionMessage, { version: 1 }>['configValues'];
@@ -195,7 +188,7 @@ export function v1TransactionWithConfig(overrides: { computeUnitLimit: number } 
     );
 }
 
-/** A transaction built from bare instructions, for tests that need specific programs and ordering. */
+/** A transaction built from bare instructions. */
 export function transactionWithInstructions(
     version: TransactionVersion,
     instructions: readonly Instruction[],
@@ -210,7 +203,6 @@ export function transactionWithInstructions(
     return fromCompiledMessage(compileTransactionMessage(message));
 }
 
-/** A v1 message declaring a limit and carrying instructions, for tests that set the two against each other. */
 export function v1TransactionWithLimitAndInstructions(
     computeUnitLimit: number,
     instructions: readonly Instruction[],
@@ -235,8 +227,7 @@ export function setComputeUnitLimit(units: number): Instruction {
     return getSetComputeUnitLimitInstruction({ units });
 }
 
-/** System program instruction, reserved at 3k under the built-in-programs schedule. */
-export function transfer(): Instruction {
+export function transferInstruction(): Instruction {
     return { data: INSTRUCTION_DATA, programAddress: gen.systemProgram };
 }
 
@@ -270,7 +261,7 @@ export function jsonResponse(version: TransactionVersion = 1): {
     };
 }
 
-/** An `encoding: 'jsonParsed'` response, built from the same compiled message the wire fixtures use. */
+/** An `encoding: 'jsonParsed'` response, built from the same compiled message fixtures. */
 export function jsonParsedResponse(version: TransactionVersion = 1): {
     transaction: RpcJsonParsedTransaction;
     version: TransactionVersion;

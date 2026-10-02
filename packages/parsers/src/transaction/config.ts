@@ -46,7 +46,6 @@ export function readTransactionConfig(message: CompiledTransactionMessage): Tran
     return valueIndex > 0 ? config : undefined;
 }
 
-// Only the priority fee is renamed, the other three keys match.
 const RPC_CONFIG_FIELDS = [
     ['priorityFee', 'priorityFeeLamports'],
     ['computeUnitLimit', 'computeUnitLimit'],

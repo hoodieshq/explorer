@@ -9,8 +9,9 @@ import type { ParsedTransaction } from './types.js';
 export type RequestedComputeUnits = {
     value: number;
     /**
-     * `fallback` is v1's rule that an absent limit budgets zero, not an unknown value.
-     * `declared` reads directly from the transaction, `calculated` sums per-program reserves.
+     * `declared`: the transaction sets the limit.
+     * `calculated`: no limit is set, so the per-program reserves are summed.
+     * `fallback`: a v1 transaction sets no limit, so the budget is 0.
      */
     source: 'declared' | 'fallback' | 'calculated';
 };

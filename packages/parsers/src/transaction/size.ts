@@ -8,7 +8,10 @@ export const V1_TRANSACTION_SIZE_LIMIT = 4096;
 
 const SIGNATURE_BYTES = 64;
 
-/** Deliberately not kit's `getTransactionSizeLimit`, which takes a kit `Transaction` none of these hold. */
+/**
+ * kit's `getTransactionSizeLimit` accepts only a kit `Transaction`.
+ * Callers hold a parsed transaction, a compiled message or message bytes, so this function accepts all three.
+ */
 export function transactionSizeLimit(source: ParsedTransaction | CompiledTransactionMessage | Uint8Array): number {
     return isV1(source) ? V1_TRANSACTION_SIZE_LIMIT : LEGACY_TRANSACTION_SIZE_LIMIT;
 }

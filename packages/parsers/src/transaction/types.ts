@@ -2,7 +2,10 @@ import type { Address } from '@solana/kit';
 
 export type TransactionVersion = 'legacy' | 0 | 1;
 
-/** What an RPC reports before a message is decoded. `null` means the caller omitted the version ceiling. */
+/**
+ * The version an RPC response reports, before the message is decoded.
+ * `null` means the response has no `version` field, because the request omitted `maxSupportedTransactionVersion`.
+ */
 export type ReportedTransactionVersion = TransactionVersion | null;
 
 export type AddressTableLookup = {
@@ -69,7 +72,7 @@ export type FromMessageOptions = {
 };
 
 /**
- * The part of a `getTransaction` or `getBlock` transaction entry the union needs.
+ * The part of a `getTransaction` or `getBlock` ParsedTransaction needs.
  *
  * Declared structurally, not derived from kit's overloaded `GetTransactionApi`. That type resolves to
  * whichever overload is declared last, whatever encoding was requested. Numeric fields accept

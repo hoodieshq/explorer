@@ -20,19 +20,19 @@ function toTransactionInstruction(instruction: {
 }
 
 describe('readComputeUnitLimitFromInstruction', () => {
-    it('should read the units a SetComputeUnitLimit instruction requests', () => {
+    it('should read the units of a SetComputeUnitLimit instruction', () => {
         const instruction = toTransactionInstruction(getSetComputeUnitLimitInstruction({ units: 100_000 }));
 
         expect(readComputeUnitLimitFromInstruction(instruction)).toBe(100_000);
     });
 
-    it('should read the units a legacy RequestUnits instruction requests', () => {
+    it('should read the units of a legacy RequestUnits instruction', () => {
         const instruction = toTransactionInstruction(getRequestUnitsInstruction({ additionalFee: 0, units: 50_000 }));
 
         expect(readComputeUnitLimitFromInstruction(instruction)).toBe(50_000);
     });
 
-    it('should return undefined for a non-ComputeBudget program', () => {
+    it('should return undefined when the instruction targets another program', () => {
         expect(
             readComputeUnitLimitFromInstruction({
                 accounts: [],
@@ -42,13 +42,13 @@ describe('readComputeUnitLimitFromInstruction', () => {
         ).toBeUndefined();
     });
 
-    it('should return undefined for a compute budget instruction that sets no limit', () => {
+    it('should return undefined when the instruction sets no limit', () => {
         const instruction = toTransactionInstruction(getSetComputeUnitPriceInstruction({ microLamports: 5n }));
 
         expect(readComputeUnitLimitFromInstruction(instruction)).toBeUndefined();
     });
 
-    it('should return undefined for non-readable data', () => {
+    it('should return undefined when the instruction discriminator is unknown', () => {
         const instruction = {
             accounts: [],
             data: new Uint8Array([0xff]),
@@ -58,7 +58,7 @@ describe('readComputeUnitLimitFromInstruction', () => {
         expect(readComputeUnitLimitFromInstruction(instruction)).toBeUndefined();
     });
 
-    it('should return undefined for a truncated SetComputeUnitLimit payload', () => {
+    it('should return undefined when the SetComputeUnitLimit data is truncated', () => {
         const instruction = {
             accounts: [],
             data: new Uint8Array([ComputeBudgetInstruction.SetComputeUnitLimit, 1, 2]),
@@ -68,7 +68,7 @@ describe('readComputeUnitLimitFromInstruction', () => {
         expect(readComputeUnitLimitFromInstruction(instruction)).toBeUndefined();
     });
 
-    it('should return undefined for an instruction with no data', () => {
+    it('should return undefined when the instruction has no data', () => {
         expect(
             readComputeUnitLimitFromInstruction({ accounts: [], programAddress: COMPUTE_BUDGET_PROGRAM_ADDRESS }),
         ).toBeUndefined();
@@ -76,13 +76,13 @@ describe('readComputeUnitLimitFromInstruction', () => {
 });
 
 describe('readComputeUnitPriceFromInstruction', () => {
-    it('should read the price a SetComputeUnitPrice instruction sets', () => {
+    it('should read the price of a SetComputeUnitPrice instruction', () => {
         const instruction = toTransactionInstruction(getSetComputeUnitPriceInstruction({ microLamports: 5n }));
 
         expect(readComputeUnitPriceFromInstruction(instruction)).toBe(5n);
     });
 
-    it('should return undefined for a non-ComputeBudget program', () => {
+    it('should return undefined when the instruction targets another program', () => {
         expect(
             readComputeUnitPriceFromInstruction({
                 accounts: [],
@@ -92,13 +92,13 @@ describe('readComputeUnitPriceFromInstruction', () => {
         ).toBeUndefined();
     });
 
-    it('should return undefined for a compute budget instruction that sets no price', () => {
+    it('should return undefined when the instruction sets no price', () => {
         const instruction = toTransactionInstruction(getSetComputeUnitLimitInstruction({ units: 100_000 }));
 
         expect(readComputeUnitPriceFromInstruction(instruction)).toBeUndefined();
     });
 
-    it('should return undefined for a truncated SetComputeUnitPrice payload', () => {
+    it('should return undefined when the SetComputeUnitPrice data is truncated', () => {
         const instruction = {
             accounts: [],
             data: new Uint8Array([ComputeBudgetInstruction.SetComputeUnitPrice, 1, 2]),

@@ -4,8 +4,8 @@ import type { ParsedTransaction } from './types.js';
 
 /**
  * Priority fee from legacy or v0 transactions.
- * Floored at 0 for clusters whose fee per signature is below 5,000.
- * Includes 5,000 per precompile signature, since `signatureCount` omits those.
+ * Floored at 0 for clusters whose fee per signature is below 5000.
+ * Includes 5000 per precompile signature, since `signatureCount` omits those.
  */
 export function derivePriorityFeeLamports({
     feeLamports,
@@ -18,7 +18,7 @@ export function derivePriorityFeeLamports({
 }
 
 /**
- * The priority fee a transaction pays, in lamports.
+ * The priority fee in lamports.
  *
  * - v1 declares the total on the message. An undeclared fee is 0, which is what the runtime charges.
  * - Legacy and v0 txs price per compute unit, so their total must be derived from the fee reported by the RPC.

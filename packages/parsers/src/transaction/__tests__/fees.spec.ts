@@ -28,7 +28,7 @@ function legacyTransactionWithSigners(count: number): ParsedTransaction {
 }
 
 describe('derivePriorityFeeLamports', () => {
-    it('should back the per-signature base fee out of the total', () => {
+    it('should subtract the per-signature base fee from the total', () => {
         expect(derivePriorityFeeLamports({ feeLamports: 15_000, signatureCount: 1 })).toEqual(10_000);
         expect(derivePriorityFeeLamports({ feeLamports: 15_000, signatureCount: 2 })).toEqual(5_000);
     });
@@ -62,7 +62,7 @@ describe('resolvePriorityFeeLamports', () => {
         expect(resolvePriorityFeeLamports(transaction, { feeLamports: 8_000 })).toBe(0);
     });
 
-    it('should derive the base fee out of a legacy total', () => {
+    it('should subtract the base fee from a legacy total', () => {
         const transaction = legacyTransactionWithSigners(1);
 
         expect(resolvePriorityFeeLamports(transaction, { feeLamports: 7_000 })).toBe(2_000);

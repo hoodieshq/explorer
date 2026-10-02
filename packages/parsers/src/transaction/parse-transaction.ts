@@ -81,8 +81,12 @@ export function fromMessageBytes(bytes: Uint8Array, options: FromMessageOptions 
     const compiled = getCompiledTransactionMessageDecoder().decode(bytes);
 
     // The message decoder ignores trailing bytes. A round trip detects full wire transactions.
-    if (!bytesEqual(getCompiledTransactionMessageEncoder().encode(compiled), bytes)) {
-        throw new Error('Transaction message bytes are not a canonical compiled message');
+    const encoded = getCompiledTransactionMessageEncoder().encode(compiled);
+    if (!bytesEqual(encoded, bytes)) {
+        throw new Error(
+            `Transaction message bytes have trailing data or a non-canonical encoding: ` +
+                `${bytes.length} bytes in, ${encoded.length} bytes re-encoded.`,
+        );
     }
 
     return fromCompiledMessage(compiled, options);
@@ -92,7 +96,6 @@ export function fromRpcTransaction(response: RpcTransactionResponse): ParsedTran
     const loadedAddresses = response.meta?.loadedAddresses;
     const { transaction } = response;
 
-    // Property-based narrowing excludes the wire tuple in the else branch.
     if ('message' in transaction) {
         const version = normalizeVersion(response.version);
         return isRpcJsonTransaction(transaction)
@@ -104,17 +107,11 @@ export function fromRpcTransaction(response: RpcTransactionResponse): ParsedTran
     // base64/base58 carry a full wire transaction, not a bare message.
     const wireBytes = new Uint8Array((encoding === 'base64' ? BASE64_ENCODER : BASE58_ENCODER).encode(data));
     const decoded = getTransactionDecoder().decode(wireBytes);
-    // Copy message bytes so the parsed message does not retain a view into the response buffer.
     const compiled = getCompiledTransactionMessageDecoder().decode(new Uint8Array(decoded.messageBytes));
 
     return fromCompiledMessage(compiled, { loadedAddresses, signatures: toBase58Signatures(decoded.signatures) });
 }
 
-/**
- * The wire signatures in signer order.
- *
- * kit reports an unsigned signer slot as null. This parser stores it as undefined.
- */
 function toBase58Signatures(signatures: Transaction['signatures']): (string | undefined)[] {
     return Object.values(signatures).map(signature => (signature ? BASE58_DECODER.decode(signature) : undefined));
 }
@@ -155,7 +152,7 @@ function groupLoadedAddresses(
 }
 
 /**
- * This is a field rename only:
+ * Normalize field names:
  * - kit uses lookupTableAddress.
  * - RPC and this package use accountKey.
  */
@@ -175,19 +172,13 @@ function toCompiledAddressTableLookups(
     }));
 }
 
-/** `undefined` stays `undefined`, so a response that never reported the tables is not read as listing none. */
 function toRpcAddressTableLookups(
     lookups: RpcJsonTransaction['message']['addressTableLookups'],
 ): AddressTableLookup[] | undefined {
     return lookups?.map(lookup => ({ ...lookup, accountKey: address(lookup.accountKey) }));
 }
 
-/**
- * Maps one of kit's `ResolvedInstruction`s onto the union's shape.
- *
- * kit account metas only carry address and role bits.
- * Resolve each account from the richer list that includes source metadata.
- */
+/** Maps one of kit's `ResolvedInstruction`s onto the TransactionInstruction shape. */
 function toTransactionInstruction(
     ix: ResolvedInstruction,
     byAddress: ReadonlyMap<Address, TransactionAccount>,
@@ -206,6 +197,8 @@ function ensureAccountExists(byAddress: ReadonlyMap<Address, TransactionAccount>
     return account;
 }
 
+// TODO(HOO-1670): replaces validateHeaderIntegrity in packages/entity-inspector/src/transactions/normalizer.ts.
+// Delete that copy once MCP validates headers through fromRpcTransaction.
 /**
  * Mirror entity-inspector validation and keep RPC header field names for stable error messages.
  */
