@@ -70,7 +70,8 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const args = { address: ADDRESS };
+// Grid layout so the mobile labelled-stack adaptation is what these viewport variants exercise.
+const args = { address: ADDRESS, layout: 'grid' as const };
 
 export const Mobile: Story = {
     args,

@@ -26,7 +26,7 @@
 | Dynamic | `/address/[address]/stake-history` | 500 kB | 920 kB |
 | Dynamic | `/address/[address]/subscriptions` | 500 kB | 920 kB |
 | Dynamic | `/address/[address]/token-extensions` | 500 kB | 920 kB |
-| Dynamic | `/address/[address]/tokens` | 510 kB | 930 kB |
+| Dynamic | `/address/[address]/tokens` | 530 kB | 950 kB |
 | Dynamic | `/address/[address]/transfers` | 510 kB | 930 kB |
 | Dynamic | `/address/[address]/verified-build` | 500 kB | 920 kB |
 | Dynamic | `/address/[address]/vote-history` | 500 kB | 920 kB |

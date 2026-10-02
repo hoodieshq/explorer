@@ -17,7 +17,7 @@ import { MockHistoryProvider } from '@storybook-config/__mocks__/MockHistoryProv
 import { createNextjsParameters, nextjsParameters, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Decorator, Meta, StoryObj } from '@storybook-config/types';
 import React from 'react';
-import { expect, userEvent, within } from 'storybook/test';
+import { expect, userEvent, waitFor, within } from 'storybook/test';
 
 import { TokenHistoryCard } from '../TokenHistoryCard';
 
@@ -106,13 +106,8 @@ const withCard: Decorator = (Story, ctx) => {
     );
 };
 
-// The card fetches lazily (INITIAL_TOKENS_TO_FETCH = 0), so every populated state starts on the
-// "Load Token History" prompt; clicking it flips the internal counter and reveals the seeded data.
-async function loadHistory(canvasElement: HTMLElement) {
-    const canvas = within(canvasElement);
-    await userEvent.click(await canvas.findByRole('button', { name: 'Load Token History' }));
-    return canvas;
-}
+// The card loads the newest page of every token account on mount, so a seeded history renders straight
+// away (a seeded entry is never refetched) and every story reads the canvas directly.
 
 const meta = {
     component: TokenHistoryCard,
@@ -125,30 +120,24 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-// Token present but no history seeded → the initial "Click to load token history" prompt.
-export const InitialLoadPrompt: Story = {
-    args: { address: ADDRESS },
-    play: async ({ canvasElement }) => {
-        const canvas = within(canvasElement);
-        await expect(
-            await canvas.findByText('Click the button below to load token transaction history'),
-        ).toBeInTheDocument();
-    },
-};
-
-// After loading, the table lists the fetched signatures with the filter dropdown in the header.
+// After loading, the table lists the fetched signatures under the block-style header: the title with its
+// record count and the "Filters" dropdown.
 export const Populated: Story = {
     args: { address: ADDRESS },
     parameters: { history: { [TOKEN_ACC_A]: fetchedHistory(SIGS_A) } },
     play: async ({ canvasElement }) => {
-        const canvas = await loadHistory(canvasElement);
+        const canvas = within(canvasElement);
         await expect(await canvas.findByText('Instruction Type')).toBeInTheDocument();
-        await expect(canvas.getByText('Failed')).toBeInTheDocument();
-        await expect(canvas.getByRole('button', { name: 'All Tokens' })).toBeInTheDocument();
+        // `ignore: 'a'` skips the (hidden) "Failed" option in the Filters menu; only the row badge is left.
+        await expect(canvas.getByText('Failed', { ignore: 'a, script, style' })).toBeInTheDocument();
+        await expect(canvas.getByText('3 records')).toBeInTheDocument();
+        await expect(canvas.getByRole('button', { name: 'Filters' })).toBeInTheDocument();
+        // All three rows fit the first 20 and the account has no older history, so there is no "Load More".
+        await expect(canvas.getByText('Fetched full history')).toBeInTheDocument();
     },
 };
 
-// Opening the filter dropdown reveals "All Tokens" plus one option per owned mint.
+// Opening "Filters" reveals the Status section plus "All Tokens" and one option per owned mint.
 export const FilterMenuOpen: Story = {
     args: { address: ADDRESS },
     parameters: {
@@ -156,14 +145,17 @@ export const FilterMenuOpen: Story = {
         tokens: [token(TOKEN_ACC_A, USDC), token(TOKEN_ACC_B, BONK)],
     },
     play: async ({ canvasElement }) => {
-        const canvas = await loadHistory(canvasElement);
-        await userEvent.click(await canvas.findByRole('button', { name: 'All Tokens' }));
-        // Toggle label + the menu's "All Tokens" entry both read "All Tokens".
-        await expect((await canvas.findAllByText('All Tokens')).length).toBeGreaterThanOrEqual(2);
+        const canvas = within(canvasElement);
+        await userEvent.click(await canvas.findByRole('button', { name: 'Filters' }));
+        // The menu fades in (`animate-dropdown-menu` starts at opacity 0), and toBeVisible() treats a
+        // transparent element as hidden — so wait out the animation instead of asserting on the first frame.
+        await waitFor(() => expect(canvas.getByRole('link', { name: 'Any status' })).toBeVisible());
+        await waitFor(() => expect(canvas.getByRole('link', { name: 'All Tokens' })).toBeVisible());
     },
 };
 
-// `?filter=<mint>` narrows the table (and header label) to a single mint.
+// `?filter=<mint>` narrows the table to that mint's account and shows a removable Token chip. BONK has no
+// seeded metadata, so the chip carries the truncated mint.
 export const FilteredByToken: Story = {
     args: { address: ADDRESS },
     parameters: {
@@ -172,10 +164,27 @@ export const FilteredByToken: Story = {
         tokens: [token(TOKEN_ACC_A, USDC), token(TOKEN_ACC_B, BONK)],
     },
     play: async ({ canvasElement }) => {
-        const canvas = await loadHistory(canvasElement);
+        const canvas = within(canvasElement);
         await expect(await canvas.findByText('Instruction Type')).toBeInTheDocument();
-        // Filtered to BONK → the "All Tokens" default is no longer the active toggle label.
-        await expect(canvas.queryByRole('button', { name: 'All Tokens' })).not.toBeInTheDocument();
+        await expect(
+            canvas.getByRole('link', { name: `Clear token filter: ${BONK.slice(0, 10)}…` }),
+        ).toBeInTheDocument();
+        await expect(canvas.getByText('2 filtered records')).toBeInTheDocument();
+    },
+};
+
+// `?status=failed` keeps only the failed rows (client-side, like the block list) behind a Status chip.
+export const FilteredByStatus: Story = {
+    args: { address: ADDRESS },
+    parameters: {
+        ...createNextjsParameters({ query: { status: 'failed' } }),
+        history: { [TOKEN_ACC_A]: fetchedHistory(SIGS_A) },
+    },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        await expect(await canvas.findByText('1 filtered records')).toBeInTheDocument();
+        await expect(canvas.getByRole('link', { name: 'Clear status filter: Failed' })).toBeInTheDocument();
+        await expect(canvas.queryByText('Success')).not.toBeInTheDocument();
     },
 };
 
@@ -184,7 +193,7 @@ export const Loading: Story = {
     args: { address: ADDRESS },
     parameters: { history: { [TOKEN_ACC_A]: pendingHistory(FetchStatus.Fetching) } },
     play: async ({ canvasElement }) => {
-        const canvas = await loadHistory(canvasElement);
+        const canvas = within(canvasElement);
         await expect(await canvas.findByText('Loading history')).toBeInTheDocument();
     },
 };
@@ -194,7 +203,7 @@ export const FetchFailed: Story = {
     args: { address: ADDRESS },
     parameters: { history: { [TOKEN_ACC_A]: pendingHistory(FetchStatus.FetchFailed) } },
     play: async ({ canvasElement }) => {
-        const canvas = await loadHistory(canvasElement);
+        const canvas = within(canvasElement);
         await expect(await canvas.findByText('Failed to fetch transaction history')).toBeInTheDocument();
     },
 };
@@ -204,7 +213,7 @@ export const NoHistoryFound: Story = {
     args: { address: ADDRESS },
     parameters: { history: { [TOKEN_ACC_A]: fetchedHistory([]) } },
     play: async ({ canvasElement }) => {
-        const canvas = await loadHistory(canvasElement);
+        const canvas = within(canvasElement);
         await expect(await canvas.findByText('No transaction history found')).toBeInTheDocument();
     },
 };
@@ -224,5 +233,62 @@ export const TooManyTokens: Story = {
                 'Token transaction history is not available for accounts with over 25 token accounts',
             ),
         ).toBeInTheDocument();
+    },
+};
+
+// A few history rows seeded straight into the mock provider (keyed by the default token account), so the
+// populated grid renders with no RPC. Real base58 signatures; one row
+// carries an `err` to exercise the "Failed" badge next to the "Success" rows.
+const populatedHistory: Record<string, CacheEntry<AccountHistory>> = {
+    [TOKEN_ACC_A]: {
+        data: {
+            fetched: [
+                {
+                    blockTime: 1_763_638_534,
+                    confirmationStatus: 'finalized',
+                    err: null,
+                    memo: null,
+                    signature:
+                        '4wRiBhEzHHi1o1j5ZyfzDdxGEEHqfzqtKndDT12y5G3drKz7syihe8vxK6q1CC46r4oP1UjyVMZmnAmqxb9A4GgL',
+                    slot: 381_319_118,
+                },
+                {
+                    blockTime: 1_763_600_000,
+                    confirmationStatus: 'finalized',
+                    err: null,
+                    memo: null,
+                    signature:
+                        '5t6d1od6QxAMhoWAXK5isnp3HyRqoFKWLX4Saq18WjjsB3Ry7g5bgMujgyS5wakin7DSppSnZA9VsD9HY6Ddwao3',
+                    slot: 381_300_000,
+                },
+                {
+                    blockTime: 1_763_500_000,
+                    confirmationStatus: 'finalized',
+                    err: { InstructionError: [0, { Custom: 1 }] },
+                    memo: null,
+                    signature:
+                        '3Zt9oAaq4BEpV3F27CDRGBoYWqka13afosCmBGqMtvFcx56GtVgZzfLkFydxiDwW14vEL5nHoqrrTy5fbfc1YVuQ',
+                    slot: 381_200_000,
+                },
+            ],
+            foundOldest: true,
+        },
+        status: FetchStatus.Fetched,
+    },
+};
+
+// Populated grid: the seeded rows render from the mock provider (no RPC). Columns: Signature (+ status badge),
+// Instruction Type, Token, Slot. Instruction Type shows the per-row "Load" affordance since no parsed
+// details are seeded.
+export const PopulatedGrid: Story = {
+    args: { address: ADDRESS, layout: 'grid' },
+    parameters: { history: populatedHistory },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+        // The card renders both the mobile list and the desktop grid at once (CSS toggles visibility), so
+        // the failed row's "Failed" badge exists twice in the DOM. Scope the assertion to the desktop grid
+        // (the only node with role="table") to match a single element.
+        const grid = await canvas.findByRole('table', { name: 'Token history' });
+        await expect(await within(grid).findByText('Failed')).toBeInTheDocument();
     },
 };

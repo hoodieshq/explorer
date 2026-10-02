@@ -53,9 +53,36 @@ const withRewards: Decorator = Story => (
 );
 
 const meta = {
+    argTypes: {
+        layout: {
+            control: 'inline-radio',
+            description:
+                'Inner list rendering. `table` uses the shared `<BaseTable>`; `grid` uses a CSS-grid built from `div`s (the way we render the other grid tables).',
+            options: ['table', 'grid'],
+        },
+    },
     component: RewardsCard,
     decorators: [withClusterAndAccounts],
-    parameters: nextjsParameters,
+    parameters: {
+        ...nextjsParameters,
+        docs: {
+            description: {
+                component: [
+                    "An account's staking/inflation rewards by epoch. Amounts are in SOL (lamports → SOL); the",
+                    'unit is in the header and repeated per row with the `◎` glyph. `layout` picks table vs grid.',
+                    '',
+                    '## References',
+                    '',
+                    '- [Card](?path=/docs/components-shared-card-basecard--docs) — the card surface plus the "Rewards" header and the Load-More footer.',
+                    '- [BaseTable](?path=/docs/components-shared-table-basetable--docs) — the `layout="table"` list (the original dashkit table).',
+                    '- Rewards grid — the `layout="grid"` list: a pure-Tailwind CSS grid (`auto auto 1fr 1fr`) built from `div`s with `role="table"`/`row`/`cell`, mirroring the Vote History / transaction Accounts tables.',
+                    '- [Button](?path=/docs/components-shared-button--docs) — the "Load More" button in the footer.',
+                    '- `Epoch` / `Slot` — render the Epoch and Effective Slot cells as linked values.',
+                    '- [LoadingCard](?path=/docs/components-common-loadingcard--docs) / [ErrorCard](?path=/docs/components-common-errorcard--docs) — the loading and fetch-error states.',
+                ].join('\n'),
+            },
+        },
+    },
     tags: ['autodocs', 'test'],
     title: 'Components/Account/RewardsCard',
 } satisfies Meta<typeof RewardsCard>;
@@ -65,5 +92,11 @@ type Story = StoryObj<typeof meta>;
 
 export const WithRewardsList: Story = {
     args: { address: ADDRESS },
+    decorators: [withRewards],
+};
+
+// `layout="grid"` renders the same rewards as a CSS grid instead of a `<table>`.
+export const GridLayout: Story = {
+    args: { address: ADDRESS, layout: 'grid' },
     decorators: [withRewards],
 };

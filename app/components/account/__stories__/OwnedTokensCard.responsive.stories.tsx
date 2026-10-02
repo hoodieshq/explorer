@@ -70,7 +70,8 @@ const meta: Meta<typeof OwnedTokensCard> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-const args = { address: ADDRESS };
+// Grid is the mobile layout, so the responsive viewports exercise it.
+const args = { address: ADDRESS, layout: 'grid' as const };
 
 export const Mobile: Story = {
     args,

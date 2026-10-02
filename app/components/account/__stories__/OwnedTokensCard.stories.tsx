@@ -24,6 +24,7 @@ const noop = () => undefined;
 
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const WSOL_MINT = 'So11111111111111111111111111111111111111112';
+const BONK_MINT = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263';
 
 const usdcTokenInfo: TokenInfo = {
     address: USDC_MINT,
@@ -41,6 +42,25 @@ const usdcTokenInfo: TokenInfo = {
 const seededTokenInfos = {
     [unstable_serialize(getTokenInfosSwrKey([USDC_MINT, WSOL_MINT], ChainId.MAINNET))]: new Map([
         [USDC_MINT, usdcTokenInfo],
+    ]),
+};
+
+const bonkTokenInfo: TokenInfo = {
+    address: BONK_MINT,
+    decimals: 5,
+    logoURI:
+        'https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263/logo.png',
+    name: 'Bonk',
+    symbol: 'BONK',
+    verified: true,
+};
+
+// Seeded lookup for the Summary/Detailed comparison fixture below, keyed by its mints in RPC order. USDC and
+// BONK are seeded; WSOL is left out on purpose so one row still exercises the fallback logo.
+const seededMixedTokenInfos = {
+    [unstable_serialize(getTokenInfosSwrKey([USDC_MINT, WSOL_MINT, BONK_MINT], ChainId.MAINNET))]: new Map([
+        [USDC_MINT, usdcTokenInfo],
+        [BONK_MINT, bonkTokenInfo],
     ]),
 };
 
@@ -96,6 +116,59 @@ const sampleTokensWithLogosEntry = {
     status: FetchStatus.Fetched,
 };
 
+// A wallet chosen to make the Summary vs Detailed difference obvious:
+// - USDC is held in TWO token accounts (1000 + 234.56). Both displays group by mint and SUM, so USDC shows
+//   as a single 1234.56 row — which is why Detailed labels the column "Total Balance". Because rows collapse
+//   by mint, Detailed's Account Address column surfaces one account for that mint (the last one seen).
+// - WSOL and BONK sit in one account each, so the Detailed Account Address column reads clearly across rows.
+const sampleMixedEntry = {
+    data: {
+        tokens: [
+            {
+                info: {
+                    isNative: false,
+                    mint: new PublicKey(USDC_MINT),
+                    owner: new PublicKey(ADDRESS),
+                    state: 'initialized' as const,
+                    tokenAmount: { amount: '1000000000', decimals: 6, uiAmount: 1000, uiAmountString: '1000' },
+                },
+                pubkey: gen.publicKey(1),
+            },
+            {
+                info: {
+                    isNative: false,
+                    mint: new PublicKey(USDC_MINT),
+                    owner: new PublicKey(ADDRESS),
+                    state: 'initialized' as const,
+                    tokenAmount: { amount: '234560000', decimals: 6, uiAmount: 234.56, uiAmountString: '234.56' },
+                },
+                pubkey: gen.publicKey(2),
+            },
+            {
+                info: {
+                    isNative: false,
+                    mint: new PublicKey(WSOL_MINT),
+                    owner: new PublicKey(ADDRESS),
+                    state: 'initialized' as const,
+                    tokenAmount: { amount: '5000000000', decimals: 9, uiAmount: 5, uiAmountString: '5' },
+                },
+                pubkey: gen.publicKey(3),
+            },
+            {
+                info: {
+                    isNative: false,
+                    mint: new PublicKey(BONK_MINT),
+                    owner: new PublicKey(ADDRESS),
+                    state: 'initialized' as const,
+                    tokenAmount: { amount: '42000000000', decimals: 5, uiAmount: 420000, uiAmountString: '420000' },
+                },
+                pubkey: gen.publicKey(4),
+            },
+        ],
+    },
+    status: FetchStatus.Fetched,
+};
+
 function MockTokensState({ children, value }: { children: React.ReactNode; value: TokensState }) {
     return (
         <ClusterProvider>
@@ -130,7 +203,25 @@ const withNoTokens: Decorator = Story => (
     </MockTokensState>
 );
 
+// Same isolated, non-revalidating cache as `WithLogos`, so the seeded lookup is what the card reads.
+const withMixedTokens: Decorator = Story => (
+    <SWRConfig value={{ fallback: seededMixedTokenInfos, provider: () => new Map(), revalidateOnMount: false }}>
+        <MockTokensState value={tokensState({ [ADDRESS]: sampleMixedEntry as any })}>
+            <Story />
+        </MockTokensState>
+    </SWRConfig>
+);
+
 const meta = {
+    argTypes: {
+        layout: {
+            control: 'inline-radio',
+            options: ['table', 'grid'],
+        },
+    },
+    // Grid is the new responsive layout, so every story previews it by default; flip to `table` (the legacy
+    // dashkit table, still the component default in production) via the Layout control.
+    args: { layout: 'grid' },
     component: OwnedTokensCard,
     decorators: [withTokenInfoBatch],
     parameters: nextjsParameters,
@@ -162,7 +253,9 @@ export const WithLogos: Story = {
     // Symbol and logo can only come from resolved metadata, so this fails if the seeded entry stops
     // matching the key the card looks up.
     play: async ({ canvasElement }) => {
-        await expect(await within(canvasElement).findByText('1234.56 USDC')).toBeInTheDocument();
+        // `findAll`: the grid layout renders both its mobile and desktop rows into the DOM.
+        const [balance] = await within(canvasElement).findAllByText('1234.56 USDC');
+        await expect(balance).toBeInTheDocument();
         await expect(canvasElement.querySelector('img')).toHaveAttribute('src', usdcTokenInfo.logoURI);
     },
 };
@@ -170,4 +263,18 @@ export const WithLogos: Story = {
 export const Empty: Story = {
     args: { address: ADDRESS },
     decorators: [withNoTokens],
+};
+
+// Demonstrative fixture: USDC held across two token accounts (summed into one 1234.56 row), plus WSOL and
+// BONK — so the always-detailed grid's Account Address column reads across several rows.
+export const MixedHoldings: Story = {
+    args: { address: ADDRESS },
+    decorators: [withMixedTokens],
+};
+
+// Tokens-tab variants 2.1 / 2.2: each row carries the Token History filter toggle, a ToggleChip (outline when
+// off, accent-bordered when its mint is in `?filter=`).
+export const WithTokenHistoryFilter: Story = {
+    args: { address: ADDRESS, filterable: true },
+    decorators: [withMixedTokens],
 };

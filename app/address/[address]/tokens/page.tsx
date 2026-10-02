@@ -1,9 +1,9 @@
-import { OwnedTokensCard } from '@components/account/OwnedTokensCard';
-import { TokenHistoryCard } from '@components/account/TokenHistoryCard';
 import getReadableTitleFromAddress, { AddressPageMetadataProps } from '@utils/get-readable-title-from-address';
 import { Metadata } from 'next/types';
 
 import { TransactionsProvider } from '@/app/providers/transactions';
+
+import { TokensTabView } from './TokensTabView';
 
 type Props = Readonly<{
     params: Promise<{
@@ -24,8 +24,7 @@ export default async function OwnedTokensPage(props: Props) {
 
     return (
         <TransactionsProvider>
-            <OwnedTokensCard address={address} />
-            <TokenHistoryCard address={address} />
+            <TokensTabView address={address} />
         </TransactionsProvider>
     );
 }

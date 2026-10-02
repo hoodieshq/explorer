@@ -25,7 +25,9 @@ const votes = Array.from({ length: 6 }, (_, i) => ({
     slot: BASE_SLOT + i,
 }));
 
+// Grid layout is the mobile-focused one, so the responsive stories exercise it.
 const args = {
+    layout: 'grid' as const,
     voteAccount: voteAccountFixture(votes),
 };
 

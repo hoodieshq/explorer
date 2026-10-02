@@ -10,6 +10,7 @@ import { notFound } from 'next/navigation';
 import React, { PropsWithChildren, use } from 'react';
 
 import { type NavigationTab, NavigationTabs } from '@/app/shared/ui/navigation-tabs';
+import { StickyHeader } from '@/app/shared/ui/sticky-header/StickyHeader';
 import { getEpochForSlot } from '@/app/utils/epoch-schedule';
 import { useBuildClusterPath } from '@/app/utils/url';
 
@@ -106,11 +107,12 @@ function MoreSection({ children, slot }: { children: React.ReactNode; slot: numb
 
     return (
         <>
-            {/* Full-bleed sticky tab bar, mirroring the transaction page: the negative margins stretch the
-                background edge-to-edge while the matching padding pulls the tabs back onto the content column. */}
-            <div className="sticky top-0 z-10 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] overflow-x-auto bg-heavy-metal-900 pl-[calc(50vw-50%)] pr-[calc(50vw-50%)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {/* StickyHeader sits directly in the block's content column, so it takes the tabs alone — no
+                inner column wrapper — and pulls them back to the column itself. No bottom margin: the parent's
+                `space-y` already sets the gap to the tab content. */}
+            <StickyHeader>
                 <NavigationTabs buildHref={buildHref} tabs={TABS} className="gap-5" />
-            </div>
+            </StickyHeader>
             {children}
         </>
     );

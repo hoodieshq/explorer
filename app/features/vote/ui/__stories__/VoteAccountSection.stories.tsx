@@ -9,7 +9,31 @@ import { accountFixture, BASE_SLOT, voteAccountFixture, voteAccountV4Fixture } f
 const meta = {
     component: VoteAccountSection,
     decorators: [withMockRpc, withClusterAndAccounts, withTokenInfoBatch],
-    parameters: nextjsParameters,
+    parameters: {
+        ...nextjsParameters,
+        docs: {
+            description: {
+                component: [
+                    'The vote account\'s overview card, matched to the block Overview card: the "Vote Account"',
+                    'heading is lifted out above the surface with the account actions beside it, and the fields',
+                    'render as a key/value grid. This component supplies the copy and per-field data; everything',
+                    'else is composed from the shared primitives below.',
+                    '',
+                    '## References',
+                    '',
+                    '- [Card](?path=/docs/components-shared-card-basecard--docs) (`ui="dashkit"`) — the surface holding the rows.',
+                    '- Key/value grid — local `Row`/`Label`/`Value` helpers: a CSS grid (`clamp(100px,25%,200px) 1fr`) with muted `outer-space-300` labels and `break-all` values, mirroring the block Overview card. Long pubkeys wrap instead of forcing horizontal scroll; a bottom `white/10` divider separates rows.',
+                    '- [RefreshButton](?path=/docs/components-shared-refreshbutton--docs) — reloads the parsed account (`analyticsSection="vote_account_section"`).',
+                    '- [Button](?path=/docs/components-shared-button--docs) (`variant="outline" size="sm"`) — the Raw toggle (a `Code` icon plus a `Raw` label on `md+`) that swaps the grid for the raw-bytes view.',
+                    '- [AccountDownloadDropdown](?path=/docs/shared-downloaddropdown--docs) — downloads the raw account data; wraps the shared `DownloadDropdown`.',
+                    '- [Address](?path=/docs/components-common-address--docs) — renders the account address (`raw`) and the linked voter / withdrawer / collector pubkeys; each carries its own copy button (`Copyable`) and tooltip, so rows must not wrap it in another `Copyable`.',
+                    '- `SolBalance` — renders the balance and (SIMD-0185) pending delegator rewards as a ◎ SOL amount.',
+                    '- `Slot` — renders the Root Slot as a linked slot number.',
+                    '- [BaseRawAccountRows](?path=/docs/features-account-baserawaccountrows--docs) inside a `TableCardBody` — the raw-bytes view shown while the Raw toggle is on; mounted lazily so its SWR fetch only runs when opened.',
+                ].join('\n'),
+            },
+        },
+    },
     tags: ['autodocs', 'test'],
     title: 'Features/Vote/VoteAccountSection',
 } satisfies Meta<typeof VoteAccountSection>;

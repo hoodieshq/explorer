@@ -59,6 +59,7 @@ import useSWRImmutable from 'swr/immutable';
 
 import { CompressedNftCard } from '@/app/components/account/CompressedNftCard';
 import { SolanaAttestationServiceCard } from '@/app/components/account/sas/SolanaAttestationCard';
+import { cn } from '@/app/components/shared/utils';
 import { getFeatureInfo, useFeatureInfo } from '@/app/entities/feature-gate';
 import { hasTokenMetadata } from '@/app/features/metadata';
 import {
@@ -72,7 +73,12 @@ import {
 import { useCompressedNft } from '@/app/providers/compressed-nft';
 import { useSquadsMultisigLookup } from '@/app/providers/squadsMultisig';
 import { type NavigationTab, NavigationTabLink, NavigationTabs } from '@/app/shared/ui/navigation-tabs';
-import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
+import {
+    DSCOMMON_BEFORE_HEADER,
+    DSCOMMON_BETWEEN_BLOCKS,
+    DSCOMMON_CONTENT_MAX_WIDTH_M,
+    DSCOMMON_PAGE_PADDING_X,
+} from '@/app/shared/ui/page-spacing/spacing';
 import { StickyHeader } from '@/app/shared/ui/sticky-header/StickyHeader';
 import { isAttestationAccount } from '@/app/utils/attestation-service';
 import {
@@ -156,14 +162,6 @@ type AddressParams = { address: string };
 type Props = PropsWithChildren<{ params: Promise<AddressParams> }>;
 type InnerProps = PropsWithChildren<{ params: AddressParams }>;
 
-// Single source of truth for the page's centered content-column width — every section on the address
-// page aligns to this, so the max-width lives in one place rather than being copy-pasted per section.
-const CONTENT_WIDTH = 'mx-auto w-full max-w-5xl';
-
-function ContentWidth({ children }: { children: React.ReactNode }) {
-    return <div className={CONTENT_WIDTH}>{children}</div>;
-}
-
 function AddressLayoutInner({ children, params: { address } }: InnerProps) {
     const fetchAccount = useFetchAccountInfo();
     const { status, cluster, url, genesisHash } = useCluster();
@@ -198,20 +196,25 @@ function AddressLayoutInner({ children, params: { address } }: InnerProps) {
         }
     }, [address, status, info]); // eslint-disable-line react-hooks/exhaustive-deps
 
+    // Content column, max-width + horizontal/top padding all from the shared DSCOMMON size tokens
+    // (the max-width matches the transaction page).
     return (
-        <PageContainer variant="pulled-up" className="pt-3 lg:pt-5">
-            <ContentWidth>
-                <Header
-                    address={address}
-                    account={info?.data}
-                    tokenInfo={fullTokenInfo}
-                    isTokenInfoLoading={isTokenInfoLoading}
-                />
-            </ContentWidth>
+        <div
+            className={cn(
+                'mx-auto flex w-full flex-col',
+                DSCOMMON_CONTENT_MAX_WIDTH_M.className,
+                DSCOMMON_PAGE_PADDING_X.className,
+                DSCOMMON_BEFORE_HEADER.className,
+            )}
+        >
+            <Header
+                address={address}
+                account={info?.data}
+                tokenInfo={fullTokenInfo}
+                isTokenInfoLoading={isTokenInfoLoading}
+            />
             {!pubkey ? (
-                <ContentWidth>
-                    <ErrorCard text={`Address "${address}" is not valid`} />
-                </ContentWidth>
+                <ErrorCard text={`Address "${address}" is not valid`} />
             ) : (
                 <DetailsSections
                     info={info}
@@ -223,7 +226,7 @@ function AddressLayoutInner({ children, params: { address } }: InnerProps) {
                     {children}
                 </DetailsSections>
             )}
-        </PageContainer>
+        </div>
     );
 }
 
@@ -291,10 +294,13 @@ function DetailsSections({
     return (
         <>
             {FLAGGED_ACCOUNTS_WARNING[address] ?? null}
-            <ContentWidth>
+            {/* The gap down to the tab bar matches the block page (12px on mobile, 48px from lg): the layout
+                owns it here, so the overview's own trailing margin — dashkit cards carry `mb-6` — is zeroed
+                on whichever block comes last. */}
+            <div className="mb-3 lg:mb-12 [&>*:last-child]:!mb-0">
                 <InfoSection account={account} tokenInfo={tokenInfo} />
-            </ContentWidth>
-            <ContentWidth>{notification}</ContentWidth>
+                {notification}
+            </div>
             <MoreSection baseUrl={`/address/${address}`} tabs={navigationTabs} asyncChildren={asyncTabChildren}>
                 {children}
             </MoreSection>
@@ -401,16 +407,15 @@ function MoreSection({
 
     return (
         <>
-            <StickyHeader className={CONTENT_WIDTH}>
-                <PageContainer>
-                    <ContentWidth>
-                        <NavigationTabs buildHref={buildHref} tabs={tabs}>
-                            {asyncChildren}
-                        </NavigationTabs>
-                    </ContentWidth>
-                </PageContainer>
+            {/* StickyHeader owns the full-bleed background, the responsive underline and the
+                --sticky-header-height publishing. It must sit directly in the content column (it is here)
+                so its pull-back lines the tabs up with the page body. */}
+            <StickyHeader className={DSCOMMON_BETWEEN_BLOCKS.marginClassName}>
+                <NavigationTabs buildHref={buildHref} tabs={tabs} className="gap-5">
+                    {asyncChildren}
+                </NavigationTabs>
             </StickyHeader>
-            <ContentWidth>{children}</ContentWidth>
+            {children}
         </>
     );
 }
