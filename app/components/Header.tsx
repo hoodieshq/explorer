@@ -31,9 +31,9 @@ export function Header({ address, account, tokenInfo, isTokenInfoLoading }: Head
     );
 
     return (
-        // Same spacing as the transaction page header: 24px to the first block on mobile, 60px from lg.
-        <div className="mb-3 lg:mb-12">
-            <div className="flex flex-col items-start gap-4 pb-3 pt-2 lg:flex-row lg:items-end lg:justify-between lg:gap-1">
+        // Same spacing as the block page header (`py-6` + `mb-3`): 24px above, 36px to the first block.
+        <div className="mb-3">
+            <div className="flex flex-col items-start gap-4 py-6 lg:flex-row lg:items-end lg:justify-between lg:gap-1">
                 <AccountHeader
                     address={address}
                     account={account}

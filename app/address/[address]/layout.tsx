@@ -72,8 +72,7 @@ import {
 import { useCompressedNft } from '@/app/providers/compressed-nft';
 import { useSquadsMultisigLookup } from '@/app/providers/squadsMultisig';
 import { type NavigationTab, NavigationTabLink, NavigationTabs } from '@/app/shared/ui/navigation-tabs';
-import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
-import { StickyHeader } from '@/app/shared/ui/sticky-header/StickyHeader';
+import { useStickyHeaderHeight } from '@/app/shared/ui/sticky-header/useStickyHeaderHeight';
 import { isAttestationAccount } from '@/app/utils/attestation-service';
 import {
     fetchFullTokenInfo,
@@ -156,14 +155,6 @@ type AddressParams = { address: string };
 type Props = PropsWithChildren<{ params: Promise<AddressParams> }>;
 type InnerProps = PropsWithChildren<{ params: AddressParams }>;
 
-// Single source of truth for the page's centered content-column width — every section on the address
-// page aligns to this, so the max-width lives in one place rather than being copy-pasted per section.
-const CONTENT_WIDTH = 'mx-auto w-full max-w-5xl';
-
-function ContentWidth({ children }: { children: React.ReactNode }) {
-    return <div className={CONTENT_WIDTH}>{children}</div>;
-}
-
 function AddressLayoutInner({ children, params: { address } }: InnerProps) {
     const fetchAccount = useFetchAccountInfo();
     const { status, cluster, url, genesisHash } = useCluster();
@@ -199,31 +190,32 @@ function AddressLayoutInner({ children, params: { address } }: InnerProps) {
     }, [address, status, info]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
-        <PageContainer className="pt-3 lg:pt-5">
-            <ContentWidth>
-                <Header
-                    address={address}
-                    account={info?.data}
-                    tokenInfo={fullTokenInfo}
-                    isTokenInfoLoading={isTokenInfoLoading}
-                />
-            </ContentWidth>
-            {!pubkey ? (
-                <ContentWidth>
+        // Same column and header as the block page (app/block/[slot]/layout.tsx): `max-w-5xl` with its own
+        // px-4 / lg:px-6 gutters. Below the header the sections keep the account page's own spacing: the
+        // overview card's mb-6 (24px) to the tabs and the tab bar's mb-8 (32px) to the tab content.
+        <div className="mx-auto flex max-w-5xl flex-col px-4 pt-3 lg:px-6 lg:pt-5">
+            <Header
+                address={address}
+                account={info?.data}
+                tokenInfo={fullTokenInfo}
+                isTokenInfoLoading={isTokenInfoLoading}
+            />
+            <div className="flex flex-col">
+                {!pubkey ? (
                     <ErrorCard text={`Address "${address}" is not valid`} />
-                </ContentWidth>
-            ) : (
-                <DetailsSections
-                    info={info}
-                    pubkey={pubkey}
-                    tokenInfo={fullTokenInfo}
-                    isTokenInfoLoading={isTokenInfoLoading}
-                    notification={<SecurityNotification parsedData={infoParsed} address={address} />}
-                >
-                    {children}
-                </DetailsSections>
-            )}
-        </PageContainer>
+                ) : (
+                    <DetailsSections
+                        info={info}
+                        pubkey={pubkey}
+                        tokenInfo={fullTokenInfo}
+                        isTokenInfoLoading={isTokenInfoLoading}
+                        notification={<SecurityNotification parsedData={infoParsed} address={address} />}
+                    >
+                        {children}
+                    </DetailsSections>
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -291,10 +283,13 @@ function DetailsSections({
     return (
         <>
             {FLAGGED_ACCOUNTS_WARNING[address] ?? null}
-            <ContentWidth>
+            {/* Gap to the tab bar as in hoo-936 (and the block page): 12px on mobile, 48px from lg. The layout
+                owns it, so the trailing margin of whichever block comes last (dashkit cards carry mb-6) is
+                zeroed. */}
+            <div className="mb-3 lg:mb-12 [&>*:last-child]:!mb-0">
                 <InfoSection account={account} tokenInfo={tokenInfo} />
-            </ContentWidth>
-            <ContentWidth>{notification}</ContentWidth>
+                {notification}
+            </div>
             <MoreSection baseUrl={`/address/${address}`} tabs={navigationTabs} asyncChildren={asyncTabChildren}>
                 {children}
             </MoreSection>
@@ -399,18 +394,28 @@ function MoreSection({
         [baseUrl, buildClusterPath],
     );
 
+    // Keeps --sticky-header-height current so anchored content (TokenExtensionsSection's
+    // scroll-margin-top) still clears the bar.
+    const tabBarRef = React.useRef<HTMLDivElement>(null);
+    useStickyHeaderHeight(tabBarRef);
+
     return (
         <>
-            <StickyHeader className={CONTENT_WIDTH}>
-                <PageContainer>
-                    <ContentWidth>
-                        <NavigationTabs buildHref={buildHref} tabs={tabs}>
-                            {asyncChildren}
-                        </NavigationTabs>
-                    </ContentWidth>
-                </PageContainer>
-            </StickyHeader>
-            <ContentWidth>{children}</ContentWidth>
+            {/* Full-bleed sticky tab bar, styled as in the hoo-936 StickyHeader: the negative margins stretch the
+                background edge to edge and the matching padding puts the tabs back on the content column. The
+                underline runs full-bleed below lg (on this wrapper) and is clipped to the column from lg (on
+                the inner wrapper). The tabs' "More" dropdown is portalled, so `overflow-x-auto` doesn't clip it. */}
+            <div
+                ref={tabBarRef}
+                className="sticky top-0 z-10 mb-9 ml-[calc(50%-50vw)] mr-[calc(50%-50vw)] overflow-x-auto border-0 border-b border-solid border-neutral-800 bg-heavy-metal-900 pl-[calc(50vw-50%)] pr-[calc(50vw-50%)] [scrollbar-width:none] lg:mb-12 lg:border-b-0 [&::-webkit-scrollbar]:hidden"
+            >
+                <div className="lg:border-0 lg:border-b lg:border-solid lg:border-neutral-800">
+                    <NavigationTabs buildHref={buildHref} tabs={tabs}>
+                        {asyncChildren}
+                    </NavigationTabs>
+                </div>
+            </div>
+            {children}
         </>
     );
 }

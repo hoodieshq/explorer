@@ -169,9 +169,9 @@ function SysvarAccountStakeHistory({ account }: { account: Account; sysvarAccoun
             </div>
 
             {/* Tailwind surface from design-system tokens only (no dashkit): `outer-space-900` is the closest
-                non-dk token to the dashkit card bg. mb-6 = the 24px gap to the tabs the other account
-                overviews have. `overflow-hidden` clips the row dividers to the corners. */}
-            <Card variant="tight" className="mb-6 overflow-hidden rounded-lg border-outer-space-800 bg-outer-space-900">
+                non-dk token to the dashkit card bg. No bottom margin: the address layout owns the gap to the
+                tabs. `overflow-hidden` clips the row dividers to the corners. */}
+            <Card variant="tight" className="overflow-hidden rounded-lg border-outer-space-800 bg-outer-space-900">
                 {showRaw ? (
                     <StakeHistoryRawAccountRows account={account} />
                 ) : (
