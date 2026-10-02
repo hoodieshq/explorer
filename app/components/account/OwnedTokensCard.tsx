@@ -26,7 +26,11 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown } from 'react-feather';
 
-import { readTokenHistoryFilter, toggleTokenHistoryFilter } from '@/app/components/account/TokenHistoryCard';
+import {
+    readTokenHistoryFilter,
+    toggleTokenHistoryFilter,
+    TOKEN_HISTORY_MAX_TOKEN_ACCOUNTS,
+} from '@/app/components/account/TokenHistoryCard';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
 import { Dropdown, DropdownItem, DropdownMenu, DropdownToggle } from '@/app/components/shared/ui/dropdown';
@@ -166,6 +170,10 @@ function HoldingsCard({
         return <LoadingCard message="Loading token holdings" />;
     }
 
+    // Past Token History's token-account limit it shows an "unavailable" notice, so a filter toggle would
+    // filter nothing.
+    const showFilterToggles = filterable && tokens.length <= TOKEN_HISTORY_MAX_TOKEN_ACCOUNTS;
+
     const visibleHoldings = orderedMints.slice(0, visibleCount).flatMap(mintAddress => {
         const token = holdings.get(mintAddress);
         return token ? [{ mintAddress, token, tokenInfo: tokenInfos.get(mintAddress) }] : [];
@@ -203,7 +211,11 @@ function HoldingsCard({
                     {expandable ? (
                         <ExpandableTokensGrid holdings={visibleHoldings} />
                     ) : (
-                        <TokensGrid desktopFrom={desktopFrom} filterable={filterable} holdings={visibleHoldings} />
+                        <TokensGrid
+                            desktopFrom={desktopFrom}
+                            filterable={showFilterToggles}
+                            holdings={visibleHoldings}
+                        />
                     )}
                     {footer}
                 </Card>
@@ -299,9 +311,9 @@ function TokenRow({ mintAddress, showAccountAddress, token, tokenInfo }: Holding
                 <ProxiedImage
                     alt="Token icon"
                     className="h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
-                    height={16}
+                    height={24}
                     uri={tokenInfo?.logoURI ?? undefined}
-                    width={16}
+                    width={24}
                 />
             </BaseTable.Cell>
             {showAccountAddress && (
@@ -424,9 +436,9 @@ function MobileTokenRow({ mintAddress, token, tokenInfo }: Holding) {
                     // `-mx-1` narrows its slot the same way: the logo sits 4px further left and 4px closer to
                     // the address, at an unchanged size.
                     className="-mx-1 -my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
-                    height={16}
+                    height={24}
                     uri={tokenInfo?.logoURI ?? undefined}
-                    width={16}
+                    width={24}
                 />
                 <div className="min-w-0 flex-1">
                     <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
@@ -461,9 +473,9 @@ function GridTokenRow({ filterable, mintAddress, token, tokenInfo }: Holding & {
                     // `-my-0.5` keeps the 24px logo from driving the row height above the text cells: its
                     // margin-box drops to the text line height while the icon itself renders at its full size.
                     className="-mx-1 -my-0.5 h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
-                    height={16}
+                    height={24}
                     uri={tokenInfo?.logoURI ?? undefined}
-                    width={16}
+                    width={24}
                 />
             </div>
             <div role="cell" className={gridCellVariants({ column: 'address' })}>
@@ -639,9 +651,9 @@ function ExpandableGridRow({ mintAddress, token, tokenInfo }: Holding) {
                 <ProxiedImage
                     alt="Token icon"
                     className="-mx-1 -my-0.5 h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
-                    height={16}
+                    height={24}
                     uri={tokenInfo?.logoURI ?? undefined}
-                    width={16}
+                    width={24}
                 />
             </div>
             <div role="cell" className={gridCellVariants({ column: 'address' })}>
@@ -688,9 +700,9 @@ function ExpandableMobileRow({ mintAddress, token, tokenInfo }: Holding) {
                 <ProxiedImage
                     alt="Token icon"
                     className="-mx-1 -my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
-                    height={16}
+                    height={24}
                     uri={tokenInfo?.logoURI ?? undefined}
-                    width={16}
+                    width={24}
                 />
                 <div className="min-w-0 flex-1">
                     <Address pubkey={new PublicKey(mintAddress)} link tokenLabelInfo={tokenInfo} />
@@ -798,7 +810,9 @@ function TokensCardFooter({
     }
 
     return (
-        <CardFooter ui="dashkit">
+        // 12px all round, the Token History footer's padding, so the two cards' Load More buttons sit alike.
+        // `!` because dashkit's `px-dk-4` is a custom token tailwind-merge doesn't recognise.
+        <CardFooter ui="dashkit" className="!p-3">
             <Button ui="dashkit" variant="primary" className="w-full" onClick={loadMore}>
                 Load More ({visibleCount} of {totalCount})
             </Button>

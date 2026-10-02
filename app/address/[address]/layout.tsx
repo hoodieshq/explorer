@@ -294,8 +294,13 @@ function DetailsSections({
     return (
         <>
             {FLAGGED_ACCOUNTS_WARNING[address] ?? null}
-            <InfoSection account={account} tokenInfo={tokenInfo} />
-            {notification}
+            {/* The gap down to the tab bar matches the block page (12px on mobile, 48px from lg): the layout
+                owns it here, so the overview's own trailing margin — dashkit cards carry `mb-6` — is zeroed
+                on whichever block comes last. */}
+            <div className="mb-3 lg:mb-12 [&>*:last-child]:!mb-0">
+                <InfoSection account={account} tokenInfo={tokenInfo} />
+                {notification}
+            </div>
             <MoreSection baseUrl={`/address/${address}`} tabs={navigationTabs} asyncChildren={asyncTabChildren}>
                 {children}
             </MoreSection>

@@ -415,6 +415,24 @@ describe('should filter Token History from a grid row', () => {
         expect(screen.queryAllByRole('button', { name: 'Add TKN to Token History filter' })).toHaveLength(0);
         expect(screen.queryAllByRole('button', { name: 'Remove TKN from Token History filter' })).toHaveLength(0);
     });
+
+    // Token History shows an "unavailable" notice past 25 token accounts, so there is nothing to filter.
+    it('should hide the toggles once the wallet has more token accounts than Token History supports', () => {
+        useSearchParamsMock.mockReturnValue(new URLSearchParams());
+        useAccountOwnedTokensMock.mockReturnValue(
+            makeEntryWith(
+                Array.from({ length: 26 }, (_, index) =>
+                    makeTokenAccount(UNIT_AMOUNT, gen.address(index + 100), gen.address(index + 200)),
+                ),
+            ),
+        );
+
+        render(<OwnedTokensCard address={OWNER} layout="grid" filterable />);
+
+        // These mints resolve no metadata, so a toggle would read "this token".
+        expect(screen.getByText('Token Holdings')).toBeInTheDocument();
+        expect(screen.queryAllByRole('button', { name: 'Add this token to Token History filter' })).toHaveLength(0);
+    });
 });
 
 describe('should toggle the design-variant switcher from a triple click on the heading', () => {

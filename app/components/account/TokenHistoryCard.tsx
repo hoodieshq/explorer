@@ -79,6 +79,10 @@ export type TokenHistoryLayout = 'table' | 'grid';
 //   timestamp in a single "Time / Block" column.
 export type TokenHistoryVariant = 'default' | 'tx-history' | 'tx-history-compact';
 
+// Above this many token accounts the card shows an "unavailable" notice instead of a history. Token Holdings
+// reads it too, to drop its filter toggles when there is no history for them to filter.
+export const TOKEN_HISTORY_MAX_TOKEN_ACCOUNTS = 25;
+
 export function TokenHistoryCard({
     address,
     layout = 'table',
@@ -97,7 +101,7 @@ export function TokenHistoryCard({
     const tokens = ownedTokens.data?.tokens;
     if (tokens === undefined || tokens.length === 0) return null;
 
-    if (tokens.length > 25) {
+    if (tokens.length > TOKEN_HISTORY_MAX_TOKEN_ACCOUNTS) {
         return (
             <CollapsibleSection title="Token History" className="">
                 <ErrorCard text="Token transaction history is not available for accounts with over 25 token accounts" />
@@ -829,9 +833,9 @@ function TokenCell({ mint, plain = false }: { mint: PublicKey; plain?: boolean }
             <ProxiedImage
                 alt="Token icon"
                 className="-mx-1 -my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
-                height={16}
+                height={24}
                 uri={tokenInfo?.logoURI ?? undefined}
-                width={16}
+                width={24}
             />
             <div className="min-w-0 flex-1">
                 <Address
