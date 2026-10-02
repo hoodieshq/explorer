@@ -2,7 +2,6 @@ import { TRANSACTION_CONFIG_COMPUTE_UNIT_LIMIT_BIT_MASK } from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 
 import { gen } from '../../__tests__/gen.js';
-import { getTransactionConfig } from '../config.js';
 import {
     fromCompiledMessage,
     fromMessageBytes,
@@ -40,30 +39,37 @@ describe('fromCompiledMessage', () => {
         expect(transaction.instructions[0].accounts[0].address).toBe(v1Transaction.compiled().staticAccounts[0]);
     });
 
-    it('should return the config for the v1 tx only', () => {
-        const v1 = fromCompiledMessage(
+    it('should read the config from a v1 message', () => {
+        const transaction = fromCompiledMessage(
             v1CompiledWithConfig({
                 configMask: TRANSACTION_CONFIG_COMPUTE_UNIT_LIMIT_BIT_MASK,
                 configValues: [{ kind: 'u32', value: 19 }],
             }),
         );
-        const v0 = fromCompiledMessage(v0Transaction.compiled());
 
-        expect(getTransactionConfig(v1)).toEqual({ computeUnitLimit: 19 });
-        expect(getTransactionConfig(v0)).toBeUndefined();
+        expect(transaction).toMatchObject({ config: { computeUnitLimit: 19 }, version: 1 });
     });
 
-    it('should return the address table lookups for the v0 tx only', () => {
+    it.each([
+        ['legacy', legacyTransaction],
+        ['v1', v1Transaction],
+    ] as const)('should return no address table lookups for a %s transaction', (_label, fixture) => {
+        expect(getAddressTableLookups(fromCompiledMessage(fixture.compiled()))).toEqual([]);
+    });
+
+    it('should return no address table lookups when a v0 message lists no tables', () => {
         expect(getAddressTableLookups(fromCompiledMessage(v0Transaction.compiled()))).toEqual([]);
-        expect(getAddressTableLookups(fromCompiledMessage(v1Transaction.compiled()))).toEqual([]);
     });
 
-    it('should accept caller-provided loaded addresses as strings', () => {
-        const transaction = fromCompiledMessage(v0Transaction.compiled(), {
-            loadedAddresses: { readonly: [], writable: [] },
-        });
+    it('should resolve a loaded address when the caller passes it as a plain string', () => {
+        const { compiled, loadedAddress } = v0CompiledWithLookupTable();
+        const writable: string[] = [loadedAddress];
 
-        expect(transaction.accounts).toHaveLength(v0Transaction.compiled().staticAccounts.length);
+        const transaction = fromCompiledMessage(compiled, { loadedAddresses: { readonly: [], writable } });
+
+        expect(transaction.accounts).toContainEqual(
+            expect.objectContaining({ address: loadedAddress, source: 'lookupTable' }),
+        );
     });
 
     it('should return unmatched addresses for a v0 message with no listed lookup tables', () => {
@@ -116,18 +122,22 @@ describe('fromCompiledMessage', () => {
 });
 
 describe('fromMessageBytes', () => {
-    it('should decode bytes into the same value as the compiled message', () => {
-        expect(fromMessageBytes(v1Transaction.messageBytes())).toEqual(fromCompiledMessage(v1Transaction.compiled()));
+    it.each([
+        ['legacy', legacyTransaction],
+        ['v0', v0Transaction],
+        ['v1', v1Transaction],
+    ] as const)('should decode %s message bytes into the same value as the compiled message', (_label, fixture) => {
+        expect(fromMessageBytes(fixture.messageBytes())).toEqual(fromCompiledMessage(fixture.compiled()));
     });
 
     it('should reject bytes that carry more than the message', () => {
-        const trailing = new Uint8Array([...v1Transaction.messageBytes(), 0x00]);
+        const messageBytes = v1Transaction.messageBytes();
+        const trailing = new Uint8Array([...messageBytes, 0x00]);
 
-        expect(() => fromMessageBytes(trailing)).toThrow('canonical');
-    });
-
-    it('should decode a v0 message', () => {
-        expect(fromMessageBytes(v0Transaction.messageBytes())).toEqual(fromCompiledMessage(v0Transaction.compiled()));
+        expect(() => fromMessageBytes(trailing)).toThrow(
+            `Transaction message bytes have trailing data or a non-canonical encoding: ` +
+                `${trailing.length} bytes in, ${messageBytes.length} bytes re-encoded.`,
+        );
     });
 
     it('should reject message bytes with an invalid header', () => {
@@ -138,7 +148,7 @@ describe('fromMessageBytes', () => {
 });
 
 describe('fromRpcTransaction', () => {
-    it('should read a wire-encoded response through the transaction decoder', () => {
+    it('should parse the version and instructions of a wire response', () => {
         const transaction = fromRpcTransaction(wireResponse(1));
 
         expect(transaction.version).toBe(1);
@@ -157,19 +167,24 @@ describe('fromRpcTransaction', () => {
         expect(fromRpcTransaction(wireResponse(1, 'base58'))).toEqual(fromRpcTransaction(wireResponse(1, 'base64')));
     });
 
-    it.each(['base64', 'base58'] as const)('should parse a %s wire response with no version reported', encoding => {
-        const { transaction } = wireResponse(1, encoding);
+    it.each(['base64', 'base58'] as const)(
+        'should read the version from the bytes when a %s wire response omits it',
+        encoding => {
+            const { transaction } = wireResponse(1, encoding);
 
-        expect(fromRpcTransaction({ transaction }).version).toBe(1);
-    });
+            expect(fromRpcTransaction({ transaction }).version).toBe(1);
+        },
+    );
 
-    it('should accept loaded addresses from wire response meta', () => {
+    it('should resolve the loaded addresses from wire response meta', () => {
         const response = {
             ...wireResponse(0),
             meta: { loadedAddresses: { readonly: [gen.address(6)], writable: [gen.address(5)] } },
         };
 
-        expect(fromRpcTransaction(response).accounts).toHaveLength(v0Transaction.compiled().staticAccounts.length + 2);
+        const { accounts } = fromRpcTransaction(response);
+
+        expect(accounts.slice(-2).map(account => account.address)).toEqual([gen.address(5), gen.address(6)]);
     });
 
     it('should read a json response, decoding its base58 instruction data', () => {
@@ -191,7 +206,7 @@ describe('fromRpcTransaction', () => {
         ]);
     });
 
-    it('should return unfilled lookup indexes', () => {
+    it('should report lookup indexes when no loaded address matches them', () => {
         const response = jsonResponse(0);
         const table = gen.address(9);
         response.transaction.message.addressTableLookups = [
@@ -268,7 +283,7 @@ describe('fromRpcTransaction', () => {
     });
 
     it('should reject a null version', () => {
-        // eslint-disable-next-line unicorn/no-null -- the RPC reports null when no ceiling was sent
+        // eslint-disable-next-line unicorn/no-null -- null stands for a response with no `version` field
         expect(() => fromRpcTransaction({ ...jsonResponse(1), version: null })).toThrow(
             UnsupportedTransactionVersionError,
         );
@@ -280,7 +295,7 @@ describe('fromRpcTransaction', () => {
         ).toThrow(UnsupportedTransactionVersionError);
     });
 
-    it('should reject a header with counts exceeding the account list', () => {
+    it('should reject a header when the signer count exceeds the account list', () => {
         const response = jsonResponse(0);
         response.transaction.message.header.numRequiredSignatures = 99;
 

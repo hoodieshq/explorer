@@ -13,7 +13,7 @@ import { getV1ResourceLimits } from '../resource-limits.js';
 import { legacyTransaction, v0Transaction, v1CompiledWithConfig, v1TransactionWithConfig } from './fixtures.js';
 
 describe('getV1ResourceLimits', () => {
-    it('should return every declared limit as is', () => {
+    it('should return the declared limits when the message declares all of them', () => {
         const transaction = fromCompiledMessage(
             v1CompiledWithConfig({
                 configMask:
@@ -38,7 +38,7 @@ describe('getV1ResourceLimits', () => {
         });
     });
 
-    it('should return the runtime default for every limit the message leaves undeclared', () => {
+    it('should return the runtime defaults when the message declares no limits', () => {
         expect(getV1ResourceLimits(v1TransactionWithConfig(undefined))).toEqual({
             computeUnitLimit: 0,
             heapSizeBytes: V1_DEFAULT_HEAP_SIZE_BYTES,
@@ -47,7 +47,7 @@ describe('getV1ResourceLimits', () => {
         });
     });
 
-    it('should keep a declared zero instead of replacing it with the default', () => {
+    it('should keep a declared limit when it is zero', () => {
         const transaction = fromCompiledMessage(
             v1CompiledWithConfig({
                 configMask: TRANSACTION_CONFIG_HEAP_SIZE_BIT_MASK,

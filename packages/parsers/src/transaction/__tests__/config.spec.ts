@@ -20,7 +20,7 @@ const BASE = {
 };
 
 describe('readTransactionConfig', () => {
-    it('should read every limit the mask declares in wire order', () => {
+    it('should read every declared limit in wire order', () => {
         const message = v1CompiledWithConfig({
             configMask:
                 TRANSACTION_CONFIG_PRIORITY_FEE_LAMPORTS_BIT_MASK |
@@ -43,7 +43,7 @@ describe('readTransactionConfig', () => {
         });
     });
 
-    it('should read a single declared limit and leave the rest absent', () => {
+    it('should read only the declared limit when the mask declares one', () => {
         const message = v1CompiledWithConfig({
             configMask: TRANSACTION_CONFIG_COMPUTE_UNIT_LIMIT_BIT_MASK,
             configValues: [{ kind: 'u32', value: 19 }],
@@ -52,17 +52,17 @@ describe('readTransactionConfig', () => {
         expect(readTransactionConfig(message)).toEqual({ computeUnitLimit: 19 });
     });
 
-    it('should return undefined for a message that declares no limits', () => {
+    it('should return undefined when the message declares no limits', () => {
         const message = v1CompiledWithConfig({ configMask: 0, configValues: [] });
 
         expect(readTransactionConfig(message)).toBeUndefined();
     });
 
-    it('should return undefined for a version that cannot carry config', () => {
+    it('should return undefined when the message is v0', () => {
         expect(readTransactionConfig(v0Transaction.compiled())).toBeUndefined();
     });
 
-    it('should return undefined for a partially-set priority fee mask', () => {
+    it('should return undefined when only one priority fee mask bit is set', () => {
         const message = v1CompiledWithConfig({ configMask: 0b01, configValues: [{ kind: 'u64', value: 1n }] });
 
         expect(readTransactionConfig(message)).toBeUndefined();
@@ -102,7 +102,7 @@ function rpcConfig(overrides: Partial<RpcTransactionConfig> = {}): RpcTransactio
 }
 
 describe('fromRpcTransactionConfig', () => {
-    it('should drop the nulls the RPC sends for absent limits', () => {
+    it('should omit a limit when the RPC sends it as null', () => {
         const config = fromRpcTransactionConfig(rpcConfig({ computeUnitLimit: 19, priorityFee: 24n }));
 
         expect(config).toEqual({ computeUnitLimit: 19, priorityFeeLamports: 24n });
@@ -112,19 +112,19 @@ describe('fromRpcTransactionConfig', () => {
         expect(fromRpcTransactionConfig(rpcConfig())).toBeUndefined();
     });
 
-    it('should return undefined when the response carried no config at all', () => {
+    it('should return undefined when the response has no config', () => {
         expect(fromRpcTransactionConfig(undefined)).toBeUndefined();
     });
 });
 
 describe('getTransactionConfig', () => {
-    it('should return the config of a v1 tx', () => {
+    it('should return the config of a v1 transaction', () => {
         const transaction: ParsedTransaction = { ...BASE, config: { computeUnitLimit: 19 }, version: 1 };
 
         expect(getTransactionConfig(transaction)).toEqual({ computeUnitLimit: 19 });
     });
 
-    it('should return undefined for a v0 tx', () => {
+    it('should return undefined for a v0 transaction', () => {
         const transaction: ParsedTransaction = { ...BASE, addressTableLookups: [], version: 0 };
 
         expect(getTransactionConfig(transaction)).toBeUndefined();

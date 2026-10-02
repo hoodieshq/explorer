@@ -1,3 +1,5 @@
+// TODO(HOO-1670): replaces the MCP copy in packages/entity-inspector/src/transactions/account-resolver.ts.
+// Delete that file once MCP resolves accounts through this module.
 import type { Address } from '@solana/kit';
 
 import type { AddressTableLookup, TransactionAccount, TransactionVersion } from './types.js';
@@ -29,7 +31,7 @@ export type AccountResolutionResult = {
  * Legacy and v1 resolve their static keys alone.
  */
 export function resolveAccounts(params: AccountResolutionParams): AccountResolutionResult {
-    const staticAccounts = classifyStaticKeys(params.staticKeys, params.header);
+    const staticAccounts = resolveStaticAccounts(params.staticKeys, params.header);
     if (params.version !== 0) {
         return { accounts: staticAccounts };
     }
@@ -61,7 +63,7 @@ export function resolveAccounts(params: AccountResolutionParams): AccountResolut
     };
 }
 
-function classifyStaticKeys(staticKeys: readonly Address[], header: MessageHeader): TransactionAccount[] {
+function resolveStaticAccounts(staticKeys: readonly Address[], header: MessageHeader): TransactionAccount[] {
     const { numReadonlyNonSignerAccounts, numReadonlySignerAccounts, numSignerAccounts } = header;
     const readonlySignerStart = numSignerAccounts - numReadonlySignerAccounts;
     const readonlyNonSignerStart = staticKeys.length - numReadonlyNonSignerAccounts;
