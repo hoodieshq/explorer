@@ -326,7 +326,10 @@ function TokenRow({ mintAddress, showAccountAddress, token, tokenInfo }: Holding
 // `gridCellVariants` owns all cell styling. `role` picks header vs body chrome; `column` handles the
 // per-column concerns: `logo` centers the icon, `address` collapses to `min-w-0` so the mid-truncating
 // `<Address>` shrinks instead of overflowing on mobile, `balance` keeps the amount + symbol on one line.
-const gridCellVariants = cva('flex items-center px-3 py-2.5', {
+// Body cells align to the top: a nicknamed mint wraps onto two lines, and the rest of its row should stay on
+// the first line rather than drift to the middle. The logo and filter chip are pulled to the text-line height
+// (negative margins), so single-line rows look the same either way.
+const gridCellVariants = cva('flex px-3 py-2.5', {
     defaultVariants: { column: 'none', role: 'body' },
     variants: {
         column: {
@@ -336,8 +339,8 @@ const gridCellVariants = cva('flex items-center px-3 py-2.5', {
             none: '',
         },
         role: {
-            body: 'border-t border-solid border-outer-space-800',
-            header: 'whitespace-nowrap text-xs uppercase text-outer-space-300',
+            body: 'items-start border-t border-solid border-outer-space-800',
+            header: 'items-center whitespace-nowrap text-xs uppercase text-outer-space-300',
         },
     },
 });
@@ -407,17 +410,20 @@ function TokensGrid({
 
 // Mobile row (< sm): one labels-left line per field (Mint / Account / Total Balance). Labels sit in a
 // fixed-width column so the values line up; the value wrappers are `min-w-0` so `<Address>` mid-truncates
-// instead of overflowing. The logo rides inline just before the Mint address.
+// instead of overflowing. The logo rides inline just before the Mint address. The Mint line aligns to the top:
+// a nicknamed mint takes two lines, and the label and logo belong beside the first.
 function MobileTokenRow({ mintAddress, token, tokenInfo }: Holding) {
     return (
         <div className="flex flex-col gap-1 border-t border-solid border-outer-space-800 px-3 py-3 text-sm text-white first:border-t-0">
-            <div className="flex items-center gap-2">
-                <span className="w-24 shrink-0 self-baseline text-outer-space-300">Mint</span>
+            <div className="flex items-start gap-2">
+                <span className="w-24 shrink-0 text-outer-space-300">Mint</span>
                 <ProxiedImage
                     alt="Token icon"
                     // `-my-0.5` keeps the 24px logo from making this line taller than the text lines: its
                     // margin-box drops to the text line height while the icon itself renders at its full size.
-                    className="-my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
+                    // `-mx-1` narrows its slot the same way: the logo sits 4px further left and 4px closer to
+                    // the address, at an unchanged size.
+                    className="-mx-1 -my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
                     height={16}
                     uri={tokenInfo?.logoURI ?? undefined}
                     width={16}
@@ -454,7 +460,7 @@ function GridTokenRow({ filterable, mintAddress, token, tokenInfo }: Holding & {
                     alt="Token icon"
                     // `-my-0.5` keeps the 24px logo from driving the row height above the text cells: its
                     // margin-box drops to the text line height while the icon itself renders at its full size.
-                    className="-my-0.5 h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
+                    className="-mx-1 -my-0.5 h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
                     height={16}
                     uri={tokenInfo?.logoURI ?? undefined}
                     width={16}
@@ -632,7 +638,7 @@ function ExpandableGridRow({ mintAddress, token, tokenInfo }: Holding) {
             <div role="cell" className={gridCellVariants({ column: 'logo' })}>
                 <ProxiedImage
                     alt="Token icon"
-                    className="-my-0.5 h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
+                    className="-mx-1 -my-0.5 h-6 w-6 rounded-full border-4 border-solid border-dk-gray-700-dark"
                     height={16}
                     uri={tokenInfo?.logoURI ?? undefined}
                     width={16}
@@ -677,11 +683,11 @@ function ExpandableMobileRow({ mintAddress, token, tokenInfo }: Holding) {
 
     return (
         <div className="flex flex-col gap-1 border-t border-solid border-outer-space-800 px-3 py-3 text-sm text-white first:border-t-0">
-            <div className="flex items-center gap-2">
-                <span className="w-24 shrink-0 self-baseline text-outer-space-300">Mint</span>
+            <div className="flex items-start gap-2">
+                <span className="w-24 shrink-0 text-outer-space-300">Mint</span>
                 <ProxiedImage
                     alt="Token icon"
-                    className="-my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
+                    className="-mx-1 -my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
                     height={16}
                     uri={tokenInfo?.logoURI ?? undefined}
                     width={16}

@@ -822,10 +822,13 @@ function TokenCell({ mint, plain = false }: { mint: PublicKey; plain?: boolean }
     const tokenInfo = useTokenInfo(true, mint.toBase58(), cluster, genesisHash);
 
     return (
-        <div className="flex min-w-0 flex-1 items-center gap-2">
+        // Top-aligned so a nicknamed mint (two lines) keeps its logo beside the first line. The logo's negative
+        // margins shrink its slot to the text-line height and 8px narrower (4px further left, 4px closer to
+        // the address) without changing its size — the same slot as the Token Holdings logos.
+        <div className="flex min-w-0 flex-1 items-start gap-2">
             <ProxiedImage
                 alt="Token icon"
-                className="-my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
+                className="-mx-1 -my-0.5 h-6 w-6 shrink-0 rounded-full border-4 border-solid border-dk-gray-700-dark"
                 height={16}
                 uri={tokenInfo?.logoURI ?? undefined}
                 width={16}
@@ -1203,13 +1206,14 @@ function MobileTxCompactCard({ mint, tx, isMd }: { mint: PublicKey; tx: Confirme
     );
 }
 
-// One labels-left field of a mobile transaction card: a fixed `w-28` label column (wide enough for
-// "Time / Block" on one line) and a value that can shrink. Top-aligned rather than baseline-aligned: a
-// value led by the token logo would otherwise put the row's baseline under the logo and drop the label.
+// One labels-left field of a mobile transaction card: a fixed `w-24` label column — the Token Holdings
+// mobile rows' width, so the values of both cards start on one line; still wide enough for "Time / Block"
+// unwrapped — and a value that can shrink. Top-aligned rather than baseline-aligned: a value led by the
+// token logo would otherwise put the row's baseline under the logo and drop the label.
 function CardField({ label, children }: { label: string; children: React.ReactNode }) {
     return (
         <div className="flex items-start gap-2">
-            <span className="w-28 shrink-0 text-outer-space-300">{label}</span>
+            <span className="w-24 shrink-0 text-outer-space-300">{label}</span>
             <div className="min-w-0 flex-1">{children}</div>
         </div>
     );
