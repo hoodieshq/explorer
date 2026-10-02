@@ -46,7 +46,7 @@ config reader, and the shared `TransactionVersion` union, consumed by both the a
 `readTransactionConfig` SHALL return `undefined` for a malformed config mask or a value of unexpected kind,
 and SHALL NOT perform a full message decompile.
 
-#### Scenario: A hostile RPC serves a broken config mask
+#### Scenario: An RPC serves a broken config mask
 
 - **WHEN** a v1 message arrives with only one of the two priority-fee mask bits set
 - **THEN** `readTransactionConfig` returns `undefined`
