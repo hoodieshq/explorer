@@ -11,7 +11,9 @@ import {
     getCompiledTransactionMessageEncoder,
     getInstructionsFromCompiledTransactionMessage,
     getTransactionDecoder,
+    isSolanaError,
     type ResolvedInstruction,
+    SOLANA_ERROR__TRANSACTION__VERSION_NUMBER_NOT_SUPPORTED,
     type Transaction,
 } from '@solana/kit';
 
@@ -58,19 +60,22 @@ export function fromCompiledMessage(
         version: message.version,
     });
 
-    // kit account metas omit source and lookup-table details. Map by address to recovered account metadata.
-    const byAddress = new Map(resolved.accounts.map(account => [account.address, account] as const));
-
-    // kit normalizes legacy/v0/v1 instructions to one shape and resolves indices against this account list.
-    const instructions = getInstructionsFromCompiledTransactionMessage(message, loadedAddresses).map(ix =>
-        toTransactionInstruction(ix, byAddress),
+    // kit rejects out-of-range indexes. Only v0 loads addresses, so kit sees the same account list as `resolved`.
+    const kitInstructions = getInstructionsFromCompiledTransactionMessage(
+        message,
+        message.version === 0 ? loadedAddresses : undefined,
+    );
+    // kit account metas lack source and lookup table details. Reading by index keeps a repeated key's flags apart.
+    const accountIndices = getInstructionAccountIndices(message);
+    const instructions = kitInstructions.map((ix, i) =>
+        toTransactionInstruction(ix, accountIndices[i], resolved.accounts),
     );
 
     return buildTransaction({
         config: readTransactionConfig(message),
         instructions,
-        lifetimeToken: message.lifetimeToken,
         lookups,
+        recentBlockhash: message.lifetimeToken,
         resolved,
         signatures: options.signatures ?? [],
         version: message.version,
@@ -78,18 +83,7 @@ export function fromCompiledMessage(
 }
 
 export function fromMessageBytes(bytes: Uint8Array, options: FromMessageOptions = {}): ParsedTransaction {
-    const compiled = getCompiledTransactionMessageDecoder().decode(bytes);
-
-    // The message decoder ignores trailing bytes. A round trip detects full wire transactions.
-    const encoded = getCompiledTransactionMessageEncoder().encode(compiled);
-    if (!bytesEqual(encoded, bytes)) {
-        throw new Error(
-            `Transaction message bytes have trailing data or a non-canonical encoding: ` +
-                `${bytes.length} bytes in, ${encoded.length} bytes re-encoded.`,
-        );
-    }
-
-    return fromCompiledMessage(compiled, options);
+    return fromCompiledMessage(decodeMessageBytes(bytes), options);
 }
 
 export function fromRpcTransaction(response: RpcTransactionResponse): ParsedTransaction {
@@ -103,13 +97,51 @@ export function fromRpcTransaction(response: RpcTransactionResponse): ParsedTran
             : fromJsonParsedTransaction(transaction, version);
     }
 
+    // Wire bytes carry their own version, so a response that reports none defers to them.
+    const reportedVersion =
+        response.version === undefined || response.version === null ? undefined : normalizeVersion(response.version);
+
     const [data, encoding] = transaction;
     // base64/base58 carry a full wire transaction, not a bare message.
     const wireBytes = new Uint8Array((encoding === 'base64' ? BASE64_ENCODER : BASE58_ENCODER).encode(data));
-    const decoded = getTransactionDecoder().decode(wireBytes);
-    const compiled = getCompiledTransactionMessageDecoder().decode(new Uint8Array(decoded.messageBytes));
+    const decoded = tryRunDecode(() => getTransactionDecoder().decode(wireBytes));
+    const compiled = decodeMessageBytes(new Uint8Array(decoded.messageBytes));
+
+    if (reportedVersion !== undefined && reportedVersion !== compiled.version) {
+        throw new Error(
+            `Transaction version mismatch: the response reports ${reportedVersion}, ` +
+                `the bytes encode ${compiled.version}.`,
+        );
+    }
 
     return fromCompiledMessage(compiled, { loadedAddresses, signatures: toBase58Signatures(decoded.signatures) });
+}
+
+function decodeMessageBytes(bytes: Uint8Array): CompiledTransactionMessage & CompiledTransactionMessageWithLifetime {
+    const compiled = tryRunDecode(() => getCompiledTransactionMessageDecoder().decode(bytes));
+
+    // The message decoder ignores trailing bytes and can decode a truncated message. A round trip detects both.
+    const encoded = getCompiledTransactionMessageEncoder().encode(compiled);
+    if (!bytesEqual(encoded, bytes)) {
+        throw new Error(
+            `Transaction message bytes have trailing data or a non-canonical encoding: ` +
+                `${bytes.length} bytes in, ${encoded.length} bytes re-encoded.`,
+        );
+    }
+
+    return compiled;
+}
+
+/** Callers catch one error type for an unknown version, whichever decoder finds it. */
+function tryRunDecode<T>(decode: () => T): T {
+    try {
+        return decode();
+    } catch (error) {
+        if (isSolanaError(error, SOLANA_ERROR__TRANSACTION__VERSION_NUMBER_NOT_SUPPORTED)) {
+            throw new UnsupportedTransactionVersionError(error.context.unsupportedVersion);
+        }
+        throw error;
+    }
 }
 
 function toBase58Signatures(signatures: Transaction['signatures']): (string | undefined)[] {
@@ -118,20 +150,28 @@ function toBase58Signatures(signatures: Transaction['signatures']): (string | un
 
 /**
  * Empty for legacy and v1.
- * Also empty for v0 when the encoding does not name lookup tables, for example jsonParsed.
+ * Also empty for v0 when the response does not report the lookup tables.
  */
 export function getAddressTableLookups(transaction: ParsedTransaction): readonly AddressTableLookup[] {
     return transaction.version === 0 ? (transaction.addressTableLookups ?? []) : [];
 }
 
 /**
- * RPC reports version outside the message.
- * kit can surface it as bigint because version is not on its integer allow list.
+ * True when the loaded addresses and the lookup table slots disagree, so the account list may not match the message.
+ * Always false for legacy and v1, which cannot load addresses.
  */
-function normalizeVersion(version: ReportedTransactionVersion | bigint | undefined): TransactionVersion {
-    const value = typeof version === 'bigint' ? Number(version) : version;
-    if (value === 'legacy' || value === 0 || value === 1) return value;
-    throw new UnsupportedTransactionVersionError(value);
+export function hasUnmatchedLookupTables(transaction: ParsedTransaction): boolean {
+    return (
+        transaction.version === 0 &&
+        (transaction.unmatchedLookupTableAddresses !== undefined ||
+            transaction.unmatchedLookupTableIndexes !== undefined)
+    );
+}
+
+/** The RPC reports the version outside the message, so it is checked before the message is read. */
+function normalizeVersion(version: ReportedTransactionVersion | undefined): TransactionVersion {
+    if (version === 'legacy' || version === 0 || version === 1) return version;
+    throw new UnsupportedTransactionVersionError(version);
 }
 
 function isRpcJsonTransaction(
@@ -178,29 +218,37 @@ function toRpcAddressTableLookups(
     return lookups?.map(lookup => ({ ...lookup, accountKey: address(lookup.accountKey) }));
 }
 
+/** The account indexes of each instruction, in the order kit returns the instructions. */
+function getInstructionAccountIndices(message: CompiledTransactionMessage): readonly (readonly number[])[] {
+    return message.version === 1
+        ? message.instructionPayloads.map(payload => payload.instructionAccountIndices)
+        : message.instructions.map(ix => ix.accountIndices ?? []);
+}
+
 /** Maps one of kit's `ResolvedInstruction`s onto the TransactionInstruction shape. */
 function toTransactionInstruction(
     ix: ResolvedInstruction,
-    byAddress: ReadonlyMap<Address, TransactionAccount>,
+    accountIndices: readonly number[],
+    accounts: readonly TransactionAccount[],
 ): TransactionInstruction {
     return {
-        accounts: (ix.accounts ?? []).map(meta => ensureAccountExists(byAddress, meta.address)),
+        accounts: accountIndices.map(index => accounts[index]),
+        // Return consistent empty data, since kit omits it and json encodings keep it.
+        data: new Uint8Array(ix.data ?? []),
         programAddress: ix.programAddress,
-        ...(ix.data !== undefined && { data: new Uint8Array(ix.data) }),
     };
 }
 
-/** Missing account means instruction resolution disagrees with account resolution. */
+/** jsonParsed names programs and accounts by address, so an address outside `accountKeys` is malformed input. */
 function ensureAccountExists(byAddress: ReadonlyMap<Address, TransactionAccount>, key: Address): TransactionAccount {
     const account = byAddress.get(key);
     if (!account) throw new Error(`Account address not in the resolved account list: ${key}`);
     return account;
 }
 
-// TODO(HOO-1670): replaces validateHeaderIntegrity in packages/entity-inspector/src/transactions/normalizer.ts.
-// Delete that copy once MCP validates headers through fromRpcTransaction.
 /**
- * Mirror entity-inspector validation and keep RPC header field names for stable error messages.
+ * Uses RPC header field names, so error messages stay stable for MCP payloads.
+ * TODO(HOO-1670): delete the copy in entity-inspector's normalizer.ts once MCP validates through fromRpcTransaction.
  */
 function validateHeaderIntegrity(header: RpcJsonTransaction['message']['header'], staticKeyCount: number): void {
     const { numReadonlySignedAccounts, numReadonlyUnsignedAccounts, numRequiredSignatures } = header;
@@ -286,8 +334,8 @@ function fromJsonTransaction(
     return buildTransaction({
         config: fromRpcTransactionConfig(message.transactionConfig),
         instructions,
-        lifetimeToken: message.recentBlockhash,
         lookups,
+        recentBlockhash: message.recentBlockhash,
         resolved,
         signatures: [...transaction.signatures],
         version,
@@ -296,13 +344,14 @@ function fromJsonTransaction(
 
 /**
  * jsonParsed already resolves account roles, so header and index validation is not required.
- * It never reports lookup table addresses.
+ * It names the lookup tables, but not which table each loaded account came from.
  */
 function fromJsonParsedTransaction(
     transaction: RpcJsonParsedTransaction,
     version: TransactionVersion,
 ): ParsedTransaction {
     const { message } = transaction;
+    const lookups = version === 0 ? toRpcAddressTableLookups(message.addressTableLookups) : [];
 
     const accounts: TransactionAccount[] = message.accountKeys.map(key => ({
         address: address(key.pubkey),
@@ -313,7 +362,7 @@ function fromJsonParsedTransaction(
     const byAddress = new Map(accounts.map(account => [account.address, account] as const));
 
     const instructions: TransactionInstruction[] = message.instructions.map(ix => {
-        const programAddress = address(ix.programId);
+        const programAddress = ensureAccountExists(byAddress, address(ix.programId)).address;
         if ('parsed' in ix) return { accounts: [], parsed: ix.parsed, programAddress };
 
         return {
@@ -326,8 +375,8 @@ function fromJsonParsedTransaction(
     return buildTransaction({
         config: fromRpcTransactionConfig(message.transactionConfig),
         instructions,
-        lifetimeToken: message.recentBlockhash,
-        lookups: undefined,
+        lookups,
+        recentBlockhash: message.recentBlockhash,
         resolved: { accounts },
         signatures: [...transaction.signatures],
         version,
@@ -337,9 +386,9 @@ function fromJsonParsedTransaction(
 function buildTransaction(parts: {
     config: ReturnType<typeof readTransactionConfig>;
     instructions: TransactionInstruction[];
-    lifetimeToken: string;
-    /** `undefined` means the encoding never reported the tables, as `jsonParsed` does not. */
+    /** `undefined` means the response did not report the tables. */
     lookups: readonly AddressTableLookup[] | undefined;
+    recentBlockhash: string;
     resolved: AccountResolutionResult;
     signatures: readonly (string | undefined)[];
     version: TransactionVersion;
@@ -347,19 +396,23 @@ function buildTransaction(parts: {
     const base = {
         accounts: parts.resolved.accounts,
         instructions: parts.instructions,
-        lifetimeToken: parts.lifetimeToken,
         numSignerAccounts: parts.resolved.accounts.filter(account => account.signer).length,
+        recentBlockhash: parts.recentBlockhash,
         signatures: parts.signatures,
-        ...(parts.resolved.unmatchedLookupTableAddresses && {
-            unmatchedLookupTableAddresses: parts.resolved.unmatchedLookupTableAddresses,
-        }),
-        ...(parts.resolved.unmatchedLookupTableIndexes && {
-            unmatchedLookupTableIndexes: parts.resolved.unmatchedLookupTableIndexes,
-        }),
     };
 
     if (parts.version === 0) {
-        return { ...base, ...(parts.lookups !== undefined && { addressTableLookups: parts.lookups }), version: 0 };
+        return {
+            ...base,
+            ...(parts.lookups !== undefined && { addressTableLookups: parts.lookups }),
+            ...(parts.resolved.unmatchedLookupTableAddresses && {
+                unmatchedLookupTableAddresses: parts.resolved.unmatchedLookupTableAddresses,
+            }),
+            ...(parts.resolved.unmatchedLookupTableIndexes && {
+                unmatchedLookupTableIndexes: parts.resolved.unmatchedLookupTableIndexes,
+            }),
+            version: 0,
+        };
     }
     if (parts.version === 1) return { ...base, version: 1, ...(parts.config && { config: parts.config }) };
     return { ...base, version: 'legacy' };

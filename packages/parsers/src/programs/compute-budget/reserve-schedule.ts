@@ -9,8 +9,7 @@ const DEFAULT_COMPUTE_UNITS = 200_000;
 const MINIMAL_BUILTIN_COMPUTE_UNITS = 3_000;
 
 /**
- * Builtins reserved 3k rather than the default, from feature gate
- * C9oAhLxDBm3ssWtJx1yBGzPY55r2rArHmN1pbQn6HogH.
+ * Builtins reserve 3k instead of the default once feature gate C9oAhLxDBm3ssWtJx1yBGzPY55r2rArHmN1pbQn6HogH is active.
  * https://solana.com/docs/references/feature-gates/reserve-minimal-cus-for-builtins
  */
 const BUILTIN_PROGRAMS_3K: readonly string[] = [
@@ -83,7 +82,7 @@ export function getReservedComputeUnits({
     programAddress: Address;
 }): number {
     if (cluster === 'custom') {
-        // No activation history to read, so the newest rules are the honest guess.
+        // No activation history to read, so the newest rules are the best estimate.
         const latestConfig = COMPUTE_UNIT_RESERVE_CONFIGS[COMPUTE_UNIT_RESERVE_CONFIGS.length - 1];
         return latestConfig.getReservedUnits(programAddress);
     }

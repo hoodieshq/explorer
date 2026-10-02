@@ -39,6 +39,15 @@ export function resolveAccounts(params: AccountResolutionParams): AccountResolut
     const loadedWritable = params.loadedAddresses?.writable ?? [];
     const loadedReadonly = params.loadedAddresses?.readonly ?? [];
     const lookupIndexes = flattenLookupTables(params.addressTableLookups);
+    const lookupSlotCount = lookupIndexes.writable.length + lookupIndexes.readonly.length;
+
+    // Empty lists mean the tables loaded nothing. Absent ones mean the caller never resolved the tables.
+    if (!params.loadedAddresses && lookupSlotCount > 0) {
+        throw new Error(
+            `Missing loadedAddresses: the v0 message loads ${lookupSlotCount} accounts from lookup tables. ` +
+                `Resolve the tables and pass the addresses they load.`,
+        );
+    }
 
     const accounts = [
         ...staticAccounts,

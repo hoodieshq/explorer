@@ -175,6 +175,35 @@ describe('resolveAccounts', () => {
         expect(result.unmatchedLookupTableAddresses).toBeUndefined();
     });
 
+    it('should reject v0 lookup table slots without loaded addresses', () => {
+        const staticKeys = [gen.address(1), gen.address(2), gen.address(3), gen.address(4)];
+
+        expect(() =>
+            resolveAccounts({
+                addressTableLookups: [{ accountKey: gen.address(9), readonlyIndexes: [1], writableIndexes: [0] }],
+                header: HEADER,
+                staticKeys,
+                version: 0,
+            }),
+        ).toThrow('Missing loadedAddresses: the v0 message loads 2 accounts from lookup tables.');
+    });
+
+    it('should report every v0 lookup table slot as unmatched when the loaded addresses are empty', () => {
+        const staticKeys = [gen.address(1), gen.address(2), gen.address(3), gen.address(4)];
+        const lookup = { accountKey: gen.address(9), readonlyIndexes: [1], writableIndexes: [0] };
+
+        const result = resolveAccounts({
+            addressTableLookups: [lookup],
+            header: HEADER,
+            loadedAddresses: { readonly: [], writable: [] },
+            staticKeys,
+            version: 0,
+        });
+
+        expect(result.accounts).toHaveLength(4);
+        expect(result.unmatchedLookupTableIndexes).toEqual([lookup]);
+    });
+
     it('should ignore loaded addresses for v1', () => {
         const staticKeys = [gen.address(1), gen.address(2), gen.address(3), gen.address(4)];
 

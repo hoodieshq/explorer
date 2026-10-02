@@ -10,7 +10,7 @@ Transaction v1 (SIMD-0385 format, SIMD-0296 size) is live on mainnet. It differs
 - the size limit rises to 4096 bytes, and the envelope drops its signature-count byte
 
 There is no single place which holds the rules that differ between transaction versions, so some parts of the
-app either work them out on their own or do not support v1 transaction.
+app either work them out on their own or do not support v1 transactions.
 
 ## Why
 
@@ -38,14 +38,15 @@ Alternatives considered:
 - New subpath `@explorer/parsers/transaction`. It carries a `ParsedTransaction` union over legacy, v0 and v1,
   one constructor per input (`fromRpcTransaction` for any encoding, `fromCompiledMessage` and
   `fromMessageBytes` for decoded input), and helpers that take no version argument: `transactionSizeLimit`,
-  `transactionWireSize`, `getTransactionConfig`, `getAddressTableLookups`, `isV1MessageBytes` and
-  `UnsupportedTransactionVersionError`.
+  `transactionWireSize`, `getTransactionConfig`, `getAddressTableLookups`, `hasUnmatchedLookupTables`,
+  `isV1MessageBytes` and `UnsupportedTransactionVersionError`.
 - New subpath `@explorer/parsers/programs/compute-budget`. It takes the feature gate reserve schedule, the
   per-program defaults and the Compute Budget instruction reader. The two estimators collapse into one
   `getRequestedComputeUnits`, which also reports where its number came from.
 - `app/entities/compute-unit` keeps the UI work (log pairing, block summary, profiling card) and stops
-  inventing a per-instruction reserve for v1. `transaction-fee` owns the declared against derived priority
-  fee, which needs a fee constant the explorer already holds.
+  inventing a per-instruction reserve for v1.
+- The package owns the priority fee: the total a v1 message declares, or the one derived from the RPC fee for
+  legacy and v0. `transaction-fee` re-exports it and drops its own copy.
 - Features and components call entity and package helpers. No `version === 1` literals remain under
   `app/features/transaction` or `app/components/inspector`. Cards render on data presence.
 

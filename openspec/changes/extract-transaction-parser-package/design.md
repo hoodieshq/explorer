@@ -7,15 +7,15 @@ differences inside. Callers pass a transaction and get the result, without needi
 
 Checked against `@solana/kit` 8.3.0, the version installed here.
 
-| Need | kit | does the package uses kit fn? |
+| Need | kit | does the package use the kit fn? |
 | --- | --- | --- |
 | Instruction normalisation across legacy, v0, v1 | `getInstructionsFromCompiledTransactionMessage` | yes |
-| Account resolution from a compiled message, ALTs included | `getAccountMetasFromCompiledTransactionMessage` | yes |
+| Account resolution from a compiled message, ALTs included | `getAccountMetasFromCompiledTransactionMessage` | no, write it: kit metas carry no `source` or lookup table, `kit-parity.spec.ts` checks the result against `decompileTransactionMessage` |
 | Inner instructions, instruction walking | `getInnerInstructionsFromMeta`, `walkInstructions` | not here, they read `meta` |
 | v1 config mask predicates | `transactionConfigMaskHas*` | yes |
 | Version ceiling for RPC calls | `MAX_SUPPORTED_TRANSACTION_VERSION` | yes, at the app's call sites |
 | Size of a decoded kit transaction | `getTransactionSize` | not here, it needs a kit `Transaction` |
-| Config value decoding | `decompileTransactionConfig` is internal | no, port (kit has it but doesnt export) |
+| Config value decoding | `decompileTransactionConfig` is internal | no, port (kit has it but does not export it) |
 | Size limit by version | `getTransactionSizeLimit` takes a kit `Transaction`, which the union never holds | no, write it |
 | Envelope size from message bytes alone | none | no, write it |
 | Cross-version priority fee | `getTransactionMessagePriorityFeeLamports` is v1 only, `getTransactionMessageComputeUnitPrice` is legacy and v0 only | no, write it |
@@ -52,38 +52,44 @@ export type TransactionInstruction = {
     parsed?: unknown;
 };
 
+/** A u64 on the wire, so bigint keeps every value exact. */
+export type PriorityFeeLamports = bigint;
+
 export type TransactionConfig = {
     computeUnitLimit?: number;
     heapSize?: number;
     loadedAccountsDataSizeLimit?: number;
     /** A total, in lamports. Legacy and v0 have no equivalent: they price per compute unit. */
-    priorityFeeLamports?: bigint;
+    priorityFeeLamports?: PriorityFeeLamports;
 };
 
 type TransactionBase = {
     accounts: readonly TransactionAccount[];
     instructions: readonly TransactionInstruction[];
-    lifetimeToken: string;
     numSignerAccounts: number;
+    recentBlockhash: string;
     signatures: readonly (string | undefined)[];
-    unmatchedLookupTableAddresses?: readonly Address[];
-    unmatchedLookupTableIndexes?: readonly AddressTableLookup[];
 };
 
 export type ParsedTransaction =
     | (TransactionBase & { version: 'legacy' })
-    | (TransactionBase & { version: 0; addressTableLookups?: readonly AddressTableLookup[] })
+    | (TransactionBase & {
+          version: 0;
+          addressTableLookups?: readonly AddressTableLookup[];
+          unmatchedLookupTableAddresses?: readonly Address[];
+          unmatchedLookupTableIndexes?: readonly AddressTableLookup[];
+      })
     | (TransactionBase & { version: 1; config?: TransactionConfig });
 ```
 
 - Accounts and instructions sit in the base, because every version has them.
-- `addressTableLookups` sits on the v0 arm alone.
+- `addressTableLookups` and both `unmatchedLookupTable*` fields sit on the v0 arm alone.
 - v1 removed lookup tables and legacy tx never had them.
-- `addressTableLookups` is optional because `jsonParsed` never names the tables: `undefined` means the
-  encoding did not report them, `[]` means there are none.
+- `addressTableLookups` is optional: `undefined` means the response did not report the tables, `[]` means
+  there are none.
 - `unmatchedLookupTableAddresses` lists loaded addresses missing from every listed lookup table. Absent when
   the encoding omits them.
-- `unmatchedLookupTableIndexes` lists Lookup table indexes which are not matched by any loaded addresses. Absent when the encoding omits the tables. The two fields are the two sides of one positional match.
+- `unmatchedLookupTableIndexes` lists lookup table indexes that no loaded address fills. Absent when the encoding omits the tables. The two fields are the two sides of one positional match.
 - `config` sits on the v1 and is optional, because a tx may set no limits at all.
 - `TransactionConfig` repeats kit's `V1TransactionConfig` field for field, under a name the union can use on
   any version. kit does export that type, so the comment in `v1-message-bridge.ts` saying otherwise is stale.
@@ -127,16 +133,14 @@ Consumers pass what the RPC gave them. The base58 instruction decode, the header
  *
  * Declared structurally, not derived from kit's overloaded `GetTransactionApi`. That type resolves to
  * whichever overload is declared last, whatever encoding was requested, which is why
- * `app/entities/transaction-data/lib/adapt-parsed-transaction.ts` declares its own too. Numeric fields accept
- * `number | bigint`, because kit sends bigint only where its integer allow-list declares it, and `version`
- * is not on that list.
+ * `app/entities/transaction-data/lib/adapt-parsed-transaction.ts` declares its own too.
  */
 export type RpcTransactionResponse = {
     meta?: {
         loadedAddresses?: { readonly: readonly string[]; writable: readonly string[] } | null;
     } | null;
     transaction: RpcWireTransaction | RpcJsonTransaction | RpcJsonParsedTransaction;
-    version?: ReportedTransactionVersion | bigint;
+    version?: ReportedTransactionVersion;
 };
 
 /**
@@ -172,6 +176,7 @@ type RpcJsonParsedTransaction = {
             source: 'lookupTable' | 'transaction';
             writable: boolean;
         }[];
+        addressTableLookups?: readonly AddressTableLookup[];
         instructions: readonly (
             | { accounts: readonly string[]; data: string; programId: string }
             | { parsed: unknown; program: string; programId: string }
@@ -183,11 +188,16 @@ type RpcJsonParsedTransaction = {
 };
 ```
 
-`fromRpcTransaction` throws `UnsupportedTransactionVersionError` on a `null` or unknown version. A value that
-cannot say what it is has no place in the union.
+`fromRpcTransaction` throws `UnsupportedTransactionVersionError` on an unknown version, whether the response
+reports it or the wire bytes encode it. A value that cannot say what it is has no place in the union.
+
+- `json` and `jsonParsed` also throw on a `null` or missing version, because the message cannot say what it is.
+- `base64` and `base58` carry the version in the bytes. A missing version defers to the bytes, and a reported
+  one must match them.
 
 It also checks what it reads: a header whose counts exceed the account list, an instruction index out of
-range. Malformed RPC data then fails at the seam instead of rendering as wrong data. Those checks exist today
+range, wire bytes with trailing or missing data. Malformed RPC data then fails at the seam instead of rendering
+as wrong data. Those checks exist today
 only in `packages/entity-inspector/src/transactions/normalizer.ts`.
 
 `lookupTableAddress` is optional because only `json` and `base64` name the table an address came from, while `jsonParsed` reports that it came from one but not which.
@@ -209,11 +219,17 @@ const transaction = fromRpcTransaction(envelope);
 // ...then the status, fee and confirmation work it already does, unchanged.
 ```
 
-`selectAccountResolver` is deleted. `resolveStaticAccounts` and `resolveV0Accounts` become private, and
-`fromRpcTransaction` picks between them internally. We move the tests, including `kit-parity.spec.ts`,
-which checks both against kit's `decompileTransactionMessage` and proves the move changes nothing.
+MCP deletes `selectAccountResolver`, `resolveStaticAccounts` and `resolveV0Accounts`. The package replaces them
+with one internal `resolveAccounts(params)` that branches on `version`. Its helper
+`resolveStaticAccounts(staticKeys, header)` classifies the static keys.
 
-The resolver returns both sides of a count mismatch: `unmatchedLookupTableAddresses` for loaded addresses the lookup counts do not cover, and `unmatchedLookupTableIndexes` for lookup indexes no loaded address fills. The package returns them on the transaction instead of logging them, because it has no logger. MCP warns when either is present, and other consumers choose for themselves.
+Two `kit-parity.spec.ts` files use kit's `decompileTransactionMessage` as the oracle:
+
+- The package spec checks `fromCompiledMessage` for legacy and v0, the path that bytes and wire responses take.
+- The MCP spec runs through `normalizeTransactionProbe`, so it checks the `json` path and proves the move
+  changes nothing for MCP.
+
+The resolver returns both sides of a count mismatch: `unmatchedLookupTableAddresses` for loaded addresses the lookup counts do not cover, and `unmatchedLookupTableIndexes` for lookup indexes no loaded address fills. The package returns them on the transaction instead of logging them, because it has no logger. Both fields sit on the v0 arm, so `hasUnmatchedLookupTables(transaction)` checks them without narrowing. MCP warns when it returns true, and other consumers choose for themselves.
 
 ## Usage
 
@@ -249,9 +265,11 @@ const transaction = fromRpcTransaction(rpcTransaction);
 ```
 
 **Inspector, pasted bytes.** The one caller that starts from bytes rather than a response.
+A v0 message that loads accounts from lookup tables needs them resolved first. The inspector reads the table
+addresses from the decoded message, fetches the tables, then parses. Without `loadedAddresses`, parsing throws.
 
 ```ts
-const transaction = fromMessageBytes(pastedBytes);
+const transaction = fromMessageBytes(pastedBytes, { loadedAddresses });
 ```
 
 **Components.** Nothing left to branch on.
@@ -286,9 +304,12 @@ export function getTransactionConfig(transaction: ParsedTransaction): Transactio
 
 /**
  * Empty for legacy and v1, so an address lookups card can render on length alone.
- * Also empty for a v0 transaction read from `jsonParsed`.
+ * Also empty for v0 when the response does not report the lookup tables.
  */
 export function getAddressTableLookups(transaction: ParsedTransaction): readonly AddressTableLookup[];
+
+/** True when the loaded addresses and the lookup table slots disagree. Always false for legacy and v1. */
+export function hasUnmatchedLookupTables(transaction: ParsedTransaction): boolean;
 
 export function isV1MessageBytes(bytes: Uint8Array): boolean;
 
@@ -347,7 +368,7 @@ export type RpcTransactionConfig = {
     computeUnitLimit: number | null;
     heapSize: number | null;
     loadedAccountsDataSizeLimit: number | null;
-    priorityFee: bigint | null;
+    priorityFee: PriorityFeeLamports | null;
 };
 ```
 
@@ -416,8 +437,8 @@ The move also fixes a bug in `formatInstructionLogs`. v1 has no per-instruction 
 // packages/parsers/src/transaction/fees.ts
 export function resolvePriorityFeeLamports(
     transaction: ParsedTransaction,
-    meta: { feeLamports: number | undefined },
-): number | undefined;
+    meta: { feeLamports: bigint | undefined },
+): PriorityFeeLamports | undefined;
 ```
 
 ## Decisions
@@ -429,7 +450,7 @@ export function resolvePriorityFeeLamports(
   is about to be deleted buys a coverage gate and costs a migration. Revisit if the inspector rebuild slips.
   `@explorer/parsers` already depends on web3.js for its `./compat` subpath, so the shim would land there,
   never in `./transaction`.
-- **The package accepts RPC responses. It makes no RPC calls.**.
+- **The package accepts RPC responses. It makes no RPC calls.**
 
 ## Steps:
 
@@ -446,8 +467,9 @@ export function resolvePriorityFeeLamports(
    test has to change yet. `compute-unit` keeps `formatInstructionLogs`, the block summary and the
    profiling card, and stops inventing a per-instruction reserve for v1. That needs three changes:
    `formatInstructionLogs` takes the transaction version, `scheduledUnits` becomes optional on `InstructionCUData`,
-   and a v1 row the logs said nothing about shows a dash instead of a reserve it never had. `transaction-fee` exposes
-   `resolvePriorityFeeLamports`.
+   and a v1 row the logs said nothing about shows a dash instead of a reserve it never had. `transaction-fee` re-exports
+   the package's `resolvePriorityFeeLamports` and drops its own `derivePriorityFeeLamports` and
+   `LAMPORTS_PER_SIGNATURE`. Its fee math uses `number`, so it converts the bigint once at that edge.
 4. **Update block pages to use the package.** `fetch-block.ts` calls `fromRpcTransaction` instead of sniffing
    `0x81` and bridging. `BlockTransaction` holds a `ParsedTransaction` plus its own `meta`, and `BlockWithV1`
    drops its widened version field. Block cards read accounts and instructions from the transaction, and call
@@ -474,11 +496,14 @@ packages/parsers/src/
 │   ├── index.ts                     public surface
 │   ├── types.ts                     the union, its parts, and the RPC shapes it is built from
 │   ├── parse-transaction.ts         every input -> ParsedTransaction
-│   ├── accounts.ts                  static and v0 resolvers, private
+│   ├── accounts.ts                  resolveAccounts for every version, internal
 │   ├── config.ts                    configMask reader, RPC config adapter
 │   ├── size.ts                      size limit, wire size
 │   ├── version.ts                   v1 byte sniff, typed error
 │   ├── compute-units.ts             getRequestedComputeUnits
+│   ├── fees.ts                      resolvePriorityFeeLamports, derivePriorityFeeLamports
+│   ├── resource-limits.ts           getV1ResourceLimits, v1 defaults applied
+│   ├── constants.ts                 LAMPORTS_PER_SIGNATURE, v1 resource defaults
 │   └── __tests__/
 └── programs/compute-budget/
     ├── index.ts                     public surface
@@ -527,26 +552,32 @@ export type TransactionInstruction = {
     parsed?: unknown;
 };
 
+/** A u64 on the wire, so bigint keeps every value exact. */
+export type PriorityFeeLamports = bigint;
+
 export type TransactionConfig = {
     computeUnitLimit?: number;
     heapSize?: number;
     loadedAccountsDataSizeLimit?: number;
-    priorityFeeLamports?: bigint;
+    priorityFeeLamports?: PriorityFeeLamports;
 };
 
 type TransactionBase = {
     accounts: readonly TransactionAccount[];
     instructions: readonly TransactionInstruction[];
-    lifetimeToken: string;
     numSignerAccounts: number;
+    recentBlockhash: string;
     signatures: readonly (string | undefined)[];
-    unmatchedLookupTableAddresses?: readonly Address[];
-    unmatchedLookupTableIndexes?: readonly AddressTableLookup[];
 };
 
 export type ParsedTransaction =
     | (TransactionBase & { version: 'legacy' })
-    | (TransactionBase & { version: 0; addressTableLookups?: readonly AddressTableLookup[] })
+    | (TransactionBase & {
+          version: 0;
+          addressTableLookups?: readonly AddressTableLookup[];
+          unmatchedLookupTableAddresses?: readonly Address[];
+          unmatchedLookupTableIndexes?: readonly AddressTableLookup[];
+      })
     | (TransactionBase & { version: 1; config?: TransactionConfig });
 
 // The RPC shapes the union is built from, declared structurally.
@@ -554,14 +585,14 @@ export type ParsedTransaction =
 export type RpcTransactionResponse = {
     meta?: { loadedAddresses?: { readonly: readonly string[]; writable: readonly string[] } | null } | null;
     transaction: RpcWireTransaction | RpcJsonTransaction | RpcJsonParsedTransaction;
-    version?: ReportedTransactionVersion | bigint;
+    version?: ReportedTransactionVersion;
 };
 
 export type RpcTransactionConfig = {
     computeUnitLimit: number | null;
     heapSize: number | null;
     loadedAccountsDataSizeLimit: number | null;
-    priorityFee: bigint | null;
+    priorityFee: PriorityFeeLamports | null;
 };
 ```
 
@@ -581,15 +612,28 @@ export function fromRpcTransaction(response: RpcTransactionResponse): ParsedTran
 ### `transaction/accounts.ts`
 
 ```ts
-// Private. `fromRpcTransaction` picks between them where the version is already known.
-function resolveStaticAccounts(params: AccountResolutionParams): AccountResolutionResult;
-function resolveV0Accounts(params: AccountResolutionParams): AccountResolutionResult;
+// Exported from `accounts.ts` for the constructors, not from the `transaction` entry point.
+export function resolveAccounts(params: AccountResolutionParams): AccountResolutionResult;
+
+type MessageHeader = {
+    numReadonlyNonSignerAccounts: number;
+    numReadonlySignerAccounts: number;
+    numSignerAccounts: number;
+};
+
+export type AccountResolutionParams = {
+    addressTableLookups?: readonly AddressTableLookup[];
+    header: MessageHeader;
+    loadedAddresses?: { readonly: readonly Address[]; writable: readonly Address[] } | null;
+    staticKeys: readonly Address[];
+    version: TransactionVersion;
+};
 
 export type AccountResolutionResult = {
     accounts: TransactionAccount[];
     /** Loaded addresses missing from every listed lookup table. Absent when the encoding omits them. */
     unmatchedLookupTableAddresses?: readonly Address[];
-    /** Lookup table indexes which are not matched by any loaded addresses. Absent when the encoding omits the tables. */
+    /** Lookup table indexes that no loaded address fills. Absent when the encoding omits the tables. */
     unmatchedLookupTableIndexes?: readonly AddressTableLookup[];
 };
 ```

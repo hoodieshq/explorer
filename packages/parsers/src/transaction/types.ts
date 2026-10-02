@@ -32,32 +32,35 @@ export type TransactionInstruction = {
     parsed?: unknown;
 };
 
+/** A u64 on the wire, so bigint keeps every value exact. */
+export type PriorityFeeLamports = bigint;
+
 export type TransactionConfig = {
     computeUnitLimit?: number;
     heapSize?: number;
     loadedAccountsDataSizeLimit?: number;
     /** A total, in lamports. Legacy and v0 have no equivalent: they price per compute unit. */
-    priorityFeeLamports?: bigint;
+    priorityFeeLamports?: PriorityFeeLamports;
 };
 
 type TransactionBase = {
     accounts: readonly TransactionAccount[];
     instructions: readonly TransactionInstruction[];
-    lifetimeToken: string;
     numSignerAccounts: number;
+    recentBlockhash: string;
     signatures: readonly (string | undefined)[];
-    /** Loaded addresses missing from every listed lookup table. Absent when the encoding omits them. */
-    unmatchedLookupTableAddresses?: readonly Address[];
-    /** Lookup table indexes which are not matched by any loaded addresses. Absent when the encoding omits the tables. */
-    unmatchedLookupTableIndexes?: readonly AddressTableLookup[];
 };
 
 export type ParsedTransaction =
     | (TransactionBase & { version: 'legacy' })
     | (TransactionBase & {
           version: 0;
-          /** `undefined` means the encoding never reported the tables, as `jsonParsed` does. `[]` means none. */
+          /** `undefined` means the response did not report the tables. `[]` means none. */
           addressTableLookups?: readonly AddressTableLookup[];
+          /** Loaded addresses missing from every listed lookup table. Absent when the encoding omits them. */
+          unmatchedLookupTableAddresses?: readonly Address[];
+          /** Lookup table indexes that no loaded address fills. Absent when the encoding omits the tables. */
+          unmatchedLookupTableIndexes?: readonly AddressTableLookup[];
       })
     | (TransactionBase & { version: 1; config?: TransactionConfig });
 
@@ -65,6 +68,7 @@ export type ParsedTransaction =
  * `loadedAddresses` is RPC-shaped: plain strings, because that is what every caller holds.
  * The constructors widen it to `Address` before resolution.
  * kit's own `LoadedAddresses` type is `Address[]`, so it is assignable here too.
+ * A v0 message that lists lookup table slots requires it. Empty lists mean the tables loaded nothing.
  */
 export type FromMessageOptions = {
     loadedAddresses?: { readonly: readonly string[]; writable: readonly string[] } | null;
@@ -72,40 +76,42 @@ export type FromMessageOptions = {
 };
 
 /**
- * The part of a `getTransaction` or `getBlock` ParsedTransaction needs.
+ * The part of a `getTransaction` or `getBlock` response that ParsedTransaction needs.
  *
  * Declared structurally, not derived from kit's overloaded `GetTransactionApi`. That type resolves to
- * whichever overload is declared last, whatever encoding was requested. Numeric fields accept
- * `number | bigint`, because kit sends bigint only where its integer allow-list declares it, and `version`
- * is not on that list.
+ * whichever overload is declared last, whatever encoding was requested.
  */
 export type RpcTransactionResponse = {
     meta?: {
         loadedAddresses?: { readonly: readonly string[]; writable: readonly string[] } | null;
+        // An all-optional type with no index signature rejects kit's meta, which carries many more fields.
+        readonly [key: string]: unknown;
     } | null;
     transaction: RpcWireTransaction | RpcJsonTransaction | RpcJsonParsedTransaction;
-    version?: ReportedTransactionVersion | bigint;
+    version?: ReportedTransactionVersion;
 };
 
 export type RpcTransactionConfig = {
     computeUnitLimit: number | null;
     heapSize: number | null;
     loadedAccountsDataSizeLimit: number | null;
-    priorityFee: bigint | null;
+    priorityFee: PriorityFeeLamports | null;
 };
 
 /** `encoding: 'base64' | 'base58'`. A `[data, encoding]` pair. */
 export type RpcWireTransaction = readonly [string, 'base58' | 'base64'];
 
+type RpcAddressTableLookup = {
+    accountKey: string;
+    readonlyIndexes: readonly number[];
+    writableIndexes: readonly number[];
+};
+
 /** `encoding: 'json'`. The compiled message, with a header and instructions addressed by index. */
 export type RpcJsonTransaction = {
     message: {
         accountKeys: readonly string[];
-        addressTableLookups?: readonly {
-            accountKey: string;
-            readonlyIndexes: readonly number[];
-            writableIndexes: readonly number[];
-        }[];
+        addressTableLookups?: readonly RpcAddressTableLookup[];
         header: {
             numReadonlySignedAccounts: number;
             numReadonlyUnsignedAccounts: number;
@@ -127,6 +133,7 @@ export type RpcJsonParsedTransaction = {
             source: 'lookupTable' | 'transaction';
             writable: boolean;
         }[];
+        addressTableLookups?: readonly RpcAddressTableLookup[];
         instructions: readonly (
             | { accounts: readonly string[]; data: string; programId: string }
             | { parsed: unknown; program: string; programId: string }

@@ -1,5 +1,5 @@
-/** Today's base fee, per signature. */
-export const LAMPORTS_PER_SIGNATURE = 5_000;
+/** Base fee per signature, in lamports. */
+export const LAMPORTS_PER_SIGNATURE = 5_000n;
 
 /** v1 budgets 0 bytes for an absent `loadedAccountsDataSizeLimit`, not the pre-v1 64 MiB default, per SIMD-0385. */
 export const V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT_BYTES = 0;

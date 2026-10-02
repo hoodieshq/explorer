@@ -1,4 +1,9 @@
-import { TRANSACTION_CONFIG_COMPUTE_UNIT_LIMIT_BIT_MASK } from '@solana/kit';
+import {
+    blockhash,
+    type CompiledTransactionMessageWithLifetime,
+    type LegacyCompiledTransactionMessage,
+    TRANSACTION_CONFIG_COMPUTE_UNIT_LIMIT_BIT_MASK,
+} from '@solana/kit';
 import { describe, expect, it } from 'vitest';
 
 import { gen } from '../../__tests__/gen.js';
@@ -7,20 +12,27 @@ import {
     fromMessageBytes,
     fromRpcTransaction,
     getAddressTableLookups,
+    hasUnmatchedLookupTables,
 } from '../parse-transaction.js';
 import type { RpcTransactionResponse } from '../types.js';
 import { UnsupportedTransactionVersionError } from '../version.js';
 import {
+    base64WireResponse,
+    compiledWithDuplicateFeePayer,
     INSTRUCTION_DATA,
     jsonParsedResponse,
     jsonResponse,
     legacyTransaction,
     legacyTransactionWithHeader,
+    transactionWithInstructions,
+    twoSignerLegacyTransaction,
     unsignedWireResponse,
+    v0CompiledWithFeePayerInLUT,
     v0CompiledWithLookupTable,
     v0Transaction,
     v1CompiledWithConfig,
     v1Transaction,
+    wireBytes,
     wireResponse,
 } from './fixtures.js';
 
@@ -37,6 +49,55 @@ describe('fromCompiledMessage', () => {
         expect(transaction.instructions).toHaveLength(1);
         expect(transaction.instructions[0].programAddress).toBe(v1Transaction.compiled().staticAccounts[1]);
         expect(transaction.instructions[0].accounts[0].address).toBe(v1Transaction.compiled().staticAccounts[0]);
+    });
+
+    it.each(['legacy', 0, 1] as const)(
+        'should keep the flags of each index when a %s message lists a key twice',
+        version => {
+            const compiled = compiledWithDuplicateFeePayer(version);
+            const [feePayer] = compiled.staticAccounts;
+
+            expect(fromCompiledMessage(compiled).instructions[0].accounts).toMatchObject([
+                { address: feePayer, signer: true, writable: true },
+                { address: feePayer, signer: false, writable: false },
+            ]);
+        },
+    );
+
+    it('should reject a legacy instruction index past the static keys even when loaded addresses are passed', () => {
+        const compiled: CompiledTransactionMessageWithLifetime & LegacyCompiledTransactionMessage = {
+            header: { numReadonlyNonSignerAccounts: 1, numReadonlySignerAccounts: 0, numSignerAccounts: 1 },
+            instructions: [{ accountIndices: [2], programAddressIndex: 1 }],
+            lifetimeToken: blockhash(gen.blockhash(7)),
+            staticAccounts: [gen.address(1), gen.address(2)],
+            version: 'legacy',
+        };
+
+        expect(() =>
+            fromCompiledMessage(compiled, { loadedAddresses: { readonly: [], writable: [gen.address(3)] } }),
+        ).toThrow('Could not find an account address at index 2');
+    });
+
+    it('should count every required signer of a compiled message', () => {
+        expect(fromCompiledMessage(twoSignerLegacyTransaction().compiled).numSignerAccounts).toBe(2);
+    });
+
+    it('should keep a static key apart from its lookup table copy', () => {
+        const { compiled, loadedAddresses, lookupTableAddress } = v0CompiledWithFeePayerInLUT();
+        const [feePayer] = compiled.staticAccounts;
+
+        const transaction = fromCompiledMessage(compiled, { loadedAddresses });
+
+        expect(transaction.instructions[0].accounts).toEqual([
+            { address: feePayer, signer: true, source: 'static', writable: true },
+            { address: feePayer, lookupTableAddress, signer: false, source: 'lookupTable', writable: true },
+        ]);
+    });
+
+    it.each(['legacy', 0, 1] as const)('should keep empty instruction data on a %s message', version => {
+        const transaction = transactionWithInstructions(version, [{ programAddress: gen.address(30) }]);
+
+        expect(transaction.instructions[0].data).toEqual(new Uint8Array(0));
     });
 
     it('should read the config from a v1 message', () => {
@@ -77,7 +138,10 @@ describe('fromCompiledMessage', () => {
             loadedAddresses: { readonly: [gen.address(6)], writable: [gen.address(5)] },
         });
 
-        expect(transaction.unmatchedLookupTableAddresses).toEqual([gen.address(5), gen.address(6)]);
+        expect(transaction).toMatchObject({
+            unmatchedLookupTableAddresses: [gen.address(5), gen.address(6)],
+            version: 0,
+        });
     });
 
     it('should map compiled lookup table address to accountKey', () => {
@@ -91,6 +155,10 @@ describe('fromCompiledMessage', () => {
         ]);
     });
 
+    it('should reject a v0 message that loads lookup table accounts without loaded addresses', () => {
+        expect(() => fromCompiledMessage(v0CompiledWithLookupTable().compiled)).toThrow('Missing loadedAddresses');
+    });
+
     it('should return unmatched addresses for a v0 message with more loaded addresses than its lookup table lists', () => {
         const { compiled, loadedAddress } = v0CompiledWithLookupTable();
         const extraAddress = gen.address(12);
@@ -99,7 +167,7 @@ describe('fromCompiledMessage', () => {
             loadedAddresses: { readonly: [], writable: [loadedAddress, extraAddress] },
         });
 
-        expect(transaction.unmatchedLookupTableAddresses).toEqual([extraAddress]);
+        expect(transaction).toMatchObject({ unmatchedLookupTableAddresses: [extraAddress], version: 0 });
     });
 
     it('should reject a compiled message with a zero signer count', () => {
@@ -145,6 +213,18 @@ describe('fromMessageBytes', () => {
 
         expect(() => fromMessageBytes(messageBytes)).toThrow('out of range for');
     });
+
+    it('should reject v0 message bytes that load lookup table accounts without loaded addresses', () => {
+        expect(() => fromMessageBytes(v0CompiledWithLookupTable().messageBytes)).toThrow('Missing loadedAddresses');
+    });
+
+    it('should reject message bytes of an unknown version', () => {
+        const bytes = v1Transaction.messageBytes();
+        bytes[0] = 0x82;
+
+        expect(() => fromMessageBytes(bytes)).toThrow(UnsupportedTransactionVersionError);
+        expect(() => fromMessageBytes(bytes)).toThrow('Unsupported transaction version: 2');
+    });
 });
 
 describe('fromRpcTransaction', () => {
@@ -176,6 +256,50 @@ describe('fromRpcTransaction', () => {
         },
     );
 
+    it('should read the version from the bytes when a wire response reports a null version', () => {
+        // eslint-disable-next-line unicorn/no-null -- null stands for a response with no `version` field
+        expect(fromRpcTransaction({ ...wireResponse(0), version: null }).version).toBe(0);
+    });
+
+    it('should reject a wire response that reports an unknown version', () => {
+        expect(() =>
+            fromRpcTransaction({ ...wireResponse(1), version: 2 } as unknown as RpcTransactionResponse),
+        ).toThrow(UnsupportedTransactionVersionError);
+    });
+
+    it('should reject a wire response whose reported version disagrees with its bytes', () => {
+        expect(() => fromRpcTransaction({ ...wireResponse(1), version: 0 })).toThrow('version mismatch');
+    });
+
+    it.each(['legacy', 0, 1] as const)('should reject %s wire bytes with trailing data', version => {
+        const bytes = new Uint8Array([...wireBytes(version), 0]);
+
+        expect(() => fromRpcTransaction(base64WireResponse(bytes))).toThrow('trailing data');
+    });
+
+    it.each(['legacy', 0, 1] as const)('should reject %s wire bytes cut short by one byte', version => {
+        const bytes = wireBytes(version).slice(0, -1);
+
+        expect(() => fromRpcTransaction(base64WireResponse(bytes))).toThrow();
+    });
+
+    it('should reject v1 wire bytes of an unknown version', () => {
+        const bytes = wireBytes(1);
+        bytes[0] = 0x82;
+
+        expect(() => fromRpcTransaction(base64WireResponse(bytes))).toThrow(UnsupportedTransactionVersionError);
+        expect(() => fromRpcTransaction(base64WireResponse(bytes))).toThrow('Unsupported transaction version: 2');
+    });
+
+    it('should reject v0 wire bytes whose message is of an unknown version', () => {
+        const bytes = wireBytes(0);
+        const messageStart = 1 + 64;
+        bytes[messageStart] = 0x82;
+
+        expect(() => fromRpcTransaction(base64WireResponse(bytes))).toThrow(UnsupportedTransactionVersionError);
+        expect(() => fromRpcTransaction(base64WireResponse(bytes))).toThrow('Unsupported transaction version: 2');
+    });
+
     it('should resolve the loaded addresses from wire response meta', () => {
         const response = {
             ...wireResponse(0),
@@ -192,6 +316,45 @@ describe('fromRpcTransaction', () => {
 
         expect(transaction.version).toBe(1);
         expect(transaction.instructions[0].data).toEqual(INSTRUCTION_DATA);
+    });
+
+    it('should keep empty instruction data on a JSON response', () => {
+        const response = jsonResponse(1);
+        response.transaction.message.instructions = [{ accounts: [0], data: '', programIdIndex: 1 }];
+
+        expect(fromRpcTransaction(response).instructions[0].data).toEqual(new Uint8Array(0));
+    });
+
+    it('should resolve v0 JSON instruction accounts loaded from a lookup table', () => {
+        const response = jsonResponse(0);
+        const table = gen.address(9);
+        const [feePayer] = response.transaction.message.accountKeys;
+        response.transaction.message.addressTableLookups = [
+            { accountKey: table, readonlyIndexes: [1], writableIndexes: [0] },
+        ];
+        response.transaction.message.instructions = [{ accounts: [0, 2, 3], data: '', programIdIndex: 1 }];
+        const withMeta = {
+            ...response,
+            meta: { loadedAddresses: { readonly: [gen.address(6)], writable: [gen.address(5)] } },
+        };
+
+        expect(fromRpcTransaction(withMeta).instructions[0].accounts).toEqual([
+            { address: feePayer, signer: true, source: 'static', writable: true },
+            {
+                address: gen.address(5),
+                lookupTableAddress: table,
+                signer: false,
+                source: 'lookupTable',
+                writable: true,
+            },
+            {
+                address: gen.address(6),
+                lookupTableAddress: table,
+                signer: false,
+                source: 'lookupTable',
+                writable: false,
+            },
+        ]);
     });
 
     it('should read a v0 JSON response with an address table lookup', () => {
@@ -212,17 +375,37 @@ describe('fromRpcTransaction', () => {
         response.transaction.message.addressTableLookups = [
             { accountKey: table, readonlyIndexes: [], writableIndexes: [3] },
         ];
+        const withEmptyMeta = { ...response, meta: { loadedAddresses: { readonly: [], writable: [] } } };
 
-        expect(fromRpcTransaction(response).unmatchedLookupTableIndexes).toEqual([
-            { accountKey: table, readonlyIndexes: [], writableIndexes: [3] },
-        ]);
+        expect(fromRpcTransaction(withEmptyMeta)).toMatchObject({
+            unmatchedLookupTableIndexes: [{ accountKey: table, readonlyIndexes: [], writableIndexes: [3] }],
+            version: 0,
+        });
     });
 
+    it('should reject a v0 JSON response with lookup tables and no loaded addresses', () => {
+        const response = jsonResponse(0);
+        response.transaction.message.addressTableLookups = [
+            { accountKey: gen.address(9), readonlyIndexes: [], writableIndexes: [3] },
+        ];
+
+        expect(() => fromRpcTransaction(response)).toThrow('Missing loadedAddresses');
+    });
     it('should leave lookups unreported when a v0 JSON response omits them', () => {
         const transaction = fromRpcTransaction(jsonResponse(0));
 
         expect(transaction.version).toBe(0);
         expect('addressTableLookups' in transaction).toBe(false);
+    });
+
+    it('should count jsonParsed signers from the RPC signer flags', () => {
+        const response = jsonParsedResponse(1);
+        response.transaction.message.accountKeys = [
+            ...response.transaction.message.accountKeys,
+            { pubkey: gen.address(20), signer: true, source: 'transaction', writable: false },
+        ];
+
+        expect(fromRpcTransaction(response).numSignerAccounts).toBe(2);
     });
 
     it('should read a jsonParsed response with RPC-resolved account roles', () => {
@@ -274,12 +457,34 @@ describe('fromRpcTransaction', () => {
         expect(() => fromRpcTransaction(response)).toThrow('not in the resolved account list');
     });
 
-    it('should return no address table lookups for a jsonParsed v0 response', () => {
-        expect(getAddressTableLookups(fromRpcTransaction(jsonParsedResponse(0)))).toEqual([]);
+    it.each([
+        ['raw', { accounts: [], data: '2Jq', programId: gen.address(11) }],
+        ['parsed', { parsed: { type: 'transfer' }, program: 'system', programId: gen.address(11) }],
+    ] as const)('should reject a %s jsonParsed instruction whose program is missing from accountKeys', (_label, ix) => {
+        const response = jsonParsedResponse(1);
+        response.transaction.message.instructions = [ix];
+
+        expect(() => fromRpcTransaction(response)).toThrow('not in the resolved account list');
     });
 
-    it('should accept a bigint version, which kit does not coerce', () => {
-        expect(fromRpcTransaction({ ...jsonResponse(1), version: 1n }).version).toBe(1);
+    it('should read the address table lookups of a jsonParsed v0 response', () => {
+        const response = jsonParsedResponse(0);
+        const table = gen.address(9);
+        response.transaction.message.addressTableLookups = [
+            { accountKey: table, readonlyIndexes: [4], writableIndexes: [3] },
+        ];
+
+        expect(getAddressTableLookups(fromRpcTransaction(response))).toEqual([
+            { accountKey: table, readonlyIndexes: [4], writableIndexes: [3] },
+        ]);
+    });
+
+    it('should leave lookups unreported when a v0 jsonParsed response omits them', () => {
+        const transaction = fromRpcTransaction(jsonParsedResponse(0));
+
+        expect(transaction.version).toBe(0);
+        expect('addressTableLookups' in transaction).toBe(false);
+        expect(getAddressTableLookups(transaction)).toEqual([]);
     });
 
     it('should reject a null version', () => {
@@ -323,17 +528,55 @@ describe('fromRpcTransaction', () => {
         expect(() => fromRpcTransaction(response)).toThrow('exceed available accounts');
     });
 
-    it('should reject an instruction index outside the account list', () => {
+    it('should throw when an account index is out of range', () => {
         const response = jsonResponse(0);
-        response.transaction.message.instructions = [{ accounts: [99], data: '', programIdIndex: 1 }];
+        const accountCount = response.transaction.message.accountKeys.length;
+        response.transaction.message.instructions = [{ accounts: [accountCount], data: '', programIdIndex: 1 }];
 
         expect(() => fromRpcTransaction(response)).toThrow('index out of bounds');
     });
 
-    it('should reject a program index outside the account list', () => {
+    it('should throw when the program index is out of range', () => {
         const response = jsonResponse(0);
-        response.transaction.message.instructions = [{ accounts: [0], data: '', programIdIndex: 99 }];
+        const accountCount = response.transaction.message.accountKeys.length;
+        response.transaction.message.instructions = [{ accounts: [0], data: '', programIdIndex: accountCount }];
 
         expect(() => fromRpcTransaction(response)).toThrow('index out of bounds');
+    });
+});
+
+describe('hasUnmatchedLookupTables', () => {
+    it.each([
+        ['legacy', legacyTransaction],
+        ['v1', v1Transaction],
+    ] as const)('should return false for a %s transaction', (_label, fixture) => {
+        expect(hasUnmatchedLookupTables(fixture())).toBe(false);
+    });
+
+    it('should return false when the loaded addresses fill every lookup table slot', () => {
+        const { compiled, loadedAddress } = v0CompiledWithLookupTable();
+        const transaction = fromCompiledMessage(compiled, {
+            loadedAddresses: { readonly: [], writable: [loadedAddress] },
+        });
+
+        expect(hasUnmatchedLookupTables(transaction)).toBe(false);
+    });
+
+    it('should return true when a loaded address matches no lookup table slot', () => {
+        const transaction = fromCompiledMessage(v0Transaction.compiled(), {
+            loadedAddresses: { readonly: [], writable: [gen.address(5)] },
+        });
+
+        expect(hasUnmatchedLookupTables(transaction)).toBe(true);
+    });
+
+    it('should return true when a lookup table slot has no loaded address', () => {
+        const response = jsonResponse(0);
+        response.transaction.message.addressTableLookups = [
+            { accountKey: gen.address(9), readonlyIndexes: [], writableIndexes: [3] },
+        ];
+        const withEmptyMeta = { ...response, meta: { loadedAddresses: { readonly: [], writable: [] } } };
+
+        expect(hasUnmatchedLookupTables(fromRpcTransaction(withEmptyMeta))).toBe(true);
     });
 });

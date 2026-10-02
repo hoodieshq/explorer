@@ -1,12 +1,12 @@
 import { MAX_COMPUTE_UNITS } from '../programs/compute-budget/index.js';
 import { V1_DEFAULT_HEAP_SIZE_BYTES, V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT_BYTES } from './constants.js';
-import type { ParsedTransaction } from './types.js';
+import type { ParsedTransaction, PriorityFeeLamports } from './types.js';
 
 export type V1ResourceLimits = {
     computeUnitLimit: number;
     heapSizeBytes: number;
     loadedAccountsDataSizeLimitBytes: number;
-    priorityFeeLamports: bigint;
+    priorityFeeLamports: PriorityFeeLamports;
 };
 
 /**
