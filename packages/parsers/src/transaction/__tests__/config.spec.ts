@@ -8,14 +8,15 @@ import { describe, expect, it } from 'vitest';
 
 import { gen } from '../../__tests__/gen.js';
 import { fromRpcTransactionConfig, getTransactionConfig, readTransactionConfig } from '../config.js';
+import { fromRpcTransaction } from '../parse-transaction.js';
 import type { ParsedTransaction, RpcTransactionConfig } from '../types.js';
-import { v0Transaction, v1CompiledWithConfig } from './fixtures.js';
+import { jsonParsedResponse, jsonResponse, v0Transaction, v1CompiledWithConfig } from './fixtures.js';
 
 const BASE = {
     accounts: [],
     instructions: [],
-    lifetimeToken: gen.blockhash(7),
     numSignerAccounts: 1,
+    recentBlockhash: gen.blockhash(7),
     signatures: [],
 };
 
@@ -87,8 +88,7 @@ describe('readTransactionConfig', () => {
     });
 });
 
-// The RPC marks an absent limit null, where the package's own config type leaves the field out.
-// eslint-disable-next-line unicorn/no-null
+// eslint-disable-next-line unicorn/no-null -- the RPC marks an absent limit null
 const ABSENT = null;
 
 function rpcConfig(overrides: Partial<RpcTransactionConfig> = {}): RpcTransactionConfig {
@@ -128,5 +128,18 @@ describe('getTransactionConfig', () => {
         const transaction: ParsedTransaction = { ...BASE, addressTableLookups: [], version: 0 };
 
         expect(getTransactionConfig(transaction)).toBeUndefined();
+    });
+
+    it.each([
+        ['json', jsonResponse],
+        ['jsonParsed', jsonParsedResponse],
+    ] as const)('should return the config of a v1 %s response', (_label, makeResponse) => {
+        const response = makeResponse(1);
+        response.transaction.message.transactionConfig = rpcConfig({ computeUnitLimit: 19, priorityFee: 7n });
+
+        expect(getTransactionConfig(fromRpcTransaction(response))).toEqual({
+            computeUnitLimit: 19,
+            priorityFeeLamports: 7n,
+        });
     });
 });

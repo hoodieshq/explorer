@@ -61,7 +61,7 @@ v1 applies no per-instruction default.
 
 - **WHEN** a v1 transaction declares no compute unit limit
 - **THEN** both pages report zero requested compute units
-- **AND** the value is labelled as declared, not rendered as a bare total
+- **AND** the value is labelled as a fallback, not rendered as a bare total
 
 ### Requirement: MCP payloads SHALL accept v1 and stay byte-identical for earlier versions
 

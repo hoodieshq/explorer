@@ -1,6 +1,6 @@
 import { getTransactionConfig } from './config.js';
 import { LAMPORTS_PER_SIGNATURE } from './constants.js';
-import type { ParsedTransaction } from './types.js';
+import type { ParsedTransaction, PriorityFeeLamports } from './types.js';
 
 /**
  * Priority fee from legacy or v0 transactions.
@@ -11,10 +11,11 @@ export function derivePriorityFeeLamports({
     feeLamports,
     signatureCount,
 }: {
-    feeLamports: number;
+    feeLamports: bigint;
     signatureCount: number;
-}): number {
-    return Math.max(0, feeLamports - LAMPORTS_PER_SIGNATURE * signatureCount);
+}): PriorityFeeLamports {
+    const priorityFee = feeLamports - LAMPORTS_PER_SIGNATURE * BigInt(signatureCount);
+    return priorityFee > 0n ? priorityFee : 0n;
 }
 
 /**
@@ -27,11 +28,11 @@ export function derivePriorityFeeLamports({
  */
 export function resolvePriorityFeeLamports(
     transaction: ParsedTransaction,
-    meta: { feeLamports: number | undefined },
-): number | undefined {
+    meta: { feeLamports: bigint | undefined },
+): PriorityFeeLamports | undefined {
     const declared = getTransactionConfig(transaction)?.priorityFeeLamports;
     if (transaction.version === 1) {
-        return Number(declared ?? 0n);
+        return declared ?? 0n;
     }
     if (meta.feeLamports === undefined) {
         return undefined;

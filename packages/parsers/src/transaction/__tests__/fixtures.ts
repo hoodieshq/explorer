@@ -20,6 +20,7 @@ import {
     type SignatureBytes,
     type Transaction,
     TRANSACTION_CONFIG_COMPUTE_UNIT_LIMIT_BIT_MASK,
+    type V0CompiledTransactionMessage,
 } from '@solana/kit';
 import { getSetComputeUnitLimitInstruction } from '@solana-program/compute-budget';
 
@@ -60,7 +61,6 @@ function compiledMessageFor(version: TransactionVersion): CompiledMessageFixture
             ),
         );
     }
-    // Only the v1 instruction names an account, so v1 specs also cover account resolution.
     return compileTransactionMessage(
         pipe(
             createTransactionMessage({ version: 1 }),
@@ -84,6 +84,7 @@ export function v0CompiledWithLookupTable(): {
     compiled: CompiledMessageFixture;
     loadedAddress: Address;
     lookupTableAddress: Address;
+    messageBytes: Uint8Array;
 } {
     const compiled = compileTransactionMessage(
         pipe(
@@ -109,7 +110,56 @@ export function v0CompiledWithLookupTable(): {
         ),
     );
 
-    return { compiled, loadedAddress: LOOKUP_TABLE_LOADED_ADDRESS, lookupTableAddress: LOOKUP_TABLE_ADDRESS };
+    return {
+        compiled,
+        loadedAddress: LOOKUP_TABLE_LOADED_ADDRESS,
+        lookupTableAddress: LOOKUP_TABLE_ADDRESS,
+        messageBytes: encode(compiled),
+    };
+}
+
+/** The fee payer at index 0 and again as a readonly key at index 2, with one instruction naming both. */
+export function compiledWithDuplicateFeePayer(version: TransactionVersion): CompiledMessageFixture {
+    const compiled = compiledMessageFor(version);
+    const [feePayer, program] = compiled.staticAccounts;
+    const header = { ...compiled.header, numReadonlyNonSignerAccounts: 2 };
+    const staticAccounts = [feePayer, program, feePayer];
+
+    if (compiled.version === 1) {
+        const [instructionHeader] = compiled.instructionHeaders;
+        const [instructionPayload] = compiled.instructionPayloads;
+        return {
+            ...compiled,
+            header,
+            instructionHeaders: [{ ...instructionHeader, numInstructionAccounts: 2 }],
+            instructionPayloads: [{ ...instructionPayload, instructionAccountIndices: [0, 2] }],
+            staticAccounts,
+        };
+    }
+
+    return { ...compiled, header, instructions: [{ accountIndices: [0, 2], programAddressIndex: 1 }], staticAccounts };
+}
+
+/** A v0 message whose lookup table loads the fee payer again, with one instruction naming both copies. */
+export function v0CompiledWithFeePayerInLUT(): {
+    compiled: CompiledMessageFixture;
+    loadedAddresses: { readonly: Address[]; writable: Address[] };
+    lookupTableAddress: Address;
+} {
+    const compiled: CompiledTransactionMessageWithLifetime & V0CompiledTransactionMessage = {
+        addressTableLookups: [{ lookupTableAddress: LOOKUP_TABLE_ADDRESS, readonlyIndexes: [], writableIndexes: [0] }],
+        header: { numReadonlyNonSignerAccounts: 1, numReadonlySignerAccounts: 0, numSignerAccounts: 1 },
+        instructions: [{ accountIndices: [0, 2], programAddressIndex: 1 }],
+        lifetimeToken: BLOCKHASH.blockhash,
+        staticAccounts: [FEE_PAYER, PROGRAM_ADDRESS],
+        version: 0,
+    };
+
+    return {
+        compiled,
+        loadedAddresses: { readonly: [], writable: [FEE_PAYER] },
+        lookupTableAddress: LOOKUP_TABLE_ADDRESS,
+    };
 }
 
 /** A legacy message with two required signers, for a wire-size test that exercises the per-signer multiplication. */
@@ -287,9 +337,7 @@ export function jsonParsedResponse(version: TransactionVersion = 1): {
 
 /** What the RPC serves under `base64` and `base58`: the full wire transaction, message plus signatures. */
 export function wireResponse(version: TransactionVersion = 1, encoding: 'base58' | 'base64' = 'base64') {
-    const signatures = { [FEE_PAYER]: getBase58Encoder().encode(gen.signature(1)) as SignatureBytes };
-
-    return toWireResponse(version, signatures, encoding);
+    return toWireResponse(version, signedByFeePayer(), encoding);
 }
 
 /** The same transaction with no signature filled in, which the wire carries as 64 zero bytes. */
@@ -298,14 +346,32 @@ export function unsignedWireResponse(version: TransactionVersion = 1) {
     return toWireResponse(version, { [FEE_PAYER]: null }, 'base64');
 }
 
+/** The signed wire bytes behind `wireResponse`, for a spec that corrupts them. */
+export function wireBytes(version: TransactionVersion): Uint8Array {
+    return toWireBytes(version, signedByFeePayer());
+}
+
+/** A `base64` response that reports no version, so the bytes alone decide it. */
+export function base64WireResponse(bytes: Uint8Array) {
+    return { transaction: [getBase64Decoder().decode(bytes), 'base64'] as const };
+}
+
+function signedByFeePayer(): Transaction['signatures'] {
+    return { [FEE_PAYER]: getBase58Encoder().encode(gen.signature(1)) as SignatureBytes };
+}
+
+function toWireBytes(version: TransactionVersion, signatures: Transaction['signatures']): Uint8Array {
+    const messageBytes = encode(compiledMessageFor(version)) as unknown as Transaction['messageBytes'];
+
+    return new Uint8Array(getTransactionEncoder().encode({ messageBytes, signatures }));
+}
+
 function toWireResponse(
     version: TransactionVersion,
     signatures: Transaction['signatures'],
     encoding: 'base58' | 'base64',
 ) {
-    const messageBytes = encode(compiledMessageFor(version)) as unknown as Transaction['messageBytes'];
-    const wireBytes = new Uint8Array(getTransactionEncoder().encode({ messageBytes, signatures }));
     const decoder = encoding === 'base64' ? getBase64Decoder() : getBase58Decoder();
 
-    return { transaction: [decoder.decode(wireBytes), encoding] as const, version };
+    return { transaction: [decoder.decode(toWireBytes(version, signatures)), encoding] as const, version };
 }
