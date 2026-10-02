@@ -29,17 +29,7 @@ const rowVariants = cva('flex flex-row border-0 border-solid border-outer-space-
     },
 });
 
-const labelVariants = cva('min-w-0 flex-none text-sm leading-5 text-outer-space-300 [overflow-wrap:normal]', {
-    defaultVariants: { density: 'comfortable' },
-    variants: {
-        // Baseline shim: nudge the label onto the row baseline (comfortable rows only).
-        density: {
-            comfortable: 'pb-px pt-[3px]',
-            compact: 'py-0',
-            flat: 'py-0',
-        },
-    },
-});
+const LABEL_CLASS = 'min-w-0 flex-none text-sm leading-5 text-outer-space-300 [overflow-wrap:normal]';
 
 /**
  * A key-value row: a fixed-width label column beside a flexible value column. `density` sets the
@@ -66,7 +56,7 @@ export function KeyValue({
 } & VariantProps<typeof rowVariants>) {
     return (
         <div className={cn(rowVariants({ align, density, divider }), className)}>
-            <div className={cn(labelVariants({ density }), labelWidth)}>{label}</div>
+            <div className={cn(LABEL_CLASS, labelWidth)}>{label}</div>
             <div className={cn('flex min-w-0 flex-1 text-sm [overflow-wrap:anywhere]', valueClassName)}>{children}</div>
             {trailing}
         </div>
