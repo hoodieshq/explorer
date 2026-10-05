@@ -1,4 +1,4 @@
-import { EpochSchedule } from '@utils/epoch-schedule';
+import { EpochSchedule } from '@explorer/utils';
 
 export interface EpochInfo {
     absoluteSlot: bigint;
