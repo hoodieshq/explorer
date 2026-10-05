@@ -1,7 +1,7 @@
+import type { EpochSchedule } from '@explorer/utils';
 import { Cluster } from '@utils/cluster';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { EpochSchedule } from '../../utils/epoch-schedule';
 import { fetchEpoch, FetchStatus } from '../epoch';
 
 const MOCK_URL = 'https://api.mainnet-beta.solana.com';
