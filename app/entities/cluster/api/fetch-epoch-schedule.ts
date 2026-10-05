@@ -1,4 +1,4 @@
-import type { EpochSchedule } from '@utils/epoch-schedule';
+import type { EpochSchedule } from '@explorer/utils';
 
 import { getRpc } from './get-rpc';
 

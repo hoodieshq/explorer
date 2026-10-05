@@ -4,9 +4,9 @@ import { COMPUTE_BUDGET_PROGRAM_ADDRESS } from '@solana-program/compute-budget';
 import { Cluster } from '@utils/cluster';
 
 import { alloc, writeUint32LE } from '@/app/shared/lib/bytes';
-import { getMaxComputeUnitsInBlock } from '@/app/utils/epoch-schedule';
 
 import { summarizeBlockComputeUnits } from '../block-compute-units';
+import { getMaxComputeUnitsInBlock } from '../block-limits';
 
 // A transaction whose only instruction is a ComputeBudget `SetComputeUnitLimit`, so its requested
 // (reserved) compute units resolve to exactly `requestedUnits`. `consumed`/`cost` ride on the meta.

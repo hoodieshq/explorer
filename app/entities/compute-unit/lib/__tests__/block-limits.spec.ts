@@ -1,7 +1,8 @@
-import { Cluster } from '../cluster';
-import { getMaxComputeUnitsInBlock } from '../epoch-schedule';
+import { Cluster } from '@utils/cluster';
 
-describe('getMaxComputeUnitsForEpoch', () => {
+import { getMaxComputeUnitsInBlock } from '../block-limits';
+
+describe('getMaxComputeUnitsInBlock', () => {
     it('should return the correct max compute units for an epoch on mainnet', () => {
         expect(getMaxComputeUnitsInBlock({ cluster: Cluster.MainnetBeta, epoch: 0n })).toEqual(48_000_000);
         expect(getMaxComputeUnitsInBlock({ cluster: Cluster.MainnetBeta, epoch: 769n })).toEqual(48_000_000);

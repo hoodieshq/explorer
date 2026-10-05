@@ -1,6 +1,4 @@
-import { Cluster } from '@/app/utils/cluster';
-
-export { type EpochSchedule, getEpochForSlot, getFirstSlotInEpoch, getLastSlotInEpoch } from '@explorer/utils';
+import { Cluster } from '@utils/cluster';
 
 /**
  * Represents a SIMD configuration for compute units per block.
