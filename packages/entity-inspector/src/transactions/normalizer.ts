@@ -4,6 +4,7 @@ import {
     fromRpcTransaction,
     getRequestedComputeUnits,
     getV1ResourceLimits,
+    hasUnmatchedLookupTables,
     type ReportedTransactionVersion,
     type TransactionVersion,
     UnsupportedTransactionVersionError,
@@ -37,8 +38,8 @@ function toAccountKeyString(accountKey: string | { pubkey: string }): string {
     );
 }
 
-// Inner instructions ride on `meta`, which the parsed transaction leaves out, so MCP checks their
-// indices itself. Outer instruction and header checks belong to `fromRpcTransaction`.
+// The RPC sends inner instructions in `meta`, which `ParsedTransaction` does not include, so MCP checks their indices.
+// `fromRpcTransaction` checks the outer instructions and the header.
 function validateInnerInstructionIndices(instructions: readonly CompiledInstruction[], accountKeyCount: number): void {
     for (const ix of instructions) {
         if (
@@ -165,8 +166,6 @@ export function normalizeTransactionProbe(
     // An omitted version means the caller set no ceiling, and the RPC then returns legacy only.
     const parsedVersion: TransactionVersion = reportedVersion ?? 'legacy';
 
-    // MCP reports the queried signature and the envelope's blockhash. The parsed signatures and
-    // lifetime token have no reader here.
     const transaction = fromRpcTransaction({
         meta: { loadedAddresses: meta?.loadedAddresses ?? null },
         transaction: {
@@ -185,7 +184,7 @@ export function normalizeTransactionProbe(
     });
 
     const allKeys = transaction.accounts.map(account => account.address);
-    if (transaction.unmatchedLookupTableAddresses || transaction.unmatchedLookupTableIndexes) {
+    if (hasUnmatchedLookupTables(transaction)) {
         logger.warn(ns('address table lookup counts do not match the loaded addresses'), { signature });
     }
 

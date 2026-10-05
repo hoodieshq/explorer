@@ -11,7 +11,6 @@ export type ResolvedAccount = {
     lookupTableAddress?: string;
 };
 
-/** Effective v1 limits. Each one is the declared value, or the runtime default where the message declares none. */
 export type TransactionResourceLimits = {
     computeUnitLimit: number;
     heapSizeBytes: number;
@@ -112,7 +111,8 @@ type TransactionPayloadEntityBase = {
     };
     compute_units_consumed: SafeNumeric;
     /**
-     * `declared` reads the transaction's own limit. `calculated` sums per-instruction reserves at the slot's epoch.
+     * `declared` reads the transaction's own limit.
+     * `calculated` sums per-instruction reserves at the slot's epoch.
      * `fallback` marks a v1 transaction with no declared limit. The runtime budgets it zero.
      */
     requested_compute_units: { source: RequestedComputeUnits['source']; value: number };
