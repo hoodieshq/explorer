@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SupportedCluster } from '../../config.js';
 import type { InspectorLogger } from '../../logger.js';
-import { gen, testAddress } from '../../__tests__/gen.js';
+import { gen } from '../../__tests__/gen.js';
 import type { SignatureStatusEnvelope } from '../../rpc/types.js';
 import type { ResolvedAccount, TransactionPayloadContext } from '../types.js';
 import { normalizeTransactionProbe } from '../normalizer.js';
@@ -15,20 +15,20 @@ const logger: InspectorLogger = {
     warn: vi.fn(),
 };
 
-const SIGNER_1 = testAddress(1);
-const SIGNER_2 = testAddress(2);
-const PROGRAM_1 = testAddress(3);
-const READONLY_1 = testAddress(4);
-const ACCOUNT_A = testAddress(5);
-const ACCOUNT_B = testAddress(6);
-const ACCOUNT_C = testAddress(7);
-const LOOKUP_TABLE_A = testAddress(10);
-const LOOKUP_TABLE_B = testAddress(11);
-const LOADED_WRITABLE_1 = testAddress(21);
-const LOADED_WRITABLE_2 = testAddress(22);
-const LOADED_WRITABLE_3 = testAddress(23);
-const LOADED_READONLY_1 = testAddress(31);
-const BLOCKHASH = testAddress(41);
+const SIGNER_1 = gen.address(1);
+const SIGNER_2 = gen.address(2);
+const PROGRAM_1 = gen.address(3);
+const READONLY_1 = gen.address(4);
+const ACCOUNT_A = gen.address(5);
+const ACCOUNT_B = gen.address(6);
+const ACCOUNT_C = gen.address(7);
+const LOOKUP_TABLE_A = gen.address(10);
+const LOOKUP_TABLE_B = gen.address(11);
+const LOADED_WRITABLE_1 = gen.address(21);
+const LOADED_WRITABLE_2 = gen.address(22);
+const LOADED_WRITABLE_3 = gen.address(23);
+const LOADED_READONLY_1 = gen.address(31);
+const BLOCKHASH = gen.address(41);
 
 type Role = { address: string; signer: boolean; writable: boolean };
 

@@ -4,7 +4,7 @@ import { getBase58Decoder } from '@solana/kit';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { InspectorLogger } from '../../logger.js';
-import { gen, testAddress } from '../../__tests__/gen.js';
+import { gen } from '../../__tests__/gen.js';
 import type { SignatureStatusEnvelope } from '../../rpc/types.js';
 import { buildTransactionPayload } from '../build-payload.js';
 import { decodeTransactionInstructions } from '../decode-instructions.js';
@@ -12,16 +12,16 @@ import { normalizeTransactionProbe } from '../normalizer.js';
 
 const SIGNATURE = 'payload-contract-signature';
 
-const FEE_PAYER = testAddress(1);
-const READONLY_SIGNER = testAddress(2);
-const WRITABLE_NON_SIGNER = testAddress(3);
-const OPAQUE_PROGRAM = testAddress(4);
-const LOOKUP_TABLE_A = testAddress(10);
-const LOOKUP_TABLE_B = testAddress(11);
-const LOADED_WRITABLE_A = testAddress(21);
-const LOADED_WRITABLE_B = testAddress(22);
-const LOADED_READONLY_A = testAddress(31);
-const BLOCKHASH = testAddress(41);
+const FEE_PAYER = gen.address(1);
+const READONLY_SIGNER = gen.address(2);
+const WRITABLE_NON_SIGNER = gen.address(3);
+const OPAQUE_PROGRAM = gen.address(4);
+const LOOKUP_TABLE_A = gen.address(10);
+const LOOKUP_TABLE_B = gen.address(11);
+const LOADED_WRITABLE_A = gen.address(21);
+const LOADED_WRITABLE_B = gen.address(22);
+const LOADED_READONLY_A = gen.address(31);
+const BLOCKHASH = gen.address(41);
 
 const OPAQUE_INSTRUCTION_DATA = '3Bxs';
 const OPAQUE_INNER_INSTRUCTION_DATA = 'abc';
@@ -191,7 +191,7 @@ describe('transaction payload contract', () => {
         expect(entity.status).toBe('success');
     });
 
-    it('should report the runtime default for every v1 resource limit the message leaves undeclared', async () => {
+    it('should report runtime defaults when a v1 message declares no resource limits', async () => {
         const { entity } = JSON.parse(await payloadJson(v1Envelope()));
 
         expect(entity.resource_limits).toEqual({
@@ -202,7 +202,7 @@ describe('transaction payload contract', () => {
         });
     });
 
-    it('should report the declared v1 resource limits and default the null ones', async () => {
+    it('should report declared v1 resource limits and the runtime default for an undeclared one', async () => {
         const json = await payloadJson(
             v1Envelope({
                 computeUnitLimit: 300_000,
