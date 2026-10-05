@@ -6,7 +6,8 @@ import React from 'react';
 import { Logger } from '@/app/shared/lib/logger';
 import { MIN_MESSAGE_LENGTH, parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
 import { bridgeV1MessageBytes, isV1MessageBytes } from '@/app/shared/lib/v1-message-bridge';
-import { TabsContent, TabsList, TabsTrigger } from '@/app/shared/ui/Tabs';
+import { BaseNavigationTabs } from '@/app/shared/ui/navigation-tabs/ui/BaseNavigationTabs';
+import { TabsContent } from '@/app/shared/ui/Tabs';
 
 import { BaseCodeExample } from './BaseCodeExample';
 import { BaseInspectorInput } from './BaseInspectorInput';
@@ -165,19 +166,18 @@ function TabInstructions() {
 
     return (
         <div>
-            <TabsList>
-                {tabs.map(tab => (
-                    <TabsTrigger
-                        key={tab.id}
-                        active={activeTab === tab.id}
-                        // master used `me-3 nav-link` (no nav-item margins): 0.75rem trailing gap only
-                        className="ml-0 mr-3"
-                        onClick={() => setActiveTab(tab.id)}
-                    >
-                        {tab.label}
-                    </TabsTrigger>
-                ))}
-            </TabsList>
+            {/* Styled as the account and block page tab bar, without the sticky behaviour; the underline stays
+                within the content column at every width. */}
+            <div className="border-0 border-b border-solid border-neutral-800">
+                <BaseNavigationTabs
+                    tabs={tabs.map(tab => ({ path: tab.id, title: tab.label }))}
+                    activeValue={activeTab}
+                    buildHref={id => `#${id}`}
+                    onTabClick={id => setActiveTab(id)}
+                    onSelectChange={setActiveTab}
+                    className="gap-5"
+                />
+            </div>
             <div>
                 {tabs.map(tab => (
                     <TabsContent key={tab.id} active={activeTab === tab.id}>

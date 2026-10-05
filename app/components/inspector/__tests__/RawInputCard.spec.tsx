@@ -83,4 +83,14 @@ describe('RawInput', () => {
             screen.getByText('println!("{}", base64::encode(&transaction.message_data()));', { selector: 'code' }),
         ).toBeInTheDocument();
     });
+
+    test('should switch the instruction panel when a tab is clicked', () => {
+        render(<RawInput setTransactionData={vi.fn()} />);
+
+        expect(screen.getByRole('tab', { name: 'CLI' })).toHaveAttribute('aria-selected', 'true');
+        fireEvent.click(screen.getByRole('tab', { name: 'Rust' }));
+
+        expect(screen.getByRole('tab', { name: 'Rust' })).toHaveAttribute('aria-selected', 'true');
+        expect(screen.getByRole('tabpanel')).toHaveTextContent('crate dependency');
+    });
 });
