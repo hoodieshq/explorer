@@ -1,7 +1,7 @@
 import type { Address } from '@solana/kit';
 
 /** Cluster names the schedule is keyed by. `'custom'` is extra: it has no activation history to read. */
-export type SupportedCluster = 'custom' | 'devnet' | 'mainnet-beta' | 'testnet';
+export type ScheduleCluster = 'custom' | 'devnet' | 'mainnet-beta' | 'testnet';
 
 export const MAX_COMPUTE_UNITS = 1_400_000;
 
@@ -77,7 +77,7 @@ export function getReservedComputeUnits({
     epoch = 0n,
     programAddress,
 }: {
-    cluster: SupportedCluster;
+    cluster: ScheduleCluster;
     epoch?: bigint;
     programAddress: Address;
 }): number {

@@ -4,7 +4,6 @@ import {
     identifyComputeBudgetInstruction,
     parseRequestUnitsInstruction,
     parseSetComputeUnitLimitInstruction,
-    parseSetComputeUnitPriceInstruction,
 } from '@solana-program/compute-budget';
 
 import type { TransactionInstruction } from '../../transaction/types.js';
@@ -26,15 +25,6 @@ export function readComputeUnitLimitFromInstruction(instruction: TransactionInst
         }
         return undefined;
     });
-}
-
-/** Micro-lamports, legacy and v0 txs only. */
-export function readComputeUnitPriceFromInstruction(instruction: TransactionInstruction): bigint | undefined {
-    return readComputeBudgetInstruction(instruction, (type, candidate) =>
-        type === ComputeBudgetInstruction.SetComputeUnitPrice
-            ? parseSetComputeUnitPriceInstruction(candidate).data.microLamports
-            : undefined,
-    );
 }
 
 /** Narrows an instruction to the Compute Budget program, then identifies and parses it under one guard. */

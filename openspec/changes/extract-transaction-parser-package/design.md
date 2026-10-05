@@ -128,7 +128,7 @@ cluster, plus per-program reserves quoted from Agave. It moves from `app/entitie
 
 Two signature changes come with this:
 The web3.js `PublicKey` and `ComputeBudgetProgram` parameters become a kit `Address`.
-The app's `Cluster` enum from `@utils/cluster` becomes `SupportedCluster`, mapped once at the app boundary.
+The app's `Cluster` enum from `@utils/cluster` becomes `ScheduleCluster`, mapped once at the app boundary.
 
 ### Priority fee
 

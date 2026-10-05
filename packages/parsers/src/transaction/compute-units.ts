@@ -2,7 +2,7 @@ import {
     getReservedComputeUnits,
     MAX_COMPUTE_UNITS,
     readComputeUnitLimitFromInstruction,
-    type SupportedCluster,
+    type ScheduleCluster,
 } from '../programs/compute-budget/index.js';
 import type { ParsedTransaction } from './types.js';
 
@@ -18,7 +18,7 @@ export type RequestedComputeUnits = {
 
 export function getRequestedComputeUnits(
     transaction: ParsedTransaction,
-    context: { cluster: SupportedCluster; epoch: bigint | undefined },
+    context: { cluster: ScheduleCluster; epoch: bigint | undefined },
 ): RequestedComputeUnits {
     if (transaction.version === 1) {
         const declared = transaction.config?.computeUnitLimit;

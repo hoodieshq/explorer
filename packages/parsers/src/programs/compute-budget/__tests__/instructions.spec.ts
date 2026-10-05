@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 
 import { gen } from '../../../__tests__/gen.js';
 import type { TransactionInstruction } from '../../../transaction/types.js';
-import { readComputeUnitLimitFromInstruction, readComputeUnitPriceFromInstruction } from '../instructions.js';
+import { readComputeUnitLimitFromInstruction } from '../instructions.js';
 
 function toTransactionInstruction(instruction: {
     data: ReadonlyUint8Array;
@@ -72,39 +72,5 @@ describe('readComputeUnitLimitFromInstruction', () => {
         expect(
             readComputeUnitLimitFromInstruction({ accounts: [], programAddress: COMPUTE_BUDGET_PROGRAM_ADDRESS }),
         ).toBeUndefined();
-    });
-});
-
-describe('readComputeUnitPriceFromInstruction', () => {
-    it('should read the price of a SetComputeUnitPrice instruction', () => {
-        const instruction = toTransactionInstruction(getSetComputeUnitPriceInstruction({ microLamports: 5n }));
-
-        expect(readComputeUnitPriceFromInstruction(instruction)).toBe(5n);
-    });
-
-    it('should return undefined when the instruction targets another program', () => {
-        expect(
-            readComputeUnitPriceFromInstruction({
-                accounts: [],
-                data: new Uint8Array([1]),
-                programAddress: gen.systemProgram,
-            }),
-        ).toBeUndefined();
-    });
-
-    it('should return undefined when the instruction sets no price', () => {
-        const instruction = toTransactionInstruction(getSetComputeUnitLimitInstruction({ units: 100_000 }));
-
-        expect(readComputeUnitPriceFromInstruction(instruction)).toBeUndefined();
-    });
-
-    it('should return undefined when the SetComputeUnitPrice data is truncated', () => {
-        const instruction = {
-            accounts: [],
-            data: new Uint8Array([ComputeBudgetInstruction.SetComputeUnitPrice, 1, 2]),
-            programAddress: COMPUTE_BUDGET_PROGRAM_ADDRESS,
-        };
-
-        expect(readComputeUnitPriceFromInstruction(instruction)).toBeUndefined();
     });
 });
