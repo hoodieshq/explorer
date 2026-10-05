@@ -12,7 +12,7 @@ import {
 import { describe, expect, it } from 'vitest';
 
 import { gen } from '../../__tests__/gen.js';
-import { fromCompiledMessage } from '../parse-transaction.js';
+import { fromCompiledMessage } from '../parse.js';
 import type { TransactionAccount } from '../types.js';
 
 const LIFETIME_TOKEN = blockhash(gen.blockhash(7));

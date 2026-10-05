@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import { MAX_COMPUTE_UNITS } from '../../programs/compute-budget/index.js';
 import { V1_DEFAULT_HEAP_SIZE_BYTES, V1_DEFAULT_LOADED_ACCOUNTS_DATA_SIZE_LIMIT_BYTES } from '../constants.js';
-import { fromCompiledMessage } from '../parse-transaction.js';
+import { fromCompiledMessage } from '../parse.js';
 import { getV1ResourceLimits } from '../resource-limits.js';
 import { legacyTransaction, v0Transaction, v1CompiledWithConfig, v1TransactionWithConfig } from './fixtures.js';
 

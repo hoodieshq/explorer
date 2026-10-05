@@ -25,7 +25,7 @@ import {
 import { getSetComputeUnitLimitInstruction } from '@solana-program/compute-budget';
 
 import { gen } from '../../__tests__/gen.js';
-import { fromCompiledMessage } from '../parse-transaction.js';
+import { fromCompiledMessage } from '../parse.js';
 import type { ParsedTransaction, RpcJsonParsedTransaction, RpcJsonTransaction, TransactionVersion } from '../types.js';
 
 const BLOCKHASH = { blockhash: blockhash(gen.blockhash(7)), lastValidBlockHeight: 100n } as const;

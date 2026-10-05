@@ -31,6 +31,6 @@ export {
     fromRpcTransaction,
     getAddressTableLookups,
     hasUnmatchedLookupTables,
-} from './parse-transaction.js';
+} from './parse.js';
 export { getRequestedComputeUnits, type RequestedComputeUnits } from './compute-units.js';
 export { getV1ResourceLimits, type V1ResourceLimits } from './resource-limits.js';

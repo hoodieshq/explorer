@@ -13,7 +13,7 @@ import {
     fromRpcTransaction,
     getAddressTableLookups,
     hasUnmatchedLookupTables,
-} from '../parse-transaction.js';
+} from '../parse.js';
 import type { RpcTransactionResponse } from '../types.js';
 import { UnsupportedTransactionVersionError } from '../version.js';
 import {

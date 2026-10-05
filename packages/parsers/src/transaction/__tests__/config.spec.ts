@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import { gen } from '../../__tests__/gen.js';
 import { fromRpcTransactionConfig, getTransactionConfig, readTransactionConfig } from '../config.js';
-import { fromRpcTransaction } from '../parse-transaction.js';
+import { fromRpcTransaction } from '../parse.js';
 import type { ParsedTransaction, RpcTransactionConfig } from '../types.js';
 import { jsonParsedResponse, jsonResponse, v0Transaction, v1CompiledWithConfig } from './fixtures.js';
 
