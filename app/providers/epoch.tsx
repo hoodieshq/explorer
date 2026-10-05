@@ -1,6 +1,7 @@
 'use client';
 
 import { getRpc } from '@entities/cluster';
+import { EpochSchedule, getFirstSlotInEpoch, getLastSlotInEpoch } from '@explorer/utils';
 import * as Cache from '@providers/cache';
 import { useCacheEntry } from '@providers/cache-entry';
 import { useCluster } from '@providers/cluster';
@@ -9,8 +10,6 @@ import { Cluster } from '@utils/cluster';
 import React from 'react';
 
 import { Logger } from '@/app/shared/lib/logger';
-
-import { EpochSchedule, getFirstSlotInEpoch, getLastSlotInEpoch } from '../utils/epoch-schedule';
 
 export enum FetchStatus {
     Fetching,

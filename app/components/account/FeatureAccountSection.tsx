@@ -3,6 +3,7 @@ import { Slot } from '@components/common/Slot';
 import { useRefreshAccount } from '@entities/account';
 import { type FeatureInfoType, getFeatureInfo } from '@entities/feature-gate';
 import { useSlotTime } from '@entities/slot-time';
+import { getEpochForSlot } from '@explorer/utils';
 import { AccountCard } from '@features/account';
 import { ClusterEpoch } from '@features/feature-gate';
 import { Account } from '@providers/accounts';
@@ -17,7 +18,6 @@ import { ExternalLink } from '@/app/components/shared/ui/external-link';
 import { ClusterInfo, EPOCH_INFO_REFRESH_MS, useCluster, useClusterInfo } from '@/app/providers/cluster';
 import { type KeyValueRowInput, KeyValueRows, StackedList } from '@/app/shared/ui/key-value';
 import { Cluster, clusterName } from '@/app/utils/cluster';
-import { getEpochForSlot } from '@/app/utils/epoch-schedule';
 
 import { UnknownAccountCard } from './UnknownAccountCard';
 
