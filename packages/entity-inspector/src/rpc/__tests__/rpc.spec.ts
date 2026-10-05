@@ -10,7 +10,6 @@ const { getAccountInfoMock, getSignatureStatusesMock, getTransactionMock } = vi.
     getTransactionMock: vi.fn(),
 }));
 
-// Only the transport is mocked. The version ceiling stays kit's real constant, which is what the RPC call pins.
 vi.mock('@solana/kit', async importOriginal => ({
     ...(await importOriginal<typeof import('@solana/kit')>()),
     createSolanaRpc: vi.fn(() => ({

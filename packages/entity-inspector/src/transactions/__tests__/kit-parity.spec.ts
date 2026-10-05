@@ -1,18 +1,26 @@
 import {
     type AccountLookupMeta,
     type AccountMeta,
+    AccountRole,
+    appendTransactionMessageInstruction,
+    blockhash,
     type CompiledTransactionMessageWithLifetime,
+    compileTransactionMessage,
+    createTransactionMessage,
     decompileTransactionMessage,
     isSignerRole,
     isWritableRole,
     type LegacyCompiledTransactionMessage,
+    pipe,
+    setTransactionMessageFeePayer,
+    setTransactionMessageLifetimeUsingBlockhash,
     type TransactionVersion as KitTransactionVersion,
     type V0CompiledTransactionMessage,
 } from '@solana/kit';
 import { describe, expect, expectTypeOf, it, vi } from 'vitest';
 
 import type { InspectorLogger } from '../../logger.js';
-import { testAddress } from '../../__tests__/gen.js';
+import { gen } from '../../__tests__/gen.js';
 import type { ResolvedAccount, TransactionPayloadContext } from '../types.js';
 import { normalizeTransactionProbe } from '../normalizer.js';
 
@@ -55,8 +63,8 @@ function normalize(envelope: Record<string, unknown>): TransactionPayloadContext
 // The v0 json envelope flattens loaded addresses writable-first across lookups, in lookup order.
 describe('legacy account resolution against kit decompileTransactionMessage', () => {
     it('should classify static keys exactly as kit derives roles from the compiled header', () => {
-        const staticAccounts = [testAddress(1), testAddress(2), testAddress(3), testAddress(4)];
-        const lifetimeToken = testAddress(9);
+        const staticAccounts = [gen.address(1), gen.address(2), gen.address(3), gen.address(4)];
+        const lifetimeToken = gen.address(9);
         const compiled: CompiledTransactionMessageWithLifetime & LegacyCompiledTransactionMessage = {
             header: { numReadonlyNonSignerAccounts: 1, numReadonlySignerAccounts: 1, numSignerAccounts: 2 },
             instructions: [{ accountIndices: [0, 1, 2, 3], programAddressIndex: 3 }],
@@ -93,12 +101,12 @@ describe('legacy account resolution against kit decompileTransactionMessage', ()
 
 describe('v0 account resolution against kit decompileTransactionMessage', () => {
     it('should order and attribute v0 lookup table addresses exactly as kit decompiles them', () => {
-        const staticAccounts = [testAddress(1), testAddress(2), testAddress(3)];
-        const lifetimeToken = testAddress(9);
-        const lookupTableA = testAddress(10);
-        const lookupTableB = testAddress(11);
-        const tableAContents = [testAddress(21), testAddress(22), testAddress(23)];
-        const tableBContents = [testAddress(31), testAddress(32), testAddress(33)];
+        const staticAccounts = [gen.address(1), gen.address(2), gen.address(3)];
+        const lifetimeToken = gen.address(9);
+        const lookupTableA = gen.address(10);
+        const lookupTableB = gen.address(11);
+        const tableAContents = [gen.address(21), gen.address(22), gen.address(23)];
+        const tableBContents = [gen.address(31), gen.address(32), gen.address(33)];
         const compiled: CompiledTransactionMessageWithLifetime & V0CompiledTransactionMessage = {
             addressTableLookups: [
                 { lookupTableAddress: lookupTableA, readonlyIndexes: [1], writableIndexes: [0, 2] },
@@ -152,6 +160,72 @@ describe('v0 account resolution against kit decompileTransactionMessage', () => 
         });
 
         expect(kitAccounts).toHaveLength(9);
+        expect(context.accountKeys).toEqual(kitAccounts.map(meta => meta.address));
+        expect(context.resolvedAccounts).toEqual(kitAccounts.map(toResolvedAccount));
+    });
+});
+
+describe('v1 account resolution against kit decompileTransactionMessage', () => {
+    it('should resolve only v1 static keys, as kit does, even when the RPC reports loaded addresses', () => {
+        const feePayer = gen.address(1);
+        const lifetimeToken = gen.address(9);
+        const compiled = compileTransactionMessage(
+            pipe(
+                createTransactionMessage({ version: 1 }),
+                m => setTransactionMessageFeePayer(feePayer, m),
+                m =>
+                    setTransactionMessageLifetimeUsingBlockhash(
+                        { blockhash: blockhash(lifetimeToken), lastValidBlockHeight: 0n },
+                        m,
+                    ),
+                m =>
+                    appendTransactionMessageInstruction(
+                        {
+                            accounts: [
+                                { address: feePayer, role: AccountRole.WRITABLE_SIGNER },
+                                { address: gen.address(2), role: AccountRole.READONLY_SIGNER },
+                                { address: gen.address(3), role: AccountRole.WRITABLE },
+                                { address: gen.address(4), role: AccountRole.READONLY },
+                            ],
+                            programAddress: gen.address(4),
+                        },
+                        m,
+                    ),
+            ),
+        );
+
+        const kitAccounts = instructionAccounts(decompileTransactionMessage(compiled));
+        const context = normalize({
+            blockTime: null,
+            meta: {
+                err: null,
+                fee: 0,
+                loadedAddresses: { readonly: [gen.address(51)], writable: [gen.address(52)] },
+            },
+            slot: 1,
+            transaction: {
+                message: {
+                    accountKeys: compiled.staticAccounts,
+                    header: {
+                        numReadonlySignedAccounts: compiled.header.numReadonlySignerAccounts,
+                        numReadonlyUnsignedAccounts: compiled.header.numReadonlyNonSignerAccounts,
+                        numRequiredSignatures: compiled.header.numSignerAccounts,
+                    },
+                    instructions: [
+                        {
+                            accounts: [...compiled.instructionPayloads[0].instructionAccountIndices],
+                            data: INSTRUCTION_DATA,
+                            programIdIndex: compiled.instructionHeaders[0].programAccountIndex,
+                        },
+                    ],
+                    recentBlockhash: lifetimeToken,
+                },
+            },
+            version: 1,
+        });
+
+        expect(context.version).toBe(1);
+        expect(kitAccounts).toHaveLength(compiled.staticAccounts.length);
         expect(context.accountKeys).toEqual(kitAccounts.map(meta => meta.address));
         expect(context.resolvedAccounts).toEqual(kitAccounts.map(toResolvedAccount));
     });

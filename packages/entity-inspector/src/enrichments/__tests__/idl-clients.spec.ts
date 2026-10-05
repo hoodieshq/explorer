@@ -22,7 +22,8 @@ vi.mock('@explorer/idl-decode/fetch', async importOriginal => ({
     fetchOnChainIdlClient: fetchOnChainIdlClientMock,
 }));
 
-vi.mock('@solana/kit', () => ({
+vi.mock('@solana/kit', async importOriginal => ({
+    ...(await importOriginal<Record<string, unknown>>()),
     address: vi.fn((value: string) => value),
     createSolanaRpc: vi.fn(() => ({})),
 }));
