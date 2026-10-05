@@ -16,7 +16,7 @@ const BASE = {
     accounts: [],
     instructions: [],
     numSignerAccounts: 1,
-    recentBlockhash: gen.blockhash(7),
+    lifetimeSpecifier: gen.blockhash(7),
     signatures: [],
 };
 

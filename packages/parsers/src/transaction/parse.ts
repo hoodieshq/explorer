@@ -75,7 +75,7 @@ export function fromCompiledMessage(
         config: readTransactionConfig(message),
         instructions,
         lookups,
-        recentBlockhash: message.lifetimeToken,
+        lifetimeSpecifier: message.lifetimeToken,
         resolved,
         signatures: options.signatures ?? [],
         version: message.version,
@@ -335,7 +335,7 @@ function fromJsonTransaction(
         config: fromRpcTransactionConfig(message.transactionConfig),
         instructions,
         lookups,
-        recentBlockhash: message.recentBlockhash,
+        lifetimeSpecifier: message.recentBlockhash,
         resolved,
         signatures: [...transaction.signatures],
         version,
@@ -376,44 +376,44 @@ function fromJsonParsedTransaction(
         config: fromRpcTransactionConfig(message.transactionConfig),
         instructions,
         lookups,
-        recentBlockhash: message.recentBlockhash,
+        lifetimeSpecifier: message.recentBlockhash,
         resolved: { accounts },
         signatures: [...transaction.signatures],
         version,
     });
 }
 
-function buildTransaction(parts: {
+function buildTransaction(txData: {
     config: ReturnType<typeof readTransactionConfig>;
     instructions: TransactionInstruction[];
     /** `undefined` means the response did not report the tables. */
     lookups: readonly AddressTableLookup[] | undefined;
-    recentBlockhash: string;
+    lifetimeSpecifier: string;
     resolved: AccountResolutionResult;
     signatures: readonly (string | undefined)[];
     version: TransactionVersion;
 }): ParsedTransaction {
     const base = {
-        accounts: parts.resolved.accounts,
-        instructions: parts.instructions,
-        numSignerAccounts: parts.resolved.accounts.filter(account => account.signer).length,
-        recentBlockhash: parts.recentBlockhash,
-        signatures: parts.signatures,
+        accounts: txData.resolved.accounts,
+        instructions: txData.instructions,
+        numSignerAccounts: txData.resolved.accounts.filter(account => account.signer).length,
+        lifetimeSpecifier: txData.lifetimeSpecifier,
+        signatures: txData.signatures,
     };
 
-    if (parts.version === 0) {
+    if (txData.version === 0) {
         return {
             ...base,
-            ...(parts.lookups !== undefined && { addressTableLookups: parts.lookups }),
-            ...(parts.resolved.unmatchedLookupTableAddresses && {
-                unmatchedLookupTableAddresses: parts.resolved.unmatchedLookupTableAddresses,
+            ...(txData.lookups !== undefined && { addressTableLookups: txData.lookups }),
+            ...(txData.resolved.unmatchedLookupTableAddresses && {
+                unmatchedLookupTableAddresses: txData.resolved.unmatchedLookupTableAddresses,
             }),
-            ...(parts.resolved.unmatchedLookupTableIndexes && {
-                unmatchedLookupTableIndexes: parts.resolved.unmatchedLookupTableIndexes,
+            ...(txData.resolved.unmatchedLookupTableIndexes && {
+                unmatchedLookupTableIndexes: txData.resolved.unmatchedLookupTableIndexes,
             }),
             version: 0,
         };
     }
-    if (parts.version === 1) return { ...base, version: 1, ...(parts.config && { config: parts.config }) };
+    if (txData.version === 1) return { ...base, version: 1, ...(txData.config && { config: txData.config }) };
     return { ...base, version: 'legacy' };
 }

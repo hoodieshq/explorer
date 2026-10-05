@@ -9,7 +9,7 @@ function v1TransactionWithConfig(config: TransactionConfig | undefined): ParsedT
         accounts: [],
         instructions: [],
         numSignerAccounts: 1,
-        recentBlockhash: gen.blockhash(7),
+        lifetimeSpecifier: gen.blockhash(7),
         signatures: [],
         version: 1,
         ...(config && { config }),
@@ -21,7 +21,7 @@ function legacyTransactionWithSigners(count: number): ParsedTransaction {
         accounts: [],
         instructions: [],
         numSignerAccounts: count,
-        recentBlockhash: gen.blockhash(7),
+        lifetimeSpecifier: gen.blockhash(7),
         signatures: [],
         version: 'legacy',
     };

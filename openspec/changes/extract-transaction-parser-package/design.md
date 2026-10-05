@@ -12,7 +12,7 @@ type TransactionBase = {
     accounts: readonly TransactionAccount[];
     instructions: readonly TransactionInstruction[];
     numSignerAccounts: number;
-    recentBlockhash: string;
+    lifetimeSpecifier: string;
     signatures: readonly (string | undefined)[];
 };
 

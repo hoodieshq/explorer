@@ -47,7 +47,8 @@ type TransactionBase = {
     accounts: readonly TransactionAccount[];
     instructions: readonly TransactionInstruction[];
     numSignerAccounts: number;
-    recentBlockhash: string;
+    /** Recent blockhash or durable nonce. */
+    lifetimeSpecifier: string;
     signatures: readonly (string | undefined)[];
 };
 
