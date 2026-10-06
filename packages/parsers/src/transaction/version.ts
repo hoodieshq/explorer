@@ -9,13 +9,3 @@ const V1_MESSAGE_PREFIX = 0x81;
 export function isV1MessageBytes(bytes: Uint8Array): boolean {
     return bytes.length > 0 && bytes[0] === V1_MESSAGE_PREFIX;
 }
-
-export class UnsupportedTransactionVersionError extends Error {
-    readonly version: unknown;
-
-    constructor(version: unknown) {
-        super(`Unsupported transaction version: ${String(version)}`);
-        this.name = 'UnsupportedTransactionVersionError';
-        this.version = version;
-    }
-}

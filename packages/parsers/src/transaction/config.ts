@@ -6,6 +6,7 @@ import {
     transactionConfigMaskHasPriorityFee,
 } from '@solana/kit';
 
+import { InvalidTransactionConfigError } from './errors.js';
 import type { ParsedTransaction, RpcTransactionConfig, TransactionConfig } from './types.js';
 
 // Mask bit order is the value order on the wire.
@@ -17,7 +18,8 @@ const CONFIG_FIELDS = [
 ] as const;
 
 /**
- * Returns `undefined` for a message that sets no limits, and for malformed input.
+ * Returns `undefined` for a legacy or v0 message, and for a v1 message that sets no limits.
+ * Throws `InvalidTransactionConfigError` when the config values do not match the mask.
  *
  * Deliberately not kit's `decompileTransactionMessage`, which throws on an out-of-range account index
  * and costs a full message decompile per call.
@@ -33,13 +35,19 @@ export function readTransactionConfig(message: CompiledTransactionMessage): Tran
         try {
             // The priority-fee predicate throws when only one of its two mask bits is set.
             present = maskHasField(message.configMask);
-        } catch {
-            return undefined;
+        } catch (error) {
+            throw new InvalidTransactionConfigError(`Invalid transaction config mask: ${message.configMask}.`, {
+                cause: error,
+            });
         }
         if (!present) continue;
 
         const value = message.configValues[valueIndex++];
-        if (value?.kind !== kind) return undefined;
+        if (value?.kind !== kind) {
+            throw new InvalidTransactionConfigError(
+                `Config value for ${field} is ${value?.kind ?? 'missing'}, expected ${kind}.`,
+            );
+        }
         Object.assign(config, { [field]: value.value });
     }
 

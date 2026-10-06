@@ -13,12 +13,18 @@ import {
     getTransactionDecoder,
     isSolanaError,
     type ResolvedInstruction,
+    SOLANA_ERROR__TRANSACTION__INVALID_CONFIG_MASK_PRIORITY_FEE_BITS,
     SOLANA_ERROR__TRANSACTION__VERSION_NUMBER_NOT_SUPPORTED,
     type Transaction,
 } from '@solana/kit';
 
 import { type AccountResolutionResult, resolveAccounts } from './accounts.js';
 import { fromRpcTransactionConfig, readTransactionConfig } from './config.js';
+import {
+    InvalidTransactionConfigError,
+    MalformedTransactionError,
+    UnsupportedTransactionVersionError,
+} from './errors.js';
 import type {
     AddressTableLookup,
     FromMessageOptions,
@@ -32,7 +38,6 @@ import type {
     TransactionInstruction,
     TransactionVersion,
 } from './types.js';
-import { UnsupportedTransactionVersionError } from './version.js';
 
 const BASE58_DECODER = getBase58Decoder();
 const BASE58_ENCODER = getBase58Encoder();
@@ -104,7 +109,8 @@ export function fromRpcTransaction(response: RpcTransactionResponse): ParsedTran
 
     const [data, encoding] = transaction;
     // base64/base58 carry a full wire transaction, not a bare message.
-    const wireBytes = new Uint8Array((encoding === 'base64' ? BASE64_ENCODER : BASE58_ENCODER).encode(data));
+    const encoder = encoding === 'base64' ? BASE64_ENCODER : BASE58_ENCODER;
+    const wireBytes = new Uint8Array(tryRunDecode(() => encoder.encode(data)));
     const decoded = tryRunDecode(() => getTransactionDecoder().decode(wireBytes));
     const compiled = decodeMessageBytes(new Uint8Array(decoded.messageBytes));
 
@@ -133,7 +139,6 @@ function decodeMessageBytes(bytes: Uint8Array): CompiledTransactionMessage & Com
     return compiled;
 }
 
-/** Callers catch one error type for an unknown version, whichever decoder finds it. */
 function tryRunDecode<T>(decode: () => T): T {
     try {
         return decode();
@@ -141,7 +146,12 @@ function tryRunDecode<T>(decode: () => T): T {
         if (isSolanaError(error, SOLANA_ERROR__TRANSACTION__VERSION_NUMBER_NOT_SUPPORTED)) {
             throw new UnsupportedTransactionVersionError(error.context.unsupportedVersion);
         }
-        throw error;
+        if (isSolanaError(error, SOLANA_ERROR__TRANSACTION__INVALID_CONFIG_MASK_PRIORITY_FEE_BITS)) {
+            throw new InvalidTransactionConfigError(`Invalid transaction config mask: ${error.context.mask}.`, {
+                cause: error,
+            });
+        }
+        throw new MalformedTransactionError('Transaction could not be decoded.', { cause: error });
     }
 }
 

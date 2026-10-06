@@ -8,14 +8,19 @@ import { describe, expect, it } from 'vitest';
 
 import { gen } from '../../__tests__/gen.js';
 import {
+    InvalidTransactionConfigError,
+    MalformedTransactionError,
+    UnsupportedTransactionVersionError,
+} from '../errors.js';
+import {
     fromCompiledMessage,
     fromMessageBytes,
     fromRpcTransaction,
     getAddressTableLookups,
     hasUnmatchedLookupTables,
+    isRpcParsedInstruction,
 } from '../parse.js';
 import type { RpcTransactionResponse } from '../types.js';
-import { UnsupportedTransactionVersionError } from '../version.js';
 import {
     base64WireResponse,
     compiledWithDuplicateFeePayer,
@@ -31,6 +36,7 @@ import {
     v0CompiledWithLookupTable,
     v0Transaction,
     v1CompiledWithConfig,
+    v1MessageBytesWithHalfSetPriorityFeeMask,
     v1Transaction,
     wireBytes,
     wireResponse,
@@ -230,6 +236,12 @@ describe('fromMessageBytes', () => {
         expect(() => fromMessageBytes(bytes)).toThrow(UnsupportedTransactionVersionError);
         expect(() => fromMessageBytes(bytes)).toThrow('Unsupported transaction version: 2');
     });
+
+    it('should reject v1 message bytes that set only one of the two priority fee mask bits', () => {
+        expect(() => fromMessageBytes(v1MessageBytesWithHalfSetPriorityFeeMask())).toThrow(
+            InvalidTransactionConfigError,
+        );
+    });
 });
 
 describe('fromRpcTransaction', () => {
@@ -286,6 +298,18 @@ describe('fromRpcTransaction', () => {
         const bytes = wireBytes(version).slice(0, -1);
 
         expect(() => fromRpcTransaction(base64WireResponse(bytes))).toThrow();
+    });
+
+    it('should reject v1 wire bytes that set only one of the two priority fee mask bits', () => {
+        const bytes = new Uint8Array([...v1MessageBytesWithHalfSetPriorityFeeMask(), ...new Uint8Array(64)]);
+
+        expect(() => fromRpcTransaction(base64WireResponse(bytes))).toThrow(InvalidTransactionConfigError);
+    });
+
+    it.each(['base58', 'base64'] as const)('should reject a wire response with an invalid %s string', encoding => {
+        const response = { transaction: ['0OIl***', encoding] as const };
+
+        expect(() => fromRpcTransaction(response)).toThrow(MalformedTransactionError);
     });
 
     it('should reject v1 wire bytes of an unknown version', () => {

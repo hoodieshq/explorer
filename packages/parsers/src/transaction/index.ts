@@ -12,7 +12,12 @@ export type {
     TransactionInstruction,
     TransactionVersion,
 } from './types.js';
-export { isV1MessageBytes, UnsupportedTransactionVersionError } from './version.js';
+export { isV1MessageBytes } from './version.js';
+export {
+    InvalidTransactionConfigError,
+    MalformedTransactionError,
+    UnsupportedTransactionVersionError,
+} from './errors.js';
 export {
     LEGACY_TRANSACTION_SIZE_LIMIT,
     transactionSizeLimit,

@@ -41,16 +41,26 @@ config reader, and the shared `TransactionVersion` union, consumed by both the a
 - **WHEN** the limit is resolved for a legacy transaction with one required signature
 - **THEN** it is 1232 bytes, not the 4096 that byte-sniffing would report
 
-### Requirement: Malformed v1 config SHALL degrade rather than throw
+### Requirement: Malformed v1 config SHALL make parsing throw
 
-`readTransactionConfig` SHALL return `undefined` for a malformed config mask or a value of unexpected kind,
-and SHALL NOT perform a full message decompile.
+A malformed v1 config SHALL throw `InvalidTransactionConfigError`, a `MalformedTransactionError`, in message bytes
+and in a compiled message. A legacy or v0 message has no config, so `readTransactionConfig` SHALL return
+`undefined` for it and SHALL NOT throw.
 
-#### Scenario: An RPC serves a broken config mask
+#### Scenario: Message bytes carry a broken config mask
 
-- **WHEN** a v1 message arrives with only one of the two priority-fee mask bits set
-- **THEN** `readTransactionConfig` returns `undefined`
-- **AND** the page renders without the config rows instead of failing
+- **WHEN** v1 message bytes set only one of the two priority-fee mask bits
+- **THEN** `fromMessageBytes` and `fromRpcTransaction` throw `InvalidTransactionConfigError`
+
+#### Scenario: A compiled message's config values do not match its mask
+
+- **WHEN** a compiled v1 message lists a config value of the wrong kind for its mask
+- **THEN** `readTransactionConfig` throws `InvalidTransactionConfigError`
+
+#### Scenario: A legacy or v0 message is read for its config
+
+- **WHEN** `readTransactionConfig` receives a legacy or v0 compiled message
+- **THEN** it returns `undefined` instead of throwing
 
 ### Requirement: An absent v1 compute unit limit SHALL read as zero
 

@@ -226,6 +226,10 @@ export function v1CompiledWithConfig(overrides: {
     return { ...compiledMessageFor(1), ...overrides };
 }
 
+export function v1MessageBytesWithHalfSetPriorityFeeMask(): Uint8Array {
+    return encode(v1CompiledWithConfig({ configMask: 0b01, configValues: [{ kind: 'u64', value: 1n }] }));
+}
+
 /** `undefined` produces a v1 message with no config at all, for the absent-limit fallback case. */
 export function v1TransactionWithConfig(overrides: { computeUnitLimit: number } | undefined): ParsedTransaction {
     if (!overrides) return fromCompiledMessage(v1CompiledWithConfig({ configMask: 0, configValues: [] }));

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { isV1MessageBytes, UnsupportedTransactionVersionError } from '../version.js';
+import { isV1MessageBytes } from '../version.js';
 
 describe('isV1MessageBytes', () => {
     it('should report true for the v1 prefix', () => {
@@ -17,15 +17,5 @@ describe('isV1MessageBytes', () => {
 
     it('should report false for empty bytes', () => {
         expect(isV1MessageBytes(new Uint8Array())).toBe(false);
-    });
-});
-
-describe('UnsupportedTransactionVersionError', () => {
-    it('should carry the rejected version', () => {
-        const error = new UnsupportedTransactionVersionError(2);
-
-        expect(error.version).toBe(2);
-        expect(error.name).toBe('UnsupportedTransactionVersionError');
-        expect(error.message).toContain('2');
     });
 });

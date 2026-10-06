@@ -8,9 +8,16 @@ import { describe, expect, it } from 'vitest';
 
 import { gen } from '../../__tests__/gen.js';
 import { fromRpcTransactionConfig, getTransactionConfig, readTransactionConfig } from '../config.js';
+import { InvalidTransactionConfigError } from '../errors.js';
 import { fromRpcTransaction } from '../parse.js';
 import type { ParsedTransaction, RpcTransactionConfig } from '../types.js';
-import { jsonParsedResponse, jsonResponse, v0Transaction, v1CompiledWithConfig } from './fixtures.js';
+import {
+    jsonParsedResponse,
+    jsonResponse,
+    legacyTransaction,
+    v0Transaction,
+    v1CompiledWithConfig,
+} from './fixtures.js';
 
 const BASE = {
     accounts: [],
@@ -59,32 +66,40 @@ describe('readTransactionConfig', () => {
         expect(readTransactionConfig(message)).toBeUndefined();
     });
 
-    it('should return undefined when the message is v0', () => {
-        expect(readTransactionConfig(v0Transaction.compiled())).toBeUndefined();
+    it.each([
+        ['legacy', legacyTransaction],
+        ['v0', v0Transaction],
+    ] as const)('should return undefined when the message is %s', (_label, fixture) => {
+        expect(readTransactionConfig(fixture.compiled())).toBeUndefined();
     });
 
-    it('should return undefined when only one priority fee mask bit is set', () => {
+    it('should throw when only one priority fee mask bit is set', () => {
         const message = v1CompiledWithConfig({ configMask: 0b01, configValues: [{ kind: 'u64', value: 1n }] });
 
-        expect(readTransactionConfig(message)).toBeUndefined();
+        expect(() => readTransactionConfig(message)).toThrow(InvalidTransactionConfigError);
+        expect(() => readTransactionConfig(message)).toThrow('Invalid transaction config mask: 1.');
     });
 
-    it('should return undefined when a value has the wrong kind for its field', () => {
+    it('should throw when a value has the wrong kind for its field', () => {
         const message = v1CompiledWithConfig({
             configMask: TRANSACTION_CONFIG_COMPUTE_UNIT_LIMIT_BIT_MASK,
             configValues: [{ kind: 'u64', value: 19n }],
         });
 
-        expect(readTransactionConfig(message)).toBeUndefined();
+        expect(() => readTransactionConfig(message)).toThrow(InvalidTransactionConfigError);
+        expect(() => readTransactionConfig(message)).toThrow('Config value for computeUnitLimit is u64, expected u32.');
     });
 
-    it('should return undefined when the mask declares more values than arrived', () => {
+    it('should throw when the mask declares more values than arrived', () => {
         const message = v1CompiledWithConfig({
             configMask: TRANSACTION_CONFIG_COMPUTE_UNIT_LIMIT_BIT_MASK,
             configValues: [],
         });
 
-        expect(readTransactionConfig(message)).toBeUndefined();
+        expect(() => readTransactionConfig(message)).toThrow(InvalidTransactionConfigError);
+        expect(() => readTransactionConfig(message)).toThrow(
+            'Config value for computeUnitLimit is missing, expected u32.',
+        );
     });
 });
 
