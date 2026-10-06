@@ -41,7 +41,7 @@ type TransactionPayloadContextBase = {
 /**
  * Transaction version and its specific context.
  * Only v1 carries resource limits.
- * */
+ */
 export type TransactionVersionContext =
     | { version: 1; resourceLimits: TransactionResourceLimits }
     | { version: Exclude<ReportedTransactionVersion, 1>; resourceLimits?: never };
@@ -110,7 +110,7 @@ export type TransactionPayloadEntityBase = {
     recent_blockhash: string | null;
     compute_units_consumed: SafeNumeric;
     /**
-     * `declared` reads the transaction's own limit.
+     * `declared` is the transaction's own limit, capped at the maximum.
      * `calculated` sums per-instruction reserves at the slot's epoch.
      * `fallback` marks a v1 transaction with no declared limit. The runtime budgets it zero.
      */
@@ -130,8 +130,9 @@ export type TransactionResourceLimitsEntry = {
 };
 
 /**
- * `null` reports that the caller omitted the version ceiling. A decoded message always has a version.
+ * `null` means the response had no `version` field, because the request omitted `maxSupportedTransactionVersion`.
  * Each v1 limit is the declared value, or the runtime default where the message declares none.
+ * The compute unit limit is capped at the maximum.
  */
 export type TransactionVersionEntity =
     | { transaction_version: 1; resource_limits: TransactionResourceLimitsEntry }

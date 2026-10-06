@@ -90,7 +90,7 @@ describe('solana rpc adapter', () => {
         expect(sendMock).toHaveBeenCalledWith({ abortSignal: timeoutSignal });
     });
 
-    it('should fetch transaction with the kit version ceiling by default', async () => {
+    it('should request MAX_SUPPORTED_TRANSACTION_VERSION by default', async () => {
         const sendMock = vi.fn().mockResolvedValue({ slot: 1 });
         getTransactionMock.mockReturnValue({ send: sendMock });
 
