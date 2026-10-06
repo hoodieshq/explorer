@@ -23,7 +23,7 @@ const meta: Meta<typeof BaseIntentSentence> = {
             },
         },
     },
-    tags: ['autodocs', 'test'],
+    tags: ['autodocs', 'test', 'clear-sign'],
     title: 'Entities/Idl/BaseIntentSentence',
 };
 

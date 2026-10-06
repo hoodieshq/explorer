@@ -109,3 +109,13 @@ export const WithBadgeTitle: Story = {
         </CollapsibleCard>
     ),
 };
+
+/** `headerDivider={false}`: for content that draws its own top edge, such as an instruction's intent row. */
+export const WithoutHeaderDivider: Story = {
+    args: {} as never,
+    render: () => (
+        <CollapsibleCard title="Account List (3)" headerDivider={false}>
+            <SampleContent />
+        </CollapsibleCard>
+    ),
+};

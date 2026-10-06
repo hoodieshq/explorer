@@ -19,7 +19,7 @@ const meta: Meta<typeof BaseInstructionIntentButton> = {
             },
         },
     },
-    tags: ['autodocs', 'test'],
+    tags: ['autodocs', 'test', 'clear-sign'],
     title: 'Features/DecodeInstructionWithIdl/BaseInstructionIntentButton',
 };
 
