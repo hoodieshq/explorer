@@ -1,5 +1,4 @@
-// Message integrity, account resolution and version narrowing come from @explorer/parsers/transaction.
-// What stays here is payload work: status, fee, confirmations and the inner instructions meta carries.
+// Maps a json getTransaction probe to TransactionPayloadContext.
 import {
     fromRpcTransaction,
     getRequestedComputeUnits,
