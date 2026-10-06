@@ -1,5 +1,4 @@
 import { nextjsParameters, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
-import { GroupedDocsPage } from '@storybook-config/grouped-docs-page';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { useEffect, useState } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
@@ -64,11 +63,7 @@ const meta: Meta<typeof BaseInstructionsReadOut> = {
                     '5. **The current cluster**: the IDL, the RPC reads and the program names all come from it.',
                 ].join('\n'),
             },
-            page: () => (
-                <GroupedDocsPage
-                    groups={[{ prototype: Interactive, states: [Collapsed, Open], title: 'Expand and collapse' }]}
-                />
-            ),
+            groups: [{ prototype: 'Interactive', states: ['Collapsed', 'Open'], title: 'Expand and collapse' }],
         },
     },
     tags: ['autodocs', 'test', 'clear-sign'],

@@ -1,5 +1,4 @@
 import { nextjsParameters, withClipboardMock, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
-import { GroupedDocsPage } from '@storybook-config/grouped-docs-page';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { useEffect, useState } from 'react';
 import { expect, fn, screen, userEvent, within } from 'storybook/test';
@@ -57,17 +56,13 @@ const meta: Meta<typeof MainnetWarningDialog> = {
                 ].join('\n'),
             },
 
-            page: () => (
-                <GroupedDocsPage
-                    groups={[
-                        {
-                            prototype: Interactive,
-                            states: [WithSummary, LoadingSummary, WithoutMetadata],
-                            title: 'Execute on mainnet',
-                        },
-                    ]}
-                />
-            ),
+            groups: [
+                {
+                    prototype: 'Interactive',
+                    states: ['WithSummary', 'LoadingSummary', 'WithoutMetadata'],
+                    title: 'Execute on mainnet',
+                },
+            ],
             // The dialog portals to the document body, so an inline docs story would cover the whole page. Each story
             // gets its own frame instead, tall enough for the dialog with its fields open.
             story: { height: '560px', inline: false },

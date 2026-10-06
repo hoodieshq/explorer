@@ -1,7 +1,6 @@
 import { shortenAddress } from '@entities/idl';
 import { isAddress } from '@solana/kit';
 import { nextjsParameters, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
-import { GroupedDocsPage } from '@storybook-config/grouped-docs-page';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { useEffect, useState } from 'react';
 import { expect, userEvent, within } from 'storybook/test';
@@ -39,17 +38,13 @@ const meta: Meta<typeof BaseInstructionReadback> = {
                     '4. **Zero RPC.** No account is read here, so formatting that needs chain data (e.g. token decimals) waits for the mainnet confirmation ([MainnetWarningDialog](?path=/docs/features-idl-interactive-idl-mainnetwarningdialog--docs)).',
                 ].join('\n'),
             },
-            page: () => (
-                <GroupedDocsPage
-                    groups={[
-                        {
-                            prototype: Interactive,
-                            states: [Incomplete, FilledTemplate, Complete],
-                            title: 'Fill in the form',
-                        },
-                    ]}
-                />
-            ),
+            groups: [
+                {
+                    prototype: 'Interactive',
+                    states: ['Incomplete', 'FilledTemplate', 'Complete'],
+                    title: 'Fill in the form',
+                },
+            ],
         },
     },
     tags: ['autodocs', 'test', 'clear-sign'],

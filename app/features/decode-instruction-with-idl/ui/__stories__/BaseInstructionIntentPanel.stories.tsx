@@ -7,7 +7,6 @@ import {
     withScrollAnchor,
     withTokenInfoBatch,
 } from '@storybook-config/decorators';
-import { GroupedDocsPage } from '@storybook-config/grouped-docs-page';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { useEffect, useId, useState } from 'react';
 import { expect, fn, userEvent, within } from 'storybook/test';
@@ -53,22 +52,18 @@ const meta: Meta<typeof BaseInstructionIntentPanel> = {
                     '5. **The current cluster**: the IDL and the RPC reads come from it.',
                 ].join('\n'),
             },
-            page: () => (
-                <GroupedDocsPage
-                    groups={[
-                        {
-                            prototype: Interactive,
-                            states: [Loading, Resolved, ResolvedWithAccountData, NoSentence],
-                            title: 'Intent found: solid button',
-                        },
-                        {
-                            prototype: InteractiveUnavailable,
-                            states: [NoMetadata, NoBytes, NotIdentified, LoadFailed],
-                            title: 'Intent unavailable: dashed button',
-                        },
-                    ]}
-                />
-            ),
+            groups: [
+                {
+                    prototype: 'Interactive',
+                    states: ['Loading', 'Resolved', 'ResolvedWithAccountData', 'NoSentence'],
+                    title: 'Intent found: solid button',
+                },
+                {
+                    prototype: 'InteractiveUnavailable',
+                    states: ['NoMetadata', 'NoBytes', 'NotIdentified', 'LoadFailed'],
+                    title: 'Intent unavailable: dashed button',
+                },
+            ],
         },
     },
     tags: ['autodocs', 'test', 'clear-sign'],

@@ -1,4 +1,3 @@
-import { Description, Title } from '@storybook/addon-docs/blocks';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
 const meta: Meta = {
@@ -18,12 +17,7 @@ const meta: Meta = {
                     'Each page lists what the block is built from (**References**) and where its data comes from (**Relies on**), and starts with an **Interactive** story to click through. To see only these pages, filter the sidebar by the `clear-sign` tag.',
                 ].join('\n'),
             },
-            page: () => (
-                <>
-                    <Title />
-                    <Description />
-                </>
-            ),
+            guide: true,
         },
     },
     tags: ['autodocs', 'clear-sign'],
