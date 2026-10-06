@@ -333,6 +333,27 @@ describe('inspect_entity handler', () => {
         });
     });
 
+    it('should map an unsupported transaction version to CURRENTLY_UNSUPPORTED with a kind-only payload', async () => {
+        const logger = createLoggerMock();
+        const dependencies = createDependencies({
+            fetchTransaction: vi.fn().mockResolvedValue(transactionProbe({ version: 2 })),
+            logger,
+        });
+
+        const result = await handleInspectEntity({ identifier: TRANSACTION_IDENTIFIER }, dependencies);
+        const envelope = parseEnvelope(result);
+
+        expect(result.isError).toBe(true);
+        expect(envelope).toEqual({
+            errors: [{ code: 'CURRENTLY_UNSUPPORTED', message: 'Transaction version 2 is not supported.' }],
+            payload: { entity: { kind: 'transaction' } },
+        });
+        expect(logger.error).toHaveBeenCalledWith(
+            '[entity-inspector] inspect_entity transaction resolution failed',
+            expect.objectContaining({ identifier: TRANSACTION_IDENTIFIER }),
+        );
+    });
+
     it('should return NOT_FOUND for account probes with explicit null', async () => {
         const dependencies = createDependencies({
             fetchAccountInfo: vi.fn().mockResolvedValue(notFoundAccountProbe()),
