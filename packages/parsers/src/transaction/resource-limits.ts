@@ -13,6 +13,8 @@ export type V1ResourceLimits = {
  * Effective v1 resource limits: the declared value, or the runtime default where the message declares none.
  * Returns `undefined` for legacy and v0, which budget through Compute Budget instructions instead.
  */
+export function getV1ResourceLimits(transaction: Extract<ParsedTransaction, { version: 1 }>): V1ResourceLimits;
+export function getV1ResourceLimits(transaction: ParsedTransaction): V1ResourceLimits | undefined;
 export function getV1ResourceLimits(transaction: ParsedTransaction): V1ResourceLimits | undefined {
     if (transaction.version !== 1) return undefined;
 
