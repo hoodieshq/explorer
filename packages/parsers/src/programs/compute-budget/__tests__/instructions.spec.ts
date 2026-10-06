@@ -68,9 +68,9 @@ describe('readComputeUnitLimitFromInstruction', () => {
         expect(readComputeUnitLimitFromInstruction(instruction)).toBeUndefined();
     });
 
-    it('should return undefined when the instruction has no data', () => {
+    it('should return undefined when the RPC sent a parsed instruction instead of its data', () => {
         expect(
-            readComputeUnitLimitFromInstruction({ accounts: [], programAddress: COMPUTE_BUDGET_PROGRAM_ADDRESS }),
+            readComputeUnitLimitFromInstruction({ parsed: {}, programAddress: COMPUTE_BUDGET_PROGRAM_ADDRESS }),
         ).toBeUndefined();
     });
 });

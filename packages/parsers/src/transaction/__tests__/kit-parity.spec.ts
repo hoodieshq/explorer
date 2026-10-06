@@ -33,7 +33,7 @@ describe('fromCompiledMessage', () => {
 
         expect(kitAccounts).toHaveLength(4);
         expect(transaction.accounts).toEqual(kitAccounts.map(toTransactionAccount));
-        expect(transaction.instructions[0].accounts).toEqual(kitAccounts.map(toTransactionAccount));
+        expect(transaction.instructions[0]).toHaveProperty('accounts', kitAccounts.map(toTransactionAccount));
     });
 
     it('should resolve v0 lookup table accounts exactly as kit decompiles them', () => {
@@ -67,7 +67,7 @@ describe('fromCompiledMessage', () => {
 
         expect(kitAccounts).toHaveLength(9);
         expect(transaction.accounts).toEqual(kitAccounts.map(toTransactionAccount));
-        expect(transaction.instructions[0].accounts).toEqual(kitAccounts.map(toTransactionAccount));
+        expect(transaction.instructions[0]).toHaveProperty('accounts', kitAccounts.map(toTransactionAccount));
     });
 });
 

@@ -32,7 +32,7 @@ function readComputeBudgetInstruction<T>(
     instruction: TransactionInstruction,
     parse: (type: ComputeBudgetInstruction, candidate: ComputeBudgetCandidate) => T | undefined,
 ): T | undefined {
-    if (instruction.programAddress !== COMPUTE_BUDGET_PROGRAM_ADDRESS || !instruction.data) return undefined;
+    if (instruction.programAddress !== COMPUTE_BUDGET_PROGRAM_ADDRESS || !('data' in instruction)) return undefined;
 
     const candidate: ComputeBudgetCandidate = {
         accounts: [],

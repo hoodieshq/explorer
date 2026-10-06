@@ -363,7 +363,7 @@ function fromJsonParsedTransaction(
 
     const instructions: TransactionInstruction[] = message.instructions.map(ix => {
         const programAddress = ensureAccountExists(byAddress, address(ix.programId)).address;
-        if ('parsed' in ix) return { accounts: [], parsed: ix.parsed, programAddress };
+        if ('parsed' in ix) return { parsed: ix.parsed, programAddress };
 
         return {
             accounts: ix.accounts.map(pubkey => ensureAccountExists(byAddress, address(pubkey))),

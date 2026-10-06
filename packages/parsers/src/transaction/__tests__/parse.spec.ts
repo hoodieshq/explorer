@@ -48,7 +48,10 @@ describe('fromCompiledMessage', () => {
 
         expect(transaction.instructions).toHaveLength(1);
         expect(transaction.instructions[0].programAddress).toBe(v1Transaction.compiled().staticAccounts[1]);
-        expect(transaction.instructions[0].accounts[0].address).toBe(v1Transaction.compiled().staticAccounts[0]);
+        expect(transaction.instructions[0]).toHaveProperty(
+            'accounts.0.address',
+            v1Transaction.compiled().staticAccounts[0],
+        );
     });
 
     it.each(['legacy', 0, 1] as const)(
@@ -57,10 +60,12 @@ describe('fromCompiledMessage', () => {
             const compiled = compiledWithDuplicateFeePayer(version);
             const [feePayer] = compiled.staticAccounts;
 
-            expect(fromCompiledMessage(compiled).instructions[0].accounts).toMatchObject([
-                { address: feePayer, signer: true, writable: true },
-                { address: feePayer, signer: false, writable: false },
-            ]);
+            expect(fromCompiledMessage(compiled).instructions[0]).toMatchObject({
+                accounts: [
+                    { address: feePayer, signer: true, writable: true },
+                    { address: feePayer, signer: false, writable: false },
+                ],
+            });
         },
     );
 
@@ -88,7 +93,7 @@ describe('fromCompiledMessage', () => {
 
         const transaction = fromCompiledMessage(compiled, { loadedAddresses });
 
-        expect(transaction.instructions[0].accounts).toEqual([
+        expect(transaction.instructions[0]).toHaveProperty('accounts', [
             { address: feePayer, signer: true, source: 'static', writable: true },
             { address: feePayer, lookupTableAddress, signer: false, source: 'lookupTable', writable: true },
         ]);
@@ -97,7 +102,7 @@ describe('fromCompiledMessage', () => {
     it.each(['legacy', 0, 1] as const)('should keep empty instruction data on a %s message', version => {
         const transaction = transactionWithInstructions(version, [{ programAddress: gen.address(30) }]);
 
-        expect(transaction.instructions[0].data).toEqual(new Uint8Array(0));
+        expect(transaction.instructions[0]).toHaveProperty('data', new Uint8Array(0));
     });
 
     it('should read the config from a v1 message', () => {
@@ -315,14 +320,14 @@ describe('fromRpcTransaction', () => {
         const transaction = fromRpcTransaction(jsonResponse(1));
 
         expect(transaction.version).toBe(1);
-        expect(transaction.instructions[0].data).toEqual(INSTRUCTION_DATA);
+        expect(transaction.instructions[0]).toHaveProperty('data', INSTRUCTION_DATA);
     });
 
     it('should keep empty instruction data on a JSON response', () => {
         const response = jsonResponse(1);
         response.transaction.message.instructions = [{ accounts: [0], data: '', programIdIndex: 1 }];
 
-        expect(fromRpcTransaction(response).instructions[0].data).toEqual(new Uint8Array(0));
+        expect(fromRpcTransaction(response).instructions[0]).toHaveProperty('data', new Uint8Array(0));
     });
 
     it('should resolve v0 JSON instruction accounts loaded from a lookup table', () => {
@@ -338,7 +343,7 @@ describe('fromRpcTransaction', () => {
             meta: { loadedAddresses: { readonly: [gen.address(6)], writable: [gen.address(5)] } },
         };
 
-        expect(fromRpcTransaction(withMeta).instructions[0].accounts).toEqual([
+        expect(fromRpcTransaction(withMeta).instructions[0]).toHaveProperty('accounts', [
             { address: feePayer, signer: true, source: 'static', writable: true },
             {
                 address: gen.address(5),
@@ -414,20 +419,14 @@ describe('fromRpcTransaction', () => {
         expect(transaction.accounts[0]).toMatchObject({ signer: true, source: 'static', writable: true });
     });
 
-    it('should carry the RPC decode when a jsonParsed instruction has no data', () => {
+    it('should carry only the RPC decode when a jsonParsed instruction has no data', () => {
         const response = jsonParsedResponse(1);
-        response.transaction.message.instructions = [
-            {
-                parsed: { type: 'transfer' },
-                program: 'system',
-                programId: response.transaction.message.accountKeys[1].pubkey,
-            },
-        ];
+        const programId = response.transaction.message.accountKeys[1].pubkey;
+        response.transaction.message.instructions = [{ parsed: { type: 'transfer' }, program: 'system', programId }];
 
         const transaction = fromRpcTransaction(response);
 
-        expect(transaction.instructions[0]).toMatchObject({ parsed: { type: 'transfer' } });
-        expect(transaction.instructions[0].data).toBeUndefined();
+        expect(transaction.instructions[0]).toEqual({ parsed: { type: 'transfer' }, programAddress: programId });
     });
 
     it('should resolve a jsonParsed instruction account against a lookup-table-sourced key', () => {
@@ -443,9 +442,8 @@ describe('fromRpcTransaction', () => {
 
         const transaction = fromRpcTransaction(response);
 
-        expect(transaction.instructions[0].accounts[0]).toMatchObject({
-            address: lookupAddress,
-            source: 'lookupTable',
+        expect(transaction.instructions[0]).toMatchObject({
+            accounts: [{ address: lookupAddress, source: 'lookupTable' }],
         });
     });
 

@@ -1,7 +1,7 @@
 import type { GetTransactionApi, Rpc, Signature } from '@solana/kit';
 import { describe, expectTypeOf, it } from 'vitest';
 
-import type { ParsedTransaction, RpcTransactionResponse } from '../types.js';
+import type { ParsedTransaction, RpcTransactionResponse, TransactionInstruction } from '../types.js';
 
 declare const rpc: Rpc<GetTransactionApi>;
 declare const signature: Signature;
@@ -14,6 +14,8 @@ type KitResponse<T extends { send: () => Promise<unknown> }> = NonNullable<Await
 
 type ParsedTransactionOf<V extends ParsedTransaction['version']> = Extract<ParsedTransaction, { version: V }>;
 
+type RpcParsedInstruction = Extract<TransactionInstruction, { parsed: unknown }>;
+
 describe('ParsedTransaction', () => {
     it('should carry the unmatched lookup table fields on the v0 arm only', () => {
         expectTypeOf<ParsedTransactionOf<0>>().toHaveProperty('unmatchedLookupTableAddresses');
@@ -22,6 +24,14 @@ describe('ParsedTransaction', () => {
         expectTypeOf<ParsedTransactionOf<'legacy'>>().not.toHaveProperty('unmatchedLookupTableIndexes');
         expectTypeOf<ParsedTransactionOf<1>>().not.toHaveProperty('unmatchedLookupTableAddresses');
         expectTypeOf<ParsedTransactionOf<1>>().not.toHaveProperty('unmatchedLookupTableIndexes');
+    });
+});
+
+describe('TransactionInstruction', () => {
+    it('should carry no accounts or data on the RPC-parsed arm', () => {
+        expectTypeOf<RpcParsedInstruction>().toHaveProperty('parsed');
+        expectTypeOf<RpcParsedInstruction>().not.toHaveProperty('accounts');
+        expectTypeOf<RpcParsedInstruction>().not.toHaveProperty('data');
     });
 });
 

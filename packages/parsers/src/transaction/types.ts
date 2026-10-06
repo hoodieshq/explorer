@@ -23,14 +23,13 @@ export type TransactionAccount = {
     lookupTableAddress?: Address;
 };
 
-export type TransactionInstruction = {
-    programAddress: Address;
-    accounts: readonly TransactionAccount[];
-    /** Absent when the RPC sent a parsed instruction instead of its data. */
-    data?: Uint8Array;
-    /** The RPC's own decode, under `jsonParsed` encoding only. */
-    parsed?: unknown;
-};
+export type TransactionInstruction =
+    | { programAddress: Address; accounts: readonly TransactionAccount[]; data: Uint8Array }
+    | {
+          programAddress: Address;
+          /** The RPC's own decode, under `jsonParsed` encoding only. The RPC sends no account list or data with it. */
+          parsed: unknown;
+      };
 
 /** A u64 on the wire, so bigint keeps every value exact. */
 export type PriorityFeeLamports = bigint;
