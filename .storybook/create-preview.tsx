@@ -5,6 +5,7 @@ import { INITIAL_VIEWPORTS } from 'storybook/viewport';
 import { rubikFont } from '@/app/styles';
 
 import { BREAKPOINT_VIEWPORTS } from './breakpoints';
+import { ProjectDocsPage } from './docs-page';
 import type { Preview } from './types';
 
 // Storybook serialises story args with JSON.stringify (for the controls panel and inter-frame
@@ -57,6 +58,7 @@ export function createPreview({ mswEnabled }: { mswEnabled: boolean }): Preview 
                     light: { name: 'Light', value: 'var(--sb-bg-light)' },
                 },
             },
+            docs: { page: ProjectDocsPage },
             controls: {
                 matchers: {
                     // eslint-disable-next-line no-restricted-syntax -- Storybook controls matcher requires regex to match arg names

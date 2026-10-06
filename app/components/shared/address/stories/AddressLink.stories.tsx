@@ -90,3 +90,17 @@ export const InsideTableCell: Story = {
         </div>
     ),
 };
+
+export const TruncatedWithoutCopy: Story = {
+    args: {
+        address: SAMPLE_ADDRESS,
+        copyable: false,
+        truncate: { head: 5, tail: 5 },
+    },
+    play: async ({ canvasElement }) => {
+        const canvas = within(canvasElement);
+
+        await expect(canvas.getByRole('link')).toHaveTextContent('7bTK6…5Z6X4');
+        await expect(canvas.queryByRole('button')).not.toBeInTheDocument();
+    },
+};

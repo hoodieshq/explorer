@@ -57,6 +57,7 @@ export function useMainnetConfirmation<T = unknown>() {
         confirm,
         hasPendingAction: pendingAction !== null,
         isOpen,
+        pendingContext: pendingAction?.context,
         requireConfirmation,
     };
 }

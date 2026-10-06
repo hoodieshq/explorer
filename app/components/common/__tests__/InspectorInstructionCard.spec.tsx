@@ -16,10 +16,27 @@ vi.mock('@entities/instruction-card', () => ({
     ProgramField: () => undefined,
 }));
 
-vi.mock('@features/decode-instruction-with-idl/ui/InstructionDisplayPopover', () => ({
-    InstructionDisplayPopover: ({ programId, raw }: { programId: string; raw?: TransactionInstruction }) => (
-        <div data-testid="display-popover" data-program-id={programId} data-has-raw={raw !== undefined} />
-    ),
+// The intent's own behaviour has its specs; here only what the card hands it matters.
+vi.mock('@features/decode-instruction-with-idl/ui/InstructionIntent', () => ({
+    useInstructionIntentSlots: ({
+        onRequestRaw,
+        programId,
+        raw,
+    }: {
+        onRequestRaw?: () => void;
+        programId: string;
+        raw?: TransactionInstruction;
+    }) => ({
+        button: (
+            <div
+                data-testid="display-popover"
+                data-program-id={programId}
+                data-has-raw={raw !== undefined}
+                data-can-request-raw={onRequestRaw !== undefined}
+            />
+        ),
+        panel: undefined,
+    }),
 }));
 
 function instruction() {
@@ -33,16 +50,16 @@ function renderCard(props: Partial<React.ComponentProps<typeof InspectorInstruct
 }
 
 describe('InspectorInstructionCard', () => {
-    it('should offer the display summary on a top-level instruction', () => {
+    it('should offer the intent on a top-level instruction', () => {
         renderCard();
 
         expect(screen.getByTestId('display-popover').dataset.programId).toBe(PROGRAM_ID.toString());
     });
 
-    it('should not offer the display summary on an inner instruction', () => {
+    it('should offer the intent on an inner instruction, whose bytes the inspector holds', () => {
         renderCard({ childIndex: 0 });
 
-        expect(screen.queryByTestId('display-popover')).not.toBeInTheDocument();
+        expect(screen.getByTestId('display-popover').dataset.hasRaw).toBe('true');
     });
 
     it('should treat the rendered instruction as the raw one when no raw prop arrives', () => {

@@ -2,4 +2,5 @@ export { decodeInstructionWithIdl, type IdlInstructionDecode } from './lib/decod
 export { useIdlInstructionDecode } from './model/use-idl-instruction-decode';
 export { useInstructionDisplayFromRaw } from './model/use-instruction-display-from-raw';
 export { IdlInstructionCard } from './ui/IdlInstructionCard';
-export { InstructionDisplayPopover } from './ui/InstructionDisplayPopover';
+export { InstructionsReadOut } from './ui/InstructionsReadOut';
+export { useInstructionIntentSlots } from './ui/InstructionIntent';

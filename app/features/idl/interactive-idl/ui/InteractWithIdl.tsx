@@ -2,12 +2,13 @@ import { LoadingCard } from '@components/shared/LoadingCard';
 import { useToast } from '@components/shared/ui/sonner/use-toast';
 import type { InstructionData, SupportedIdl } from '@entities/idl';
 import { useAtomValue } from 'jotai';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ExplorerLink } from '@/app/entities/cluster';
 import { useWallet } from '@/app/providers/wallet/use-wallet';
 import { BaseWarningCard } from '@/app/shared/ui/WarningCard';
 
+import { useMainnetSummary } from '../model/display/use-mainnet-summary';
 import { originalIdlAtom, programIdAtom } from '../model/state-atoms';
 import type { ExecutionOptions } from '../model/transaction/types';
 import { isEnabled, useInstruction } from '../model/use-instruction';
@@ -109,10 +110,16 @@ export function InteractWithIdl({
 
     const [lastAction, setLastAction] = useState<'execute' | 'simulate' | null>(null);
 
-    const { requireConfirmation, confirm, cancel, isOpen, hasPendingAction } = useMainnetConfirmation<{
+    const { requireConfirmation, confirm, cancel, isOpen, hasPendingAction, pendingContext } = useMainnetConfirmation<{
         data: InstructionData;
         params: InstructionCallParams;
     }>();
+    const pendingSummaryInput = useMemo(
+        () =>
+            pendingContext ? { instructionName: pendingContext.data.name, params: pendingContext.params } : undefined,
+        [pendingContext],
+    );
+    const mainnetSummary = useMainnetSummary(pendingSummaryInput);
 
     const handleExecuteInstruction = useCallback(
         async (data: InstructionData, params: InstructionCallParams, options: ExecutionOptions) => {
@@ -179,6 +186,7 @@ export function InteractWithIdl({
                     }}
                     onConfirm={confirm}
                     onCancel={cancel}
+                    summary={mainnetSummary}
                 />
             )}
         </>

@@ -38,3 +38,12 @@
         background-color: var(--sb-doc-bg, var(--background));
     }
 </style>
+
+<!-- Every section heading of a docs page (h2: References and Relies on in a description, the story groups, Props):
+     three times the docs heading margin (20px) above it, so each reads as its own section. Two classes beat both the docs
+     heading rule and its `:first-of-type` reset, which otherwise takes the margin off the first h2 among siblings. -->
+<style>
+    .sbdocs.sbdocs-content h2 {
+        margin-top: 60px;
+    }
+</style>

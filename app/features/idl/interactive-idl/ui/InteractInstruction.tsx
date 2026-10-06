@@ -17,7 +17,7 @@ import { Card, CardSection } from '@/app/shared/ui/Card';
 
 import { createGetAutocompleteItems } from '../model/account-autocomplete/createGetAutocompleteItems';
 import type { AutocompleteItem } from '../model/account-autocomplete/types';
-import { useInstructionDisplay } from '../model/display/use-instruction-display';
+import { useInstructionReadback } from '../model/display/use-instruction-readback';
 import { createKnownAccountsPrefillDependency } from '../model/form-prefill/providers/known-accounts-prefill-provider';
 import { usePdaPrefill } from '../model/form-prefill/providers/use-pda-prefill';
 import { createWalletPrefillDependency } from '../model/form-prefill/providers/wallet-prefill-provider';
@@ -33,7 +33,7 @@ import { usePdas } from '../model/use-pdas';
 import { AccordionContent, AccordionItem, AccordionTrigger } from './Accordion';
 import { AccountInput } from './AccountInput';
 import { ArgumentInput } from './ArgumentInput';
-import { InstructionDisplaySummary } from './InstructionDisplaySummary';
+import { BaseInstructionReadback } from './BaseInstructionReadback';
 import { WarningNote } from './WarningNote';
 
 const WALLET_CONNECT_TOOLTIP = 'Connect your wallet to interact with this instruction';
@@ -67,7 +67,7 @@ export function InteractInstruction({
 
     const pdas = usePdas({ form, idl, instruction });
     const getAutocompleteItems = createGetAutocompleteItems({ pdas, publicKey });
-    const display = useInstructionDisplay({ form, instructionName: instruction.name });
+    const readback = useInstructionReadback({ form, instructionName: instruction.name });
 
     const walletPrefillDependency = createWalletPrefillDependency(instruction, publicKey, fieldNames);
     const knownAccountsPrefillDependency = createKnownAccountsPrefillDependency(instruction, fieldNames);
@@ -157,9 +157,9 @@ export function InteractInstruction({
                             </div>
                         </CardSection>
                     )}
-                    {display && (
+                    {readback && (
                         <div className="px-6 pb-4">
-                            <InstructionDisplaySummary display={display} />
+                            <BaseInstructionReadback parts={readback.parts} sentence={readback.sentence} />
                         </div>
                     )}
 

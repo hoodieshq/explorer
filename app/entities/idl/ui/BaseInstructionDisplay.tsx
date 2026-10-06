@@ -1,27 +1,61 @@
 import type { InstructionDisplay } from '@codama/dynamic-instructions';
+import { Address } from '@components/common/Address';
+import { cn } from '@components/shared/utils';
+import { KeyValue } from '@shared/ui/key-value';
+import { isAddress } from '@solana/kit';
+import { PublicKey } from '@solana/web3.js';
+
+import { BaseIntentSentence } from './BaseIntentSentence';
 
 /**
- * The body of an sRFC 39 display: the intent sentence and the fields behind it.
- * Values are raw base58 by design - the display layer leaves address presentation to the renderer.
+ * The body of an sRFC 39 display: the intent sentence and the labelled fields behind it.
+ * The sentence shortens its addresses; the fields keep them whole, with copy, so both reads stay available.
+ * Without a sentence the short `intent` label leads instead.
  */
 export function BaseInstructionDisplay({ display, className }: { display: InstructionDisplay; className?: string }) {
     return (
-        <div className={className}>
-            <p className="break-all text-xs text-white" data-testid="instruction-display-intent">
-                {display.interpolatedIntent ?? display.intent}
-            </p>
+        <div className={cn('flex flex-col gap-2', className)}>
+            <BaseIntentSentence sentence={display.interpolatedIntent ?? display.intent} />
 
-            {display.fields.length > 0 && (
-                <dl className="mt-3 space-y-1.5">
-                    {/* Index key: an argument and an account can share a name, so labels are not unique. */}
-                    {display.fields.map((field, index) => (
-                        <div key={index} className="flex gap-3 text-xs">
-                            <dt className="w-28 shrink-0 text-neutral-400">{field.label}</dt>
-                            <dd className="min-w-0 break-all text-neutral-200">{field.value}</dd>
-                        </div>
-                    ))}
-                </dl>
-            )}
+            {display.fields.length > 0 && <BaseDisplayFields fields={display.fields} />}
+        </div>
+    );
+}
+
+/**
+ * Label/value rows of the display's fallback list, laid out as the Overview card's rows ({@link KeyValue}),
+ * top-left aligned so a long value wraps under its own start. Addresses use the app's {@link Address}.
+ */
+export function BaseDisplayFields({
+    fields,
+    labelWidth,
+    className,
+}: {
+    fields: InstructionDisplay['fields'];
+    /** The label column's width class; the shared KeyValue column when omitted. */
+    labelWidth?: string;
+    className?: string;
+}) {
+    return (
+        // The rhythm of an account's expanded details (AccountExpandedContent): `flat` rows, 6px apart.
+        <div className={cn('flex flex-col gap-1.5', className)} data-testid="intent-fields">
+            {/* Index key: an argument and an account can share a name, so labels are not unique. */}
+            {fields.map((field, index) => (
+                <KeyValue
+                    key={index}
+                    label={field.label}
+                    labelWidth={labelWidth}
+                    align="start"
+                    density="flat"
+                    divider={false}
+                >
+                    {isAddress(field.value) ? (
+                        <Address pubkey={new PublicKey(field.value)} link noNicknameEditing />
+                    ) : (
+                        <span className="text-white">{field.value}</span>
+                    )}
+                </KeyValue>
+            ))}
         </div>
     );
 }

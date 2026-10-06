@@ -32,5 +32,13 @@ export { useFormatCodamaIdl } from './model/use-format-codama-idl';
 export { getIdlSpecType } from './model/converters/convert-legacy-idl';
 
 export { createFetchDisplayAccount, memoizeFetchAccount } from './lib/fetch-display-account';
-export { hasDisplayMetadata } from './lib/has-display-metadata';
-export { BaseInstructionDisplay } from './ui/BaseInstructionDisplay';
+export { getInstructionIntentTemplate, hasDisplayMetadata } from './lib/has-display-metadata';
+export {
+    type IntentSentencePart,
+    type IntentTemplatePart,
+    parseIntentTemplate,
+    shortenAddress,
+    splitIntentSentence,
+} from './lib/intent-text';
+export { BaseDisplayFields, BaseInstructionDisplay } from './ui/BaseInstructionDisplay';
+export { BaseIntentSentence } from './ui/BaseIntentSentence';

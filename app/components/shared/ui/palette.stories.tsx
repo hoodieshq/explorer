@@ -249,3 +249,71 @@ export const Spacing: Story = {
         </div>
     ),
 };
+
+// Which colour means what. Swatches read the tokens off the Tailwind config, so a changed hex shows here.
+// Hex values the config does not carry as a named token are written out, with where they come from.
+const COLOR_AGREEMENTS: {
+    role: string;
+    token: string;
+    color: string;
+    usedFor: string;
+    avoid?: string;
+}[] = [
+    {
+        avoid: 'Button `variant="destructive"` (red-500) and `destructive` for this role.',
+        color: dkColors.danger,
+        role: 'Danger',
+        token: 'dk-danger · Button variant="danger"',
+        usedFor:
+            'Confirming a dangerous or irreversible action and reporting a failure: "Spend real funds?" on the Interact tab (title mark and confirm button), the RPC consent dialog, a failed cluster connection, Alert variant="danger".',
+    },
+    {
+        avoid: 'Yellow and other hues for warnings.',
+        color: dkColors['warning-on-dark'],
+        role: 'Warning / in progress',
+        token: 'dk-warning-on-dark · destructive',
+        usedFor:
+            'A caution that is not yet a failure: WarningNote, Alert variant="warning", a cluster that is still connecting, the "connected to Mainnet" hint.',
+    },
+    {
+        color: dkColors['primary-on-dark'],
+        role: 'Success / connected',
+        token: 'dk-primary-on-dark · dark-accent',
+        usedFor: 'A connected cluster, confirmed state, the accent.',
+    },
+    {
+        color: '#e08214',
+        role: 'Unknown RPC server',
+        token: '#e08214 (cluster status button)',
+        usedFor:
+            'The provenance mark of a custom, unlisted RPC endpoint in the navigation bar. A marker of origin, not a danger colour.',
+    },
+];
+
+function AgreementsTable() {
+    return (
+        <div className="flex flex-col gap-4 text-dk-white">
+            <p className="m-0 text-dk-sm text-dk-gray-600">
+                Agreed meanings of colour across the Explorer. When a new surface needs one of these roles, it takes the
+                token below rather than a new hue.
+            </p>
+            {COLOR_AGREEMENTS.map(({ role, token, color, usedFor, avoid }) => (
+                <div key={role} className="flex items-start gap-3">
+                    <ColorBox color={color} />
+                    <div className="flex min-w-0 flex-col gap-1">
+                        <span className="text-dk-base">{role}</span>
+                        <code className="text-dk-sm text-dk-white">
+                            {token} · {color}
+                        </code>
+                        <span className="text-dk-sm text-dk-gray-600">{usedFor}</span>
+                        {avoid && <span className="text-dk-sm text-dk-gray-600">Not: {avoid}</span>}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+export const Agreements: Story = {
+    render: () => <AgreementsTable />,
+};
