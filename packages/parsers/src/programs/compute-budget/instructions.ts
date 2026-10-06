@@ -6,6 +6,7 @@ import {
     parseSetComputeUnitLimitInstruction,
 } from '@solana-program/compute-budget';
 
+import { isRpcParsedInstruction } from '../../transaction/parse.js';
 import type { TransactionInstruction } from '../../transaction/types.js';
 
 type ComputeBudgetCandidate = {
@@ -32,7 +33,9 @@ function readComputeBudgetInstruction<T>(
     instruction: TransactionInstruction,
     parse: (type: ComputeBudgetInstruction, candidate: ComputeBudgetCandidate) => T | undefined,
 ): T | undefined {
-    if (instruction.programAddress !== COMPUTE_BUDGET_PROGRAM_ADDRESS || !('data' in instruction)) return undefined;
+    if (instruction.programAddress !== COMPUTE_BUDGET_PROGRAM_ADDRESS || isRpcParsedInstruction(instruction)) {
+        return undefined;
+    }
 
     const candidate: ComputeBudgetCandidate = {
         accounts: [],

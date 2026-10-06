@@ -4,6 +4,7 @@ export type {
     ParsedTransaction,
     PriorityFeeLamports,
     ReportedTransactionVersion,
+    RpcParsedInstruction,
     RpcTransactionConfig,
     RpcTransactionResponse,
     TransactionAccount,
@@ -31,6 +32,7 @@ export {
     fromRpcTransaction,
     getAddressTableLookups,
     hasUnmatchedLookupTables,
+    isRpcParsedInstruction,
 } from './parse.js';
 export { getRequestedComputeUnits, type RequestedComputeUnits } from './compute-units.js';
 export { getV1ResourceLimits, type V1ResourceLimits } from './resource-limits.js';

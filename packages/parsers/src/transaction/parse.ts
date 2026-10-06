@@ -26,6 +26,7 @@ import type {
     ReportedTransactionVersion,
     RpcJsonParsedTransaction,
     RpcJsonTransaction,
+    RpcParsedInstruction,
     RpcTransactionResponse,
     TransactionAccount,
     TransactionInstruction,
@@ -166,6 +167,10 @@ export function hasUnmatchedLookupTables(transaction: ParsedTransaction): boolea
         (transaction.unmatchedLookupTableAddresses !== undefined ||
             transaction.unmatchedLookupTableIndexes !== undefined)
     );
+}
+
+export function isRpcParsedInstruction(instruction: TransactionInstruction): instruction is RpcParsedInstruction {
+    return 'parsed' in instruction;
 }
 
 /** The RPC reports the version outside the message, so it is checked before the message is read. */

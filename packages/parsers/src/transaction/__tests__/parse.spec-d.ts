@@ -1,7 +1,7 @@
 import type { GetTransactionApi, Rpc, Signature } from '@solana/kit';
 import { describe, expectTypeOf, it } from 'vitest';
 
-import type { ParsedTransaction, RpcTransactionResponse, TransactionInstruction } from '../types.js';
+import type { ParsedTransaction, RpcParsedInstruction, RpcTransactionResponse } from '../types.js';
 
 declare const rpc: Rpc<GetTransactionApi>;
 declare const signature: Signature;
@@ -13,8 +13,6 @@ const base64Request = rpc.getTransaction(signature, { encoding: 'base64', maxSup
 type KitResponse<T extends { send: () => Promise<unknown> }> = NonNullable<Awaited<ReturnType<T['send']>>>;
 
 type ParsedTransactionOf<V extends ParsedTransaction['version']> = Extract<ParsedTransaction, { version: V }>;
-
-type RpcParsedInstruction = Extract<TransactionInstruction, { parsed: unknown }>;
 
 describe('ParsedTransaction', () => {
     it('should carry the unmatched lookup table fields on the v0 arm only', () => {

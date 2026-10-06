@@ -578,3 +578,15 @@ describe('hasUnmatchedLookupTables', () => {
         expect(hasUnmatchedLookupTables(fromRpcTransaction(withEmptyMeta))).toBe(true);
     });
 });
+
+describe('isRpcParsedInstruction', () => {
+    it('should return true for an instruction the RPC parsed', () => {
+        expect(isRpcParsedInstruction({ parsed: { type: 'transfer' }, programAddress: gen.systemProgram })).toBe(true);
+    });
+
+    it('should return false for an instruction with data and no accounts', () => {
+        expect(
+            isRpcParsedInstruction({ accounts: [], data: new Uint8Array(0), programAddress: gen.systemProgram }),
+        ).toBe(false);
+    });
+});
