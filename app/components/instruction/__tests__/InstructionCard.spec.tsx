@@ -178,6 +178,20 @@ describe('InstructionCard', () => {
         expect(screen.getByTestId('display-popover').dataset.canRequestRaw).toBe('true');
     });
 
+    it('should stop the intent waiting for raw data after a failed fetch', () => {
+        rawDetails = { status: FetchStatus.FetchFailed };
+        const parsed = {
+            parsed: { info: {}, type: 'transfer' },
+            program: 'system',
+            programId: PROGRAM_ID,
+        } as unknown as React.ComponentProps<typeof InstructionCard>['ix'];
+
+        renderCard({ ix: parsed });
+
+        expect(screen.getByTestId('display-popover').dataset.canRequestRaw).toBe('false');
+        expect(screen.getByRole('button', { name: 'Raw' }).dataset.canRequest).toBe('true');
+    });
+
     it('should hand the fetched raw instruction to the intent', () => {
         rawDetails = legacyRawDetails();
 

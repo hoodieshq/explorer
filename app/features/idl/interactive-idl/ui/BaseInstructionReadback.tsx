@@ -26,9 +26,9 @@ export function BaseInstructionReadback({
     return (
         <div
             className={cn(
-                // The card intent row's ground (the page background), so both intent surfaces read as one; rounded
-                // and edged as the form's dark inputs above it.
-                'flex flex-col gap-2 rounded border border-solid border-outer-space-950 bg-dark-background px-3.5 py-3',
+                // The card intent row's ground (the page background) and edge colour, so both intent surfaces read
+                // as one; rounded as the form's dark inputs above it.
+                'flex flex-col gap-2 rounded border border-solid border-outer-space-800 bg-dark-background px-3.5 py-3',
                 className,
             )}
             aria-live="polite"

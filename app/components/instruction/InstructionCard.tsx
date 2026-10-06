@@ -63,9 +63,12 @@ export function InstructionCard({
     // the inspector there is no signature to fetch a raw transaction against. Read the bytes off `ix`
     // when it carries them, so the summary does not depend on the raw fetch landing.
     const rawForDisplay = raw ?? ('parsed' in ix ? undefined : ix);
+    // A failed fetch settles the intent as having no bytes rather than leaving it waiting for bytes that are not
+    // coming; the Raw view above still offers its own retry, and bytes it brings reach the intent too.
+    const rawFetchFailed = rawDetails?.status === FetchStatus.FetchFailed;
     const intent = useInstructionIntentSlots({
         // The raw transaction carries only top-level instructions, so fetching it cannot give an inner one bytes.
-        onRequestRaw: canFetchRaw && childIndex === undefined ? fetchRawTrigger : undefined,
+        onRequestRaw: canFetchRaw && !rawFetchFailed && childIndex === undefined ? fetchRawTrigger : undefined,
         programId: ix.programId.toString(),
         raw: rawForDisplay,
     });
