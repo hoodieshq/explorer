@@ -1,6 +1,6 @@
 const MINIMUM_SLOTS_PER_EPOCH = 32n;
 
-/** A cluster's epoch schedule, as the `getEpochSchedule` RPC method reports it. */
+/** The epoch schedule fields the slot math needs. */
 export type EpochSchedule = {
     /** The maximum number of slots in each epoch. */
     slotsPerEpoch: bigint;
@@ -34,8 +34,8 @@ function nextPowerOfTwo(n: bigint): bigint {
 }
 
 /**
- * Returns the epoch that contains `slot`.
- * Warmup epochs start at 32 slots and double in length, the same maths as Agave's `get_epoch_and_slot_index`.
+ * Warmup epochs start at `MINIMUM_SLOTS_PER_EPOCH` slots and double in length.
+ * The math matches Agave's `get_epoch_and_slot_index`.
  */
 export function getEpochForSlot(epochSchedule: EpochSchedule, slot: bigint): bigint {
     if (slot < epochSchedule.firstNormalSlot) {
@@ -50,7 +50,6 @@ export function getEpochForSlot(epochSchedule: EpochSchedule, slot: bigint): big
     return epochSchedule.firstNormalEpoch + normalEpochIndex;
 }
 
-/** Returns the first slot of `epoch`. */
 export function getFirstSlotInEpoch(epochSchedule: EpochSchedule, epoch: bigint): bigint {
     if (epoch <= epochSchedule.firstNormalEpoch) {
         return (2n ** epoch - 1n) * MINIMUM_SLOTS_PER_EPOCH;
@@ -58,7 +57,6 @@ export function getFirstSlotInEpoch(epochSchedule: EpochSchedule, epoch: bigint)
     return (epoch - epochSchedule.firstNormalEpoch) * epochSchedule.slotsPerEpoch + epochSchedule.firstNormalSlot;
 }
 
-/** Returns the last slot of `epoch`. */
 export function getLastSlotInEpoch(epochSchedule: EpochSchedule, epoch: bigint): bigint {
     return getFirstSlotInEpoch(epochSchedule, epoch + 1n) - 1n;
 }
