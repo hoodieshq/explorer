@@ -10,7 +10,7 @@ export const INSPECTOR_INPUT_LABEL = 'Inspector input';
 const textareaVariants = cva(
     [
         // min-h adds 40px to the three-row default so the field reads as the page's main control.
-        'block min-h-[126px] w-full resize-none rounded-lg border border-solid bg-heavy-metal-900 px-4 py-3 pr-20',
+        'block min-h-[126px] w-full resize-none rounded-lg border border-solid bg-heavy-metal-900 px-4 py-3',
         'font-mono text-sm text-white placeholder:text-outer-space-300',
         'focus:outline-none focus-visible:outline-none',
     ],
