@@ -38,8 +38,7 @@ function toAccountKeyString(accountKey: string | { pubkey: string }): string {
     );
 }
 
-// The RPC sends inner instructions in `meta`, which `ParsedTransaction` does not include, so MCP checks their indices.
-// `fromRpcTransaction` checks the outer instructions and the header.
+// Inner instructions live in `meta`, outside `ParsedTransaction`, so their indices are checked here.
 function validateInnerInstructionIndices(instructions: readonly CompiledInstruction[], accountKeyCount: number): void {
     for (const ix of instructions) {
         if (
@@ -73,12 +72,7 @@ function validateInnerInstructionIntegrity(
     }
 }
 
-/**
- * What the RPC reported, before the message is decoded.
- *
- * `null` means the caller omitted the version ceiling. The parsed union has no such arm, so this
- * mapping lives here, next to the payload field that keeps it.
- */
+/** Throws {@link UnsupportedTransactionVersionError} for any version other than legacy, 0 and 1. */
 function toReportedVersion(rawVersion: 'legacy' | number | bigint | null | undefined): ReportedTransactionVersion {
     if (rawVersion === null || rawVersion === undefined) {
         return null;
@@ -174,7 +168,7 @@ export function normalizeTransactionProbe(
     const recentBlockhash = envelope.transaction.message.recentBlockhash ?? null;
 
     const reportedVersion = toReportedVersion(envelope.version);
-    // An omitted version means the caller set no ceiling, and the RPC then returns legacy only.
+    // Without `maxSupportedTransactionVersion` the RPC returns legacy only, so a missing version parses as legacy.
     const parsedVersion: TransactionVersion = reportedVersion ?? 'legacy';
 
     const transaction = fromRpcTransaction({
@@ -182,7 +176,7 @@ export function normalizeTransactionProbe(
         transaction: {
             message: {
                 accountKeys: accountKeys.map(toAccountKeyString),
-                // Kept absent when the message omits them, so `[]` still reads as "declares none".
+                // Absent means the RPC did not report the tables. Do not default to `[]`, which means "declares none".
                 ...(addressTableLookups !== undefined && { addressTableLookups }),
                 header,
                 instructions,
