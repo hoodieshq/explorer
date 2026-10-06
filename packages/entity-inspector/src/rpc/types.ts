@@ -31,7 +31,7 @@ export type AddressTableLookup = {
 export type TransactionProbeEnvelope = {
     slot: number | bigint;
     blockTime: number | bigint | null;
-    // kit may deliver the numeric version as bigint. The normalizer narrows it to what the RPC reported.
+    // kit may deliver the numeric version as bigint. The normalizer narrows this to `ReportedTransactionVersion`.
     version?: 'legacy' | number | bigint | null;
     meta: {
         err: unknown;

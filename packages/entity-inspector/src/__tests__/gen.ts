@@ -3,8 +3,8 @@ import { address } from '@solana/kit';
 import { SYSTEM_PROGRAM_ADDRESS } from '@solana-program/system';
 import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 
-// Well-known addresses used as placeholders across this package's specs. Program addresses with a
-// @solana-program client come from it. Sysvars, wrapped-SOL and programs with no client dep stay literals.
+// Well-known addresses used as placeholders across this package's specs. Some program addresses come
+// from their @solana-program client. Sysvars, wrapped-SOL and the rest stay literals.
 export const gen = {
     address: addressFromSeed,
     bpfUpgradeableLoader: address('BPFLoaderUpgradeab1e11111111111111111111111'),
