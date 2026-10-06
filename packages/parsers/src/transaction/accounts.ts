@@ -1,5 +1,3 @@
-// TODO(HOO-1670): replaces the MCP copy in packages/entity-inspector/src/transactions/account-resolver.ts.
-// Delete that file once MCP resolves accounts through this module.
 import type { Address } from '@solana/kit';
 
 import type { AddressTableLookup, TransactionAccount, TransactionVersion } from './types.js';
