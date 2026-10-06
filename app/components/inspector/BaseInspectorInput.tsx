@@ -1,9 +1,9 @@
 import { cva } from 'class-variance-authority';
 import React from 'react';
-import { AlertCircle } from 'react-feather';
 
 import { Button } from '@/app/components/shared/ui/button';
 import { cn } from '@/app/components/shared/utils';
+import { NormalizedAlertCircle } from '@/app/shared/ui/icons/normalized';
 
 export const INSPECTOR_INPUT_LABEL = 'Inspector input';
 
@@ -49,15 +49,16 @@ export const BaseInspectorInput = React.forwardRef<HTMLTextAreaElement, BaseInsp
                         size="sm"
                         type="button"
                         onClick={onClear}
-                        className="absolute right-3 top-3"
+                        className="absolute bottom-3 right-3"
                     >
                         Clear
                     </Button>
                 )}
             </div>
             {error && (
-                <div className="flex items-center gap-1.5 text-sm text-destructive" role="alert">
-                    <AlertCircle size={14} aria-hidden />
+                <div className="flex items-start gap-1.5 text-sm leading-5 text-destructive" role="alert">
+                    {/* Centred on the first 20px line, so a wrapped message keeps the icon at its top. */}
+                    <NormalizedAlertCircle className="mt-0.5 shrink-0" />
                     <span>{error}</span>
                 </div>
             )}

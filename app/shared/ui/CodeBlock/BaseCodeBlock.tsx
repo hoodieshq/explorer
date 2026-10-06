@@ -11,7 +11,7 @@ const preVariants = cva('bg-transparent', {
     variants: {
         variant: {
             panel: 'p-3',
-            reference: 'py-2',
+            reference: 'px-0 py-2',
         },
         wrap: {
             nowrap: 'overflow-x-auto whitespace-pre',
@@ -27,7 +27,7 @@ const rootVariants = cva('', {
     variants: {
         variant: {
             panel: 'overflow-hidden rounded-lg border border-solid border-outer-space-800 bg-heavy-metal-900',
-            reference: 'border-0 border-l-2 border-solid border-outer-space-800 pl-4',
+            reference: 'border-0 border-l border-solid border-outer-space-800 pl-4',
         },
     },
 });

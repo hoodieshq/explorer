@@ -1,3 +1,21 @@
+import {
+    address,
+    appendTransactionMessageInstruction,
+    blockhash,
+    compileTransaction,
+    compileTransactionMessage,
+    createNoopSigner,
+    createTransactionMessage,
+    getBase58Decoder,
+    getBase64Decoder,
+    getCompiledTransactionMessageEncoder,
+    getTransactionEncoder,
+    lamports,
+    pipe,
+    setTransactionMessageFeePayerSigner,
+    setTransactionMessageLifetimeUsingBlockhash,
+} from '@solana/kit';
+import { getTransferSolInstruction } from '@solana-program/system';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { describe, expect, test, vi } from 'vitest';
@@ -5,9 +23,10 @@ import { describe, expect, test, vi } from 'vitest';
 import { EXAMPLE_LABEL } from '../BaseCodeExample';
 import {
     EXAMPLE_CLI_FOCUS,
-    EXAMPLE_RUST_FOCUS,
     EXAMPLE_SQUADS_VAULT_TRANSACTION,
-    EXAMPLE_TYPESCRIPT_FOCUS,
+    kitExample,
+    RUST_PRINT_LINE,
+    rustExample,
 } from '../inspector-examples';
 import { RawInput } from '../RawInputCard';
 
@@ -23,7 +42,9 @@ describe('RawInput', () => {
         vi.mocked(useSearchParams).mockReturnValue(
             new URLSearchParams() as unknown as ReturnType<typeof useSearchParams>,
         );
-        vi.mocked(useRouter).mockReturnValue({ push: vi.fn() } as unknown as ReturnType<typeof useRouter>);
+        vi.mocked(useRouter).mockReturnValue({ push: vi.fn(), replace: vi.fn() } as unknown as ReturnType<
+            typeof useRouter
+        >);
     });
 
     test('should focus the input on mount and hides Clear while it is empty', () => {
@@ -64,8 +85,8 @@ describe('RawInput', () => {
         // Each tab marks the part the reader should copy or look for.
         for (const focus of [
             EXAMPLE_CLI_FOCUS,
-            EXAMPLE_RUST_FOCUS,
-            EXAMPLE_TYPESCRIPT_FOCUS,
+            rustExample('base64').focus,
+            kitExample('base64').focus,
             EXAMPLE_SQUADS_VAULT_TRANSACTION,
         ]) {
             // Highlighting splits the marked text into spans, so match on the mark's whole text content.
@@ -92,5 +113,77 @@ describe('RawInput', () => {
 
         expect(screen.getByRole('tab', { name: 'Rust' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tabpanel')).toHaveTextContent('crate dependency');
+    });
+
+    test('should show base58 in every tab that offers the choice', () => {
+        vi.mocked(useSearchParams).mockReturnValue(
+            new URLSearchParams('encoding=base58') as unknown as ReturnType<typeof useSearchParams>,
+        );
+        render(<RawInput setTransactionData={vi.fn()} />);
+
+        expect(screen.getByText(RUST_PRINT_LINE.base58, { selector: 'code' })).toBeInTheDocument();
+        expect(
+            screen.getByText(
+                (_content, element) =>
+                    element?.tagName === 'MARK' && element.textContent === kitExample('base58').focus,
+            ),
+        ).toBeInTheDocument();
+    });
+
+    test('should keep the shared encoding in the URL', () => {
+        const replace = vi.fn();
+        vi.mocked(useRouter).mockReturnValue({ push: vi.fn(), replace } as unknown as ReturnType<typeof useRouter>);
+        render(<RawInput setTransactionData={vi.fn()} />);
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Rust' }));
+        fireEvent.click(screen.getByRole('button', { name: 'base58' }));
+
+        expect(replace).toHaveBeenCalledWith('/tx/inspector?encoding=base58', { scroll: false });
+    });
+
+    test('should offer no encoding switch on the CLI tab', () => {
+        render(<RawInput setTransactionData={vi.fn()} />);
+
+        expect(screen.queryByRole('button', { name: 'base58' })).toBeNull();
+    });
+
+    // Mirrors the Kit snippets with real addresses: both print lines must be accepted in either encoding.
+    test.each([
+        ['base64', 'wire'],
+        ['base58', 'wire'],
+        ['base64', 'message'],
+        ['base58', 'message'],
+    ] as const)('should accept the %s %s output of the Kit snippets', (encoding, kind) => {
+        const from = createNoopSigner(address('6tgR1upn2bsMdiprpfUAWmoniEJ8E1XVF8f9gLmWqyTS'));
+        const message = pipe(
+            createTransactionMessage({ version: 0 }),
+            m => setTransactionMessageFeePayerSigner(from, m),
+            m =>
+                setTransactionMessageLifetimeUsingBlockhash(
+                    { blockhash: blockhash('AzZUmpD34LwkNoeZuxCdRyosBji9q4ddmgUCtBQLpi5D'), lastValidBlockHeight: 0n },
+                    m,
+                ),
+            m =>
+                appendTransactionMessageInstruction(
+                    getTransferSolInstruction({
+                        amount: lamports(100_000_000n),
+                        destination: address('5WLJCrKpmin5PTU53ubQwNrsSBd7BFzuDFeLnrupSDv2'),
+                        source: from,
+                    }),
+                    m,
+                ),
+        );
+        const bytes =
+            kind === 'wire'
+                ? getTransactionEncoder().encode(compileTransaction(message))
+                : getCompiledTransactionMessageEncoder().encode(compileTransactionMessage(message));
+        const printed = encoding === 'base64' ? getBase64Decoder().decode(bytes) : getBase58Decoder().decode(bytes);
+        const setTransactionData = vi.fn();
+        render(<RawInput setTransactionData={setTransactionData} />);
+
+        fireEvent.input(screen.getByLabelText('Inspector input'), { target: { value: printed } });
+
+        expect(screen.queryByRole('alert')).toBeNull();
+        expect(setTransactionData).toHaveBeenLastCalledWith(expect.objectContaining({ message: expect.anything() }));
     });
 });

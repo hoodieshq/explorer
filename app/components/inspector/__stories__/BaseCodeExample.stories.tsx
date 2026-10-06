@@ -4,12 +4,10 @@ import { BaseCodeExample } from '../BaseCodeExample';
 import {
     EXAMPLE_CLI_COMMAND,
     EXAMPLE_CLI_FOCUS,
-    EXAMPLE_RUST_CODE,
-    EXAMPLE_RUST_FOCUS,
     EXAMPLE_SQUADS_URL,
     EXAMPLE_SQUADS_VAULT_TRANSACTION,
-    EXAMPLE_TYPESCRIPT_CODE,
-    EXAMPLE_TYPESCRIPT_FOCUS,
+    kitExample,
+    rustExample,
 } from '../inspector-examples';
 
 const meta = {
@@ -38,11 +36,11 @@ type Story = StoryObj<typeof meta>;
 export const Shell: Story = {};
 
 export const Rust: Story = {
-    args: { code: EXAMPLE_RUST_CODE, focus: EXAMPLE_RUST_FOCUS, language: 'rust' },
+    args: { ...rustExample('base64'), language: 'rust' },
 };
 
 export const TypeScript: Story = {
-    args: { code: EXAMPLE_TYPESCRIPT_CODE, focus: EXAMPLE_TYPESCRIPT_FOCUS, language: 'typescript' },
+    args: { ...kitExample('base64'), language: 'typescript' },
 };
 
 export const Url: Story = {

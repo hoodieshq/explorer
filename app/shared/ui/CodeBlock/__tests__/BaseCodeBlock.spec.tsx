@@ -58,7 +58,7 @@ describe('BaseCodeBlock', () => {
         expect(screen.getByTestId('block')).toHaveClass('border-outer-space-800');
 
         rerender(<BaseCodeBlock code={CODE} data-testid="block" variant="reference" />);
-        expect(screen.getByTestId('block')).toHaveClass('border-l-2');
+        expect(screen.getByTestId('block')).toHaveClass('border-l');
         expect(screen.getByTestId('block')).not.toHaveClass('rounded-lg');
     });
 });
