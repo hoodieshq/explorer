@@ -5,6 +5,7 @@ import {
     getRequestedComputeUnits,
     getV1ResourceLimits,
     hasUnmatchedLookupTables,
+    type ParsedTransaction,
     type ReportedTransactionVersion,
     type TransactionVersion,
     UnsupportedTransactionVersionError,
@@ -24,7 +25,7 @@ import type {
     TransactionProbeEnvelope,
 } from '../rpc/types.js';
 import { EPOCH_SCHEDULES } from './epoch-schedule.js';
-import type { TransactionPayloadContext, TransactionResourceLimits } from './types.js';
+import type { TransactionPayloadContext, TransactionResourceLimits, TransactionVersionContext } from './types.js';
 
 function toAccountKeyString(accountKey: string | { pubkey: string }): string {
     if (typeof accountKey === 'string') {
@@ -140,6 +141,17 @@ function toSafeResourceLimits(limits: V1ResourceLimits): TransactionResourceLimi
     return { ...limits, priorityFeeLamports: asSafeNumeric(limits.priorityFeeLamports) };
 }
 
+function toVersionContext(
+    reportedVersion: ReportedTransactionVersion,
+    transaction: ParsedTransaction,
+): TransactionVersionContext {
+    if (transaction.version === 1) {
+        return { resourceLimits: toSafeResourceLimits(getV1ResourceLimits(transaction)), version: 1 };
+    }
+    // A null reported version parses as legacy, but the payload keeps reporting null.
+    return { version: reportedVersion === null ? null : transaction.version };
+}
+
 export function normalizeTransactionProbe(
     signature: string,
     envelope: TransactionProbeEnvelope,
@@ -194,7 +206,6 @@ export function normalizeTransactionProbe(
 
     const computeUnitsConsumed = meta ? asSafeNumeric(meta.computeUnitsConsumed ?? null) : null;
     const logMessages = meta?.logMessages ? Array.from(meta.logMessages) : null;
-    const resourceLimits = getV1ResourceLimits(transaction);
     const epoch = getEpochForSlot(EPOCH_SCHEDULES[cluster], BigInt(slot));
     const requestedComputeUnits = getRequestedComputeUnits(transaction, { cluster, epoch });
 
@@ -225,10 +236,9 @@ export function normalizeTransactionProbe(
         recentBlockhash,
         requestedComputeUnits,
         resolvedAccounts: [...transaction.accounts],
-        ...(resourceLimits !== undefined && { resourceLimits: toSafeResourceLimits(resourceLimits) }),
         signature,
         slot,
-        version: reportedVersion,
+        ...toVersionContext(reportedVersion, transaction),
     };
 
     if (meta === null) {
