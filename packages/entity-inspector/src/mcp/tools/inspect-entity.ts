@@ -1,3 +1,4 @@
+import { UnsupportedTransactionVersionError } from '@explorer/parsers/transaction';
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ReadonlyUint8Array } from '@solana/kit';
 
@@ -48,6 +49,7 @@ import {
     notFound,
     sanitizeToolError,
     toToolResult,
+    unsupportedTransactionVersion,
 } from '../errors.js';
 import { inspectEntityInputSchema } from '../schemas.js';
 
@@ -401,6 +403,13 @@ async function resolveTransaction(
             return toToolResult({
                 errors: [internalError()],
                 payload: toSourceUnavailablePayload('transaction'),
+            });
+        }
+
+        if (error instanceof UnsupportedTransactionVersionError) {
+            return toToolResult({
+                errors: [unsupportedTransactionVersion(error.version)],
+                payload: toNotFoundPayload('transaction'),
             });
         }
 

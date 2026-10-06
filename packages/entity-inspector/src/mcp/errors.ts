@@ -39,6 +39,10 @@ export function currentlyUnsupported(message: string = DEFAULT_CURRENTLY_UNSUPPO
     return { code: 'CURRENTLY_UNSUPPORTED', message };
 }
 
+export function unsupportedTransactionVersion(version: unknown): McpToolError {
+    return currentlyUnsupported(`Transaction version ${String(version)} is not supported.`);
+}
+
 export function internalError(message: string = DEFAULT_INTERNAL_ERROR_MESSAGE): McpToolError {
     return { code: 'INTERNAL_ERROR', message };
 }
