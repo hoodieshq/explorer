@@ -931,6 +931,34 @@ describe('transaction normalizer', () => {
         expect(normalized.accountKeys).toEqual([SIGNER_1]);
     });
 
+    it.each([
+        { case: 'a null meta', meta: null },
+        { case: 'null loadedAddresses', meta: { err: null, fee: 5000, loadedAddresses: null } },
+    ])('should reject v0 lookup slots with $case', ({ meta }) => {
+        expect(() =>
+            normalize(
+                makeFullEnvelope({
+                    meta,
+                    transaction: {
+                        message: {
+                            accountKeys: [SIGNER_1],
+                            addressTableLookups: [
+                                { accountKey: LOOKUP_TABLE_A, readonlyIndexes: [], writableIndexes: [0] },
+                            ],
+                            header: {
+                                numReadonlySignedAccounts: 0,
+                                numReadonlyUnsignedAccounts: 0,
+                                numRequiredSignatures: 1,
+                            },
+                            instructions: [{ accounts: [0], data: '3Bxs', programIdIndex: 0 }],
+                        },
+                    },
+                    version: 0,
+                }),
+            ),
+        ).toThrow('Missing loadedAddresses');
+    });
+
     it('should validate the header against the static key count, not the merged total', () => {
         const normalized = mustNormalize(
             makeFullEnvelope({

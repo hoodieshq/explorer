@@ -262,10 +262,6 @@ function ensureAccountExists(byAddress: ReadonlyMap<Address, TransactionAccount>
     return account;
 }
 
-/**
- * Uses RPC header field names, so error messages stay stable for MCP payloads.
- * TODO(HOO-1670): delete the copy in entity-inspector's normalizer.ts once MCP validates through fromRpcTransaction.
- */
 function validateHeaderIntegrity(header: RpcJsonTransaction['message']['header'], staticKeyCount: number): void {
     const { numReadonlySignedAccounts, numReadonlyUnsignedAccounts, numRequiredSignatures } = header;
 
