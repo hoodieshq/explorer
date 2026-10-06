@@ -23,7 +23,6 @@ type TransactionPayloadContextBase = {
     slot: number;
     blockTime: SafeNumeric;
     feeLamports: SafeNumeric;
-    version: ReportedTransactionVersion;
     computeUnitsConsumed: SafeNumeric;
     requestedComputeUnits: RequestedComputeUnits;
     logMessages: readonly string[] | null;
@@ -37,18 +36,27 @@ type TransactionPayloadContextBase = {
     numReadonlyUnsignedAccounts: number;
     instructions: readonly CompiledInstruction[];
     innerInstructions: readonly CompiledInnerInstruction[] | null;
-    /** Absent for legacy and v0. They budget through Compute Budget instructions. */
-    resourceLimits?: TransactionResourceLimits;
 };
 
-export type TransactionPayloadContext =
-    | (TransactionPayloadContextBase & { status: 'success'; err: null })
-    | (TransactionPayloadContextBase & {
-          status: 'failed';
-          /** Raw error from the RPC response. */
-          err: Record<string, unknown> | string | unknown[] | null;
-      })
-    | (TransactionPayloadContextBase & { status: 'unknown'; err: null });
+/**
+ * Transaction version and its specific context.
+ * Only v1 carries resource limits.
+ * */
+export type TransactionVersionContext =
+    | { version: 1; resourceLimits: TransactionResourceLimits }
+    | { version: Exclude<ReportedTransactionVersion, 1>; resourceLimits?: never };
+
+export type TransactionPayloadContext = TransactionPayloadContextBase &
+    TransactionVersionContext &
+    (
+        | { status: 'success'; err: null }
+        | {
+              status: 'failed';
+              /** Raw error from the RPC response. */
+              err: Record<string, unknown> | string | unknown[] | null;
+          }
+        | { status: 'unknown'; err: null }
+    );
 
 export type DecodedInstructionSource = 'idl' | 'bundled' | 'raw';
 
@@ -92,23 +100,14 @@ export type FallbackInstruction = {
 /** Host-app decoder for programs the package has no built-in support for — `undefined` means "cannot decode". */
 export type DecodeInstructionFallback = (instruction: FallbackInstruction) => DecodedInstructionInfo | undefined;
 
-type TransactionPayloadEntityBase = {
+export type TransactionPayloadEntityBase = {
     kind: 'transaction';
     signature: string;
     slot: number;
     block_time: SafeNumeric;
     fee_lamports: SafeNumeric;
     signers: string[];
-    /** `null` reports that the caller omitted the version ceiling. A decoded message always has a version. */
-    transaction_version: ReportedTransactionVersion;
     recent_blockhash: string | null;
-    /** v1 only. Each limit is the declared value, or the runtime default where the message declares none. */
-    resource_limits?: {
-        compute_unit_limit: number;
-        heap_size_bytes: number;
-        loaded_accounts_data_size_limit_bytes: number;
-        priority_fee_lamports: SafeNumeric;
-    };
     compute_units_consumed: SafeNumeric;
     /**
      * `declared` reads the transaction's own limit.
@@ -123,12 +122,27 @@ type TransactionPayloadEntityBase = {
     instructions: TransactionInstructionEntry[];
 };
 
+export type TransactionResourceLimitsEntry = {
+    compute_unit_limit: number;
+    heap_size_bytes: number;
+    loaded_accounts_data_size_limit_bytes: number;
+    priority_fee_lamports: SafeNumeric;
+};
+
+/**
+ * `null` reports that the caller omitted the version ceiling. A decoded message always has a version.
+ * Each v1 limit is the declared value, or the runtime default where the message declares none.
+ */
+export type TransactionVersionEntity =
+    | { transaction_version: 1; resource_limits: TransactionResourceLimitsEntry }
+    | { transaction_version: Exclude<ReportedTransactionVersion, 1>; resource_limits?: never };
+
 export type TransactionPayloadOutput = {
-    entity:
-        | (TransactionPayloadEntityBase & { status: 'success'; error: null })
-        | (TransactionPayloadEntityBase & {
-              status: 'failed';
-              error: Record<string, unknown> | string | unknown[] | null;
-          })
-        | (TransactionPayloadEntityBase & { status: 'unknown'; error: null });
+    entity: TransactionPayloadEntityBase &
+        TransactionVersionEntity &
+        (
+            | { status: 'success'; error: null }
+            | { status: 'failed'; error: Record<string, unknown> | string | unknown[] | null }
+            | { status: 'unknown'; error: null }
+        );
 };
