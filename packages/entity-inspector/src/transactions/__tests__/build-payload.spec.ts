@@ -1,6 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import type { ResolvedAccount, TransactionInstructionEntry, TransactionPayloadContext } from '../types.js';
+import type {
+    ResolvedAccount,
+    TransactionInstructionEntry,
+    TransactionPayloadContext,
+    TransactionPayloadOutput,
+    TransactionResourceLimits,
+    TransactionResourceLimitsEntry,
+} from '../types.js';
 import { buildTransactionPayload } from '../build-payload.js';
 
 function staticAccount(address: string, roles: { signer?: boolean; writable?: boolean } = {}): ResolvedAccount {
@@ -193,5 +200,18 @@ describe('transaction payload builder', () => {
         expect(result.entity.fee_lamports).toBe('9007199254740992');
         expect(result.entity.compute_units_consumed).toBe('9007199254740993');
         expect(result.entity.block_time).toBe('9007199254740994');
+    });
+
+    it('should define resource limits in the v1 version', () => {
+        expectTypeOf<
+            Extract<TransactionPayloadContext, { version: 1 }>['resourceLimits']
+        >().toEqualTypeOf<TransactionResourceLimits>();
+        expectTypeOf<Exclude<TransactionPayloadContext, { version: 1 }>['resourceLimits']>().toEqualTypeOf<undefined>();
+        expectTypeOf<
+            Extract<TransactionPayloadOutput['entity'], { transaction_version: 1 }>['resource_limits']
+        >().toEqualTypeOf<TransactionResourceLimitsEntry>();
+        expectTypeOf<
+            Exclude<TransactionPayloadOutput['entity'], { transaction_version: 1 }>['resource_limits']
+        >().toEqualTypeOf<undefined>();
     });
 });
