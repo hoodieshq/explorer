@@ -4,10 +4,9 @@ import {
     getRequestedComputeUnits,
     getV1ResourceLimits,
     hasUnmatchedLookupTables,
+    normalizeVersion,
     type ParsedTransaction,
-    type ReportedTransactionVersion,
     type TransactionVersion,
-    UnsupportedTransactionVersionError,
     type V1ResourceLimits,
 } from '@explorer/parsers/transaction';
 import { err, getEpochForSlot, ok, type Result } from '@explorer/utils';
@@ -24,7 +23,12 @@ import type {
     TransactionProbeEnvelope,
 } from '../rpc/types.js';
 import { EPOCH_SCHEDULES } from './epoch-schedule.js';
-import type { TransactionPayloadContext, TransactionResourceLimits, TransactionVersionContext } from './types.js';
+import type {
+    ReportedTransactionVersion,
+    TransactionPayloadContext,
+    TransactionResourceLimits,
+    TransactionVersionContext,
+} from './types.js';
 
 function toAccountKeyString(accountKey: string | { pubkey: string }): string {
     if (typeof accountKey === 'string') {
@@ -70,18 +74,6 @@ function validateInnerInstructionIntegrity(
         }
         validateInnerInstructionIndices(group.instructions, totalKeyCount);
     }
-}
-
-/** Throws {@link UnsupportedTransactionVersionError} for any version other than legacy, 0 and 1. */
-function toReportedVersion(rawVersion: 'legacy' | number | bigint | null | undefined): ReportedTransactionVersion {
-    if (rawVersion === null || rawVersion === undefined) {
-        return null;
-    }
-    const version = typeof rawVersion === 'bigint' ? Number(rawVersion) : rawVersion;
-    if (version === 'legacy' || version === 0 || version === 1) {
-        return version;
-    }
-    throw new UnsupportedTransactionVersionError(version);
 }
 
 function isKnownConfirmationStatus(value: string): value is ConfirmationStatus {
@@ -167,7 +159,8 @@ export function normalizeTransactionProbe(
     const innerInstructions = meta?.innerInstructions ? Array.from(meta.innerInstructions) : null;
     const recentBlockhash = envelope.transaction.message.recentBlockhash ?? null;
 
-    const reportedVersion = toReportedVersion(envelope.version);
+    const reportedVersion: ReportedTransactionVersion =
+        envelope.version === undefined || envelope.version === null ? null : normalizeVersion(envelope.version);
     // Without `maxSupportedTransactionVersion` the RPC returns legacy only, so a missing version parses as legacy.
     const parsedVersion: TransactionVersion = reportedVersion ?? 'legacy';
 
