@@ -9,6 +9,7 @@ import { useCluster } from '@providers/cluster';
 import { Alert } from '@shared/ui/Alert';
 import type { Address as KitAddress, Slot as KitSlot } from '@solana/kit';
 import { IBRL_EXPLORER_URL } from '@utils/env';
+import { useMemo } from 'react';
 import { ExternalLink } from 'react-feather';
 
 import { Timestamp } from '@/app/components/shared/ui/timestamp';
@@ -42,7 +43,7 @@ export function BlockOverviewCard({
         cost: totalCostUnits,
         incomplete: computeTotalsIncomplete,
         max: maxComputeUnits,
-    } = summarizeBlockComputeUnits({ block, cluster, epoch });
+    } = useMemo(() => summarizeBlockComputeUnits({ block, cluster, epoch }), [block, cluster, epoch]);
     const maxCostUnits = BigInt(maxComputeUnits);
     const totalCostPercent = ((totalCostUnits * 100n + maxCostUnits / 2n) / maxCostUnits).toString();
 
