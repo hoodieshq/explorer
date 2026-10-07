@@ -1,4 +1,5 @@
 import type { BlockData, BlockTransaction } from '@entities/block-data';
+import { fromCompiledMessage } from '@explorer/parsers/transaction';
 import { address, blockhash, lamports } from '@solana/kit';
 import { nextjsParameters, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
@@ -37,24 +38,23 @@ function makeBlock(txCount: number): BlockData {
             .map(j => ({ programAddressIndex: j }));
         return {
             index: k,
-            message: {
-                header: {
-                    numReadonlyNonSignerAccounts: keys.length,
-                    numReadonlySignerAccounts: 0,
-                    numSignerAccounts: 0,
-                },
-                instructions,
-                lifetimeToken: blockhash('11111111111111111111111111111111'),
-                staticAccounts: keys,
-                version: 'legacy',
-            },
             meta: {
                 err: k % 5 === 0 ? { InstructionError: [0, { Custom: 1 }] } : null,
                 fee: lamports(5_000n),
                 innerInstructions: [],
                 logMessages: [],
             },
-            signatures: [],
+            parsedTransaction: fromCompiledMessage({
+                header: {
+                    numReadonlyNonSignerAccounts: keys.length - 1,
+                    numReadonlySignerAccounts: 0,
+                    numSignerAccounts: 1,
+                },
+                instructions,
+                lifetimeToken: blockhash('11111111111111111111111111111111'),
+                staticAccounts: keys,
+                version: 'legacy',
+            }),
         };
     });
     return {

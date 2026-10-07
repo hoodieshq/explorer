@@ -7,7 +7,7 @@ import { summarizeBlockTransactionVersions } from '../transaction-versions';
 function blockWithVersions(versions: TransactionVersion[], unavailable = 0): BlockData {
     return {
         transactions: [
-            ...versions.map((version, index) => ({ index, message: { version } })),
+            ...versions.map((version, index) => ({ index, parsedTransaction: { version } })),
             ...Array.from({ length: unavailable }, (_, offset) => ({
                 index: versions.length + offset,
                 unavailable: true,
