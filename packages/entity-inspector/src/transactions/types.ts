@@ -1,4 +1,4 @@
-import type { ReportedTransactionVersion, RequestedComputeUnits } from '@explorer/parsers/transaction';
+import type { RequestedComputeUnits, TransactionVersion } from '@explorer/parsers/transaction';
 
 import type { CompiledInnerInstruction, CompiledInstruction, ConfirmationStatus } from '../rpc/types.js';
 import type { SafeNumeric } from '../shared/types.js';
@@ -37,6 +37,9 @@ type TransactionPayloadContextBase = {
     instructions: readonly CompiledInstruction[];
     innerInstructions: readonly CompiledInnerInstruction[] | null;
 };
+
+/** The version the RPC reported, or `null` when the response has no `version` field. */
+export type ReportedTransactionVersion = TransactionVersion | null;
 
 /**
  * Transaction version and its specific context.
