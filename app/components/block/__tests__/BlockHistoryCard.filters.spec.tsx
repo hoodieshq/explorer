@@ -1,11 +1,26 @@
+import { gen } from '@__fixtures__/gen';
+import { compileV0TransactionMessage } from '@__fixtures__/transaction-message';
 import type { BlockData, BlockTransaction, BlockTransactionMeta } from '@entities/block-data';
-import { type Address, address, blockhash, lamports, type Signature } from '@solana/kit';
+import { fromCompiledMessage } from '@explorer/parsers/transaction';
+import { AccountRole, type Address, address, type Base58EncodedBytes, blockhash, lamports } from '@solana/kit';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const PROGRAM_A = '11111111111111111111111111111111';
 const PROGRAM_B = 'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA';
 const ACCOUNT = 'Stake11111111111111111111111111111111111111';
+const SIGNATURES = {
+    failedProgramB: gen.signature(4),
+    legacyProgramA: gen.signature(1),
+    v0ProgramA: gen.signature(2),
+    v0ProgramB: gen.signature(3),
+};
+const FEE_PAYER = address(gen.address(1));
+const OUTER_PROGRAM = address(gen.address(2));
+const LOOKUP_TABLE = address(gen.address(3));
+const LOADED_WRITABLE = address(gen.address(4));
+const LOADED_READONLY = address(gen.address(5));
+const LOADED_READONLY_INDEX = 3;
 let search = `version=0&filter=${PROGRAM_A}&accountFilter=${ACCOUNT}&sort=index&dir=desc&cluster=devnet`;
 
 vi.mock('next/navigation', () => ({
@@ -30,10 +45,6 @@ vi.mock('@components/common/SolBalance', () => ({
     SolBalance: ({ lamports }: { lamports: bigint }) => <span>{lamports.toString()}</span>,
 }));
 
-vi.mock('@entities/compute-unit', () => ({
-    estimateRequestedComputeUnits: () => 0,
-}));
-
 vi.mock('@utils/program-logs', () => ({
     parseProgramLogs: () => [{ computeUnits: 0, truncated: false }],
 }));
@@ -48,9 +59,9 @@ describe('BlockHistoryCard filters', () => {
     it('should combine version, program, and account filters while preserving URL parameters', () => {
         render(<BlockHistoryCard block={makeBlock()} epoch={500n} />);
 
-        expect(screen.getAllByText('v0-program-a')).toHaveLength(2);
-        expect(screen.queryAllByText('legacy-program-a')).toHaveLength(0);
-        expect(screen.queryAllByText('v0-program-b')).toHaveLength(0);
+        expect(screen.getAllByText(SIGNATURES.v0ProgramA)).toHaveLength(2);
+        expect(screen.queryAllByText(SIGNATURES.legacyProgramA)).toHaveLength(0);
+        expect(screen.queryAllByText(SIGNATURES.v0ProgramB)).toHaveLength(0);
 
         expect(screen.getByRole('link', { name: 'Clear version filter' })).toHaveAttribute(
             'href',
@@ -72,8 +83,8 @@ describe('BlockHistoryCard filters', () => {
         search = `filter=all&status=succeeded&cluster=devnet`;
         render(<BlockHistoryCard block={makeBlock()} epoch={500n} />);
 
-        expect(screen.getAllByText('v0-program-a')).toHaveLength(2);
-        expect(screen.queryAllByText('failed-program-b')).toHaveLength(0);
+        expect(screen.getAllByText(SIGNATURES.v0ProgramA)).toHaveLength(2);
+        expect(screen.queryAllByText(SIGNATURES.failedProgramB)).toHaveLength(0);
         expect(screen.getByText('3 filtered records')).toBeInTheDocument();
         expect(screen.getByRole('link', { name: 'Clear status filter' })).toHaveAttribute(
             'href',
@@ -110,6 +121,16 @@ describe('BlockHistoryCard filters', () => {
     });
 });
 
+describe('BlockHistoryCard invoked programs', () => {
+    it('should resolve an inner instruction program loaded from a lookup table', () => {
+        search = '';
+        render(<BlockHistoryCard block={makeBlockWithLookupTableProgram()} epoch={500n} />);
+
+        expect(screen.getAllByText(OUTER_PROGRAM)).toHaveLength(2);
+        expect(screen.getAllByText(LOADED_READONLY)).toHaveLength(2);
+    });
+});
+
 function makeBlockWithUnavailable(): BlockData {
     const block = makeBlock();
     return { ...block, transactions: [...block.transactions, { index: block.transactions.length, unavailable: true }] };
@@ -123,11 +144,15 @@ function makeBlock(withFailed = true): BlockData {
         previousBlockhash: blockhash('11111111111111111111111111111111'),
         rewards: [],
         transactions: [
-            makeTransaction(0, 'legacy-program-a', 'legacy', PROGRAM_A),
-            makeTransaction(1, 'v0-program-a', 0, PROGRAM_A),
-            makeTransaction(2, 'v0-program-b', 0, PROGRAM_B),
+            makeTransaction(0, SIGNATURES.legacyProgramA, 'legacy', PROGRAM_A),
+            makeTransaction(1, SIGNATURES.v0ProgramA, 0, PROGRAM_A),
+            makeTransaction(2, SIGNATURES.v0ProgramB, 0, PROGRAM_B),
             ...(withFailed
-                ? [makeTransaction(3, 'failed-program-b', 0, PROGRAM_B, { InstructionError: [0, { Custom: 1 }] })]
+                ? [
+                      makeTransaction(3, SIGNATURES.failedProgramB, 0, PROGRAM_B, {
+                          InstructionError: [0, { Custom: 1 }],
+                      }),
+                  ]
                 : []),
         ],
     };
@@ -139,16 +164,9 @@ function makeTransaction(
     version: 'legacy' | 0,
     program: string,
     err: BlockTransactionMeta['err'] = null,
-) {
+): BlockTransaction {
     return {
         index,
-        message: {
-            header: { numReadonlyNonSignerAccounts: 0, numReadonlySignerAccounts: 0, numSignerAccounts: 0 },
-            instructions: [{ accountIndices: [1], data: new Uint8Array(), programAddressIndex: 0 }],
-            lifetimeToken: blockhash('11111111111111111111111111111111'),
-            staticAccounts: [address(program), address(ACCOUNT)],
-            version,
-        },
         meta: {
             costUnits: 1n,
             err,
@@ -157,6 +175,57 @@ function makeTransaction(
             loadedAddresses: undefined,
             logMessages: [],
         },
-        signatures: [transactionSignature as Signature],
-    } satisfies BlockTransaction;
+        parsedTransaction: fromCompiledMessage(
+            {
+                header: { numReadonlyNonSignerAccounts: 0, numReadonlySignerAccounts: 0, numSignerAccounts: 1 },
+                instructions: [{ accountIndices: [1], data: new Uint8Array(), programAddressIndex: 0 }],
+                lifetimeToken: blockhash('11111111111111111111111111111111'),
+                staticAccounts: [address(program), address(ACCOUNT)],
+                version,
+            },
+            { signatures: [transactionSignature] },
+        ),
+    };
+}
+
+function makeBlockWithLookupTableProgram(): BlockData {
+    const message = compileV0TransactionMessage(FEE_PAYER, {
+        accounts: [
+            { address: LOADED_WRITABLE, addressIndex: 0, lookupTableAddress: LOOKUP_TABLE, role: AccountRole.WRITABLE },
+            { address: LOADED_READONLY, addressIndex: 0, lookupTableAddress: LOOKUP_TABLE, role: AccountRole.READONLY },
+        ],
+        data: new Uint8Array([9]),
+        programAddress: OUTER_PROGRAM,
+    });
+
+    return {
+        blockTime: null,
+        blockhash: blockhash('11111111111111111111111111111111'),
+        parentSlot: 122n,
+        previousBlockhash: blockhash('11111111111111111111111111111111'),
+        rewards: [],
+        transactions: [
+            {
+                index: 0,
+                meta: {
+                    costUnits: 1n,
+                    err: null,
+                    fee: lamports(5_000n),
+                    innerInstructions: [
+                        {
+                            index: 0,
+                            instructions: [
+                                { accounts: [], data: '' as Base58EncodedBytes, programIdIndex: LOADED_READONLY_INDEX },
+                            ],
+                        },
+                    ],
+                    logMessages: [],
+                },
+                parsedTransaction: fromCompiledMessage(message, {
+                    loadedAddresses: { readonly: [LOADED_READONLY], writable: [LOADED_WRITABLE] },
+                    signatures: [gen.signature(5)],
+                }),
+            },
+        ],
+    };
 }

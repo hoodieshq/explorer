@@ -1,4 +1,5 @@
 import type { BlockData, BlockTransaction } from '@entities/block-data/@x/compute-unit';
+import { fromCompiledMessage } from '@explorer/parsers/transaction';
 import { address, blockhash, lamports } from '@solana/kit';
 import { COMPUTE_BUDGET_PROGRAM_ADDRESS } from '@solana-program/compute-budget';
 import { Cluster } from '@utils/cluster';
@@ -20,19 +21,12 @@ function mockTransaction({
     consumed: number;
     cost: number;
     hasMeta?: boolean;
-}) {
+}): BlockTransaction {
     const data = alloc(5);
     data[0] = 2; // SetComputeUnitLimit instruction type
     writeUint32LE(data, requestedUnits, 1);
     return {
         index: 0,
-        message: {
-            header: { numReadonlyNonSignerAccounts: 0, numReadonlySignerAccounts: 0, numSignerAccounts: 0 },
-            instructions: [{ data, programAddressIndex: 0 }],
-            lifetimeToken: blockhash('11111111111111111111111111111111'),
-            staticAccounts: [address(COMPUTE_BUDGET_PROGRAM_ADDRESS)],
-            version: 'legacy',
-        },
         meta: hasMeta
             ? {
                   computeUnitsConsumed: BigInt(consumed),
@@ -42,8 +36,14 @@ function mockTransaction({
                   logMessages: [],
               }
             : null,
-        signatures: [],
-    } satisfies BlockTransaction;
+        parsedTransaction: fromCompiledMessage({
+            header: { numReadonlyNonSignerAccounts: 0, numReadonlySignerAccounts: 0, numSignerAccounts: 1 },
+            instructions: [{ data, programAddressIndex: 0 }],
+            lifetimeToken: blockhash('11111111111111111111111111111111'),
+            staticAccounts: [address(COMPUTE_BUDGET_PROGRAM_ADDRESS)],
+            version: 'legacy',
+        }),
+    };
 }
 
 function mockBlock(transactions: BlockData['transactions']): BlockData {
