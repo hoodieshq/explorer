@@ -29,7 +29,6 @@ import type {
     AddressTableLookup,
     FromMessageOptions,
     ParsedTransaction,
-    ReportedTransactionVersion,
     RpcJsonParsedTransaction,
     RpcJsonTransaction,
     RpcParsedInstruction,
@@ -38,6 +37,7 @@ import type {
     TransactionInstruction,
     TransactionVersion,
 } from './types.js';
+import { normalizeVersion } from './version.js';
 
 const BASE58_DECODER = getBase58Decoder();
 const BASE58_ENCODER = getBase58Encoder();
@@ -181,13 +181,6 @@ export function hasUnmatchedLookupTables(transaction: ParsedTransaction): boolea
 
 export function isRpcParsedInstruction(instruction: TransactionInstruction): instruction is RpcParsedInstruction {
     return 'parsed' in instruction;
-}
-
-/** The RPC reports the version outside the message, so it is checked before the message is read. */
-function normalizeVersion(version: ReportedTransactionVersion | undefined): TransactionVersion {
-    const reported = typeof version === 'bigint' ? Number(version) : version;
-    if (reported === 'legacy' || reported === 0 || reported === 1) return reported;
-    throw new UnsupportedTransactionVersionError(version);
 }
 
 function isRpcJsonTransaction(
