@@ -1,13 +1,5 @@
-import type {
-    Blockhash,
-    CompiledTransactionMessage,
-    CompiledTransactionMessageWithLifetime,
-    Reward,
-    Signature,
-    Slot,
-    TransactionForFullBase64,
-    UnixTimestamp,
-} from '@solana/kit';
+import type { ParsedTransaction } from '@explorer/parsers/transaction';
+import type { Blockhash, Reward, Slot, TransactionForFullBase64, UnixTimestamp } from '@solana/kit';
 
 export type BlockTransactionMeta = Pick<
     NonNullable<TransactionForFullBase64<1>['meta']>,
@@ -21,9 +13,8 @@ export type BlockTransactionMeta = Pick<
 
 export type BlockTransaction = Readonly<{
     index: number;
-    message: CompiledTransactionMessage & CompiledTransactionMessageWithLifetime;
     meta: BlockTransactionMeta | null;
-    signatures: readonly Signature[];
+    parsedTransaction: ParsedTransaction;
 }>;
 
 export type UnavailableBlockTransaction = Readonly<{

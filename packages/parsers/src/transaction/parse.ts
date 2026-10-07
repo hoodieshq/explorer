@@ -13,6 +13,7 @@ import {
     getTransactionDecoder,
     isSolanaError,
     type ResolvedInstruction,
+    signature,
     SOLANA_ERROR__TRANSACTION__INVALID_CONFIG_MASK_PRIORITY_FEE_BITS,
     SOLANA_ERROR__TRANSACTION__VERSION_NUMBER_NOT_SUPPORTED,
     type Transaction,
@@ -156,7 +157,7 @@ function tryRunDecode<T>(decode: () => T): T {
 }
 
 function toBase58Signatures(signatures: Transaction['signatures']): (string | undefined)[] {
-    return Object.values(signatures).map(signature => (signature ? BASE58_DECODER.decode(signature) : undefined));
+    return Object.values(signatures).map(bytes => (bytes ? BASE58_DECODER.decode(bytes) : undefined));
 }
 
 /**
@@ -414,7 +415,7 @@ function buildTransaction(txData: {
         instructions: txData.instructions,
         numSignerAccounts: txData.resolved.accounts.filter(account => account.signer).length,
         lifetimeSpecifier: txData.lifetimeSpecifier,
-        signatures: txData.signatures,
+        signatures: txData.signatures.map(value => (value === undefined ? undefined : signature(value))),
     };
 
     if (txData.version === 0) {

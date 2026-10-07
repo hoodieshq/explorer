@@ -1,11 +1,6 @@
 import { Address } from '@components/common/Address';
-import {
-    type BlockData,
-    getBlockTransactionAccounts,
-    getBlockTransactionInstructions,
-    isBlockTransaction,
-    isBlockTransactionAccountWritable,
-} from '@entities/block-data';
+import { type BlockData, isBlockTransaction } from '@entities/block-data';
+import { isRpcParsedInstruction } from '@explorer/parsers/transaction';
 import type { Address as KitAddress } from '@solana/kit';
 import { useClusterPath } from '@utils/url';
 import Link from 'next/link';
@@ -19,7 +14,6 @@ import {
     type ResponsiveCell,
     ResponsiveGridRow,
 } from '@/app/components/block/shared';
-import { invariant } from '@/app/shared/lib/invariant';
 import { DataListCard } from '@/app/shared/ui/DataListCard';
 
 type AccountStats = {
@@ -45,12 +39,10 @@ export function BlockAccountsCard({ block, blockSlot }: { block: BlockData; bloc
         block.transactions.forEach(tx => {
             if (!isBlockTransaction(tx)) return;
             const txSet = new Map<KitAddress, boolean>();
-            const accountKeys = getBlockTransactionAccounts(tx);
-            getBlockTransactionInstructions(tx.message).forEach(ix => {
-                ix.accountIndices.forEach(index => {
-                    const accountKey = accountKeys[index];
-                    invariant(accountKey, `account key index ${index} out of range`);
-                    txSet.set(accountKey, isBlockTransactionAccountWritable(tx, index));
+            tx.parsedTransaction.instructions.forEach(instruction => {
+                if (isRpcParsedInstruction(instruction)) return;
+                instruction.accounts.forEach(account => {
+                    txSet.set(account.address, account.writable);
                 });
             });
 
