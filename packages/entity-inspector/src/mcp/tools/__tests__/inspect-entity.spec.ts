@@ -21,6 +21,8 @@ import { SourceUnavailableError } from '../../../rpc/rpc.js';
 import { handleInspectEntity, type InspectEntityDependencies, splitBuilderErrors } from '../inspect-entity.js';
 
 const ACCOUNT_IDENTIFIER = gen.systemProgram;
+const TX_SIGNER = gen.address(51);
+const TX_PROGRAM = gen.address(52);
 const TRANSACTION_IDENTIFIER =
     '4ReKprwf3WdLHRrzp4ctPWNBsQDPL3VZz3zMmoZfcGJMJCHh5Vq937mPdyxhCbw54wNnA6hZ7KfNpQdpt13yY7A9';
 
@@ -35,7 +37,7 @@ function transactionProbe(overrides: Record<string, unknown> = {}): Record<strin
         slot: 123,
         transaction: {
             message: {
-                accountKeys: ['signer-address', 'program-address'],
+                accountKeys: [TX_SIGNER, TX_PROGRAM],
                 header: {
                     numReadonlySignedAccounts: 0,
                     numReadonlyUnsignedAccounts: 1,
@@ -139,8 +141,8 @@ describe('inspect_entity handler', () => {
             payload: {
                 entity: {
                     accounts: [
-                        { address: 'signer-address', signer: true, source: 'static', writable: true },
-                        { address: 'program-address', signer: false, source: 'static', writable: false },
+                        { address: TX_SIGNER, signer: true, source: 'static', writable: true },
+                        { address: TX_PROGRAM, signer: false, source: 'static', writable: false },
                     ],
                     block_time: 456,
                     confirmation_status: 'finalized',
@@ -148,16 +150,16 @@ describe('inspect_entity handler', () => {
                     fee_lamports: 5000,
                     instructions: [
                         {
-                            accounts: ['signer-address'],
+                            accounts: [TX_SIGNER],
                             data: '3Bxs',
                             inner_instructions: [],
-                            program_id: 'program-address',
+                            program_id: TX_PROGRAM,
                             source: 'raw',
                         },
                     ],
                     kind: 'transaction',
                     signature: TRANSACTION_IDENTIFIER,
-                    signers: ['signer-address'],
+                    signers: [TX_SIGNER],
                     slot: 123,
                     status: 'success',
                 },
@@ -165,6 +167,41 @@ describe('inspect_entity handler', () => {
         });
         expect(dependencies.fetchAccountInfo).not.toHaveBeenCalled();
         expect(dependencies.fetchAsset).not.toHaveBeenCalled();
+    });
+
+    it('should reserve requested compute units by the schedule of the requested cluster', async () => {
+        const probe = transactionProbe({
+            slot: 800 * 432_000,
+            transaction: {
+                message: {
+                    accountKeys: [TX_SIGNER, gen.systemProgram],
+                    header: {
+                        numReadonlySignedAccounts: 0,
+                        numReadonlyUnsignedAccounts: 1,
+                        numRequiredSignatures: 1,
+                    },
+                    instructions: [{ accounts: [0], data: '3Bxs', programIdIndex: 1 }],
+                    recentBlockhash: 'GHtXQBbU',
+                },
+            },
+        });
+        const dependencies = createDependencies({ fetchTransaction: vi.fn().mockResolvedValue(probe) });
+
+        const devnet = await handleInspectEntity(
+            { cluster: 'devnet', identifier: TRANSACTION_IDENTIFIER },
+            dependencies,
+        );
+        const mainnet = await handleInspectEntity(
+            { cluster: 'mainnet-beta', identifier: TRANSACTION_IDENTIFIER },
+            dependencies,
+        );
+
+        expect(parseEnvelope(devnet)).toMatchObject({
+            payload: { entity: { requested_compute_units: { source: 'calculated', value: 200_000 } } },
+        });
+        expect(parseEnvelope(mainnet)).toMatchObject({
+            payload: { entity: { requested_compute_units: { source: 'calculated', value: 3_000 } } },
+        });
     });
 
     it('should return NOT_FOUND when the transaction probe is null', async () => {
@@ -240,9 +277,9 @@ describe('inspect_entity handler', () => {
         const envelope = parseEnvelope(result);
 
         expect(decodeInstructionFallback).toHaveBeenCalledWith({
-            accounts: [{ address: 'signer-address', signer: true, writable: true }],
+            accounts: [{ address: TX_SIGNER, signer: true, writable: true }],
             data: '3Bxs',
-            programId: 'program-address',
+            programId: TX_PROGRAM,
         });
         expect(envelope).toMatchObject({
             payload: {
@@ -294,6 +331,27 @@ describe('inspect_entity handler', () => {
             errors: [{ code: 'INTERNAL_ERROR' }],
             payload: {},
         });
+    });
+
+    it('should map an unsupported transaction version to CURRENTLY_UNSUPPORTED with a kind-only payload', async () => {
+        const logger = createLoggerMock();
+        const dependencies = createDependencies({
+            fetchTransaction: vi.fn().mockResolvedValue(transactionProbe({ version: 2 })),
+            logger,
+        });
+
+        const result = await handleInspectEntity({ identifier: TRANSACTION_IDENTIFIER }, dependencies);
+        const envelope = parseEnvelope(result);
+
+        expect(result.isError).toBe(true);
+        expect(envelope).toEqual({
+            errors: [{ code: 'CURRENTLY_UNSUPPORTED', message: 'Transaction version 2 is not supported.' }],
+            payload: { entity: { kind: 'transaction' } },
+        });
+        expect(logger.error).toHaveBeenCalledWith(
+            '[entity-inspector] inspect_entity transaction resolution failed',
+            expect.objectContaining({ identifier: TRANSACTION_IDENTIFIER }),
+        );
     });
 
     it('should return NOT_FOUND for account probes with explicit null', async () => {
@@ -1010,7 +1068,7 @@ describe('inspect_entity handler', () => {
 
         await handleInspectEntity({ cluster: 'devnet', identifier: TRANSACTION_IDENTIFIER }, dependencies);
 
-        expect(resolveIdlClient).toHaveBeenCalledWith('program-address', 'devnet');
+        expect(resolveIdlClient).toHaveBeenCalledWith(TX_PROGRAM, 'devnet');
     });
 
     it('should warn through the console logger by default when DAS lookup fails', async () => {

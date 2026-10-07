@@ -1,8 +1,7 @@
 import { type BlockData, isBlockTransaction } from '@entities/block-data/@x/compute-unit';
 import { Cluster } from '@utils/cluster';
 
-import { getMaxComputeUnitsInBlock } from '@/app/utils/epoch-schedule';
-
+import { getMaxComputeUnitsInBlock } from './block-limits';
 import { estimateRequestedComputeUnits } from './compute-units-schedule';
 
 // A block's aggregate compute-unit figures, all in compute units:

@@ -5,7 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { gen } from '../../__tests__/gen.js';
 import { fetchPmpSecurityMetadata } from '../pmp-security.js';
 
-vi.mock('@solana/kit', () => ({
+vi.mock('@solana/kit', async importOriginal => ({
+    ...(await importOriginal<Record<string, unknown>>()),
     address: vi.fn((value: string) => value),
     createSolanaRpc: vi.fn(() => ({})),
 }));

@@ -1,6 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
-import type { ResolvedAccount, TransactionInstructionEntry, TransactionPayloadContext } from '../types.js';
+import type {
+    ResolvedAccount,
+    TransactionInstructionEntry,
+    TransactionPayloadContext,
+    TransactionPayloadOutput,
+    TransactionResourceLimits,
+    TransactionResourceLimitsEntry,
+} from '../types.js';
 import { buildTransactionPayload } from '../build-payload.js';
 
 function staticAccount(address: string, roles: { signer?: boolean; writable?: boolean } = {}): ResolvedAccount {
@@ -39,6 +46,7 @@ function makeContext(overrides: Partial<TransactionPayloadContext> = {}): Transa
         numReadonlyUnsignedAccounts: 1,
         numRequiredSignatures: 2,
         recentBlockhash: 'GHtXQBbU',
+        requestedComputeUnits: { source: 'calculated', value: 200_000 },
         resolvedAccounts: accounts,
         signature: 'sig',
         slot: 123,
@@ -130,8 +138,35 @@ describe('transaction payload builder', () => {
             confirmations: 'max',
             log_messages: ['Program log'],
             recent_blockhash: 'GHtXQBbU',
+            requested_compute_units: { source: 'calculated', value: 200_000 },
             transaction_version: 0,
         });
+    });
+
+    it('should map v1 resource limits to their payload keys', () => {
+        const result = buildTransactionPayload(
+            makeContext({
+                resourceLimits: {
+                    computeUnitLimit: 200_000,
+                    heapSizeBytes: 65_536,
+                    loadedAccountsDataSizeLimitBytes: 131_072,
+                    priorityFeeLamports: '9007199254740993',
+                },
+                version: 1,
+            }),
+            [],
+        );
+
+        expect(result.entity.resource_limits).toEqual({
+            compute_unit_limit: 200_000,
+            heap_size_bytes: 65_536,
+            loaded_accounts_data_size_limit_bytes: 131_072,
+            priority_fee_lamports: '9007199254740993',
+        });
+    });
+
+    it('should omit resource_limits when the context carries none', () => {
+        expect(buildTransactionPayload(makeContext(), []).entity).not.toHaveProperty('resource_limits');
     });
 
     it('should include the error only when the status is failed', () => {
@@ -165,5 +200,18 @@ describe('transaction payload builder', () => {
         expect(result.entity.fee_lamports).toBe('9007199254740992');
         expect(result.entity.compute_units_consumed).toBe('9007199254740993');
         expect(result.entity.block_time).toBe('9007199254740994');
+    });
+
+    it('should define resource limits in the v1 version', () => {
+        expectTypeOf<
+            Extract<TransactionPayloadContext, { version: 1 }>['resourceLimits']
+        >().toEqualTypeOf<TransactionResourceLimits>();
+        expectTypeOf<Exclude<TransactionPayloadContext, { version: 1 }>['resourceLimits']>().toEqualTypeOf<undefined>();
+        expectTypeOf<
+            Extract<TransactionPayloadOutput['entity'], { transaction_version: 1 }>['resource_limits']
+        >().toEqualTypeOf<TransactionResourceLimitsEntry>();
+        expectTypeOf<
+            Exclude<TransactionPayloadOutput['entity'], { transaction_version: 1 }>['resource_limits']
+        >().toEqualTypeOf<undefined>();
     });
 });

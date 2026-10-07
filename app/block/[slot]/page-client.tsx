@@ -1,10 +1,10 @@
 'use client';
 
 import { BlockHistoryCard } from '@components/block/BlockHistoryCard';
+import { getEpochForSlot } from '@explorer/utils';
 import { useBlock, useFetchBlock } from '@providers/block';
 import { useCluster, useEpochSchedule } from '@providers/cluster';
 import { ClusterStatus } from '@utils/cluster';
-import { getEpochForSlot } from '@utils/epoch-schedule';
 import { notFound } from 'next/navigation';
 import React from 'react';
 

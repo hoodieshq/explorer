@@ -1,7 +1,7 @@
+import type { RequestedComputeUnits, TransactionVersion } from '@explorer/parsers/transaction';
+
 import type { CompiledInnerInstruction, CompiledInstruction, ConfirmationStatus } from '../rpc/types.js';
 import type { SafeNumeric } from '../shared/types.js';
-
-export type TransactionVersion = 'legacy' | 0 | null;
 
 export type ResolvedAccount = {
     address: string;
@@ -11,13 +11,20 @@ export type ResolvedAccount = {
     lookupTableAddress?: string;
 };
 
+export type TransactionResourceLimits = {
+    computeUnitLimit: number;
+    heapSizeBytes: number;
+    loadedAccountsDataSizeLimitBytes: number;
+    priorityFeeLamports: SafeNumeric;
+};
+
 type TransactionPayloadContextBase = {
     signature: string;
     slot: number;
     blockTime: SafeNumeric;
     feeLamports: SafeNumeric;
-    version: TransactionVersion;
     computeUnitsConsumed: SafeNumeric;
+    requestedComputeUnits: RequestedComputeUnits;
     logMessages: readonly string[] | null;
     recentBlockhash: string | null;
     confirmationStatus: ConfirmationStatus | null;
@@ -31,14 +38,28 @@ type TransactionPayloadContextBase = {
     innerInstructions: readonly CompiledInnerInstruction[] | null;
 };
 
-export type TransactionPayloadContext =
-    | (TransactionPayloadContextBase & { status: 'success'; err: null })
-    | (TransactionPayloadContextBase & {
-          status: 'failed';
-          /** Raw error from the RPC response. */
-          err: Record<string, unknown> | string | unknown[] | null;
-      })
-    | (TransactionPayloadContextBase & { status: 'unknown'; err: null });
+/** The version the RPC reported, or `null` when the response has no `version` field. */
+export type ReportedTransactionVersion = TransactionVersion | null;
+
+/**
+ * Transaction version and its specific context.
+ * Only v1 carries resource limits.
+ */
+export type TransactionVersionContext =
+    | { version: 1; resourceLimits: TransactionResourceLimits }
+    | { version: Exclude<ReportedTransactionVersion, 1>; resourceLimits?: never };
+
+export type TransactionPayloadContext = TransactionPayloadContextBase &
+    TransactionVersionContext &
+    (
+        | { status: 'success'; err: null }
+        | {
+              status: 'failed';
+              /** Raw error from the RPC response. */
+              err: Record<string, unknown> | string | unknown[] | null;
+          }
+        | { status: 'unknown'; err: null }
+    );
 
 export type DecodedInstructionSource = 'idl' | 'bundled' | 'raw';
 
@@ -82,16 +103,21 @@ export type FallbackInstruction = {
 /** Host-app decoder for programs the package has no built-in support for — `undefined` means "cannot decode". */
 export type DecodeInstructionFallback = (instruction: FallbackInstruction) => DecodedInstructionInfo | undefined;
 
-type TransactionPayloadEntityBase = {
+export type TransactionPayloadEntityBase = {
     kind: 'transaction';
     signature: string;
     slot: number;
     block_time: SafeNumeric;
     fee_lamports: SafeNumeric;
     signers: string[];
-    transaction_version: TransactionVersion;
     recent_blockhash: string | null;
     compute_units_consumed: SafeNumeric;
+    /**
+     * `declared` is the transaction's own limit, capped at the maximum.
+     * `calculated` sums per-instruction reserves at the slot's epoch.
+     * `fallback` marks a v1 transaction with no declared limit. The runtime budgets it zero.
+     */
+    requested_compute_units: { source: RequestedComputeUnits['source']; value: number };
     confirmation_status: ConfirmationStatus | null;
     confirmations: number | 'max' | null;
     log_messages: readonly string[] | null;
@@ -99,12 +125,28 @@ type TransactionPayloadEntityBase = {
     instructions: TransactionInstructionEntry[];
 };
 
+export type TransactionResourceLimitsEntry = {
+    compute_unit_limit: number;
+    heap_size_bytes: number;
+    loaded_accounts_data_size_limit_bytes: number;
+    priority_fee_lamports: SafeNumeric;
+};
+
+/**
+ * `null` means the response had no `version` field, because the request omitted `maxSupportedTransactionVersion`.
+ * Each v1 limit is the declared value, or the runtime default where the message declares none.
+ * The compute unit limit is capped at the maximum.
+ */
+export type TransactionVersionEntity =
+    | { transaction_version: 1; resource_limits: TransactionResourceLimitsEntry }
+    | { transaction_version: Exclude<ReportedTransactionVersion, 1>; resource_limits?: never };
+
 export type TransactionPayloadOutput = {
-    entity:
-        | (TransactionPayloadEntityBase & { status: 'success'; error: null })
-        | (TransactionPayloadEntityBase & {
-              status: 'failed';
-              error: Record<string, unknown> | string | unknown[] | null;
-          })
-        | (TransactionPayloadEntityBase & { status: 'unknown'; error: null });
+    entity: TransactionPayloadEntityBase &
+        TransactionVersionEntity &
+        (
+            | { status: 'success'; error: null }
+            | { status: 'failed'; error: Record<string, unknown> | string | unknown[] | null }
+            | { status: 'unknown'; error: null }
+        );
 };
