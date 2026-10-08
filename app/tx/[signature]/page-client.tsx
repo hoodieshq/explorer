@@ -4,6 +4,7 @@ import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
 import { SignatureContext } from '@components/instruction/SignatureContext';
 import { CUProfilingSection } from '@features/cu-profiling';
+import { FeedbackDemoPicker } from '@features/feedback';
 import { Receipt } from '@features/receipt';
 import { isReceiptEnabled } from '@features/receipt';
 import { FetchStatus } from '@providers/cache';
@@ -86,6 +87,8 @@ export function TransactionDetailsPageClient({ params: { signature: raw } }: Pro
 
     return (
         <div className="mx-auto flex max-w-5xl flex-col space-y-9 px-4 pt-3 selection:bg-[#13d89b40] selection:text-inherit lg:space-y-12 lg:px-6 lg:pt-5">
+            {/* REVIEW(HOO-1815): the feedback popup versions for the inner review; remove before the external PR. */}
+            <FeedbackDemoPicker />
             <header className="-mb-6 flex flex-col gap-1.5 pb-3 pt-2 lg:mb-0">
                 <span className="text-xs font-normal uppercase text-muted">Details</span>
                 <h1 className="m-0 text-2xl font-normal leading-none text-white md:text-3xl">Transaction</h1>

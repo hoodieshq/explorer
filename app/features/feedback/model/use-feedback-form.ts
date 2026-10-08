@@ -15,12 +15,12 @@ export interface FeedbackFormValues {
 }
 
 export function useFeedbackForm() {
-    const [isOpen, setIsOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const { cluster } = useCluster();
     const toast = useToast();
 
-    const submit = async (values: FeedbackFormValues) => {
+    // Resolves to whether the feedback was sent, so the popup holding the form can close itself.
+    const submit = async (values: FeedbackFormValues): Promise<boolean> => {
         setIsSubmitting(true);
         try {
             // sendFeedback sets its tags on the current scope. withScope keeps those tags off later events.
@@ -38,8 +38,8 @@ export function useFeedbackForm() {
                     },
                 }),
             );
-            setIsOpen(false);
             toast.custom({ description: 'Thank you fren, enjoy exploring', title: 'Feedback sent!', type: 'success' });
+            return true;
         } catch {
             // The form must stay open to keep the message the user typed.
             toast.custom({
@@ -47,10 +47,11 @@ export function useFeedbackForm() {
                 title: 'Could not send feedback',
                 type: 'error',
             });
+            return false;
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    return { isOpen, isSubmitting, setIsOpen, submit };
+    return { isSubmitting, submit };
 }

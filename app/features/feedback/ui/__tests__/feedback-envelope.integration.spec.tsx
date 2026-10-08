@@ -57,9 +57,7 @@ describe('FeedbackWidget — real captureFeedback envelope', () => {
     it('should deliver message, rating, contact, cluster, source, and url inside a feedback envelope', async () => {
         render(<FeedbackWidget />);
         await userEvent.click(await screen.findByRole('button', { name: 'Feedback' }));
-        await userEvent.click(await screen.findByText('Share feedback'));
-
-        await screen.findByRole('heading', { name: 'Give feedback' });
+        await screen.findByRole('dialog', { name: 'Feedback' });
         await userEvent.click(screen.getByRole('radio', { name: '4 of 5 stars' }));
         await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Great explorer!');
         await userEvent.type(screen.getByRole('textbox', { name: 'X handle (optional)' }), '@fren');
