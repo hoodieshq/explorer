@@ -1,73 +1,19 @@
 import { DEFAULT_SIGNATURE } from '@__fixtures__/gen';
 import type { RawTransaction } from '@entities/transaction-data';
 import { createWeb3TransactionBytes } from '@entities/transaction-data/__fixtures__/wire-transactions';
-import { fromRpcTransaction, type ParsedTransaction, type RpcTransactionResponse } from '@explorer/parsers/transaction';
-import { address, getBase58Decoder, signature } from '@solana/kit';
-import type {
-    ParsedInstruction,
-    ParsedMessageAccount,
-    ParsedTransactionWithMeta,
-    PartiallyDecodedInstruction,
-} from '@solana/web3.js';
-import { ComputeBudgetProgram, PublicKey, SystemProgram, TransactionMessage, VersionedMessage } from '@solana/web3.js';
+import { fromRpcTransaction } from '@explorer/parsers/transaction';
+import type { ParsedTransactionWithMeta } from '@solana/web3.js';
+import { PublicKey, SystemProgram, TransactionMessage, VersionedMessage } from '@solana/web3.js';
 import {
     mockParsedTransactionDetails,
     mockRawTransactionDetails,
     mockTransactionStatus,
 } from '@storybook-config/__fixtures__/transactions';
 
-import { alloc, writeUint32LE } from '@/app/shared/lib/bytes';
+import { toBase64 } from '@/app/shared/lib/bytes';
 import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
 
 export { DEFAULT_SIGNATURE };
-
-const BASE58_DECODER = getBase58Decoder();
-
-function toRpcAccountKey(account: ParsedMessageAccount) {
-    return {
-        pubkey: account.pubkey.toBase58(),
-        signer: account.signer,
-        // Legacy transactions carry no `source` at all; jsonParsed always reports one.
-        source: account.source ?? 'transaction',
-        writable: account.writable,
-    };
-}
-
-function toRpcInstruction(instruction: ParsedInstruction | PartiallyDecodedInstruction) {
-    if ('parsed' in instruction) {
-        return {
-            parsed: instruction.parsed,
-            program: instruction.program,
-            programId: instruction.programId.toBase58(),
-        };
-    }
-
-    return {
-        accounts: instruction.accounts.map(account => account.toBase58()),
-        data: instruction.data,
-        programId: instruction.programId.toBase58(),
-    };
-}
-
-function buildParsedTransaction(tx: ParsedTransactionWithMeta): ParsedTransaction {
-    const response: RpcTransactionResponse = {
-        transaction: {
-            message: {
-                accountKeys: tx.transaction.message.accountKeys.map(toRpcAccountKey),
-                instructions: tx.transaction.message.instructions.map(toRpcInstruction),
-                recentBlockhash: tx.transaction.message.recentBlockhash,
-            },
-            signatures: [...tx.transaction.signatures],
-        },
-        version: typeof tx.version === 'number' ? (tx.version as 0 | 1) : 'legacy',
-    };
-
-    return fromRpcTransaction(response);
-}
-
-function withParsedTransaction(tx: ParsedTransactionWithMeta): ParsedTransactionWithMeta {
-    return { ...tx, parsedTransaction: buildParsedTransaction(tx) } as unknown as ParsedTransactionWithMeta;
-}
 
 export const FEE_PAYER = new PublicKey('9noXzpXnkyEcKF3AeXqUHTdR59V5uvrRBUZ9bwfQwxNq');
 export const RECIPIENT = new PublicKey('GsbwXfJraMomNxBcpR3DBr9yoWR2PmN93PEaYJz7MSTN');
@@ -77,7 +23,7 @@ export const TOKEN_MINT = new PublicKey('EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwy
 export const MOCK_STATUS = mockTransactionStatus();
 export const MOCK_FAILED_STATUS = mockTransactionStatus({ err: { InstructionError: [0, 'GenericError'] } });
 
-const BASE_TX = withParsedTransaction({
+const BASE_TX = {
     blockTime: 1_716_000_000,
     meta: {
         // A System transfer consumes 150 units, and `costUnits` is the *executed* cost, so it has to
@@ -159,59 +105,12 @@ const BASE_TX = withParsedTransaction({
         signatures: [DEFAULT_SIGNATURE],
     },
     version: 'legacy',
-} as unknown as ParsedTransactionWithMeta);
+} as unknown as ParsedTransactionWithMeta;
 
 export const MOCK_PARSED_TX = mockParsedTransactionDetails({ transactionWithMeta: BASE_TX });
 
 export const MOCK_PARSED_TX_NO_BLOCK_TIME = mockParsedTransactionDetails({
     transactionWithMeta: { ...BASE_TX, blockTime: null },
-});
-
-/**
- * A Compute Budget `SetComputeUnitLimit` instruction in the shape the RPC serves it: a partially
- * decoded instruction whose data is base58, which is what `getRequestedComputeUnits` reads.
- */
-function withComputeUnitLimit(units: number) {
-    const data = alloc(5);
-    data[0] = 2; // SetComputeUnitLimit
-    writeUint32LE(data, units, 1);
-
-    return withParsedTransaction({
-        ...BASE_TX,
-        transaction: {
-            ...BASE_TX.transaction,
-            message: {
-                ...BASE_TX.transaction.message,
-                accountKeys: [
-                    ...BASE_TX.transaction.message.accountKeys,
-                    { pubkey: ComputeBudgetProgram.programId, signer: false, source: 'transaction', writable: false },
-                ],
-                // Appended, not prepended: the summary card reads instruction 0 to detect a nonce.
-                instructions: [
-                    ...BASE_TX.transaction.message.instructions,
-                    {
-                        accounts: [],
-                        data: BASE58_DECODER.decode(data),
-                        programId: ComputeBudgetProgram.programId,
-                    },
-                ],
-            },
-        },
-    } as unknown as ParsedTransactionWithMeta);
-}
-
-/** Accurately budgeted: requests 1,000 compute units and consumes 150 of them. */
-export const MOCK_TIGHT_BUDGET_TX = mockParsedTransactionDetails({
-    transactionWithMeta: withComputeUnitLimit(1_000),
-});
-
-/**
- * A wallet's default 200,000 compute unit request left in place over a transfer that uses 150. The
- * executed cost the RPC reports is unchanged — only the *requested* cost, which SIMD-0553 charges
- * on, blows up.
- */
-export const MOCK_LOOSE_BUDGET_TX = mockParsedTransactionDetails({
-    transactionWithMeta: withComputeUnitLimit(200_000),
 });
 
 export const MOCK_FAILED_TX = mockParsedTransactionDetails({
@@ -229,58 +128,47 @@ export const MOCK_FAILED_TX = mockParsedTransactionDetails({
     },
 });
 
-// Built from real wire bytes rather than a hand-picked number, so the size the summary renders is
-// the size these bytes actually have.
-const RAW_TX_BYTES = createWeb3TransactionBytes('legacy');
-const RAW_MESSAGE_BYTES = parseTransactionBytes(RAW_TX_BYTES).messageBytes;
-const RAW_MESSAGE = VersionedMessage.deserialize(RAW_MESSAGE_BYTES);
+// Built from real wire bytes rather than hand-picked numbers, so the size and the compute unit limit the
+// summary renders are the ones these bytes actually carry.
+function createRawTransaction(bytes: Uint8Array): RawTransaction {
+    const messageBytes = parseTransactionBytes(bytes).messageBytes;
+    const message = VersionedMessage.deserialize(messageBytes);
 
-const RAW_TX: RawTransaction = {
-    message: RAW_MESSAGE,
-    messageBytes: RAW_MESSAGE_BYTES,
-    serializedSize: RAW_TX_BYTES.length,
-    signatures: [DEFAULT_SIGNATURE],
-    slot: 372_654_321,
-    transaction: TransactionMessage.decompile(RAW_MESSAGE),
-    version: 'legacy',
-};
+    return {
+        message,
+        messageBytes,
+        parsedTransaction: fromRpcTransaction({ transaction: [toBase64(bytes), 'base64'], version: 'legacy' }),
+        serializedSize: bytes.length,
+        signatures: [DEFAULT_SIGNATURE],
+        slot: 372_654_321,
+        transaction: TransactionMessage.decompile(message),
+        version: 'legacy',
+    };
+}
+
+const RAW_TX = createRawTransaction(createWeb3TransactionBytes('legacy'));
 
 export const MOCK_RAW_TX = mockRawTransactionDetails({ raw: { ...RAW_TX, blockTime: 1_716_000_000 } });
 
 export const MOCK_RAW_TX_NO_BLOCK_TIME = mockRawTransactionDetails({ raw: RAW_TX });
+
+/** Accurately budgeted: requests 1,000 compute units for a transfer that consumes 150 of them. */
+export const MOCK_RAW_TIGHT_BUDGET_TX = mockRawTransactionDetails({
+    raw: createRawTransaction(createWeb3TransactionBytes('legacy', { computeUnitLimit: 1_000 })),
+});
+
+/**
+ * A wallet's default 200,000 compute unit request left in place over a transfer that uses 150. The
+ * executed cost the RPC reports is unchanged — only the *requested* cost, which SIMD-0553 charges
+ * on, blows up.
+ */
+export const MOCK_RAW_LOOSE_BUDGET_TX = mockRawTransactionDetails({
+    raw: createRawTransaction(createWeb3TransactionBytes('legacy', { computeUnitLimit: 200_000 })),
+});
 
 export const MOCK_NO_LOGS_TX = mockParsedTransactionDetails({
     transactionWithMeta: {
         ...BASE_TX,
         meta: { ...BASE_TX.meta, logMessages: null } as unknown as ParsedTransactionWithMeta['meta'],
     },
-});
-
-/**
- * A v1 transaction that declares no resource limits at all.
- */
-const V1_NO_CONFIG_PARSED_TRANSACTION: ParsedTransaction = {
-    accounts: [
-        { address: address(FEE_PAYER.toBase58()), signer: true, source: 'static', writable: true },
-        { address: address(RECIPIENT.toBase58()), signer: false, source: 'static', writable: true },
-    ],
-    instructions: [],
-    lifetimeSpecifier: '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2N9d',
-    numSignerAccounts: 1,
-    signatures: [signature(DEFAULT_SIGNATURE)],
-    version: 1,
-};
-
-export const MOCK_V1_NO_CONFIG_TX = mockParsedTransactionDetails({
-    transactionWithMeta: {
-        ...BASE_TX,
-        meta: {
-            ...BASE_TX.meta,
-            computeUnitsConsumed: 0,
-            costUnits: 0,
-            err: { InstructionError: [0, 'ComputationalBudgetExceeded'] },
-        },
-        parsedTransaction: V1_NO_CONFIG_PARSED_TRANSACTION,
-        version: 1,
-    } as unknown as ParsedTransactionWithMeta,
 });

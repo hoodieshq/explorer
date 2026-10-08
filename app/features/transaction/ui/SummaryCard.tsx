@@ -144,7 +144,7 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
     const { info } = status.data;
 
     const transactionWithMeta = details?.data?.transactionWithMeta;
-    const parsedTransaction = transactionWithMeta?.parsedTransaction;
+    const parsedTransaction = rawDetails?.data?.raw?.parsedTransaction;
     const fee = transactionWithMeta?.meta?.fee;
     const costUnits = transactionWithMeta?.meta?.costUnits;
     const computeUnitsConsumed = transactionWithMeta?.meta?.computeUnitsConsumed;

@@ -14,7 +14,7 @@ import {
     setTransactionMessageLoadedAccountsDataSizeLimit,
     setTransactionMessagePriorityFeeLamports,
 } from '@solana/kit';
-import { PublicKey, SystemProgram, TransactionMessage } from '@solana/web3.js';
+import { ComputeBudgetProgram, PublicKey, SystemProgram, TransactionMessage } from '@solana/web3.js';
 
 export const FEE_PAYER = address(gen.address(1));
 export const RECIPIENT = address(gen.address(2));
@@ -27,6 +27,8 @@ export type V1ConfigOverrides = {
     loadedAccountsDataSizeLimit?: number;
     priorityFeeLamports?: bigint;
 };
+
+type Web3MessageOptions = { computeUnitLimit?: number };
 
 /** Wire bytes of an unsigned v1 transaction carrying whichever resource limits are passed. */
 export function createV1TransactionBytes(config: V1ConfigOverrides): Uint8Array {
@@ -52,15 +54,18 @@ export function createV1TransactionBytes(config: V1ConfigOverrides): Uint8Array 
 }
 
 /** A single-transfer web3.js message, for the versions web3.js can build. */
-export function createWeb3TransactionMessage(): TransactionMessage {
+export function createWeb3TransactionMessage({ computeUnitLimit }: Web3MessageOptions = {}): TransactionMessage {
+    const transfer = SystemProgram.transfer({
+        fromPubkey: new PublicKey(FEE_PAYER),
+        lamports: 1n,
+        toPubkey: new PublicKey(RECIPIENT),
+    });
+
     return new TransactionMessage({
-        instructions: [
-            SystemProgram.transfer({
-                fromPubkey: new PublicKey(FEE_PAYER),
-                lamports: 1n,
-                toPubkey: new PublicKey(RECIPIENT),
-            }),
-        ],
+        instructions:
+            computeUnitLimit === undefined
+                ? [transfer]
+                : [transfer, ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnitLimit })],
         payerKey: new PublicKey(FEE_PAYER),
         recentBlockhash: PublicKey.default.toBase58(),
     });
@@ -72,8 +77,8 @@ export function createWeb3TransactionMessage(): TransactionMessage {
  * Signatures on the wire are fixed-count and zero-filled until signed, so an unsigned transaction
  * carries one all-zero signature for its fee payer.
  */
-export function createWeb3TransactionBytes(version: 'legacy' | 0): Uint8Array {
-    const message = createWeb3TransactionMessage();
+export function createWeb3TransactionBytes(version: 'legacy' | 0, options: Web3MessageOptions = {}): Uint8Array {
+    const message = createWeb3TransactionMessage(options);
     const compiled = version === 'legacy' ? message.compileToLegacyMessage() : message.compileToV0Message();
     const messageBytes = compiled.serialize();
     const bytes = new Uint8Array(1 + 64 + messageBytes.length);

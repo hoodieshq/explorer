@@ -1,8 +1,6 @@
 import { gen } from '@__fixtures__/gen';
 import { SystemProgram } from '@solana/web3.js';
-import { afterEach, describe, expect, it, vi } from 'vitest';
-
-import { Logger } from '@/app/shared/lib/logger';
+import { describe, expect, it } from 'vitest';
 
 import { adaptParsedTransaction, type RpcParsedTransaction } from '../adapt-parsed-transaction';
 
@@ -11,11 +9,6 @@ const RECIPIENT = gen.address(2);
 const SYSTEM_PROGRAM = SystemProgram.programId.toBase58();
 const MINT = gen.address(3);
 const BLOCKHASH = gen.blockhash();
-const UNKNOWN_ACCOUNT = gen.address(4);
-
-afterEach(() => {
-    vi.clearAllMocks();
-});
 
 type RpcMeta = NonNullable<RpcParsedTransaction['meta']>;
 
@@ -59,7 +52,6 @@ function createResponse(overrides: Partial<RpcParsedTransaction> = {}): RpcParse
                 accountKeys: [
                     { pubkey: FEE_PAYER, signer: true, source: 'transaction', writable: true },
                     { pubkey: RECIPIENT, signer: false, source: 'lookupTable', writable: true },
-                    { pubkey: SYSTEM_PROGRAM, signer: false, source: 'transaction', writable: false },
                 ],
                 instructions: [
                     {
@@ -136,21 +128,13 @@ describe('adaptParsedTransaction', () => {
 
     // Cards render these payloads with JSON.stringify, which throws on a bigint, and the receipt
     // model validates them against superstruct `number()` schemas.
-    it('should leave no bigint anywhere in the result', () => {
+    it('should leave no bigint anywhere in the adapted transaction', () => {
         const result = adaptParsedTransaction(
             createResponse({ meta: createMeta({ err: { InstructionError: [1n, { Custom: 6001n }] } }) }),
         );
 
         expect(() => JSON.stringify(result)).not.toThrow();
         expect(findBigIntPath(result)).toBeUndefined();
-    });
-
-    it('should convert numbers nested inside a parsed instruction of parsedTransaction', () => {
-        const parsedIx = adaptParsedTransaction(createResponse()).parsedTransaction?.instructions[0];
-        const parsed =
-            parsedIx && 'parsed' in parsedIx ? (parsedIx.parsed as { info: { lamports: number } }) : undefined;
-
-        expect(parsed?.info.lamports).toBe(100_000_000);
     });
 
     it('should convert instruction error indices and codes so the error formatters can do arithmetic', () => {
@@ -194,44 +178,6 @@ describe('adaptParsedTransaction', () => {
         expect(result.meta?.loadedAddresses).toBeUndefined();
         expect(result.meta?.computeUnitsConsumed).toBeUndefined();
         expect(result.meta?.costUnits).toBeUndefined();
-    });
-
-    it('should build parsedTransaction from the same response', () => {
-        const parsed = adaptParsedTransaction(createResponse()).parsedTransaction;
-
-        expect(parsed?.version).toBe(0);
-        expect(parsed?.accounts.map(account => account.address)).toEqual([FEE_PAYER, RECIPIENT, SYSTEM_PROGRAM]);
-        expect(parsed?.instructions[0].programAddress).toBe(SYSTEM_PROGRAM);
-        expect(parsed?.version === 0 ? parsed.addressTableLookups : 'wrong version').toBeUndefined();
-    });
-
-    it('should leave parsedTransaction undefined without logging when the RPC omits the version', () => {
-        const result = adaptParsedTransaction(createResponse({ version: undefined }));
-
-        expect(result.parsedTransaction).toBeUndefined();
-        expect(Logger.error).not.toHaveBeenCalled();
-    });
-
-    it('should leave parsedTransaction undefined and log an error when an instruction names an unknown account', () => {
-        const response = createResponse({
-            transaction: {
-                message: {
-                    accountKeys: [
-                        { pubkey: FEE_PAYER, signer: true, source: 'transaction', writable: true },
-                        { pubkey: RECIPIENT, signer: false, source: 'lookupTable', writable: true },
-                        { pubkey: SYSTEM_PROGRAM, signer: false, source: 'transaction', writable: false },
-                    ],
-                    instructions: [{ accounts: [UNKNOWN_ACCOUNT], data: '3Bxs4', programId: SYSTEM_PROGRAM }],
-                    recentBlockhash: BLOCKHASH,
-                },
-                signatures: [gen.signature(1)],
-            },
-        });
-
-        const result = adaptParsedTransaction(response);
-
-        expect(result.parsedTransaction).toBeUndefined();
-        expect(Logger.error).toHaveBeenCalled();
     });
 });
 
