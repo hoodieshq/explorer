@@ -1,11 +1,6 @@
 import { Address } from '@components/common/Address';
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
-import {
-    type BlockData,
-    getBlockTransactionAccounts,
-    getBlockTransactionInstructions,
-    isBlockTransaction,
-} from '@entities/block-data';
+import { type BlockData, isBlockTransaction } from '@entities/block-data';
 import type { Address as KitAddress } from '@solana/kit';
 import React from 'react';
 
@@ -17,7 +12,6 @@ import {
     ResponsiveGridRow,
     TIGHT_CARD,
 } from '@/app/components/block/shared';
-import { invariant } from '@/app/shared/lib/invariant';
 import { Card } from '@/app/shared/ui/Card';
 import { DataListCard } from '@/app/shared/ui/DataListCard';
 import { KeyValue } from '@/app/shared/ui/key-value';
@@ -41,24 +35,22 @@ function computeProgramStats(block: BlockData): ProgramStats {
     let totalInstructions = 0;
     block.transactions.forEach(tx => {
         if (!isBlockTransaction(tx)) return;
-        const instructions = getBlockTransactionInstructions(tx.message);
+        const { accounts, instructions } = tx.parsedTransaction;
         totalInstructions += instructions.length;
         const programUsed = new Set<KitAddress>();
-        const accountKeys = getBlockTransactionAccounts(tx);
-        const trackProgram = (index: number) => {
-            if (index >= accountKeys.length) return;
-            const programId = accountKeys[index];
-            invariant(programId, `account key index ${index} out of range`);
-            const programAddress = programId;
+        const trackProgram = (programAddress: KitAddress) => {
             programUsed.add(programAddress);
             const frequency = ixFrequency.get(programAddress);
             ixFrequency.set(programAddress, frequency ? frequency + 1 : 1);
         };
 
-        instructions.forEach(ix => trackProgram(ix.programAddressIndex));
+        instructions.forEach(instruction => trackProgram(instruction.programAddress));
         tx.meta?.innerInstructions?.forEach(inner => {
             totalInstructions += inner.instructions.length;
-            inner.instructions.forEach(innerIx => trackProgram(innerIx.programIdIndex));
+            inner.instructions.forEach(innerIx => {
+                const account = accounts[innerIx.programIdIndex];
+                if (account) trackProgram(account.address);
+            });
         });
 
         const successful = tx.meta?.err === null;

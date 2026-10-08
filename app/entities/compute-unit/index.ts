@@ -1,7 +1,7 @@
 export { summarizeBlockComputeUnits } from './lib/block-compute-units';
 export type { BlockComputeUnitsSummary } from './lib/block-compute-units';
+export { toScheduleCluster } from './lib/cluster';
 export {
-    estimateRequestedComputeUnits,
     estimateRequestedComputeUnitsForParsedTransaction,
     getReservedComputeUnits,
 } from './lib/compute-units-schedule';

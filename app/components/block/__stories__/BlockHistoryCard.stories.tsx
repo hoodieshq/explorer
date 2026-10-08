@@ -1,4 +1,5 @@
 import type { BlockData, BlockTransaction } from '@entities/block-data';
+import { fromCompiledMessage } from '@explorer/parsers/transaction';
 import { address, blockhash, getBase58Decoder, lamports, signature } from '@solana/kit';
 import { nextjsParameters, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
@@ -15,7 +16,7 @@ const emptyBlock: BlockData = {
 };
 
 // Programs the synthetic transactions invoke. Deliberately excludes the Compute Budget program so
-// `estimateRequestedComputeUnits` never tries to parse the (empty) instruction data — it just adds the
+// `getRequestedComputeUnits` never tries to parse the (empty) instruction data — it just adds the
 // per-program reserved units, which is enough to populate the "Reserved CUs" column. Vote is last so it
 // can be added only as a *secondary* program (never alone) — otherwise the card's default "All Except
 // Votes" filter would hide those rows and the counts would look off.
@@ -67,13 +68,6 @@ function makeBlock(txCount: number): BlockData {
         ];
         return {
             index: k,
-            message: {
-                header: { numReadonlyNonSignerAccounts: 0, numReadonlySignerAccounts: 0, numSignerAccounts: 0 },
-                instructions: programIdxs.map(idx => ({ data: new Uint8Array(), programAddressIndex: idx })),
-                lifetimeToken: blockhash('11111111111111111111111111111111'),
-                staticAccounts: keys,
-                version: 'legacy',
-            },
             meta: {
                 costUnits: BigInt(1_000 + (k % 7) * 350),
                 err: failed ? { InstructionError: [0, { Custom: 1 }] } : null,
@@ -81,7 +75,16 @@ function makeBlock(txCount: number): BlockData {
                 innerInstructions: [],
                 logMessages: logsForTx(programIdxs, failed),
             },
-            signatures: [signatureFor(k)],
+            parsedTransaction: fromCompiledMessage(
+                {
+                    header: { numReadonlyNonSignerAccounts: 0, numReadonlySignerAccounts: 0, numSignerAccounts: 1 },
+                    instructions: programIdxs.map(idx => ({ data: new Uint8Array(), programAddressIndex: idx })),
+                    lifetimeToken: blockhash('11111111111111111111111111111111'),
+                    staticAccounts: keys,
+                    version: 'legacy',
+                },
+                { signatures: [signatureFor(k)] },
+            ),
         };
     });
     return { ...emptyBlock, transactions };

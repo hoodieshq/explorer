@@ -30,7 +30,8 @@ export function summarizeBlockTransactionVersions(block: BlockData): BlockTransa
     const counts = new Map<TransactionVersion, number>();
     for (const tx of block.transactions) {
         if (!isBlockTransaction(tx)) continue;
-        counts.set(tx.message.version, (counts.get(tx.message.version) ?? 0) + 1);
+        const { version } = tx.parsedTransaction;
+        counts.set(version, (counts.get(version) ?? 0) + 1);
     }
 
     const total = Array.from(counts.values()).reduce((sum, count) => sum + count, 0);
