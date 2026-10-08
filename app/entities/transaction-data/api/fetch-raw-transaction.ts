@@ -46,7 +46,10 @@ export async function fetchRawTransaction(
     const messageBytes = new Uint8Array(transaction.messageBytes);
     const signatures = toBase58Signatures(transaction.signatures);
     const meta = response.meta;
-    const parsedTransaction = fromCompiledMessage(compiledMessage, { loadedAddresses: meta?.loadedAddresses, signatures });
+    const parsedTransaction = fromCompiledMessage(compiledMessage, {
+        loadedAddresses: meta?.loadedAddresses,
+        signatures,
+    });
 
     const base = {
         blockTime: response.blockTime === null ? undefined : Number(response.blockTime),
