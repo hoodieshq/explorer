@@ -5,11 +5,11 @@ import { AutoRefresh } from '@/app/shared/lib/use-auto-refresh';
 
 import {
     DEFAULT_SIGNATURE,
-    MOCK_LOOSE_BUDGET_TX,
     MOCK_PARSED_TX,
+    MOCK_RAW_LOOSE_BUDGET_TX,
+    MOCK_RAW_TIGHT_BUDGET_TX,
     MOCK_RAW_TX,
     MOCK_STATUS,
-    MOCK_TIGHT_BUDGET_TX,
 } from '../__fixtures__/transaction';
 import { withTransactionProviders } from '../__fixtures__/withTransactionProviders';
 import { SummaryCard } from '../SummaryCard';
@@ -31,11 +31,11 @@ function byLabelText(label: string) {
     };
 }
 
-function renderSummary(parsed = MOCK_PARSED_TX) {
+function renderSummary(raw = MOCK_RAW_TX) {
     const Wrapper = withTransactionProviders(
-        { [DEFAULT_SIGNATURE]: parsed },
+        { [DEFAULT_SIGNATURE]: MOCK_PARSED_TX },
         { [DEFAULT_SIGNATURE]: MOCK_STATUS },
-        { [DEFAULT_SIGNATURE]: MOCK_RAW_TX },
+        { [DEFAULT_SIGNATURE]: raw },
     );
 
     return render(
@@ -74,7 +74,7 @@ describe('SummaryCard SIMD-0553 fee projection', () => {
     it('should project an accurately budgeted transfer below the flat base fee it paid', async () => {
         vi.stubEnv('NEXT_PUBLIC_SIMD_0553_FEE_ENABLED', 'true');
 
-        renderSummary(MOCK_TIGHT_BUDGET_TX);
+        renderSummary(MOCK_RAW_TIGHT_BUDGET_TX);
 
         // Requested cost 1,481 - 150 + 1,000 = 2,331. Terminal rate: 2,500 + ceil(2331/2) = 3,666
         // lamports, against the 5,000 the transaction actually paid.
@@ -84,7 +84,7 @@ describe('SummaryCard SIMD-0553 fee projection', () => {
     it('should charge a loose compute budget on what it requested, not what it used', async () => {
         vi.stubEnv('NEXT_PUBLIC_SIMD_0553_FEE_ENABLED', 'true');
 
-        renderSummary(MOCK_LOOSE_BUDGET_TX);
+        renderSummary(MOCK_RAW_LOOSE_BUDGET_TX);
 
         // Same transfer, same 1,481 executed cost, but 200,000 units requested: 201,331 requested
         // cost, so 2,500 + ceil(201331/2) = 103,166 lamports at the terminal rate. Projecting off

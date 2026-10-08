@@ -87,14 +87,13 @@ helper `resolveStaticAccounts(staticKeys, header)` classifies the static keys.
 | Consumer | Encoding | File | Entry point |
 | --- | --- | --- | --- |
 | MCP | `json` | `packages/entity-inspector/src/transactions/normalizer.ts` | `fromRpcTransaction` |
-| Transaction detail page | `jsonParsed` | `app/entities/transaction-data/lib/adapt-parsed-transaction.ts` | `fromRpcTransaction` |
+| Transaction detail page | `base64` | `app/entities/transaction-data/api/fetch-raw-transaction.ts` | `fromCompiledMessage` |
 | Block page | `base64` | `app/entities/block-data/api/fetch-block.ts` | `fromRpcTransaction` |
 | Inspector | pasted message bytes | `app/components/inspector/` | `fromMessageBytes` |
 
 - **MCP.** `build-payload.ts` still maps the result into the wire shapes (`program_id`, base58 `data`,
   `inner_instructions`) that the byte-identical rule pins.
-- **Transaction detail page.** This is where the config kit already types on the response stops being thrown
-  away.
+- **Transaction detail page.** Parses the base64 response the download button and the inspector already fetch, the same encoding as the block page.
 - **Inspector.** The one caller that starts from bytes rather than a response. A v0 message that loads accounts
   from lookup tables needs them resolved first. The inspector reads the table addresses from the decoded
   message, fetches the tables, then passes `loadedAddresses`. Without `loadedAddresses`, parsing throws.

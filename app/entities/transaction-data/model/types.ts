@@ -24,11 +24,6 @@ export type TransactionConfig = V1TransactionConfig;
  * version widened to cover v1, which web3.js `TransactionVersion` cannot describe.
  */
 export type TransactionWithMeta = Omit<ParsedTransactionWithMeta, 'version'> & {
-    /**
-     * Built from the same response via {@link packages/parsers/transaction}.
-     * Absent when the RPC omits a version or the response does not parse.
-     */
-    parsedTransaction?: ParsedTransaction;
     version?: TransactionVersion;
 };
 
@@ -41,6 +36,8 @@ type RawTransactionBase = {
         postBalances: number[];
         preBalances: number[];
     };
+    /** Parsed from the same bytes. */
+    parsedTransaction: ParsedTransaction;
     /**
      * Wire size in bytes: signatures plus the compiled message, as the network holds it.
      *
