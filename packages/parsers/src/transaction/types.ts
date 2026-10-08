@@ -48,7 +48,12 @@ type TransactionBase = {
     numSignerAccounts: number;
     /** Recent blockhash or durable nonce. */
     lifetimeSpecifier: string;
-    /** `undefined` marks a signer slot with no signature. */
+    /**
+     * Depends on the source:
+     * - wire bytes: `signatures[i]` maps to `accounts[i]`, `undefined` means that signer has not signed
+     * - json, jsonParsed: the RPC strings as given
+     * - message without signatures: `[]`
+     */
     signatures: readonly (Signature | undefined)[];
 };
 
