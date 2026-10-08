@@ -69,12 +69,14 @@ export default function RootLayout({ analytics, children }: { analytics: React.R
                                                 <ClusterStatusButton />
                                             </PageContainer>
                                             {children}
+                                            {/* Inside the content column: the widget's sticky wrapper stops at the
+                                                column's end, so the button never covers the footer. It reads the
+                                                cluster, so it must stay inside ClusterProvider. */}
+                                            <FeedbackWidget />
                                         </div>
                                         <Footer />
                                     </div>
                                     <Toaster position="bottom-center" toastOptions={{ duration: 5_000 }} />
-                                    {/* FeedbackWidget reads the cluster, so it must stay inside ClusterProvider. */}
-                                    <FeedbackWidget />
                                 </TokenInfoBatchProvider>
                             </VisibilityProvider>
                         </ClusterProvider>

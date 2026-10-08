@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { sendFeedback } from '@/app/shared/lib/sentry/client';
 
+import { FeedbackTrigger } from '../FeedbackTrigger';
 import { FeedbackWidget } from '../FeedbackWidget';
 
 vi.mock('@entities/cluster', () => ({
@@ -31,27 +32,47 @@ describe('FeedbackWidget', () => {
         expect(screen.queryByRole('button', { name: 'Feedback' })).toBeNull();
     });
 
-    it('should show only the GitHub links when client Sentry is disabled', async () => {
-        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', '');
+    it('should open the popup on the feedback form', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
         render(<FeedbackWidget />);
-        await openMenu();
+        await openPopup();
 
-        const ideasLink = await screen.findByRole('menuitem', { name: 'Suggest an idea' });
-        expect(ideasLink).toHaveAttribute(
+        expect(screen.getByRole('button', { name: 'Your thoughts' })).toHaveAttribute('aria-pressed', 'true');
+        expect(screen.getByRole('textbox', { name: 'Feedback' })).toBeInTheDocument();
+    });
+
+    it('should link each GitHub topic to its issue template', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
+        render(<FeedbackWidget />);
+        await openPopup();
+
+        await userEvent.click(screen.getByRole('button', { name: 'Idea' }));
+        expect(screen.getByRole('link', { name: 'Suggest an idea on GitHub' })).toHaveAttribute(
             'href',
             'https://github.com/solana-foundation/explorer/issues/new?template=feature_request.yml',
         );
-        expect(screen.getByRole('menuitem', { name: 'Report a bug' })).toHaveAttribute(
+
+        await userEvent.click(screen.getByRole('button', { name: 'Bug' }));
+        expect(screen.getByRole('link', { name: 'Report a bug on GitHub' })).toHaveAttribute(
             'href',
             'https://github.com/solana-foundation/explorer/issues/new?template=bug_report.yml',
         );
-        expect(screen.queryByText('Share feedback')).toBeNull();
     });
 
-    it('should submit message, rating, contact, cluster, and source through sendFeedback and close the form', async () => {
+    it('should offer only the GitHub topics when client Sentry is disabled', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', '');
+        render(<FeedbackWidget />);
+        await openPopup();
+
+        expect(screen.queryByRole('button', { name: 'Your thoughts' })).toBeNull();
+        expect(screen.queryByRole('textbox', { name: 'Feedback' })).toBeNull();
+        expect(screen.getByRole('link', { name: 'Suggest an idea on GitHub' })).toBeInTheDocument();
+    });
+
+    it('should submit message, rating, contact, cluster, and source through sendFeedback and close the popup', async () => {
         vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
         render(<FeedbackWidget />);
-        await openForm();
+        await openPopup();
 
         await userEvent.click(screen.getByRole('radio', { name: '4 of 5 stars' }));
         await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Great explorer!');
@@ -64,20 +85,20 @@ describe('FeedbackWidget', () => {
             source: 'widget',
             tags: { cluster: 'mainnet-beta', rating: 4, source: 'widget', type: 'feedback' },
         });
-        await waitFor(() => expect(screen.queryByRole('heading', { name: 'Give feedback' })).toBeNull());
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     });
 
-    it('should not carry the previous rating into a form reopened after a successful send', async () => {
+    it('should not carry the previous rating into a popup reopened after a successful send', async () => {
         vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
         render(<FeedbackWidget />);
-        await openForm();
+        await openPopup();
 
         await userEvent.click(screen.getByRole('radio', { name: '5 of 5 stars' }));
         await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Rated once');
         await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
-        await waitFor(() => expect(screen.queryByRole('heading', { name: 'Give feedback' })).toBeNull());
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
-        await openForm();
+        await openPopup();
         await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Second try');
         await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
@@ -87,38 +108,49 @@ describe('FeedbackWidget', () => {
         expect(resubmission.tags?.rating).toBeUndefined();
     });
 
-    it('should keep the form open when delivery fails (e.g. Sentry blocked)', async () => {
+    it('should keep the popup open when delivery fails (e.g. Sentry blocked)', async () => {
         vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
         vi.mocked(sendFeedback).mockRejectedValueOnce('Unable to send feedback.');
         render(<FeedbackWidget />);
-        await openForm();
+        await openPopup();
 
         await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Lost feedback');
         await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
         await waitFor(() => expect(sendFeedback).toHaveBeenCalledOnce());
-        expect(screen.getByRole('heading', { name: 'Give feedback' })).toBeInTheDocument();
+        expect(screen.getByRole('dialog', { name: 'Feedback' })).toBeInTheDocument();
         expect(screen.getByRole('textbox', { name: 'Feedback' })).toHaveValue('Lost feedback');
     });
 
-    it('should close the form without sending when the close button is clicked', async () => {
+    it('should close the popup without sending when the close button is clicked', async () => {
         vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
         render(<FeedbackWidget />);
-        await openForm();
+        await openPopup();
 
         await userEvent.click(screen.getByRole('button', { name: 'Close' }));
 
         expect(sendFeedback).not.toHaveBeenCalled();
-        expect(screen.queryByRole('heading', { name: 'Give feedback' })).toBeNull();
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    });
+
+    it('should open the same popup from an inline trigger, such as the footer link', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
+        render(
+            <>
+                <FeedbackTrigger>Footer feedback</FeedbackTrigger>
+                <FeedbackWidget />
+            </>,
+        );
+        // The widget's panel loads lazily; wait for it before asking it to open.
+        await screen.findByRole('button', { name: 'Feedback' });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Footer feedback' }));
+
+        expect(await screen.findByRole('dialog', { name: 'Feedback' })).toBeInTheDocument();
     });
 });
 
-async function openMenu() {
+async function openPopup() {
     await userEvent.click(await screen.findByRole('button', { name: 'Feedback' }));
-}
-
-async function openForm() {
-    await openMenu();
-    await userEvent.click(await screen.findByText('Share feedback'));
-    await screen.findByRole('heading', { name: 'Give feedback' });
+    await screen.findByRole('dialog', { name: 'Feedback' });
 }

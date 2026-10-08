@@ -25,6 +25,12 @@ export function BaseStarRating({ onChange, value = 0 }: BaseStarRatingProps) {
                         className="peer sr-only"
                         name={name}
                         onChange={() => onChange?.(star)}
+                        // A checked radio fires no change when clicked again, only a click, so the click
+                        // clears the rating. Picking another star still goes through change: by then `value`
+                        // in this closure is the old rating, so the click handler does nothing.
+                        onClick={() => {
+                            if (value === star) onChange?.(0);
+                        }}
                         type="radio"
                         value={star}
                     />
