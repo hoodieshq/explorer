@@ -16,7 +16,6 @@ import { gen } from './gen';
 
 const LIFETIME = { blockhash: blockhash(gen.blockhash()), lastValidBlockHeight: 100n };
 
-/** A v0 message with one instruction, whose accounts may come from address lookup tables. */
 function createV0TransactionMessage(feePayer: Address, instruction: Instruction) {
     return pipe(
         createTransactionMessage({ version: 0 }),
@@ -30,7 +29,6 @@ export function compileV0TransactionMessage(feePayer: Address, instruction: Inst
     return compileTransactionMessage(createV0TransactionMessage(feePayer, instruction));
 }
 
-/** Wire bytes of an unsigned v0 transaction. */
 export function createV0TransactionBytes(feePayer: Address, instruction: Instruction): Uint8Array {
     const transaction = compileTransaction(createV0TransactionMessage(feePayer, instruction));
     return new Uint8Array(getTransactionEncoder().encode(transaction));
