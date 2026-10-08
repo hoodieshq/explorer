@@ -77,7 +77,7 @@ function readCount(row: HTMLElement, label: string): string | null | undefined {
     return within(row).getByText(label).nextElementSibling?.textContent;
 }
 
-describe('BlockAccountsCard writability', () => {
+describe('BlockAccountsCard account roles', () => {
     it('should count each account as read-write or read-only by its role in the message', () => {
         const { container } = render(<BlockAccountsCard block={buildBlock()} blockSlot={123} />);
 
