@@ -3,7 +3,7 @@ import type { Address } from '@solana/kit';
 /**
  * One instruction as `formatInstructionLogs` takes it: its program, plus display names when the caller
  * resolved them. `programId` is a kit `Address` - a caller holding a web3.js `PublicKey` converts with
- * `toKitAddress` at its own boundary, so this entity depends on no key representation.
+ * `toKitAddress` at its own boundary, so this entity imports no web3.js type.
  *
  * Rows must stay in transaction order and must not be filtered. `formatInstructionLogs` pairs row `i`
  * with the `i`th top-level invocation in the logs, so dropping a row shifts every later one onto
