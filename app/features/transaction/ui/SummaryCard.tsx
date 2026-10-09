@@ -153,8 +153,9 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
     const blockhash = transaction?.message.recentBlockhash;
     const version = transactionWithMeta?.version;
     const feePayer = transaction?.message.accountKeys[0]?.pubkey;
+    const feeLamports = fee && Number.isSafeInteger(fee) ? BigInt(fee) : undefined;
     const priorityFeeLamports = parsedTransaction
-        ? resolvePriorityFeeLamports(parsedTransaction, { feeLamports: fee === undefined ? undefined : BigInt(fee) })
+        ? resolvePriorityFeeLamports(parsedTransaction, { feeLamports })
         : undefined;
     // SIMD-0553 charges the cost units a transaction *requested*, while `costUnits` reports what it
     // executed, so the requested compute limit is needed to correct it. Without one there is nothing
