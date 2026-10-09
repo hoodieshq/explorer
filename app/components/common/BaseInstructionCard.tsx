@@ -9,6 +9,7 @@ import getInstructionCardScrollAnchorId from '@utils/get-instruction-card-scroll
 import React from 'react';
 import { Code } from 'react-feather';
 
+import { MarkedValue } from '@/app/shared/lib/marked-value';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 import { BaseRawDetails, RawDetailsUnavailable } from './BaseRawDetails';
@@ -34,6 +35,8 @@ type InstructionProps = {
     headerButtons?: React.ReactNode;
     // Show a Collapse/Expand button that hides all card content
     collapsible?: boolean;
+    // A full-width first row, shown in both the decoded and the Raw view
+    notice?: React.ReactNode;
 };
 
 export function BaseInstructionCard({
@@ -51,6 +54,7 @@ export function BaseInstructionCard({
     rawUnavailable,
     headerButtons,
     collapsible = false,
+    notice,
 }: InstructionProps) {
     const [resultClass] = ixResult(result, index);
     const [showRaw, setShowRaw] = React.useState(defaultRaw || false);
@@ -79,7 +83,9 @@ export function BaseInstructionCard({
                         #{index + 1}
                         {childIndex !== undefined ? `.${childIndex + 1}` : ''}
                     </Badge>
-                    <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{title}</span>
+                    <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
+                        <MarkedValue>{title}</MarkedValue>
+                    </span>
                 </span>
             }
             headerButtons={
@@ -101,6 +107,13 @@ export function BaseInstructionCard({
         >
             <BaseTable ui="dashkit" variant="card" nowrap className="[&>tbody>tr:first-child>td]:!border-t-0">
                 <BaseTable.Body>
+                    {notice && (
+                        <BaseTable.Row>
+                            <BaseTable.Cell colSpan={3} className="!whitespace-normal">
+                                {notice}
+                            </BaseTable.Cell>
+                        </BaseTable.Row>
+                    )}
                     {showRaw ? (
                         <>
                             <BaseTable.Row>

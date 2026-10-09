@@ -2,6 +2,7 @@ import { Badge } from '@components/shared/ui/badge';
 import { Button } from '@components/shared/ui/button';
 import { CollapsibleCard } from '@components/shared/ui/collapsible-card';
 import { cn } from '@components/shared/utils';
+import { ProgramIdlSlot } from '@entities/idl';
 import { ProgramField } from '@entities/instruction-card';
 import { useScrollAnchor } from '@providers/scroll-anchor';
 import { ParsedInstruction, SignatureResult, TransactionInstruction } from '@solana/web3.js';
@@ -9,6 +10,7 @@ import getInstructionCardScrollAnchorId from '@utils/get-instruction-card-scroll
 import React from 'react';
 import { Code } from 'react-feather';
 
+import { MarkedValue } from '@/app/shared/lib/marked-value';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 import { BaseRawDetails } from './BaseRawDetails';
@@ -69,21 +71,24 @@ export function InspectorInstructionCard({
                         #{index + 1}
                         {childIndex !== undefined ? `.${childIndex + 1}` : ''}
                     </Badge>
-                    {title}
+                    <MarkedValue>{title}</MarkedValue>
                 </>
             }
             headerButtons={
-                <Button
-                    ui="dashkit"
-                    size="sm"
-                    variant={showRaw ? 'black' : 'white'}
-                    active={showRaw}
-                    disabled={defaultRaw}
-                    className={cn('flex items-center', defaultRaw && '!pointer-events-auto cursor-not-allowed')}
-                    onClick={rawClickHandler}
-                >
-                    <Code className="mr-1.5" size={13} /> Raw
-                </Button>
+                <span className="flex items-center gap-2">
+                    <ProgramIdlSlot />
+                    <Button
+                        ui="dashkit"
+                        size="sm"
+                        variant={showRaw ? 'black' : 'white'}
+                        active={showRaw}
+                        disabled={defaultRaw}
+                        className={cn('flex items-center', defaultRaw && '!pointer-events-auto cursor-not-allowed')}
+                        onClick={rawClickHandler}
+                    >
+                        <Code className="mr-1.5" size={13} /> Raw
+                    </Button>
+                </span>
             }
         >
             <BaseTable ui="dashkit" variant="card" nowrap className="[&>tbody>tr:first-child>td]:!border-t-0">

@@ -8,8 +8,14 @@ import { type Cluster } from '@/app/utils/cluster';
 import { fetchProgramIdls } from '../api/fetch-program-idls';
 import { resolveProgramIdlsClient } from '../api/load-resolve-program-idls';
 import { type ProgramIdlPair } from '../api/types';
+import { applyIdlSelection, type SelectedProgramIdls } from './custom-idl/apply-idl-selection';
+import { useProgramIdlPreference } from './custom-idl/use-program-idl-preference';
 
-export type ProgramIdls = ProgramIdlPair & { isLoading: boolean };
+export type ProgramIdls = SelectedProgramIdls & {
+    isLoading: boolean;
+    /** The program's on-chain IDLs before the user's selection, for the IDL source selector. */
+    onChainIdls: ProgramIdlPair;
+};
 
 /**
  * Resolves both IDLs a program exposes (Anchor PDA, PMP `idl` seed). Shared by the IDL card, the
@@ -23,14 +29,22 @@ export type ProgramIdls = ProgramIdlPair & { isLoading: boolean };
  * dynamic `import()` so `@solana/idl`'s weight stays out of the bundle for the common known-cluster
  * path (which never resolves IDLs in the browser).
  *
+ * The user's IDL preference (see `applyIdlSelection`) is applied here, so every consumer reads the same
+ * selected IDL: a custom IDL replaces both on-chain sources, and `isCustomIdl` tells the surface to
+ * highlight what it renders from it.
+ *
  * `suspense` opts the read into React Suspense (the program-name label renders inside a boundary);
  * other callers leave it off.
+ *
+ * `onChainOnly` skips the preference for a caller that reads another program's accounts for the Explorer's
+ * own use (Squads multisig members, verified-build status): that card has no IDL selector and no highlight,
+ * so a custom IDL there would change it with nothing on the page to show why or to switch back.
  */
 export function useProgramIdls(
     programId: string,
     url: string,
     cluster: Cluster,
-    { suspense = false }: { suspense?: boolean } = {},
+    { onChainOnly = false, suspense = false }: { onChainOnly?: boolean; suspense?: boolean } = {},
 ): ProgramIdls {
     const isCustom = shouldUseDirectRpc(cluster, url);
 
@@ -53,21 +67,20 @@ export function useProgramIdls(
         { errorRetryCount: 3, suspense },
     );
 
-    if (isCustom) {
-        return {
-            anchorIdl: customIdls?.anchorIdl,
-            anchorIdlAddress: customIdls?.anchorIdlAddress,
-            isLoading: customLoading,
-            programMetadataIdl: customIdls?.programMetadataIdl,
-            programMetadataIdlAddress: customIdls?.programMetadataIdlAddress,
-        };
-    }
+    const { preference } = useProgramIdlPreference(programId);
+    const resolved = isCustom ? customIdls : serverIdls;
+    const onChainIdls: ProgramIdlPair = {
+        anchorIdl: resolved?.anchorIdl,
+        anchorIdlAddress: resolved?.anchorIdlAddress,
+        programMetadataIdl: resolved?.programMetadataIdl,
+        programMetadataIdlAddress: resolved?.programMetadataIdlAddress,
+    };
+    const selected = applyIdlSelection(onChainIdls, onChainOnly ? undefined : preference);
 
     return {
-        anchorIdl: serverIdls?.anchorIdl,
-        anchorIdlAddress: serverIdls?.anchorIdlAddress,
-        isLoading: serverLoading,
-        programMetadataIdl: serverIdls?.programMetadataIdl,
-        programMetadataIdlAddress: serverIdls?.programMetadataIdlAddress,
+        ...selected,
+        // A selected custom IDL is already in hand; only the selector still waits for the on-chain list.
+        isLoading: selected.isCustomIdl ? false : isCustom ? customLoading : serverLoading,
+        onChainIdls,
     };
 }

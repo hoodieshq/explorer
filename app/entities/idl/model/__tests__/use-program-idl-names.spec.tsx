@@ -1,10 +1,12 @@
 import { renderHook, waitFor } from '@testing-library/react';
+import { createStore, Provider } from 'jotai';
 import { type ReactNode } from 'react';
 import { SWRConfig } from 'swr';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Cluster } from '@/app/utils/cluster';
 
+import { addCustomIdlAtom } from '../custom-idl/custom-idl-store';
 import { useProgramIdlNames } from '../use-program-idl-names';
 
 const mocks = vi.hoisted(() => ({ fetch: vi.fn(), warn: vi.fn() }));
@@ -136,5 +138,22 @@ describe('useProgramIdlNames', () => {
 
         await waitFor(() => expect(result.current.size).toBe(0));
         expect(mocks.fetch).not.toHaveBeenCalledWith(expect.stringContaining('/api/idl-latest'));
+    });
+
+    // A custom cluster never fetches names, so a name here can only come from the custom IDL.
+    it('should name a program from its selected custom IDL, even on a custom cluster', async () => {
+        const store = createStore();
+        const customIdl = {
+            instructions: [{ accounts: [], args: [], discriminator: [...FOO], name: 'cast' }],
+            metadata: { name: 'mine', spec: '0.1.0' },
+        };
+        store.set(addCustomIdlAtom, { custom: { addedAt: 1, idl: customIdl as never }, programAddress: VOTING });
+
+        const { result } = renderHook(() => useProgramIdlNames([VOTING], Cluster.Custom, 'http://localhost:8899'), {
+            wrapper: ({ children }) => <Provider store={store}>{wrapper({ children })}</Provider>,
+        });
+
+        await waitFor(() => expect(result.current.get(VOTING)?.resolveInstructionName?.(FOO)).toBe('Cast'));
+        expect(result.current.get(VOTING)?.programName).toBe('Mine');
     });
 });

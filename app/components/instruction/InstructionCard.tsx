@@ -1,4 +1,5 @@
 import { BaseInstructionCard } from '@components/common/BaseInstructionCard';
+import { ProgramIdlSlot } from '@entities/idl';
 import { FetchStatus } from '@providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@providers/transactions/raw';
 import { ParsedInstruction, SignatureResult, TransactionInstruction } from '@solana/web3.js';
@@ -20,6 +21,7 @@ type InstructionProps = {
     raw?: TransactionInstruction;
     headerButtons?: React.ReactNode;
     collapsible?: boolean;
+    notice?: React.ReactNode;
 };
 
 export function InstructionCard({
@@ -35,6 +37,7 @@ export function InstructionCard({
     raw: rawProp,
     headerButtons,
     collapsible,
+    notice,
 }: InstructionProps) {
     const signature = useContext(SignatureContext);
     const rawDetails = useRawTransactionDetails(signature);
@@ -70,8 +73,14 @@ export function InstructionCard({
             raw={raw}
             onRequestRaw={canFetchRaw ? fetchRawTrigger : undefined}
             rawUnavailable={rawUnavailable}
-            headerButtons={headerButtons}
+            headerButtons={
+                <>
+                    <ProgramIdlSlot />
+                    {headerButtons}
+                </>
+            }
             collapsible={collapsible}
+            notice={notice}
         >
             {children}
         </BaseInstructionCard>

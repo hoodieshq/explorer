@@ -294,6 +294,7 @@ function useEnrichedOsecInfo({
         VERIFY_PROGRAM_ID,
         clusterUrl,
         cluster,
+        { onChainOnly: true },
     );
     const signerAuthorities = useMemo(
         () =>

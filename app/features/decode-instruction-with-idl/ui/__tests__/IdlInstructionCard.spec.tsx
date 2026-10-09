@@ -9,10 +9,18 @@ vi.mock('../CodamaInstructionCard', () => ({
     CodamaInstructionCard: vi.fn(() => <div data-testid="codama-card" />),
 }));
 vi.mock('../AnchorDetailsCard', () => ({
-    AnchorDetailsCard: ({ signature }: { signature: string }) => <div data-testid="anchor-card">{signature}</div>,
+    AnchorDetailsCard: ({ signature, notice }: { signature: string; notice?: React.ReactNode }) => (
+        <div data-testid="anchor-card">
+            {signature}
+            {notice}
+        </div>
+    ),
+}));
+vi.mock('../IdlDecodeFailureNotice', () => ({
+    IdlDecodeFailureNotice: () => <span>failure-notice</span>,
 }));
 vi.mock('@/app/components/instruction/UnknownDetailsCard', () => ({
-    UnknownDetailsCard: () => <div data-testid="unknown-card" />,
+    UnknownDetailsCard: ({ notice }: { notice?: React.ReactNode }) => <div data-testid="unknown-card">{notice}</div>,
 }));
 
 const ix = new TransactionInstruction({ data: Buffer.from([1]), keys: [], programId: PublicKey.unique() });
@@ -61,5 +69,46 @@ describe('IdlInstructionCard', () => {
     it('should render the Unknown card for an unknown decode', () => {
         render(<IdlInstructionCard {...props} decoded={{ kind: 'unknown' }} />);
         expect(screen.getByTestId('unknown-card')).toBeInTheDocument();
+    });
+
+    it('should explain a failed decode inside the card', () => {
+        render(<IdlInstructionCard {...props} decoded={{ isCustomIdl: true, kind: 'unknown' }} />);
+        // Inside the card, not above it.
+        expect(screen.getByTestId('unknown-card')).toHaveTextContent('failure-notice');
+    });
+
+    it('should explain inside the Anchor card when no instruction in the IDL matches', () => {
+        render(
+            <IdlInstructionCard
+                {...props}
+                decoded={{
+                    details: { decodedIxData: undefined } as never,
+                    isCustomIdl: true,
+                    kind: 'anchor',
+                    program: {} as never,
+                }}
+            />,
+        );
+        expect(screen.getByTestId('anchor-card')).toHaveTextContent('failure-notice');
+    });
+
+    it('should render a successful custom IDL decode without a failure note', () => {
+        render(
+            <IdlInstructionCard
+                {...props}
+                decoded={{
+                    details: { decodedIxData: { data: {}, name: 'vote' }, ixAccounts: [], ixDef: {} } as never,
+                    isCustomIdl: true,
+                    kind: 'anchor',
+                    program: {} as never,
+                }}
+            />,
+        );
+        expect(screen.getByTestId('anchor-card')).not.toHaveTextContent('failure-notice');
+    });
+
+    it('should explain an on-chain IDL decode failure inside the card too', () => {
+        render(<IdlInstructionCard {...props} decoded={{ isCustomIdl: false, kind: 'unknown' }} />);
+        expect(screen.getByTestId('unknown-card')).toHaveTextContent('failure-notice');
     });
 });

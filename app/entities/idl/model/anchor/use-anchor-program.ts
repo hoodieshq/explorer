@@ -14,10 +14,13 @@ export function useAnchorProgram(
     programAddress: string,
     url: string,
     cluster?: Cluster,
-): { program: Program | null; idl: Idl | null; isLoading: boolean } {
+    { onChainOnly = false }: { onChainOnly?: boolean } = {},
+): { program: Program | null; idl: Idl | null; isLoading: boolean; isCustomIdl: boolean } {
     // The Anchor leg of the shared program-IDL resolution (same hook the IDL card uses, so the
     // decoder and card never diverge); the PMP leg it also resolves is unused here.
-    const { anchorIdl, isLoading } = useProgramIdls(programAddress, url, cluster ?? Cluster.MainnetBeta);
+    const { anchorIdl, isLoading, isCustomIdl } = useProgramIdls(programAddress, url, cluster ?? Cluster.MainnetBeta, {
+        onChainOnly,
+    });
     const idl: Idl | null = (anchorIdl as Idl | undefined) ?? null;
     const program: Program<Idl> | null = useMemo(() => {
         if (!idl) return null;
@@ -30,7 +33,7 @@ export function useAnchorProgram(
         }
     }, [idl, programAddress, url]);
 
-    return { idl, isLoading, program };
+    return { idl, isCustomIdl, isLoading, program };
 }
 
 export type AnchorAccount = {

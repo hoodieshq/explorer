@@ -16,6 +16,7 @@ import { UnknownDetailsCard } from '@components/instruction/UnknownDetailsCard';
 import { isWormholeInstruction } from '@components/instruction/wormhole/types';
 import { WormholeDetailsCard } from '@components/instruction/WormholeDetailsCard';
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
+import { ProgramIdlSlotProvider } from '@entities/idl';
 import { TxInstructionSurface } from '@entities/instruction-card';
 import { isParsedInstruction, useInstructionParser } from '@entities/instruction-parser';
 import { trustedInnerInstructions } from '@entities/transaction-data';
@@ -49,7 +50,11 @@ import {
 import { isLighthouseInstruction, LighthouseDetailsCard } from '@features/decode-instruction-lighthouse';
 import { MemoDetailsCard } from '@features/decode-instruction-memo';
 import { isProgramMetadataInstruction } from '@features/decode-instruction-pmp/detection';
-import { IdlInstructionCard, useIdlInstructionDecode } from '@features/decode-instruction-with-idl';
+import {
+    IdlDecodeFailureNotice,
+    IdlInstructionCard,
+    useIdlInstructionDecode,
+} from '@features/decode-instruction-with-idl';
 import { isZkElGamalProofInstruction, ZkElGamalProofDetailsCard } from '@features/decode-instruction-zk-elgamal-proof';
 import { PythDetailsCard } from '@features/instruction-program-pyth';
 import { MetaplexTokenMetadataDetailsCard } from '@features/mpl-token-metadata';
@@ -212,15 +217,7 @@ function InnerCardFallback({
     return <UnknownDetailsCard ix={fallbackIx} result={result} index={index} childIndex={childIndex} />;
 }
 
-function InstructionCard({
-    ix,
-    tx,
-    result,
-    index,
-    signature,
-    innerCards,
-    childIndex,
-}: {
+type InstructionCardProps = {
     ix: ParsedInstruction | PartiallyDecodedInstruction;
     tx: ParsedTransaction;
     result: SignatureResult;
@@ -228,7 +225,18 @@ function InstructionCard({
     signature: TransactionSignature;
     innerCards?: JSX.Element[];
     childIndex?: number;
-}) {
+};
+
+// RPC-parsed instructions carry no raw bytes, so their cards show the selector as unavailable.
+function InstructionCard(props: InstructionCardProps) {
+    return (
+        <ProgramIdlSlotProvider programAddress={props.ix.programId.toBase58()} decodedByRpc={'parsed' in props.ix}>
+            <InstructionCardContent {...props} />
+        </ProgramIdlSlotProvider>
+    );
+}
+
+function InstructionCardContent({ ix, tx, result, index, signature, innerCards, childIndex }: InstructionCardProps) {
     const key = `${index}-${childIndex}`;
     const dispatcher = useInstructionParser();
 
@@ -338,6 +346,11 @@ function InstructionCard({
         result,
         signature,
     };
+
+    // A selected custom IDL wins over every program-specific decoder below, and its failure stays visible.
+    if (idlDecode?.isCustomIdl) {
+        return <IdlInstructionCard key={key} decoded={idlDecode} {...props} />;
+    }
 
     if (isEd25519Instruction(transactionIx)) {
         const dispatched = dispatcher.fromTransactionInstruction(transactionIx);
@@ -509,5 +522,6 @@ function InstructionCard({
         return <IdlInstructionCard key={key} decoded={idlDecode} {...props} />;
     }
 
-    return <UnknownDetailsCard key={key} {...props} />;
+    // No decoder and no IDL: offer to add one.
+    return <UnknownDetailsCard key={key} {...props} notice={<IdlDecodeFailureNotice ix={transactionIx} />} />;
 }

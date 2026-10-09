@@ -95,12 +95,17 @@ describe('Allow for useAnchorProgram to create program instance', () => {
     ])('should create %s program instance via hook', (fallbackId: string, idl: any) => {
         const programId = idl.metadata?.address ?? fallbackId;
 
-        vi.mocked(useProgramIdls).mockReturnValue({
+        const onChainIdls = {
             anchorIdl: idl,
             anchorIdlAddress: undefined,
-            isLoading: false,
             programMetadataIdl: undefined,
             programMetadataIdlAddress: undefined,
+        };
+        vi.mocked(useProgramIdls).mockReturnValue({
+            ...onChainIdls,
+            isCustomIdl: false,
+            isLoading: false,
+            onChainIdls,
         });
         vi.mocked(getProvider).mockReturnValue(createMockProvider(url, programId) as unknown as AnchorProvider);
 
