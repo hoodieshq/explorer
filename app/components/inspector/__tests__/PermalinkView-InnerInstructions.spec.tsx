@@ -1,4 +1,5 @@
 /* eslint-disable no-restricted-syntax -- test assertions use RegExp for pattern matching */
+import { fromMessageBytes } from '@explorer/parsers/transaction';
 import { FetchStatus } from '@providers/cache';
 import { useRawTransactionDetails } from '@providers/transactions/raw';
 import type { CompiledInnerInstruction } from '@solana/web3.js';
@@ -96,11 +97,13 @@ function renderAtSlot(slot: number) {
 
 function rawTransaction(slot: number): RawTransaction {
     const message = buildMessage();
+    const messageBytes = message.serialize();
 
     return {
         message,
-        messageBytes: message.serialize(),
+        messageBytes,
         meta: { innerInstructions: INNER_INSTRUCTIONS, postBalances: [], preBalances: [] },
+        parsedTransaction: fromMessageBytes(messageBytes),
         serializedSize: 0,
         signatures: [SIGNATURE],
         slot,

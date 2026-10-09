@@ -1,12 +1,13 @@
-import { PublicKey } from '@solana/web3.js';
+import { SYSTEM_PROGRAM_ADDRESS } from '@solana-program/system';
+import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import { nextjsParameters } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { Cluster } from '@utils/cluster';
 
 import { BaseSimulatorCUProfilingCard } from '../BaseSimulatorCUProfilingCard';
 
-const SYSTEM_PROGRAM = PublicKey.default;
-const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+const SYSTEM_PROGRAM = SYSTEM_PROGRAM_ADDRESS;
+const TOKEN_PROGRAM = TOKEN_PROGRAM_ADDRESS;
 
 const meta: Meta<typeof BaseSimulatorCUProfilingCard> = {
     component: BaseSimulatorCUProfilingCard,
@@ -33,14 +34,14 @@ export const TwoInstructions: Story = {
             {
                 computeUnits: 45000,
                 failed: false,
-                invokedProgram: SYSTEM_PROGRAM.toBase58(),
+                invokedProgram: SYSTEM_PROGRAM,
                 logs: [],
                 truncated: false,
             },
             {
                 computeUnits: 30000,
                 failed: false,
-                invokedProgram: TOKEN_PROGRAM.toBase58(),
+                invokedProgram: TOKEN_PROGRAM,
                 logs: [],
                 truncated: false,
             },
