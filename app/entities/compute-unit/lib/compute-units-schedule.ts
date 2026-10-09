@@ -4,7 +4,7 @@ import { Cluster } from '@utils/cluster';
 
 import { toScheduleCluster } from './cluster';
 
-/** `Uses the app's `Cluster` enum and a string program id, so app callers do not need to perform any conversions. */
+/** Takes the app's `Cluster` enum and maps it with `toScheduleCluster`, so app callers skip that conversion. */
 export function getReservedComputeUnits({
     cluster,
     epoch,
