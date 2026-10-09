@@ -1,5 +1,6 @@
 'use client';
 
+import { CustomIdlHighlightPicker } from '@entities/idl';
 import { useClusterPath } from '@utils/url';
 import Link from 'next/link';
 
@@ -17,13 +18,15 @@ export function Footer() {
                     <span className="text-xs font-medium uppercase tracking-[0.72px] text-heavy-metal-400">
                         Solana explorer <span>(Beta)</span>
                     </span>
-                    <nav className="flex items-center gap-5 text-xs tracking-[-0.24px] text-accent-700">
+                    <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs tracking-[-0.24px] text-accent-700">
                         <FeedbackTrigger className="cursor-pointer border-0 bg-transparent p-0 text-inherit transition-colors hover:text-accent-500">
                             Feedback
                         </FeedbackTrigger>
                         <CustomIdlCatalogTrigger className="cursor-pointer border-0 bg-transparent p-0 text-inherit transition-colors hover:text-accent-500">
                             Custom IDLs
                         </CustomIdlCatalogTrigger>
+                        {/* REVIEW(HOO-1971): review-only highlight switch; remove before the external PR. */}
+                        <CustomIdlHighlightPicker />
                         <Link className="transition-colors hover:text-accent-500" href={tosPath}>
                             Terms of Services
                         </Link>

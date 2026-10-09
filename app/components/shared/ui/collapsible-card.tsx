@@ -26,8 +26,10 @@ export const CollapsibleCard = forwardRef<HTMLDivElement, CollapsibleCardProps>(
                 className={className}
                 style={{ scrollMarginTop: 'var(--sticky-header-height, 0px)' }}
             >
+                {/* REVIEW(HOO-1971): `data-value-row` lets a marked title tint this header in the row highlight variant. */}
                 <BaseCardHeader
                     ui="dashkit"
+                    data-value-row
                     className={cn('h-auto min-h-[60px] gap-2', collapsible && !expanded && 'border-b-0')}
                 >
                     <BaseCardTitle ui="dashkit" className="flex min-w-0 items-center break-all">

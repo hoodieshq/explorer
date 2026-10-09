@@ -44,3 +44,13 @@ export const CustomStoredOnChainSelected: Story = {
 export const CustomFromPastedJson: Story = {
     args: { hasCustomIdl: true, options: [], value: 'custom' },
 };
+
+/** A long file name wraps inside the menu, which keeps the trigger's maximum width. */
+export const CustomWithLongFileName: Story = {
+    args: {
+        customIdlFileName: 'anchor-0.30.1-devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH.json',
+        hasCustomIdl: true,
+        options: ['programMetadata', 'anchor'],
+        value: 'custom',
+    },
+};

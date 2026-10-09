@@ -1,5 +1,12 @@
 import { TableCardBody, type TableCardBodyProps } from '@components/common/TableCardBody';
-import { customIdlHighlight, useAnchorProgram } from '@entities/idl';
+import {
+    CUSTOM_IDL_ROW_EDGE,
+    CUSTOM_IDL_ROW_TINT,
+    customIdlHighlight,
+    holdRoundedAncestorClip,
+    useAnchorProgram,
+    useCustomIdlHighlightVariant,
+} from '@entities/idl';
 import { ParsedMessage, PublicKey, TransactionInstruction, VersionedMessage } from '@solana/web3.js';
 import { getAnchorNameForInstruction, getAnchorProgramName } from '@utils/anchor';
 import { Cluster } from '@utils/cluster';
@@ -12,13 +19,23 @@ import { useClusterPath } from '@utils/url';
 import { cva } from 'class-variance-authority';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import React from 'react';
+import React, { type CSSProperties, type RefObject, useEffect, useRef, useState } from 'react';
 import { ChevronsUp } from 'react-feather';
 
 import { Badge } from '@/app/components/shared/ui/badge';
 import { fromBase64, toBuffer } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 import { BaseTable } from '@/app/shared/ui/Table';
+
+// REVIEW(HOO-1971): a tinted line spans the log block's width, so consecutive lines read as one band.
+const logLineVariants = cva('', {
+    variants: {
+        tinted: {
+            false: '',
+            true: 'self-stretch',
+        },
+    },
+});
 
 // Matches the compiled dashkit `.text-*` colors the legacy `text-${log.style}` template resolved to (dark theme).
 const logTextVariants = cva('', {
@@ -179,6 +196,14 @@ function ProgramLogRow({
     const pathname = usePathname();
     const anchorPath = useClusterPath({ pathname: `${pathname}#${getInstructionCardScrollAnchorId([index + 1])}` });
     const { program: anchorProgram, isCustomIdl } = useAnchorProgram(programId.toString(), url, cluster);
+    // REVIEW(HOO-1971): the row highlight variant tints the title and the lines the instruction's own program
+    // logged (depth 1), full width; its CPIs' lines belong to other programs and stay as they are.
+    const highlightVariant = useCustomIdlHighlightVariant();
+    const isRowTinted = isCustomIdl && highlightVariant === 'row';
+    const cellRef = useRef<HTMLTableCellElement>(null);
+    const logsRef = useRef<HTMLDivElement>(null);
+    const insets = useTintInsets(cellRef, logsRef, isRowTinted, Boolean(programLogs));
+    const lastLogIndex = (programLogs?.logs.length ?? 0) - 1;
 
     // Try to get instruction name from IDL if available
     let instructionName = 'Instruction';
@@ -251,8 +276,21 @@ function ProgramLogRow({
 
     return (
         <BaseTable.Row data-ix-index={index}>
-            <BaseTable.Cell>
-                <Link className="flex items-center" href={anchorPath}>
+            <BaseTable.Cell ref={cellRef}>
+                <Link
+                    className="flex items-center"
+                    href={anchorPath}
+                    style={
+                        isRowTinted
+                            ? bleedTint({
+                                  bottom: programLogs ? 0 : insets?.cell.bottom,
+                                  left: insets?.cell.left,
+                                  right: insets?.cell.right,
+                                  top: insets?.cell.top,
+                              })
+                            : undefined
+                    }
+                >
                     {/* badgeColor='white' falls through to a plain `.badge` (no bg-white-soft is defined in dashkit) — same as legacy. */}
                     <Badge
                         ui="dashkit"
@@ -263,7 +301,7 @@ function ProgramLogRow({
                     </Badge>
                     <span
                         className={customIdlHighlight({
-                            active: isCustomIdl,
+                            active: isCustomIdl && !isRowTinted,
                             className: 'text-dk-white',
                         })}
                     >
@@ -278,10 +316,29 @@ function ProgramLogRow({
                     <ChevronsUp className="m-1.5 cursor-pointer" size={13} />
                 </Link>
                 {programLogs && (
-                    <div className="flex flex-col items-start whitespace-pre-wrap break-all p-1.5 font-mono">
+                    <div
+                        ref={logsRef}
+                        className="flex flex-col items-start whitespace-pre-wrap break-all p-1.5 font-mono"
+                    >
                         {programLogs.logs.map((log, key) => {
+                            const isTinted = isRowTinted && log.depth === 1;
+                            // A tinted line reaches the card's sides, and the first and the last also cover the
+                            // block's padding above and below them, so the tint has no gaps up to the card edge.
+                            const style = isTinted
+                                ? bleedTint(
+                                      insets
+                                          ? {
+                                                bottom:
+                                                    key === lastLogIndex ? insets.logs.bottom + insets.cell.bottom : 0,
+                                                left: insets.logs.left + insets.cell.left,
+                                                right: insets.logs.right + insets.cell.right,
+                                                top: key === 0 ? insets.logs.top : 0,
+                                            }
+                                          : {},
+                                  )
+                                : undefined;
                             return (
-                                <span key={key}>
+                                <span key={key} className={logLineVariants({ tinted: isTinted })} style={style}>
                                     <span className="text-dk-gray-700">{log.prefix}</span>
                                     <span className={logTextVariants({ variant: log.style })}>{log.text}</span>
                                 </span>
@@ -292,4 +349,58 @@ function ProgramLogRow({
             </BaseTable.Cell>
         </BaseTable.Row>
     );
+}
+
+type Insets = { top: number; right: number; bottom: number; left: number };
+
+/**
+ * REVIEW(HOO-1971): the paddings a tinted title or log line spreads over to reach the card's edges, read from
+ * the rendered cell and log block because the table variant owns the cell padding. Clips the rounded card
+ * while tinted, so a tint at its bottom edge stays inside the corners.
+ */
+function useTintInsets(
+    cellRef: RefObject<HTMLTableCellElement | null>,
+    logsRef: RefObject<HTMLDivElement | null>,
+    active: boolean,
+    hasLogs: boolean,
+): { cell: Insets; logs: Insets } | undefined {
+    const [insets, setInsets] = useState<{ cell: Insets; logs: Insets }>();
+    useEffect(() => {
+        const cell = cellRef.current;
+        if (!active || !cell) {
+            setInsets(undefined);
+            return;
+        }
+        const zero = { bottom: 0, left: 0, right: 0, top: 0 };
+        setInsets({ cell: readPadding(cell), logs: logsRef.current ? readPadding(logsRef.current) : zero });
+        return holdRoundedAncestorClip(cell);
+    }, [active, hasLogs, cellRef, logsRef]);
+    return insets;
+}
+
+function readPadding(element: HTMLElement): Insets {
+    const style = getComputedStyle(element);
+    return {
+        bottom: parseFloat(style.paddingBottom) || 0,
+        left: parseFloat(style.paddingLeft) || 0,
+        right: parseFloat(style.paddingRight) || 0,
+        top: parseFloat(style.paddingTop) || 0,
+    };
+}
+
+// Pulls the element over the given paddings with negative margins and gives the space back as its own padding,
+// so its background covers them while its text stays in place.
+function bleedTint({ top = 0, right = 0, bottom = 0, left = 0 }: Partial<Insets>): CSSProperties {
+    return {
+        backgroundColor: CUSTOM_IDL_ROW_TINT,
+        backgroundImage: CUSTOM_IDL_ROW_EDGE,
+        marginBottom: -bottom,
+        marginLeft: -left,
+        marginRight: -right,
+        marginTop: -top,
+        paddingBottom: bottom,
+        paddingLeft: left,
+        paddingRight: right,
+        paddingTop: top,
+    };
 }

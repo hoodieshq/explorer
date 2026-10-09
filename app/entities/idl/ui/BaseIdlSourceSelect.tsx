@@ -53,18 +53,21 @@ export function BaseIdlSourceSelect({
                     <ChevronDown />
                 </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            {/* As wide as the trigger can grow; a long file name wraps instead of widening the menu. */}
+            <DropdownMenuContent align="end" className="max-w-64">
                 {hasSources && (
                     <>
                         <DropdownMenuRadioGroup value={value} onValueChange={next => onSelect(next as IdlSourceOption)}>
                             {options.map(option => (
-                                <DropdownMenuRadioItem key={option} value={option}>
+                                <DropdownMenuRadioItem key={option} value={option} className={RADIO_ITEM}>
                                     {IDL_SOURCE_LABELS[option]} (on-chain)
                                 </DropdownMenuRadioItem>
                             ))}
                             {hasCustomIdl && (
-                                <DropdownMenuRadioItem value="custom">
-                                    Custom{customIdlFileName ? ` (${customIdlFileName})` : ''}
+                                <DropdownMenuRadioItem value="custom" className={RADIO_ITEM}>
+                                    <span className="min-w-0 break-words">
+                                        Custom{customIdlFileName ? ` (${customIdlFileName})` : ''}
+                                    </span>
                                 </DropdownMenuRadioItem>
                             )}
                         </DropdownMenuRadioGroup>
@@ -93,3 +96,7 @@ const idlSourceTriggerVariants = cva('max-w-64', {
         },
     },
 });
+
+// A wrapped file name makes the Custom item multi-line; its text and its selection dot then sit on the first line
+// instead of the item's middle. The dot's 14px box goes 3px into the first 20px line, under the item's 6px padding.
+const RADIO_ITEM = 'items-start [&>span:first-child]:top-[9px]';

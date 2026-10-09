@@ -49,6 +49,10 @@ export {
     useProgramIdlPreferences,
 } from './model/custom-idl/use-program-idl-preference';
 export { customIdlHighlight } from './ui/custom-idl-highlight';
+export { CUSTOM_IDL_ROW_EDGE, CUSTOM_IDL_ROW_TINT, CustomIdlMark, holdRoundedAncestorClip } from './ui/CustomIdlMark';
+export { useCustomIdlHighlightVariant } from './model/custom-idl/highlight-variant';
+export { useCustomIdlToning } from './ui/use-custom-idl-toning';
+export { CustomIdlHighlightPicker } from './ui/CustomIdlHighlightPicker';
 export { ProgramIdlSelector } from './ui/ProgramIdlSelector';
 export { CustomIdlMarkProvider, ProgramIdlSlot, ProgramIdlSlotProvider } from './ui/ProgramIdlSlot';
 export {

@@ -21,11 +21,14 @@ import {
     isIdlProgramIdMismatch,
     ProgramIdlSelector,
     type SupportedIdl,
+    useCustomIdlHighlightVariant,
+    useCustomIdlToning,
     useProgramIdls,
 } from '@entities/idl';
 import { useCluster } from '@providers/cluster';
 import { type Address } from '@solana/kit';
-import { useState } from 'react';
+import { cva } from 'class-variance-authority';
+import { useRef, useState } from 'react';
 import { AlertCircle, AlertTriangle, ExternalLink as ExternalLinkIcon } from 'react-feather';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
@@ -49,6 +52,11 @@ export function IdlCard({ programId }: { programId: string }) {
         isCustomIdl,
         onChainIdls,
     } = useProgramIdls(programId, url, cluster);
+    // REVIEW(HOO-1971): the row highlight variant tones every ground of the card under a selected custom IDL, since
+    // every tab and the Interact forms read it.
+    const highlightVariant = useCustomIdlHighlightVariant();
+    const cardRef = useRef<HTMLDivElement>(null);
+    useCustomIdlToning(cardRef, isCustomIdl && highlightVariant === 'row');
     const [searchStr, setSearchStr] = useState<string>('');
     const [isOrquestraDialogOpen, setIsOrquestraDialogOpen] = useState(false);
 
@@ -244,8 +252,9 @@ export function IdlCard({ programId }: { programId: string }) {
         </dl>
     );
 
+    // Overview and Interact both read the selected IDL, so the whole card is marked.
     return (
-        <Card ui="dashkit">
+        <Card ui="dashkit" ref={cardRef} className={idlCardVariants({ custom: isCustomIdl })}>
             <CardHeader ui="dashkit">
                 <CardTitle as="h4" ui="dashkit">
                     Program IDL
@@ -277,3 +286,14 @@ export function IdlCard({ programId }: { programId: string }) {
         </Card>
     );
 }
+
+// The selected `IDL: Custom` selector's yellow at a quarter strength: it frames the whole card, and a stronger yellow
+// pulls the eye away from the content.
+const idlCardVariants = cva('', {
+    variants: {
+        custom: {
+            false: '',
+            true: '!border-custom-idl/25',
+        },
+    },
+});

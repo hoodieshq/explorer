@@ -88,7 +88,8 @@ export function AnchorAccountCard({ account }: { account: Account }) {
         // Every name, type and value below is read through the owner's IDL.
         <CustomIdlMarkProvider active={isCustomIdl}>
             <Card ui="dashkit">
-                <CardHeader ui="dashkit">
+                {/* REVIEW(HOO-1971): `data-value-row` lets the marked title tint this header in the row highlight variant. */}
+                <CardHeader ui="dashkit" data-value-row>
                     <CardTitle as="h3" ui="dashkit">
                         <MarkedValue>
                             {programName}: {accountDef.name.charAt(0).toUpperCase() + accountDef.name.slice(1)}

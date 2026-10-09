@@ -6,7 +6,7 @@ import { ValueMarkProvider } from '@/app/shared/lib/marked-value';
 
 import { useProgramIdlPreference } from '../model/custom-idl/use-program-idl-preference';
 import { BaseIdlSelectUnavailable } from './BaseIdlSelectUnavailable';
-import { customIdlHighlight } from './custom-idl-highlight';
+import { CustomIdlMark } from './CustomIdlMark';
 import { ProgramIdlSelector } from './ProgramIdlSelector';
 
 type ProgramIdlSlotValue = { programAddress: string; decodedByRpc: boolean };
@@ -45,7 +45,7 @@ export function CustomIdlMarkProvider({ active, children }: { active: boolean; c
 }
 
 function markCustomIdlValue(value: ReactNode) {
-    return <span className={customIdlHighlight({ active: true })}>{value}</span>;
+    return <CustomIdlMark>{value}</CustomIdlMark>;
 }
 
 /** The enclosing instruction's IDL selector, or its unavailable stand-in when the RPC decoded it. */

@@ -6,7 +6,7 @@
 // `ProxiedImage` and the security-txt helpers down into `shared`/`entities`, re-point
 // consumers, then drop these two imports.
 import { Tooltip, TooltipContent, TooltipTrigger } from '@components/shared/ui/tooltip';
-import { buildProgramName, customIdlHighlight, useProgramIdls } from '@entities/idl';
+import { buildProgramName, CustomIdlMark, useProgramIdls } from '@entities/idl';
 import { ProxiedImage } from '@features/metadata';
 import { useSecurityTxt } from '@features/security-txt';
 import { type UpgradeableLoaderAccountData } from '@providers/accounts';
@@ -98,13 +98,10 @@ export function ProgramHeader({
             <div className="flex-1">
                 <h6 className="uppercase tracking-[0.08em] text-dk-gray-700">Program account</h6>
                 <div className="inline-flex">
-                    <h2
-                        className={customIdlHighlight({
-                            active: isCustomIdl && programName === idlProgramName,
-                            className: 'mb-0',
-                        })}
-                    >
-                        {programName}
+                    <h2 className="mb-0">
+                        <CustomIdlMark active={isCustomIdl && programName === idlProgramName}>
+                            {programName}
+                        </CustomIdlMark>
                     </h2>
                     {warningChunk}
                 </div>
