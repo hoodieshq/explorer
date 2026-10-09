@@ -191,18 +191,34 @@ export const MOCK_V1_NO_CONFIG_TX = mockParsedTransactionDetails({
     } as unknown as ParsedTransactionWithMeta,
 });
 
-const RAW_V1_NO_CONFIG_BYTES = createV1TransactionBytes({});
-
 export const MOCK_RAW_V1_NO_CONFIG_TX = mockRawTransactionDetails({
-    raw: {
-        messageBytes: new Uint8Array(getTransactionDecoder().decode(RAW_V1_NO_CONFIG_BYTES).messageBytes),
-        parsedTransaction: fromRpcTransaction({
-            transaction: [toBase64(RAW_V1_NO_CONFIG_BYTES), 'base64'],
-            version: 1,
+    raw: createRawV1Transaction(createV1TransactionBytes({})),
+});
+
+export const MOCK_V1_TX = mockParsedTransactionDetails({
+    transactionWithMeta: { ...BASE_TX, version: 1 } as unknown as ParsedTransactionWithMeta,
+});
+
+/** A v1 transaction declaring every resource limit with a distinct value, so a value in the wrong row shows. */
+export const MOCK_RAW_V1_TX = mockRawTransactionDetails({
+    raw: createRawV1Transaction(
+        createV1TransactionBytes({
+            computeUnitLimit: 8442,
+            heapSize: 262_144,
+            loadedAccountsDataSizeLimit: 75_013,
+            priorityFeeLamports: 10_000n,
         }),
-        serializedSize: RAW_V1_NO_CONFIG_BYTES.length,
+    ),
+});
+
+// web3.js `VersionedMessage` cannot decode v1, so this skips the views `createRawTransaction` builds.
+function createRawV1Transaction(bytes: Uint8Array): RawTransaction {
+    return {
+        messageBytes: new Uint8Array(getTransactionDecoder().decode(bytes).messageBytes),
+        parsedTransaction: fromRpcTransaction({ transaction: [toBase64(bytes), 'base64'], version: 1 }),
+        serializedSize: bytes.length,
         signatures: [DEFAULT_SIGNATURE],
         slot: 372_654_321,
         version: 1,
-    },
-});
+    };
+}
