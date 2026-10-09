@@ -3,6 +3,7 @@ import React from 'react';
 
 import { AutoRefresh } from '@/app/shared/lib/use-auto-refresh';
 
+import { byLabelText } from '../__fixtures__/byLabelText';
 import {
     DEFAULT_SIGNATURE,
     MOCK_PARSED_TX,
@@ -20,16 +21,6 @@ vi.mock('next/navigation', () => ({
     useRouter: () => ({ replace: vi.fn() }),
     useSearchParams: () => new URLSearchParams(),
 }));
-
-// `InfoTooltip` pins the label's last word to its help icon inside a nested `nowrap` span, so a
-// label like "Fee under SIMD-0553" is split across elements. Match on the innermost element whose
-// full text equals the label rather than on a single text node.
-function byLabelText(label: string) {
-    return (_content: string, element: Element | null): boolean => {
-        if (element?.textContent !== label) return false;
-        return Array.from(element.children).every(child => child.textContent !== label);
-    };
-}
 
 function renderSummary(raw = MOCK_RAW_TX) {
     const Wrapper = withTransactionProviders(

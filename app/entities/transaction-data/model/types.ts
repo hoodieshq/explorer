@@ -7,16 +7,6 @@ import type {
     VersionedMessage,
 } from '@solana/web3.js';
 
-import type { V1TransactionConfig } from '@/app/shared/lib/v1-message-bridge';
-
-/**
- * Message-level resource limits carried by a v1 transaction.
- *
- * v1 moves these out of Compute Budget instructions and into the message itself. `priorityFee`
- * is a total amount in lamports, unlike v0's per-compute-unit price in micro-lamports.
- */
-export type TransactionConfig = V1TransactionConfig;
-
 /**
  * A parsed transaction in the shape the transaction detail page consumes.
  *
@@ -55,17 +45,10 @@ type RawTransactionBase = {
  * A transaction's wire bytes and the parts of its metadata the inspector needs.
  *
  * `message` and `transaction` are the web3.js views of the bytes, which web3.js can only build for
- * legacy and v0. `messageBytes` is always present, so anything that only needs the bytes — the
- * download button — works on every version. Only v1 carries a message-level `transactionConfig`,
- * and only when it sets at least one limit.
+ * legacy and v0. `messageBytes` is always present.
  */
 export type RawTransaction = RawTransactionBase &
     (
-        | {
-              version: 'legacy' | 0;
-              message: VersionedMessage;
-              transaction: TransactionMessage;
-              transactionConfig?: undefined;
-          }
-        | { version: 1; message?: undefined; transaction?: undefined; transactionConfig?: TransactionConfig }
+        | { version: 'legacy' | 0; message: VersionedMessage; transaction: TransactionMessage }
+        | { version: 1; message?: undefined; transaction?: undefined }
     );
