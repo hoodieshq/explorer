@@ -23,6 +23,7 @@ export function AnchorDetailsCard({
     childIndex,
     program,
     decoded,
+    notice,
 }: {
     ix: TransactionInstruction;
     index: number;
@@ -32,6 +33,7 @@ export function AnchorDetailsCard({
     childIndex?: number;
     program: Program<Idl>;
     decoded: AnchorInstructionDecoded;
+    notice?: React.ReactNode;
 }) {
     // Events live in the transaction logs (tx page only); the inspector passes an empty signature → none.
     const eventPayloads = useAnchorEventPayloads({ index, signature });
@@ -48,15 +50,19 @@ export function AnchorDetailsCard({
             innerCards={innerCards}
             childIndex={childIndex}
             eventCards={eventCards}
+            notice={notice}
         >
-            <AnchorInstructionBody
-                ix={ix}
-                idl={program.idl}
-                programName={decoded.programName}
-                ixAccounts={decoded.ixAccounts}
-                decodedIxData={decoded.decodedIxData}
-                ixDef={decoded.ixDef}
-            />
+            {/* A notice already explains the failure, so the body's own failure row would repeat it. */}
+            {!notice && (
+                <AnchorInstructionBody
+                    ix={ix}
+                    idl={program.idl}
+                    programName={decoded.programName}
+                    ixAccounts={decoded.ixAccounts}
+                    decodedIxData={decoded.decodedIxData}
+                    ixDef={decoded.ixDef}
+                />
+            )}
         </InstructionCard>
     );
 }

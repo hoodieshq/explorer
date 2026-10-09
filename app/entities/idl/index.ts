@@ -30,3 +30,32 @@ export { getProvider } from './model/anchor/anchor-provider';
 export { useProgramIdls, type ProgramIdls } from './model/use-program-idls';
 export { useFormatCodamaIdl } from './model/use-format-codama-idl';
 export { getIdlSpecType } from './model/converters/convert-legacy-idl';
+
+// A user-supplied IDL per program, stored in the browser. `useProgramIdls` applies the selection, so
+// consumers only read `isCustomIdl` to highlight what they render from it.
+export {
+    type CustomIdl,
+    type IdlSourceSelection,
+    type ProgramIdlPreference,
+} from './model/custom-idl/custom-idl-store';
+export {
+    parseCustomIdl,
+    parseDeclaredProgramAddress,
+    type CustomIdlParseResult,
+} from './model/custom-idl/parse-custom-idl';
+export {
+    useAddCustomIdl,
+    useProgramIdlPreference,
+    useProgramIdlPreferences,
+} from './model/custom-idl/use-program-idl-preference';
+export { customIdlHighlight } from './ui/custom-idl-highlight';
+export { ProgramIdlSelector } from './ui/ProgramIdlSelector';
+export { CustomIdlMarkProvider, ProgramIdlSlot, ProgramIdlSlotProvider } from './ui/ProgramIdlSlot';
+export {
+    getOnChainIdlSourceOptions,
+    getSelectedIdlSourceOption,
+    type IdlSourceOption,
+    toIdlSourceSelection,
+} from './model/custom-idl/idl-source-options';
+export { CustomIdlUploadDialog } from './ui/CustomIdlUploadDialog';
+export { CustomIdlForm, CustomIdlIntro } from './ui/CustomIdlForm';

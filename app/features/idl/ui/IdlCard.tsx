@@ -19,6 +19,7 @@ import {
     getIdlProgramVersion,
     IdlVariant,
     isIdlProgramIdMismatch,
+    ProgramIdlSelector,
     type SupportedIdl,
     useProgramIdls,
 } from '@entities/idl';
@@ -39,11 +40,15 @@ import { IdlSection } from './IdlSection';
 export function IdlCard({ programId }: { programId: string }) {
     const { url, cluster } = useCluster();
     const network = clusterSlug(cluster);
-    const { anchorIdl, anchorIdlAddress, programMetadataIdl, programMetadataIdlAddress, isLoading } = useProgramIdls(
-        programId,
-        url,
-        cluster,
-    );
+    const {
+        anchorIdl,
+        anchorIdlAddress,
+        programMetadataIdl,
+        programMetadataIdlAddress,
+        isLoading,
+        isCustomIdl,
+        onChainIdls,
+    } = useProgramIdls(programId, url, cluster);
     const [searchStr, setSearchStr] = useState<string>('');
     const [isOrquestraDialogOpen, setIsOrquestraDialogOpen] = useState(false);
 
@@ -84,6 +89,7 @@ export function IdlCard({ programId }: { programId: string }) {
 
     const headerLinks = (
         <div className="flex flex-wrap items-center gap-2">
+            <ProgramIdlSelector programAddress={programId} />
             {idlHistoryLink}
             {orquestraLink}
             <Dialog open={isOrquestraDialogOpen} onOpenChange={setIsOrquestraDialogOpen}>
@@ -122,9 +128,11 @@ export function IdlCard({ programId }: { programId: string }) {
     );
 
     // Single IDL view: show the program-metadata (PMP) IDL, falling back to the Anchor source only
-    // when no PMP IDL exists.
+    // when no PMP IDL exists. `useProgramIdls` has already applied the user's source selection.
     const idl: SupportedIdl | undefined = programMetadataIdl ?? anchorIdl;
-    const isFallback = !programMetadataIdl && Boolean(anchorIdl);
+    const isAnchorShown = !isCustomIdl && !programMetadataIdl && Boolean(anchorIdl);
+    // "Fallback" means the chain has no PMP IDL, not that the user picked Anchor over it.
+    const isFallback = isAnchorShown && !onChainIdls.programMetadataIdl;
 
     if (!idl) {
         if (isLoading) {
@@ -204,10 +212,9 @@ export function IdlCard({ programId }: { programId: string }) {
         </div>
     );
 
-    // Metadata shown directly under the badge: the storage account the displayed IDL was read from,
-    // which source it came from, and the program's own version (distinct from the badge's spec label).
-    const idlAddress = isFallback ? anchorIdlAddress : programMetadataIdlAddress;
-    const idlSourceLabel = isFallback ? 'Anchor' : 'PMP';
+    // Metadata shown directly under the badge: the storage account the displayed IDL was read from and
+    // the program's own version (distinct from the badge's spec label).
+    const idlAddress = isAnchorShown ? anchorIdlAddress : programMetadataIdlAddress;
     const programVersion = getIdlProgramVersion(idl);
     // Codama / modern Anchor names only; legacy Anchor top-level name is intentionally not shown.
     const programName = buildProgramName([idl]);
@@ -228,10 +235,6 @@ export function IdlCard({ programId }: { programId: string }) {
                     <dd className="text-white">{programName}</dd>
                 </div>
             )}
-            <div className="flex items-baseline gap-2">
-                <dt className="w-32 shrink-0 text-neutral-400">Source</dt>
-                <dd className="text-white">{idlSourceLabel}</dd>
-            </div>
             {programVersion && (
                 <div className="flex items-baseline gap-2">
                     <dt className="w-32 shrink-0 text-neutral-400">Program Version</dt>
@@ -260,7 +263,10 @@ export function IdlCard({ programId }: { programId: string }) {
                         badge={badge}
                         info={info}
                         idl={idl}
-                        idlSource={isFallback ? IdlVariant.Anchor : IdlVariant.ProgramMetadata}
+                        // Castaway fetches the IDL from the chain itself, so it has nothing to offer for a custom one.
+                        idlSource={
+                            isCustomIdl ? undefined : isAnchorShown ? IdlVariant.Anchor : IdlVariant.ProgramMetadata
+                        }
                         network={network}
                         programId={programId}
                         searchStr={searchStr}

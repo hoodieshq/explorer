@@ -1,5 +1,6 @@
 import { BaseInstructionCard } from '@components/common/BaseInstructionCard';
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
+import { ProgramIdlSlotProvider } from '@entities/idl';
 import { type InstructionSurface, InstructionSurfaceProvider } from '@entities/instruction-card';
 import { isParsedInstruction, toParsedTransaction, useInstructionParser } from '@entities/instruction-parser';
 import {
@@ -18,7 +19,11 @@ import { Ed25519DetailsCard } from '@features/decode-instruction-ed25519';
 import { LighthouseDetailsCard } from '@features/decode-instruction-lighthouse';
 import { MemoDetailsCard } from '@features/decode-instruction-memo';
 import { isProgramMetadataInstruction } from '@features/decode-instruction-pmp/detection';
-import { IdlInstructionCard, useIdlInstructionDecode } from '@features/decode-instruction-with-idl';
+import {
+    IdlDecodeFailureNotice,
+    IdlInstructionCard,
+    useIdlInstructionDecode,
+} from '@features/decode-instruction-with-idl';
 import { ZkElGamalProofDetailsCard } from '@features/decode-instruction-zk-elgamal-proof';
 import { PythDetailsCard } from '@features/instruction-program-pyth';
 import { MetaplexTokenMetadataDetailsCard } from '@features/mpl-token-metadata';
@@ -167,19 +172,30 @@ function UndisplayableInstructionCard({ index, childIndex }: { index: number; ch
     );
 }
 
-function InspectorInstructionCard({
-    message,
-    ix,
-    index,
-    childIndex,
-    innerCards,
-}: {
+type InspectorInstructionCardProps = {
     message: VersionedMessage;
     ix: TransactionInstruction;
     index: number;
     childIndex?: number;
     innerCards?: JSX.Element[];
-}) {
+};
+
+// Every inspector instruction has its raw bytes, so every card offers its program's IDL selector.
+function InspectorInstructionCard(props: InspectorInstructionCardProps) {
+    return (
+        <ProgramIdlSlotProvider programAddress={props.ix.programId.toBase58()}>
+            <InspectorInstructionCardContent {...props} />
+        </ProgramIdlSlotProvider>
+    );
+}
+
+function InspectorInstructionCardContent({
+    message,
+    ix,
+    index,
+    childIndex,
+    innerCards,
+}: InspectorInstructionCardProps) {
     const dispatcher = useInstructionParser();
 
     const programId = ix.programId;
@@ -195,6 +211,21 @@ function InspectorInstructionCard({
     const decodedByIdl = idlDecode?.kind === 'unknown' ? undefined : idlDecode;
 
     const unknownCard = <UnknownDetailsCard index={index} ix={ix} childIndex={childIndex} innerCards={innerCards} />;
+
+    // A selected custom IDL wins over every program-specific decoder below, and its failure stays visible.
+    if (idlDecode?.isCustomIdl) {
+        return (
+            <IdlInstructionCard
+                decoded={idlDecode}
+                ix={ix}
+                index={index}
+                result={INSPECTOR_RESULT}
+                signature={INSPECTOR_SIGNATURE}
+                childIndex={childIndex}
+                innerCards={innerCards}
+            />
+        );
+    }
 
     // PMP owns every instruction on its program id: `setData`/`initialize`/`write` render decoded content from
     // the bundled typed decoders (no IDL needed), and the housekeeping instructions delegate to the IDL tier
@@ -495,5 +526,14 @@ function InspectorInstructionCard({
             );
     }
 
-    return unknownCard;
+    // No decoder took it and no IDL decoded it: say so, with the program's other IDLs or an upload.
+    return (
+        <UnknownDetailsCard
+            index={index}
+            ix={ix}
+            childIndex={childIndex}
+            innerCards={innerCards}
+            notice={<IdlDecodeFailureNotice ix={ix} />}
+        />
+    );
 }

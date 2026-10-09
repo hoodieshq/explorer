@@ -38,7 +38,8 @@ export function IdlSection({
     /** Metadata rows (address, source, program version) rendered directly under the badge row. */
     info?: React.ReactNode;
     programId: string;
-    idlSource: IdlVariant;
+    /** The on-chain source shown; undefined for a custom IDL, which hides the Castaway SDK generator. */
+    idlSource: IdlVariant | undefined;
     network: string;
     searchStr: string;
     onSearchChange: (str: string) => void;
@@ -51,7 +52,7 @@ export function IdlSection({
         return toBase64(fromUtf8(JSON.stringify(idl, null, 2)));
     }, [idl]);
     const castawayUrl = useMemo(() => {
-        const params = new URLSearchParams({ idlSource, network, program: programId });
+        const params = new URLSearchParams({ idlSource: idlSource ?? '', network, program: programId });
         return `https://www.castaway.lol/?${params.toString()}`;
     }, [idlSource, network, programId]);
 
@@ -97,7 +98,7 @@ export function IdlSection({
                             <DropdownMenu align="end" className="z-10">
                                 <div className="flex flex-col">
                                     <Button onClick={handleDownloadIdl}>Download IDL</Button>
-                                    <Button onClick={handleOpenCastawayDialog}>Generate SDK</Button>
+                                    {idlSource && <Button onClick={handleOpenCastawayDialog}>Generate SDK</Button>}
                                 </div>
                             </DropdownMenu>
                         </Dropdown>

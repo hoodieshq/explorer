@@ -1,10 +1,12 @@
 import { renderHook, waitFor } from '@testing-library/react';
+import { createStore, Provider } from 'jotai';
 import { type ReactNode } from 'react';
 import { SWRConfig } from 'swr';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Cluster } from '@/app/utils/cluster';
 
+import { addCustomIdlAtom } from '../custom-idl/custom-idl-store';
 import { useProgramIdls } from '../use-program-idls';
 
 const mocks = vi.hoisted(() => ({
@@ -140,5 +142,57 @@ describe('useProgramIdls', () => {
             // ...and the mainnet server route was never queried, so we never read mainnet for a local URL.
             expect(mocks.fetch).not.toHaveBeenCalled();
         });
+    });
+
+    describe('custom IDL selection', () => {
+        const customIdl = { instructions: [], metadata: { name: 'mine', spec: '0.1.0' } };
+
+        beforeEach(() => {
+            mocks.fetch.mockResolvedValue({
+                json: async () => ({ idls: { anchor: { name: 'anchor_idl' }, programMetadata: { name: 'pmp_idl' } } }),
+                ok: true,
+            });
+        });
+
+        it('should replace the on-chain IDLs with the selected custom IDL and keep them for the selector', async () => {
+            const { result } = renderWithCustomIdl(() =>
+                useProgramIdls(PROGRAM_ID, 'https://api.mainnet-beta.solana.com', Cluster.MainnetBeta),
+            );
+
+            await waitFor(() => expect(result.current.onChainIdls.programMetadataIdl).toEqual({ name: 'pmp_idl' }));
+            expect(result.current.isCustomIdl).toBe(true);
+            expect(result.current.anchorIdl).toEqual(customIdl);
+            expect(result.current.programMetadataIdl).toBeUndefined();
+        });
+
+        it('should keep the on-chain IDLs when the caller asks for on-chain only', async () => {
+            const { result } = renderWithCustomIdl(() =>
+                useProgramIdls(PROGRAM_ID, 'https://api.mainnet-beta.solana.com', Cluster.MainnetBeta, {
+                    onChainOnly: true,
+                }),
+            );
+
+            await waitFor(() => expect(result.current.programMetadataIdl).toEqual({ name: 'pmp_idl' }));
+            expect(result.current.isCustomIdl).toBe(false);
+            expect(result.current.anchorIdl).toEqual({ name: 'anchor_idl' });
+        });
+
+        function renderWithCustomIdl<T>(hook: () => T) {
+            const store = createStore();
+            store.set(addCustomIdlAtom, {
+                custom: { addedAt: 1, idl: customIdl as never },
+                programAddress: PROGRAM_ID,
+            });
+
+            return renderHook(hook, {
+                wrapper: ({ children }) => (
+                    <Provider store={store}>
+                        <SWRConfig value={{ provider: () => new Map(), shouldRetryOnError: false }}>
+                            {children}
+                        </SWRConfig>
+                    </Provider>
+                ),
+            });
+        }
     });
 });

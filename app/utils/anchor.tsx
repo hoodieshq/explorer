@@ -13,6 +13,7 @@ import React, { Fragment, ReactNode } from 'react';
 
 import { equals, fromBase64, fromHex, toBase64 } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
+import { MarkedValue } from '@/app/shared/lib/marked-value';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 const ANCHOR_SELF_CPI_TAG = fromHex('1d9acb512ea545e4').reverse();
@@ -611,8 +612,12 @@ function SimpleRow({
     return (
         <BaseTable.Row className={cn(nestingLevel > 0 && 'bg-black/20')}>
             <FieldNameCell name={itemKey} nestingLevel={nestingLevel} />
-            <BaseTable.Cell>{typeDisplayName(type)}</BaseTable.Cell>
-            <BaseTable.Cell className="text-right">{children}</BaseTable.Cell>
+            <BaseTable.Cell>
+                <MarkedValue>{typeDisplayName(type)}</MarkedValue>
+            </BaseTable.Cell>
+            <BaseTable.Cell className="text-right">
+                <MarkedValue>{children}</MarkedValue>
+            </BaseTable.Cell>
         </BaseTable.Row>
     );
 }

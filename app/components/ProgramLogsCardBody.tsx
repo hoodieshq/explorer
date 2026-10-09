@@ -1,5 +1,5 @@
 import { TableCardBody, type TableCardBodyProps } from '@components/common/TableCardBody';
-import { useAnchorProgram } from '@entities/idl';
+import { customIdlHighlight, useAnchorProgram } from '@entities/idl';
 import { ParsedMessage, PublicKey, TransactionInstruction, VersionedMessage } from '@solana/web3.js';
 import { getAnchorNameForInstruction, getAnchorProgramName } from '@utils/anchor';
 import { Cluster } from '@utils/cluster';
@@ -178,7 +178,7 @@ function ProgramLogRow({
 }) {
     const pathname = usePathname();
     const anchorPath = useClusterPath({ pathname: `${pathname}#${getInstructionCardScrollAnchorId([index + 1])}` });
-    const { program: anchorProgram } = useAnchorProgram(programId.toString(), url, cluster);
+    const { program: anchorProgram, isCustomIdl } = useAnchorProgram(programId.toString(), url, cluster);
 
     // Try to get instruction name from IDL if available
     let instructionName = 'Instruction';
@@ -261,7 +261,12 @@ function ProgramLogRow({
                     >
                         #{index + 1}
                     </Badge>
-                    <span className="text-dk-white">
+                    <span
+                        className={customIdlHighlight({
+                            active: isCustomIdl,
+                            className: 'text-dk-white',
+                        })}
+                    >
                         <ProgramNameWithInstruction
                             programId={programId}
                             cluster={cluster}

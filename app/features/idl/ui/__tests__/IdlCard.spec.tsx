@@ -61,13 +61,23 @@ const DEFAULT_ADDRESS = PublicKey.default.toBase58();
 const PMP_PDA = gen.vanityAddress('PMP');
 
 function mockProgramIdls(overrides: Partial<ProgramIdls>): void {
-    mocks.useProgramIdls.mockReturnValue({
+    const idls = {
         anchorIdl: undefined,
         anchorIdlAddress: undefined,
+        isCustomIdl: false,
         isLoading: false,
         programMetadataIdl: undefined,
         programMetadataIdlAddress: undefined,
         ...overrides,
+    };
+    mocks.useProgramIdls.mockReturnValue({
+        ...idls,
+        onChainIdls: overrides.onChainIdls ?? {
+            anchorIdl: idls.anchorIdl,
+            anchorIdlAddress: idls.anchorIdlAddress,
+            programMetadataIdl: idls.programMetadataIdl,
+            programMetadataIdlAddress: idls.programMetadataIdlAddress,
+        },
     });
 }
 
@@ -177,7 +187,7 @@ describe('IdlCard', () => {
         expect(castawayUrl.searchParams.get('network')).toBe('mainnet-beta');
     });
 
-    test('should show the IDL metadata (address, source, program version) under the badge', async () => {
+    test('should show the IDL metadata (address, program version) under the badge and the source in the header', async () => {
         mockProgramIdls({
             programMetadataIdl: createMockProgramMetadataIdl(),
             programMetadataIdlAddress: PMP_PDA,
@@ -193,9 +203,8 @@ describe('IdlCard', () => {
             expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
         });
 
-        // Source row reflects the displayed IDL's origin.
-        expect(screen.getByText('Source')).toBeInTheDocument();
-        expect(screen.getByText('PMP')).toBeInTheDocument();
+        // The header's IDL selector names the displayed IDL's origin.
+        expect(screen.getByRole('button', { name: 'IDL: PMP' })).toBeInTheDocument();
         // Address row links the storage-account PDA to its account page (via the shared AddressLink,
         // whose accessible name is "Open address <addr>" and whose visible text is mid-truncated).
         const addressLink = screen.getByRole('link', { name: `Open address ${PMP_PDA}` });
@@ -236,9 +245,7 @@ describe('IdlCard', () => {
         await waitFor(() => {
             expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
         });
-        // The Source <dd> is exactly "Anchor"; the badge element reads "Anchor: 0.30.1 (spec: 0.1.0)",
-        // so an exact-text query matches only the Source row.
-        expect(screen.getByText('Anchor')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'IDL: Anchor' })).toBeInTheDocument();
     });
 
     test('should fall back to the Anchor IDL with a warning badge + tooltip when no PMP IDL exists', async () => {

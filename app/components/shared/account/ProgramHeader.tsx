@@ -6,7 +6,7 @@
 // `ProxiedImage` and the security-txt helpers down into `shared`/`entities`, re-point
 // consumers, then drop these two imports.
 import { Tooltip, TooltipContent, TooltipTrigger } from '@components/shared/ui/tooltip';
-import { buildProgramName, useProgramIdls } from '@entities/idl';
+import { buildProgramName, customIdlHighlight, useProgramIdls } from '@entities/idl';
 import { ProxiedImage } from '@features/metadata';
 import { useSecurityTxt } from '@features/security-txt';
 import { type UpgradeableLoaderAccountData } from '@providers/accounts';
@@ -28,7 +28,7 @@ export function ProgramHeader({
 }) {
     const { securityTxt } = useSecurityTxt(address);
     const { url, cluster } = useCluster();
-    const { anchorIdl, programMetadataIdl } = useProgramIdls(address, url, cluster);
+    const { anchorIdl, programMetadataIdl, isCustomIdl } = useProgramIdls(address, url, cluster);
     // Codama / modern Anchor names only; legacy Anchor top-level name is intentionally not shown.
     const idlProgramName = buildProgramName([programMetadataIdl, anchorIdl]);
     const { programName, logo, version, selfReported } = ((): {
@@ -98,7 +98,14 @@ export function ProgramHeader({
             <div className="flex-1">
                 <h6 className="uppercase tracking-[0.08em] text-dk-gray-700">Program account</h6>
                 <div className="inline-flex">
-                    <h2 className="mb-0">{programName}</h2>
+                    <h2
+                        className={customIdlHighlight({
+                            active: isCustomIdl && programName === idlProgramName,
+                            className: 'mb-0',
+                        })}
+                    >
+                        {programName}
+                    </h2>
                     {warningChunk}
                 </div>
                 {version && (

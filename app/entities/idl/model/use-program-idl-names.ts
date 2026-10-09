@@ -9,6 +9,9 @@ import { type Cluster } from '@/app/utils/cluster';
 
 import { NON_ANCHOR_PROGRAMS } from '../api/config';
 import { fetchProgramIdls } from '../api/fetch-program-idls';
+import { type ProgramIdlPair } from '../api/types';
+import { applyIdlSelection } from './custom-idl/apply-idl-selection';
+import { useProgramIdlPreferences } from './custom-idl/use-program-idl-preference';
 import { buildProgramIdlNames, type InstructionNameResolver, type ProgramIdlNames } from './instruction-name-table';
 
 export type { InstructionNameResolver, ProgramIdlNames };
@@ -17,18 +20,26 @@ export type { InstructionNameResolver, ProgramIdlNames };
  * Per-program names built from each program's IDL: a display name plus an instruction-name resolver
  * (matched by discriminator, no Borsh decode). One SWR entry covers the whole set so the caller can
  * resolve names without any per-row data hooks — the list/line components stay pure. Builtins and
- * custom/localhost clusters resolve to nothing.
+ * custom/localhost clusters resolve to nothing, unless the user selected a custom IDL for the program.
  *
  * The last source `transaction-data` tries and the only one that fetches, so an empty map means "no
  * IDL", never "nothing is named yet".
  */
 export function useProgramIdlNames(programIds: string[], cluster: Cluster, url: string): Map<string, ProgramIdlNames> {
+    const preferences = useProgramIdlPreferences();
+    // A selected custom IDL needs no fetch, and strict selection means the on-chain IDLs must not name it.
+    const customSelected = useMemo(
+        () => [...new Set(programIds)].filter(id => preferences[id]?.selected === 'custom' && preferences[id]?.custom),
+        [programIds, preferences],
+    );
     const resolvable = useMemo(
         () =>
             shouldUseDirectRpc(cluster, url)
                 ? []
-                : [...new Set(programIds)].filter(id => !NON_ANCHOR_PROGRAMS.has(id)).sort(),
-        [programIds, cluster, url],
+                : [...new Set(programIds)]
+                      .filter(id => !NON_ANCHOR_PROGRAMS.has(id) && !customSelected.includes(id))
+                      .sort(),
+        [programIds, cluster, url, customSelected],
     );
 
     // Keyed on the whole resolvable set, not per program. In practice resolvable is almost always a
@@ -67,11 +78,23 @@ export function useProgramIdlNames(programIds: string[], cluster: Cluster, url: 
 
     return useMemo(() => {
         const resolvers = new Map<string, ProgramIdlNames>();
-        for (const [id, idls] of data ?? []) {
+        const named: (readonly [string, ProgramIdlPair])[] = [
+            ...(data ?? []),
+            ...customSelected.map(id => [id, EMPTY_IDL_PAIR] as const),
+        ];
+        for (const [id, onChain] of named) {
+            const idls = applyIdlSelection(onChain, preferences[id]);
             // Program-metadata IDL is preferred; Anchor only names what program-metadata can't.
             const names = buildProgramIdlNames([idls.programMetadataIdl, idls.anchorIdl]);
             if (names) resolvers.set(id, names);
         }
         return resolvers;
-    }, [data]);
+    }, [data, customSelected, preferences]);
 }
+
+const EMPTY_IDL_PAIR: ProgramIdlPair = {
+    anchorIdl: undefined,
+    anchorIdlAddress: undefined,
+    programMetadataIdl: undefined,
+    programMetadataIdlAddress: undefined,
+};

@@ -4,6 +4,8 @@ import { BaseTable } from '@shared/ui/Table';
 import React, { useState } from 'react';
 import { ChevronDown, ChevronUp, CornerDownRight } from 'react-feather';
 
+import { MarkedValue } from '@/app/shared/lib/marked-value';
+
 export function ExpandableRow({
     fieldName,
     fieldType,
@@ -22,7 +24,9 @@ export function ExpandableRow({
         <>
             <BaseTable.Row data-testid={testId}>
                 <FieldNameCell name={fieldName} nestingLevel={nestingLevel} />
-                <BaseTable.Cell>{fieldType}</BaseTable.Cell>
+                <BaseTable.Cell>
+                    <MarkedValue>{fieldType}</MarkedValue>
+                </BaseTable.Cell>
                 <ExpandToggleCell expanded={expanded} onToggle={() => setExpanded(current => !current)} />
             </BaseTable.Row>
             {expanded && children}
@@ -35,7 +39,9 @@ export function FieldNameCell({ name, nestingLevel }: { name: string; nestingLev
         <BaseTable.Cell>
             <div className="flex flex-row items-center">
                 {nestingLevel > 0 && <CornerDownRight className="mb-[3px] mr-1.5" size={14} />}
-                <div>{name}</div>
+                <div>
+                    <MarkedValue>{name}</MarkedValue>
+                </div>
             </div>
         </BaseTable.Cell>
     );

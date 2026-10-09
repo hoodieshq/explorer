@@ -103,3 +103,15 @@ export function safeDecodeInstructionWithIdl(
         return { kind: 'unknown' };
     }
 }
+
+/**
+ * Whether a decode produced the instruction's fields. The Anchor path returns a result even when no
+ * instruction in the IDL matches; the fields `AnchorInstructionBody` needs are then absent.
+ */
+export function isIdlInstructionDecoded(decode: IdlInstructionDecode): boolean {
+    if (decode.kind === 'codama') return true;
+    if (decode.kind === 'anchor') {
+        return Boolean(decode.details.decodedIxData && decode.details.ixAccounts && decode.details.ixDef);
+    }
+    return false;
+}

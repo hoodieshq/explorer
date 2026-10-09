@@ -1,5 +1,6 @@
 import { TableCardBody } from '@components/common/TableCardBody';
 import { CollapsibleCard } from '@components/shared/ui/collapsible-card';
+import { ProgramIdlSlot } from '@entities/idl';
 import { ProgramField } from '@entities/instruction-card';
 import { useCluster } from '@providers/cluster';
 import { useScrollAnchor } from '@providers/scroll-anchor';
@@ -17,11 +18,14 @@ export function UnknownDetailsCard({
     childIndex,
     ix,
     innerCards,
+    notice,
 }: {
     index: number;
     childIndex?: number;
     ix: TransactionInstruction;
     innerCards?: React.ReactNode[];
+    /** A full-width first row, e.g. why the instruction stayed unknown. */
+    notice?: React.ReactNode;
 }) {
     const { cluster } = useCluster();
     const scrollAnchorRef = useScrollAnchor(
@@ -32,6 +36,7 @@ export function UnknownDetailsCard({
         <CollapsibleCard
             ref={scrollAnchorRef}
             defaultExpanded={false}
+            headerButtons={<ProgramIdlSlot />}
             title={
                 <span className="flex min-w-0 flex-1 items-center">
                     <Badge ui="dashkit" variant="info" className="mr-1.5 flex-none">
@@ -46,6 +51,13 @@ export function UnknownDetailsCard({
             }
         >
             <TableCardBody>
+                {notice && (
+                    <BaseTable.Row>
+                        <BaseTable.Cell colSpan={3} className="!whitespace-normal">
+                            {notice}
+                        </BaseTable.Cell>
+                    </BaseTable.Row>
+                )}
                 <ProgramField programId={ix.programId} showExtendedInfo />
                 <BaseRawDetails ix={ix} />
                 {innerCards && innerCards.length > 0 && (
