@@ -26,6 +26,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs,
                 instructions,
+                transactionVersion: 'legacy',
             });
 
             expect(result).toEqual([
@@ -51,6 +52,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs,
                 instructions,
+                transactionVersion: 'legacy',
             });
 
             expect(result).toHaveLength(3);
@@ -73,6 +75,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs,
                 instructions,
+                transactionVersion: 'legacy',
             });
 
             expect(result[0]).toMatchObject({ name: 'Transfer Checked', programName: 'Token Program' });
@@ -89,6 +92,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs,
                 instructions,
+                transactionVersion: 'legacy',
             });
 
             expect(result.map(r => r.scheduledUnits)).toEqual([DEFAULT_RESERVED_CU, DEFAULT_RESERVED_CU]);
@@ -104,6 +108,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs,
                 instructions,
+                transactionVersion: 'legacy',
             });
 
             expect(result).toEqual([
@@ -131,6 +136,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs,
                 instructions,
+                transactionVersion: 'legacy',
             });
 
             expect(result.map(r => [r.programId, r.defaultUnits])).toEqual([
@@ -151,6 +157,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs,
                 instructions,
+                transactionVersion: 'legacy',
             });
 
             expect(result[0]).toEqual({
@@ -169,6 +176,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs: [],
                 instructions: [],
+                transactionVersion: 'legacy',
             });
 
             expect(result).toEqual([]);
@@ -183,6 +191,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs,
                 instructions,
+                transactionVersion: 'legacy',
             });
 
             expect(result).toEqual([
@@ -214,6 +223,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs,
                 instructions,
+                transactionVersion: 'legacy',
             });
 
             expect(result).toHaveLength(3);
@@ -233,6 +243,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs,
                 instructions,
+                transactionVersion: 'legacy',
             });
 
             expect(result.map(r => [r.programId, r.computeUnits])).toEqual([
@@ -257,6 +268,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs: [mockInstructionLog(5000), mockInstructionLog(100)],
                 instructions: [mockInstruction(TOKEN_PLACEHOLDER)],
+                transactionVersion: 'legacy',
             });
 
             expect(Logger.warn).toHaveBeenCalledWith(expect.stringContaining('misalign'), {
@@ -271,6 +283,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs: [mockInstructionLog(5000), mockInstructionLog(100)],
                 instructions: [mockInstruction(TOKEN_PLACEHOLDER)],
+                transactionVersion: 'legacy',
             });
 
             expect(Logger.warn).toHaveBeenCalledWith(
@@ -285,6 +298,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs: [mockInstructionLog(5000)],
                 instructions: [mockInstruction(TOKEN_PLACEHOLDER), mockInstruction(SYSTEM_PLACEHOLDER)],
+                transactionVersion: 'legacy',
             });
 
             expect(Logger.warn).not.toHaveBeenCalled();
@@ -296,6 +310,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs: [mockInstructionLog(5000), mockInstructionLog(100)],
                 instructions: [],
+                transactionVersion: 'legacy',
             });
 
             expect(result).toEqual([]);
@@ -315,6 +330,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs: [mockOrphanLog(), mockInstructionLog(5000), mockInstructionLog(3000)],
                 instructions: [mockInstruction(TOKEN_PLACEHOLDER), mockInstruction(MEMO_PLACEHOLDER)],
+                transactionVersion: 'legacy',
             });
 
             expect(result.map(r => [r.programId, r.computeUnits])).toEqual([
@@ -329,6 +345,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs: [mockInstructionLog(5000), mockOrphanLog()],
                 instructions: [mockInstruction(TOKEN_PLACEHOLDER)],
+                transactionVersion: 'legacy',
             });
 
             expect(result.map(r => r.computeUnits)).toEqual([5000]);
@@ -341,6 +358,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs: [mockOrphanLog()],
                 instructions: [mockInstruction(TOKEN_PLACEHOLDER), mockInstruction(MEMO_PLACEHOLDER)],
+                transactionVersion: 'legacy',
             });
 
             expect(result.map(r => r.computeUnits)).toEqual([0, 0]);
@@ -362,6 +380,7 @@ describe('formatInstructionLogs', () => {
                 epoch: 0n,
                 instructionLogs: parseProgramLogs(logs, null, Cluster.MainnetBeta),
                 instructions: programIds.map(mockInstruction),
+                transactionVersion: 'legacy',
             });
 
         it('should pair a well-formed transaction row for row', () => {
