@@ -3,41 +3,36 @@ import React from 'react';
 
 import { AutoRefresh } from '@/app/shared/lib/use-auto-refresh';
 
+import { byLabelText } from '../__fixtures__/byLabelText';
 import {
     DEFAULT_SIGNATURE,
     MOCK_RAW_V1_NO_CONFIG_TX,
+    MOCK_RAW_V1_TX,
     MOCK_STATUS,
     MOCK_V1_NO_CONFIG_TX,
+    MOCK_V1_TX,
 } from '../__fixtures__/transaction';
 import { withTransactionProviders } from '../__fixtures__/withTransactionProviders';
 import { SummaryCard } from '../SummaryCard';
 
-// `ClusterProvider` reads the router on mount, which jsdom has no app router for.
 vi.mock('next/navigation', () => ({
     usePathname: () => `/tx/${DEFAULT_SIGNATURE}`,
     useRouter: () => ({ replace: vi.fn() }),
     useSearchParams: () => new URLSearchParams(),
 }));
 
-// `InfoTooltip` pins the label's last word to its help icon inside a nested `nowrap` span, so a
-// label like "Fee under SIMD-0553" is split across elements. Match on the innermost element whose
-// full text equals the label rather than on a single text node.
-function byLabelText(label: string) {
-    return (_content: string, element: Element | null): boolean => {
-        if (element?.textContent !== label) return false;
-        return Array.from(element.children).every(child => child.textContent !== label);
-    };
-}
-
 function rowValue(label: string): string | null | undefined {
     return screen.getByText(label).nextElementSibling?.textContent;
 }
 
-function renderSummary() {
+function renderSummary({
+    parsed = MOCK_V1_NO_CONFIG_TX,
+    raw = MOCK_RAW_V1_NO_CONFIG_TX,
+}: { parsed?: typeof MOCK_V1_NO_CONFIG_TX; raw?: typeof MOCK_RAW_V1_NO_CONFIG_TX } = {}) {
     const Wrapper = withTransactionProviders(
-        { [DEFAULT_SIGNATURE]: MOCK_V1_NO_CONFIG_TX },
+        { [DEFAULT_SIGNATURE]: parsed },
         { [DEFAULT_SIGNATURE]: MOCK_STATUS },
-        { [DEFAULT_SIGNATURE]: MOCK_RAW_V1_NO_CONFIG_TX },
+        { [DEFAULT_SIGNATURE]: raw },
     );
 
     return render(
@@ -87,5 +82,35 @@ describe('SummaryCard v1 undeclared resource limits', () => {
         renderSummary();
 
         expect(await screen.findByText(byLabelText('Fee under SIMD-0553'))).toBeInTheDocument();
+    });
+});
+
+describe('SummaryCard v1 declared resource limits', () => {
+    it('should render the declared compute unit limit in the CUs Consumed / Limit row', async () => {
+        renderSummary({ parsed: MOCK_V1_TX, raw: MOCK_RAW_V1_TX });
+
+        expect(await screen.findByText('CUs Consumed / Limit')).toBeInTheDocument();
+        expect(rowValue('CUs Consumed / Limit')).toBe('150 / 8,442');
+    });
+
+    it('should render the declared loaded accounts data size limit', async () => {
+        renderSummary({ parsed: MOCK_V1_TX, raw: MOCK_RAW_V1_TX });
+
+        expect(await screen.findByText('Loaded accounts data size limit')).toBeInTheDocument();
+        expect(rowValue('Loaded accounts data size limit')).toBe('75,013');
+    });
+
+    it('should render the declared heap size', async () => {
+        renderSummary({ parsed: MOCK_V1_TX, raw: MOCK_RAW_V1_TX });
+
+        expect(await screen.findByText('Heap size')).toBeInTheDocument();
+        expect(rowValue('Heap size')).toBe('262,144');
+    });
+
+    it('should render the declared priority fee', async () => {
+        renderSummary({ parsed: MOCK_V1_TX, raw: MOCK_RAW_V1_TX });
+
+        expect(await screen.findByText(byLabelText('Priority fee (total)'))).toBeInTheDocument();
+        expect(screen.getByText('◎0.00001')).toBeInTheDocument();
     });
 });

@@ -86,13 +86,17 @@ describe('fetchRawTransaction', () => {
         await expect(fetchRawTransaction(URL, SIGNATURE)).resolves.toBeNull();
     });
 
-    it('should expose a v1 transaction as bytes without a web3.js view', async () => {
+    it('should expose a v1 transaction as bytes and its declared config, without a web3.js view', async () => {
         const bytes = createV1TransactionBytes({ computeUnitLimit: 8442, priorityFeeLamports: 10_000n });
         respondWith(transactionResult(bytes));
 
         const raw = await fetchRawTransaction(URL, SIGNATURE);
 
         expect(raw?.version).toBe(1);
+        expect(raw?.parsedTransaction).toMatchObject({
+            config: { computeUnitLimit: 8442, priorityFeeLamports: 10_000n },
+            version: 1,
+        });
         expect(raw?.message).toBeUndefined();
         expect(raw?.transaction).toBeUndefined();
         expect(bytes.subarray(0, raw?.messageBytes.length)).toEqual(raw?.messageBytes);
