@@ -1,10 +1,13 @@
 import { gen } from '@__fixtures__/gen';
 import type * as SolanaKit from '@solana/kit';
+import { getBase58Encoder } from '@solana/kit';
+import { SYSTEM_PROGRAM_ADDRESS } from '@solana-program/system';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { toBase64 } from '@/app/shared/lib/bytes';
 
 import {
+    createV0LookupTableTransactionBytes,
     createV1TransactionBytes,
     createWeb3TransactionBytes,
     FEE_PAYER,
@@ -163,6 +166,51 @@ describe('fetchRawTransaction', () => {
             expect(raw?.serializedSize).toBeGreaterThan(raw?.messageBytes.length ?? 0);
         },
     );
+
+    it.each(['legacy' as const, 0 as const])(
+        'should parse a %s transaction with the signatures from the wire',
+        async version => {
+            const bytes = createWeb3TransactionBytes(version);
+            bytes.set(getBase58Encoder().encode(SIGNATURE), 1);
+            respondWith(transactionResult(bytes, null, version));
+
+            const raw = await fetchRawTransaction(URL, SIGNATURE);
+
+            expect(raw?.parsedTransaction).toMatchObject({ signatures: [SIGNATURE], version });
+            expect(raw?.parsedTransaction.instructions.map(ix => ix.programAddress)).toEqual([SYSTEM_PROGRAM_ADDRESS]);
+        },
+    );
+
+    it('should resolve v0 lookup table accounts from the loaded addresses', async () => {
+        respondWith(
+            transactionResult(
+                createV0LookupTableTransactionBytes(),
+                { loadedAddresses: { readonly: [], writable: [RECIPIENT] }, postBalances: [], preBalances: [] },
+                0,
+            ),
+        );
+
+        const raw = await fetchRawTransaction(URL, SIGNATURE);
+
+        expect(raw?.parsedTransaction.version).toBe(0);
+        expect(raw?.parsedTransaction.accounts).toContainEqual(
+            expect.objectContaining({ address: RECIPIENT, source: 'lookupTable', writable: true }),
+        );
+    });
+
+    it('should parse the resource limits from v1 message', async () => {
+        respondWith(
+            transactionResult(createV1TransactionBytes({ computeUnitLimit: 8442, priorityFeeLamports: 10_000n })),
+        );
+
+        const raw = await fetchRawTransaction(URL, SIGNATURE);
+
+        expect(raw?.parsedTransaction).toMatchObject({
+            config: { computeUnitLimit: 8442, priorityFeeLamports: 10_000n },
+            signatures: [undefined],
+            version: 1,
+        });
+    });
 
     it('should leave an unsigned signer slot undefined so it is not reported as an invalid signature', async () => {
         respondWith(transactionResult(createV1TransactionBytes({})));
