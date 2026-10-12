@@ -301,7 +301,7 @@ function ProgramLogRow({
                     </Badge>
                     <span
                         className={customIdlHighlight({
-                            active: isCustomIdl && !isRowTinted,
+                            active: isCustomIdl && highlightVariant === 'marker',
                             className: 'text-dk-white',
                         })}
                     >

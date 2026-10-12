@@ -12,6 +12,7 @@ import { cva } from 'class-variance-authority';
 import { ChevronDown } from 'react-feather';
 
 import { type IdlSourceOption, type OnChainIdlSourceOption } from '../model/custom-idl/idl-source-options';
+import { BaseIdlSourceMark } from './BaseIdlSourceMark';
 
 const IDL_SOURCE_LABELS: Record<OnChainIdlSourceOption, string> = {
     anchor: 'Anchor',
@@ -60,11 +61,13 @@ export function BaseIdlSourceSelect({
                         <DropdownMenuRadioGroup value={value} onValueChange={next => onSelect(next as IdlSourceOption)}>
                             {options.map(option => (
                                 <DropdownMenuRadioItem key={option} value={option} className={RADIO_ITEM}>
-                                    {IDL_SOURCE_LABELS[option]} (on-chain)
+                                    <BaseIdlSourceMark active={value === option} />
+                                    <span className="min-w-0 break-words">{IDL_SOURCE_LABELS[option]} (on-chain)</span>
                                 </DropdownMenuRadioItem>
                             ))}
                             {hasCustomIdl && (
                                 <DropdownMenuRadioItem value="custom" className={RADIO_ITEM}>
+                                    <BaseIdlSourceMark active={value === 'custom'} />
                                     <span className="min-w-0 break-words">
                                         Custom{customIdlFileName ? ` (${customIdlFileName})` : ''}
                                     </span>
@@ -97,6 +100,11 @@ const idlSourceTriggerVariants = cva('max-w-64', {
     },
 });
 
-// A wrapped file name makes the Custom item multi-line; its text and its selection dot then sit on the first line
-// instead of the item's middle. The dot's 14px box goes 3px into the first 20px line, under the item's 6px padding.
-const RADIO_ITEM = 'items-start [&>span:first-child]:top-[9px]';
+// The filter menus' option rows (HOO-1823): the mark leads every source instead of the menu's own dot, which shows
+// only on the selected item, so its slot is hidden. Top-aligned, because a long file name wraps; the selected source
+// reads white, the others muted. `!`: `cn` keeps every class, and the item's own `items-center` / `pl-8` come later
+// in the stylesheet.
+const RADIO_ITEM = [
+    '!items-start gap-2 !pl-2 [&>span:first-child]:hidden',
+    'data-[state=checked]:text-white data-[state=unchecked]:text-dark-muted-foreground',
+].join(' ');

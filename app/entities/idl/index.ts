@@ -53,6 +53,9 @@ export { CUSTOM_IDL_ROW_EDGE, CUSTOM_IDL_ROW_TINT, CustomIdlMark, holdRoundedAnc
 export { useCustomIdlHighlightVariant } from './model/custom-idl/highlight-variant';
 export { useCustomIdlToning } from './ui/use-custom-idl-toning';
 export { CustomIdlHighlightPicker } from './ui/CustomIdlHighlightPicker';
+export { CustomIdlSurfacesPicker } from './ui/CustomIdlSurfacesPicker';
+export { CustomIdlCatalogVisibilitySwitch } from './ui/CustomIdlCatalogVisibilitySwitch';
+export { useCustomIdlCatalogVisible } from './model/custom-idl/catalog-visibility';
 export { ProgramIdlSelector } from './ui/ProgramIdlSelector';
 export { CustomIdlMarkProvider, ProgramIdlSlot, ProgramIdlSlotProvider } from './ui/ProgramIdlSlot';
 export {

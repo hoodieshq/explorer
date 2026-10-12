@@ -7,12 +7,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Cluster } from '@/app/utils/cluster';
 
 import { addCustomIdlAtom } from '../custom-idl/custom-idl-store';
+import { idlSurfacesAtom } from '../custom-idl/idl-surfaces';
 import { useProgramIdls } from '../use-program-idls';
 
 const mocks = vi.hoisted(() => ({
     fetch: vi.fn(),
+    pathname: '/',
     resolveProgramIdlsClient: vi.fn(),
 }));
+
+vi.mock('next/navigation', () => ({ usePathname: () => mocks.pathname }));
 
 vi.stubGlobal('fetch', mocks.fetch);
 
@@ -38,6 +42,7 @@ describe('useProgramIdls', () => {
     beforeEach(() => {
         mocks.fetch.mockReset();
         mocks.resolveProgramIdlsClient.mockReset();
+        mocks.pathname = '/';
         // Default: the custom-cluster client resolver finds no IDLs.
         mocks.resolveProgramIdlsClient.mockResolvedValue({
             anchorIdl: undefined,
@@ -177,8 +182,20 @@ describe('useProgramIdls', () => {
             expect(result.current.anchorIdl).toEqual({ name: 'anchor_idl' });
         });
 
-        function renderWithCustomIdl<T>(hook: () => T) {
+        it('should keep the on-chain IDLs on a page the design menu switched the custom IDL off for', async () => {
+            mocks.pathname = '/tx/5abc';
+            const { result } = renderWithCustomIdl(
+                () => useProgramIdls(PROGRAM_ID, 'https://api.mainnet-beta.solana.com', Cluster.MainnetBeta),
+                { transaction: false },
+            );
+
+            await waitFor(() => expect(result.current.programMetadataIdl).toEqual({ name: 'pmp_idl' }));
+            expect(result.current.isCustomIdl).toBe(false);
+        });
+
+        function renderWithCustomIdl<T>(hook: () => T, surfaces: Record<string, boolean> = {}) {
             const store = createStore();
+            store.set(idlSurfacesAtom, surfaces);
             store.set(addCustomIdlAtom, {
                 custom: { addedAt: 1, idl: customIdl as never },
                 programAddress: PROGRAM_ID,

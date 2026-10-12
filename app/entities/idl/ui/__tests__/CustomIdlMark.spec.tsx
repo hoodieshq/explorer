@@ -101,4 +101,11 @@ describe('CustomIdlMark', () => {
         setProperty.mockRestore();
         removeProperty.mockRestore();
     });
+
+    it('should leave the value and its row unmarked in the off variant', () => {
+        renderWithVariant('off', inRow(<CustomIdlMark>swap</CustomIdlMark>));
+
+        expect(screen.getByText('swap')).not.toHaveClass('bg-custom-idl/30');
+        expect(screen.getByTestId('row').style.backgroundColor).toBe('');
+    });
 });

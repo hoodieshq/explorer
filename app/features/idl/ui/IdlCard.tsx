@@ -254,7 +254,11 @@ export function IdlCard({ programId }: { programId: string }) {
 
     // Overview and Interact both read the selected IDL, so the whole card is marked.
     return (
-        <Card ui="dashkit" ref={cardRef} className={idlCardVariants({ custom: isCustomIdl })}>
+        <Card
+            ui="dashkit"
+            ref={cardRef}
+            className={idlCardVariants({ custom: isCustomIdl && highlightVariant !== 'off' })}
+        >
             <CardHeader ui="dashkit">
                 <CardTitle as="h4" ui="dashkit">
                     Program IDL

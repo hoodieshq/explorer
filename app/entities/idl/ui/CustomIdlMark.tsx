@@ -10,7 +10,8 @@ import { customIdlHighlight } from './custom-idl-highlight';
 
 /**
  * Marks a value rendered from a user-supplied IDL. REVIEW(HOO-1971): in the `row` variant it tints the nearest
- * table row or card header instead, and falls back to the marker where the value sits in no row.
+ * table row or card header instead, and falls back to the marker where the value sits in no row; in `off` the value
+ * stays unmarked.
  */
 export function CustomIdlMark({
     active = true,
@@ -22,9 +23,10 @@ export function CustomIdlMark({
     children: ReactNode;
 }) {
     const variant = useAtomValue(customIdlHighlightVariantAtom);
+    const marks = active && variant !== 'off';
     const ref = useRef<HTMLSpanElement>(null);
     const [hasRow, setHasRow] = useState(true);
-    const tintsRow = active && variant === 'row';
+    const tintsRow = marks && variant === 'row';
 
     useEffect(() => {
         if (!tintsRow) return;
@@ -34,7 +36,7 @@ export function CustomIdlMark({
     }, [tintsRow]);
 
     return (
-        <span ref={ref} className={cn(customIdlHighlight({ active: active && (!tintsRow || !hasRow) }), className)}>
+        <span ref={ref} className={cn(customIdlHighlight({ active: marks && (!tintsRow || !hasRow) }), className)}>
             {children}
         </span>
     );
