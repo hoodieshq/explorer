@@ -25,7 +25,8 @@ export function DesignMenu() {
     const suppressClick = useRef(false);
 
     if (!viewport) return undefined;
-    const home = chosen ?? { left: SQUEEZED_EDGE_GAP, top: viewport.height - BUTTON.height - SQUEEZED_EDGE_GAP };
+    // Until the first drag: at the left edge, halfway down, following the window as it resizes.
+    const home = chosen ?? { left: SQUEEZED_EDGE_GAP, top: Math.round((viewport.height - BUTTON.height) / 2) };
     const shown = dragPoint ?? placeInViewport(home, BUTTON, viewport);
 
     const onPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
