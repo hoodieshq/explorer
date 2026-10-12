@@ -1,23 +1,26 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import type { ReactNode } from 'react';
 
-import { isFeedbackEnabled, isFeedbackWidgetEnabled } from '../env';
+import { isFeedbackWidgetEnabled } from '../env';
+import { openFeedbackPopup } from '../model/feedback-popup';
 
 export interface FeedbackTriggerProps {
     children: ReactNode;
     className?: string;
 }
 
-/** Opens the feedback form from inline content, such as a footer link. */
+/**
+ * Opens the feedback popup from inline content, such as the footer link or the burger menu item. The popup
+ * lives in FeedbackWidget, so this only asks it to open, growing out of the clicked element. It needs the
+ * widget flag alone: without a Sentry DSN the popup still offers the GitHub links.
+ */
 export function FeedbackTrigger({ children, className }: FeedbackTriggerProps) {
-    if (!isFeedbackWidgetEnabled() || !isFeedbackEnabled()) return undefined;
+    if (!isFeedbackWidgetEnabled()) return undefined;
 
-    return <FeedbackTriggerButton className={className}>{children}</FeedbackTriggerButton>;
+    return (
+        <button className={className} onClick={event => openFeedbackPopup(event.currentTarget)} type="button">
+            {children}
+        </button>
+    );
 }
-
-// A static import bundles the feedback form and `sendFeedback` even when the flag is off.
-const FeedbackTriggerButton = dynamic(() => import('./FeedbackTriggerButton').then(m => m.FeedbackTriggerButton), {
-    ssr: false,
-});

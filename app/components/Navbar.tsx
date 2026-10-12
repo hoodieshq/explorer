@@ -12,7 +12,8 @@ import React, { ReactNode } from 'react';
 import { Menu } from 'react-feather';
 
 import { ExternalLink } from '@/app/components/shared/ui/external-link';
-import { NavbarItem, NavbarLink, NavbarList } from '@/app/shared/ui/Navbar';
+import { FeedbackTrigger } from '@/app/features/feedback';
+import { NavbarItem, NavbarLink, navbarLinkVariants, NavbarList } from '@/app/shared/ui/Navbar';
 
 export interface INavbarProps {
     children?: ReactNode;
@@ -78,8 +79,21 @@ export function Navbar({ children }: INavbarProps) {
                                 <Link href={inspectorPath}>Inspector</Link>
                             </NavbarLink>
                         </NavbarItem>
+                        {/* From lg up, the floating feedback button takes this role. */}
+                        <NavbarItem className="lg:hidden">
+                            <FeedbackTrigger
+                                className={cn(
+                                    navbarLinkVariants(),
+                                    'w-full cursor-pointer border-0 bg-transparent text-left',
+                                )}
+                            >
+                                Feedback
+                            </FeedbackTrigger>
+                        </NavbarItem>
                         {/* Centred only in the lg row; the drawer stacks vertically, where centring breaks the left edge the text links share. */}
-                        <NavbarItem className="flex items-center lg:justify-center">
+                        {/* pt-2.5 in the drawer: the mark has no padding of its own, and the links' 10px alone sat it
+                            too close to the text above; the row resets it. */}
+                        <NavbarItem className="flex items-center pt-2.5 lg:justify-center lg:pt-0">
                             <ExternalLink
                                 aria-label="GitHub Repository"
                                 href="https://github.com/solana-foundation/explorer"

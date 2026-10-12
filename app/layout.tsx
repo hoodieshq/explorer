@@ -16,7 +16,8 @@ import { Suspense } from 'react';
 import { SearchBar } from '@/app/components/SearchBarLoader';
 import { TokenInfoBatchProvider } from '@/app/entities/token-info';
 import { CookieConsent } from '@/app/features/cookie';
-import { FeedbackWidget } from '@/app/features/feedback';
+import { DesignMenu } from '@/app/features/design-menu';
+import { FeedbackDemoSection, FeedbackWidget } from '@/app/features/feedback';
 import { VisibilityProvider } from '@/app/shared/lib/visibility';
 import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
 import { rubikFont } from '@/app/styles';
@@ -69,12 +70,20 @@ export default function RootLayout({ analytics, children }: { analytics: React.R
                                                 <ClusterStatusButton />
                                             </PageContainer>
                                             {children}
+                                            {/* Inside the content column: the widget's sticky wrapper stops at the
+                                                column's end, so the button never covers the footer. It reads the
+                                                cluster, so it must stay inside ClusterProvider. */}
+                                            <FeedbackWidget />
+                                            {/* REVIEW(design-menu): review-only design menu; remove before the external PR.
+                                                The sections come from the layout: a feature may not import another
+                                                feature, and the feedback barrel exports client components only. */}
+                                            <DesignMenu>
+                                                <FeedbackDemoSection />
+                                            </DesignMenu>
                                         </div>
                                         <Footer />
                                     </div>
                                     <Toaster position="bottom-center" toastOptions={{ duration: 5_000 }} />
-                                    {/* FeedbackWidget reads the cluster, so it must stay inside ClusterProvider. */}
-                                    <FeedbackWidget />
                                 </TokenInfoBatchProvider>
                             </VisibilityProvider>
                         </ClusterProvider>

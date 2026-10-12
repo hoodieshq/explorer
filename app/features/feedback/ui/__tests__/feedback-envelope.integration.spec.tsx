@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { setFeedbackFakeSend } from '../../model/feedback-popup';
 import { FeedbackWidget } from '../FeedbackWidget';
 
 // The @sentry/nextjs entry imports server code that fails in jsdom, so the test uses @sentry/core.
@@ -29,6 +30,10 @@ describe('FeedbackWidget — real captureFeedback envelope', () => {
     const envelopes: Envelope[] = [];
 
     beforeEach(() => {
+        // The unsent draft lives in localStorage; each test starts without one.
+        localStorage.clear();
+        // The review's "Pretend to send" is on by default; these tests cover the real send.
+        setFeedbackFakeSend(false);
         envelopes.length = 0;
         vi.stubEnv('NEXT_PUBLIC_FEEDBACK_ENABLED', 'true');
         vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
@@ -57,9 +62,7 @@ describe('FeedbackWidget — real captureFeedback envelope', () => {
     it('should deliver message, rating, contact, cluster, source, and url inside a feedback envelope', async () => {
         render(<FeedbackWidget />);
         await userEvent.click(await screen.findByRole('button', { name: 'Feedback' }));
-        await userEvent.click(await screen.findByText('Share feedback'));
-
-        await screen.findByRole('heading', { name: 'Give feedback' });
+        await screen.findByRole('dialog', { name: 'Feedback' });
         await userEvent.click(screen.getByRole('radio', { name: '4 of 5 stars' }));
         await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Great explorer!');
         await userEvent.type(screen.getByRole('textbox', { name: 'X handle (optional)' }), '@fren');

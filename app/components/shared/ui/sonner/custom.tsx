@@ -41,7 +41,8 @@ export function CustomToast(props: CustomToastProps) {
             aria-labelledby={titleId}
             aria-describedby={descriptionId}
             className={cn(
-                'w-full rounded-lg border border-transparent bg-neutral-800 text-white shadow-lg',
+                // The popups' ground, edge and shadow, so the toast stands off the page as they do.
+                'w-full rounded-lg border border-solid border-outer-space-800 bg-outer-space-900 text-white shadow-2xl',
                 'md:max-w-80',
             )}
         >
