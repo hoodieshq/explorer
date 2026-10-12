@@ -752,7 +752,8 @@ const FilterDropdown = ({
                     <header className="flex shrink-0 items-start justify-between gap-4 border-0 border-b border-solid border-white/10 px-5 py-4">
                         <div className="flex flex-col gap-1.5">
                             <DialogTitle>Filter block transactions</DialogTitle>
-                            <DialogDescription className="m-0">
+                            {/* Announced as picks change: they apply live, behind the panel (WCAG 4.1.3). */}
+                            <DialogDescription className="m-0" aria-live="polite">
                                 {matchingCount} of {totalCount} transactions in this block match
                             </DialogDescription>
                         </div>

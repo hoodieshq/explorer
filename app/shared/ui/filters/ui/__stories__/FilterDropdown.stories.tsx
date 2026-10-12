@@ -49,6 +49,16 @@ export const Multiple: Story = {
         await userEvent.click(await body.findByText('v1'));
         await expect(args.onChange).toHaveBeenCalledWith(['legacy', '0', '1']);
         // Several picks keep the list open.
-        await expect(body.getAllByRole('checkbox')).toHaveLength(3);
+        await expect(body.getAllByRole('option')).toHaveLength(3);
+    },
+};
+
+export const Keyboard: Story = {
+    play: async ({ args, canvasElement }) => {
+        const trigger = within(canvasElement).getByRole('button', { name: 'Transaction version' });
+        await userEvent.click(trigger);
+        // Without a search the list takes focus; nothing is picked, so Legacy is highlighted first.
+        await userEvent.keyboard('{ArrowDown}{Enter}');
+        await expect(args.onChange).toHaveBeenCalledWith(['0']);
     },
 };

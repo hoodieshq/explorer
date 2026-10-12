@@ -36,8 +36,8 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {
     play: async ({ args, canvasElement }) => {
         const canvas = within(canvasElement);
-        await userEvent.type(canvas.getByRole('textbox', { name: 'Search programs' }), 'token');
-        await expect(canvas.getAllByRole('radio')).toHaveLength(3);
+        await userEvent.type(canvas.getByRole('combobox', { name: 'Search programs' }), 'token');
+        await expect(canvas.getAllByRole('option')).toHaveLength(3);
         await userEvent.click(canvas.getByText('Token Program'));
         await expect(args.onChange).toHaveBeenCalledWith(['token']);
     },
@@ -46,9 +46,9 @@ export const Default: Story = {
 export const NoMatches: Story = {
     play: async ({ canvasElement }) => {
         const canvas = within(canvasElement);
-        const list = canvas.getByRole('radiogroup');
+        const list = canvas.getByRole('listbox').parentElement as HTMLElement;
         const fullHeight = list.offsetHeight;
-        await userEvent.type(canvas.getByRole('textbox', { name: 'Search programs' }), 'zzz');
+        await userEvent.type(canvas.getByRole('combobox', { name: 'Search programs' }), 'zzz');
         await expect(canvas.getByText('No matches')).toBeInTheDocument();
         // The window keeps the height it had with every option, so nothing below it jumps.
         await expect(list.offsetHeight).toBe(fullHeight);
@@ -61,5 +61,21 @@ export const Multiple: Story = {
         const canvas = within(canvasElement);
         await userEvent.click(canvas.getByText('System Program'));
         await expect(args.onChange).toHaveBeenCalledWith(['system', 'token', 'ata']);
+    },
+};
+
+export const Keyboard: Story = {
+    play: async ({ args, canvasElement }) => {
+        const canvas = within(canvasElement);
+        const search = canvas.getByRole('combobox', { name: 'Search programs' });
+        await userEvent.click(search);
+        await userEvent.keyboard('token');
+        // The pick ("All Except Votes") is filtered out, so the first match is highlighted; one step down is the next.
+        await userEvent.keyboard('{ArrowDown}{Enter}');
+        await expect(args.onChange).toHaveBeenCalledWith(['ata']);
+        // Escape with text clears the search rather than leaving the field.
+        await userEvent.keyboard('{Escape}');
+        await expect(search).toHaveValue('');
+        await expect(search).toHaveFocus();
     },
 };

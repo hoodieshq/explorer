@@ -50,7 +50,7 @@ export function BaseToggleChips({ className, onChange, options, selected }: Prop
 // button's UA background and font family are reset by hand; the background sits in each variant because `cn`
 // doesn't dedupe two background utilities.
 const toggleChipVariants = cva(
-    'box-border inline-flex h-8 cursor-pointer items-center rounded border border-solid px-3 text-sm [font-family:inherit] hover:text-white',
+    'box-border inline-flex h-8 cursor-pointer items-center rounded border border-solid px-3 text-sm [font-family:inherit] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
     {
         variants: {
             selected: {

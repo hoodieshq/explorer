@@ -9,6 +9,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/shared
 import { type FilterListOption, filterOptions } from '../lib/filter-options';
 import { type FilterSelection, selectionHandlers } from '../lib/selection';
 import { FilterOptionRows } from './FilterOptionRows';
+import { useEscapeClearsQuery } from './use-escape-clears-query';
+import { useOptionNavigation } from './use-option-navigation';
 
 type Props = FilterSelection & {
     'aria-label'?: string;
@@ -21,7 +23,8 @@ type Props = FilterSelection & {
 
 /**
  * A select-like filter: the button shows the pick, and the list opens under it. A single pick closes it; several
- * picks keep it open, toggling each row.
+ * picks keep it open, toggling each row. From the keyboard the open list is one Tab stop (its search field, or the
+ * list itself): arrows move, Enter picks, Escape clears the search, then closes and returns focus to the button.
  */
 export function FilterDropdown({
     'aria-label': ariaLabel,
@@ -33,16 +36,23 @@ export function FilterDropdown({
 }: Props) {
     const [open, setOpen] = React.useState(false);
     const [query, setQuery] = React.useState('');
+    const inputRef = React.useRef<HTMLInputElement>(null);
     const visibleOptions = React.useMemo(() => filterOptions(options, query), [options, query]);
     const { isSelected, pick } = selectionHandlers(
         selection,
         options.map(({ value }) => value),
     );
-    const pickedLabels = options.filter(({ value }) => isSelected(value)).map(({ label }) => label);
     const close = () => {
         setOpen(false);
         setQuery('');
     };
+    const pickAndMaybeClose = (value: string) => {
+        pick(value);
+        if (!selection.multiple) close();
+    };
+    const navigation = useOptionNavigation({ isSelected, onPick: pickAndMaybeClose, options: visibleOptions });
+    useEscapeClearsQuery(inputRef, query, setQuery);
+    const pickedLabels = options.filter(({ value }) => isSelected(value)).map(({ label }) => label);
 
     return (
         <Popover open={open} onOpenChange={next => (next ? setOpen(true) : close())}>
@@ -51,7 +61,7 @@ export function FilterDropdown({
                 <button
                     type="button"
                     aria-label={ariaLabel}
-                    className="flex h-9 w-full cursor-pointer items-center gap-2 rounded border border-solid border-outer-space-950 bg-heavy-metal-900 px-3 text-left text-sm text-neutral-200 [font-family:inherit] hover:border-white/20 data-[state=open]:border-white/20"
+                    className="flex h-9 w-full cursor-pointer items-center gap-2 rounded border border-solid border-outer-space-950 bg-heavy-metal-900 px-3 text-left text-sm text-neutral-200 [font-family:inherit] hover:border-white/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent data-[state=open]:border-white/20"
                 >
                     <span
                         className={
@@ -77,10 +87,17 @@ export function FilterDropdown({
                             className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-outer-space-300"
                         />
                         <Input
+                            ref={inputRef}
                             autoFocus
                             variant="dark"
+                            role="combobox"
+                            aria-expanded
+                            aria-autocomplete="list"
+                            aria-controls={navigation.listId}
+                            aria-activedescendant={navigation.activeDescendant}
                             value={query}
                             onChange={event => setQuery(event.target.value)}
+                            onKeyDown={navigation.onKeyDown}
                             placeholder={searchPlaceholder}
                             aria-label={searchPlaceholder}
                             // The 32px filter control, made part of the dropdown like the listbox's search. `!`
@@ -90,19 +107,27 @@ export function FilterDropdown({
                         />
                     </div>
                 )}
-                <div
-                    role={selection.multiple ? 'group' : 'radiogroup'}
-                    aria-label={ariaLabel}
-                    className="min-h-0 flex-1 overflow-y-auto py-1 scrollbar-styled"
-                >
+                <div className="min-h-0 flex-1 overflow-y-auto py-1 scrollbar-styled">
                     <FilterOptionRows
+                        aria-label={ariaLabel}
                         options={visibleOptions}
                         multiple={Boolean(selection.multiple)}
                         isSelected={isSelected}
-                        onPick={value => {
-                            pick(value);
-                            if (!selection.multiple) close();
-                        }}
+                        onPick={pickAndMaybeClose}
+                        activeValue={navigation.activeValue}
+                        listId={navigation.listId}
+                        onHover={navigation.onHover}
+                        optionId={navigation.optionId}
+                        // Without a search the list itself takes focus when the dropdown opens.
+                        listFocus={
+                            searchable
+                                ? undefined
+                                : {
+                                      'aria-activedescendant': navigation.activeDescendant,
+                                      onKeyDown: navigation.onKeyDown,
+                                      tabIndex: 0,
+                                  }
+                        }
                     />
                 </div>
             </PopoverContent>

@@ -9,6 +9,8 @@ import { cn } from '@/app/components/shared/utils';
 import { type FilterListOption, filterOptions } from '../lib/filter-options';
 import { type FilterSelection, selectionHandlers } from '../lib/selection';
 import { FilterOptionRows } from './FilterOptionRows';
+import { useEscapeClearsQuery } from './use-escape-clears-query';
+import { useOptionNavigation } from './use-option-navigation';
 
 type Props = FilterSelection & {
     className?: string;
@@ -21,11 +23,19 @@ type Props = FilterSelection & {
 
 /**
  * A bounded window with every option inside and a search on top. Long lists scroll within it, so they neither run
- * down the page nor push the filters below out of place.
+ * down the page nor push the filters below out of place. From the keyboard it is one Tab stop, the search field, an
+ * APG combobox: arrows move through the list, Enter picks, Escape clears the search.
  */
 export function FilterListbox({ className, fill = false, options, searchPlaceholder = 'Search', ...selection }: Props) {
     const [query, setQuery] = React.useState('');
+    const inputRef = React.useRef<HTMLInputElement>(null);
     const visibleOptions = React.useMemo(() => filterOptions(options, query), [options, query]);
+    const { isSelected, pick } = selectionHandlers(
+        selection,
+        options.map(({ value }) => value),
+    );
+    const navigation = useOptionNavigation({ isSelected, onPick: pick, options: visibleOptions });
+    useEscapeClearsQuery(inputRef, query, setQuery);
     // The list's height with every option shown, held as its floor while a search narrows it, so the window keeps
     // its size (down to "No matches") and nothing below it jumps.
     const listRef = React.useRef<HTMLDivElement>(null);
@@ -33,10 +43,6 @@ export function FilterListbox({ className, fill = false, options, searchPlacehol
     React.useEffect(() => {
         if (query === '' && listRef.current) setFullHeight(listRef.current.offsetHeight);
     }, [query, options]);
-    const { isSelected, pick } = selectionHandlers(
-        selection,
-        options.map(({ value }) => value),
-    );
 
     return (
         <div
@@ -52,9 +58,16 @@ export function FilterListbox({ className, fill = false, options, searchPlacehol
                     className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-outer-space-300"
                 />
                 <Input
+                    ref={inputRef}
                     variant="dark"
+                    role="combobox"
+                    aria-expanded
+                    aria-autocomplete="list"
+                    aria-controls={navigation.listId}
+                    aria-activedescendant={navigation.activeDescendant}
                     value={query}
                     onChange={event => setQuery(event.target.value)}
+                    onKeyDown={navigation.onKeyDown}
                     placeholder={searchPlaceholder}
                     aria-label={searchPlaceholder}
                     // The 32px filter control, made part of the window rather than a field inside it: no border, ring
@@ -68,15 +81,18 @@ export function FilterListbox({ className, fill = false, options, searchPlacehol
             <div
                 ref={listRef}
                 style={query === '' ? undefined : { minHeight: fullHeight }}
-                role={selection.multiple ? 'group' : 'radiogroup'}
-                aria-label={searchPlaceholder}
                 className="min-h-0 flex-1 overflow-y-auto py-1 scrollbar-styled"
             >
                 <FilterOptionRows
+                    aria-label={searchPlaceholder}
                     options={visibleOptions}
                     multiple={Boolean(selection.multiple)}
                     isSelected={isSelected}
                     onPick={pick}
+                    activeValue={navigation.activeValue}
+                    listId={navigation.listId}
+                    onHover={navigation.onHover}
+                    optionId={navigation.optionId}
                 />
             </div>
         </div>

@@ -17,7 +17,7 @@ import {
     STATUS_VALUES,
 } from '@features/transaction-history/lib/history-filters';
 import { useHistoryFiltersSupported } from '@features/transaction-history/model/use-account-history';
-import { BaseFilterSection, BaseResetButton, BaseToggleChips } from '@shared/ui/filters';
+import { BaseFilterSection, BaseResetButton, BaseToggleChips, focusFirstControl } from '@shared/ui/filters';
 import { Cluster } from '@utils/cluster';
 import { format } from 'date-fns';
 import { useSetAtom } from 'jotai';
@@ -280,7 +280,15 @@ export function HistoryFilterTrigger({ address, ...filters }: HistoryFilters & {
                     and behave alike: shown only while there's something to clear, applied at once. */}
                 {(activeCount > 0 || statusSelection.length > 0) && (
                     <div className="flex justify-end">
-                        <BaseResetButton aria-label="Clear all filters" label="Reset all" onClick={clearFilters} />
+                        <BaseResetButton
+                            aria-label="Clear all filters"
+                            label="Reset all"
+                            onClick={event => {
+                                // The button disappears once used; focus moves to the popover's first control.
+                                focusFirstControl(event.currentTarget.closest('[role="dialog"]'));
+                                clearFilters();
+                            }}
+                        />
                     </div>
                 )}
             </PopoverContent>

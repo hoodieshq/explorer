@@ -1,4 +1,5 @@
 export { filterOptions, type FilterListOption } from './lib/filter-options';
+export { focusFirstControl } from './lib/focus';
 export { type FilterSelection } from './lib/selection';
 export { toggleSelection } from './lib/toggle-selection';
 export { BaseFilterSection } from './ui/BaseFilterSection';

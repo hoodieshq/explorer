@@ -2,6 +2,7 @@ import React from 'react';
 
 import { cn } from '@/app/components/shared/utils';
 
+import { focusFirstControl } from '../lib/focus';
 import { BaseResetButton } from './BaseResetButton';
 
 type Props = {
@@ -25,7 +26,16 @@ export function BaseFilterSection({ children, className, headerClassName, onRese
                 {/* 16px against the 14px values it groups, in sentence case, set apart from the regular, muted
                     values by size, weight and a brighter tone. */}
                 <h3 className="m-0 text-base font-medium text-white">{title}</h3>
-                {onReset && <BaseResetButton aria-label={`Clear ${title.toLowerCase()} filter`} onClick={onReset} />}
+                {onReset && (
+                    <BaseResetButton
+                        aria-label={`Clear ${title.toLowerCase()} filter`}
+                        onClick={event => {
+                            // The reset disappears once used; focus moves to the section's first control.
+                            focusFirstControl(event.currentTarget.closest('section'));
+                            onReset();
+                        }}
+                    />
+                )}
             </div>
             {children}
         </section>

@@ -730,6 +730,10 @@ const FilterDropdown = ({
                     align="end"
                     className="flex max-h-[min(36rem,var(--radix-popover-content-available-height))] w-96 max-w-[calc(100vw-2rem)] flex-col"
                 >
+                    {/* The dropdown shows no count, so it is announced only: picks apply live (WCAG 4.1.3). */}
+                    <p className="sr-only" aria-live="polite">
+                        {matchingCount} of {totalCount} transactions in this block match
+                    </p>
                     {/* The program list is the scroller and gives up height first when the dropdown is capped;
                         this column scrolls too only on a screen too short for that list's 10rem floor. */}
                     <div className="flex min-h-0 flex-col overflow-y-auto pb-5 scrollbar-styled">
@@ -755,13 +759,14 @@ const FilterDropdown = ({
                 header={
                     <Drawer.Header>
                         <DialogTitle className="!mt-0 text-base">Filter block transactions</DialogTitle>
-                        <DialogDescription className="m-0">
+                        {/* Announced as picks change: they apply live, behind the sheet (WCAG 4.1.3). */}
+                        <DialogDescription className="m-0" aria-live="polite">
                             {matchingCount} of {totalCount} transactions in this block match
                         </DialogDescription>
                     </Drawer.Header>
                 }
                 // Pinned under the scrolling body, on the sheet's own 20px inset rather than `Drawer.Footer`'s (the body
-                // above already ends on 20px, so no top padding). Picks apply live: Show keeps them and closes, Cancel
+                // above already ends on 20px, so no top padding). Picks apply live: Apply keeps them and closes, Cancel
                 // undoes them. The bottom inset grows to clear an iPhone's home indicator.
                 footer={
                     <div className="flex gap-2 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -769,7 +774,7 @@ const FilterDropdown = ({
                             Cancel
                         </Button>
                         <Button variant="accent" className="flex-1 !text-sm" onClick={() => setSheetOpen(false)}>
-                            Show {matchingCount} {matchingCount === 1 ? 'transaction' : 'transactions'}
+                            Apply
                         </Button>
                     </div>
                 }
