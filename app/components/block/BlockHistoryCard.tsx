@@ -253,13 +253,13 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockData; epoch: bi
     ]);
 
     // Shared by the filter dropdown (menu options + active row) and the removable chip below the title.
-    // "Set" means anything other than "All Transactions": the empty-param default ("All Except Votes")
-    // already hides votes, so it counts as an active filter — clearing the chip lands on "All Transactions".
+    // "Set" means anything other than the empty-param default ("All Except Votes"): the default gets no chip,
+    // and clearing a chip returns to it, the same as the Program section's reset.
     const filterModel = React.useMemo(
         () => buildFilterModel(programFilter, invokedPrograms, cluster, transactions.length),
         [programFilter, invokedPrograms, cluster, transactions.length],
     );
-    const isProgramFilterSet = programFilter !== ALL_TRANSACTIONS;
+    const isProgramFilterSet = programFilter !== HIDE_VOTES;
     const versionOptions = React.useMemo(() => buildVersionOptions(transactions), [transactions]);
     const versionLabel = BLOCK_TRANSACTION_VERSIONS.find(({ version }) => version === versionFilter)?.label;
     const isFilterSet = isProgramFilterSet || accountFilter !== null || versionFilter !== null || statusFilter !== null;
@@ -294,12 +294,14 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockData; epoch: bi
                 isFilterSet ? (
                     <>
                         {(isProgramFilterSet || versionLabel !== undefined || statusFilter !== null) && (
-                            <div className="-mt-1 mb-0.5 flex flex-wrap items-center gap-2">
+                            // `flex-wrap-reverse`: pills fill the bottom row left to right, and overflow wraps upward,
+                            // so the row nearest the list stays full.
+                            <div className="-mt-1 flex flex-wrap-reverse items-center gap-2">
                                 {isProgramFilterSet && (
                                     <FilterChip
                                         field="Program"
                                         label={filterModel.current.name}
-                                        applyReset={params => params.set('filter', ALL_TRANSACTIONS)}
+                                        applyReset={params => params.delete('filter')}
                                     />
                                 )}
                                 {versionLabel !== undefined && (
@@ -710,9 +712,11 @@ const FilterDropdown = ({
                             value={query}
                             onChange={event => setQuery(event.target.value)}
                             placeholder="Program"
-                            // Height comes from the base py-2.5 (10px) alone — a fixed height would add to
-                            // the padding under Storybook's content-box (no Preflight) and read as > 10px.
-                            className="!h-auto pl-8"
+                            // The 32px filter control, its 14px text the size of the rows it filters. The shared Input is mono
+                            // (it's built for addresses); a program-name search reads in the UI font. `!` because `cn` doesn't
+                            // dedupe the Input's own mono utility.
+                            inputSize="sm"
+                            className="pl-8 ![font-family:inherit]"
                         />
                     </div>
                 </div>
@@ -743,7 +747,7 @@ const FilterDropdown = ({
                     ))}
                 </div>
                 <div className="px-6 pb-1 pt-2 text-xs uppercase text-outer-space-300">Program</div>
-                <div className="max-h-72 overflow-y-auto">
+                <div className="max-h-72 overflow-y-auto scrollbar-styled">
                     {visibleOptions.length === 0 ? (
                         <div className="px-6 py-1.5 text-dk-base text-dark-muted-foreground">No matches</div>
                     ) : (
@@ -878,15 +882,18 @@ function FilterChip({
     }, [applyReset, currentPathname, currentSearchParams]);
 
     return (
-        <div className="inline-flex max-w-full items-center rounded-full border border-solid border-outer-space-800 bg-outer-space-900 py-0.5 pl-2.5 pr-0.5 text-sm text-white">
+        // `rounded` (4px), the corner of the app's buttons, not a full pill; the × keeps a 2px corner inside it.
+        // 28.75px tall, the Filters button beside it (dashkit `sm`: a 22.75px line, 2px padding and a 1px border on
+        // each side). The ×'s 16px highlight keeps 4px off the label.
+        <div className="box-border inline-flex h-[28.75px] max-w-full items-center rounded border border-solid border-outer-space-800 bg-outer-space-900 pl-2.5 pr-1 text-sm text-white">
             <span className="mr-1.5 shrink-0 text-outer-space-300">{field}</span>
             <span className="min-w-0 truncate">{label}</span>
             <Link
                 href={resetHref}
                 aria-label={`Clear ${field.toLowerCase()} filter`}
-                className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-outer-space-300 hover:bg-white/10 hover:text-white"
+                className="ml-1 flex h-4 w-4 shrink-0 items-center justify-center rounded-sm text-outer-space-300 hover:bg-white/10 hover:text-white"
             >
-                <X size={13} />
+                <X size={12} />
             </Link>
         </div>
     );

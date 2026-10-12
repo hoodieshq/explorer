@@ -1,6 +1,12 @@
 'use client';
 
 import { BlockHistoryCard } from '@components/block/BlockHistoryCard';
+import { type BlockFilterVariant, useBlockFilterVariant } from '@components/block/variants/block-filter-variant';
+import { BlockHistoryCardCombined } from '@components/block/variants/BlockHistoryCardCombined';
+import { BlockHistoryCardLinear } from '@components/block/variants/BlockHistoryCardLinear';
+import { BlockHistoryCardMinimal } from '@components/block/variants/BlockHistoryCardMinimal';
+import { BlockHistoryCardPopover } from '@components/block/variants/BlockHistoryCardPopover';
+import { BlockHistoryCardSidebar } from '@components/block/variants/BlockHistoryCardSidebar';
 import { useBlock, useFetchBlock } from '@providers/block';
 import { useCluster, useEpochSchedule } from '@providers/cluster';
 import { ClusterStatus } from '@utils/cluster';
@@ -19,6 +25,7 @@ export default function BlockTransactionsTabClient({ params: { slot } }: Props) 
     const fetchBlock = useFetchBlock();
     const { status } = useCluster();
     const epochSchedule = useEpochSchedule();
+    const filterVariant = useBlockFilterVariant();
 
     // Calculate epoch from slot
     const epoch = React.useMemo(() => {
@@ -35,7 +42,19 @@ export default function BlockTransactionsTabClient({ params: { slot } }: Props) 
         }
     }, [slotNumber, status]); // eslint-disable-line react-hooks/exhaustive-deps
     if (confirmedBlock?.data?.block) {
-        return <BlockHistoryCard block={confirmedBlock.data.block} epoch={epoch} />;
+        const Card = VARIANT_CARDS[filterVariant];
+        // REVIEW(HOO-1823): the card of the filtering variant picked in the design menu; remove before the external PR.
+        return <Card block={confirmedBlock.data.block} epoch={epoch} />;
     }
     return null;
 }
+
+// REVIEW(HOO-1823): the card behind each filtering variant.
+const VARIANT_CARDS: Record<BlockFilterVariant, typeof BlockHistoryCard> = {
+    combined: BlockHistoryCardCombined,
+    linear: BlockHistoryCardLinear,
+    minimal: BlockHistoryCardMinimal,
+    original: BlockHistoryCard,
+    popover: BlockHistoryCardPopover,
+    sidebar: BlockHistoryCardSidebar,
+};

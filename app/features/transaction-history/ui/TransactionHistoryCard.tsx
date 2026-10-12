@@ -89,13 +89,23 @@ export function TransactionHistoryCard({ address }: { address: string }) {
         }
     }, [filtersKey, address, resetHistory, refresh]);
 
+    const hasShownHistory = useRef(false);
+    useEffect(() => {
+        if (history?.data) hasShownHistory.current = true;
+    }, [history?.data]);
+
     useEffect(() => {
         if (!filtersSupported && hasActiveFilters) {
             clearFilters();
         }
     }, [filtersSupported, hasActiveFilters, clearFilters]);
 
-    if (!history?.data) {
+    // A filter change refetches from scratch. Once the card has shown history, keep it up through that refetch,
+    // with an empty list and a loading footer, rather than swapping it for a placeholder: the swap would unmount
+    // the header and close the filter popover after every pick.
+    const isRefetching = history?.status === FetchStatus.Fetching && !history.data && hasShownHistory.current;
+
+    if (!history?.data && !isRefetching) {
         return !history || history.status === FetchStatus.Fetching ? (
             <LoadingCard message="Loading history" />
         ) : (
@@ -106,8 +116,8 @@ export function TransactionHistoryCard({ address }: { address: string }) {
     return (
         <BaseTransactionHistoryCard
             rows={rows}
-            fetching={history.status === FetchStatus.Fetching}
-            foundOldest={history.data.foundOldest}
+            fetching={history?.status === FetchStatus.Fetching}
+            foundOldest={history?.data?.foundOldest ?? false}
             onRefresh={refresh}
             onLoadMore={loadMore}
             headerActions={<HistoryFilterTrigger address={address} {...filters} />}

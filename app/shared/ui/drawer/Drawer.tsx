@@ -22,6 +22,9 @@ export type DrawerProps = {
     footer?: React.ReactNode;
     children: React.ReactNode;
     className?: string;
+    // Lays out the body's content box, e.g. `flex h-full flex-col` so a child list can shrink to the room left
+    // and scroll on its own instead of the whole body.
+    contentClassName?: string;
     onEscapeKeyDown?: (event: KeyboardEvent) => void;
 } & Pick<React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>, 'aria-describedby' | 'aria-label'>;
 
@@ -32,6 +35,7 @@ export function Drawer({
     footer,
     children,
     className,
+    contentClassName,
     onEscapeKeyDown,
     ...props
 }: DrawerProps) {
@@ -89,7 +93,9 @@ export function Drawer({
                         onScroll={onScroll}
                         {...bodyProps}
                     >
-                        <div ref={contentRef}>{children}</div>
+                        <div ref={contentRef} className={contentClassName}>
+                            {children}
+                        </div>
                     </div>
 
                     {footer !== undefined && <div className="shrink-0">{footer}</div>}
