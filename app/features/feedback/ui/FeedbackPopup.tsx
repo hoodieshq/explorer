@@ -197,7 +197,7 @@ export function FeedbackPopup({
                                     Feedback
                                 </DialogPrimitive.Title>
                                 <DialogPrimitive.Description className="m-0 text-sm text-outer-space-300">
-                                    What would you like to do?
+                                    What would you like to share?
                                 </DialogPrimitive.Description>
                             </div>
                             {cards ? (
