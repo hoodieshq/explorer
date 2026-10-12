@@ -266,7 +266,7 @@ function StoredProgramIdl({
                         </span>
                         <pre
                             aria-labelledby={jsonLabelId}
-                            className="m-0 min-h-0 flex-1 overflow-auto rounded border border-solid border-outer-space-800 bg-heavy-metal-900 p-3 font-mono text-xs text-neutral-200 max-md:max-h-[50dvh]"
+                            className="m-0 min-h-0 flex-1 overflow-y-auto overflow-x-hidden whitespace-pre-wrap rounded border border-solid border-outer-space-800 bg-heavy-metal-900 p-3 font-mono text-xs text-neutral-200 scrollbar-styled [overflow-wrap:anywhere] max-md:max-h-[50dvh]"
                         >
                             {json}
                         </pre>

@@ -10,6 +10,7 @@ import { AlertCircle, Check, FileText, Upload, X } from 'react-feather';
 import { cn } from '@/app/components/shared/utils';
 
 import { type CustomIdlWriteResult } from '../model/custom-idl/custom-idl-store';
+import { useCustomIdlHighlightVariant } from '../model/custom-idl/highlight-variant';
 import { parseCustomIdl } from '../model/custom-idl/parse-custom-idl';
 import { customIdlHighlight } from './custom-idl-highlight';
 
@@ -17,6 +18,10 @@ export type CustomIdlUploadRequest = { text: string; fileName?: string };
 
 /** What a custom IDL is for, shared by the upload dialog and the catalog page. */
 export function CustomIdlIntro() {
+    // REVIEW(HOO-1971): with the design menu's highlight off, nothing is marked, so the intro does not promise it.
+    if (useCustomIdlHighlightVariant() === 'off') {
+        return <>Decode this program with your IDL. It is saved in this browser only.</>;
+    }
     return (
         <>
             Decode this program with your IDL. It is saved in this browser only, and everything it decodes is{' '}
@@ -161,7 +166,12 @@ export function CustomIdlForm({
                             )}
                         >
                             <span className="text-xs">
-                                <span className="text-white">Choose a file</span> or drag it anywhere
+                                <span className="text-white">Choose a file</span>
+                                {/* Phones and touch screens have no file drag. */}
+                                <span className="max-md:hidden [@media(pointer:coarse)]:hidden">
+                                    {' '}
+                                    or drag it anywhere
+                                </span>
                             </span>
                         </button>
                     )}
@@ -184,7 +194,7 @@ export function CustomIdlForm({
                         placeholder='{ "address": "…", "instructions": [ … ] }'
                         className={cn(
                             inputVariants({ variant: 'dark' }),
-                            'h-auto min-h-16 flex-1 resize-y font-mono',
+                            'h-auto min-h-16 flex-1 resize-y font-mono scrollbar-styled',
                             FIELD_BORDER,
                         )}
                     />

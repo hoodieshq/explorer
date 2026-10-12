@@ -12,6 +12,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@components/shared/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@components/shared/ui/dropdown-menu';
 import { ExternalLink } from '@components/shared/ui/external-link';
 import {
     buildProgramName,
@@ -29,7 +35,7 @@ import { useCluster } from '@providers/cluster';
 import { type Address } from '@solana/kit';
 import { cva } from 'class-variance-authority';
 import { useRef, useState } from 'react';
-import { AlertCircle, AlertTriangle, ExternalLink as ExternalLinkIcon } from 'react-feather';
+import { AlertCircle, AlertTriangle, ExternalLink as ExternalLinkIcon, MoreHorizontal } from 'react-feather';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
 import { cn } from '@/app/components/shared/utils';
@@ -70,7 +76,10 @@ export function IdlCard({ programId }: { programId: string }) {
     const idlHistoryLink = (
         <ExternalLink
             href={idlHistoryUrl}
-            className={cn(buttonVariants({ size: 'sm', ui: 'dashkit', variant: 'white' }), 'whitespace-nowrap')}
+            className={cn(
+                buttonVariants({ size: 'sm', ui: 'dashkit', variant: 'white' }),
+                'whitespace-nowrap max-md:!hidden',
+            )}
         >
             IDL history
             <ExternalLinkIcon className="ml-1.5 align-text-top" size={13} />
@@ -87,7 +96,7 @@ export function IdlCard({ programId }: { programId: string }) {
             ui="dashkit"
             variant="white"
             size="sm"
-            className="whitespace-nowrap"
+            className="whitespace-nowrap max-md:!hidden"
             onClick={() => setIsOrquestraDialogOpen(true)}
         >
             MCP &amp; API
@@ -100,6 +109,27 @@ export function IdlCard({ programId }: { programId: string }) {
             <ProgramIdlSelector programAddress={programId} />
             {idlHistoryLink}
             {orquestraLink}
+            {/* On phones the two outbound links fold into one menu, so the header keeps the title and the selector
+                on one line; the IDL selector stays out, as the card's main control. */}
+            <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                    <Button ui="dashkit" variant="white" size="sm" aria-label="More" className="md:!hidden">
+                        <MoreHorizontal size={13} />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                        <a href={idlHistoryUrl} target="_blank" rel="noopener noreferrer">
+                            IDL history
+                            <ExternalLinkIcon className="ml-1.5" size={13} />
+                        </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setIsOrquestraDialogOpen(true)}>
+                        MCP &amp; API
+                        <ExternalLinkIcon className="ml-1.5" size={13} />
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
             <Dialog open={isOrquestraDialogOpen} onOpenChange={setIsOrquestraDialogOpen}>
                 <DialogContent>
                     <DialogHeader>

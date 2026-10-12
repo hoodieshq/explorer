@@ -62,8 +62,11 @@ export function CustomIdlUploadDialog({
 // The Interactive IDL mainnet confirmation's box (itself the navigation's RPC consent dialog): the cluster
 // menu's ground and edge, roomier padding, one scroll for the whole box, and the close mark inset as there.
 // `!`: the shared DialogContent sets its own box, and this dialog does not change the shared component.
+// On phones the shared box is edge to edge and square; this one keeps a 16px gutter and its corners, like the
+// nickname editor.
 const CONTENT = cn(
-    '!max-w-md !gap-3 !border-outer-space-800 !bg-outer-space-900 !p-5 !pt-6 max-h-[calc(100dvh-2rem)] overflow-y-auto',
+    '!w-[calc(100%-2rem)] !max-w-md !gap-3 !rounded-lg !border-outer-space-800 !bg-outer-space-900 !p-5 !pt-6',
+    'max-h-[calc(100dvh-2rem)] overflow-y-auto',
     '[&>button:last-child]:!right-3.5 [&>button:last-child]:!top-3.5',
     '[&>button:last-child]:!h-6 [&>button:last-child]:!w-6',
     '[&>button:last-child>svg]:!h-[18px] [&>button:last-child>svg]:!w-[18px]',

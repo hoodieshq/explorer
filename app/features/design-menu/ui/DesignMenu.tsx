@@ -1,6 +1,7 @@
 'use client';
 
 import { Popover, PopoverContent, PopoverTrigger } from '@components/shared/ui/popover';
+import { cva } from 'class-variance-authority';
 import { useAtom } from 'jotai';
 import { type PointerEvent, useEffect, useRef, useState } from 'react';
 
@@ -25,12 +26,16 @@ export function DesignMenu() {
     const suppressClick = useRef(false);
 
     if (!viewport) return undefined;
+    // Phones have no drag: there the button stays at its default spot, whatever a desktop drag saved.
+    const canDrag = viewport.width >= DRAG_MIN_WIDTH;
     // Until the first drag: at the left edge, halfway down, following the window as it resizes.
-    const home = chosen ?? { left: SQUEEZED_EDGE_GAP, top: Math.round((viewport.height - BUTTON.height) / 2) };
+    const defaultSpot = { left: SQUEEZED_EDGE_GAP, top: Math.round((viewport.height - BUTTON.height) / 2) };
+    const home = (canDrag && chosen) || defaultSpot;
     const shown = dragPoint ?? placeInViewport(home, BUTTON, viewport);
 
     const onPointerDown = (event: PointerEvent<HTMLButtonElement>) => {
-        if (event.button !== 0) return;
+        // A finger or a pen only taps: the press opens the menu through the click.
+        if (!canDrag || event.pointerType !== 'mouse' || event.button !== 0) return;
         event.currentTarget.setPointerCapture(event.pointerId);
         drag.current = { moved: false, pointerX: event.clientX, pointerY: event.clientY, start: shown };
     };
@@ -70,7 +75,7 @@ export function DesignMenu() {
                         event.preventDefault();
                     }}
                     style={{ height: BUTTON.height, left: shown.left, top: shown.top, width: BUTTON.width }}
-                    className="fixed z-40 flex cursor-grab touch-none select-none items-center justify-center rounded-full border border-solid border-outer-space-800 bg-outer-space-900 p-0 text-lg shadow-[0_4px_12px_rgba(0,0,0,0.5)] active:cursor-grabbing"
+                    className={buttonVariants({ draggable: canDrag })}
                 >
                     <span aria-hidden>🎨</span>
                 </button>
@@ -84,6 +89,21 @@ export function DesignMenu() {
 }
 
 const BUTTON: Size = { height: 40, width: 40 };
+
+// The `md` breakpoint: narrower windows are phones, where the button does not move.
+const DRAG_MIN_WIDTH = 768;
+
+const buttonVariants = cva(
+    'fixed z-40 flex select-none items-center justify-center rounded-full border border-solid border-outer-space-800 bg-outer-space-900 p-0 text-lg shadow-[0_4px_12px_rgba(0,0,0,0.5)]',
+    {
+        variants: {
+            draggable: {
+                false: 'cursor-pointer',
+                true: 'cursor-grab touch-none active:cursor-grabbing',
+            },
+        },
+    },
+);
 
 // A press that moves less than this is a click, so a slightly shaky press still opens the menu.
 const DRAG_THRESHOLD = 4;
