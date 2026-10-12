@@ -1,9 +1,10 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { sendFeedback } from '@/app/shared/lib/sentry/client';
 
+import { setFeedbackFakeSend, setFeedbackResponseStyle } from '../../model/feedback-popup';
 import { FeedbackTrigger } from '../FeedbackTrigger';
 import { FeedbackWidget } from '../FeedbackWidget';
 
@@ -16,6 +17,11 @@ const SENTRY_DSN_FIXTURE = 'https://examplePublicKey@o0.ingest.sentry.io/0';
 
 describe('FeedbackWidget', () => {
     beforeEach(() => {
+        // The unsent draft lives in localStorage; each test starts without one.
+        localStorage.clear();
+        // The review's "Pretend to send" is on by default; these tests cover the real send.
+        setFeedbackFakeSend(false);
+        setFeedbackResponseStyle('card');
         vi.mocked(sendFeedback).mockClear();
         vi.mocked(sendFeedback).mockResolvedValue('test-event-id');
         vi.stubEnv('NEXT_PUBLIC_FEEDBACK_ENABLED', 'true');
@@ -99,6 +105,8 @@ describe('FeedbackWidget', () => {
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
 
         await openPopup();
+        // The sent draft is gone: the form starts empty.
+        expect(screen.getByRole('textbox', { name: 'Feedback' })).toHaveValue('');
         await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Second try');
         await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
 
@@ -106,6 +114,55 @@ describe('FeedbackWidget', () => {
         const resubmission = vi.mocked(sendFeedback).mock.calls[1][0];
         expect(resubmission.message).toBe('Second try');
         expect(resubmission.tags?.rating).toBeUndefined();
+    });
+
+    it('should show the send in progress on the Submit button', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
+        let deliver: (id: string) => void = () => undefined;
+        vi.mocked(sendFeedback).mockReturnValueOnce(new Promise(resolve => (deliver = resolve)));
+        render(<FeedbackWidget />);
+        await openPopup();
+
+        await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'In flight');
+        await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+        expect(await screen.findByRole('button', { name: 'Sending…' })).toBeDisabled();
+        // A second press while it sends does not send again.
+        await userEvent.click(screen.getByRole('button', { name: 'Sending…' }));
+        expect(sendFeedback).toHaveBeenCalledOnce();
+        expect(screen.getByRole('dialog', { name: 'Feedback' })).toBeInTheDocument();
+        deliver('test-event-id');
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    });
+
+    it('should bring back the unsent draft after a reload', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
+        const { unmount } = render(<FeedbackWidget />);
+        await openPopup();
+        await userEvent.click(screen.getByRole('radio', { name: '3 of 5 stars' }));
+        await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Half written');
+        await userEvent.type(screen.getByRole('textbox', { name: 'X handle (optional)' }), '@fren');
+        unmount();
+
+        render(<FeedbackWidget />);
+        await openPopup();
+
+        expect(screen.getByRole('textbox', { name: 'Feedback' })).toHaveValue('Half written');
+        expect(screen.getByRole('textbox', { name: 'X handle (optional)' })).toHaveValue('@fren');
+        expect(screen.getByRole('radio', { name: '3 of 5 stars' })).toBeChecked();
+    });
+
+    it('should take the sent path without calling Sentry when the review pretends to send', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
+        setFeedbackFakeSend(true);
+        render(<FeedbackWidget />);
+        await openPopup();
+
+        await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Pretended');
+        await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        expect(sendFeedback).not.toHaveBeenCalled();
     });
 
     it('should keep the popup open when delivery fails (e.g. Sentry blocked)', async () => {
@@ -120,6 +177,75 @@ describe('FeedbackWidget', () => {
         await waitFor(() => expect(sendFeedback).toHaveBeenCalledOnce());
         expect(screen.getByRole('dialog', { name: 'Feedback' })).toBeInTheDocument();
         expect(screen.getByRole('textbox', { name: 'Feedback' })).toHaveValue('Lost feedback');
+    });
+
+    it('should write why the send failed beside Submit when the popup answers on the card', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
+        vi.mocked(sendFeedback).mockRejectedValueOnce('Unable to send feedback.');
+        render(<FeedbackWidget />);
+        await openPopup();
+
+        await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Lost feedback');
+        await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not send feedback. Try again.');
+    });
+
+    it('should keep Submit as it is after a failure, and clear the error once it has faded', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
+        vi.mocked(sendFeedback).mockRejectedValueOnce('Unable to send feedback.');
+        render(<FeedbackWidget />);
+        await openPopup();
+
+        await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Lost feedback');
+        await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+        const alert = await screen.findByRole('alert');
+        expect(screen.getByRole('button', { name: 'Submit' })).toBeEnabled();
+        // jsdom plays no CSS animation; the end of the fade is what takes the error away.
+        fireEvent.animationEnd(alert);
+        expect(screen.queryByRole('alert')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Submit' })).toBeEnabled();
+    });
+
+    it('should write why the send failed beside Submit when the popup folds into a toast', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
+        setFeedbackResponseStyle('morph');
+        vi.mocked(sendFeedback).mockRejectedValueOnce('Unable to send feedback.');
+        render(<FeedbackWidget />);
+        await openPopup();
+
+        await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Lost feedback');
+        await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+        expect(await screen.findByRole('alert')).toHaveTextContent('Could not send feedback.');
+    });
+
+    it('should close the popup once sent when it swaps its content', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
+        setFeedbackResponseStyle('swap');
+        render(<FeedbackWidget />);
+        await openPopup();
+
+        await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Swapped');
+        await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+        await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+        expect(sendFeedback).toHaveBeenCalledOnce();
+    });
+
+    it('should leave the failure to the toast when the popup answers with a toast', async () => {
+        vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);
+        setFeedbackResponseStyle('toast');
+        vi.mocked(sendFeedback).mockRejectedValueOnce('Unable to send feedback.');
+        render(<FeedbackWidget />);
+        await openPopup();
+
+        await userEvent.type(screen.getByRole('textbox', { name: 'Feedback' }), 'Lost feedback');
+        await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
+
+        await waitFor(() => expect(sendFeedback).toHaveBeenCalledOnce());
+        expect(screen.queryByRole('alert')).toBeNull();
     });
 
     it('should close the popup without sending when the close button is clicked', async () => {

@@ -23,7 +23,7 @@ export interface FeedbackAction {
 export interface FeedbackLayoutProps {
     actions: FeedbackAction[];
     /** Unset when the form cannot send (no Sentry DSN). */
-    form?: Pick<FeedbackPopupFormProps, 'isSubmitting' | 'onSubmit'>;
+    form?: Pick<FeedbackPopupFormProps, 'error' | 'isSubmitting' | 'onErrorFaded' | 'onSubmit'>;
     onClose: () => void;
 }
 

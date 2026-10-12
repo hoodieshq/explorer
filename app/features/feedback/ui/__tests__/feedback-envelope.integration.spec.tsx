@@ -3,6 +3,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { setFeedbackFakeSend } from '../../model/feedback-popup';
 import { FeedbackWidget } from '../FeedbackWidget';
 
 // The @sentry/nextjs entry imports server code that fails in jsdom, so the test uses @sentry/core.
@@ -29,6 +30,10 @@ describe('FeedbackWidget — real captureFeedback envelope', () => {
     const envelopes: Envelope[] = [];
 
     beforeEach(() => {
+        // The unsent draft lives in localStorage; each test starts without one.
+        localStorage.clear();
+        // The review's "Pretend to send" is on by default; these tests cover the real send.
+        setFeedbackFakeSend(false);
         envelopes.length = 0;
         vi.stubEnv('NEXT_PUBLIC_FEEDBACK_ENABLED', 'true');
         vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', SENTRY_DSN_FIXTURE);

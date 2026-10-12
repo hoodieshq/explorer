@@ -10,6 +10,7 @@ import {
     resolveFeedbackPopupLayout,
     takeFeedbackPopupRequest,
     useFeedbackPopupRequest,
+    useFeedbackResponseStyle,
 } from '../model/feedback-popup';
 import { useFeedbackForm } from '../model/use-feedback-form';
 import { BaseFeedbackWidget } from './BaseFeedbackWidget';
@@ -25,6 +26,7 @@ export function FeedbackWidgetPanel() {
     const [open, setOpen] = useState(false);
     const [layout, setLayout] = useState<FeedbackPopupLayout>('pills');
     const request = useFeedbackPopupRequest();
+    const responseStyle = useFeedbackResponseStyle();
 
     useEffect(() => {
         if (!request) return;
@@ -61,6 +63,7 @@ export function FeedbackWidgetPanel() {
                 onSubmitFeedback={isFeedbackEnabled() ? submit : undefined}
                 open={open}
                 originRef={originRef}
+                responseStyle={responseStyle}
             />
         </>
     );
