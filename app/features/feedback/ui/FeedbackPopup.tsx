@@ -59,39 +59,19 @@ export function FeedbackPopup({
             closingRef.current = false;
             pinToCentre(node);
             if (skipMotion()) return;
-            fade(overlayRef.current, 'in', ENTER_MS * 0.6);
-            const from = morphTransform(originRef.current, node);
-            if (!from) {
-                node.animate(
-                    [
-                        { opacity: 0, transform: 'scale(0.96)' },
-                        { opacity: 1, transform: 'none' },
-                    ],
-                    {
-                        duration: FADE_MS,
-                    },
-                );
-                return;
-            }
-            node.animate(
-                [
-                    { opacity: 0.9, transform: from },
-                    { opacity: 1, transform: 'none' },
-                ],
-                {
-                    duration: ENTER_MS,
-                    easing: ENTER_EASE,
-                },
+            playPop(
+                { content: contentRef.current, overlay: overlayRef.current, panel: node },
+                originFrame(originRef.current, node),
+                'open',
             );
-            contentRef.current?.animate([{ opacity: 0 }, { offset: 0.35, opacity: 0 }, { opacity: 1 }], {
-                duration: ENTER_MS,
-            });
         },
         [originRef],
     );
 
-    // `morph` shrinks the popup back onto its origin; `fade` dismisses it in place, after a sent form.
-    const close = (mode: 'morph' | 'fade') => {
+    // The close is the open played backwards: the same timing and curve, so the popup shrinks back into the element
+    // it grew out of. After a sent form it runs the other way instead, up and larger as it fades: the user goes
+    // through the popup rather than back to the button.
+    const close = (outcome: 'dismissed' | 'sent' = 'dismissed') => {
         if (closingRef.current) return;
         closingRef.current = true;
         const finish = () => onOpenChange(false);
@@ -100,19 +80,11 @@ export function FeedbackPopup({
             finish();
             return;
         }
-
-        const to = mode === 'morph' ? morphTransform(originRef.current, panel) : undefined;
-        const duration = to ? EXIT_MS : FADE_MS;
-        fade(overlayRef.current, 'out', duration);
-        contentRef.current?.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration * 0.5, fill: 'forwards' });
-        const animation = to
-            ? panel.animate([{ transform: 'none' }, { opacity: 0.9, transform: to }], {
-                  duration,
-                  easing: EXIT_EASE,
-                  fill: 'forwards',
-              })
-            : panel.animate([{ opacity: 1 }, { opacity: 0, transform: 'scale(0.96)' }], { duration, fill: 'forwards' });
-        animation.finished.then(finish, finish);
+        playPop(
+            { content: contentRef.current, overlay: overlayRef.current, panel },
+            outcome === 'sent' ? FLY_THROUGH_FRAME : originFrame(originRef.current, panel),
+            'close',
+        ).then(finish, finish);
     };
 
     const actions: FeedbackAction[] = [
@@ -132,7 +104,7 @@ export function FeedbackPopup({
             description: 'Describe a feature you are missing.',
             href: ideasUrl,
             id: 'idea',
-            onSelect: () => close('morph'),
+            onSelect: () => close(),
             title: 'Idea',
         },
         {
@@ -140,7 +112,7 @@ export function FeedbackPopup({
             description: 'Tell us what broke and how to reproduce it.',
             href: bugReportUrl,
             id: 'bug',
-            onSelect: () => close('morph'),
+            onSelect: () => close(),
             title: 'Bug',
         },
     ];
@@ -150,17 +122,17 @@ export function FeedbackPopup({
         form: onSubmitFeedback && {
             isSubmitting,
             onSubmit: values => {
-                void onSubmitFeedback(values).then(sent => sent && close('fade'));
+                void onSubmitFeedback(values).then(sent => sent && close('sent'));
             },
         },
-        onClose: () => close('morph'),
+        onClose: () => close(),
     };
 
     return (
         <DialogPrimitive.Root
             open={open}
             onOpenChange={next => {
-                if (!next) close('morph');
+                if (!next) close();
             }}
         >
             <DialogPrimitive.Portal>
@@ -176,7 +148,7 @@ export function FeedbackPopup({
                     className="fixed inset-0 z-50 flex items-start justify-center px-4 py-24 outline-none"
                     // The content layer fills the screen, so a click on the backdrop lands here.
                     onClick={event => {
-                        if (event.target === event.currentTarget) close('morph');
+                        if (event.target === event.currentTarget) close();
                     }}
                 >
                     <div
@@ -207,7 +179,7 @@ export function FeedbackPopup({
                             )}
                         </div>
                         {/* The IDL dialog's close mark: a 24px target, equally inset from top and side. */}
-                        {!cards && <CloseButton className="right-3.5 top-3.5 h-6 w-6" onClose={() => close('morph')} />}
+                        {!cards && <CloseButton className="right-3.5 top-3.5 h-6 w-6" onClose={() => close()} />}
                     </div>
                 </DialogPrimitive.Content>
             </DialogPrimitive.Portal>
@@ -215,11 +187,13 @@ export function FeedbackPopup({
     );
 }
 
-const ENTER_MS = 420;
-const EXIT_MS = 300;
-const FADE_MS = 160;
-const ENTER_EASE = 'cubic-bezier(0.2, 0.9, 0.1, 1)';
-const EXIT_EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+const POP_MS = 420;
+const POP_EASE = 'cubic-bezier(0.2, 0.9, 0.1, 1)';
+// Where a sent popup goes: a little up and larger, faded out, as if passed through. The mirror of shrinking into the
+// button, not a different motion.
+const FLY_THROUGH_FRAME: Keyframe = { opacity: 0, transform: 'translateY(-24px) scale(1.06)' };
+// Without an origin to grow out of (a hidden one), the popup just fades in from slightly smaller.
+const FALLBACK_MS = 160;
 
 /**
  * Centres the panel once, by its height at that moment, then keeps its top edge where it landed. Switching
@@ -238,6 +212,12 @@ function pinToCentre(panel: HTMLElement) {
     panel.style.maxHeight = `calc(100% - ${top}px)`;
 }
 
+/** The outer frame of the grow-out-of-the-origin animation, or unset when the origin is hidden. */
+function originFrame(origin: HTMLElement | null, panel: HTMLElement): Keyframe | undefined {
+    const transform = morphTransform(origin, panel);
+    return transform ? { opacity: 0.9, transform } : undefined;
+}
+
 /** The transform that lays the panel exactly over the origin element: the start of the open, the end of the close. */
 function morphTransform(origin: HTMLElement | null, panel: HTMLElement): string | undefined {
     const from = origin?.getBoundingClientRect();
@@ -252,9 +232,36 @@ function morphTransform(origin: HTMLElement | null, panel: HTMLElement): string 
     return `translate(${dx}px, ${dy}px) scale(${from.width / width}, ${from.height / height})`;
 }
 
-function fade(node: HTMLElement | null, direction: 'in' | 'out', duration: number) {
-    const frames = direction === 'in' ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }];
-    node?.animate(frames, { duration, fill: direction === 'out' ? 'forwards' : 'none' });
+/**
+ * Plays the popup's appearance, or the same animation backwards for `close`. The panel grows out of the origin
+ * (or fades in from slightly smaller without one), the content shows over the last two thirds, the dim over the
+ * first 60%; reversed, each part runs the mirror of its open.
+ */
+function playPop(
+    layers: { panel: HTMLElement; content: HTMLElement | null; overlay: HTMLElement | null },
+    /** The panel's outer frame: where an open starts and a close ends. Unset falls back to a short fade. */
+    edge: Keyframe | undefined,
+    direction: 'open' | 'close',
+): Promise<unknown> {
+    const timing: KeyframeAnimationOptions = {
+        direction: direction === 'open' ? 'normal' : 'reverse',
+        duration: edge ? POP_MS : FALLBACK_MS,
+        // A finished close must hold its end frame until the dialog unmounts.
+        fill: direction === 'close' ? 'forwards' : 'none',
+    };
+    const animations = [
+        layers.panel.animate([edge ?? { opacity: 0, transform: 'scale(0.96)' }, { opacity: 1, transform: 'none' }], {
+            ...timing,
+            easing: edge ? POP_EASE : 'linear',
+        }),
+        ...(edge && layers.content
+            ? [layers.content.animate([{ opacity: 0 }, { offset: 0.35, opacity: 0 }, { opacity: 1 }], timing)]
+            : []),
+        ...(layers.overlay
+            ? [layers.overlay.animate([{ opacity: 0 }, { offset: 0.6, opacity: 1 }, { opacity: 1 }], timing)]
+            : []),
+    ];
+    return Promise.all(animations.map(animation => animation.finished));
 }
 
 /** True when the user asks for less motion, or the environment has no Web Animations (jsdom). */
