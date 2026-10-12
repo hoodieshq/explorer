@@ -153,7 +153,7 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
     const blockhash = transaction?.message.recentBlockhash;
     const version = transactionWithMeta?.version;
     const feePayer = transaction?.message.accountKeys[0]?.pubkey;
-    const feeLamports = fee && Number.isSafeInteger(fee) ? BigInt(fee) : undefined;
+    const feeLamports = fee !== undefined && Number.isSafeInteger(fee) ? BigInt(fee) : undefined;
     const priorityFeeLamports = parsedTransaction
         ? resolvePriorityFeeLamports(parsedTransaction, { feeLamports })
         : undefined;
@@ -167,7 +167,7 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
         reservedCUs !== undefined &&
         priorityFeeLamports !== undefined
             ? projectResourceAndInclusionFees({
-                  // The projection works in numbers, and no real priority fee comes near 2^53 lamports.
+                  // The number conversion is safe: exact up to 2^53 lamports, far above any real priority fee.
                   priorityFeeLamports: Number(priorityFeeLamports),
                   requestedCostUnits: estimateRequestedCostUnits({
                       computeUnitsConsumed,
