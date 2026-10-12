@@ -172,7 +172,6 @@ function makeTransaction(
             err,
             fee: lamports(5_000n),
             innerInstructions: [],
-            loadedAddresses: undefined,
             logMessages: [],
         },
         parsedTransaction: fromCompiledMessage(

@@ -5,7 +5,7 @@ export type BlockTransactionMeta = Pick<
     NonNullable<TransactionForFullBase64<1>['meta']>,
     'computeUnitsConsumed' | 'err' | 'fee' | 'logMessages'
 > &
-    Partial<Pick<NonNullable<TransactionForFullBase64<1>['meta']>, 'innerInstructions' | 'loadedAddresses'>> &
+    Partial<Pick<NonNullable<TransactionForFullBase64<1>['meta']>, 'innerInstructions'>> &
     Readonly<{
         /** Served by RPC nodes, but not yet included in kit's transaction meta type. */
         costUnits?: bigint;
