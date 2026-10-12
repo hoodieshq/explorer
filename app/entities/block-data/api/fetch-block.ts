@@ -98,7 +98,6 @@ function adaptMeta(
         err: meta.err,
         fee: meta.fee,
         innerInstructions: meta.innerInstructions ?? undefined,
-        loadedAddresses: meta.loadedAddresses ?? undefined,
         logMessages: meta.logMessages,
     };
 }

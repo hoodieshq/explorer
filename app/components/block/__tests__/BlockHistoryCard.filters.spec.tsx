@@ -162,7 +162,7 @@ function makeTransaction(
             staticAccounts: [address(program), address(ACCOUNT)],
             version,
         },
-        meta: { costUnits: 1n, err, fee: lamports(5_000n), innerInstructions: [], loadedAddresses: undefined },
+        meta: { costUnits: 1n, err, fee: lamports(5_000n), innerInstructions: [] },
         signatures: [transactionSignature],
     });
 }
