@@ -99,7 +99,8 @@ export function BaseTransactionHistoryCard({
                     />
                 </>
             }
-            belowTitle={headerSubRow ? <div className="flex flex-wrap gap-2">{headerSubRow}</div> : undefined}
+            // `flex-wrap-reverse`: filter pills fill the bottom row left to right, and overflow wraps upward.
+            belowTitle={headerSubRow ? <div className="flex flex-wrap-reverse gap-2">{headerSubRow}</div> : undefined}
             header={header}
             footer={footer}
         >

@@ -58,13 +58,27 @@ describe('BlockHistoryCard filters', () => {
         );
         expect(screen.getByRole('link', { name: 'Clear program filter' })).toHaveAttribute(
             'href',
-            `/block/123?version=0&filter=all&accountFilter=${ACCOUNT}&sort=index&dir=desc&cluster=devnet`,
+            `/block/123?version=0&accountFilter=${ACCOUNT}&sort=index&dir=desc&cluster=devnet`,
         );
 
         fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
         expect(screen.getByRole('link', { name: 'v1 (0)' })).toHaveAttribute(
             'href',
             `/block/123?version=1&filter=${PROGRAM_A}&accountFilter=${ACCOUNT}&sort=index&dir=desc&cluster=devnet`,
+        );
+    });
+
+    it('should show no program chip for the default "All Except Votes", but one for "All Transactions"', () => {
+        search = 'cluster=devnet';
+        const { unmount } = render(<BlockHistoryCard block={makeBlock()} epoch={500n} />);
+        expect(screen.queryByRole('link', { name: 'Clear program filter' })).not.toBeInTheDocument();
+        unmount();
+
+        search = 'filter=all&cluster=devnet';
+        render(<BlockHistoryCard block={makeBlock()} epoch={500n} />);
+        expect(screen.getByRole('link', { name: 'Clear program filter' })).toHaveAttribute(
+            'href',
+            '/block/123?cluster=devnet',
         );
     });
 

@@ -8,8 +8,7 @@ const inputVariants = cva(
     cn(
         'border-solid',
         'font-normal font-mono',
-        'flex h-9 w-full rounded border',
-        'px-4 py-2.5 text-xs',
+        'flex w-full rounded border',
         // Native date/time pickers render a dark calendar glyph that's invisible on
         // our dark input backgrounds; invert it so it matches the light input text.
         '[&::-webkit-calendar-picker-indicator]:invert',
@@ -19,9 +18,16 @@ const inputVariants = cva(
     ),
     {
         defaultVariants: {
+            size: 'default',
             variant: 'default',
         },
         variants: {
+            // `sm` is the 32px control of filter panels, matching their chips. `box-border` holds the height
+            // where no reset sets border-box (Storybook).
+            size: {
+                default: 'h-9 px-4 py-2.5 text-xs',
+                sm: 'box-border h-8 px-3 py-1.5 text-sm',
+            },
             variant: {
                 dark: '[color-scheme:dark] border-outer-space-950 bg-heavy-metal-900 text-neutral-200 placeholder:text-neutral-400 focus-visible:ring-accent focus-visible:ring-offset-neutral-900',
                 default:
@@ -31,11 +37,24 @@ const inputVariants = cva(
     },
 );
 
-export interface InputProps extends React.ComponentProps<'input'>, VariantProps<typeof inputVariants> {}
+// The height variant is `inputSize`, not `size`: callers pass the native `size` attribute (a width in characters)
+// straight through, as the IDL argument inputs do.
+export interface InputProps extends React.ComponentProps<'input'>, Omit<VariantProps<typeof inputVariants>, 'size'> {
+    inputSize?: VariantProps<typeof inputVariants>['size'];
+}
 
-const Input = React.forwardRef<HTMLInputElement, InputProps>(({ className, type, variant, ...props }, ref) => {
-    return <input type={type} className={cn(inputVariants({ variant }), className)} ref={ref} {...props} />;
-});
+const Input = React.forwardRef<HTMLInputElement, InputProps>(
+    ({ className, inputSize, type, variant, ...props }, ref) => {
+        return (
+            <input
+                type={type}
+                className={cn(inputVariants({ size: inputSize, variant }), className)}
+                ref={ref}
+                {...props}
+            />
+        );
+    },
+);
 Input.displayName = 'Input';
 
 export { Input, inputVariants };

@@ -4,22 +4,26 @@ import { Badge } from '@components/shared/ui/badge';
 import { Button } from '@components/shared/ui/button';
 import { DateTimePicker } from '@components/shared/ui/date-time-picker';
 import { Input } from '@components/shared/ui/input';
-import { Label } from '@components/shared/ui/label';
 import { Popover, PopoverContent, PopoverTrigger } from '@components/shared/ui/popover';
+import { clusterModalOpenAtom, useCluster } from '@entities/cluster';
 // deep imports on purpose: the feature's own card renders this bar, so importing the
 // barrel here would close a cycle through ui/TransactionHistoryCard
 import { isGtfaDisabled } from '@features/transaction-history/lib/gtfa-disabled-addresses';
 import {
     HistoryFilters,
+    type HistoryStatus,
     STATUS_LABELS,
     STATUS_PARAM,
     STATUS_VALUES,
 } from '@features/transaction-history/lib/history-filters';
 import { useHistoryFiltersSupported } from '@features/transaction-history/model/use-account-history';
+import { BaseFilterSection, BaseResetButton, BaseToggleChips, focusFirstControl } from '@shared/ui/filters';
+import { Cluster } from '@utils/cluster';
 import { format } from 'date-fns';
+import { useSetAtom } from 'jotai';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
-import { ChevronDown, Filter, X } from 'react-feather';
+import { Filter, X } from 'react-feather';
 
 // URL params map one-to-one onto the Triton `getTransactionsForAddress` filter paths.
 export const SLOT_GTE_PARAM = 'slot.gte';
@@ -186,67 +190,18 @@ export function HistoryFilterChips(filters: HistoryFilters) {
     );
 }
 
-const SELECT_CLASS =
-    'h-9 w-full appearance-none rounded border border-outer-space-950 bg-heavy-metal-900 px-3 pr-8 font-mono text-xs text-neutral-200 outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900';
-
 export function HistoryFilterTrigger({ address, ...filters }: HistoryFilters & { address?: string }) {
     const { slot, blockTime, status } = filters;
     const updateFilters = useUpdateHistoryFilters();
     const clearFilters = useClearHistoryFilters();
+    const searchParams = useSearchParams();
     // Filtering needs gTFA. It's unavailable when the endpoint doesn't implement gTFA at all
     // (global `supported` flag) or when gTFA is temporarily disabled for this specific address
     // (the address falls back to getSignaturesForAddress, which can't honour filters).
     const supported = useHistoryFiltersSupported() && !(address !== undefined && isGtfaDisabled(address));
-    const [open, setOpen] = React.useState(false);
-
-    const [slotGteDraft, setSlotGteDraft] = React.useState('');
-    const [slotLteDraft, setSlotLteDraft] = React.useState('');
-    const [statusDraft, setStatusDraft] = React.useState('');
-    const [blockTimeGteDraft, setBlockTimeGteDraft] = React.useState('');
-    const [blockTimeLteDraft, setBlockTimeLteDraft] = React.useState('');
-
-    // Depend on the scalar range bounds, not the `slot`/`blockTime` objects: `toRange`
-    // allocates a fresh object on every render, so keying on the objects would re-run
-    // this effect on unrelated parent re-renders (e.g. lazy per-row fetches) and silently
-    // reset a draft the user is still editing before they click Apply.
-    React.useEffect(() => {
-        setSlotGteDraft(slot?.gte !== undefined ? String(slot.gte) : '');
-        setSlotLteDraft(slot?.lte !== undefined ? String(slot.lte) : '');
-        setStatusDraft(status ?? '');
-        setBlockTimeGteDraft(unixToLocalInput(blockTime?.gte));
-        setBlockTimeLteDraft(unixToLocalInput(blockTime?.lte));
-    }, [slot?.gte, slot?.lte, blockTime?.gte, blockTime?.lte, status, open]);
-
-    const slotGteValue = slotDraftToValue(slotGteDraft);
-    const slotLteValue = slotDraftToValue(slotLteDraft);
-    const blockTimeGteValue = localInputToUnix(blockTimeGteDraft);
-    const blockTimeLteValue = localInputToUnix(blockTimeLteDraft);
-
-    const slotGteInvalid = slotGteValue === 'invalid';
-    const slotLteInvalid = slotLteValue === 'invalid';
-    const slotRangeInvalid =
-        typeof slotGteValue === 'number' && typeof slotLteValue === 'number' && slotGteValue > slotLteValue;
-    const timeRangeInvalid =
-        blockTimeGteValue !== undefined && blockTimeLteValue !== undefined && blockTimeGteValue > blockTimeLteValue;
-    const hasError = slotGteInvalid || slotLteInvalid || slotRangeInvalid || timeRangeInvalid;
-
-    const apply = () => {
-        if (hasError) return;
-        // The hasError guard above rules out the 'invalid' sentinel for both slots.
-        updateFilters({
-            [BLOCK_TIME_GTE_PARAM]: blockTimeGteValue,
-            [BLOCK_TIME_LTE_PARAM]: blockTimeLteValue,
-            [SLOT_GTE_PARAM]: slotGteValue as number | undefined,
-            [SLOT_LTE_PARAM]: slotLteValue as number | undefined,
-            [STATUS_PARAM]: parseEnumParam(statusDraft, STATUS_VALUES),
-        });
-        setOpen(false);
-    };
-
-    const clearAll = () => {
-        clearFilters();
-        setOpen(false);
-    };
+    // The chips can hold both statuses, which `status` (one value or none) can't express, so they read the
+    // raw param: both picked stay in the URL as `succeeded,failed`, which the RPC filter reads as no status.
+    const statusSelection = parseStatusSelection(searchParams?.get(STATUS_PARAM));
 
     const activeCount =
         (slot?.gte !== undefined ? 1 : 0) +
@@ -257,123 +212,294 @@ export function HistoryFilterTrigger({ address, ...filters }: HistoryFilters & {
     const triggerLabel = activeCount === 0 ? 'Filters' : 'Edit filters';
 
     // gTFA is unavailable (endpoint-wide or for this address), so filtering can't be applied
-    // server-side; show a disabled control rather than a misleading filter UI.
+    // server-side; show an unavailable control that explains why on click, not a misleading filter UI.
     if (!supported) {
         return (
-            <Button
-                size="sm"
-                variant="outline"
-                disabled
-                // Re-enable pointer events on the disabled control so the cursor shows it's
-                // unavailable and the explanatory title tooltip appears; the native `disabled`
-                // attribute still blocks clicks.
-                className="disabled:!pointer-events-auto disabled:cursor-not-allowed"
-                aria-label="Filters unavailable"
-                title="Transaction filtering is unavailable for this account or RPC endpoint"
-            >
-                <Filter />
-                <span className="hidden md:inline">Filters</span>
-            </Button>
+            <FiltersUnavailable reason={address !== undefined && isGtfaDisabled(address) ? 'address' : 'endpoint'} />
         );
     }
 
+    // Every change applies at once, as on the block page; the range fields commit on Enter or on leaving the
+    // field, so typing a slot doesn't refetch on each digit.
     return (
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover>
             <PopoverTrigger asChild>
                 <Button size="sm" variant="outline" aria-label={triggerLabel}>
                     <Filter />
                     <span className="hidden md:inline">{triggerLabel}</span>
                 </Button>
             </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 p-4">
-                <form
-                    onSubmit={e => {
-                        e.preventDefault();
-                        apply();
-                    }}
-                    className="flex flex-col gap-3"
+            <PopoverContent align="end" className="flex w-96 max-w-[calc(100vw-2rem)] flex-col gap-7 p-4">
+                <BaseFilterSection
+                    title="Slot"
+                    onReset={
+                        slot === undefined
+                            ? undefined
+                            : () => updateFilters({ [SLOT_GTE_PARAM]: undefined, [SLOT_LTE_PARAM]: undefined })
+                    }
                 >
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-neutral-400">Slot ≥</label>
-                        <Input
-                            autoFocus
-                            variant="dark"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            placeholder="Lower bound (optional)"
-                            value={slotGteDraft}
-                            aria-invalid={slotGteInvalid || slotRangeInvalid}
-                            onChange={e => setSlotGteDraft(e.target.value)}
+                    <SlotRangeFields
+                        slot={slot}
+                        onCommit={({ gte, lte }) => updateFilters({ [SLOT_GTE_PARAM]: gte, [SLOT_LTE_PARAM]: lte })}
+                    />
+                </BaseFilterSection>
+                <BaseFilterSection
+                    title="Status"
+                    onReset={
+                        statusSelection.length === 0 ? undefined : () => updateFilters({ [STATUS_PARAM]: undefined })
+                    }
+                >
+                    <BaseToggleChips
+                        options={STATUS_VALUES.map(value => ({ label: STATUS_LABELS[value], value }))}
+                        selected={statusSelection}
+                        onChange={next =>
+                            updateFilters({ [STATUS_PARAM]: next.length === 0 ? undefined : next.join(',') })
+                        }
+                    />
+                </BaseFilterSection>
+                <BaseFilterSection
+                    title="Block time"
+                    onReset={
+                        blockTime === undefined
+                            ? undefined
+                            : () =>
+                                  updateFilters({
+                                      [BLOCK_TIME_GTE_PARAM]: undefined,
+                                      [BLOCK_TIME_LTE_PARAM]: undefined,
+                                  })
+                    }
+                >
+                    <BlockTimeRangeFields
+                        blockTime={blockTime}
+                        onCommit={({ gte, lte }) =>
+                            updateFilters({ [BLOCK_TIME_GTE_PARAM]: gte, [BLOCK_TIME_LTE_PARAM]: lte })
+                        }
+                    />
+                </BaseFilterSection>
+                {/* The same control as each section's Reset, so clearing one section and clearing the form read
+                    and behave alike: shown only while there's something to clear, applied at once. */}
+                {(activeCount > 0 || statusSelection.length > 0) && (
+                    <div className="flex justify-end">
+                        <BaseResetButton
+                            aria-label="Clear all filters"
+                            label="Reset all"
+                            onClick={event => {
+                                // The button disappears once used; focus moves to the popover's first control.
+                                focusFirstControl(event.currentTarget.closest('[role="dialog"]'));
+                                clearFilters();
+                            }}
                         />
                     </div>
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-neutral-400">Slot ≤</label>
-                        <Input
-                            variant="dark"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            placeholder="Upper bound (optional)"
-                            value={slotLteDraft}
-                            aria-invalid={slotLteInvalid || slotRangeInvalid}
-                            onChange={e => setSlotLteDraft(e.target.value)}
-                        />
-                    </div>
-                    {slotRangeInvalid && <div className="text-xs text-destructive">Slot ≥ must be ≤ slot ≤.</div>}
+                )}
+            </PopoverContent>
+        </Popover>
+    );
+}
 
-                    <div className="flex flex-col gap-1">
-                        <Label className="text-xs font-medium text-neutral-400" htmlFor="history-status-filter">
-                            Status
-                        </Label>
-                        <div className="relative">
-                            <select
-                                id="history-status-filter"
-                                aria-label="Status"
-                                className={SELECT_CLASS}
-                                value={statusDraft}
-                                onChange={e => setStatusDraft(e.target.value)}
-                            >
-                                <option value="">Any</option>
-                                <option value="succeeded">Succeeded</option>
-                                <option value="failed">Failed</option>
-                            </select>
-                            <ChevronDown
-                                size={14}
-                                className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400"
-                            />
-                        </div>
-                    </div>
+function parseStatusSelection(raw: string | null | undefined): HistoryStatus[] {
+    const picked = raw?.split(',') ?? [];
+    return STATUS_VALUES.filter(value => picked.includes(value));
+}
 
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-neutral-400">Block time ≥</label>
-                        <DateTimePicker
-                            value={blockTimeGteDraft}
-                            aria-invalid={timeRangeInvalid}
-                            onChange={setBlockTimeGteDraft}
-                        />
-                    </div>
-                    <div className="flex flex-col gap-1">
-                        <label className="text-xs font-medium text-neutral-400">Block time ≤</label>
-                        <DateTimePicker
-                            value={blockTimeLteDraft}
-                            aria-invalid={timeRangeInvalid}
-                            onChange={setBlockTimeLteDraft}
-                        />
-                    </div>
-                    {timeRangeInvalid && (
-                        <div className="text-xs text-destructive">Block time ≥ must be on or before block time ≤.</div>
-                    )}
+type Range = { gte?: number; lte?: number };
 
-                    <div className="flex justify-end gap-2 pt-1">
-                        {activeCount > 0 && (
-                            <Button type="button" size="sm" variant="ghost" onClick={clearAll}>
-                                Clear all
-                            </Button>
+// Lower and upper bound side by side. Drafts follow the URL (a chip's × clears a bound from outside) and
+// commit only when both parse and the range isn't inverted.
+function SlotRangeFields({ onCommit, slot }: { onCommit: (range: Range) => void; slot: Range | undefined }) {
+    const [gteDraft, setGteDraft] = React.useState(() => slotToDraft(slot?.gte));
+    const [lteDraft, setLteDraft] = React.useState(() => slotToDraft(slot?.lte));
+    React.useEffect(() => {
+        setGteDraft(slotToDraft(slot?.gte));
+        setLteDraft(slotToDraft(slot?.lte));
+    }, [slot?.gte, slot?.lte]);
+
+    const gte = slotDraftToValue(gteDraft);
+    const lte = slotDraftToValue(lteDraft);
+    const rangeInvalid = typeof gte === 'number' && typeof lte === 'number' && gte > lte;
+
+    const commit = () => {
+        if (gte === 'invalid' || lte === 'invalid' || rangeInvalid) return;
+        if (gte === slot?.gte && lte === slot?.lte) return;
+        onCommit({ gte, lte });
+    };
+    const fieldProps = {
+        // The 32px filter control in the UI font, matching the date fields beside them. `!` because `cn`
+        // doesn't dedupe the Input's own mono utility.
+        className: '![font-family:inherit]',
+        inputMode: 'numeric' as const,
+
+        inputSize: 'sm' as const,
+
+        onBlur: commit,
+
+        onKeyDown: (event: React.KeyboardEvent) => {
+            if (event.key === 'Enter') commit();
+        },
+        pattern: '[0-9]*',
+        variant: 'dark' as const,
+    };
+
+    return (
+        <>
+            {/* From and to with a dash between, the usual way to read a range. */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <Input
+                    {...fieldProps}
+                    aria-label="Slot lower bound"
+                    placeholder="Lower bound"
+                    value={gteDraft}
+                    aria-invalid={gte === 'invalid' || rangeInvalid}
+                    onChange={event => setGteDraft(event.target.value)}
+                />
+                <RangeDash />
+                <Input
+                    {...fieldProps}
+                    aria-label="Slot upper bound"
+                    placeholder="Upper bound"
+                    value={lteDraft}
+                    aria-invalid={lte === 'invalid' || rangeInvalid}
+                    onChange={event => setLteDraft(event.target.value)}
+                />
+            </div>
+            {rangeInvalid && (
+                <div className="mt-1.5 text-xs text-destructive">The lower bound must not exceed the upper bound.</div>
+            )}
+        </>
+    );
+}
+
+// From and to side by side. A pick commits at once unless it inverts the range, which stays as a draft
+// with an error until fixed.
+function BlockTimeRangeFields({
+    blockTime,
+    onCommit,
+}: {
+    blockTime: Range | undefined;
+    onCommit: (range: Range) => void;
+}) {
+    const [gteDraft, setGteDraft] = React.useState(() => unixToLocalInput(blockTime?.gte));
+    const [lteDraft, setLteDraft] = React.useState(() => unixToLocalInput(blockTime?.lte));
+    React.useEffect(() => {
+        setGteDraft(unixToLocalInput(blockTime?.gte));
+        setLteDraft(unixToLocalInput(blockTime?.lte));
+    }, [blockTime?.gte, blockTime?.lte]);
+
+    const gte = localInputToUnix(gteDraft);
+    const lte = localInputToUnix(lteDraft);
+    const rangeInvalid = gte !== undefined && lte !== undefined && gte > lte;
+
+    const change = (bound: keyof Range, raw: string) => {
+        const next = { [bound]: localInputToUnix(raw), gte, lte };
+        if (bound === 'gte') setGteDraft(raw);
+        else setLteDraft(raw);
+        if (next.gte !== undefined && next.lte !== undefined && next.gte > next.lte) return;
+        onCommit(next);
+    };
+
+    return (
+        <>
+            {/* From and to with a dash between, the usual way to read a range. */}
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                <DateTimePicker
+                    size="sm"
+                    placeholder="From"
+                    value={gteDraft}
+                    aria-invalid={rangeInvalid}
+                    onChange={raw => change('gte', raw)}
+                />
+                <RangeDash />
+                <DateTimePicker
+                    size="sm"
+                    placeholder="To"
+                    value={lteDraft}
+                    aria-invalid={rangeInvalid}
+                    onChange={raw => change('lte', raw)}
+                />
+            </div>
+            {rangeInvalid && (
+                <div className="mt-1.5 text-xs text-destructive">The start must be on or before the end.</div>
+            )}
+        </>
+    );
+}
+
+function RangeDash() {
+    return (
+        <span aria-hidden className="text-sm text-outer-space-300">
+            –
+        </span>
+    );
+}
+
+function slotToDraft(slot: number | undefined): string {
+    return slot === undefined ? '' : String(slot);
+}
+
+// The two ways filtering goes away, as the user can act on them: the endpoint lacks gTFA (switch the
+// RPC), or gTFA is paused for this one account on our side (nothing to do but wait).
+function FiltersUnavailable({ reason }: { reason: 'address' | 'endpoint' }) {
+    const setClusterModalOpen = useSetAtom(clusterModalOpenAtom);
+    const { cluster, name } = useCluster();
+    const [open, setOpen] = React.useState(false);
+    // The public devnet and testnet endpoints never serve gTFA, and picking another standard cluster changes
+    // the data, not the method, so only a custom endpoint for the same cluster brings filters back.
+    const isPublicWithoutGtfa = cluster === Cluster.Devnet || cluster === Cluster.Testnet;
+
+    return (
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                {/* Not natively `disabled`: the click has to reach the trigger to open the explanation. */}
+                <Button size="sm" variant="outline" aria-label="Filters unavailable" className="opacity-50">
+                    <Filter />
+                    <span className="hidden md:inline">Filters</span>
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="flex w-72 flex-col gap-2 p-4">
+                <p className="m-0 text-sm font-medium text-white">Filtering is unavailable</p>
+                {reason === 'endpoint' ? (
+                    <>
+                        {isPublicWithoutGtfa ? (
+                            <>
+                                <p className="m-0 text-sm text-neutral-400">
+                                    The public {name} endpoint doesn&apos;t support{' '}
+                                    <code>getTransactionsForAddress</code>, which filters need, so the history loads
+                                    unfiltered.
+                                </p>
+                                <p className="m-0 text-sm text-neutral-400">
+                                    To filter {name} history, connect a custom {name} RPC endpoint that supports this
+                                    method.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <p className="m-0 text-sm text-neutral-400">
+                                    Filters need an RPC endpoint that supports <code>getTransactionsForAddress</code>.
+                                    The current endpoint doesn&apos;t, so the history loads unfiltered.
+                                </p>
+                                <p className="m-0 text-sm text-neutral-400">
+                                    To filter, switch to an endpoint that supports this method.
+                                </p>
+                            </>
                         )}
-                        <Button type="submit" size="sm" variant="accent" disabled={hasError}>
-                            Apply
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-1 self-start"
+                            onClick={() => {
+                                setOpen(false);
+                                setClusterModalOpen(true);
+                            }}
+                        >
+                            {isPublicWithoutGtfa ? 'Use a custom RPC endpoint' : 'Change RPC endpoint'}
                         </Button>
-                    </div>
-                </form>
+                    </>
+                ) : (
+                    <p className="m-0 text-sm text-neutral-400">
+                        Filtering is temporarily off for this account: its history is so large that filtered requests
+                        time out, so the history loads unfiltered. There&apos;s nothing to change on your side; check
+                        back later.
+                    </p>
+                )}
             </PopoverContent>
         </Popover>
     );

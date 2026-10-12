@@ -1,9 +1,18 @@
 /* eslint-disable no-restricted-syntax -- test assertions use RegExp for pattern matching */
-import { fireEvent, render, renderHook, screen } from '@testing-library/react';
+import { fireEvent, render, renderHook, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { Cluster } from '@/app/utils/cluster';
 
 const replaceMock = vi.fn();
 let mockSearchString = '';
+
+let mockCluster = { cluster: Cluster.MainnetBeta, name: 'Mainnet Beta' };
+
+vi.mock('@entities/cluster', async importOriginal => {
+    const actual = await importOriginal<typeof import('@entities/cluster')>();
+    return { ...actual, useCluster: () => mockCluster };
+});
 
 vi.mock('next/navigation', () => ({
     usePathname: () => '/address/testAddress',
@@ -12,6 +21,8 @@ vi.mock('next/navigation', () => ({
 }));
 
 // Must import after mocks
+import { MethodSupportContext } from '@features/transaction-history/model/history-provider';
+
 import { HistoryFilterBar, useHistoryFilters } from '../HistoryFilterBar';
 
 function setSearch(search: string) {
@@ -21,6 +32,7 @@ function setSearch(search: string) {
 beforeEach(() => {
     replaceMock.mockClear();
     setSearch('');
+    mockCluster = { cluster: Cluster.MainnetBeta, name: 'Mainnet Beta' };
 });
 
 describe('useHistoryFilters', () => {
@@ -77,13 +89,35 @@ describe('HistoryFilterBar', () => {
         expect(screen.queryByText(/Slot ≤:/)).not.toBeInTheDocument();
     });
 
-    it('should disable the filter control for an address where gTFA is disabled', () => {
+    it('should explain on click that filtering is paused for an address where gTFA is disabled', () => {
         // Wrapped SOL — in GTFA_DISABLED_ADDRESSES, so filtering falls back to
         // getSignaturesForAddress and the UI must present filters as unavailable.
         render(<HistoryFilterBar address="So11111111111111111111111111111111111111112" />);
 
-        const button = screen.getByRole('button', { name: /Filters unavailable/ });
-        expect(button).toBeDisabled();
+        fireEvent.click(screen.getByRole('button', { name: /Filters unavailable/ }));
+
+        expect(screen.getByText(/temporarily off for this account/)).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Change RPC endpoint/ })).not.toBeInTheDocument();
+    });
+
+    it('should explain on click that the endpoint lacks gTFA and offer to change it', () => {
+        renderWithoutGtfa();
+
+        fireEvent.click(screen.getByRole('button', { name: /Filters unavailable/ }));
+
+        expect(screen.getByText(/Filters need an RPC endpoint that supports/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Change RPC endpoint/ })).toBeInTheDocument();
+    });
+
+    it('should point a public devnet user to a custom devnet endpoint', () => {
+        mockCluster = { cluster: Cluster.Devnet, name: 'Devnet' };
+        renderWithoutGtfa();
+
+        fireEvent.click(screen.getByRole('button', { name: /Filters unavailable/ }));
+
+        expect(screen.getByText(/The public Devnet endpoint doesn.t support/)).toBeInTheDocument();
+        expect(screen.getByText(/connect a custom Devnet RPC endpoint/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Use a custom RPC endpoint/ })).toBeInTheDocument();
     });
 
     it('should keep the filter control enabled for a non-blocked address', () => {
@@ -111,16 +145,20 @@ describe('HistoryFilterBar', () => {
         expect(href).toBe('/address/testAddress?slot.lte=200');
     });
 
-    it('should apply both slot bounds from the popover', () => {
+    it('should apply each slot bound as its field is committed', () => {
         render(<HistoryFilterBar />);
 
         fireEvent.click(screen.getByRole('button', { name: /^Filters$/ }));
-        fireEvent.change(screen.getByPlaceholderText(/lower bound/i), { target: { value: '100' } });
-        fireEvent.change(screen.getByPlaceholderText(/upper bound/i), { target: { value: '500' } });
-        fireEvent.click(screen.getByRole('button', { name: /^Apply$/ }));
+        const lower = screen.getByPlaceholderText(/lower bound/i);
+        fireEvent.change(lower, { target: { value: '100' } });
+        fireEvent.blur(lower);
+        const upper = screen.getByPlaceholderText(/upper bound/i);
+        fireEvent.change(upper, { target: { value: '500' } });
+        fireEvent.keyDown(upper, { key: 'Enter' });
 
-        expect(replaceMock).toHaveBeenCalledTimes(1);
-        const [href] = replaceMock.mock.calls[0];
+        expect(replaceMock).toHaveBeenCalledTimes(2);
+        expect(replaceMock.mock.calls[0][0]).toBe('/address/testAddress?slot.gte=100');
+        const [href] = replaceMock.mock.calls[1];
         expect(href).toMatch(/slot\.gte=100/);
         expect(href).toMatch(/slot\.lte=500/);
     });
@@ -135,30 +173,53 @@ describe('HistoryFilterBar', () => {
         expect(href).toBe('/address/testAddress?cluster=devnet');
     });
 
-    it('should disable Apply and show an error when slot ≥ exceeds slot ≤', () => {
+    it('should not apply an inverted slot range and should say why', () => {
         render(<HistoryFilterBar />);
 
         fireEvent.click(screen.getByRole('button', { name: /^Filters$/ }));
         fireEvent.change(screen.getByPlaceholderText(/lower bound/i), { target: { value: '500' } });
-        fireEvent.change(screen.getByPlaceholderText(/upper bound/i), { target: { value: '100' } });
+        const upper = screen.getByPlaceholderText(/upper bound/i);
+        fireEvent.change(upper, { target: { value: '100' } });
+        fireEvent.blur(upper);
 
-        const apply = screen.getByRole('button', { name: /^Apply$/ });
-        expect(apply).toBeDisabled();
-        expect(screen.getByText(/Slot ≥ must be/)).toBeInTheDocument();
-
-        fireEvent.click(apply);
+        expect(screen.getByText(/lower bound must not exceed the upper bound/)).toBeInTheDocument();
         expect(replaceMock).not.toHaveBeenCalled();
     });
 
-    it('should apply the status select', () => {
+    it('should apply a status chip at once', () => {
         render(<HistoryFilterBar />);
 
         fireEvent.click(screen.getByRole('button', { name: /^Filters$/ }));
-        fireEvent.change(screen.getByLabelText('Status'), { target: { value: 'succeeded' } });
-        fireEvent.click(screen.getByRole('button', { name: /^Apply$/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Succeeded' }));
 
         const [href] = replaceMock.mock.calls[0];
-        expect(href).toMatch(/status=succeeded/);
+        expect(href).toBe('/address/testAddress?status=succeeded');
+    });
+
+    it('should keep both status chips picked in the URL while filtering by neither', () => {
+        setSearch('status=succeeded');
+        render(<HistoryFilterBar status="succeeded" />);
+
+        fireEvent.click(screen.getByRole('button', { name: /Edit filters/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Failed' }));
+
+        const [href] = replaceMock.mock.calls[0];
+        expect(new URLSearchParams(href.split('?')[1]).get('status')).toBe('succeeded,failed');
+        setSearch('status=succeeded,failed');
+        const { result } = renderHook(() => useHistoryFilters());
+        expect(result.current.status).toBeUndefined();
+    });
+
+    it('should clear one section via its Reset', () => {
+        setSearch('slot.gte=100&slot.lte=500&status=failed');
+        render(<HistoryFilterBar slot={{ gte: 100, lte: 500 }} status="failed" />);
+
+        fireEvent.click(screen.getByRole('button', { name: /Edit filters/ }));
+        const slotSection = screen.getByRole('region', { name: 'Slot' });
+        fireEvent.click(within(slotSection).getByRole('button', { name: 'Clear slot filter' }));
+
+        const [href] = replaceMock.mock.calls[0];
+        expect(href).toBe('/address/testAddress?status=failed');
     });
 
     it('should render a chip for the status filter', () => {
@@ -176,14 +237,22 @@ describe('HistoryFilterBar', () => {
         expect(href).toBe('/address/testAddress?slot.lte=200');
     });
 
-    it('should clear all filters via Clear all', () => {
+    it('should clear all filters via Reset all', () => {
         setSearch('slot.gte=100&slot.lte=500');
         render(<HistoryFilterBar slot={{ gte: 100, lte: 500 }} />);
 
         fireEvent.click(screen.getByRole('button', { name: /Edit filters/ }));
-        fireEvent.click(screen.getByRole('button', { name: /Clear all/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
 
         const [href] = replaceMock.mock.calls[0];
         expect(href).toBe('/address/testAddress');
     });
 });
+
+function renderWithoutGtfa() {
+    return render(
+        <MethodSupportContext.Provider value={{ markUnsupported: vi.fn(), supported: false }}>
+            <HistoryFilterBar address="4Nd1mBQtrMJVYVfKf2PJy9NZUZdTAsp7D4xWLs4gDB4T" />
+        </MethodSupportContext.Provider>,
+    );
+}

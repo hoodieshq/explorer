@@ -1,5 +1,6 @@
 'use client';
 
+import { cva, type VariantProps } from 'class-variance-authority';
 import { format, isValid } from 'date-fns';
 import * as React from 'react';
 import { type ChevronProps, type DayButtonProps, DayPicker } from 'react-day-picker';
@@ -8,7 +9,7 @@ import { ChevronLeft, ChevronRight } from 'react-feather';
 import { cn } from '@/app/components/shared/utils';
 
 // value: ISO datetime-local string "YYYY-MM-DDTHH:mm" or ""
-interface DateTimePickerProps {
+interface DateTimePickerProps extends VariantProps<typeof triggerVariants> {
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
@@ -114,6 +115,7 @@ export function DateTimePicker({
     onChange,
     placeholder = 'Pick a date',
     'aria-invalid': ariaInvalid,
+    size,
 }: DateTimePickerProps) {
     const [open, setOpen] = React.useState(false);
     const containerRef = React.useRef<HTMLDivElement>(null);
@@ -158,7 +160,7 @@ export function DateTimePicker({
                 onClick={() => setOpen(v => !v)}
                 aria-expanded={open}
                 className={cn(
-                    'flex h-9 w-full items-center rounded border border-solid px-4 font-mono text-xs',
+                    triggerVariants({ size }),
                     'border-outer-space-950 bg-heavy-metal-900',
                     'outline-none transition-colors',
                     'focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-neutral-900',
@@ -283,3 +285,10 @@ const DAY_PICKER_CLASS_NAMES = {
     weeks_before_exit: '',
     years_dropdown: '',
 };
+
+// The UI font at 14px, like the other filter fields; no Preflight here, so the button's family is inherited by hand.
+// `sm` is the 32px filter control, with `box-border` holding the height where no reset sets border-box (Storybook).
+const triggerVariants = cva('flex w-full items-center rounded border border-solid text-sm [font-family:inherit]', {
+    defaultVariants: { size: 'default' },
+    variants: { size: { default: 'h-9 px-4', sm: 'box-border h-8 px-3' } },
+});
