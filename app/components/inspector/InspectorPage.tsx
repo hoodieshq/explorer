@@ -654,7 +654,6 @@ function InspectorOverviewCard({
 
     const size = React.useMemo(() => transactionWireSize(raw), [raw]);
     const sizeLimit = transactionSizeLimit(raw);
-    // Only v1 declares resource limits. A v0 message with lookup tables cannot be parsed without its loaded addresses.
     const v1ResourceLimits = React.useMemo(() => {
         if (message.version !== 1) return undefined;
         try {
