@@ -1,12 +1,12 @@
 import type { TransactionVersion } from '@explorer/parsers/transaction';
+import { VersionedMessage } from '@solana/web3.js';
 import { render } from '@testing-library/react';
 import type { InstructionLogs } from '@utils/program-logs';
 import { describe, expect, it, vi } from 'vitest';
 
-import { createV1TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import { createWeb3TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
 import type { SimulationState } from '@/app/features/instruction-simulation/model/use-simulation';
 import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
-import { bridgeV1MessageBytes } from '@/app/shared/lib/v1-message-bridge';
 
 import { InspectorSimulationPanel } from '../InspectorSimulationPanel';
 
@@ -46,12 +46,11 @@ const DONE: SimulationState = {
 };
 
 describe('InspectorSimulationPanel', () => {
-    it('should pass the declared version to the CU profiling card, not the bridged message version', () => {
-        const { message } = bridgeV1MessageBytes(parseTransactionBytes(createV1TransactionBytes({})).messageBytes);
+    it('should pass its version prop to the CU profiling card', () => {
+        const message = VersionedMessage.deserialize(parseTransactionBytes(createWeb3TransactionBytes(0)).messageBytes);
 
         render(<InspectorSimulationPanel simulation={DONE} message={message} version={1} />);
 
-        expect(message.version).toBe(0);
         expect(BaseSimulatorCUProfilingCard.mock.lastCall?.[0]).toMatchObject({ transactionVersion: 1 });
     });
 });

@@ -1,5 +1,10 @@
 export { fetchRawTransaction } from './api/fetch-raw-transaction';
 export { fetchTransactionDetails } from './api/fetch-transaction-details';
+export {
+    type CompiledMessage,
+    parseMessageWithLookupTables,
+    type ParsedMessage,
+} from './api/parse-message-with-lookup-tables';
 export { adaptParsedTransaction } from './lib/adapt-parsed-transaction';
 export { encodeTransactionData, type EncodingFormat } from './lib/encoding';
 export { formatTransactionVersion } from './lib/format-transaction-version';

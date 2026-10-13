@@ -30,7 +30,7 @@ export function TxInstructionSurface({
     const rawInstructions = React.useMemo<RawInstructions>(
         () =>
             rawDetails?.status === FetchStatus.Fetched
-                ? { instructions: rawDetails.data?.raw?.transaction?.instructions, status: 'fetched' }
+                ? { instructions: rawDetails.data?.raw?.transaction.instructions, status: 'fetched' }
                 : { fetch: () => fetchRaw(signature), status: 'fetchable' },
         [fetchRaw, rawDetails, signature],
     );

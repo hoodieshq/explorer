@@ -5,7 +5,6 @@ import {
     createWeb3TransactionBytes,
 } from '@entities/transaction-data/__fixtures__/wire-transactions';
 import { fromRpcTransaction } from '@explorer/parsers/transaction';
-import { getTransactionDecoder } from '@solana/kit';
 import type { ParsedTransactionWithMeta } from '@solana/web3.js';
 import { PublicKey, SystemProgram, TransactionMessage, VersionedMessage } from '@solana/web3.js';
 import {
@@ -141,12 +140,12 @@ function createRawTransaction(bytes: Uint8Array): RawTransaction {
     return {
         message,
         messageBytes,
-        parsedTransaction: fromRpcTransaction({ transaction: [toBase64(bytes), 'base64'], version: 'legacy' }),
+        parsedTransaction: fromRpcTransaction({ transaction: [toBase64(bytes), 'base64'] }),
         serializedSize: bytes.length,
         signatures: [DEFAULT_SIGNATURE],
         slot: 372_654_321,
         transaction: TransactionMessage.decompile(message),
-        version: 'legacy',
+        version: message.version,
     };
 }
 
@@ -192,7 +191,7 @@ export const MOCK_V1_NO_CONFIG_TX = mockParsedTransactionDetails({
 });
 
 export const MOCK_RAW_V1_NO_CONFIG_TX = mockRawTransactionDetails({
-    raw: createRawV1Transaction(createV1TransactionBytes({})),
+    raw: createRawTransaction(createV1TransactionBytes({})),
 });
 
 export const MOCK_V1_TX = mockParsedTransactionDetails({
@@ -201,7 +200,7 @@ export const MOCK_V1_TX = mockParsedTransactionDetails({
 
 /** A v1 transaction declaring every resource limit with a distinct value, so a value in the wrong row shows. */
 export const MOCK_RAW_V1_TX = mockRawTransactionDetails({
-    raw: createRawV1Transaction(
+    raw: createRawTransaction(
         createV1TransactionBytes({
             computeUnitLimit: 8442,
             heapSize: 262_144,
@@ -210,15 +209,3 @@ export const MOCK_RAW_V1_TX = mockRawTransactionDetails({
         }),
     ),
 });
-
-// web3.js `VersionedMessage` cannot decode v1, so this skips the views `createRawTransaction` builds.
-function createRawV1Transaction(bytes: Uint8Array): RawTransaction {
-    return {
-        messageBytes: new Uint8Array(getTransactionDecoder().decode(bytes).messageBytes),
-        parsedTransaction: fromRpcTransaction({ transaction: [toBase64(bytes), 'base64'], version: 1 }),
-        serializedSize: bytes.length,
-        signatures: [DEFAULT_SIGNATURE],
-        slot: 372_654_321,
-        version: 1,
-    };
-}

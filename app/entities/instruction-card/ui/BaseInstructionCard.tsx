@@ -9,7 +9,7 @@ import { BaseTable } from '@/app/shared/ui/Table';
 import type { InstructionEvent } from '../model/events';
 import type { InstructionNode } from '../model/node';
 import type { RawSource } from '../model/raw-source';
-import { BaseRawDetails, RawDetailsUnavailable } from './BaseRawDetails';
+import { BaseRawDetails } from './BaseRawDetails';
 import { BaseRawParsedDetails } from './BaseRawParsedDetails';
 import { EventRows } from './EventRows';
 import { InstructionCardFrame } from './InstructionCardFrame';
@@ -75,7 +75,6 @@ export function BaseInstructionCard({
                     {'parsed' in ix ? (
                         <BaseRawParsedDetails ix={ix}>
                             {rawSource.kind === 'instruction' && <BaseRawDetails ix={rawSource.ix} />}
-                            {rawSource.kind === 'unavailable' && <RawDetailsUnavailable />}
                         </BaseRawParsedDetails>
                     ) : (
                         <BaseRawDetails ix={ix} />

@@ -1,10 +1,13 @@
 import {
     type Address,
+    type AddressesByLookupTableAddress,
     appendTransactionMessageInstruction,
     blockhash,
     compileTransaction,
     compileTransactionMessage,
+    compressTransactionMessageUsingAddressLookupTables,
     createTransactionMessage,
+    getCompiledTransactionMessageEncoder,
     getTransactionEncoder,
     type Instruction,
     pipe,
@@ -32,4 +35,15 @@ export function compileV0TransactionMessage(feePayer: Address, instruction: Inst
 export function createV0TransactionBytes(feePayer: Address, instruction: Instruction): Uint8Array {
     const transaction = compileTransaction(createV0TransactionMessage(feePayer, instruction));
     return new Uint8Array(getTransactionEncoder().encode(transaction));
+}
+export function createV0MessageBytes(
+    feePayer: Address,
+    instruction: Instruction,
+    lookupTables: AddressesByLookupTableAddress = {},
+): Uint8Array {
+    const message = compressTransactionMessageUsingAddressLookupTables(
+        createV0TransactionMessage(feePayer, instruction),
+        lookupTables,
+    );
+    return new Uint8Array(getCompiledTransactionMessageEncoder().encode(compileTransactionMessage(message)));
 }

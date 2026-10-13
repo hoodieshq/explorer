@@ -45,14 +45,6 @@ describe('BaseInstructionCard', () => {
         expect(await screen.findByText(/"maxSize": "100"/)).toBeInTheDocument();
     });
 
-    test('should say so when the accounts and hex data cannot be reconstructed', async () => {
-        renderCard({ rawSource: { kind: 'unavailable' } });
-
-        expect(
-            await screen.findByText(/Account list and hex data are not available for this transaction version/),
-        ).toBeInTheDocument();
-    });
-
     test('should fetch the raw instruction the first time the Raw view opens', async () => {
         const fetch = vi.fn();
         renderCard({ children: DECODED_ROW, rawSource: { fetch, kind: 'fetchable' } });
