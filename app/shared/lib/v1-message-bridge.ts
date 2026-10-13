@@ -13,14 +13,14 @@ import { MessageV0, PublicKey, VersionedTransaction } from '@solana/web3.js';
  * A web3.js view of a v1 compiled message.
  *
  * A v1 message is structurally a v0 message without address table lookups plus a config
- * section, so every field web3.js consumers read — header, static keys, instructions —
+ * section, so every field web3.js consumers read (header, static keys, instructions)
  * maps losslessly onto `MessageV0`. The one thing that cannot be synthesized is the wire
  * encoding: re-serializing through `MessageV0` would emit v0 bytes that are not the real
  * transaction. `serialize()` therefore returns the original v1 bytes, so signature
- * verification, simulation (`new VersionedTransaction(message)`), and cache fingerprints
+ * verification, simulation through {@link UnsignedV1WireTransaction}, and cache fingerprints
  * all operate on the bytes the network sees.
  *
- * The inherited `version` getter still reports `0`; carry the true version alongside this
+ * The inherited `version` getter reports `0`, so carry the true version alongside this
  * object rather than reading it off the message.
  *
  * `transactionConfig` carries the message-level resource limits, which `MessageV0` has nowhere to
@@ -50,7 +50,7 @@ export class V1MessageView extends MessageV0 {
  * resource limits, when any are set.
  *
  * Throws if the bytes are not a valid v1 compiled message.
- * A malformed config section reads as absent, so the message still renders.
+ * Throws `InvalidTransactionConfigError` if the config section is malformed.
  */
 export function bridgeV1MessageBytes(messageBytes: Uint8Array): {
     message: V1MessageView;
