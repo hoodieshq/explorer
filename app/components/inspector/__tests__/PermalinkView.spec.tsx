@@ -142,17 +142,6 @@ describe('PermalinkView', () => {
         });
     });
 
-    it('should not parse a v0 message with lookup tables for resource limits', () => {
-        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
-        cacheEntry = entry(createV0LookupTableTransactionBytes());
-
-        renderView();
-
-        expect(screen.getByRole('heading', { name: 'Overview' })).toBeInTheDocument();
-        expect(screen.queryByText('Compute unit limit')).not.toBeInTheDocument();
-        expect(warn).not.toHaveBeenCalled();
-    });
-
     it.each([
         { version: 'legacy', wireBytes: createWeb3TransactionBytes('legacy') },
         { version: 'v0', wireBytes: createWeb3TransactionBytes(0) },

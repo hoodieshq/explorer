@@ -1,5 +1,8 @@
 import { type Address, none } from '@solana/kit';
-import { getAddressLookupTableEncoder } from '@solana-program/address-lookup-table';
+import {
+    ADDRESS_LOOKUP_TABLE_PROGRAM_ADDRESS,
+    getAddressLookupTableEncoder,
+} from '@solana-program/address-lookup-table';
 
 import { toBase64 } from '@/app/shared/lib/bytes';
 
@@ -27,8 +30,6 @@ export const ALT_2_EXPECTED_ADDRESSES = [
     'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
 ];
 
-const ADDRESS_LOOKUP_TABLE_PROGRAM = 'AddressLookupTab1e1111111111111111111111111';
-
 /** Base64 account data of an active lookup table holding `addresses`. */
 export function encodeLookupTableData(addresses: Address[]): string {
     const data = getAddressLookupTableEncoder().encode({
@@ -48,7 +49,7 @@ export function lookupTableAccountInfo(base64Data: string) {
         data: [base64Data, 'base64'] as const,
         executable: false,
         lamports: 1_000_000n,
-        owner: ADDRESS_LOOKUP_TABLE_PROGRAM,
+        owner: ADDRESS_LOOKUP_TABLE_PROGRAM_ADDRESS,
         rentEpoch: 0n,
         space: 0n,
     };
