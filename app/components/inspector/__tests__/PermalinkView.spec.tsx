@@ -5,6 +5,7 @@ import { ClusterStatus } from '@utils/cluster';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
+    createV0LookupTableTransactionBytes,
     createV1TransactionBytes,
     createWeb3TransactionBytes,
 } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
@@ -30,9 +31,6 @@ vi.mock('next/navigation', () => import('@/app/__tests__/next-navigation'));
 // the part under test — renders without providers.
 vi.mock('@providers/accounts', () => ({
     useFetchAccountInfo: () => vi.fn(),
-}));
-vi.mock('@features/instruction-simulation', () => ({
-    SimulatorCard: () => <div data-testid="simulator-card" />,
 }));
 // LoadedView owns the simulation and builds a Connection eagerly; stub the hook so these overview-only
 // tests don't need a live cluster URL. Idle status keeps the token-balance rows and gated tabs off.
@@ -67,30 +65,21 @@ beforeEach(() => {
     clusterStatus = ClusterStatus.Connected;
 });
 afterEach(() => {
+    vi.clearAllMocks();
     vi.restoreAllMocks();
 });
 
 const props = { reset: () => {}, showTokenBalanceChanges: false, signature: 'sig' };
 const renderView = () => render(<PermalinkView {...props} />);
 
-function web3Entry(version: 'legacy' | 0) {
-    const wireBytes = createWeb3TransactionBytes(version);
+function entry(wireBytes: Uint8Array) {
     const { messageBytes } = parseTransactionBytes(wireBytes);
-    return {
-        entry: makeEntry({
-            message: VersionedMessage.deserialize(messageBytes),
-            messageBytes,
-            signatures: [],
-            version,
-        }),
-        wireBytes,
-    };
+    const message = VersionedMessage.deserialize(messageBytes);
+    return makeEntry({ message, messageBytes, signatures: [], version: message.version });
 }
 
-function v1Entry() {
-    const wireBytes = createV1TransactionBytes({});
-    const { messageBytes } = parseTransactionBytes(wireBytes);
-    return { entry: makeEntry({ messageBytes, signatures: [], version: 1 }), wireBytes };
+function rowValue(label: string): string | null | undefined {
+    return screen.getByText(label).nextElementSibling?.textContent;
 }
 
 describe('PermalinkView', () => {
@@ -119,20 +108,10 @@ describe('PermalinkView', () => {
     });
 
     it('should render a v1 transaction with its resource-limit rows', () => {
-        const { messageBytes } = parseTransactionBytes(
-            createV1TransactionBytes({ computeUnitLimit: 300_000, priorityFeeLamports: 50n }),
-        );
-        // No transactionConfig on the cache entry: the rows must come from decoding messageBytes,
-        // the same source every other entry path uses.
-        cacheEntry = makeEntry({
-            messageBytes,
-            signatures: [],
-            version: 1,
-        });
+        cacheEntry = entry(createV1TransactionBytes({ computeUnitLimit: 300_000, priorityFeeLamports: 50n }));
 
         renderView();
 
-        expect(screen.queryByText('The inspector does not support v1 transactions')).not.toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Overview' })).toBeInTheDocument();
         expect(screen.getByText('v1')).toBeInTheDocument();
         expect(screen.getByText('Compute unit limit')).toBeInTheDocument();
@@ -143,30 +122,55 @@ describe('PermalinkView', () => {
         expect(screen.queryByTestId('atl-card')).not.toBeInTheDocument();
     });
 
-    it('should keep the error card and warn with the cause when v1 bytes cannot be decoded', () => {
+    it('should keep the version row and hide the resource-limit rows when the v1 message fails to parse', () => {
         const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
+        const { messageBytes } = parseTransactionBytes(createV1TransactionBytes({ computeUnitLimit: 300_000 }));
+        messageBytes[2] = 1;
         cacheEntry = makeEntry({
-            messageBytes: new Uint8Array([0x81, 1, 2, 3]),
+            message: VersionedMessage.deserialize(messageBytes),
+            messageBytes,
             signatures: [],
             version: 1,
         });
 
         renderView();
 
-        expect(screen.getByText('The inspector does not support v1 transactions')).toBeInTheDocument();
-        expect(warn).toHaveBeenCalledWith('[inspector] Failed to decode v1 transaction', {
+        expect(screen.getByText('v1')).toBeInTheDocument();
+        expect(screen.queryByText('Compute unit limit')).not.toBeInTheDocument();
+        expect(warn).toHaveBeenCalledWith('[inspector] Failed to read v1 resource limits', {
             cause: expect.any(Error),
-            signature: 'sig',
         });
     });
 
+    it('should not parse a v0 message with lookup tables for resource limits', () => {
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
+        cacheEntry = entry(createV0LookupTableTransactionBytes());
+
+        renderView();
+
+        expect(screen.getByRole('heading', { name: 'Overview' })).toBeInTheDocument();
+        expect(screen.queryByText('Compute unit limit')).not.toBeInTheDocument();
+        expect(warn).not.toHaveBeenCalled();
+    });
+
     it.each([
-        { build: () => web3Entry('legacy'), limit: 1232, version: 'legacy' },
-        { build: () => web3Entry(0), limit: 1232, version: 'v0' },
-        { build: v1Entry, limit: 4096, version: 'v1' },
-    ])('should report the wire size against the $version size limit', ({ build, limit }) => {
-        const { entry, wireBytes } = build();
-        cacheEntry = entry;
+        { version: 'legacy', wireBytes: createWeb3TransactionBytes('legacy') },
+        { version: 'v0', wireBytes: createWeb3TransactionBytes(0) },
+        { version: 'v1', wireBytes: createV1TransactionBytes({}) },
+    ])('should show the $version transaction version', ({ version, wireBytes }) => {
+        cacheEntry = entry(wireBytes);
+
+        renderView();
+
+        expect(rowValue('Transaction Version')).toBe(version);
+    });
+
+    it.each([
+        { limit: 1232, version: 'legacy', wireBytes: createWeb3TransactionBytes('legacy') },
+        { limit: 1232, version: 'v0', wireBytes: createWeb3TransactionBytes(0) },
+        { limit: 4096, version: 'v1', wireBytes: createV1TransactionBytes({}) },
+    ])('should report the wire size against the $version size limit', ({ limit, wireBytes }) => {
+        cacheEntry = entry(wireBytes);
 
         renderView();
 

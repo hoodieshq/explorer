@@ -47,6 +47,7 @@ import { resolveInnerInstructions } from '@/app/entities/transaction-data';
 import { isTokenBatchInstruction, TokenBatchCard } from '@/app/features/token-batch';
 import { useAddressLookupTables } from '@/app/providers/accounts';
 import { FetchStatus } from '@/app/providers/cache';
+import { Logger } from '@/app/shared/lib/logger';
 
 import { ErrorCard } from '../common/ErrorCard';
 import { InspectorInstructionCard as InspectorInstructionCardComponent } from '../common/InspectorInstructionCard';
@@ -98,16 +99,22 @@ export function InstructionsSection({
     const decoded = useMemo(() => {
         if (!allLookupsResolved) return undefined;
         const addressLookupTableAccounts = lookupTables;
-        return {
-            innerByIndex: compiledInnerInstructions
-                ? resolveInnerInstructions(
-                      compiledInnerInstructions,
-                      message.getAccountKeys({ addressLookupTableAccounts }),
-                      message,
-                  )
-                : undefined,
-            instructions: TransactionMessage.decompile(message, { addressLookupTableAccounts }).instructions,
-        };
+        // web3.js deserializes a message whose header `decompile` rejects, so pasted input can fail here.
+        try {
+            return {
+                innerByIndex: compiledInnerInstructions
+                    ? resolveInnerInstructions(
+                          compiledInnerInstructions,
+                          message.getAccountKeys({ addressLookupTableAccounts }),
+                          message,
+                      )
+                    : undefined,
+                instructions: TransactionMessage.decompile(message, { addressLookupTableAccounts }).instructions,
+            };
+        } catch (cause) {
+            Logger.warn('[inspector] Failed to decode instructions', { cause });
+            return { error: cause instanceof Error ? cause.message : String(cause) };
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps -- `lookupTablesKey` replaces `lookupTables`, which is a new array every render
     }, [allLookupsResolved, compiledInnerInstructions, lookupTablesKey, message]);
 
@@ -123,6 +130,10 @@ export function InstructionsSection({
 
     if (!decoded) {
         return <LoadingCard />;
+    }
+
+    if ('error' in decoded) {
+        return <ErrorCard text={`Failed to decode the instructions: ${decoded.error}`} />;
     }
 
     return (

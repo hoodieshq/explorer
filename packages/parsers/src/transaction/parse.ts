@@ -126,8 +126,19 @@ export function fromRpcTransaction(response: RpcTransactionResponse): ParsedTran
     return fromCompiledMessage(compiled, { loadedAddresses, signatures: toBase58Signatures(decoded.signatures) });
 }
 
+/**
+ * Decodes message bytes into a compiled message.
+ * Ignores bytes past the end of the message.
+ * Throws package-specific errors.
+ */
+export function decodeCompiledMessage(
+    bytes: Uint8Array,
+): CompiledTransactionMessage & CompiledTransactionMessageWithLifetime {
+    return tryRunDecode(() => getCompiledTransactionMessageDecoder().decode(bytes));
+}
+
 function decodeMessageBytes(bytes: Uint8Array): CompiledTransactionMessage & CompiledTransactionMessageWithLifetime {
-    const compiled = tryRunDecode(() => getCompiledTransactionMessageDecoder().decode(bytes));
+    const compiled = decodeCompiledMessage(bytes);
 
     // The message decoder ignores trailing bytes and can decode a truncated message. A round trip detects both.
     const encoded = getCompiledTransactionMessageEncoder().encode(compiled);

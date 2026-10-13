@@ -32,6 +32,7 @@ export {
 } from './constants.js';
 export { derivePriorityFeeLamports, resolvePriorityFeeLamports } from './fees.js';
 export {
+    decodeCompiledMessage,
     fromCompiledMessage,
     fromMessageBytes,
     fromRpcTransaction,

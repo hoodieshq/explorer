@@ -1,6 +1,5 @@
-import { fromMessageBytes, isV1MessageBytes } from '@explorer/parsers/transaction';
 import { getBase58Encoder } from '@solana/kit';
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, VersionedMessage } from '@solana/web3.js';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import { AlertCircle } from 'react-feather';
@@ -8,13 +7,11 @@ import { AlertCircle } from 'react-feather';
 import { Button } from '@/app/components/shared/ui/button';
 import { Logger } from '@/app/shared/lib/logger';
 import { MIN_MESSAGE_LENGTH, parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
-import { bridgeV1MessageBytes } from '@/app/shared/lib/v1-message-bridge';
 import { Card, CardBody, CardFooter, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { FormControl } from '@/app/shared/ui/FormControl';
 import { TabsContent, TabsList, TabsTrigger } from '@/app/shared/ui/Tabs';
 
 import type { InspectorData, TransactionData } from './InspectorPage';
-import { deserializeLegacyOrV0Message } from './utils';
 
 const BASE58_ENCODER = getBase58Encoder();
 
@@ -22,21 +19,9 @@ export { MIN_MESSAGE_LENGTH };
 
 function getTransactionDataFromUserSuppliedBytes(bytes: Uint8Array): TransactionData {
     const { messageBytes, signatures } = parseTransactionBytes(bytes);
-    if (isV1MessageBytes(messageBytes)) {
-        const { message } = bridgeV1MessageBytes(messageBytes);
-        return {
-            message,
-            parsedTransaction: fromMessageBytes(messageBytes),
-            rawMessage: messageBytes,
-            version: 1,
-            ...(signatures ? { signatures } : undefined),
-        };
-    }
-    const message = deserializeLegacyOrV0Message(messageBytes);
     return {
-        message,
+        message: VersionedMessage.deserialize(messageBytes),
         rawMessage: messageBytes,
-        version: message.version,
         ...(signatures ? { signatures } : undefined),
     };
 }

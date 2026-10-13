@@ -11,6 +11,7 @@ import { readCell, renderWithProviders } from '@/app/__tests__/card-harness';
 import * as stubs from '@/app/__tests__/mock-stubs';
 import { createV1TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
 import { toBase64 } from '@/app/shared/lib/bytes';
+import { Logger } from '@/app/shared/lib/logger';
 import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
 import { instructionParserDispatcher } from '@/app/tx/instruction-parser-dispatcher';
 
@@ -156,6 +157,22 @@ describe('TransactionInspectorPage with a ?message= param', () => {
         // lookup-derived account badges appear.
         expect(screen.queryByText(ADDRESS_TABLE_LOOKUPS_CARD_TITLE)).toBeNull();
         expect(screen.queryByText('Address Table Lookup')).toBeNull();
+    });
+
+    test('should render the overview and an instructions error when the v1 header is invalid', async () => {
+        vi.spyOn(Logger, 'warn').mockImplementation(() => {});
+        const { messageBytes } = parseTransactionBytes(createV1TransactionBytes({}));
+        messageBytes[2] = 1;
+        setParam('message', encodeURIComponent(toBase64(messageBytes)));
+
+        renderPage({ transactions: false });
+
+        expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
+        expect(screen.getByText('v1')).toBeInTheDocument();
+        expect(screen.queryByText('Compute unit limit')).toBeNull();
+        expect(
+            await screen.findByText('Failed to decode the instructions: Message header is invalid'),
+        ).toBeInTheDocument();
     });
 
     test('should render a SystemProgram::CreateAccount instruction', async () => {

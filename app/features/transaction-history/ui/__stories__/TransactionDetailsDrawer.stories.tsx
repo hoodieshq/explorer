@@ -1,6 +1,7 @@
 import { createV1TransactionBytes } from '@entities/transaction-data/__fixtures__/wire-transactions';
 import { fromMessageBytes } from '@explorer/parsers/transaction';
 import { getTransactionDecoder } from '@solana/kit';
+import { TransactionMessage, VersionedMessage } from '@solana/web3.js';
 import { MockClusterProvider } from '@storybook-config/__mocks__/MockClusterProvider';
 import { MockTransactionsProvider } from '@storybook-config/__mocks__/MockTransactionsProvider';
 import { nextjsParameters } from '@storybook-config/decorators';
@@ -20,17 +21,19 @@ const BLOCK_TIME = 1_718_000_000;
 // A real v1 transaction, so the raw-data field shows a byte count and enables copy/download.
 const TRANSACTION_BYTES = createV1TransactionBytes({});
 const MESSAGE_BYTES = new Uint8Array(getTransactionDecoder().decode(TRANSACTION_BYTES).messageBytes);
+const MESSAGE = VersionedMessage.deserialize(MESSAGE_BYTES);
 
-// A fully fetched raw transaction. Only `messageBytes` is read by the drawer; the version-1 variant
-// is the cheapest valid `RawTransaction` (no web3.js message/transaction views required).
+// A fully fetched raw transaction. Only `messageBytes` is read by the drawer.
 const FETCHED: CacheEntry<Details> = {
     data: {
         raw: {
+            message: MESSAGE,
             messageBytes: MESSAGE_BYTES,
             parsedTransaction: fromMessageBytes(MESSAGE_BYTES),
             serializedSize: TRANSACTION_BYTES.length,
             signatures: [SIGNATURE],
             slot: SLOT,
+            transaction: TransactionMessage.decompile(MESSAGE),
             version: 1,
         },
     },
