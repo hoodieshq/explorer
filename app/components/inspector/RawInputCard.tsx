@@ -159,6 +159,21 @@ function TabInstructions({
                             focus={EXAMPLE_SQUADS_VAULT_TRANSACTION}
                         />
                     }
+                    // Squads' "Import base58 encoded tx" decodes the pasted text as a base58 transaction message, and
+                    // most tools print base64 (the Solana CLI only base64). The inspector's Download menu saves the
+                    // loaded message as base58, so the hint routes any source through it.
+                    note={
+                        <>
+                            {/* Same size and weight as the snippet group titles in the TypeScript tab. */}
+                            <h3 className="m-0 mb-2 text-sm font-medium text-white">
+                                Bringing a transaction into Squads?
+                            </h3>
+                            <p className="m-0">
+                                Squads imports base58 transaction messages. Paste the message here and check it. Then
+                                use Download → base58. Import the file content in the Squads TX Builder.
+                            </p>
+                        </>
+                    }
                 />
             ),
             id: 'squads',
@@ -223,17 +238,24 @@ function TabBody({
     encodingChoice,
     instruction,
     example,
+    note,
 }: {
     encodingChoice?: React.ReactNode;
     instruction: React.ReactNode;
     example: React.ReactNode;
+    /** A second case for the same tab, below the example so the instruction stays next to its own example. */
+    note?: React.ReactNode;
 }) {
     return (
         <div className="flex flex-col gap-6 pt-5">
             {/* The encoding choice sits on its own row above the instruction, so the content keeps one left edge. */}
             {encodingChoice}
-            <div className="text-sm leading-relaxed text-neutral-200">{instruction}</div>
-            {example}
+            {/* The example belongs to the instruction above it, so it sits at half the gap that separates the note. */}
+            <div className="flex flex-col gap-3">
+                <div className="text-sm leading-relaxed text-neutral-200">{instruction}</div>
+                {example}
+            </div>
+            {note && <div className="text-sm leading-relaxed text-neutral-200">{note}</div>}
         </div>
     );
 }

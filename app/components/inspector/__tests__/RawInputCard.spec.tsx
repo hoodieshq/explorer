@@ -141,6 +141,15 @@ describe('RawInput', () => {
         expect(replace).toHaveBeenCalledWith('/tx/inspector?encoding=base58', { scroll: false });
     });
 
+    test('should point Squads imports at the base58 transaction message', () => {
+        render(<RawInput setTransactionData={vi.fn()} />);
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Squads' }));
+
+        expect(screen.getByRole('heading', { name: 'Bringing a transaction into Squads?' })).toBeInTheDocument();
+        expect(screen.getByRole('tabpanel')).toHaveTextContent('Squads imports base58 transaction messages.');
+    });
+
     test('should offer no encoding switch on the CLI tab', () => {
         render(<RawInput setTransactionData={vi.fn()} />);
 
