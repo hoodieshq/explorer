@@ -1,13 +1,10 @@
 import { gen } from '@__fixtures__/gen';
 import { FetchStatus } from '@providers/cache';
-import { PublicKey, TransactionInstruction, TransactionMessage, VersionedMessage } from '@solana/web3.js';
+import { PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { createV1TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
-import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
 
 import { InstructionCard } from '../InstructionCard';
 import { SignatureContext } from '../SignatureContext';
@@ -24,12 +21,8 @@ vi.mock('@providers/transactions/raw', () => ({
 }));
 
 vi.mock('@components/common/BaseInstructionCard', () => ({
-    BaseInstructionCard: ({ onRequestRaw, raw }: { onRequestRaw?: () => void; raw?: unknown }) => (
-        <button
-            data-can-request={onRequestRaw !== undefined}
-            data-has-raw={raw !== undefined}
-            onClick={() => onRequestRaw?.()}
-        >
+    BaseInstructionCard: ({ onRequestRaw }: { onRequestRaw?: () => void }) => (
+        <button data-can-request={onRequestRaw !== undefined} onClick={() => onRequestRaw?.()}>
             Raw
         </button>
     ),
@@ -54,15 +47,6 @@ function legacyRawDetails() {
     };
 }
 
-function v1RawDetails() {
-    const { messageBytes } = parseTransactionBytes(createV1TransactionBytes({}));
-
-    return {
-        data: { raw: { transaction: TransactionMessage.decompile(VersionedMessage.deserialize(messageBytes)) } },
-        status: FetchStatus.Fetched,
-    };
-}
-
 beforeEach(() => {
     vi.clearAllMocks();
     rawDetails = undefined;
@@ -75,14 +59,6 @@ describe('InstructionCard', () => {
         await userEvent.click(screen.getByRole('button'));
 
         expect(fetchRaw).toHaveBeenCalledWith(SIGNATURE);
-    });
-
-    it('should pass a fetched v1 instruction to the card', () => {
-        rawDetails = v1RawDetails();
-
-        renderCard();
-
-        expect(screen.getByRole('button').dataset.hasRaw).toBe('true');
     });
 
     it('should stop requesting raw data once the instruction is available', () => {

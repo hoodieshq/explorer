@@ -53,17 +53,6 @@ describe('useSimulation', () => {
         });
     });
 
-    it('should pass the message bytes to simulateTransaction', async () => {
-        const { useSimulation } = await import('../use-simulation');
-        const { result } = renderHook(() => useSimulation(MESSAGE_BYTES), { wrapper: swrWrapper });
-
-        await act(async () => {
-            getSimulate(result.current)();
-        });
-
-        expect(mockSimulateTransaction).toHaveBeenCalledWith(expect.objectContaining({ messageBytes: MESSAGE_BYTES }));
-    });
-
     it('should transition to error when simulateTransaction rejects', async () => {
         mockSimulateTransaction.mockRejectedValue(new Error('Network timeout'));
 

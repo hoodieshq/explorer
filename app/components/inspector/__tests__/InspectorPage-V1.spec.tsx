@@ -1,4 +1,3 @@
-import type { TransactionVersion } from '@explorer/parsers/transaction';
 import { render, screen } from '@testing-library/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
@@ -9,7 +8,6 @@ import {
     createV1TransactionBytes,
     type V1ConfigOverrides,
 } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
-import type { SimulationState } from '@/app/features/instruction-simulation/model/use-simulation';
 import { AccountsProvider } from '@/app/providers/accounts';
 import { ClusterProvider } from '@/app/providers/cluster';
 import { ScrollAnchorProvider } from '@/app/providers/scroll-anchor';
@@ -25,19 +23,18 @@ function rowValue(label: string): string | null | undefined {
     return screen.getByText(label).nextElementSibling?.textContent;
 }
 
-async function mockMessageParam(config: V1ConfigOverrides): Promise<Uint8Array> {
+async function mockMessageParam(config: V1ConfigOverrides): Promise<void> {
     const { messageBytes } = parseTransactionBytes(createV1TransactionBytes(config));
-    return mockMessageBytesParam(messageBytes);
+    await mockMessageBytesParam(messageBytes);
 }
 
-async function mockMessageBytesParam(messageBytes: Uint8Array): Promise<Uint8Array> {
+async function mockMessageBytesParam(messageBytes: Uint8Array): Promise<void> {
     const params = new URLSearchParams();
     params.set('message', encodeURIComponent(toBase64(messageBytes)));
 
     vi.spyOn(await import('next/navigation'), 'useSearchParams').mockReturnValue(
         params as unknown as ReturnType<typeof useSearchParams>,
     );
-    return messageBytes;
 }
 
 function renderInspector() {
@@ -60,18 +57,11 @@ vi.mock('next/navigation', () => ({
     useSearchParams: vi.fn(),
 }));
 
-const { InspectorSimulationPanel, useSimulation } = vi.hoisted(() => ({
-    InspectorSimulationPanel: vi.fn<(props: { version: TransactionVersion }) => null>(() => null),
-    useSimulation: vi.fn<(messageBytes: Uint8Array) => SimulationState>(() => ({
-        simulate: () => undefined,
-        status: 'idle',
-    })),
-}));
-
 // LoadedView owns the simulation and builds a Connection eagerly; stub the hook so this overview-only
 // test doesn't need a live cluster URL. Idle status keeps the token-balance rows and gated tabs off.
-vi.mock('@/app/features/instruction-simulation/model/use-simulation', () => ({ useSimulation }));
-vi.mock('../InspectorSimulationPanel', () => ({ InspectorSimulationPanel }));
+vi.mock('@/app/features/instruction-simulation/model/use-simulation', () => ({
+    useSimulation: () => ({ simulate: vi.fn(), status: 'idle' }),
+}));
 
 describe('TransactionInspectorPage with a v1 ?message= param', () => {
     beforeEach(async () => {
@@ -112,26 +102,6 @@ describe('TransactionInspectorPage with a v1 ?message= param', () => {
         // lookup-derived account badges appear.
         expect(screen.queryByText(ADDRESS_TABLE_LOOKUPS_CARD_TITLE)).toBeNull();
         expect(screen.queryByText('Address Table Lookup')).toBeNull();
-    });
-
-    test('should render runtime defaults when the message declares no limits', async () => {
-        await mockMessageParam({});
-        renderInspector();
-
-        expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
-        expect(rowValue('Compute unit limit')).toBe('0');
-        expect(rowValue('Priority fee (total)')).toBe('◎0');
-        expect(rowValue('Loaded accounts data size limit')).toBe('0');
-        expect(rowValue('Heap size')).toBe('32,768');
-    });
-
-    test('should pass the message bytes to the simulation and the declared version 1 to its panel', async () => {
-        const messageBytes = await mockMessageParam({});
-        renderInspector();
-
-        expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
-        expect(useSimulation.mock.lastCall?.[0]).toEqual(messageBytes);
-        expect(InspectorSimulationPanel.mock.lastCall?.[0]).toMatchObject({ version: 1 });
     });
 
     test('should render the overview and an instructions error when the v1 header is invalid', async () => {

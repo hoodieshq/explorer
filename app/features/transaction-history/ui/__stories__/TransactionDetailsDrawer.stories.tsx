@@ -23,7 +23,6 @@ const TRANSACTION_BYTES = createV1TransactionBytes({});
 const MESSAGE_BYTES = new Uint8Array(getTransactionDecoder().decode(TRANSACTION_BYTES).messageBytes);
 const MESSAGE = VersionedMessage.deserialize(MESSAGE_BYTES);
 
-// A fully fetched raw transaction. Only `messageBytes` is read by the drawer.
 const FETCHED: CacheEntry<Details> = {
     data: {
         raw: {
