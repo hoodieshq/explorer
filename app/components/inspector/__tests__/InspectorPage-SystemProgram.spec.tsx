@@ -167,7 +167,7 @@ describe("TransactionInspectorPage with SystemProgram' instructions", () => {
 
         // Wait for initial and temporary elements to disappear separately
         await waitForTimeout(() => {
-            expect(screen.queryByText(/Inspector Input/i)).toBeNull();
+            expect(screen.queryByLabelText(/Inspector input/i)).toBeNull();
         });
         await waitForTimeout(() => {
             expect(screen.queryByText(/Loading/i)).toBeNull();
@@ -209,7 +209,7 @@ describe("TransactionInspectorPage with SystemProgram' instructions", () => {
 
         // Wait for initial and temporary elements to disappear separately
         await waitForTimeout(() => {
-            expect(screen.queryByText(/Inspector Input/i)).toBeNull();
+            expect(screen.queryByLabelText(/Inspector input/i)).toBeNull();
         });
         await waitForTimeout(() => {
             expect(screen.queryByText(/Loading/i)).toBeNull();
@@ -252,7 +252,7 @@ describe("TransactionInspectorPage with SystemProgram' instructions", () => {
 
         // Wait for initial and temporary elements to disappear separately
         await waitForTimeout(() => {
-            expect(screen.queryByText(/Inspector Input/i)).toBeNull();
+            expect(screen.queryByLabelText(/Inspector input/i)).toBeNull();
         });
         await waitForTimeout(() => {
             expect(screen.queryByText(/Loading/i)).toBeNull();
@@ -290,7 +290,7 @@ describe("TransactionInspectorPage with SystemProgram' instructions", () => {
 
         // Wait for initial and temporary elements to disappear separately
         await waitForTimeout(() => {
-            expect(screen.queryByText(/Inspector Input/i)).toBeNull();
+            expect(screen.queryByLabelText(/Inspector input/i)).toBeNull();
         });
 
         // Wait for the proper card to be rendered to prevent failing upon `Loading`
@@ -326,7 +326,7 @@ describe("TransactionInspectorPage with SystemProgram' instructions", () => {
 
         // Wait for initial and temporary elements to disappear separately
         await waitForTimeout(() => {
-            expect(screen.queryByText(/Inspector Input/i)).toBeNull();
+            expect(screen.queryByLabelText(/Inspector input/i)).toBeNull();
         });
         await waitForTimeout(() => {
             expect(screen.queryByText(/Loading/i)).toBeNull();
@@ -365,7 +365,7 @@ describe("TransactionInspectorPage with SystemProgram' instructions", () => {
 
         // Wait for initial and temporary elements to disappear separately
         await waitForTimeout(() => {
-            expect(screen.queryByText(/Inspector Input/i)).toBeNull();
+            expect(screen.queryByLabelText(/Inspector input/i)).toBeNull();
         });
         await waitForTimeout(() => {
             expect(screen.queryByText(/Loading/i)).toBeNull();
@@ -403,7 +403,7 @@ describe("TransactionInspectorPage with SystemProgram' instructions", () => {
 
         // Wait for initial and temporary elements to disappear separately
         await waitForTimeout(() => {
-            expect(screen.queryByText(/Inspector Input/i)).toBeNull();
+            expect(screen.queryByLabelText(/Inspector input/i)).toBeNull();
         });
         await waitForTimeout(() => {
             expect(screen.queryByText(/Loading/i)).toBeNull();
@@ -443,7 +443,7 @@ describe("TransactionInspectorPage with SystemProgram' instructions", () => {
 
         // Wait for initial and temporary elements to disappear separately
         await waitForTimeout(() => {
-            expect(screen.queryByText(/Inspector Input/i)).toBeNull();
+            expect(screen.queryByLabelText(/Inspector input/i)).toBeNull();
         });
         await waitForTimeout(() => {
             expect(screen.queryByText(/Loading/i)).toBeNull();
@@ -482,7 +482,7 @@ describe("TransactionInspectorPage with SystemProgram' instructions", () => {
 
         // Wait for initial and temporary elements to disappear separately
         await waitForTimeout(() => {
-            expect(screen.queryByText(/Inspector Input/i)).toBeNull();
+            expect(screen.queryByLabelText(/Inspector input/i)).toBeNull();
         });
         await waitForTimeout(() => {
             expect(screen.queryByText(/Loading/i)).toBeNull();

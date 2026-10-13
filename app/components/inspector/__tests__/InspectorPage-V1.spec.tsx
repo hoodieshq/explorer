@@ -71,7 +71,7 @@ describe('TransactionInspectorPage with a v1 ?message= param', () => {
         );
 
         expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
-        expect(screen.queryByText('Inspector Input')).toBeNull();
+        expect(screen.queryByLabelText('Inspector input')).toBeNull();
         expect(screen.getByText('v1')).toBeInTheDocument();
         expect(screen.getByText('Compute unit limit')).toBeInTheDocument();
         expect(screen.getByText('300,000')).toBeInTheDocument();
