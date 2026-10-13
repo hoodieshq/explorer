@@ -31,6 +31,7 @@ import { generateTokenBalanceRows, TokenBalancesCardInner } from '@/app/features
 import { useCluster } from '@/app/providers/cluster';
 import { DownloadDropdown } from '@/app/shared/components/DownloadDropdown';
 import { toBase64 } from '@/app/shared/lib/bytes';
+import { Logger } from '@/app/shared/lib/logger';
 import { useBreakpoint } from '@/app/shared/lib/use-breakpoint';
 import { bridgeV1MessageBytes, type V1MessageView } from '@/app/shared/lib/v1-message-bridge';
 import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
@@ -513,10 +514,11 @@ export function PermalinkView({
                 message: bridgeV1MessageBytes(transaction.messageBytes).message,
                 parsedTransaction: fromMessageBytes(transaction.messageBytes),
             };
-        } catch {
+        } catch (cause) {
+            Logger.warn('[inspector] Failed to decode v1 transaction', { cause, signature });
             return undefined;
         }
-    }, [transaction]);
+    }, [transaction, signature]);
 
     if (!details || details.status === FetchStatus.Fetching) {
         return <LoadingCard />;

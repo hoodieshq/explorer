@@ -99,6 +99,21 @@ describe('formatInstructionLogs', () => {
             expect(result.every(r => (r.scheduledUnits ?? 0) > 0)).toBe(true);
         });
 
+        it.each([['legacy'], [0], [undefined]] as const)(
+            'should carry the schedule reserve for transaction version %s',
+            transactionVersion => {
+                const result = formatInstructionLogs({
+                    cluster: Cluster.MainnetBeta,
+                    epoch: 0n,
+                    instructionLogs: [mockInstructionLog(150)],
+                    instructions: [mockInstruction(TOKEN_PLACEHOLDER)],
+                    transactionVersion,
+                });
+
+                expect(result[0].scheduledUnits).toBe(DEFAULT_RESERVED_CU);
+            },
+        );
+
         it('should report 0 default units for a program that is not a builtin', () => {
             const instructions = [mockInstruction(UNKNOWN_PLACEHOLDER)];
             const instructionLogs = [mockInstructionLog(0)];

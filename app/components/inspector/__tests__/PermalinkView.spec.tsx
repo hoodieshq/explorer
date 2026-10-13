@@ -8,6 +8,7 @@ import {
     createV1TransactionBytes,
     createWeb3TransactionBytes,
 } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import { Logger } from '@/app/shared/lib/logger';
 import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
 
 import { PermalinkView } from '../InspectorPage';
@@ -142,7 +143,8 @@ describe('PermalinkView', () => {
         expect(screen.queryByTestId('atl-card')).not.toBeInTheDocument();
     });
 
-    it('should keep the error card when v1 bytes cannot be decoded', () => {
+    it('should keep the error card and warn with the cause when v1 bytes cannot be decoded', () => {
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
         cacheEntry = makeEntry({
             messageBytes: new Uint8Array([0x81, 1, 2, 3]),
             signatures: [],
@@ -152,6 +154,10 @@ describe('PermalinkView', () => {
         renderView();
 
         expect(screen.getByText('The inspector does not support v1 transactions')).toBeInTheDocument();
+        expect(warn).toHaveBeenCalledWith('[inspector] Failed to decode v1 transaction', {
+            cause: expect.any(Error),
+            signature: 'sig',
+        });
     });
 
     it.each([

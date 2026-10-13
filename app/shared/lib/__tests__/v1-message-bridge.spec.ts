@@ -1,3 +1,4 @@
+import { InvalidTransactionConfigError } from '@explorer/parsers/transaction';
 import { getTransactionDecoder } from '@solana/kit';
 import { PublicKey } from '@solana/web3.js';
 import { describe, expect, it } from 'vitest';
@@ -73,6 +74,13 @@ describe('bridgeV1MessageBytes', () => {
 
     it('should return no config when the message sets no limits', () => {
         expect(bridgeV1MessageBytes(v1MessageBytes()).transactionConfig).toBeUndefined();
+    });
+
+    it('should throw on a config mask with an unknown bit', () => {
+        const messageBytes = v1MessageBytes();
+        messageBytes[4] |= 0x20;
+
+        expect(() => bridgeV1MessageBytes(messageBytes)).toThrow(InvalidTransactionConfigError);
     });
 
     it('should throw on non-v1 message bytes', () => {
