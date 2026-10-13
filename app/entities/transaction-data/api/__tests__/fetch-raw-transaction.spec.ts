@@ -89,7 +89,7 @@ describe('fetchRawTransaction', () => {
         await expect(fetchRawTransaction(URL, SIGNATURE)).resolves.toBeNull();
     });
 
-    it('should expose a v1 transaction as bytes and its declared config, without a web3.js view', async () => {
+    it('should expose the bytes and declared config of a v1 transaction', async () => {
         const bytes = createV1TransactionBytes({ computeUnitLimit: 8442, priorityFeeLamports: 10_000n });
         respondWith(transactionResult(bytes));
 
@@ -100,23 +100,37 @@ describe('fetchRawTransaction', () => {
             config: { computeUnitLimit: 8442, priorityFeeLamports: 10_000n },
             version: 1,
         });
-        expect(raw?.message).toBeUndefined();
-        expect(raw?.transaction).toBeUndefined();
         expect(bytes.subarray(0, raw?.messageBytes.length)).toEqual(raw?.messageBytes);
     });
 
-    it.each(['legacy' as const, 0 as const])(
+    it.each(['legacy' as const, 0 as const, 1 as const])(
         'should decode a %s transaction into the web3.js views the inspector renders',
         async version => {
-            respondWith(transactionResult(createWeb3TransactionBytes(version), null, version));
+            const bytes = version === 1 ? createV1TransactionBytes({}) : createWeb3TransactionBytes(version);
+            respondWith(transactionResult(bytes, null, version));
 
             const raw = await fetchRawTransaction(URL, SIGNATURE);
 
             expect(raw?.version).toBe(version);
-            expect(raw?.message?.staticAccountKeys[0].toBase58()).toBe(FEE_PAYER);
-            expect(raw?.transaction?.instructions).toHaveLength(1);
+            expect(raw?.message.version).toBe(version);
+            expect(raw?.message.staticAccountKeys[0].toBase58()).toBe(FEE_PAYER);
+            expect(raw?.transaction.instructions).toHaveLength(1);
         },
     );
+
+    it('should decode a v1 transaction whose response reports empty loaded addresses', async () => {
+        respondWith(
+            transactionResult(createV1TransactionBytes({}), {
+                loadedAddresses: { readonly: [], writable: [] },
+                postBalances: [],
+                preBalances: [],
+            }),
+        );
+
+        const raw = await fetchRawTransaction(URL, SIGNATURE);
+
+        expect(raw?.transaction.instructions).toHaveLength(1);
+    });
 
     it.each(['legacy' as const, 0 as const, 1 as const])(
         'should report the wire size of a %s transaction, signatures included',

@@ -16,9 +16,7 @@ import type { RawTransaction } from '../model/types';
  * Fetches a transaction's wire bytes and metadata for the inspector and the download button.
  *
  * `base64` encoding rather than `json` so the bytes are the ones the network holds: they are what
- * the download button writes, and the only representation a v1 transaction has here — web3.js
- * `VersionedMessage` tops out at v0, so `message` and `transaction` are populated for legacy and
- * v0 only.
+ * the download button writes.
  */
 export async function fetchRawTransaction(
     url: string,
@@ -72,10 +70,6 @@ export async function fetchRawTransaction(
         signatures,
         slot: Number(response.slot),
     };
-
-    if (compiledMessage.version === 1) {
-        return { ...base, version: 1 };
-    }
 
     return {
         ...base,

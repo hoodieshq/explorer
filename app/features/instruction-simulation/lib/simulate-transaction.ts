@@ -1,26 +1,32 @@
 import type { SolanaRpc } from '@entities/cluster';
-import type { Address, Base64EncodedWireTransaction } from '@solana/kit';
+import { type CompiledMessage, parseMessageWithLookupTables } from '@entities/transaction-data';
+import type { ParsedTransaction, TransactionVersion } from '@explorer/parsers/transaction';
+import {
+    type Address,
+    type Base64EncodedWireTransaction,
+    getCompiledTransactionMessageEncoder,
+    getTransactionEncoder,
+    SignaturesMap,
+    type TransactionMessageBytes,
+} from '@solana/kit';
 import type {
     AccountInfo,
     ParsedAccountData,
     SimulatedTransactionAccountInfo,
     TransactionError,
-    VersionedMessage,
 } from '@solana/web3.js';
-import { PublicKey, VersionedTransaction } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import type { Cluster } from '@utils/cluster';
 import { type InstructionLogs, parseProgramLogs } from '@utils/program-logs';
 
 import { withNumbersInsteadOfBigInts } from '@/app/shared/lib/bigint-to-number';
 import { toBase64 } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
-import { UnsignedV1WireTransaction, type V1MessageView } from '@/app/shared/lib/v1-message-bridge';
 import { toKitAddress, toLegacyPublicKey } from '@/app/shared/lib/web3js-compat';
 
 import { buildTokenBalances, type TokenBalanceData } from './build-token-balances';
 import { computeSolBalanceChanges } from './compute-sol-balance-changes';
 import { getMintDecimals } from './get-mint-decimals';
-import { resolveAddressLookupTables } from './resolve-address-lookup-tables';
 import { ENABLE_TX_V1_FEATURE, isTxV1Active } from './tx-v1-feature';
 import type { SolBalanceChange } from './types';
 
@@ -37,13 +43,9 @@ export type SimulationResult = {
     unitsConsumed: number | undefined;
 };
 
-/** A bridged v1 message reports version 0 from its own getter, so the wire version travels beside it. */
-export type SimulationInput =
-    { version: 1; message: V1MessageView } | { version: 'legacy' | 0; message: VersionedMessage };
-
 type SimulateOptions = {
     rpc: SolanaRpc;
-    transaction: SimulationInput;
+    messageBytes: Uint8Array;
     cluster: Cluster;
     accountBalances?: { preBalances: number[]; postBalances: number[] };
 };
@@ -54,13 +56,15 @@ type SimulateOptions = {
  */
 export async function simulateTransaction({
     rpc,
-    transaction,
+    messageBytes,
     cluster,
     accountBalances,
 }: SimulateOptions): Promise<SimulationResult> {
+    const { compiled, transaction } = await parseMessageWithLookupTables(rpc, messageBytes);
+
     let raw;
     try {
-        raw = await runSimulation(rpc, transaction);
+        raw = await runSimulation(rpc, compiled, transaction);
     } catch (cause) {
         throw (await inactiveV1GateError(rpc, transaction.version, cause)) ?? cause;
     }
@@ -79,7 +83,7 @@ export async function simulateTransaction({
     if (raw.simResult.err === MAX_LOADED_ACCOUNTS_DATA_SIZE_EXCEEDED && transaction.version === 1) {
         const explained = await explainLoadedAccountsDataSize(
             rpc,
-            transaction.message,
+            transaction.config?.loadedAccountsDataSizeLimit,
             raw.accountKeys,
             raw.parsedAccountsPre,
         );
@@ -107,7 +111,7 @@ const UNSUPPORTED_VERSION = 'UnsupportedVersion';
  */
 async function inactiveV1GateError(
     rpc: SolanaRpc,
-    version: SimulationInput['version'],
+    version: TransactionVersion,
     cause?: unknown,
 ): Promise<Error | undefined> {
     if (version !== 1) {
@@ -142,28 +146,27 @@ type RawSimulation = {
 };
 
 /**
- * Execute the RPC calls: resolve lookup tables, fetch pre-simulation account
- * state, and run the simulation. Returns raw data for interpretation.
+ * Execute the RPC calls: fetch pre-simulation account state and run the simulation.
+ * Returns raw data for interpretation.
  */
-async function runSimulation(rpc: SolanaRpc, transaction: SimulationInput): Promise<RawSimulation> {
-    const { message } = transaction;
-    const lookupTables = await resolveAddressLookupTables(rpc, message);
-    const accountKeys = message.getAccountKeys({ addressLookupTableAccounts: lookupTables }).keySegments().flat();
-    const addresses = accountKeys.map(key => toKitAddress(key));
+async function runSimulation(
+    rpc: SolanaRpc,
+    compiled: CompiledMessage,
+    transaction: ParsedTransaction,
+): Promise<RawSimulation> {
+    const addresses = transaction.accounts.map(account => account.address);
+    const accountKeys = addresses.map(address => toLegacyPublicKey(address));
 
     const [parsedAccountsPre, epochInfo] = await Promise.all([
         getMultipleParsedAccounts(rpc, addresses),
         rpc.getEpochInfo({ commitment: 'confirmed' }).send(),
     ]);
 
-    // A v1 message must be sent in the v1 wire envelope (message first); the stock
-    // VersionedTransaction envelope is signatures-first and nodes reject it for v1.
-    const wireTransaction =
-        transaction.version === 1
-            ? new UnsignedV1WireTransaction(transaction.message)
-            : new VersionedTransaction(transaction.message);
+    // The decoder ignores bytes past the end of the message, and a node rejects them. Re-encoding drops them.
+    const messageBytes = getCompiledTransactionMessageEncoder().encode(compiled) as TransactionMessageBytes;
+    const wireTransaction = encodeUnsignedTransaction(messageBytes, transaction);
     const { value: simResult } = await rpc
-        .simulateTransaction(toBase64(wireTransaction.serialize()) as Base64EncodedWireTransaction, {
+        .simulateTransaction(toBase64(wireTransaction) as Base64EncodedWireTransaction, {
             accounts: {
                 addresses,
                 encoding: 'base64',
@@ -200,6 +203,17 @@ async function runSimulation(rpc: SolanaRpc, transaction: SimulationInput): Prom
                     : undefined,
         },
     };
+}
+
+/** kit's encoder picks the envelope from the message's version byte, so legacy, v0 and v1 need no branch here. */
+function encodeUnsignedTransaction(messageBytes: TransactionMessageBytes, transaction: ParsedTransaction): Uint8Array {
+    const signers = transaction.accounts.slice(0, transaction.numSignerAccounts);
+    const signatures: SignaturesMap = Object.fromEntries(
+        // eslint-disable-next-line unicorn/no-null -- kit encodes a null signature as a zero-filled slot
+        signers.map(signer => [signer.address, null]),
+    );
+
+    return new Uint8Array(getTransactionEncoder().encode({ messageBytes, signatures }));
 }
 
 type KitParsedAccount = {
@@ -336,7 +350,7 @@ const UPGRADEABLE_LOADER_ID = new PublicKey('BPFLoaderUpgradeab1e111111111111111
  */
 async function explainLoadedAccountsDataSize(
     rpc: SolanaRpc,
-    message: V1MessageView,
+    limit: number | undefined,
     accountKeys: PublicKey[],
     parsedAccountsPre: (AccountInfo<ParsedAccountData | Buffer> | undefined)[],
 ): Promise<string | undefined> {
@@ -354,7 +368,6 @@ async function explainLoadedAccountsDataSize(
     const loadedAccounts = [...messageAccounts, ...programDataAccounts];
     const dataSize = loadedAccounts.reduce((total, account) => total + accountDataSize(account), 0);
     const loadedSize = dataSize + loadedAccounts.length * ACCOUNT_METADATA_SIZE;
-    const limit = message.transactionConfig?.loadedAccountsDataSizeLimit;
 
     const accountCount = `${loadedAccounts.length} account${loadedAccounts.length === 1 ? '' : 's'}`;
     const fitsUnderLimit = limit !== undefined && loadedSize <= limit;

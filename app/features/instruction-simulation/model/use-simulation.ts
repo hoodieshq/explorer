@@ -3,16 +3,13 @@
 import { getRpc } from '@entities/cluster';
 import { sha256 } from '@noble/hashes/sha256';
 import { useCluster } from '@providers/cluster';
-import { type VersionedMessage } from '@solana/web3.js';
 import { useCallback, useMemo } from 'react';
 import useSWRMutation from 'swr/mutation';
 
 import { toHex } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 
-import { simulateTransaction, type SimulationInput, type SimulationResult } from '../lib/simulate-transaction';
-
-export type { SimulationInput };
+import { simulateTransaction, type SimulationResult } from '../lib/simulate-transaction';
 
 export type SimulationState =
     | { status: 'idle'; simulate: () => void }
@@ -23,17 +20,17 @@ export type SimulationState =
 type AccountBalances = { preBalances: number[]; postBalances: number[] };
 
 type SimulationArg = {
-    transaction: SimulationInput;
+    messageBytes: Uint8Array;
     cluster: ReturnType<typeof useCluster>['cluster'];
     accountBalances: AccountBalances | undefined;
 };
 
-export function useSimulation(transaction: SimulationInput, accountBalances?: AccountBalances): SimulationState {
+export function useSimulation(messageBytes: Uint8Array, accountBalances?: AccountBalances): SimulationState {
     const { cluster, url } = useCluster();
 
     // Fingerprint the message so the SWR key changes when the transaction changes,
     // preventing stale cached data from flashing for a different transaction.
-    const messageFingerprint = useMemo(() => messageToFingerprint(transaction.message), [transaction.message]);
+    const messageFingerprint = useMemo(() => toHex(sha256(messageBytes)), [messageBytes]);
 
     const { trigger, data, error, isMutating } = useSWRMutation(
         ['simulate', url, messageFingerprint],
@@ -41,8 +38,8 @@ export function useSimulation(transaction: SimulationInput, accountBalances?: Ac
             simulateTransaction({
                 accountBalances: arg.accountBalances,
                 cluster: arg.cluster,
+                messageBytes: arg.messageBytes,
                 rpc: getRpc(url),
-                transaction: arg.transaction,
             }),
         {
             onError: (cause: unknown) => {
@@ -53,8 +50,8 @@ export function useSimulation(transaction: SimulationInput, accountBalances?: Ac
     );
 
     const simulate = useCallback(
-        () => void trigger({ accountBalances, cluster, transaction }),
-        [trigger, accountBalances, cluster, transaction],
+        () => void trigger({ accountBalances, cluster, messageBytes }),
+        [trigger, accountBalances, cluster, messageBytes],
     );
 
     if (isMutating) return { status: 'simulating' };
@@ -76,12 +73,4 @@ export function useSimulation(transaction: SimulationInput, accountBalances?: Ac
     }
 
     return { simulate, status: 'idle' };
-}
-
-/**
- * Derive a short hex fingerprint from a VersionedMessage for use as a cache key.
- * Hashes the raw key bytes to keep the key compact regardless of account count.
- */
-function messageToFingerprint(message: VersionedMessage): string {
-    return toHex(sha256(Uint8Array.from(message.serialize())));
 }

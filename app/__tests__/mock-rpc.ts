@@ -2,6 +2,8 @@ import { vi } from 'vitest';
 
 import { gen } from '@/app/__fixtures__/gen';
 import { GENESIS_HASHES } from '@/app/entities/chain-id';
+import type { SolanaRpc } from '@/app/entities/cluster';
+import type { lookupTableAccountInfo } from '@/app/fixtures/address-lookup-tables';
 import type { ClusterInfo } from '@/app/providers/cluster';
 import type { EpochSchedule } from '@/app/utils/epoch-schedule';
 
@@ -68,3 +70,11 @@ export const mockSolanaRpc = (
         }),
     }),
 });
+
+/** A kit RPC `getMultipleAccounts`. */
+export const mockLookupTableRpc = (accounts: (ReturnType<typeof lookupTableAccountInfo> | null)[]): SolanaRpc =>
+    ({
+        getMultipleAccounts: vi.fn().mockReturnValue({
+            send: vi.fn().mockResolvedValue({ value: accounts }),
+        }),
+    }) as unknown as SolanaRpc;

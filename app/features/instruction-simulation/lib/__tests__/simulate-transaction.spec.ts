@@ -1,11 +1,7 @@
+import { createV0MessageBytes } from '@__fixtures__/transaction-message';
 import type { SolanaRpc } from '@entities/cluster';
-import {
-    type AddressLookupTableAccount,
-    Keypair,
-    PublicKey,
-    type VersionedMessage,
-    VersionedTransaction,
-} from '@solana/web3.js';
+import { AccountRole } from '@solana/kit';
+import { Keypair, PublicKey } from '@solana/web3.js';
 import { SYSTEM_PROGRAM_ADDRESS } from '@solana-program/system';
 import { TOKEN_PROGRAM_ADDRESS } from '@solana-program/token';
 import { Cluster } from '@utils/cluster';
@@ -13,39 +9,22 @@ import type { InstructionLogs } from '@utils/program-logs';
 import BN from 'bn.js';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createV1TransactionBytes, RECIPIENT } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
-import { alloc, toBase64, writeU64LE, writeUint32LE } from '@/app/shared/lib/bytes';
+import {
+    createV1TransactionBytes,
+    createWeb3TransactionBytes,
+    RECIPIENT,
+} from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import { encodeLookupTableData, lookupTableAccountInfo } from '@/app/fixtures/address-lookup-tables';
+import { alloc, concat, toBase64, writeU64LE, writeUint32LE } from '@/app/shared/lib/bytes';
 import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
-import { bridgeV1MessageBytes } from '@/app/shared/lib/v1-message-bridge';
 import { toKitAddress } from '@/app/shared/lib/web3js-compat';
-
-// Mock VersionedTransaction so we don't need a real message header
-vi.mock('@solana/web3.js', async () => {
-    const actual = await vi.importActual('@solana/web3.js');
-    return {
-        ...actual,
-        VersionedTransaction: vi.fn().mockImplementation(function (msg: unknown) {
-            return { message: msg, serialize: () => new Uint8Array(0) };
-        }),
-    };
-});
 
 const mockParseProgramLogs = vi.fn();
 vi.mock('@utils/program-logs', () => ({
     parseProgramLogs: (...args: unknown[]) => mockParseProgramLogs(...args),
 }));
 
-const { UnsignedV1WireTransaction } = vi.hoisted(() => ({
-    UnsignedV1WireTransaction: vi.fn().mockImplementation(function () {
-        return { serialize: () => new Uint8Array(0) };
-    }),
-}));
-vi.mock('@/app/shared/lib/v1-message-bridge', async importOriginal => ({
-    ...(await importOriginal<typeof import('@/app/shared/lib/v1-message-bridge')>()),
-    UnsignedV1WireTransaction,
-}));
-
-import { simulateTransaction, type SimulationInput } from '../simulate-transaction';
+import { simulateTransaction } from '../simulate-transaction';
 
 const ACCOUNT_KEY_1 = Keypair.generate().publicKey;
 // Intentionally the Token program — this key doubles as an account key and a program owner
@@ -223,48 +202,27 @@ describe('simulateTransaction', () => {
     it('should resolve address lookup tables before simulation', async () => {
         const lookupTableKey = Keypair.generate().publicKey;
         const lookupAddress = Keypair.generate().publicKey;
-        const message = createMockMessage({
-            addressTableLookups: [{ accountKey: lookupTableKey, readonlyIndexes: [], writableIndexes: [0] }],
-        });
-
-        // Manually encode the lookup table binary format:
-        // 4 bytes type, 8 bytes deactivation slot, 4+1 bytes padding, 1 byte authority option(0),
-        // then 32-byte addresses
-        const buf = alloc(56 + 32);
-        const view = new DataView(buf.buffer);
-        // Type discriminator (u32 LE) = 1
-        writeUint32LE(buf, 1, 0);
-        // Deactivation slot (u64 LE) = max u64
-        view.setBigUint64(4, BigInt('18446744073709551615'), true);
-        // Last extended slot (u64 LE) = 0
-        view.setBigUint64(12, 0n, true);
-        // Last extended slot start index (u8) = 0
-        buf[20] = 0;
-        // Authority option (u8) = 0 (none)
-        buf[21] = 0;
-        // Padding (2 bytes)
-        // Addresses start at offset 56
-        buf.set(lookupAddress.toBytes(), 56);
 
         const rpc = createMockRpc();
         // The first getMultipleAccounts call resolves the lookup table (base64); the second
         // fetches the parsed pre-simulation accounts and falls through to the factory default.
         vi.mocked(rpc.getMultipleAccounts).mockReturnValueOnce(
             sendResult({
-                value: [
-                    {
-                        data: [toBase64(buf), 'base64'],
-                        executable: false,
-                        lamports: 1n,
-                        owner: 'AddressLookupTab1e1111111111111111111111111',
-                        rentEpoch: 0n,
-                        space: 88n,
-                    },
-                ],
+                value: [lookupTableAccountInfo(encodeLookupTableData([toKitAddress(lookupAddress)]))],
             }),
         );
 
-        const result = await simulate(rpc, { message, version: 0 });
+        const result = await simulate(
+            rpc,
+            createV0MessageBytes(
+                toKitAddress(ACCOUNT_KEY_1),
+                {
+                    accounts: [{ address: toKitAddress(lookupAddress), role: AccountRole.WRITABLE }],
+                    programAddress: toKitAddress(ACCOUNT_KEY_2),
+                },
+                { [toKitAddress(lookupTableKey)]: [toKitAddress(lookupAddress)] },
+            ),
+        );
 
         expect(rpc.getMultipleAccounts).toHaveBeenCalledWith(
             [toKitAddress(lookupTableKey)],
@@ -284,6 +242,28 @@ describe('simulateTransaction', () => {
         const result = await simulate(rpc);
 
         expect(result.epoch).toBe(42n);
+    });
+
+    it.each([
+        { version: 'legacy', wireBytes: () => createWeb3TransactionBytes('legacy') },
+        { version: 'v0', wireBytes: () => createWeb3TransactionBytes(0) },
+        { version: 'v1', wireBytes: () => createV1TransactionBytes({}) },
+    ])('should send a $version message as an unsigned wire transaction', async ({ wireBytes }) => {
+        const bytes = wireBytes();
+        const rpc = createMockRpc();
+
+        await simulate(rpc, parseTransactionBytes(bytes).messageBytes);
+
+        expect(vi.mocked(rpc.simulateTransaction).mock.calls[0][0]).toBe(toBase64(bytes));
+    });
+
+    it('should drop bytes past the end of the message from the simulated transaction', async () => {
+        const bytes = createWeb3TransactionBytes('legacy');
+        const rpc = createMockRpc();
+
+        await simulate(rpc, concat([parseTransactionBytes(bytes).messageBytes, new Uint8Array([0xff, 0xff])]));
+
+        expect(vi.mocked(rpc.simulateTransaction).mock.calls[0][0]).toBe(toBase64(bytes));
     });
 
     describe('token balance parsing', () => {
@@ -362,12 +342,8 @@ describe('simulateTransaction', () => {
             });
         }
 
-        function createTokenMessage(): VersionedMessage {
-            return createMockMessage({
-                getAccountKeys: () => ({
-                    keySegments: () => [[TOKEN_ACCOUNT_KEY, MINT_KEY]],
-                }),
-            });
+        function createTokenMessage(): Uint8Array {
+            return createV0MessageBytes(toKitAddress(TOKEN_ACCOUNT_KEY), { programAddress: toKitAddress(MINT_KEY) });
         }
 
         it('should decode post-simulation token account data and return token balance data', async () => {
@@ -375,7 +351,7 @@ describe('simulateTransaction', () => {
             const postAmount = 2_500_000n;
             const rpc = setupTokenAccountRpc(preAmount, postAmount);
 
-            const result = await simulate(rpc, { message: createTokenMessage(), version: 0 });
+            const result = await simulate(rpc, createTokenMessage());
 
             expect(result).toMatchObject({ error: undefined });
             if (!result.tokenBalanceData) throw new Error('expected tokenBalanceData');
@@ -396,7 +372,7 @@ describe('simulateTransaction', () => {
         it('should handle token accounts with zero amount', async () => {
             const rpc = setupTokenAccountRpc(0n, 0n);
 
-            const result = await simulate(rpc, { message: createTokenMessage(), version: 0 });
+            const result = await simulate(rpc, createTokenMessage());
 
             expect(result).toMatchObject({ error: undefined });
             expect(result.tokenBalanceData?.postTokenBalances[0]).toMatchObject({ uiTokenAmount: { amount: '0' } });
@@ -406,7 +382,7 @@ describe('simulateTransaction', () => {
             const largeAmount = 9_000_000_000_000_000n;
             const rpc = setupTokenAccountRpc(0n, largeAmount);
 
-            const result = await simulate(rpc, { message: createTokenMessage(), version: 0 });
+            const result = await simulate(rpc, createTokenMessage());
 
             expect(result).toMatchObject({ error: undefined });
             expect(result.tokenBalanceData?.postTokenBalances[0]).toMatchObject({
@@ -421,12 +397,8 @@ describe('v1 transactions', () => {
         vi.clearAllMocks();
     });
 
-    function v1Message(config: Parameters<typeof createV1TransactionBytes>[0] = {}) {
-        return bridgeV1MessageBytes(parseTransactionBytes(createV1TransactionBytes(config)).messageBytes).message;
-    }
-
-    function v1Input(config: Parameters<typeof createV1TransactionBytes>[0] = {}): SimulationInput {
-        return { message: v1Message(config), version: 1 };
+    function v1Input(config: Parameters<typeof createV1TransactionBytes>[0] = {}): Uint8Array {
+        return parseTransactionBytes(createV1TransactionBytes(config)).messageBytes;
     }
 
     function rpcWithFeature(activated: boolean, overrides?: Partial<Record<string, unknown>>): SolanaRpc {
@@ -497,24 +469,6 @@ describe('v1 transactions', () => {
         });
 
         await expect(simulate(rpc, v1Input())).rejects.toMatchObject({ cause });
-    });
-
-    it('should send a message declared as v1 in the v1 wire envelope', async () => {
-        const message = v1Message();
-
-        await simulate(rpcWithFeature(true), { message, version: 1 });
-
-        expect(UnsignedV1WireTransaction).toHaveBeenCalledWith(message);
-        expect(VersionedTransaction).not.toHaveBeenCalled();
-    });
-
-    it('should send a bridged message declared as v0 in the stock envelope', async () => {
-        const message = v1Message();
-
-        await simulate(rpcWithFeature(true), { message, version: 0 });
-
-        expect(VersionedTransaction).toHaveBeenCalledWith(message);
-        expect(UnsignedV1WireTransaction).not.toHaveBeenCalled();
     });
 
     it('should not read the feature gate when a v1 simulation succeeds', async () => {
@@ -724,26 +678,6 @@ function createMockRpc(overrides?: Partial<Record<string, unknown>>): SolanaRpc 
     } as unknown as SolanaRpc;
 }
 
-// Partial<VersionedMessage> is too strict for test mocks — getAccountKeys
-// returns a minimal stub, not a full MessageAccountKeys.
-function createMockMessage(overrides?: Partial<Record<string, unknown>>): VersionedMessage {
-    return {
-        addressTableLookups: [],
-        // Mirrors MessageV0: the static keys first, then a segment per resolved lookup table. The
-        // argument has to matter here — a mock that always returns the static keys cannot tell a
-        // caller reading `staticAccountKeys` apart from one reading the resolved keys.
-        getAccountKeys: ({
-            addressLookupTableAccounts = [],
-        }: { addressLookupTableAccounts?: AddressLookupTableAccount[] } = {}) => ({
-            keySegments: () => [
-                [ACCOUNT_KEY_1, ACCOUNT_KEY_2],
-                ...addressLookupTableAccounts.map(table => table.state.addresses),
-            ],
-        }),
-        ...overrides,
-    } as unknown as VersionedMessage;
-}
-
 function createSimulationResponse(overrides?: Record<string, unknown>) {
     return {
         value: {
@@ -773,14 +707,16 @@ function createSimulationResponse(overrides?: Record<string, unknown>) {
 
 function simulate(
     rpc: SolanaRpc,
-    transaction: SimulationInput = { message: createMockMessage(), version: 0 },
+    messageBytes: Uint8Array = createV0MessageBytes(toKitAddress(ACCOUNT_KEY_1), {
+        programAddress: toKitAddress(ACCOUNT_KEY_2),
+    }),
     accountBalances?: { preBalances: number[]; postBalances: number[] },
 ) {
     return simulateTransaction({
         accountBalances,
         cluster: Cluster.Devnet,
+        messageBytes,
         rpc,
-        transaction,
     });
 }
 

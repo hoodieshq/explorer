@@ -43,12 +43,10 @@ type RawTransactionBase = {
 
 /**
  * A transaction's wire bytes and the parts of its metadata the inspector needs.
- *
- * `message` and `transaction` are the web3.js views of the bytes, which web3.js can only build for
- * legacy and v0. `messageBytes` is always present.
+ * `message` and `transaction` are the web3.js views of `messageBytes`.
  */
-export type RawTransaction = RawTransactionBase &
-    (
-        | { version: 'legacy' | 0; message: VersionedMessage; transaction: TransactionMessage }
-        | { version: 1; message?: undefined; transaction?: undefined }
-    );
+export type RawTransaction = RawTransactionBase & {
+    message: VersionedMessage;
+    transaction: TransactionMessage;
+    version: TransactionVersion;
+};

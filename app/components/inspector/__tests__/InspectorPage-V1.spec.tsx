@@ -9,13 +9,13 @@ import {
     createV1TransactionBytes,
     type V1ConfigOverrides,
 } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
-import type { SimulationInput, SimulationState } from '@/app/features/instruction-simulation/model/use-simulation';
+import type { SimulationState } from '@/app/features/instruction-simulation/model/use-simulation';
 import { AccountsProvider } from '@/app/providers/accounts';
 import { ClusterProvider } from '@/app/providers/cluster';
 import { ScrollAnchorProvider } from '@/app/providers/scroll-anchor';
 import { toBase64 } from '@/app/shared/lib/bytes';
+import { Logger } from '@/app/shared/lib/logger';
 import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
-import { V1MessageView } from '@/app/shared/lib/v1-message-bridge';
 import { instructionParserDispatcher } from '@/app/tx/instruction-parser-dispatcher';
 
 import { ADDRESS_TABLE_LOOKUPS_CARD_TITLE } from '../AddressTableLookupsCard';
@@ -25,14 +25,19 @@ function rowValue(label: string): string | null | undefined {
     return screen.getByText(label).nextElementSibling?.textContent;
 }
 
-async function mockMessageParam(config: V1ConfigOverrides) {
+async function mockMessageParam(config: V1ConfigOverrides): Promise<Uint8Array> {
     const { messageBytes } = parseTransactionBytes(createV1TransactionBytes(config));
+    return mockMessageBytesParam(messageBytes);
+}
+
+async function mockMessageBytesParam(messageBytes: Uint8Array): Promise<Uint8Array> {
     const params = new URLSearchParams();
     params.set('message', encodeURIComponent(toBase64(messageBytes)));
 
     vi.spyOn(await import('next/navigation'), 'useSearchParams').mockReturnValue(
         params as unknown as ReturnType<typeof useSearchParams>,
     );
+    return messageBytes;
 }
 
 function renderInspector() {
@@ -57,7 +62,7 @@ vi.mock('next/navigation', () => ({
 
 const { InspectorSimulationPanel, useSimulation } = vi.hoisted(() => ({
     InspectorSimulationPanel: vi.fn<(props: { version: TransactionVersion }) => null>(() => null),
-    useSimulation: vi.fn<(transaction: SimulationInput) => SimulationState>(() => ({
+    useSimulation: vi.fn<(messageBytes: Uint8Array) => SimulationState>(() => ({
         simulate: () => undefined,
         status: 'idle',
     })),
@@ -120,14 +125,27 @@ describe('TransactionInspectorPage with a v1 ?message= param', () => {
         expect(rowValue('Heap size')).toBe('32,768');
     });
 
-    test('should pass the declared version 1 to the simulation and its panel', async () => {
-        await mockMessageParam({});
+    test('should pass the message bytes to the simulation and the declared version 1 to its panel', async () => {
+        const messageBytes = await mockMessageParam({});
         renderInspector();
 
         expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
-        const transaction = useSimulation.mock.lastCall?.[0];
-        expect(transaction?.version).toBe(1);
-        expect(transaction?.message).toBeInstanceOf(V1MessageView);
+        expect(useSimulation.mock.lastCall?.[0]).toEqual(messageBytes);
         expect(InspectorSimulationPanel.mock.lastCall?.[0]).toMatchObject({ version: 1 });
+    });
+
+    test('should render the overview and an instructions error when the v1 header is invalid', async () => {
+        vi.spyOn(Logger, 'warn').mockImplementation(() => {});
+        const { messageBytes } = parseTransactionBytes(createV1TransactionBytes({}));
+        messageBytes[2] = 1;
+        await mockMessageBytesParam(messageBytes);
+        renderInspector();
+
+        expect(await screen.findByRole('heading', { name: 'Overview' })).toBeInTheDocument();
+        expect(screen.getByText('v1')).toBeInTheDocument();
+        expect(screen.queryByText('Compute unit limit')).toBeNull();
+        expect(
+            await screen.findByText('Failed to decode the instructions: Message header is invalid'),
+        ).toBeInTheDocument();
     });
 });
