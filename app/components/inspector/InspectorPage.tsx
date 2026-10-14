@@ -6,6 +6,7 @@ import { SolBalance } from '@components/common/SolBalance';
 import {
     fromMessageBytes,
     getV1ResourceLimits,
+    isV1MessageBytes,
     transactionSizeLimit,
     transactionWireSize,
 } from '@explorer/parsers/transaction';
@@ -655,14 +656,14 @@ function InspectorOverviewCard({
     const size = React.useMemo(() => transactionWireSize(raw), [raw]);
     const sizeLimit = transactionSizeLimit(raw);
     const v1ResourceLimits = React.useMemo(() => {
-        if (message.version !== 1) return undefined;
+        if (!isV1MessageBytes(raw)) return undefined;
         try {
             return getV1ResourceLimits(fromMessageBytes(raw));
         } catch (cause) {
             Logger.warn('[inspector] Failed to read v1 resource limits', { cause });
             return undefined;
         }
-    }, [message, raw]);
+    }, [raw]);
 
     const rows: KeyValueRowInput[] = [
         {

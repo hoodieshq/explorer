@@ -75,7 +75,7 @@ const renderView = () => render(<PermalinkView {...props} />);
 function entry(wireBytes: Uint8Array) {
     const { messageBytes } = parseTransactionBytes(wireBytes);
     const message = VersionedMessage.deserialize(messageBytes);
-    return makeEntry({ message, messageBytes, signatures: [], version: message.version });
+    return makeEntry({ message, messageBytes, signatures: [] });
 }
 
 function rowValue(label: string): string | null | undefined {
@@ -126,12 +126,7 @@ describe('PermalinkView', () => {
         const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
         const { messageBytes } = parseTransactionBytes(createV1TransactionBytes({ computeUnitLimit: 300_000 }));
         messageBytes[2] = 1;
-        cacheEntry = makeEntry({
-            message: VersionedMessage.deserialize(messageBytes),
-            messageBytes,
-            signatures: [],
-            version: 1,
-        });
+        cacheEntry = makeEntry({ message: VersionedMessage.deserialize(messageBytes), messageBytes, signatures: [] });
 
         renderView();
 
@@ -140,6 +135,16 @@ describe('PermalinkView', () => {
         expect(warn).toHaveBeenCalledWith('[inspector] Failed to read v1 resource limits', {
             cause: expect.any(Error),
         });
+    });
+
+    it('should render the lookups card without reading resource limits for a v0 message with lookup tables', () => {
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
+        cacheEntry = entry(createV0LookupTableTransactionBytes());
+        renderView();
+
+        expect(screen.getByTestId('atl-card')).toBeInTheDocument();
+        expect(screen.queryByText('Compute unit limit')).not.toBeInTheDocument();
+        expect(warn).not.toHaveBeenCalled();
     });
 
     it.each([
