@@ -1,7 +1,7 @@
 import { ErrorCard } from '@components/common/ErrorCard';
 import { BorshAccountsCoder, Idl } from '@coral-xyz/anchor';
 import { IdlTypeDef } from '@coral-xyz/anchor/dist/cjs/idl';
-import { useAnchorProgram } from '@entities/idl';
+import { CustomIdlMarkProvider, useAnchorProgram } from '@entities/idl';
 import { useProgramMetadataIdl } from '@entities/program-metadata';
 import { Account } from '@providers/accounts';
 import { useCluster } from '@providers/cluster';
@@ -10,13 +10,14 @@ import React, { useMemo } from 'react';
 
 import { equals, toBuffer } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
+import { MarkedValue } from '@/app/shared/lib/marked-value';
 import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 export function AnchorAccountCard({ account }: { account: Account }) {
     const { lamports } = account;
     const { url, cluster } = useCluster();
-    const { program: anchorProgram } = useAnchorProgram(account.owner.toString(), url, cluster);
+    const { program: anchorProgram, isCustomIdl } = useAnchorProgram(account.owner.toString(), url, cluster);
     const { programMetadataIdl } = useProgramMetadataIdl(account.owner.toString(), url, cluster);
     const rawData = account.data.raw;
 
@@ -63,17 +64,36 @@ export function AnchorAccountCard({ account }: { account: Account }) {
     }, [idl, rawData]);
 
     if (lamports === undefined) return null;
+    // Under the custom IDL a failure stays in view; the owner's IDL selector is in the Overview card's header.
+    if (isCustomIdl && (!idl || !decodedAccountData || !accountDef)) {
+        return (
+            <Card ui="dashkit">
+                <CardHeader ui="dashkit">
+                    <CardTitle as="h3" ui="dashkit">
+                        {programName}
+                    </CardTitle>
+                </CardHeader>
+                <p className="m-0 px-6 py-4 text-sm text-custom-idl">
+                    The custom IDL could not decode this account&apos;s data.
+                </p>
+            </Card>
+        );
+    }
     if (!idl) return <ErrorCard text="No Anchor IDL found" />;
     if (!decodedAccountData || !accountDef) {
         return <ErrorCard text="Failed to decode account data according to the public Anchor interface" />;
     }
 
     return (
-        <div>
+        // Every name, type and value below is read through the owner's IDL.
+        <CustomIdlMarkProvider active={isCustomIdl}>
             <Card ui="dashkit">
-                <CardHeader ui="dashkit">
+                {/* REVIEW(HOO-1971): `data-value-row` lets the marked title tint this header in the row highlight variant. */}
+                <CardHeader ui="dashkit" data-value-row>
                     <CardTitle as="h3" ui="dashkit">
-                        {programName}: {accountDef.name.charAt(0).toUpperCase() + accountDef.name.slice(1)}
+                        <MarkedValue>
+                            {programName}: {accountDef.name.charAt(0).toUpperCase() + accountDef.name.slice(1)}
+                        </MarkedValue>
                     </CardTitle>
                 </CardHeader>
                 <BaseTable ui="dashkit" variant="card" nowrap>
@@ -89,6 +109,6 @@ export function AnchorAccountCard({ account }: { account: Account }) {
                     </BaseTable.Body>
                 </BaseTable>
             </Card>
-        </div>
+        </CustomIdlMarkProvider>
     );
 }

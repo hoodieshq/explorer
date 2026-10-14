@@ -15,10 +15,18 @@ type MainnetWarningDialogProps = {
     onOpenChange: (open: boolean) => void;
     onConfirm: () => void;
     onCancel: () => void;
+    /** The transaction is built from the user's custom IDL, not the program's on-chain one. */
+    isCustomIdl?: boolean;
 };
 
 // FIXME: missing Storybook story — pure-prop dialog, easy to story (open/closed variants + fn callbacks).
-export function MainnetWarningDialog({ open, onOpenChange, onConfirm, onCancel }: MainnetWarningDialogProps) {
+export function MainnetWarningDialog({
+    open,
+    onOpenChange,
+    onConfirm,
+    onCancel,
+    isCustomIdl = false,
+}: MainnetWarningDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
@@ -33,6 +41,12 @@ export function MainnetWarningDialog({ open, onOpenChange, onConfirm, onCancel }
                         You&apos;re connected to Mainnet. Any SOL you send now is permanent and costs real money. Make
                         sure the details are correct before continuing.
                     </DialogDescription>
+                    {isCustomIdl && (
+                        <p className="rounded bg-custom-idl/15 px-2 py-1.5 text-sm text-custom-idl">
+                            This transaction is built from your custom IDL, not the program&apos;s on-chain IDL. A wrong
+                            IDL can produce a transaction that does something other than its form shows.
+                        </p>
+                    )}
                     <p className="text-sm text-neutral-400">
                         Please take note that this is a beta version feature and is provided on an &quot;as is&quot; and
                         &quot;as available&quot; basis. Solana Explorer does not provide any warranties and will not be

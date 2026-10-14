@@ -16,6 +16,7 @@ import { Suspense } from 'react';
 import { SearchBar } from '@/app/components/SearchBarLoader';
 import { TokenInfoBatchProvider } from '@/app/entities/token-info';
 import { CookieConsent } from '@/app/features/cookie';
+import { DesignMenu } from '@/app/features/design-menu';
 import { FeedbackWidget } from '@/app/features/feedback';
 import { VisibilityProvider } from '@/app/shared/lib/visibility';
 import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
@@ -75,6 +76,8 @@ export default function RootLayout({ analytics, children }: { analytics: React.R
                                     <Toaster position="bottom-center" toastOptions={{ duration: 5_000 }} />
                                     {/* FeedbackWidget reads the cluster, so it must stay inside ClusterProvider. */}
                                     <FeedbackWidget />
+                                    {/* REVIEW(design-menu): review-only design menu; remove before the external PR. */}
+                                    <DesignMenu />
                                 </TokenInfoBatchProvider>
                             </VisibilityProvider>
                         </ClusterProvider>

@@ -61,12 +61,29 @@ const config: Config = {
     content: ['./app/**/*.{ts,tsx}'],
     plugins: [
         tailwindcssAnimate,
-        plugin(({ addUtilities }) => {
+        plugin(({ addUtilities, theme }) => {
             addUtilities({
                 '.scrollbar-hide': {
                     'scrollbar-width': 'none',
                     '-ms-overflow-style': 'none',
                     '&::-webkit-scrollbar': { display: 'none' },
+                },
+                // The app's thin scrollbar (as in the search dropdown) on a transparent track, so it sits on any
+                // surface. WebKit/Blink draw it from the pseudo-elements; Firefox, which has none, gets the
+                // standard properties instead. Standard ones aren't set everywhere because Chrome would let them
+                // override the pseudo-elements and drop the rounded thumb.
+                '.scrollbar-styled': {
+                    '&::-webkit-scrollbar': { width: '0.5rem' },
+                    '&::-webkit-scrollbar-thumb': {
+                        'background-color': theme('colors.heavy-metal.600'),
+                        'border-radius': '9999px',
+                    },
+                    '&::-webkit-scrollbar-thumb:hover': { 'background-color': theme('colors.heavy-metal.500') },
+                    '&::-webkit-scrollbar-track': { 'background-color': 'transparent' },
+                    '@supports not selector(::-webkit-scrollbar)': {
+                        'scrollbar-color': `${theme('colors.heavy-metal.600')} transparent`,
+                        'scrollbar-width': 'thin',
+                    },
                 },
             });
         }),
@@ -121,6 +138,8 @@ const config: Config = {
                     foreground: '#e5ebe9',
                     'muted-foreground': '#698582',
                 },
+                // Marks every value the Explorer rendered from a user-supplied IDL rather than an on-chain one.
+                'custom-idl': '#facc15',
                 // TODO: replace with text-neutral-400
                 muted: 'oklch(0.6406 0.0038 174.41)', // #8a8d8c
                 'heavy-metal': {

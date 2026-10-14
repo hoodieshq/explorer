@@ -123,7 +123,7 @@ describe('Inspector InstructionsSection with inner instructions', () => {
         // On mainnet the Token program has an IDL. The IDL decoder returns `{ kind: 'unknown' }`,
         // not `undefined`, when the IDL does not declare the discriminator.
         // The batch card must still render.
-        vi.mocked(useIdlInstructionDecode).mockReturnValue({ kind: 'unknown' });
+        vi.mocked(useIdlInstructionDecode).mockReturnValue({ isCustomIdl: false, kind: 'unknown' });
 
         render(
             <ScrollAnchorProvider>
@@ -289,7 +289,7 @@ describe('Inspector InstructionsSection with inner instructions', () => {
     });
 
     test('should render the curated card when the IDL declares nothing for the instruction', async () => {
-        vi.mocked(useIdlInstructionDecode).mockReturnValue({ kind: 'unknown' });
+        vi.mocked(useIdlInstructionDecode).mockReturnValue({ isCustomIdl: false, kind: 'unknown' });
 
         render(
             <ScrollAnchorProvider>

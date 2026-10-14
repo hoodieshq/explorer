@@ -9,6 +9,8 @@ import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 export type BaseAccountCardProps = TableCardBodyProps & {
     title: React.ReactNode;
     rawContent?: React.ReactNode;
+    /** Controls before the Raw toggle, e.g. the owner program's IDL selector. */
+    leadingHeaderActions?: React.ReactNode;
     headerActions?: React.ReactNode;
     refresh?: () => void;
     analyticsSection?: string;
@@ -26,6 +28,7 @@ export type BaseAccountCardProps = TableCardBodyProps & {
 export function BaseAccountCard({
     title,
     rawContent,
+    leadingHeaderActions,
     headerActions,
     refresh,
     analyticsSection,
@@ -43,6 +46,7 @@ export function BaseAccountCard({
                 {title}
             </CardTitle>
             {refresh && analyticsSection && <RefreshButton analyticsSection={analyticsSection} onClick={refresh} />}
+            {leadingHeaderActions}
             {showRawButton && (
                 <Button
                     variant={showRaw ? 'default' : 'outline'}

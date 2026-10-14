@@ -3,14 +3,16 @@ import { ErrorBoundary } from 'react-error-boundary';
 
 import { UnknownDetailsCard } from '@/app/components/instruction/UnknownDetailsCard';
 
-import { type IdlInstructionDecode } from '../lib/decode-instruction-with-idl';
+import { type IdlInstructionDecode, isIdlInstructionDecoded } from '../lib/decode-instruction-with-idl';
 import { AnchorDetailsCard } from './AnchorDetailsCard';
 import { CodamaInstructionCard } from './CodamaInstructionCard';
+import { IdlDecodeFailureNotice } from './IdlDecodeFailureNotice';
 
 /**
  * The single place both surfaces map an `IdlInstructionDecode` kind to a renderer, so they can't drift:
  * codama-first, with the rich Anchor card as the fallback the strategy selects when codama can't convert
- * the IDL. ErrorBoundary'd because the Anchor coder can throw on malformed instruction data.
+ * the IDL. ErrorBoundary'd because the Anchor coder can throw on malformed instruction data. A failed decode
+ * says so inside the card and points at the program's other IDLs that decode the instruction.
  */
 export function IdlInstructionCard({
     decoded,
@@ -21,7 +23,7 @@ export function IdlInstructionCard({
     innerCards,
     childIndex,
 }: {
-    decoded: IdlInstructionDecode;
+    decoded: IdlInstructionDecode & { isCustomIdl?: boolean };
     ix: TransactionInstruction;
     index: number;
     result: SignatureResult;
@@ -31,8 +33,12 @@ export function IdlInstructionCard({
 }) {
     const nodeProps = { childIndex, index, innerCards, ix };
     const props = { ...nodeProps, result };
+    // Inside the card: why the IDL failed, and which other IDL of the program decodes it.
+    const failureNotice = isIdlInstructionDecoded(decoded) ? undefined : <IdlDecodeFailureNotice ix={ix} />;
+    const unknownCard = <UnknownDetailsCard {...props} notice={<IdlDecodeFailureNotice ix={ix} />} />;
+
     return (
-        <ErrorBoundary fallback={<UnknownDetailsCard {...props} />}>
+        <ErrorBoundary fallback={unknownCard}>
             {decoded.kind === 'codama' ? (
                 <CodamaInstructionCard {...nodeProps} parsedIx={decoded.parsedIx} />
             ) : decoded.kind === 'anchor' ? (
@@ -41,9 +47,10 @@ export function IdlInstructionCard({
                     signature={signature}
                     program={decoded.program}
                     decoded={decoded.details}
+                    notice={failureNotice}
                 />
             ) : (
-                <UnknownDetailsCard {...props} />
+                unknownCard
             )}
         </ErrorBoundary>
     );

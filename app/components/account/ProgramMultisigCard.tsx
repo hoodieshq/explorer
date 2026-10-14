@@ -37,6 +37,7 @@ function ProgramMultisigCardInner({ programAuthority }: { programAuthority: Publ
         squadMapInfo?.version === 'v3' ? SQUADS_V3_ADDRESS : SQUADS_V4_ADDRESS,
         url,
         cluster,
+        { onChainOnly: true },
     );
     const { data: squadInfo } = useSquadsMultisig(
         anchorProgram.program,

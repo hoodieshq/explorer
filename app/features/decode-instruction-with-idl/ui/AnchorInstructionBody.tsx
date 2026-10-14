@@ -8,6 +8,7 @@ import { useMemo, useState } from 'react';
 import { CornerDownRight } from 'react-feather';
 
 import { Address } from '@/app/components/common/Address';
+import { MarkedValue } from '@/app/shared/lib/marked-value';
 import { AccountRoleBadges } from '@/app/shared/ui/AccountRoleBadges';
 import { BaseTable } from '@/app/shared/ui/Table';
 
@@ -104,7 +105,9 @@ function GroupHeaderRow({
 }) {
     return (
         <BaseTable.Row>
-            <BaseTable.Cell colSpan={2}>{row.name}</BaseTable.Cell>
+            <BaseTable.Cell colSpan={2}>
+                <MarkedValue>{row.name}</MarkedValue>
+            </BaseTable.Cell>
             <ExpandToggleCell expanded={expanded} onToggle={onToggle} />
         </BaseTable.Row>
     );
@@ -116,7 +119,9 @@ function AccountRow({ row }: { row: Extract<AnchorRow, { kind: 'account' }> }) {
             <BaseTable.Cell>
                 <div className="flex flex-row items-center">
                     {row.isNested && <CornerDownRight className="mb-[3px] mr-1.5" size={14} />}
-                    <div className="mr-1.5 md:inline">{row.name}</div>
+                    <div className="mr-1.5 md:inline">
+                        <MarkedValue>{row.name}</MarkedValue>
+                    </div>
                     <AccountRoleBadges isWritable={row.isWritable} isSigner={row.isSigner} />
                 </div>
             </BaseTable.Cell>

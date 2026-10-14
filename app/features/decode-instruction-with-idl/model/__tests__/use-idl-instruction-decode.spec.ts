@@ -7,13 +7,11 @@ import { useIdlInstructionDecode } from '../use-idl-instruction-decode';
 // Mock the resolution boundaries + the decode helper so the test pins the hook's own job — IDL precedence,
 // argument forwarding, and gating — not the SWR/decode machinery (each tested in its own slice). The
 // panic→Unknown degrade is `safeDecodeInstructionWithIdl`'s responsibility and is tested with the lib.
-const anchorState = { idl: undefined as unknown, isLoading: false, program: null };
-const pmpState = { isLoading: false, programMetadataIdl: undefined as unknown };
+const idlState = { anchorIdl: undefined as unknown, isCustomIdl: false, programMetadataIdl: undefined as unknown };
 const safeDecodeInstructionWithIdl = vi.fn();
 
 vi.mock('@providers/cluster', () => ({ useCluster: () => ({ cluster: 'devnet', url: 'http://localhost' }) }));
-vi.mock('@entities/idl', () => ({ useAnchorProgram: () => anchorState }));
-vi.mock('@entities/program-metadata', () => ({ useProgramMetadataIdl: () => pmpState }));
+vi.mock('@entities/idl', () => ({ useProgramIdls: () => idlState }));
 vi.mock('../../lib/decode-instruction-with-idl', () => ({
     safeDecodeInstructionWithIdl: (...a: unknown[]) => safeDecodeInstructionWithIdl(...a),
 }));
@@ -26,13 +24,14 @@ const pmpIdl = { kind: 'pmp' };
 describe('useIdlInstructionDecode', () => {
     beforeEach(() => {
         safeDecodeInstructionWithIdl.mockReset();
-        anchorState.idl = undefined;
-        pmpState.programMetadataIdl = undefined;
+        idlState.anchorIdl = undefined;
+        idlState.programMetadataIdl = undefined;
+        idlState.isCustomIdl = false;
     });
 
     it('should prefer the PMP IDL over the legacy Anchor IDL', () => {
-        anchorState.idl = anchorIdl;
-        pmpState.programMetadataIdl = pmpIdl;
+        idlState.anchorIdl = anchorIdl;
+        idlState.programMetadataIdl = pmpIdl;
         safeDecodeInstructionWithIdl.mockReturnValue({ kind: 'codama' });
 
         renderHook(() => useIdlInstructionDecode({ programId, raw }));
@@ -41,13 +40,23 @@ describe('useIdlInstructionDecode', () => {
     });
 
     it('should fall back to the Anchor IDL when no PMP IDL is published', () => {
-        anchorState.idl = anchorIdl;
+        idlState.anchorIdl = anchorIdl;
         safeDecodeInstructionWithIdl.mockReturnValue({ kind: 'anchor' });
 
         const { result } = renderHook(() => useIdlInstructionDecode({ programId, raw }));
 
         expect(safeDecodeInstructionWithIdl).toHaveBeenCalledWith(raw, anchorIdl, 'http://localhost');
-        expect(result.current).toEqual({ kind: 'anchor' });
+        expect(result.current).toEqual({ isCustomIdl: false, kind: 'anchor' });
+    });
+
+    it('should mark a decode made with the custom IDL', () => {
+        idlState.anchorIdl = anchorIdl;
+        idlState.isCustomIdl = true;
+        safeDecodeInstructionWithIdl.mockReturnValue({ kind: 'unknown' });
+
+        const { result } = renderHook(() => useIdlInstructionDecode({ programId, raw }));
+
+        expect(result.current).toEqual({ isCustomIdl: true, kind: 'unknown' });
     });
 
     it('should return undefined and not decode when the program has no IDL', () => {
@@ -58,7 +67,7 @@ describe('useIdlInstructionDecode', () => {
     });
 
     it('should return undefined and not decode when there is no raw instruction (pre-parsed)', () => {
-        anchorState.idl = anchorIdl;
+        idlState.anchorIdl = anchorIdl;
 
         const { result } = renderHook(() => useIdlInstructionDecode({ programId, raw: undefined }));
 

@@ -7,6 +7,8 @@ import { Logger } from '@/app/shared/lib/logger';
 export type LogMessage = {
     text: string;
     prefix: string;
+    /** Call depth the line was logged at: 1 is the instruction's own program, deeper levels its CPIs. */
+    depth?: number;
     style: 'muted' | 'info' | 'success' | 'warning';
 };
 
@@ -55,12 +57,14 @@ export function parseProgramLogs(
             });
 
             prettyLogs[prettyLogs.length - 1].logs.push({
+                depth,
                 prefix: prefixBuilder(depth),
                 style: 'muted',
                 text: log,
             });
         } else if (log.startsWith('Program data:')) {
             prettyLogs[prettyLogs.length - 1].logs.push({
+                depth,
                 prefix: prefixBuilder(depth),
                 style: 'muted',
                 text: log,
@@ -86,6 +90,7 @@ export function parseProgramLogs(
                     });
                 } else {
                     prettyLogs[prettyLogs.length - 1].logs.push({
+                        depth,
                         prefix: prefixBuilder(depth),
                         style: 'info',
                         text: `Program invoked: ${programName}`,
@@ -95,6 +100,7 @@ export function parseProgramLogs(
                 depth++;
             } else if (log.includes('success')) {
                 prettyLogs[prettyLogs.length - 1].logs.push({
+                    depth,
                     prefix: prefixBuilder(depth),
                     style: 'success',
                     text: `Program returned success`,
@@ -112,6 +118,7 @@ export function parseProgramLogs(
                 }
 
                 instructionLog.logs.push({
+                    depth,
                     prefix: prefixBuilder(depth),
                     style: 'warning',
                     text: currText,
@@ -143,6 +150,7 @@ export function parseProgramLogs(
 
                 // native program logs don't start with "Program log:"
                 prettyLogs[prettyLogs.length - 1].logs.push({
+                    depth,
                     prefix: prefixBuilder(depth),
                     style: 'muted',
                     text: log,
@@ -168,6 +176,7 @@ export function parseProgramLogs(
         if (!failedIx.failed) {
             failedIx.failed = true;
             failedIx.logs.push({
+                depth: 1,
                 prefix: prefixBuilder(1),
                 style: 'warning',
                 text: `Runtime error: ${prettyError.message}`,

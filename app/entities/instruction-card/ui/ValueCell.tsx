@@ -6,6 +6,7 @@ import { cn } from '@components/shared/utils';
 import { displayTimestampUtc, unixTimestampToMs } from '@utils/date';
 import React from 'react';
 
+import { MarkedValue } from '@/app/shared/lib/marked-value';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 import type { FieldValue } from '../model/fields';
@@ -14,7 +15,9 @@ import { InstructionAddress } from './InstructionAddress';
 export function ValueCell({ value }: { value: FieldValue }) {
     return (
         <BaseTable.Cell className={cn('text-right', CELL_CLASS[value.kind])}>
-            <Value value={value} />
+            <MarkedValue>
+                <Value value={value} />
+            </MarkedValue>
         </BaseTable.Cell>
     );
 }

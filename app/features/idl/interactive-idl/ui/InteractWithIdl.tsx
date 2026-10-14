@@ -1,6 +1,6 @@
 import { LoadingCard } from '@components/shared/LoadingCard';
 import { useToast } from '@components/shared/ui/sonner/use-toast';
-import type { InstructionData, SupportedIdl } from '@entities/idl';
+import { type InstructionData, type SupportedIdl, useProgramIdlPreference } from '@entities/idl';
 import { useAtomValue } from 'jotai';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -43,6 +43,8 @@ export function InteractWithIdl({
     const idl = useAtomValue(originalIdlAtom);
     const progId = useAtomValue(programIdAtom);
     const { canSign, connected, publicKey, walletName } = useWallet();
+    const { preference } = useProgramIdlPreference(progId?.toString() ?? '');
+    const isCustomIdl = preference?.selected === 'custom' && Boolean(preference.custom);
 
     const [currentInstruction, setCurrentInstruction] = useState<{ name: string; programId?: string } | null>(null);
     const [hasTrackedTabOpen, setHasTrackedTabOpen] = useState(false);
@@ -179,6 +181,7 @@ export function InteractWithIdl({
                     }}
                     onConfirm={confirm}
                     onCancel={cancel}
+                    isCustomIdl={isCustomIdl}
                 />
             )}
         </>

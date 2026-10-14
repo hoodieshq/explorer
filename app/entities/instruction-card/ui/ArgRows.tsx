@@ -3,6 +3,7 @@
 import { ExpandableRow, FieldNameCell } from '@shared/ui/expandable-row';
 import { cva } from 'class-variance-authority';
 
+import { MarkedValue } from '@/app/shared/lib/marked-value';
 import { BaseTable } from '@/app/shared/ui/Table';
 
 import type { InstructionArg } from '../model/args';
@@ -29,7 +30,9 @@ function ArgRow({ arg, depth, testId }: { arg: InstructionArg; depth: number; te
     return (
         <BaseTable.Row data-testid={testId} className={leafRowVariants({ nested: depth > 0 })}>
             <FieldNameCell name={arg.name} nestingLevel={depth} />
-            <BaseTable.Cell>{arg.type}</BaseTable.Cell>
+            <BaseTable.Cell>
+                <MarkedValue>{arg.type}</MarkedValue>
+            </BaseTable.Cell>
             {arg.kind === 'leaf' ? <ValueCell value={arg.value} /> : <BaseTable.Cell />}
         </BaseTable.Row>
     );

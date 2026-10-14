@@ -12,6 +12,7 @@ export function UnknownDetailsCard({
     innerCards,
     childIndex,
     InstructionCardComponent = InstructionCard,
+    notice,
 }: {
     ix: TransactionInstruction | ParsedInstruction;
     index: number;
@@ -19,6 +20,8 @@ export function UnknownDetailsCard({
     innerCards?: React.ReactNode[];
     childIndex?: number;
     InstructionCardComponent?: React.FC<Parameters<typeof InstructionCard>[0]>;
+    /** A full-width first row, e.g. why the instruction stayed unknown. */
+    notice?: React.ReactNode;
 }) {
     const { cluster } = useCluster();
     const programName = getProgramName(ix.programId.toBase58(), cluster);
@@ -31,6 +34,7 @@ export function UnknownDetailsCard({
             innerCards={innerCards}
             childIndex={childIndex}
             defaultRaw
+            notice={notice}
         />
     );
 }

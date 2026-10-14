@@ -10,6 +10,8 @@ import { AccountDownloadDropdown } from './AccountDownloadDropdown';
 type AccountCardProps = TableCardBodyProps & {
     title: React.ReactNode;
     account: Account;
+    /** Controls before the Raw toggle, e.g. the owner program's IDL selector. */
+    leadingHeaderActions?: React.ReactNode;
     refresh?: () => void;
     showRawButton?: boolean;
     analyticsSection?: string;

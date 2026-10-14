@@ -12,6 +12,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@components/shared/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@components/shared/ui/dropdown-menu';
 import { ExternalLink } from '@components/shared/ui/external-link';
 import {
     buildProgramName,
@@ -19,13 +25,18 @@ import {
     getIdlProgramVersion,
     IdlVariant,
     isIdlProgramIdMismatch,
+    ProgramIdlSelector,
     type SupportedIdl,
+    useCustomIdlAllowedHere,
+    useCustomIdlHighlightVariant,
+    useCustomIdlToning,
     useProgramIdls,
 } from '@entities/idl';
 import { useCluster } from '@providers/cluster';
 import { type Address } from '@solana/kit';
-import { useState } from 'react';
-import { AlertCircle, AlertTriangle, ExternalLink as ExternalLinkIcon } from 'react-feather';
+import { cva } from 'class-variance-authority';
+import { useRef, useState } from 'react';
+import { AlertCircle, AlertTriangle, ExternalLink as ExternalLinkIcon, MoreHorizontal } from 'react-feather';
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/app/components/shared/ui/tooltip';
 import { cn } from '@/app/components/shared/utils';
@@ -39,11 +50,21 @@ import { IdlSection } from './IdlSection';
 export function IdlCard({ programId }: { programId: string }) {
     const { url, cluster } = useCluster();
     const network = clusterSlug(cluster);
-    const { anchorIdl, anchorIdlAddress, programMetadataIdl, programMetadataIdlAddress, isLoading } = useProgramIdls(
-        programId,
-        url,
-        cluster,
-    );
+    const {
+        anchorIdl,
+        anchorIdlAddress,
+        programMetadataIdl,
+        programMetadataIdlAddress,
+        isLoading,
+        isCustomIdl,
+        onChainIdls,
+    } = useProgramIdls(programId, url, cluster);
+    // REVIEW(HOO-1971): the row highlight variant tones every ground of the card under a selected custom IDL, since
+    // every tab and the Interact forms read it.
+    const highlightVariant = useCustomIdlHighlightVariant();
+    const isCustomIdlAllowed = useCustomIdlAllowedHere();
+    const cardRef = useRef<HTMLDivElement>(null);
+    useCustomIdlToning(cardRef, isCustomIdl && highlightVariant === 'row');
     const [searchStr, setSearchStr] = useState<string>('');
     const [isOrquestraDialogOpen, setIsOrquestraDialogOpen] = useState(false);
 
@@ -57,7 +78,10 @@ export function IdlCard({ programId }: { programId: string }) {
     const idlHistoryLink = (
         <ExternalLink
             href={idlHistoryUrl}
-            className={cn(buttonVariants({ size: 'sm', ui: 'dashkit', variant: 'white' }), 'whitespace-nowrap')}
+            className={cn(
+                buttonVariants({ size: 'sm', ui: 'dashkit', variant: 'white' }),
+                'whitespace-nowrap max-md:!hidden',
+            )}
         >
             IDL history
             <ExternalLinkIcon className="ml-1.5 align-text-top" size={13} />
@@ -74,7 +98,7 @@ export function IdlCard({ programId }: { programId: string }) {
             ui="dashkit"
             variant="white"
             size="sm"
-            className="whitespace-nowrap"
+            className="whitespace-nowrap max-md:!hidden"
             onClick={() => setIsOrquestraDialogOpen(true)}
         >
             MCP &amp; API
@@ -84,8 +108,31 @@ export function IdlCard({ programId }: { programId: string }) {
 
     const headerLinks = (
         <div className="flex flex-wrap items-center gap-2">
+            {/* REVIEW(HOO-1971): hidden while the design menu turns the custom IDL off for the IDL tab. */}
+            {isCustomIdlAllowed && <ProgramIdlSelector programAddress={programId} />}
             {idlHistoryLink}
             {orquestraLink}
+            {/* On phones the two outbound links fold into one menu, so the header keeps the title and the selector
+                on one line; the IDL selector stays out, as the card's main control. */}
+            <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                    <Button ui="dashkit" variant="white" size="sm" aria-label="More" className="md:!hidden">
+                        <MoreHorizontal size={13} />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem asChild>
+                        <a href={idlHistoryUrl} target="_blank" rel="noopener noreferrer">
+                            IDL history
+                            <ExternalLinkIcon className="ml-1.5" size={13} />
+                        </a>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setIsOrquestraDialogOpen(true)}>
+                        MCP &amp; API
+                        <ExternalLinkIcon className="ml-1.5" size={13} />
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
             <Dialog open={isOrquestraDialogOpen} onOpenChange={setIsOrquestraDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -122,9 +169,11 @@ export function IdlCard({ programId }: { programId: string }) {
     );
 
     // Single IDL view: show the program-metadata (PMP) IDL, falling back to the Anchor source only
-    // when no PMP IDL exists.
+    // when no PMP IDL exists. `useProgramIdls` has already applied the user's source selection.
     const idl: SupportedIdl | undefined = programMetadataIdl ?? anchorIdl;
-    const isFallback = !programMetadataIdl && Boolean(anchorIdl);
+    const isAnchorShown = !isCustomIdl && !programMetadataIdl && Boolean(anchorIdl);
+    // "Fallback" means the chain has no PMP IDL, not that the user picked Anchor over it.
+    const isFallback = isAnchorShown && !onChainIdls.programMetadataIdl;
 
     if (!idl) {
         if (isLoading) {
@@ -204,10 +253,9 @@ export function IdlCard({ programId }: { programId: string }) {
         </div>
     );
 
-    // Metadata shown directly under the badge: the storage account the displayed IDL was read from,
-    // which source it came from, and the program's own version (distinct from the badge's spec label).
-    const idlAddress = isFallback ? anchorIdlAddress : programMetadataIdlAddress;
-    const idlSourceLabel = isFallback ? 'Anchor' : 'PMP';
+    // Metadata shown directly under the badge: the storage account the displayed IDL was read from and
+    // the program's own version (distinct from the badge's spec label).
+    const idlAddress = isAnchorShown ? anchorIdlAddress : programMetadataIdlAddress;
     const programVersion = getIdlProgramVersion(idl);
     // Codama / modern Anchor names only; legacy Anchor top-level name is intentionally not shown.
     const programName = buildProgramName([idl]);
@@ -228,10 +276,6 @@ export function IdlCard({ programId }: { programId: string }) {
                     <dd className="text-white">{programName}</dd>
                 </div>
             )}
-            <div className="flex items-baseline gap-2">
-                <dt className="w-32 shrink-0 text-neutral-400">Source</dt>
-                <dd className="text-white">{idlSourceLabel}</dd>
-            </div>
             {programVersion && (
                 <div className="flex items-baseline gap-2">
                     <dt className="w-32 shrink-0 text-neutral-400">Program Version</dt>
@@ -241,8 +285,13 @@ export function IdlCard({ programId }: { programId: string }) {
         </dl>
     );
 
+    // Overview and Interact both read the selected IDL, so the whole card is marked.
     return (
-        <Card ui="dashkit">
+        <Card
+            ui="dashkit"
+            ref={cardRef}
+            className={idlCardVariants({ custom: isCustomIdl && highlightVariant !== 'off' })}
+        >
             <CardHeader ui="dashkit">
                 <CardTitle as="h4" ui="dashkit">
                     Program IDL
@@ -260,7 +309,10 @@ export function IdlCard({ programId }: { programId: string }) {
                         badge={badge}
                         info={info}
                         idl={idl}
-                        idlSource={isFallback ? IdlVariant.Anchor : IdlVariant.ProgramMetadata}
+                        // Castaway fetches the IDL from the chain itself, so it has nothing to offer for a custom one.
+                        idlSource={
+                            isCustomIdl ? undefined : isAnchorShown ? IdlVariant.Anchor : IdlVariant.ProgramMetadata
+                        }
                         network={network}
                         programId={programId}
                         searchStr={searchStr}
@@ -271,3 +323,14 @@ export function IdlCard({ programId }: { programId: string }) {
         </Card>
     );
 }
+
+// The selected `IDL: Custom` selector's yellow at a quarter strength: it frames the whole card, and a stronger yellow
+// pulls the eye away from the content.
+const idlCardVariants = cva('', {
+    variants: {
+        custom: {
+            false: '',
+            true: '!border-custom-idl/25',
+        },
+    },
+});

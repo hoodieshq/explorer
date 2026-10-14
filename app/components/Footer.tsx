@@ -1,13 +1,17 @@
 'use client';
 
+import { useCustomIdlCatalogVisible } from '@entities/idl';
 import { useClusterPath } from '@utils/url';
 import Link from 'next/link';
 
+import { CustomIdlCatalogTrigger } from '@/app/features/custom-idl-catalog';
 import { FeedbackTrigger } from '@/app/features/feedback';
 import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
 
 export function Footer() {
     const tosPath = useClusterPath({ pathname: '/tos' });
+    // REVIEW(HOO-1971): the design menu can hide the catalog link.
+    const isCatalogVisible = useCustomIdlCatalogVisible();
 
     return (
         <footer className="border-0 border-t border-solid border-neutral-800">
@@ -20,6 +24,11 @@ export function Footer() {
                         <FeedbackTrigger className="cursor-pointer border-0 bg-transparent p-0 text-inherit transition-colors hover:text-accent-500">
                             Feedback
                         </FeedbackTrigger>
+                        {isCatalogVisible && (
+                            <CustomIdlCatalogTrigger className="cursor-pointer border-0 bg-transparent p-0 text-inherit transition-colors hover:text-accent-500">
+                                Custom IDLs
+                            </CustomIdlCatalogTrigger>
+                        )}
                         <Link className="transition-colors hover:text-accent-500" href={tosPath}>
                             Terms of Services
                         </Link>

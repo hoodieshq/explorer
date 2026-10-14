@@ -2,6 +2,7 @@ import { isSignerRole, isWritableRole } from '@solana/kit';
 import type { TransactionInstruction } from '@solana/web3.js';
 import React from 'react';
 
+import { MarkedValue } from '@/app/shared/lib/marked-value';
 import { toKitInstruction } from '@/app/shared/lib/web3js-compat';
 import { AccountRoleBadges } from '@/app/shared/ui/AccountRoleBadges';
 import { BaseTable } from '@/app/shared/ui/Table';
@@ -70,7 +71,9 @@ function DecodedInstructionBody({
                 // Two accounts can share one address, so the row key is the position.
                 <BaseTable.Row key={position} data-testid={`account-row-${position}`}>
                     <BaseTable.Cell>
-                        <div className="mr-1.5 md:inline">{label}</div>
+                        <div className="mr-1.5 md:inline">
+                            <MarkedValue>{label}</MarkedValue>
+                        </div>
                         <AccountRoleBadges isWritable={isWritableRole(role)} isSigner={isSignerRole(role)} />
                     </BaseTable.Cell>
                     <BaseTable.Cell className="text-right" colSpan={VALUE_COLUMNS}>
