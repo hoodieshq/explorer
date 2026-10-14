@@ -621,7 +621,6 @@ function LoadedView({
                     `#tokens` section anchor; it renders only once a run has produced token rows (matching
                     the gated Tokens tab above). */}
             {tokenBalanceRows && tokenBalanceRows.length > 0 && <TokenBalancesCardInner rows={tokenBalanceRows} />}
-            {/* Gated like the Address Lookups tab above. The card carries its own `#address-lookups` anchor. */}
             {hasLookups && <AddressTableLookupsCard message={message} />}
             {/* Programs & Logs — the two-column row copied from the TX details page. At xxl it goes
                     full-bleed to the viewport: Instructions (Programs) on the left, and the Simulation

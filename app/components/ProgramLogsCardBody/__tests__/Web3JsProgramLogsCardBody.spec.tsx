@@ -43,7 +43,7 @@ describe('Web3JsProgramLogsCardBody', () => {
         expect(getAnchorNameForInstruction).toHaveBeenCalledWith(new Uint8Array([7, 8, 9]), expect.anything());
     });
 
-    it('should not decode an instruction the RPC already parsed', () => {
+    it('should not decode the already parsed instruction', () => {
         renderCard([{ parsed: { info: {}, type: 'transfer' }, program: 'system', programId: SYSTEM_PROGRAM }]);
 
         expect(getAnchorNameForInstruction).not.toHaveBeenCalled();
