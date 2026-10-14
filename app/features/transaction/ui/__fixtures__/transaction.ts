@@ -145,7 +145,6 @@ function createRawTransaction(bytes: Uint8Array): RawTransaction {
         signatures: [DEFAULT_SIGNATURE],
         slot: 372_654_321,
         transaction: TransactionMessage.decompile(message),
-        version: message.version,
     };
 }
 

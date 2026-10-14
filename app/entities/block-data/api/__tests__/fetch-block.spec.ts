@@ -1,5 +1,5 @@
 import { gen } from '@__fixtures__/gen';
-import { createV0TransactionBytes } from '@__fixtures__/transaction-message';
+import { createUnsignedTransactionBytes } from '@__fixtures__/transaction-message';
 import { type BlockData, type BlockTransaction, isBlockTransaction } from '@entities/block-data';
 import { AccountRole, type Address, address } from '@solana/kit';
 import { describe, expect, it, vi } from 'vitest';
@@ -27,7 +27,7 @@ const V0_PROGRAM = address(gen.address(12));
 const V0_LOOKUP_TABLE = address(gen.address(13));
 const V0_LOADED_ADDRESS = address(gen.address(14));
 
-const V0_TRANSACTION_BYTES = createV0TransactionBytes(V0_FEE_PAYER, {
+const V0_TRANSACTION_BYTES = createUnsignedTransactionBytes(0, V0_FEE_PAYER, {
     accounts: [
         {
             address: V0_LOADED_ADDRESS,

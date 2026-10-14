@@ -24,7 +24,7 @@ import {
 
 export const FEE_PAYER = address(gen.address(1));
 export const RECIPIENT = address(gen.address(2));
-const PROGRAM = address(gen.address(3));
+export const PROGRAM = address(gen.address(3));
 const LOOKUP_TABLE = address(gen.address(4));
 const BLOCKHASH = blockhash(gen.blockhash());
 
@@ -61,7 +61,7 @@ export function createV1TransactionBytes(config: V1ConfigOverrides): Uint8Array 
 }
 
 /** A single-transfer web3.js message, for the versions web3.js can build. */
-export function createWeb3TransactionMessage({ computeUnitLimit }: Web3MessageOptions = {}): TransactionMessage {
+function createWeb3TransactionMessage({ computeUnitLimit }: Web3MessageOptions = {}): TransactionMessage {
     const transfer = SystemProgram.transfer({
         fromPubkey: new PublicKey(FEE_PAYER),
         lamports: 1n,

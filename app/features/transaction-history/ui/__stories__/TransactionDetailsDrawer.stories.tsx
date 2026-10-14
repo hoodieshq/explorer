@@ -33,7 +33,6 @@ const FETCHED: CacheEntry<Details> = {
             signatures: [SIGNATURE],
             slot: SLOT,
             transaction: TransactionMessage.decompile(MESSAGE),
-            version: 1,
         },
     },
     status: FetchStatus.Fetched,

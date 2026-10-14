@@ -10,8 +10,8 @@ import type {
 /**
  * A parsed transaction in the shape the transaction detail page consumes.
  *
- * Matches web3.js `ParsedTransactionWithMeta` so existing consumers are unaffected, with the
- * version widened to cover v1, which web3.js `TransactionVersion` cannot describe.
+ * Matches web3.js `ParsedTransactionWithMeta` so existing consumers are unaffected.
+ * `version` takes kit's `TransactionVersion`, the type the transaction parser package uses.
  */
 export type TransactionWithMeta = Omit<ParsedTransactionWithMeta, 'version'> & {
     version?: TransactionVersion;
@@ -43,10 +43,8 @@ type RawTransactionBase = {
 
 /**
  * A transaction's wire bytes and the parts of its metadata the inspector needs.
- * `message` and `transaction` are the web3.js views of `messageBytes`.
  */
 export type RawTransaction = RawTransactionBase & {
     message: VersionedMessage;
     transaction: TransactionMessage;
-    version: TransactionVersion;
 };

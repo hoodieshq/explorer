@@ -71,11 +71,7 @@ export async function fetchRawTransaction(
         slot: Number(response.slot),
     };
 
-    return {
-        ...base,
-        ...decodeWithWeb3(messageBytes, meta?.loadedAddresses),
-        version: compiledMessage.version,
-    };
+    return { ...base, ...decodeWithWeb3(messageBytes, meta?.loadedAddresses) };
 }
 
 /**
