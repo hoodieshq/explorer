@@ -1,4 +1,4 @@
-import { createV0MessageBytes } from '@__fixtures__/transaction-message';
+import { createUnsignedTransactionBytes, createV0MessageBytes } from '@__fixtures__/transaction-message';
 import type { SolanaRpc } from '@entities/cluster';
 import { AccountRole } from '@solana/kit';
 import { Keypair, PublicKey } from '@solana/web3.js';
@@ -250,6 +250,22 @@ describe('simulateTransaction', () => {
         { version: 'v1', wireBytes: () => createV1TransactionBytes({}) },
     ])('should send a $version message as an unsigned wire transaction', async ({ wireBytes }) => {
         const bytes = wireBytes();
+        const rpc = createMockRpc();
+
+        await simulate(rpc, parseTransactionBytes(bytes).messageBytes);
+
+        expect(vi.mocked(rpc.simulateTransaction).mock.calls[0][0]).toBe(toBase64(bytes));
+    });
+
+    it.each([
+        { label: 'legacy', version: 'legacy' },
+        { label: 'v0', version: 0 },
+        { label: 'v1', version: 1 },
+    ] as const)('should send a $label message with two signers with a signature slot for each', async ({ version }) => {
+        const bytes = createUnsignedTransactionBytes(version, toKitAddress(ACCOUNT_KEY_1), {
+            accounts: [{ address: toKitAddress(ACCOUNT_KEY_2), role: AccountRole.READONLY_SIGNER }],
+            programAddress: SYSTEM_PROGRAM_ADDRESS,
+        });
         const rpc = createMockRpc();
 
         await simulate(rpc, parseTransactionBytes(bytes).messageBytes);

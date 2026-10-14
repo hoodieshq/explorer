@@ -127,9 +127,11 @@ export function fromRpcTransaction(response: RpcTransactionResponse): ParsedTran
 }
 
 /**
- * Decodes message bytes into a compiled message.
- * Ignores bytes past the end of the message.
- * Throws package-specific errors.
+ * Decodes message bytes into a compiled message, without the round-trip check of `fromMessageBytes`.
+ * Ignores bytes past the end of the message and may decode a truncated message.
+ * For input that can carry extra bytes. Re-encode the result before sending or measuring it.
+ * Throws {@link UnsupportedTransactionVersionError}, {@link InvalidTransactionConfigError}
+ * or {@link MalformedTransactionError}.
  */
 export function decodeCompiledMessage(
     bytes: Uint8Array,

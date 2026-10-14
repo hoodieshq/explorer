@@ -11,6 +11,7 @@ import {
     createV1TransactionBytes,
     createWeb3TransactionBytes,
     FEE_PAYER,
+    PROGRAM,
     RECIPIENT,
 } from '../../__fixtures__/wire-transactions';
 import { fetchRawTransaction } from '../fetch-raw-transaction';
@@ -95,7 +96,6 @@ describe('fetchRawTransaction', () => {
 
         const raw = await fetchRawTransaction(URL, SIGNATURE);
 
-        expect(raw?.version).toBe(1);
         expect(raw?.parsedTransaction).toMatchObject({
             config: { computeUnitLimit: 8442, priorityFeeLamports: 10_000n },
             version: 1,
@@ -111,12 +111,28 @@ describe('fetchRawTransaction', () => {
 
             const raw = await fetchRawTransaction(URL, SIGNATURE);
 
-            expect(raw?.version).toBe(version);
             expect(raw?.message.version).toBe(version);
             expect(raw?.message.staticAccountKeys[0].toBase58()).toBe(FEE_PAYER);
             expect(raw?.transaction.instructions).toHaveLength(1);
         },
     );
+
+    it('should decode the program, accounts and data of a v1 instruction for the Raw view', async () => {
+        respondWith(transactionResult(createV1TransactionBytes({})));
+
+        const raw = await fetchRawTransaction(URL, SIGNATURE);
+        const [instruction] = raw?.transaction.instructions ?? [];
+
+        expect(instruction.programId.toBase58()).toBe(PROGRAM);
+        expect(
+            instruction.keys.map(({ isSigner, isWritable, pubkey }) => ({
+                isSigner,
+                isWritable,
+                pubkey: pubkey.toBase58(),
+            })),
+        ).toEqual([{ isSigner: false, isWritable: true, pubkey: RECIPIENT }]);
+        expect(Uint8Array.from(instruction.data)).toEqual(new Uint8Array([1]));
+    });
 
     it('should decode a v1 transaction whose response reports empty loaded addresses', async () => {
         respondWith(
