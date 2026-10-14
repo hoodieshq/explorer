@@ -84,7 +84,7 @@ describe('CustomIdlUploadDialog', () => {
         expect(screen.getByRole('alert')).toHaveTextContent('This JSON is not an Anchor or Codama IDL.');
     });
 
-    it('should reject a file for another program as soon as it is loaded, and reset the form', async () => {
+    it('should reject a file for another program as soon as it is loaded, until the file is removed', async () => {
         const otherProgramJson = '{"address":"devi51mZmdwUJGU9hjN27vEz64Gps7uUefqxg27EAtH","instructions":[]}';
         const file = Object.assign(new File([otherProgramJson], 'amm.json', { type: 'application/json' }), {
             text: () => Promise.resolve(otherProgramJson),
@@ -105,7 +105,7 @@ describe('CustomIdlUploadDialog', () => {
         );
         expect(screen.getByRole('button', { name: 'Add IDL' })).toBeDisabled();
 
-        fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Remove file' }));
         expect(screen.queryByRole('alert')).not.toBeInTheDocument();
         expect(screen.queryByText('amm.json')).not.toBeInTheDocument();
         expect(screen.getByRole('textbox', { name: 'Or paste JSON' })).toHaveValue('');

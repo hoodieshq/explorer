@@ -79,7 +79,7 @@ export function CustomIdlForm({
     );
     const shownError = error ?? checkError;
 
-    const reset = () => {
+    const removeFile = () => {
         setText('');
         setFileName(undefined);
         setError(undefined);
@@ -108,6 +108,13 @@ export function CustomIdlForm({
             setError(result.error);
         }
     };
+
+    const errorNote = shownError && (
+        <p role="alert" className="m-0 flex min-w-0 items-start justify-end gap-2 text-xs text-destructive">
+            <AlertCircle size={14} className="mt-px shrink-0" />
+            <span className="break-all">{shownError}</span>
+        </p>
+    );
 
     return (
         <>
@@ -148,7 +155,7 @@ export function CustomIdlForm({
                             <button
                                 type="button"
                                 aria-label="Remove file"
-                                onClick={reset}
+                                onClick={removeFile}
                                 className="flex h-6 w-6 shrink-0 items-center justify-center rounded border-0 bg-transparent p-0 text-outer-space-300 hover:text-white"
                             >
                                 <X size={14} />
@@ -194,7 +201,7 @@ export function CustomIdlForm({
                         placeholder='{ "address": "…", "instructions": [ … ] }'
                         className={cn(
                             inputVariants({ variant: 'dark' }),
-                            'h-auto min-h-16 flex-1 resize-y font-mono scrollbar-styled',
+                            'h-auto min-h-16 flex-1 resize-none font-mono scrollbar-styled',
                             FIELD_BORDER,
                         )}
                     />
@@ -202,19 +209,8 @@ export function CustomIdlForm({
                 {afterText?.(text)}
             </div>
 
-            {shownError && (
-                <div className="flex items-center gap-3">
-                    <p role="alert" className="m-0 flex min-w-0 flex-1 items-start gap-2 text-xs text-destructive">
-                        <AlertCircle size={14} className="mt-px shrink-0" />
-                        <span className="break-all">{shownError}</span>
-                    </p>
-                    {text && (
-                        <Button size="sm" variant="outline" className="shrink-0" onClick={reset}>
-                            Reset
-                        </Button>
-                    )}
-                </div>
-            )}
+            {/* The drawer's footer holds full-width tiles, so on phones the error keeps its own row above them. */}
+            {actionsTarget && errorNote}
             {actionsTarget ? (
                 createPortal(
                     <>
@@ -244,6 +240,7 @@ export function CustomIdlForm({
                         {submitLabel}
                     </Button>
                     {secondaryActions}
+                    {errorNote && <div className="ml-auto min-w-0 flex-1">{errorNote}</div>}
                 </div>
             )}
         </>
