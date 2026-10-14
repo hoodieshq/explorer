@@ -11,7 +11,7 @@ describe('formatTransactionVersion', () => {
         expect(formatTransactionVersion(0)).toBe('v0');
     });
 
-    it('should render v1, which the legacy web3.js version union cannot describe', () => {
+    it('should render v1 with a v prefix', () => {
         expect(formatTransactionVersion(1)).toBe('v1');
     });
 });

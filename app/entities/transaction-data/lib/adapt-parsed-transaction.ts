@@ -86,10 +86,8 @@ export type RpcParsedTransaction = Readonly<{
  * Converts a kit `getTransaction` response into the web3.js-shaped transaction the detail page
  * renders.
  *
- * kit is the only client that can read v1 — web3.js validates the version against a
- * `'legacy' | 0` union and throws on anything newer — but every consumer downstream of the
- * transaction providers is written against web3.js types, so the response is adapted rather
- * than propagated.
+ * The detail page fetches through the kit RPC, but every consumer downstream of the transaction
+ * providers is written against web3.js types, so the response is adapted rather than propagated.
  */
 // web3.js types `blockTime` and `meta` as required `T | null`, so null is the contract here,
 // not a stylistic choice.

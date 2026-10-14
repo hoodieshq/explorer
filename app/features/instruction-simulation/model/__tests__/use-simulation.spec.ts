@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 
+import { fromMessageBytes } from '@explorer/parsers/transaction';
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { swrWrapper } from '@/app/__tests__/swr-hook';
+import { createWeb3TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
 
 import type { SimulationResult } from '../../lib/simulate-transaction';
 import { type SimulationState, useSimulation } from '../use-simulation';
@@ -92,12 +95,12 @@ function getSimulate(state: SimulationState): () => void {
 
 function createSuccessResult(overrides?: Partial<SimulationResult>): SimulationResult {
     return {
-        accountKeys: [],
         epoch: 100n,
         error: undefined,
         logs: [],
         solBalanceChanges: undefined,
         tokenBalanceData: undefined,
+        transaction: fromMessageBytes(parseTransactionBytes(createWeb3TransactionBytes('legacy')).messageBytes),
         unitsConsumed: 150,
         ...overrides,
     };

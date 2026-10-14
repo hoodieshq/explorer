@@ -4,19 +4,14 @@ import anchorModernIdl from '@entities/idl/mocks/anchor/anchor-0.30.1-devi51mZmd
 import referenceIdl from '@entities/idl/mocks/anchor/reference-0.29.json';
 import codamaIdl from '@entities/idl/mocks/codama/codama-1.0.0-ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S.json';
 import { getBase58Decoder } from '@solana/kit';
-import {
-    type ParsedMessage,
-    PublicKey,
-    TransactionInstruction,
-    TransactionMessage,
-    type VersionedMessage,
-} from '@solana/web3.js';
+import { type ParsedMessage, PublicKey, TransactionInstruction } from '@solana/web3.js';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Cluster } from '@/app/utils/cluster';
 
-import { ProgramLogsCardBody } from '../ProgramLogsCardBody';
+import { BaseProgramLogsCardBody } from '../BaseProgramLogsCardBody';
+import { Web3JsProgramLogsCardBody } from '../Web3JsProgramLogsCardBody';
 
 const idlState: ProgramIdls = { idls: [] };
 const useProgramIdls = vi.fn((..._args: unknown[]) => idlState);
@@ -32,13 +27,18 @@ const BASE58_DECODER = getBase58Decoder();
 const CODAMA_IDL = codamaIdl as unknown as CodamaIdl;
 const UNBUILDABLE_IDL = referenceIdl as unknown as AnchorIdl;
 const DEVI = new PublicKey(anchorModernIdl.address);
+const LOGS_PROPS = {
+    cluster: Cluster.Devnet,
+    logs: [{ computeUnits: 0, failed: false, invokedProgram: DEVI.toBase58(), logs: [], truncated: false }],
+    url: 'http://localhost',
+};
 const CREATE_AMM_CONFIG_IX = new TransactionInstruction({
     data: Buffer.from([137, 52, 237, 212, 215, 117, 108, 104, ...new Array(16).fill(0)]),
     keys: [1, 2, 3].map(index => ({ isSigner: false, isWritable: true, pubkey: gen.publicKey(index) })),
     programId: DEVI,
 });
 
-describe('ProgramLogsCardBody', () => {
+describe('BaseProgramLogsCardBody', () => {
     beforeEach(() => useProgramIdls.mockClear());
 
     it('should read the IDLs of the invoked program', () => {
@@ -127,7 +127,7 @@ describe('ProgramLogsCardBody', () => {
             },
         ];
 
-        renderLogs(parsedMessage());
+        render(<Web3JsProgramLogsCardBody message={parsedMessage()} {...LOGS_PROPS} />);
 
         expect(screen.getByText('Parsed Instruction', { exact: false })).toBeInTheDocument();
     });
@@ -138,19 +138,9 @@ function renamedIdl(name: string): AnchorIdl {
     return { ...anchorModernIdl, instructions: [{ ...first, name }, ...rest] } as unknown as AnchorIdl;
 }
 
-function renderLogs(message: VersionedMessage | ParsedMessage = v0Message()) {
-    const logs = [{ computeUnits: 0, failed: false, invokedProgram: DEVI.toBase58(), logs: [], truncated: false }];
-    return render(
-        <ProgramLogsCardBody message={message} logs={logs} cluster={Cluster.Devnet} url="http://localhost" />,
-    );
-}
-
-function v0Message(): VersionedMessage {
-    return new TransactionMessage({
-        instructions: [CREATE_AMM_CONFIG_IX],
-        payerKey: gen.publicKey(0),
-        recentBlockhash: PublicKey.default.toBase58(),
-    }).compileToV0Message();
+function renderLogs() {
+    const instructions = [{ data: new Uint8Array(CREATE_AMM_CONFIG_IX.data), programId: DEVI }];
+    return render(<BaseProgramLogsCardBody instructions={instructions} {...LOGS_PROPS} />);
 }
 
 function parsedMessage(): ParsedMessage {
