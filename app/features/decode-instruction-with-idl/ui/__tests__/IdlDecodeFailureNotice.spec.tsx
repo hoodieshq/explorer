@@ -65,12 +65,13 @@ describe('IdlDecodeFailureNotice', () => {
         expect(state.selectIdlSource).toHaveBeenCalledWith('custom');
     });
 
-    it('should offer an upload when no IDL decodes the instruction', () => {
+    it('should only state the failure when no IDL decodes the instruction and none is stored', () => {
         state.onChainIdls = {};
         render(<IdlDecodeFailureNotice ix={ix} />);
 
         expect(screen.getByRole('status')).toHaveTextContent('No IDL decodes this instruction.');
-        expect(screen.getByRole('button', { name: 'Add custom IDL…' })).toBeInTheDocument();
+        // A new custom IDL is added through the catalog, not from the card.
+        expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
 
     it('should offer a replacement when the selected custom IDL is the only one and fails', () => {

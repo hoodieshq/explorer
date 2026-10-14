@@ -83,16 +83,22 @@ When the custom IDL is selected, the program's on-chain IDLs MUST NOT be used as
 #### Scenario: No IDL decodes the instruction
 
 - **WHEN** no IDL of the program decodes the instruction
-- **THEN** the failure row MUST offer to add a custom IDL
+- **THEN** the failure row MUST offer to replace the custom IDL when the program has one
+- **AND** the failure row MUST NOT offer to add a custom IDL
 
 ### Requirement: The custom IDL selection is visible
 
-A program's IDL selector MUST be highlighted while its custom IDL is selected, and every instruction card with raw bytes MUST carry its program's selector.
+A program's IDL selector MUST be highlighted while its custom IDL is selected, and every instruction card with raw bytes of a program with a stored custom IDL MUST carry its program's selector.
 
 #### Scenario: Decoded instruction
 
 - **WHEN** an instruction card renders a decode produced by the custom IDL
 - **THEN** the card header MUST show the program's selector, highlighted
+
+#### Scenario: Program without a stored custom IDL
+
+- **WHEN** an instruction card renders an instruction of a program that has no stored custom IDL
+- **THEN** its card MUST NOT show an IDL selector
 
 #### Scenario: RPC-parsed instruction
 

@@ -9,6 +9,7 @@ import {
     type ProgramIdlPair,
     type ProgramIdlPreference,
     toIdlSourceSelection,
+    useCustomIdlAllowedHere,
     useProgramIdlPreference,
     useProgramIdls,
 } from '@entities/idl';
@@ -29,13 +30,20 @@ const SOURCE_LABELS: Record<IdlSourceOption, string> = {
 
 /**
  * Says the instruction was not decoded and tries the program's other IDLs right away: each one that decodes
- * it becomes a button that selects it. When none does, it offers to add (or replace) a custom IDL.
+ * it becomes a button that selects it. When none does and the program has a custom IDL, it offers to replace it; a
+ * new custom IDL is added through the catalog.
  */
 export function IdlDecodeFailureNotice({ ix }: { ix: TransactionInstruction }) {
     const programAddress = ix.programId.toBase58();
     const { url, cluster } = useCluster();
     const { onChainIdls, isCustomIdl } = useProgramIdls(programAddress, url, cluster);
-    const { preference, addCustomIdl, selectIdlSource } = useProgramIdlPreference(programAddress);
+    const { preference: storedPreference, addCustomIdl, selectIdlSource } = useProgramIdlPreference(programAddress);
+    // REVIEW(HOO-1971): where the design menu turns the custom IDL off, it is neither offered nor replaceable here.
+    const isCustomIdlAllowed = useCustomIdlAllowedHere();
+    const preference = useMemo(
+        () => (isCustomIdlAllowed ? storedPreference : storedPreference && { ...storedPreference, custom: undefined }),
+        [isCustomIdlAllowed, storedPreference],
+    );
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
     const selected = getSelectedIdlSourceOption(onChainIdls, preference);
@@ -80,9 +88,11 @@ export function IdlDecodeFailureNotice({ ix }: { ix: TransactionInstruction }) {
                     ))}
                 </span>
             ) : (
-                <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(true)}>
-                    {preference?.custom ? 'Replace custom IDL…' : 'Add custom IDL…'}
-                </Button>
+                preference?.custom && (
+                    <Button variant="outline" size="sm" onClick={() => setIsDialogOpen(true)}>
+                        Replace custom IDL…
+                    </Button>
+                )
             )}
             <CustomIdlUploadDialog
                 programAddress={programAddress}

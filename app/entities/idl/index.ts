@@ -52,12 +52,18 @@ export { customIdlHighlight } from './ui/custom-idl-highlight';
 export { CUSTOM_IDL_ROW_EDGE, CUSTOM_IDL_ROW_TINT, CustomIdlMark, holdRoundedAncestorClip } from './ui/CustomIdlMark';
 export { useCustomIdlHighlightVariant } from './model/custom-idl/highlight-variant';
 export { useCustomIdlToning } from './ui/use-custom-idl-toning';
+export { useCustomIdlAllowedHere } from './model/custom-idl/idl-surfaces';
 export { CustomIdlHighlightPicker } from './ui/CustomIdlHighlightPicker';
 export { CustomIdlSurfacesPicker } from './ui/CustomIdlSurfacesPicker';
 export { CustomIdlCatalogVisibilitySwitch } from './ui/CustomIdlCatalogVisibilitySwitch';
 export { useCustomIdlCatalogVisible } from './model/custom-idl/catalog-visibility';
 export { ProgramIdlSelector } from './ui/ProgramIdlSelector';
-export { CustomIdlMarkProvider, ProgramIdlSlot, ProgramIdlSlotProvider } from './ui/ProgramIdlSlot';
+export {
+    CustomIdlMarkProvider,
+    ProgramIdlSlot,
+    ProgramIdlSlotProvider,
+    StoredProgramIdlSelector,
+} from './ui/ProgramIdlSlot';
 export {
     getOnChainIdlSourceOptions,
     getSelectedIdlSourceOption,

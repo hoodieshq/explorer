@@ -3,7 +3,7 @@
 import { Address } from '@components/common/Address';
 import { SolBalance } from '@components/common/SolBalance';
 import { AdjacentClusterLink, SearchingClusterIndicator, useClusterResourceSearch } from '@entities/cluster';
-import { ProgramIdlSelector } from '@entities/idl';
+import { StoredProgramIdlSelector } from '@entities/idl';
 import { AccountCard } from '@features/account';
 import { Account } from '@providers/accounts';
 import { useCluster } from '@providers/cluster';
@@ -24,7 +24,7 @@ export function UnknownAccountCard({ account }: { account: Account }) {
                 // Only a data account can be decoded with its owner program's IDL. The card sits above every
                 // account tab, so the choice stays at hand on the Anchor Data tab too.
                 !account.executable &&
-                (account.space ?? 0) > 0 && <ProgramIdlSelector programAddress={account.owner.toBase58()} />
+                (account.space ?? 0) > 0 && <StoredProgramIdlSelector programAddress={account.owner.toBase58()} />
             }
         >
             <BaseTable.Row>

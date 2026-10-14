@@ -27,6 +27,7 @@ import {
     isIdlProgramIdMismatch,
     ProgramIdlSelector,
     type SupportedIdl,
+    useCustomIdlAllowedHere,
     useCustomIdlHighlightVariant,
     useCustomIdlToning,
     useProgramIdls,
@@ -61,6 +62,7 @@ export function IdlCard({ programId }: { programId: string }) {
     // REVIEW(HOO-1971): the row highlight variant tones every ground of the card under a selected custom IDL, since
     // every tab and the Interact forms read it.
     const highlightVariant = useCustomIdlHighlightVariant();
+    const isCustomIdlAllowed = useCustomIdlAllowedHere();
     const cardRef = useRef<HTMLDivElement>(null);
     useCustomIdlToning(cardRef, isCustomIdl && highlightVariant === 'row');
     const [searchStr, setSearchStr] = useState<string>('');
@@ -106,7 +108,8 @@ export function IdlCard({ programId }: { programId: string }) {
 
     const headerLinks = (
         <div className="flex flex-wrap items-center gap-2">
-            <ProgramIdlSelector programAddress={programId} />
+            {/* REVIEW(HOO-1971): hidden while the design menu turns the custom IDL off for the IDL tab. */}
+            {isCustomIdlAllowed && <ProgramIdlSelector programAddress={programId} />}
             {idlHistoryLink}
             {orquestraLink}
             {/* On phones the two outbound links fold into one menu, so the header keeps the title and the selector
