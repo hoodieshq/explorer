@@ -1,4 +1,4 @@
-import type { ReadonlyUint8Array } from '@solana/kit';
+import { getBase58Encoder, type ReadonlyUint8Array } from '@solana/kit';
 import type BN from 'bn.js';
 
 /**
@@ -91,6 +91,14 @@ export function toBase64(bytes: ReadonlyUint8Array): string {
     }
     // Fallback to the baseline browser's api
     return btoa(fromCharCode(bytes));
+}
+
+let base58Encoder: ReturnType<typeof getBase58Encoder>;
+export function fromBase58(base58: string): Uint8Array {
+    if (!base58Encoder) {
+        base58Encoder = getBase58Encoder();
+    }
+    return new Uint8Array(base58Encoder.encode(base58));
 }
 
 /**
@@ -385,7 +393,7 @@ export function toUint8Array(data: ByteArray): Uint8Array {
     return new Uint8Array(data);
 }
 
-type BytesEncoding = 'utf8' | 'utf-8' | 'hex' | 'base64';
+type BytesEncoding = 'utf8' | 'utf-8' | 'hex' | 'base64' | 'base58';
 
 /**
  * Create Uint8Array from various input types.
@@ -421,6 +429,8 @@ export function bytes(input: string | ArrayLike<number> | ArrayBufferLike, encod
                 return fromHex(input);
             case 'base64':
                 return fromBase64(input);
+            case 'base58':
+                return fromBase58(input);
             case 'utf8':
             case 'utf-8':
             default:
