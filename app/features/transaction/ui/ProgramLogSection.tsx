@@ -1,5 +1,5 @@
 import { TableCardBody } from '@components/common/TableCardBody';
-import { ProgramLogsCardBody } from '@components/ProgramLogsCardBody';
+import { Web3JsProgramLogsCardBody } from '@components/ProgramLogsCardBody/Web3JsProgramLogsCardBody';
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { cn } from '@components/shared/utils';
 import { useCluster } from '@providers/cluster';
@@ -65,7 +65,7 @@ export function ProgramLogSection({ signature }: SignatureProps) {
                 showRaw ? (
                     <RawProgramLogs raw={logMessages} />
                 ) : (
-                    <ProgramLogsCardBody message={message} logs={prettyLogs} cluster={cluster} url={url} />
+                    <Web3JsProgramLogsCardBody message={message} logs={prettyLogs} cluster={cluster} url={url} />
                 )
             ) : (
                 <BaseCardBody className="text-sm text-muted">Logs not supported for this transaction</BaseCardBody>

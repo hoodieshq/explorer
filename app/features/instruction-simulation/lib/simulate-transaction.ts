@@ -31,15 +31,13 @@ import { ENABLE_TX_V1_FEATURE, isTxV1Active } from './tx-v1-feature';
 import type { SolBalanceChange } from './types';
 
 export type SimulationResult = {
-    // Every account key the message references, lookup tables resolved, in the order
-    // `compiledInstructions` indexes into. Callers that need an instruction's program id must read it
-    // from here: `message.staticAccountKeys` is missing any key sourced from a lookup table.
-    accountKeys: readonly PublicKey[];
     epoch: bigint;
     logs: InstructionLogs[] | undefined;
     error: string | undefined;
     solBalanceChanges: SolBalanceChange[] | undefined;
     tokenBalanceData: TokenBalanceData | undefined;
+    /** Parsed from the simulated bytes with lookup tables resolved, so every view of the result describes them. */
+    transaction: ParsedTransaction;
     unitsConsumed: number | undefined;
 };
 
@@ -69,7 +67,7 @@ export async function simulateTransaction({
         throw (await inactiveV1GateError(rpc, transaction.version, cause)) ?? cause;
     }
 
-    const result = interpretSimulation(raw, cluster, accountBalances);
+    const result: SimulationResult = { ...interpretSimulation(raw, cluster, accountBalances), transaction };
 
     // Match the error the RPC returned rather than the interpreted one, which reports any failure
     // carrying logs as a bare `TransactionError`.
@@ -282,7 +280,7 @@ function interpretSimulation(
     { accountKeys, epoch, parsedAccountsPre, simResult }: RawSimulation,
     cluster: Cluster,
     accountBalances?: { preBalances: number[]; postBalances: number[] },
-): SimulationResult {
+): Omit<SimulationResult, 'transaction'> {
     // Token balance data (raw — UI layer is responsible for generating display rows)
     const mintToDecimals = getMintDecimals(accountKeys, parsedAccountsPre, simResult.accounts);
     const tokenData = buildTokenBalances(accountKeys, parsedAccountsPre, simResult.accounts, mintToDecimals);
@@ -307,7 +305,6 @@ function interpretSimulation(
     }
 
     return {
-        accountKeys,
         epoch,
         error,
         logs,

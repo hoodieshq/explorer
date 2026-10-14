@@ -1,5 +1,6 @@
 import { createUnsignedTransactionBytes, createV0MessageBytes } from '@__fixtures__/transaction-message';
 import type { SolanaRpc } from '@entities/cluster';
+import { fromMessageBytes } from '@explorer/parsers/transaction';
 import { AccountRole } from '@solana/kit';
 import { Keypair, PublicKey } from '@solana/web3.js';
 import { SYSTEM_PROGRAM_ADDRESS } from '@solana-program/system';
@@ -224,14 +225,28 @@ describe('simulateTransaction', () => {
             ),
         );
 
+        const addresses = [ACCOUNT_KEY_1, ACCOUNT_KEY_2, lookupAddress].map(toKitAddress);
         expect(rpc.getMultipleAccounts).toHaveBeenCalledWith(
             [toKitAddress(lookupTableKey)],
             expect.objectContaining({ encoding: 'base64' }),
         );
-        // The resolved keys are what names each instruction's program downstream. A lookup-table address
-        // appears only here, never in `staticAccountKeys`, so reading the program id from the message
-        // alone would name the wrong program.
-        expect(result.accountKeys).toEqual([ACCOUNT_KEY_1, ACCOUNT_KEY_2, lookupAddress]);
+        expect(rpc.getMultipleAccounts).toHaveBeenCalledWith(
+            addresses,
+            expect.objectContaining({ encoding: 'jsonParsed' }),
+        );
+        expect(rpc.simulateTransaction).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ accounts: { addresses, encoding: 'base64' } }),
+        );
+        expect(result.transaction.accounts.map(account => account.address)).toEqual(addresses);
+    });
+
+    it('should return the transaction it simulated, parsed from the message bytes', async () => {
+        const { messageBytes } = parseTransactionBytes(createWeb3TransactionBytes('legacy'));
+
+        const result = await simulate(createMockRpc(), messageBytes);
+
+        expect(result.transaction).toEqual(fromMessageBytes(messageBytes));
     });
 
     it('should return epoch from epochInfo', async () => {
