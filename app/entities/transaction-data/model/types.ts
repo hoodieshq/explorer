@@ -1,5 +1,4 @@
 import type { ParsedTransaction } from '@explorer/parsers/transaction';
-import type { TransactionVersion } from '@solana/kit';
 import type {
     CompiledInnerInstruction,
     ParsedTransactionWithMeta,
@@ -7,15 +6,8 @@ import type {
     VersionedMessage,
 } from '@solana/web3.js';
 
-/**
- * A parsed transaction in the shape the transaction detail page consumes.
- *
- * Matches web3.js `ParsedTransactionWithMeta` so existing consumers are unaffected.
- * `version` takes kit's `TransactionVersion`, the type the transaction parser package uses.
- */
-export type TransactionWithMeta = Omit<ParsedTransactionWithMeta, 'version'> & {
-    version?: TransactionVersion;
-};
+/** A parsed transaction in the shape that currently is consumed by transaction detail page. */
+export type TransactionWithMeta = ParsedTransactionWithMeta;
 
 type RawTransactionBase = {
     /** Unix timestamp in seconds. */

@@ -61,7 +61,7 @@ export function createV1TransactionBytes(config: V1ConfigOverrides): Uint8Array 
 }
 
 /** A single-transfer web3.js message, for the versions web3.js can build. */
-function createWeb3TransactionMessage({ computeUnitLimit }: Web3MessageOptions = {}): TransactionMessage {
+export function createWeb3TransactionMessage({ computeUnitLimit }: Web3MessageOptions = {}): TransactionMessage {
     const transfer = SystemProgram.transfer({
         fromPubkey: new PublicKey(FEE_PAYER),
         lamports: 1n,

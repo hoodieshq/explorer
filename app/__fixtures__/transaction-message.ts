@@ -2,6 +2,7 @@ import {
     type Address,
     type AddressesByLookupTableAddress,
     appendTransactionMessageInstruction,
+    appendTransactionMessageInstructions,
     blockhash,
     compileTransaction,
     compileTransactionMessage,
@@ -20,12 +21,12 @@ import { gen } from './gen';
 
 const LIFETIME = { blockhash: blockhash(gen.blockhash()), lastValidBlockHeight: 100n };
 
-function createV0TransactionMessage(feePayer: Address, instruction: Instruction) {
+function createV0TransactionMessage(feePayer: Address, instructions: Instruction | readonly Instruction[]) {
     return pipe(
         createTransactionMessage({ version: 0 }),
         m => setTransactionMessageFeePayer(feePayer, m),
         m => setTransactionMessageLifetimeUsingBlockhash(LIFETIME, m),
-        m => appendTransactionMessageInstruction(instruction, m),
+        m => appendTransactionMessageInstructions([instructions].flat(), m),
     );
 }
 
@@ -50,11 +51,11 @@ export function createUnsignedTransactionBytes(
 
 export function createV0MessageBytes(
     feePayer: Address,
-    instruction: Instruction,
+    instructions: Instruction | readonly Instruction[],
     lookupTables: AddressesByLookupTableAddress = {},
 ): Uint8Array {
     const message = compressTransactionMessageUsingAddressLookupTables(
-        createV0TransactionMessage(feePayer, instruction),
+        createV0TransactionMessage(feePayer, instructions),
         lookupTables,
     );
     return new Uint8Array(getCompiledTransactionMessageEncoder().encode(compileTransactionMessage(message)));
