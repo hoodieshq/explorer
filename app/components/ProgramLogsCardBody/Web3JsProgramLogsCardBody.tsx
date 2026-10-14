@@ -1,14 +1,13 @@
-import { getBase58Encoder } from '@solana/kit';
 import type { ParsedInstruction, ParsedMessage, PartiallyDecodedInstruction } from '@solana/web3.js';
 import React from 'react';
+
+import { bytes } from '@/app/shared/lib/bytes';
 
 import {
     BaseProgramLogsCardBody,
     type BaseProgramLogsCardBodyProps,
     type ProgramLogsInstruction,
 } from './BaseProgramLogsCardBody';
-
-const BASE58_ENCODER = getBase58Encoder();
 
 export function Web3JsProgramLogsCardBody({
     message,
@@ -23,5 +22,5 @@ function toProgramLogsInstruction(
     const { programId } = instruction;
     if ('parsed' in instruction) return { programId };
 
-    return { data: new Uint8Array(BASE58_ENCODER.encode(instruction.data)), programId };
+    return { data: bytes(instruction.data, 'base58'), programId };
 }

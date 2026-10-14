@@ -6,7 +6,10 @@ import type {
     VersionedMessage,
 } from '@solana/web3.js';
 
-/** A parsed transaction in the shape that currently is consumed by transaction detail page. */
+/**
+ * A parsed transaction in the shape the transaction detail page consumes.
+ * The web3.js type stays until the detail page reads kit types (HOO-1174).
+ */
 export type TransactionWithMeta = ParsedTransactionWithMeta;
 
 type RawTransactionBase = {

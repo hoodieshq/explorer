@@ -14,8 +14,8 @@ export type LoadedAddresses = { readonly: Address[]; writable: Address[] };
  * Fetch the lookup tables a v0 message references and return the addresses it loads from them.
  * Each list joins the tables in message order, which is the order Solana appends them after the static keys.
  *
- * Throws when a table cannot be loaded or has no address at an index the message reads. A partial result would
- * shift every later account. The inspector shows this error to the user, so it names the table and the reason.
+ * Throws when a table cannot be loaded or has no address at an index the message reads.
+ * A partial result would shift every later account.
  */
 export async function resolveAddressLookupTables(
     rpc: SolanaRpc,
