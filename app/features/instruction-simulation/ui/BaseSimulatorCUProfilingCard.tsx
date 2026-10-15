@@ -11,8 +11,8 @@ type BaseSimulatorCUProfilingCardProps = {
     unitsConsumed?: number;
     cluster: ReturnType<typeof useCluster>['cluster'];
     epoch: bigint;
-    /** Absent when the simulation's version is unknown (added because v1 has no per-instruction reserve to show). */
-    transactionVersion?: TransactionVersion;
+    /** v1 reserves nothing per instruction, so its rows carry no schedule estimate. */
+    transactionVersion: TransactionVersion;
     /**
      * Render only the chart + legend body, without the built-in card chrome/header, so a caller can supply
      * its own section header (e.g. the inspector's header-outside layout). Defaults to false.
