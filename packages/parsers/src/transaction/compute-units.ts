@@ -21,7 +21,7 @@ export function getRequestedComputeUnits(
     context: { cluster: ScheduleCluster; epoch: bigint | undefined },
 ): RequestedComputeUnits {
     if (transaction.version === 1) {
-        const declared = transaction.config?.computeUnitLimit;
+        const declared = transaction.config.computeUnitLimit;
         return declared === undefined
             ? { source: 'fallback', value: 0 }
             : { source: 'declared', value: Math.min(declared, MAX_COMPUTE_UNITS) };
