@@ -36,6 +36,7 @@ import type {
     RpcParsedInstruction,
     RpcTransactionResponse,
     TransactionAccount,
+    TransactionConfig,
     TransactionInstruction,
     TransactionVersion,
 } from './types.js';
@@ -79,7 +80,7 @@ export function fromCompiledMessage(
     );
 
     return buildTransaction({
-        config: readTransactionConfig(message),
+        config: readTransactionConfig(message) ?? {},
         instructions,
         lookups,
         lifetimeSpecifier: message.lifetimeToken,
@@ -401,7 +402,8 @@ function fromJsonParsedTransaction(
 }
 
 function buildTransaction(txData: {
-    config: ReturnType<typeof readTransactionConfig>;
+    /** Attached to v1 only. */
+    config: TransactionConfig;
     instructions: TransactionInstruction[];
     /** `undefined` means the response did not report the tables. */
     lookups: readonly AddressTableLookup[] | undefined;
@@ -431,6 +433,6 @@ function buildTransaction(txData: {
             version: 0,
         };
     }
-    if (txData.version === 1) return { ...base, version: 1, ...(txData.config && { config: txData.config }) };
+    if (txData.version === 1) return { ...base, config: txData.config, version: 1 };
     return { ...base, version: 'legacy' };
 }

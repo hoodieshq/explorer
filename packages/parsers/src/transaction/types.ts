@@ -68,7 +68,11 @@ export type ParsedTransaction =
           /** Lookup table indexes that no loaded address fills. Absent when the encoding omits the tables. */
           unmatchedLookupTableIndexes?: readonly AddressTableLookup[];
       })
-    | (TransactionBase & { version: 1; config?: TransactionConfig });
+    | (TransactionBase & {
+          version: 1;
+          /** `{}` when the config mask declares no limits. */
+          config: TransactionConfig;
+      });
 
 /**
  * `loadedAddresses` is RPC-shaped: plain strings, because that is what every caller holds.
