@@ -28,7 +28,7 @@ const KNOWN_CONFIG_MASK_BITS =
     TRANSACTION_CONFIG_HEAP_SIZE_BIT_MASK;
 
 /**
- * Returns `undefined` for a legacy or v0 message, and for a v1 message that sets no limits.
+ * Returns `undefined` for a legacy or v0 message, and `{}` for a v1 message that sets no limits.
  * Throws `InvalidTransactionConfigError` when the mask sets an unknown bit or the config values do not match it.
  *
  * Deliberately not kit's `decompileTransactionMessage`, which throws on an out-of-range account index
@@ -70,7 +70,7 @@ export function readTransactionConfig(message: CompiledTransactionMessage): Tran
         );
     }
 
-    return valueIndex > 0 ? config : undefined;
+    return config;
 }
 
 function hasUnknownBits(configMask: number): boolean {
@@ -84,16 +84,17 @@ const RPC_CONFIG_FIELDS = [
     ['heapSize', 'heapSize'],
 ] as const;
 
-export function fromRpcTransactionConfig(config: RpcTransactionConfig | undefined): TransactionConfig | undefined {
-    if (!config) return undefined;
-
+/** Agave sends `transactionConfig` on every v1 message and omits it for legacy and v0, so absent reads as `{}`. */
+export function fromRpcTransactionConfig(config: RpcTransactionConfig | undefined): TransactionConfig {
     const mapped: TransactionConfig = {};
+    if (!config) return mapped;
+
     for (const [rpcField, field] of RPC_CONFIG_FIELDS) {
         const value = config[rpcField];
         if (value !== null) Object.assign(mapped, { [field]: value });
     }
 
-    return Object.keys(mapped).length > 0 ? mapped : undefined;
+    return mapped;
 }
 
 export function getTransactionConfig(transaction: ParsedTransaction): TransactionConfig | undefined {
