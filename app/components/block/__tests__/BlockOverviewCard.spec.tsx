@@ -1,5 +1,7 @@
+import { gen } from '@__fixtures__/gen';
 import type { BlockData, BlockTransaction } from '@entities/block-data';
-import { address, blockhash, lamports, type Signature } from '@solana/kit';
+import { fromCompiledMessage } from '@explorer/parsers/transaction';
+import { address, blockhash, lamports } from '@solana/kit';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -43,16 +45,6 @@ function makeBlock({ withUnavailable }: { withUnavailable: boolean }): BlockData
 function makeTransaction(): BlockTransaction {
     return {
         index: 0,
-        message: {
-            header: { numReadonlyNonSignerAccounts: 1, numReadonlySignerAccounts: 0, numSignerAccounts: 1 },
-            instructions: [{ accountIndices: [0], data: new Uint8Array(), programAddressIndex: 1 }],
-            lifetimeToken: blockhash('11111111111111111111111111111111'),
-            staticAccounts: [
-                address('Stake11111111111111111111111111111111111111'),
-                address('11111111111111111111111111111111'),
-            ],
-            version: 0,
-        },
         meta: {
             computeUnitsConsumed: 150n,
             costUnits: 1_500n,
@@ -61,6 +53,18 @@ function makeTransaction(): BlockTransaction {
             innerInstructions: [],
             logMessages: [],
         },
-        signatures: ['signature' as Signature],
+        parsedTransaction: fromCompiledMessage(
+            {
+                header: { numReadonlyNonSignerAccounts: 1, numReadonlySignerAccounts: 0, numSignerAccounts: 1 },
+                instructions: [{ accountIndices: [0], data: new Uint8Array(), programAddressIndex: 1 }],
+                lifetimeToken: blockhash('11111111111111111111111111111111'),
+                staticAccounts: [
+                    address('Stake11111111111111111111111111111111111111'),
+                    address('11111111111111111111111111111111'),
+                ],
+                version: 0,
+            },
+            { signatures: [gen.signature(1)] },
+        ),
     };
 }

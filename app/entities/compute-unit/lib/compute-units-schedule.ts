@@ -1,9 +1,4 @@
 import {
-    type BlockTransaction,
-    getBlockTransactionConfig,
-    getBlockTransactionInstructions,
-} from '@entities/block-data/@x/compute-unit';
-import {
     getReservedComputeUnits as getPackageReservedComputeUnits,
     MAX_COMPUTE_UNITS,
 } from '@explorer/parsers/programs/compute-budget';
@@ -69,48 +64,6 @@ function extractComputeUnitsFromInstruction(instruction: { programAddress: Addre
     }
 
     return null;
-}
-
-/**
- * Estimate the requested compute units for a transaction
- * @param tx - The transaction to analyze
- * @param epoch - The epoch of the transaction
- * @param cluster - The cluster the transaction is on
- * @returns The estimated compute units requested
- */
-export function estimateRequestedComputeUnits(
-    tx: BlockTransaction,
-    epoch: bigint | undefined,
-    cluster: Cluster,
-): number {
-    // v1 carries its compute unit limit in the message config; an absent limit means zero.
-    if (tx.message.version === 1) {
-        return Math.min(getBlockTransactionConfig(tx.message)?.computeUnitLimit ?? 0, MAX_COMPUTE_UNITS);
-    }
-
-    // First, check for explicit compute budget instructions
-    let totalReservedUnits = 0;
-    for (const instruction of getBlockTransactionInstructions(tx.message)) {
-        const programAddress = tx.message.staticAccounts[instruction.programAddressIndex];
-        const requestedUnits = extractComputeUnitsFromInstruction({
-            data: instruction.data,
-            programAddress,
-        });
-
-        if (requestedUnits !== null) {
-            totalReservedUnits = requestedUnits;
-            break;
-        } else {
-            const reservedUnits = getReservedComputeUnits({
-                cluster,
-                epoch,
-                programId: programAddress,
-            });
-            totalReservedUnits += reservedUnits;
-        }
-    }
-
-    return Math.min(totalReservedUnits, MAX_COMPUTE_UNITS);
 }
 
 /**
