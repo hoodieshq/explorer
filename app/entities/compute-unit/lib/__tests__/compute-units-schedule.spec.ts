@@ -1,3 +1,4 @@
+import type { Address } from '@solana/kit';
 import { SYSTEM_PROGRAM_ADDRESS } from '@solana-program/system';
 import { Cluster } from '@utils/cluster';
 
@@ -20,8 +21,8 @@ describe('getReservedComputeUnits', () => {
     });
 
     it('should reserve the default cu for a program id that is not valid base58', () => {
-        expect(getReservedComputeUnits({ cluster: Cluster.MainnetBeta, epoch: 1000n, programId: 'not-base58' })).toBe(
-            200_000,
-        );
+        expect(
+            getReservedComputeUnits({ cluster: Cluster.MainnetBeta, epoch: 1000n, programId: 'not-base58' as Address }),
+        ).toBe(200_000);
     });
 });

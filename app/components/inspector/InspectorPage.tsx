@@ -687,7 +687,11 @@ function LoadedView({
                     <InstructionsSection message={message} compiledInnerInstructions={compiledInnerInstructions} />
                 </div>
                 <div className="scrollbar-hide xxl:sticky xxl:top-[70px] xxl:max-h-[calc(100vh-90px)] xxl:min-w-0 xxl:flex-[1_1_0%] xxl:overflow-y-auto xxl:rounded-b-lg">
-                    <InspectorSimulationPanel simulation={simulation} message={message} />
+                    <InspectorSimulationPanel
+                        simulation={simulation}
+                        message={message}
+                        transactionVersion={version ?? message.version}
+                    />
                 </div>
             </div>
         </>
