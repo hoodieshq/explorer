@@ -46,6 +46,7 @@ export const TwoInstructions: Story = {
                 truncated: false,
             },
         ],
+        transactionVersion: 'legacy',
         unitsConsumed: 75000,
     },
 };
@@ -61,6 +62,7 @@ export const WithoutResolvedNames: Story = {
             { name: undefined, programId: TOKEN_PROGRAM, programName: 'Token Program' },
         ],
         logs: TwoInstructions.args?.logs ?? [],
+        transactionVersion: 'legacy',
         unitsConsumed: 75000,
     },
 };
@@ -75,5 +77,6 @@ export const NoLogs: Story = {
             { name: 'Transfer Checked', programId: TOKEN_PROGRAM, programName: 'Token Program' },
         ],
         logs: [],
+        transactionVersion: 'legacy',
     },
 };
