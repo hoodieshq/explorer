@@ -9,6 +9,7 @@ import {
     concat,
     concatBytes,
     equals,
+    fromBase58,
     fromBase64,
     fromHex,
     fromUtf8,
@@ -49,6 +50,17 @@ const invalidBase64Strings = ['Hello World!', 'Invalid@#$', 'not-valid-base64!!!
 // All 256 byte values for binary data tests
 const allByteValues = Array.from({ length: 256 }, (_, i) => i);
 const allByteValuesBase64 = btoa(String.fromCharCode(...new Uint8Array(allByteValues)));
+
+const base58TestCases: Record<string, number[]> = {
+    '': [],
+    '1': [0],
+    '11': [0, 0],
+    '112g': [0, 0, 97],
+    '2g': [97],
+    '9Ajdvzr': [72, 101, 108, 108, 111],
+};
+
+const invalidBase58Strings = ['0', 'O', 'I', 'l', '9Ajd0zr'];
 
 // Shared test data for hex encoding/decoding
 const hexTestCases: Record<string, number[]> = {
@@ -273,6 +285,25 @@ describe('bytes helpers', () => {
                 expect(isValidBase64(undefined as unknown as string)).toBe(false);
                 expect(isValidBase64(123 as unknown as string)).toBe(false);
             });
+        });
+    });
+
+    describe('Base58', () => {
+        describe('fromBase58', () => {
+            it.each(Object.entries(base58TestCases))('should decode "%s"', (base58, expected) => {
+                expect(Array.from(fromBase58(base58))).toEqual(expected);
+            });
+
+            it('should return a plain Uint8Array', () => {
+                expect(fromBase58('9Ajdvzr').constructor).toBe(Uint8Array);
+            });
+
+            it.each(invalidBase58Strings)(
+                'should throw on "%s", which has a character outside the base58 alphabet',
+                base58 => {
+                    expect(() => fromBase58(base58)).toThrow();
+                },
+            );
         });
     });
 
@@ -801,6 +832,10 @@ describe('bytes helpers', () => {
                 expect(Array.from(result)).toEqual([72, 101, 108, 108, 111]); // "Hello"
                 // Verify it matches Buffer.from behavior
                 expect(Array.from(result)).toEqual(Array.from(Buffer.from('SGVsbG8=', 'base64')));
+            });
+
+            it.each(Object.entries(base58TestCases))('should decode base58 "%s"', (base58, expected) => {
+                expect(Array.from(bytes(base58, 'base58'))).toEqual(expected);
             });
 
             it('should handle unicode strings', () => {

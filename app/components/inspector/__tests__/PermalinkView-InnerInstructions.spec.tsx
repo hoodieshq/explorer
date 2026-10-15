@@ -108,7 +108,6 @@ function rawTransaction(slot: number): RawTransaction {
         signatures: [SIGNATURE],
         slot,
         transaction: TransactionMessage.decompile(message),
-        version: 0,
     };
 }
 

@@ -1,9 +1,15 @@
 import { FetchStatus } from '@providers/cache';
+import { VersionedMessage } from '@solana/web3.js';
 import { render, screen } from '@testing-library/react';
 import { ClusterStatus } from '@utils/cluster';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createV1TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import {
+    createV0LookupTableTransactionBytes,
+    createV1TransactionBytes,
+    createWeb3TransactionBytes,
+} from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import { Logger } from '@/app/shared/lib/logger';
 import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
 
 import { PermalinkView } from '../InspectorPage';
@@ -31,9 +37,6 @@ vi.mock('next/navigation', () => ({
 // the part under test — renders without providers.
 vi.mock('@providers/accounts', () => ({
     useFetchAccountInfo: () => vi.fn(),
-}));
-vi.mock('@features/instruction-simulation', () => ({
-    SimulatorCard: () => <div data-testid="simulator-card" />,
 }));
 // LoadedView owns the simulation and builds a Connection eagerly; stub the hook so these overview-only
 // tests don't need a live cluster URL. Idle status keeps the token-balance rows and gated tabs off.
@@ -68,11 +71,22 @@ beforeEach(() => {
     clusterStatus = ClusterStatus.Connected;
 });
 afterEach(() => {
+    vi.clearAllMocks();
     vi.restoreAllMocks();
 });
 
 const props = { reset: () => {}, showTokenBalanceChanges: false, signature: 'sig' };
 const renderView = () => render(<PermalinkView {...props} />);
+
+function entry(wireBytes: Uint8Array) {
+    const { messageBytes } = parseTransactionBytes(wireBytes);
+    const message = VersionedMessage.deserialize(messageBytes);
+    return makeEntry({ message, messageBytes, signatures: [] });
+}
+
+function rowValue(label: string): string | null | undefined {
+    return screen.getByText(label).nextElementSibling?.textContent;
+}
 
 describe('PermalinkView', () => {
     it('should fetch at confirmed commitment on mount', () => {
@@ -100,20 +114,10 @@ describe('PermalinkView', () => {
     });
 
     it('should render a v1 transaction with its resource-limit rows', () => {
-        const { messageBytes } = parseTransactionBytes(
-            createV1TransactionBytes({ computeUnitLimit: 300_000, priorityFeeLamports: 50n }),
-        );
-        // No transactionConfig on the cache entry: the rows must come from decoding messageBytes,
-        // the same source every other entry path uses.
-        cacheEntry = makeEntry({
-            messageBytes,
-            signatures: [],
-            version: 1,
-        });
+        cacheEntry = entry(createV1TransactionBytes({ computeUnitLimit: 300_000, priorityFeeLamports: 50n }));
 
         renderView();
 
-        expect(screen.queryByText('The inspector does not support v1 transactions')).not.toBeInTheDocument();
         expect(screen.getByRole('heading', { name: 'Overview' })).toBeInTheDocument();
         expect(screen.getByText('v1')).toBeInTheDocument();
         expect(screen.getByText('Compute unit limit')).toBeInTheDocument();
@@ -124,15 +128,52 @@ describe('PermalinkView', () => {
         expect(screen.queryByTestId('atl-card')).not.toBeInTheDocument();
     });
 
-    it('should keep the error card when v1 bytes cannot be decoded', () => {
-        cacheEntry = makeEntry({
-            messageBytes: new Uint8Array([0x81, 1, 2, 3]),
-            signatures: [],
-            version: 1,
-        });
+    it('should keep the version row and hide the resource-limit rows when the v1 message fails to parse', () => {
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
+        const { messageBytes } = parseTransactionBytes(createV1TransactionBytes({ computeUnitLimit: 300_000 }));
+        messageBytes[2] = 1;
+        cacheEntry = makeEntry({ message: VersionedMessage.deserialize(messageBytes), messageBytes, signatures: [] });
 
         renderView();
 
-        expect(screen.getByText('The inspector does not support v1 transactions')).toBeInTheDocument();
+        expect(screen.getByText('v1')).toBeInTheDocument();
+        expect(screen.queryByText('Compute unit limit')).not.toBeInTheDocument();
+        expect(warn).toHaveBeenCalledWith('[inspector] Failed to read v1 resource limits', {
+            cause: expect.any(Error),
+        });
+    });
+
+    it('should render the lookups card without reading resource limits for a v0 message with lookup tables', () => {
+        const warn = vi.spyOn(Logger, 'warn').mockImplementation(() => {});
+        cacheEntry = entry(createV0LookupTableTransactionBytes());
+        renderView();
+
+        expect(screen.getByTestId('atl-card')).toBeInTheDocument();
+        expect(screen.queryByText('Compute unit limit')).not.toBeInTheDocument();
+        expect(warn).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        { version: 'legacy', wireBytes: createWeb3TransactionBytes('legacy') },
+        { version: 'v0', wireBytes: createWeb3TransactionBytes(0) },
+        { version: 'v1', wireBytes: createV1TransactionBytes({}) },
+    ])('should show the $version transaction version', ({ version, wireBytes }) => {
+        cacheEntry = entry(wireBytes);
+
+        renderView();
+
+        expect(rowValue('Transaction Version')).toBe(version);
+    });
+
+    it.each([
+        { limit: 1232, version: 'legacy', wireBytes: createWeb3TransactionBytes('legacy') },
+        { limit: 1232, version: 'v0', wireBytes: createWeb3TransactionBytes(0) },
+        { limit: 4096, version: 'v1', wireBytes: createV1TransactionBytes({}) },
+    ])('should report the wire size against the $version size limit', ({ limit, wireBytes }) => {
+        cacheEntry = entry(wireBytes);
+
+        renderView();
+
+        expect(screen.getByText(`${wireBytes.length} / ${limit} bytes`)).toBeInTheDocument();
     });
 });

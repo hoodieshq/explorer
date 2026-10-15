@@ -1,13 +1,17 @@
-import type { VersionedMessage } from '@solana/web3.js';
+import { fromMessageBytes } from '@explorer/parsers/transaction';
 import { act, renderHook } from '@testing-library/react';
 import React from 'react';
 import { SWRConfig } from 'swr';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createWeb3TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
+
 import type { SimulationResult } from '../../lib/simulate-transaction';
 import type { SimulationState } from '../use-simulation';
 
 const MOCK_URL = 'https://devnet.rpc.address';
+const MESSAGE_BYTES = new Uint8Array([1, 2, 3]);
 
 vi.mock('@providers/cluster', () => ({
     useCluster: () => ({ cluster: 'devnet', url: MOCK_URL }),
@@ -26,7 +30,9 @@ describe('useSimulation', () => {
 
     it('should return idle status before simulation', async () => {
         const { useSimulation } = await import('../use-simulation');
-        const { result } = renderHook(() => useSimulation(createMockMessage()), { wrapper: swrWrapper });
+        const { result } = renderHook(() => useSimulation(MESSAGE_BYTES), {
+            wrapper: swrWrapper,
+        });
 
         expect(result.current.status).toBe('idle');
         expect(typeof getSimulate(result.current)).toBe('function');
@@ -37,7 +43,9 @@ describe('useSimulation', () => {
         mockSimulateTransaction.mockResolvedValue(successResult);
 
         const { useSimulation } = await import('../use-simulation');
-        const { result } = renderHook(() => useSimulation(createMockMessage()), { wrapper: swrWrapper });
+        const { result } = renderHook(() => useSimulation(MESSAGE_BYTES), {
+            wrapper: swrWrapper,
+        });
 
         await act(async () => {
             getSimulate(result.current)();
@@ -53,7 +61,9 @@ describe('useSimulation', () => {
         mockSimulateTransaction.mockRejectedValue(new Error('Network timeout'));
 
         const { useSimulation } = await import('../use-simulation');
-        const { result } = renderHook(() => useSimulation(createMockMessage()), { wrapper: swrWrapper });
+        const { result } = renderHook(() => useSimulation(MESSAGE_BYTES), {
+            wrapper: swrWrapper,
+        });
 
         await act(async () => {
             getSimulate(result.current)();
@@ -72,7 +82,9 @@ describe('useSimulation', () => {
         );
 
         const { useSimulation } = await import('../use-simulation');
-        const { result } = renderHook(() => useSimulation(createMockMessage()), { wrapper: swrWrapper });
+        const { result } = renderHook(() => useSimulation(MESSAGE_BYTES), {
+            wrapper: swrWrapper,
+        });
 
         await act(async () => {
             getSimulate(result.current)();
@@ -92,23 +104,14 @@ function getSimulate(state: SimulationState): () => void {
     return state.simulate;
 }
 
-function createMockMessage(): VersionedMessage {
-    // Minimal stub — serialize() returns an empty buffer, enough for fingerprinting.
-    return {
-        addressTableLookups: [],
-        serialize: () => new Uint8Array(0),
-        staticAccountKeys: [],
-    } as unknown as VersionedMessage;
-}
-
 function createSuccessResult(overrides?: Partial<SimulationResult>): SimulationResult {
     return {
-        accountKeys: [],
         epoch: 100n,
         error: undefined,
         logs: [],
         solBalanceChanges: undefined,
         tokenBalanceData: undefined,
+        transaction: fromMessageBytes(parseTransactionBytes(createWeb3TransactionBytes('legacy')).messageBytes),
         unitsConsumed: 150,
         ...overrides,
     };

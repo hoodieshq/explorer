@@ -34,7 +34,7 @@ export function decodeAnchorInstruction(
     ix: TransactionInstruction,
 ): AnchorInstructionDecoded {
     const programName = getAnchorProgramName(anchorProgram) ?? 'Unknown Program';
-    const ixName = getAnchorNameForInstruction(ix, anchorProgram) ?? 'Unknown Instruction';
+    const ixName = getAnchorNameForInstruction(ix.data, anchorProgram) ?? 'Unknown Instruction';
     const cardTitle = `${camelToTitleCase(programName)}: ${camelToTitleCase(ixName)}`;
 
     let ixAccounts: FlattenedIdlAccount[] | undefined;
