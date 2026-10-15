@@ -1,7 +1,7 @@
+import type { EpochSchedule } from '@explorer/utils';
 import { SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR, SolanaError } from '@solana/kit';
 import { vi } from 'vitest';
 
-import type { EpochSchedule } from '../../../../app/utils/epoch-schedule';
 import { probeFeatureActivation, type SolanaRpc } from '../rpc';
 
 // A schedule where slotsPerEpoch=432_000 and warmup happens before slot 524_256

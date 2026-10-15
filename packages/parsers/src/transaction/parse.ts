@@ -29,7 +29,6 @@ import type {
     AddressTableLookup,
     FromMessageOptions,
     ParsedTransaction,
-    ReportedTransactionVersion,
     RpcJsonParsedTransaction,
     RpcJsonTransaction,
     RpcParsedInstruction,
@@ -38,6 +37,7 @@ import type {
     TransactionInstruction,
     TransactionVersion,
 } from './types.js';
+import { normalizeVersion } from './version.js';
 
 const BASE58_DECODER = getBase58Decoder();
 const BASE58_ENCODER = getBase58Encoder();
@@ -183,13 +183,6 @@ export function isRpcParsedInstruction(instruction: TransactionInstruction): ins
     return 'parsed' in instruction;
 }
 
-/** The RPC reports the version outside the message, so it is checked before the message is read. */
-function normalizeVersion(version: ReportedTransactionVersion | undefined): TransactionVersion {
-    const reported = typeof version === 'bigint' ? Number(version) : version;
-    if (reported === 'legacy' || reported === 0 || reported === 1) return reported;
-    throw new UnsupportedTransactionVersionError(version);
-}
-
 function isRpcJsonTransaction(
     transaction: RpcJsonTransaction | RpcJsonParsedTransaction,
 ): transaction is RpcJsonTransaction {
@@ -262,10 +255,6 @@ function ensureAccountExists(byAddress: ReadonlyMap<Address, TransactionAccount>
     return account;
 }
 
-/**
- * Uses RPC header field names, so error messages stay stable for MCP payloads.
- * TODO(HOO-1670): delete the copy in entity-inspector's normalizer.ts once MCP validates through fromRpcTransaction.
- */
 function validateHeaderIntegrity(header: RpcJsonTransaction['message']['header'], staticKeyCount: number): void {
     const { numReadonlySignedAccounts, numReadonlyUnsignedAccounts, numRequiredSignatures } = header;
 
