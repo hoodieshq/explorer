@@ -383,7 +383,40 @@ describe('Inspector InstructionsSection with inner instructions', () => {
         expect(await screen.findByText(/Create Idempotent/i)).toBeInTheDocument();
         expect(screen.queryByText(/Inner Instructions/i)).not.toBeInTheDocument();
     });
+
+    test('should show an intent button on the top-level card and on every inner card', async () => {
+        renderInnerInstructionsSection(INNER_INSTRUCTIONS);
+
+        expect(await screen.findByText(/Inner Instructions/i)).toBeInTheDocument();
+        expect(screen.getAllByTestId('instruction-intent-trigger')).toHaveLength(5);
+    });
+
+    test('should show no intent button on a child it cannot decompile', async () => {
+        renderInnerInstructionsSection(INNER_WITH_BAD_ACCOUNT);
+
+        expect(await screen.findByText(/Could not display instruction #1\.2, please report/i)).toBeInTheDocument();
+        expect(screen.getAllByTestId('instruction-intent-trigger')).toHaveLength(3);
+    });
 });
+
+function renderInnerInstructionsSection(compiledInnerInstructions: CompiledInnerInstruction[]) {
+    return render(
+        <ScrollAnchorProvider>
+            <ClusterProvider>
+                <TransactionsProvider>
+                    <AccountsProvider>
+                        <InstructionParserProvider dispatcher={instructionParserDispatcher}>
+                            <InstructionsSection
+                                message={buildMessage()}
+                                compiledInnerInstructions={compiledInnerInstructions}
+                            />
+                        </InstructionParserProvider>
+                    </AccountsProvider>
+                </TransactionsProvider>
+            </ClusterProvider>
+        </ScrollAnchorProvider>,
+    );
+}
 
 const SYSTEM_PROGRAM = new PublicKey('11111111111111111111111111111111');
 const TOKEN_PROGRAM = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
