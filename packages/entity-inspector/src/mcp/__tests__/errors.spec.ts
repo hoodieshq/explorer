@@ -12,6 +12,7 @@ import {
     notFound,
     sanitizeToolError,
     toToolResult,
+    unsupportedTransactionVersion,
 } from '../errors.js';
 import { emptyValidationError, fieldIssueValidationError, pathlessIssueValidationError } from './zod-fixtures.js';
 
@@ -69,6 +70,13 @@ describe('MCP error taxonomy', () => {
         });
         expect(internalError('custom detail')).toEqual({ code: 'INTERNAL_ERROR', message: 'custom detail' });
         expect(sanitizeToolError(notFoundError)).toBe(notFoundError);
+    });
+
+    it('should name the unsupported transaction version in a CURRENTLY_UNSUPPORTED error', () => {
+        expect(unsupportedTransactionVersion(2)).toEqual({
+            code: 'CURRENTLY_UNSUPPORTED',
+            message: 'Transaction version 2 is not supported.',
+        });
     });
 
     it('should treat non-object unknown values as INTERNAL_ERROR', () => {

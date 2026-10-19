@@ -2,6 +2,7 @@ import { Address } from '@components/common/Address';
 import { Slot } from '@components/common/Slot';
 import { type FeatureInfoType, getFeatureInfo } from '@entities/feature-gate';
 import { useSlotTime } from '@entities/slot-time';
+import { getEpochForSlot } from '@explorer/utils';
 import { AccountCard } from '@features/account';
 import { Account } from '@providers/accounts';
 import { PublicKey } from '@solana/web3.js';
@@ -17,7 +18,6 @@ import { ExternalLink } from '@/app/components/shared/ui/external-link';
 import { ClusterInfo, useCluster, useClusterInfo } from '@/app/providers/cluster';
 import { BaseTable } from '@/app/shared/ui/Table';
 import { Cluster, clusterName } from '@/app/utils/cluster';
-import { getEpochForSlot } from '@/app/utils/epoch-schedule';
 
 import { UnknownAccountCard } from './UnknownAccountCard';
 
