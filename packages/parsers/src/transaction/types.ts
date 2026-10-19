@@ -1,4 +1,4 @@
-import type { Address } from '@solana/kit';
+import type { Address, Signature } from '@solana/kit';
 
 export type TransactionVersion = 'legacy' | 0 | 1;
 
@@ -48,7 +48,13 @@ type TransactionBase = {
     numSignerAccounts: number;
     /** Recent blockhash or durable nonce. */
     lifetimeSpecifier: string;
-    signatures: readonly (string | undefined)[];
+    /**
+     * Depends on the source:
+     * - wire bytes: `signatures[i]` maps to `accounts[i]`, `undefined` means that signer has not signed
+     * - json, jsonParsed: the RPC strings as given
+     * - message without signatures: `[]`
+     */
+    signatures: readonly (Signature | undefined)[];
 };
 
 export type ParsedTransaction =

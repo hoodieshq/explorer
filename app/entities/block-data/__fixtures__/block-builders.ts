@@ -1,29 +1,38 @@
-import { blockhash, lamports } from '@solana/kit';
+import { fromCompiledMessage } from '@explorer/parsers/transaction';
+import {
+    blockhash,
+    type CompiledTransactionMessage,
+    type CompiledTransactionMessageWithLifetime,
+    lamports,
+} from '@solana/kit';
 
 import type { BlockData, BlockTransaction, BlockTransactionMeta } from '../model/types';
 
-type Message = BlockTransaction['message'];
+type Message = CompiledTransactionMessage & CompiledTransactionMessageWithLifetime;
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 const BLOCKHASH = blockhash('11111111111111111111111111111111');
-const NO_SIGNERS = { numReadonlyNonSignerAccounts: 0, numReadonlySignerAccounts: 0, numSignerAccounts: 0 };
+// The package rejects a message without a signer, so the first static account is the fee payer.
+const FEE_PAYER_ONLY = { numReadonlyNonSignerAccounts: 0, numReadonlySignerAccounts: 0, numSignerAccounts: 1 };
 
 export function makeBlockTransaction({
     index = 0,
     message,
     meta = {},
-    signatures = [],
+    signatures,
 }: {
     index?: number;
     message: DistributiveOmit<Message, 'header' | 'lifetimeToken'> & { header?: Message['header'] };
     meta?: Partial<BlockTransactionMeta> | null;
-    signatures?: BlockTransaction['signatures'];
+    signatures?: readonly string[];
 }): BlockTransaction {
     return {
         index,
-        message: { header: NO_SIGNERS, ...message, lifetimeToken: BLOCKHASH },
         meta: meta === null ? null : { err: null, fee: lamports(0n), logMessages: [], ...meta },
-        signatures,
+        parsedTransaction: fromCompiledMessage(
+            { header: FEE_PAYER_ONLY, ...message, lifetimeToken: BLOCKHASH },
+            { signatures },
+        ),
     };
 }
 
