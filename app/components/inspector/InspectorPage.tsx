@@ -3,19 +3,19 @@
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
 import { SolBalance } from '@components/common/SolBalance';
+import {
+    fromMessageBytes,
+    getV1ResourceLimits,
+    isV1MessageBytes,
+    transactionSizeLimit,
+    transactionWireSize,
+} from '@explorer/parsers/transaction';
 import { usePrevious } from '@mantine/hooks';
 import { useFetchAccountInfo } from '@providers/accounts';
 import { FetchStatus } from '@providers/cache';
 import { useFetchRawTransaction, useRawTransactionDetails } from '@providers/transactions/raw';
 import { getBase58Decoder, getBase58Encoder } from '@solana/kit';
-import {
-    type CompiledInnerInstruction,
-    Connection,
-    MessageV0,
-    PACKET_DATA_SIZE,
-    PublicKey,
-    VersionedMessage,
-} from '@solana/web3.js';
+import { type CompiledInnerInstruction, Connection, MessageV0, PublicKey, VersionedMessage } from '@solana/web3.js';
 import { generated, getBatchTransactionPda, PROGRAM_ADDRESS as SQUADS_V4_PROGRAM_ADDRESS } from '@sqds/multisig';
 import { ClusterStatus } from '@utils/cluster';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
@@ -24,19 +24,14 @@ import useSWR from 'swr';
 
 import { Badge } from '@/app/components/shared/ui/badge';
 import { Button } from '@/app/components/shared/ui/button';
-import { trustedInnerInstructions } from '@/app/entities/transaction-data';
+import { formatTransactionVersion, trustedInnerInstructions } from '@/app/entities/transaction-data';
 import { useSimulation } from '@/app/features/instruction-simulation/model/use-simulation';
 import { generateTokenBalanceRows, TokenBalancesCardInner } from '@/app/features/transaction';
 import { useCluster } from '@/app/providers/cluster';
 import { DownloadDropdown } from '@/app/shared/components/DownloadDropdown';
 import { toBase64 } from '@/app/shared/lib/bytes';
+import { Logger } from '@/app/shared/lib/logger';
 import { useBreakpoint } from '@/app/shared/lib/use-breakpoint';
-import {
-    bridgeV1MessageBytes,
-    isV1MessageBytes,
-    V1_TRANSACTION_SIZE_LIMIT,
-    type V1TransactionConfig,
-} from '@/app/shared/lib/v1-message-bridge';
 import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { KeyValue } from '@/app/shared/ui/key-value';
 import { BaseNavigationTabs } from '@/app/shared/ui/navigation-tabs/ui/BaseNavigationTabs';
@@ -58,7 +53,7 @@ const { Batch, VaultBatchTransaction, VaultTransaction, batchDiscriminator } = g
 
 // Convert a Squads VaultTransactionMessage (shared by VaultTransaction and the inner
 // transactions of a Batch) into a web3.js VersionedMessage the inspector can render.
-export function vaultMessageToVersionedMessage(message: typeof VaultTransaction.prototype.message): VersionedMessage {
+export function vaultMessageToVersionedMessage(message: typeof VaultTransaction.prototype.message): MessageV0 {
     return new MessageV0({
         addressTableLookups: message.addressTableLookups.map(x => ({
             ...x,
@@ -82,15 +77,9 @@ export function vaultMessageToVersionedMessage(message: typeof VaultTransaction.
 }
 
 export type TransactionData = {
-    rawMessage: Uint8Array;
+    /** web3.js view of `rawMessage` for the cards. Kit types replace it once the inspector drops web3.js. */
     message: VersionedMessage;
-    /**
-     * Set when `rawMessage` holds a v1 message. `message` is then a bridged view whose
-     * `version` getter still reports 0, so version-dependent rendering must read this field.
-     */
-    version?: 1;
-    /** Message-level resource limits; v1 only, and only when the message sets at least one. */
-    transactionConfig?: V1TransactionConfig;
+    rawMessage: Uint8Array;
     signatures?: (string | undefined)[];
     accountBalances?: {
         preBalances: number[];
@@ -210,17 +199,7 @@ function decodeUrlParams(
             throw new Error('message buffer is too short');
         }
 
-        if (isV1MessageBytes(buffer)) {
-            const { message, transactionConfig } = bridgeV1MessageBytes(buffer);
-            return [{ message, rawMessage: buffer, signatures, transactionConfig, version: 1 }, params, refreshUrl];
-        }
-
-        const message = VersionedMessage.deserialize(buffer);
-        const data = {
-            message,
-            rawMessage: buffer,
-            signatures,
-        };
+        const data: TransactionData = { message: VersionedMessage.deserialize(buffer), rawMessage: buffer, signatures };
         return [data, params, refreshUrl];
     } catch (_err) {
         params.delete('message');
@@ -238,7 +217,7 @@ function SquadsProposalInspectorCard({ account, onClear }: { account: string; on
         setSelected(0);
     }, [account]);
 
-    const fetcher = React.useCallback(async (): Promise<(VersionedMessage | undefined)[]> => {
+    const fetcher = React.useCallback(async (): Promise<(MessageV0 | undefined)[]> => {
         const connection = new Connection(url);
         const pubkey = new PublicKey(account);
 
@@ -503,21 +482,6 @@ export function PermalinkView({
         }
     }, [transaction, fetchConfirmedTx, status]);
 
-    // The inspector renders a web3.js `VersionedMessage`; a v1 message gets there through a
-    // bridged view over the wire bytes, which also carries the message's resource limits so
-    // every entry path derives them from the same decode. The view is memoized because its
-    // identity keys the downstream account-fetching effects and memos.
-    const bridged = React.useMemo(() => {
-        if (!transaction || transaction.message || transaction.version !== 1) {
-            return undefined;
-        }
-        try {
-            return bridgeV1MessageBytes(transaction.messageBytes);
-        } catch {
-            return undefined;
-        }
-    }, [transaction]);
-
     if (!details || details.status === FetchStatus.Fetching) {
         return <LoadingCard />;
     } else if (details.status === FetchStatus.FetchFailed) {
@@ -526,29 +490,18 @@ export function PermalinkView({
         return <ErrorCard text="Transaction was not found" retry={reset} retryText="Reset" />;
     }
 
-    const { message, messageBytes, signatures, meta } = transaction;
-    const resolvedMessage = message ?? bridged?.message;
-    if (!resolvedMessage) {
-        return (
-            <ErrorCard
-                text={`The inspector does not support v${transaction.version} transactions`}
-                retry={reset}
-                retryText="Reset"
-            />
-        );
-    }
-
+    const { messageBytes, signatures, meta } = transaction;
     const tx: TransactionData = {
         accountBalances: meta,
         compiledInnerInstructions: trustedInnerInstructions(meta?.innerInstructions, {
             cluster,
             slot: transaction.slot,
         }),
-        message: resolvedMessage,
+        message: transaction.message,
         rawMessage: messageBytes,
         signatures,
-        ...(bridged ? { transactionConfig: bridged.transactionConfig, version: 1 as const } : undefined),
     };
+
     return <LoadedView transaction={tx} onClear={reset} showTokenBalanceChanges={showTokenBalanceChanges} />;
 }
 
@@ -598,8 +551,7 @@ function LoadedView({
     // mirroring the TX details page's Tokens card.
     showTokenBalanceChanges: boolean;
 }) {
-    const { message, rawMessage, signatures, accountBalances, compiledInnerInstructions, version, transactionConfig } =
-        transaction;
+    const { message, rawMessage, signatures, accountBalances, compiledInnerInstructions } = transaction;
     const { isXxl } = useBreakpoint();
 
     const fetchAccountInfo = useFetchAccountInfo();
@@ -609,7 +561,7 @@ function LoadedView({
         }
     }, [message, fetchAccountInfo]);
 
-    const simulation = useSimulation(message, accountBalances);
+    const simulation = useSimulation(rawMessage, accountBalances);
     const simDone = simulation.status === 'done';
 
     // Token-balance rows come from the simulation result, so they exist only after a successful run that
@@ -648,13 +600,7 @@ function LoadedView({
 
     return (
         <>
-            <OverviewCard
-                message={message}
-                raw={rawMessage}
-                onClear={onClear}
-                isV1={version === 1}
-                transactionConfig={transactionConfig}
-            />
+            <OverviewCard message={message} raw={rawMessage} onClear={onClear} />
             <BaseNavigationTabs
                 scrollSpy
                 tabs={tabs}
@@ -675,10 +621,7 @@ function LoadedView({
                     `#tokens` section anchor; it renders only once a run has produced token rows (matching
                     the gated Tokens tab above). */}
             {tokenBalanceRows && tokenBalanceRows.length > 0 && <TokenBalancesCardInner rows={tokenBalanceRows} />}
-            {/* Renders (with its own `#address-lookups` anchor) only when the message references lookup
-                    tables — otherwise it returns null, matching the gated tab above. A v1 message carries
-                    static accounts only, so there are no lookups to render. */}
-            {version !== 1 && <AddressTableLookupsCard message={message} />}
+            {hasLookups && <AddressTableLookupsCard message={message} />}
             {/* Programs & Logs — the two-column row copied from the TX details page. At xxl it goes
                     full-bleed to the viewport: Instructions (Programs) on the left, and the Simulation
                     control + Logs + CU profiling in the sticky right column. */}
@@ -687,11 +630,7 @@ function LoadedView({
                     <InstructionsSection message={message} compiledInnerInstructions={compiledInnerInstructions} />
                 </div>
                 <div className="scrollbar-hide xxl:sticky xxl:top-[70px] xxl:max-h-[calc(100vh-90px)] xxl:min-w-0 xxl:flex-[1_1_0%] xxl:overflow-y-auto xxl:rounded-b-lg">
-                    <InspectorSimulationPanel
-                        simulation={simulation}
-                        message={message}
-                        transactionVersion={version ?? message.version}
-                    />
+                    <InspectorSimulationPanel simulation={simulation} />
                 </div>
             </div>
         </>
@@ -707,25 +646,26 @@ function OverviewCard({
     raw,
     onClear,
     signature,
-    isV1,
-    transactionConfig,
 }: {
     message: VersionedMessage;
     raw: Uint8Array;
     onClear: () => void;
     signature?: string;
-    isV1?: boolean;
-    transactionConfig?: V1TransactionConfig;
 }) {
     const fee = message.header.numRequiredSignatures * DEFAULT_FEES.lamportsPerSignature;
     const feePayerValidator = createFeePayerValidator(fee);
 
-    // The v1 wire envelope has no signature-count byte — the count is read from the message header.
-    const size = React.useMemo(() => {
-        const sigBytes = (isV1 ? 0 : 1) + 64 * message.header.numRequiredSignatures;
-        return sigBytes + raw.length;
-    }, [message, raw, isV1]);
-    const sizeLimit = isV1 ? V1_TRANSACTION_SIZE_LIMIT : PACKET_DATA_SIZE;
+    const size = React.useMemo(() => transactionWireSize(raw), [raw]);
+    const sizeLimit = transactionSizeLimit(raw);
+    const v1ResourceLimits = React.useMemo(() => {
+        if (!isV1MessageBytes(raw)) return undefined;
+        try {
+            return getV1ResourceLimits(fromMessageBytes(raw));
+        } catch (cause) {
+            Logger.warn('[inspector] Failed to read v1 resource limits', { cause });
+            return undefined;
+        }
+    }, [raw]);
 
     // Heading + actions sit OUTSIDE the card (matching the TX details Summary card), then the label|value
     // rows inside a dashkit card.
@@ -749,28 +689,22 @@ function OverviewCard({
                 <KeyValue label="Fees">
                     <SolBalance lamports={fee} />
                 </KeyValue>
-                {isV1 && (
-                    <KeyValue label="Transaction Version">
-                        <span className="uppercase">v1</span>
-                    </KeyValue>
-                )}
-                {transactionConfig?.computeUnitLimit !== undefined && (
-                    <KeyValue label="Compute unit limit">
-                        {transactionConfig.computeUnitLimit.toLocaleString('en-US')}
-                    </KeyValue>
-                )}
-                {transactionConfig?.priorityFeeLamports !== undefined && (
-                    <KeyValue label="Priority fee (total)">
-                        <SolBalance lamports={transactionConfig.priorityFeeLamports} />
-                    </KeyValue>
-                )}
-                {transactionConfig?.loadedAccountsDataSizeLimit !== undefined && (
-                    <KeyValue label="Loaded accounts data size limit">
-                        {transactionConfig.loadedAccountsDataSizeLimit.toLocaleString('en-US')}
-                    </KeyValue>
-                )}
-                {transactionConfig?.heapSize !== undefined && (
-                    <KeyValue label="Heap size">{transactionConfig.heapSize.toLocaleString('en-US')}</KeyValue>
+                <KeyValue label="Transaction Version" valueClassName="font-mono uppercase">
+                    {formatTransactionVersion(message.version)}
+                </KeyValue>
+                {v1ResourceLimits && (
+                    <>
+                        <KeyValue label="Compute unit limit">
+                            {v1ResourceLimits.computeUnitLimit.toLocaleString('en-US')}
+                        </KeyValue>
+                        <KeyValue label="Priority fee (total)">
+                            <SolBalance lamports={v1ResourceLimits.priorityFeeLamports} />
+                        </KeyValue>
+                        <KeyValue label="Loaded accounts data size limit">
+                            {v1ResourceLimits.loadedAccountsDataSizeLimitBytes.toLocaleString('en-US')}
+                        </KeyValue>
+                        <KeyValue label="Heap size">{v1ResourceLimits.heapSizeBytes.toLocaleString('en-US')}</KeyValue>
+                    </>
                 )}
                 <KeyValue label="Fee payer">
                     {message.staticAccountKeys.length === 0 ? (

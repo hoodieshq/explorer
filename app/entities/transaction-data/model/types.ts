@@ -1,5 +1,4 @@
 import type { ParsedTransaction } from '@explorer/parsers/transaction';
-import type { TransactionVersion } from '@solana/kit';
 import type {
     CompiledInnerInstruction,
     ParsedTransactionWithMeta,
@@ -9,13 +8,9 @@ import type {
 
 /**
  * A parsed transaction in the shape the transaction detail page consumes.
- *
- * Matches web3.js `ParsedTransactionWithMeta` so existing consumers are unaffected, with the
- * version widened to cover v1, which web3.js `TransactionVersion` cannot describe.
+ * The web3.js type stays until the detail page reads kit types (HOO-1174).
  */
-export type TransactionWithMeta = Omit<ParsedTransactionWithMeta, 'version'> & {
-    version?: TransactionVersion;
-};
+export type TransactionWithMeta = ParsedTransactionWithMeta;
 
 type RawTransactionBase = {
     /** Unix timestamp in seconds. */
@@ -43,12 +38,8 @@ type RawTransactionBase = {
 
 /**
  * A transaction's wire bytes and the parts of its metadata the inspector needs.
- *
- * `message` and `transaction` are the web3.js views of the bytes, which web3.js can only build for
- * legacy and v0. `messageBytes` is always present.
  */
-export type RawTransaction = RawTransactionBase &
-    (
-        | { version: 'legacy' | 0; message: VersionedMessage; transaction: TransactionMessage }
-        | { version: 1; message?: undefined; transaction?: undefined }
-    );
+export type RawTransaction = RawTransactionBase & {
+    message: VersionedMessage;
+    transaction: TransactionMessage;
+};

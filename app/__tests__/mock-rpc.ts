@@ -3,6 +3,8 @@
 import { type Mock, vi } from 'vitest';
 
 import { GENESIS_HASHES } from '@/app/entities/chain-id';
+import type { SolanaRpc } from '@/app/entities/cluster';
+import type { lookupTableAccountInfo } from '@/app/fixtures/address-lookup-tables';
 import type { Dispatch, Update } from '@/app/providers/cache';
 import type { ClusterInfo } from '@/app/providers/cluster';
 
@@ -78,3 +80,11 @@ export function lastDispatch<T>(dispatch: Mock<Dispatch<T>>): Update<T> {
     if (!action || !('status' in action)) throw new Error('the last dispatch was not an update');
     return action;
 }
+
+/** A kit RPC `getMultipleAccounts`. */
+export const mockLookupTableRpc = (accounts: (ReturnType<typeof lookupTableAccountInfo> | null)[]): SolanaRpc =>
+    ({
+        getMultipleAccounts: vi.fn().mockReturnValue({
+            send: vi.fn().mockResolvedValue({ value: accounts }),
+        }),
+    }) as unknown as SolanaRpc;

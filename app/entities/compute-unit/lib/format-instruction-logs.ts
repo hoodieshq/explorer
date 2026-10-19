@@ -16,7 +16,8 @@ import type { InstructionCUData, InstructionCUInput } from './types';
  *   returns them — including any entry that belongs to no instruction, which this drops.
  * @param cluster - The cluster to use for epoch-aware lookups
  * @param epoch - The epoch to use for historical lookups
- * @param transactionVersion - v1 reserves nothing per instruction, so scheduledUnits stays absent when this is 1
+ * @param transactionVersion - v1 reserves nothing per instruction, so scheduledUnits stays absent when this is 1.
+ *   Undefined means the version is unknown, and the rows carry pre-v1 reserves.
  * @returns Array of InstructionCUData mapping each instruction to its CU consumption
  */
 export function formatInstructionLogs({
@@ -30,7 +31,7 @@ export function formatInstructionLogs({
     instructionLogs: InstructionLogs[];
     cluster: Cluster;
     epoch: bigint;
-    transactionVersion?: TransactionVersion;
+    transactionVersion: TransactionVersion | undefined;
 }): InstructionCUData[] {
     const invocations = toTopLevelInvocations(instructionLogs);
 

@@ -6,12 +6,12 @@ import { IdlDefinedFields } from '@coral-xyz/anchor/dist/cjs/idl';
 import { IdlField, IdlInstruction, IdlType, IdlTypeDef } from '@coral-xyz/anchor/dist/cjs/idl';
 import { useAnchorProgram } from '@entities/idl';
 import { ExpandableRow, FieldNameCell } from '@shared/ui/expandable-row';
-import { PublicKey, TransactionInstruction } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { Cluster } from '@utils/cluster';
 import { camelToTitleCase, numberWithSeparator, snakeToTitleCase } from '@utils/index';
 import React, { Fragment, ReactNode } from 'react';
 
-import { equals, fromBase64, fromHex, toBase64 } from '@/app/shared/lib/bytes';
+import { equals, fromBase64, fromHex, toBase64, toBuffer } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 import { BaseTable } from '@/app/shared/ui/Table';
 
@@ -188,22 +188,24 @@ export function decodeInstructionWithCustomDiscriminator(ixData: Uint8Array, pro
     return null;
 }
 
-export function getAnchorNameForInstruction(ix: TransactionInstruction, program: Program): string | null {
-    if (instructionIsSelfCPI(ix.data)) {
+export function getAnchorNameForInstruction(instructionData: Uint8Array, program: Program): string | null {
+    // Anchor's Borsh coder takes a Buffer
+    const data = toBuffer(instructionData);
+    if (instructionIsSelfCPI(data)) {
         return ANCHOR_SELF_CPI_NAME;
     }
 
     // Try custom discriminator matching first
-    let decodedIx = decodeInstructionWithCustomDiscriminator(ix.data, program);
+    let decodedIx = decodeInstructionWithCustomDiscriminator(data, program);
 
     // Fall back to standard Anchor decoder if custom matching fails
     if (!decodedIx) {
         const coder = new BorshInstructionCoder(program.idl);
         try {
-            decodedIx = coder.decode(ix.data);
+            decodedIx = coder.decode(data);
         } catch (error) {
             Logger.debug('[utils:anchor] Error while decoding instruction for program', {
-                discriminator: ix.data.slice(0, Math.min(8, ix.data.length)),
+                discriminator: data.slice(0, Math.min(8, data.length)),
                 error,
                 programId: program.programId.toString(),
             });

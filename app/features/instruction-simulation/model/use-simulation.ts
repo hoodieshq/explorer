@@ -3,7 +3,6 @@
 import { getRpc } from '@entities/cluster';
 import { sha256 } from '@noble/hashes/sha256';
 import { useCluster } from '@providers/cluster';
-import { type VersionedMessage } from '@solana/web3.js';
 import { useCallback, useMemo } from 'react';
 import useSWRMutation from 'swr/mutation';
 
@@ -21,17 +20,17 @@ export type SimulationState =
 type AccountBalances = { preBalances: number[]; postBalances: number[] };
 
 type SimulationArg = {
-    message: VersionedMessage;
+    messageBytes: Uint8Array;
     cluster: ReturnType<typeof useCluster>['cluster'];
     accountBalances: AccountBalances | undefined;
 };
 
-export function useSimulation(message: VersionedMessage, accountBalances?: AccountBalances): SimulationState {
+export function useSimulation(messageBytes: Uint8Array, accountBalances?: AccountBalances): SimulationState {
     const { cluster, url } = useCluster();
 
     // Fingerprint the message so the SWR key changes when the transaction changes,
     // preventing stale cached data from flashing for a different transaction.
-    const messageFingerprint = useMemo(() => messageToFingerprint(message), [message]);
+    const messageFingerprint = useMemo(() => toHex(sha256(messageBytes)), [messageBytes]);
 
     const { trigger, data, error, isMutating } = useSWRMutation(
         ['simulate', url, messageFingerprint],
@@ -39,7 +38,7 @@ export function useSimulation(message: VersionedMessage, accountBalances?: Accou
             simulateTransaction({
                 accountBalances: arg.accountBalances,
                 cluster: arg.cluster,
-                message: arg.message,
+                messageBytes: arg.messageBytes,
                 rpc: getRpc(url),
             }),
         {
@@ -51,8 +50,8 @@ export function useSimulation(message: VersionedMessage, accountBalances?: Accou
     );
 
     const simulate = useCallback(
-        () => void trigger({ accountBalances, cluster, message }),
-        [trigger, accountBalances, cluster, message],
+        () => void trigger({ accountBalances, cluster, messageBytes }),
+        [trigger, accountBalances, cluster, messageBytes],
     );
 
     if (isMutating) return { status: 'simulating' };
@@ -74,12 +73,4 @@ export function useSimulation(message: VersionedMessage, accountBalances?: Accou
     }
 
     return { simulate, status: 'idle' };
-}
-
-/**
- * Derive a short hex fingerprint from a VersionedMessage for use as a cache key.
- * Hashes the raw key bytes to keep the key compact regardless of account count.
- */
-function messageToFingerprint(message: VersionedMessage): string {
-    return toHex(sha256(Uint8Array.from(message.serialize())));
 }

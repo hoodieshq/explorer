@@ -957,7 +957,6 @@ export default tseslint.config(
     {
         files: [
             // app/components (pre-FSD legacy)
-            'app/components/ProgramLogsCardBody.tsx',
             'app/components/account/AccountHeader.tsx',
             'app/components/account/AnchorAccountCard.tsx',
             'app/components/account/MetaplexNFTAttributesCard.tsx',
