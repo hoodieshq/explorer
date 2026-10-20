@@ -18,7 +18,6 @@ import {
     SPL_TOKEN_PROGRAM_LABEL,
     SYSTEM_PROGRAM_LABEL,
 } from '@explorer/parsers';
-import { toKitInstruction } from '@explorer/parsers/compat';
 import { AddressLookupTableDetailsCard } from '@features/decode-instruction-address-lookup-table';
 import { AssociatedTokenDetailsCard } from '@features/decode-instruction-associated-token';
 import { BpfLoaderDetailsCard } from '@features/decode-instruction-bpf-loader';
@@ -33,22 +32,13 @@ import { ZkElGamalProofDetailsCard } from '@features/decode-instruction-zk-elgam
 import { PythDetailsCard } from '@features/instruction-program-pyth';
 import { MetaplexTokenMetadataDetailsCard } from '@features/mpl-token-metadata';
 import { useScrollAnchor } from '@providers/scroll-anchor';
-import {
-    AddressLookupTableAccount,
-    type CompiledInnerInstruction,
-    type TransactionInstruction,
-    TransactionMessage,
-    type VersionedMessage,
-} from '@solana/web3.js';
+import type { TransactionInstruction, VersionedMessage } from '@solana/web3.js';
 import getInstructionCardScrollAnchorId from '@utils/get-instruction-card-scroll-anchor-id';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
 
-import { resolveInnerInstructions } from '@/app/entities/transaction-data';
 import { isTokenBatchInstruction, TokenBatchCard } from '@/app/features/token-batch';
-import { useAddressLookupTables } from '@/app/providers/accounts';
-import { FetchStatus } from '@/app/providers/cache';
 
 import { ErrorCard } from '../common/ErrorCard';
 import { InspectorInstructionCard as InspectorInstructionCardComponent } from '../common/InspectorInstructionCard';
@@ -56,6 +46,7 @@ import { LoadingCard } from '../common/LoadingCard';
 import { BpfUpgradeableLoaderDetailsCard } from '../instruction/bpf-upgradeable-loader/BpfUpgradeableLoaderDetailsCard';
 import { SystemDetailsCard } from '../instruction/system/SystemDetailsCard';
 import { TokenDetailsCard } from '../instruction/token/TokenDetailsCard';
+import type { DecodedMessageResult } from './use-decoded-message';
 
 const INSPECTOR_RESULT = { err: null };
 const INSPECTOR_SIGNATURE = '';
@@ -75,76 +66,34 @@ const INSPECTOR_SURFACE: InstructionSurface = {
 
 export function InstructionsSection({
     message,
-    compiledInnerInstructions,
+    decodedMessage,
 }: {
     message: VersionedMessage;
-    compiledInnerInstructions?: CompiledInnerInstruction[];
+    decodedMessage: DecodedMessageResult;
 }) {
-    const hydratedTables = useAddressLookupTables(
-        message.addressTableLookups.map(lookup => lookup.accountKey.toString()),
-    );
-
-    const failedLookupIndex = hydratedTables.findIndex(table => table?.[1] === FetchStatus.FetchFailed);
-    const lookupTables = hydratedTables.flatMap(table =>
-        table?.[0] instanceof AddressLookupTableAccount ? [table[0]] : [],
-    );
-    const allLookupsResolved = lookupTables.length === hydratedTables.length;
-
-    // `useAddressLookupTables` returns a new array on each render, so the memo below depends on
-    // `lookupTablesKey` instead of `lookupTables`.
-    // A table only gains addresses, so `lastExtendedSlot` and the address count identify its contents.
-    const lookupTablesKey = lookupTables
-        .map(table => `${table.key.toBase58()}:${table.state.lastExtendedSlot}:${table.state.addresses.length}`)
-        .join('|');
-
-    const decoded = useMemo(() => {
-        if (!allLookupsResolved) return undefined;
-        const addressLookupTableAccounts = lookupTables;
-        return {
-            innerByIndex: compiledInnerInstructions
-                ? resolveInnerInstructions(
-                      compiledInnerInstructions,
-                      message.getAccountKeys({ addressLookupTableAccounts }),
-                      message,
-                  )
-                : undefined,
-            instructions: TransactionMessage.decompile(message, { addressLookupTableAccounts }).instructions,
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- `lookupTablesKey` replaces `lookupTables`, which is a new array every render
-    }, [allLookupsResolved, compiledInnerInstructions, lookupTablesKey, message]);
-    // Stable references, so the eager parse in each card provider runs once per decoded message
-    const kitInstructions = useMemo(() => decoded?.instructions.map(ix => toKitInstruction(ix)), [decoded]);
-    const kitInnerInstructions = useMemo(
-        () =>
-            new Map(
-                [...(decoded?.innerByIndex ?? [])].map(([index, group]) => [
-                    index,
-                    group.map(ix => ix && toKitInstruction(ix)),
-                ]),
-            ),
-        [decoded],
-    );
-
-    if (failedLookupIndex >= 0) {
+    if (decodedMessage.status === 'failed') {
         return (
             <ErrorCard
                 text={`Failed to fetch address lookup table: ${message.addressTableLookups[
-                    failedLookupIndex
+                    decodedMessage.failedLookupIndex
                 ].accountKey.toString()}`}
             />
         );
     }
 
-    if (!decoded) {
+    if (decodedMessage.status === 'loading') {
         return <LoadingCard />;
     }
+
+    const { decoded } = decodedMessage;
+    const { kitInstructions, kitInnerIxByIndex } = decoded;
 
     return (
         <CollapsibleSection id="instructions" title="Instructions" className="">
             <InstructionSurfaceProvider surface={INSPECTOR_SURFACE}>
                 {decoded.instructions.map((ix, index) => {
-                    const innerCards = decoded.innerByIndex?.get(index)?.map((innerIx, childIndex) => {
-                        const kitInnerInstruction = kitInnerInstructions.get(index)?.[childIndex];
+                    const innerCards = decoded.innerIxByIndex?.get(index)?.map((innerIx, childIndex) => {
+                        const kitInnerInstruction = kitInnerIxByIndex.get(index)?.[childIndex];
                         return innerIx ? (
                             <InstructionIntentProvider
                                 key={childIndex}
@@ -176,7 +125,7 @@ export function InstructionsSection({
                         );
                     });
 
-                    const kitInstruction = kitInstructions?.[index];
+                    const kitInstruction = kitInstructions[index];
                     return (
                         <InstructionIntentProvider
                             key={index}

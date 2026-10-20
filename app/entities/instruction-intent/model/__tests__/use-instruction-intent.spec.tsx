@@ -1,6 +1,5 @@
 import { DEFAULT_RPC_URL } from '@__fixtures__/gen';
 import type { KitInstruction } from '@explorer/parsers';
-import { FetchStatus } from '@providers/cache';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { type ReactNode } from 'react';
 import { SWRConfig } from 'swr';
@@ -23,7 +22,7 @@ import {
     TOKEN_ROOT_WITHOUT_DISPLAY,
     transferSolInstruction,
 } from '../../mocks/fixtures';
-import { toInstructionFetchResult, useInstructionIntent } from '../use-instruction-intent';
+import { useInstructionIntent } from '../use-instruction-intent';
 
 const RPC = { name: 'rpc' };
 const SYSTEM_IDLS = { isLoading: false, programMetadataIdl: SYSTEM_ROOT };
@@ -104,10 +103,6 @@ function renderTwoMintToIntents(firstAmount: bigint, secondAmount: bigint) {
         ],
         { wrapper },
     );
-}
-
-function getSecondCardFetchResult(fetchStatus: FetchStatus | undefined, instructions?: readonly KitInstruction[]) {
-    return toInstructionFetchResult({ fetchStatus, index: 1, instructions, programId: TOKEN_PROGRAM_ADDRESS });
 }
 
 beforeEach(() => {
@@ -360,38 +355,5 @@ describe('useInstructionIntent', () => {
         rerender({ fetchResult: fetched(instruction) });
 
         expect(mocks.parseInstruction).toHaveBeenCalledTimes(1);
-    });
-});
-
-describe('toInstructionFetchResult', () => {
-    it('should report loading when the raw transaction is not requested', () => {
-        expect(getSecondCardFetchResult(undefined)).toEqual({ status: 'loading' });
-    });
-
-    it('should report loading when the raw transaction is loading', () => {
-        expect(getSecondCardFetchResult(FetchStatus.Fetching)).toEqual({ status: 'loading' });
-    });
-
-    it('should report success with the instruction at the card index when the raw transaction is fetched', () => {
-        const second = mintToInstruction();
-
-        expect(getSecondCardFetchResult(FetchStatus.Fetched, [transferSolInstruction(), second])).toEqual({
-            instruction: second,
-            status: 'success',
-        });
-    });
-
-    it('should report failed when the instruction at the card index belongs to another program', () => {
-        expect(
-            getSecondCardFetchResult(FetchStatus.Fetched, [transferSolInstruction(), transferSolInstruction()]),
-        ).toEqual({ status: 'failed' });
-    });
-
-    it('should report failed when the raw fetch fails', () => {
-        expect(getSecondCardFetchResult(FetchStatus.FetchFailed)).toEqual({ status: 'failed' });
-    });
-
-    it('should report failed when the fetched transaction has no decodable instructions', () => {
-        expect(getSecondCardFetchResult(FetchStatus.Fetched)).toEqual({ status: 'failed' });
     });
 });

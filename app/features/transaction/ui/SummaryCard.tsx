@@ -9,6 +9,7 @@ import { Badge } from '@components/shared/ui/badge';
 import { Button } from '@components/shared/ui/button';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
 import { estimateRequestedComputeUnitsForParsedTransaction } from '@entities/compute-unit';
+import { InstructionIntentList, type InstructionIntentListEntry } from '@entities/instruction-intent';
 import { formatTransactionVersion } from '@entities/transaction-data';
 import {
     BaseResourceFeeProjection,
@@ -27,7 +28,7 @@ import {
     useTransactionStatus,
 } from '@providers/transactions';
 import type { TransactionVersion } from '@solana/kit';
-import { PACKET_DATA_SIZE, ParsedTransaction, SystemInstruction, SystemProgram } from '@solana/web3.js';
+import { PACKET_DATA_SIZE, ParsedMessage, ParsedTransaction, SystemInstruction, SystemProgram } from '@solana/web3.js';
 import { ClusterStatus } from '@utils/cluster';
 import { displayTimestamp, displayTimestampUtc } from '@utils/date';
 import { SignatureProps } from '@utils/index';
@@ -35,7 +36,7 @@ import { getTransactionInstructionError } from '@utils/program-err';
 import { intoTransactionInstruction } from '@utils/tx';
 import { useBuildClusterPath, useClusterPath } from '@utils/url';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ZoomIn } from 'react-feather';
 
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
@@ -46,6 +47,8 @@ import { Card } from '@/app/shared/ui/Card';
 import { KeyValue, TextValue } from '@/app/shared/ui/key-value';
 import { getEpochForSlot } from '@/app/utils/epoch-schedule';
 
+import { readRawInstructions } from '../lib/read-raw-instructions';
+import { toInstructionFetchResult } from '../lib/to-instruction-fetch-result';
 import { TransactionNotFoundCard } from './TransactionNotFoundCard';
 
 function getTransactionErrorReason(
@@ -401,8 +404,51 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
                         </InfoTooltip>
                     </KeyValue>
                 ) : undefined}
+
+                {transaction && (
+                    <SummaryInstructionsIntentList
+                        rawDetails={rawDetails}
+                        parsedInstructions={transaction.message.instructions}
+                    />
+                )}
             </Card>
         </section>
+    );
+}
+
+function SummaryInstructionsIntentList({
+    rawDetails,
+    parsedInstructions,
+}: {
+    rawDetails: ReturnType<typeof useRawTransactionDetails>;
+    parsedInstructions: ParsedMessage['instructions'];
+}) {
+    const raw = rawDetails?.data?.raw;
+    const rawInstructions = useMemo(() => (raw ? readRawInstructions(raw) : undefined), [raw]);
+    const fetchStatus = rawDetails?.status;
+
+    const ixIntentEntries = useMemo<InstructionIntentListEntry[]>(
+        () =>
+            parsedInstructions.map((instruction, index) => {
+                const programId = instruction.programId.toBase58();
+                return {
+                    ixFetchResult: toInstructionFetchResult({
+                        fetchStatus,
+                        index,
+                        instructions: rawInstructions,
+                        programId,
+                    }),
+                    programId,
+                };
+            }),
+        [fetchStatus, parsedInstructions, rawInstructions],
+    );
+
+    return (
+        <InstructionIntentList
+            instructions={ixIntentEntries}
+            className="-mt-px rounded-b-lg border-0 border-t border-solid border-outer-space-800"
+        />
     );
 }
 

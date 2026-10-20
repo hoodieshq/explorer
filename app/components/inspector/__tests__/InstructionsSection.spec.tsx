@@ -8,7 +8,6 @@ import { LIGHTHOUSE_ADDRESS, LighthouseDetailsCard } from '@features/decode-inst
 import { useIdlInstructionDecode } from '@features/decode-instruction-with-idl';
 import { getBase58Decoder } from '@solana/kit';
 import {
-    AddressLookupTableAccount,
     type CompiledInnerInstruction,
     Keypair,
     MessageV0,
@@ -33,8 +32,9 @@ import { useAddressLookupTables } from '@/app/providers/accounts';
 import { FetchStatus } from '@/app/providers/cache';
 import { instructionParserDispatcher } from '@/app/tx/instruction-parser-dispatcher';
 
-import { InstructionsSection } from '../InstructionsSection';
 import { buildMessage, CREATE_ACCOUNT, INNER_INSTRUCTIONS } from './__fixtures__/create-idempotent-tx';
+import { InstructionsSectionFixture } from './__fixtures__/decoded-instructions-section';
+import { buildLookupMessage, lookupTable, TABLE_KEY } from './__fixtures__/lookup-message';
 
 // The IDL tiers read through SWR. The mock returns no data, so instructions render through the dispatcher.
 vi.mock('swr', () => ({
@@ -163,7 +163,7 @@ describe('Inspector InstructionsSection with address lookup tables', () => {
         expect(screen.queryByText('#1')).not.toBeInTheDocument();
 
         vi.mocked(useAddressLookupTables).mockReturnValue([[lookupTable(), FetchStatus.Fetched]]);
-        rerender(<InstructionsSection message={buildLookupMessage()} />);
+        rerender(<InstructionsSectionFixture message={buildLookupMessage()} />);
 
         expect(screen.getByText('#1')).toBeInTheDocument();
         expect(screen.queryByText(/Failed to fetch address lookup table/)).not.toBeInTheDocument();
@@ -263,16 +263,16 @@ describe('Inspector InstructionsSection with inner instructions', () => {
 
     test('should pass the same instructions to the IDL decoder across a re-render', async () => {
         const message = buildMessage();
-        const section = <InstructionsSection message={message} compiledInnerInstructions={INNER_INSTRUCTIONS} />;
+        const section = <InstructionsSectionFixture message={message} compiledInnerInstructions={INNER_INSTRUCTIONS} />;
 
         const { rerender } = renderWithProviders(section, { dispatcher: instructionParserDispatcher });
         await screen.findByText(/Inner Instructions/i);
 
         vi.mocked(useIdlInstructionDecode).mockClear();
-        rerender(<InstructionsSection message={message} compiledInnerInstructions={INNER_INSTRUCTIONS} />);
+        rerender(<InstructionsSectionFixture message={message} compiledInnerInstructions={INNER_INSTRUCTIONS} />);
         const first = vi.mocked(useIdlInstructionDecode).mock.calls.map(call => call[0].raw);
         vi.mocked(useIdlInstructionDecode).mockClear();
-        rerender(<InstructionsSection message={message} compiledInnerInstructions={INNER_INSTRUCTIONS} />);
+        rerender(<InstructionsSectionFixture message={message} compiledInnerInstructions={INNER_INSTRUCTIONS} />);
         const second = vi.mocked(useIdlInstructionDecode).mock.calls.map(call => call[0].raw);
 
         expect(first).toHaveLength(5);
@@ -303,7 +303,7 @@ describe('Inspector InstructionsSection with inner instructions', () => {
 
 function renderSection(message: MessageV0, compiledInnerInstructions?: CompiledInnerInstruction[]) {
     return renderWithProviders(
-        <InstructionsSection message={message} compiledInnerInstructions={compiledInnerInstructions} />,
+        <InstructionsSectionFixture message={message} compiledInnerInstructions={compiledInnerInstructions} />,
         { dispatcher: instructionParserDispatcher },
     );
 }
@@ -346,35 +346,6 @@ function buildPmpMessage(data: Uint8Array): MessageV0 {
         payerKey: gen.publicKey(0),
         recentBlockhash: PublicKey.default.toBase58(),
     }).compileToV0Message();
-}
-
-const TABLE_KEY = new PublicKey('4aa42XQFo45wc2PHQH21vahuyuFYCEZAH4G27xpGYqf6');
-
-function lookupTable(): AddressLookupTableAccount {
-    return new AddressLookupTableAccount({
-        key: TABLE_KEY,
-        state: {
-            addresses: [Keypair.generate().publicKey],
-            authority: undefined,
-            deactivationSlot: BigInt('18446744073709551615'),
-            lastExtendedSlot: 372_654_321,
-            lastExtendedSlotStartIndex: 0,
-        },
-    });
-}
-
-// A one-instruction Memo message whose second account comes from the lookup table.
-function buildLookupMessage(): MessageV0 {
-    return new MessageV0({
-        addressTableLookups: [{ accountKey: TABLE_KEY, readonlyIndexes: [], writableIndexes: [0] }],
-        compiledInstructions: [{ accountKeyIndexes: [0, 2], data: new Uint8Array([104, 105]), programIdIndex: 1 }],
-        header: { numReadonlySignedAccounts: 0, numReadonlyUnsignedAccounts: 1, numRequiredSignatures: 1 },
-        recentBlockhash: new PublicKey(new Uint8Array(32)).toBase58(),
-        staticAccountKeys: [
-            new PublicKey('37vWB5RfLRpnhNobhzmwCRGZbynGd4je2NvppSjUsEdJ'),
-            new PublicKey('MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr'),
-        ],
-    });
 }
 
 // One Token program inner instruction with the batch discriminator (255). It contains a single
