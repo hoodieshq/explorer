@@ -21,7 +21,7 @@ import {
 import { IntentSdkLoadError } from '../lib/load-intent-sdk';
 import { useCheckIntentSupport } from './use-check-intent-support';
 
-// The panel owns Retry, and an SDK error repeats for the same IDL and instruction
+// The panel and the list row own Retry, and an SDK error repeats for the same IDL and instruction
 const SWR_OPTIONS = { shouldRetryOnError: false } as const;
 const IDLE: InstructionIntentResult = { status: 'idle' };
 const LOADING: InstructionIntentResult = { status: 'loading' };

@@ -120,3 +120,16 @@ export const UnavailableUnknownProgram: Story = {
         );
     },
 };
+
+export const UnavailableWithInstructionName: Story = {
+    args: {
+        instructionName: 'Swap Base Input',
+        intent: { reason: 'idl-failed', status: 'unavailable' },
+        programName: 'Raydium Cp Swap',
+    },
+    play: async ({ canvasElement }) => {
+        await expect(within(canvasElement).getByTestId('instruction-intent-list-item-unavailable')).toHaveTextContent(
+            'Raydium Cp Swap: Swap Base Input · intent unavailable',
+        );
+    },
+};

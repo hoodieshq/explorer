@@ -2,11 +2,10 @@
 
 import { abbreviateAddress } from '@components/shared/address';
 import { useCluster } from '@entities/cluster/@x/instruction-intent';
-import { buildProgramName, type SupportedIdl, useProgramIdls } from '@entities/idl/@x/instruction-intent';
-import type { Cluster } from '@utils/cluster';
+import { buildProgramIdlNames, useProgramIdls } from '@entities/idl/@x/instruction-intent';
 import getInstructionCardScrollAnchorId from '@utils/get-instruction-card-scroll-anchor-id';
 import { programLabel } from '@utils/tx';
-import type { ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 
 import type { InstructionFetchResult } from '../lib/intent';
 import { useInstructionIntent } from '../model/use-instruction-intent';
@@ -27,31 +26,27 @@ export function InstructionIntentListItem({
     const { cluster, url } = useCluster();
     const { programMetadataIdl, anchorIdl } = useProgramIdls(programId, url, cluster);
     const intent = useInstructionIntent({ enabled, ixFetchResult, programId });
+    const idlNames = useMemo(
+        () => buildProgramIdlNames([programMetadataIdl, anchorIdl]),
+        [programMetadataIdl, anchorIdl],
+    );
+    const programName =
+        programLabel(programId, cluster) ??
+        idlNames?.programName ??
+        `Unknown Program (${abbreviateAddress(programId, { head: 5, tail: 5 })})`;
+
+    const instructionName =
+        ixFetchResult.status === 'success'
+            ? idlNames?.resolveInstructionName?.(ixFetchResult.instruction.data)
+            : undefined;
 
     return (
         <BaseInstructionIntentListItem index={index} href={`#${getInstructionCardScrollAnchorId([index + 1])}`}>
             <InstructionIntentListItemBody
                 intent={intent}
-                programName={toListProgramName({ anchorIdl, cluster, programId, programMetadataIdl })}
+                programName={programName}
+                instructionName={instructionName}
             />
         </BaseInstructionIntentListItem>
-    );
-}
-
-function toListProgramName({
-    programId,
-    cluster,
-    programMetadataIdl,
-    anchorIdl,
-}: {
-    programId: string;
-    cluster: Cluster;
-    programMetadataIdl: SupportedIdl | undefined;
-    anchorIdl: SupportedIdl | undefined;
-}): string {
-    return (
-        programLabel(programId, cluster) ??
-        buildProgramName([programMetadataIdl, anchorIdl]) ??
-        `Unknown Program (${abbreviateAddress(programId, { head: 5, tail: 5 })})`
     );
 }

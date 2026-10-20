@@ -114,6 +114,19 @@ function anchorIdl(name: string) {
     };
 }
 
+const SWAP_DISCRIMINATOR = [143, 190, 90, 218, 196, 30, 51, 222];
+
+function swapAnchorIdl() {
+    return {
+        ...anchorIdl('raydium_cp_swap'),
+        instructions: [{ accounts: [], args: [], discriminator: SWAP_DISCRIMINATOR, name: 'swap_base_input' }],
+    };
+}
+
+function swapEntry(ixFetchResult: InstructionFetchResult): InstructionIntentListEntry {
+    return { ixFetchResult, programId: gen.address(9) };
+}
+
 function renderList(entries: readonly InstructionIntentListEntry[]) {
     return render(
         <SWRConfig value={{ provider: () => cache }}>
@@ -298,6 +311,34 @@ describe('InstructionIntentList', () => {
 
         expect(screen.getByTestId('instruction-intent-list-item-unavailable')).toHaveTextContent(
             'System Program · intent unavailable',
+        );
+    });
+
+    it('should name the instruction from the IDL when the intent is unavailable', async () => {
+        mocks.useProgramIdls.mockReturnValue({ anchorIdl: swapAnchorIdl(), isLoading: false });
+        const data = Uint8Array.from([...SWAP_DISCRIMINATOR, 1, 2, 3]);
+        renderList([
+            swapEntry({
+                instruction: { ...transferSolInstruction(), data },
+                status: 'success',
+            }),
+        ]);
+
+        await openList();
+
+        expect(screen.getByTestId('instruction-intent-list-item-unavailable')).toHaveTextContent(
+            'Raydium Cp Swap: Swap Base Input · intent unavailable',
+        );
+    });
+
+    it('should show only the program name while the instruction loads', async () => {
+        mocks.useProgramIdls.mockReturnValue({ anchorIdl: swapAnchorIdl(), isLoading: false });
+        renderList([swapEntry({ status: 'loading' })]);
+
+        await openList();
+
+        expect(screen.getByTestId('instruction-intent-list-item-unavailable')).toHaveTextContent(
+            'Raydium Cp Swap · intent unavailable',
         );
     });
 });

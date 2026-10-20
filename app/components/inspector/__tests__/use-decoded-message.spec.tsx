@@ -34,6 +34,30 @@ describe('useDecodedMessage', () => {
         expect(result.current).toEqual({ failedLookupIndex: 0, status: 'failed' });
     });
 
+    test('should report failed when a lookup table is not found', () => {
+        vi.mocked(useAddressLookupTables).mockReturnValue([['Lookup Table Not Found', FetchStatus.Fetched]]);
+
+        const { result } = renderHook(() => useDecodedMessage(buildLookupMessage()));
+
+        expect(result.current).toEqual({ failedLookupIndex: 0, status: 'failed' });
+    });
+
+    test('should report failed when a lookup table fetch settles without data', () => {
+        vi.mocked(useAddressLookupTables).mockReturnValue([[undefined, FetchStatus.Fetched]]);
+
+        const { result } = renderHook(() => useDecodedMessage(buildLookupMessage()));
+
+        expect(result.current).toEqual({ failedLookupIndex: 0, status: 'failed' });
+    });
+
+    test('should keep loading while a lookup table is fetching with no data yet', () => {
+        vi.mocked(useAddressLookupTables).mockReturnValue([[undefined, FetchStatus.Fetching]]);
+
+        const { result } = renderHook(() => useDecodedMessage(buildLookupMessage()));
+
+        expect(result.current).toEqual({ status: 'loading' });
+    });
+
     test('should decode at once when the message has no lookups', () => {
         const message = buildMessage();
 

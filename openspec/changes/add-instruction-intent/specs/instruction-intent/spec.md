@@ -40,12 +40,13 @@ metadata error.
 
 ### Requirement: Account reads start on the first open and are shared
 
-Account reads and the intent computation SHALL start only after the first open of a card. Account reads MUST be
-cached by the sorted address set, and computations by instruction content, per cluster and RPC URL.
+Account reads and the intent computation SHALL start only after the first open of a card or of the transaction
+intents list. Account reads MUST be cached by the sorted address set, and computations by instruction content, per
+cluster and RPC URL.
 
 #### Scenario: A closed card
 
-- **WHEN** a card with an intent is not opened
+- **WHEN** a card with an intent is not opened and the transaction intents list is not opened
 - **THEN** no account is fetched and no intent is computed
 
 #### Scenario: Two instructions read one mint
@@ -135,7 +136,7 @@ MUST share the account read and the intent computation.
 #### Scenario: The intent is unavailable
 
 - **WHEN** an instruction has no intent, for any reason
-- **THEN** its row MUST show the program name and "intent unavailable", and the reason stays on the card
+- **THEN** its row MUST show the program name, the instruction name when the program's IDL names it, and "intent unavailable", and the reason stays on the card
 
 #### Scenario: Inner instructions
 

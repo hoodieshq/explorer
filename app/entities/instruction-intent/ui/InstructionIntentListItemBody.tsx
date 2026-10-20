@@ -7,9 +7,11 @@ import { IntentSentence } from './IntentSentence';
 export function InstructionIntentListItemBody({
     intent,
     programName,
+    instructionName,
 }: {
     intent: InstructionIntentResult;
     programName: string;
+    instructionName?: string;
 }): ReactNode {
     switch (intent.status) {
         case 'idle':
@@ -39,7 +41,9 @@ export function InstructionIntentListItemBody({
         case 'unavailable':
             return (
                 <span className="text-sm" data-testid="instruction-intent-list-item-unavailable">
-                    <span className="text-neutral-300">{programName}</span>
+                    <span className="text-neutral-300">
+                        {instructionName ? `${programName}: ${instructionName}` : programName}
+                    </span>
                     <span className="text-outer-space-300"> · intent unavailable</span>
                 </span>
             );

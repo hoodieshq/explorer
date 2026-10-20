@@ -34,7 +34,13 @@ export function useDecodedMessage(
         message.addressTableLookups.map(lookup => lookup.accountKey.toString()),
     );
 
-    const failedLookupIndex = hydratedTables.findIndex(table => table?.[1] === FetchStatus.FetchFailed);
+    // A settled entry that is not a table (a not-found or invalid sentinel, or no data) never becomes one
+    const failedLookupIndex = hydratedTables.findIndex(
+        table =>
+            table !== undefined &&
+            (table[1] === FetchStatus.FetchFailed ||
+                (table[1] !== FetchStatus.Fetching && !(table[0] instanceof AddressLookupTableAccount))),
+    );
     const lookupTables = hydratedTables.flatMap(table =>
         table?.[0] instanceof AddressLookupTableAccount ? [table[0]] : [],
     );
