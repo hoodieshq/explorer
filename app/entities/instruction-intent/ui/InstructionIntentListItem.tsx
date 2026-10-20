@@ -2,6 +2,7 @@
 
 import { abbreviateAddress } from '@components/shared/address';
 import { useCluster } from '@entities/cluster/@x/instruction-intent';
+import { buildProgramName, type SupportedIdl, useProgramIdls } from '@entities/idl/@x/instruction-intent';
 import type { Cluster } from '@utils/cluster';
 import getInstructionCardScrollAnchorId from '@utils/get-instruction-card-scroll-anchor-id';
 import { programLabel } from '@utils/tx';
@@ -23,18 +24,34 @@ export function InstructionIntentListItem({
     ixFetchResult: InstructionFetchResult;
     enabled: boolean;
 }): ReactNode {
-    const { cluster } = useCluster();
+    const { cluster, url } = useCluster();
+    const { programMetadataIdl, anchorIdl } = useProgramIdls(programId, url, cluster);
     const intent = useInstructionIntent({ enabled, ixFetchResult, programId });
 
     return (
         <BaseInstructionIntentListItem index={index} href={`#${getInstructionCardScrollAnchorId([index + 1])}`}>
-            <InstructionIntentListItemBody intent={intent} programName={toListProgramName(programId, cluster)} />
+            <InstructionIntentListItemBody
+                intent={intent}
+                programName={toListProgramName({ anchorIdl, cluster, programId, programMetadataIdl })}
+            />
         </BaseInstructionIntentListItem>
     );
 }
 
-function toListProgramName(programId: string, cluster: Cluster): string {
+function toListProgramName({
+    programId,
+    cluster,
+    programMetadataIdl,
+    anchorIdl,
+}: {
+    programId: string;
+    cluster: Cluster;
+    programMetadataIdl: SupportedIdl | undefined;
+    anchorIdl: SupportedIdl | undefined;
+}): string {
     return (
-        programLabel(programId, cluster) ?? `Unknown Program (${abbreviateAddress(programId, { head: 5, tail: 5 })})`
+        programLabel(programId, cluster) ??
+        buildProgramName([programMetadataIdl, anchorIdl]) ??
+        `Unknown Program (${abbreviateAddress(programId, { head: 5, tail: 5 })})`
     );
 }

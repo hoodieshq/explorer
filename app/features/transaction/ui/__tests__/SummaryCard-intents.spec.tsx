@@ -12,7 +12,8 @@ import { SummaryCard } from '../SummaryCard';
 
 vi.mock('next/navigation', () => import('@/app/__tests__/next-navigation'));
 
-vi.mock('@entities/idl/@x/instruction-intent', () => ({
+vi.mock('@entities/idl/@x/instruction-intent', async importOriginal => ({
+    ...(await importOriginal<typeof import('@entities/idl/@x/instruction-intent')>()),
     useProgramIdls: () => ({ isLoading: false, programMetadataIdl: SYSTEM_ROOT }),
 }));
 

@@ -68,7 +68,10 @@ vi.mock('@solana/kit', async importOriginal => ({
     ...(await importOriginal<typeof import('@solana/kit')>()),
     fetchEncodedAccounts: mocks.fetchEncodedAccounts,
 }));
-vi.mock('@entities/idl/@x/instruction-intent', () => ({ useProgramIdls: mocks.useProgramIdls }));
+vi.mock('@entities/idl/@x/instruction-intent', async importOriginal => ({
+    ...(await importOriginal<typeof import('@entities/idl/@x/instruction-intent')>()),
+    useProgramIdls: mocks.useProgramIdls,
+}));
 vi.mock('@entities/cluster/@x/instruction-intent', () => ({
     useCluster: () => ({ cluster: Cluster.Devnet, url: DEFAULT_RPC_URL }),
     useSolanaRpc: () => RPC,
@@ -101,6 +104,14 @@ function mockIdlsByProgram() {
         if (programId === TOKEN_PROGRAM_ADDRESS) return { isLoading: false, programMetadataIdl: TOKEN_ROOT };
         return { isLoading: false };
     });
+}
+
+function anchorIdl(name: string) {
+    return {
+        address: gen.address(1),
+        instructions: [],
+        metadata: { name, spec: '0.1.0', version: '0.1.0' },
+    };
 }
 
 function renderList(entries: readonly InstructionIntentListEntry[]) {
@@ -264,6 +275,29 @@ describe('InstructionIntentList', () => {
 
         expect(screen.getByTestId('instruction-intent-list-item-unavailable')).toHaveTextContent(
             `Unknown Program (${abbreviateAddress(programId, { head: 5, tail: 5 })}) · intent unavailable`,
+        );
+    });
+
+    it('should name an unlabeled program by its IDL', async () => {
+        const programId = gen.address(9);
+        mocks.useProgramIdls.mockReturnValue({ anchorIdl: anchorIdl('raydium_cp_swap'), isLoading: false });
+        renderList([{ ...transferSolEntry(), programId }]);
+
+        await openList();
+
+        expect(screen.getByTestId('instruction-intent-list-item-unavailable')).toHaveTextContent(
+            'Raydium Cp Swap · intent unavailable',
+        );
+    });
+
+    it('should prefer the program label over the IDL name', async () => {
+        mocks.useProgramIdls.mockReturnValue({ anchorIdl: anchorIdl('other_program'), isLoading: false });
+        renderList([transferSolEntry()]);
+
+        await openList();
+
+        expect(screen.getByTestId('instruction-intent-list-item-unavailable')).toHaveTextContent(
+            'System Program · intent unavailable',
         );
     });
 });
