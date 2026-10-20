@@ -54,6 +54,8 @@ const RootNodeWithIntentShape = type({
     version: string(),
 });
 
+export const INTENT_FAILED_TEXT = "Couldn't load the data the intent needs.";
+
 const UNAVAILABLE_TEXT: Record<IntentUnavailableReason, string> = {
     'idl-failed': "Couldn't load this program's IDL.",
     'malformed-metadata': "Couldn't use this program's intent metadata.",

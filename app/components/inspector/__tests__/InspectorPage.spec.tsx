@@ -177,6 +177,15 @@ describe('TransactionInspectorPage with a ?message= param', () => {
         expect(readCell('Allocated Data Size')).toMatch(/100 byte\(s\)/);
         expect(readCell('Assigned Program Id')).toMatch(/Associated Token Program/);
     });
+
+    test('should show the intent list with the instruction count in the overview', async () => {
+        setParam('message', decodeURIComponent(stubs.systemProgramCreateAccountQueryParam));
+
+        renderPage();
+
+        expect(await screen.findByTestId('instruction-intent-list')).toBeInTheDocument();
+        expect(screen.getByTestId('instruction-intent-list-count')).toHaveTextContent('1 instruction');
+    });
 });
 
 function setParam(name: string, value: string) {

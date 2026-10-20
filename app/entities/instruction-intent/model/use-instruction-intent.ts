@@ -2,7 +2,6 @@ import 'client-only';
 
 import { useCluster, useSolanaRpc } from '@entities/cluster/@x/instruction-intent';
 import type { KitInstruction } from '@explorer/parsers';
-import { FetchStatus } from '@providers/cache';
 import { fetchEncodedAccounts } from '@solana/kit';
 import { useMemo } from 'react';
 import useSWRImmutable from 'swr/immutable';
@@ -28,7 +27,7 @@ const IDLE: InstructionIntentResult = { status: 'idle' };
 const LOADING: InstructionIntentResult = { status: 'loading' };
 
 /**
- * Resolves the intent state of one instruction card.
+ * Resolves the intent state of one instruction.
  * Checks whether program has idl with intent templates.
  * Checks whether instruction has intent.
  * Gets accounts required for the instruction intent, if necessary.
@@ -112,28 +111,6 @@ export function useInstructionIntent({
     if (computedIxIntent.error || addressesForIntent.error) return unavailable('malformed-metadata');
     if (accounts.error) return failedWithRetry(accounts);
     return LOADING;
-}
-
-/**
- * The instruction one card on the transaction page builds its intent from, read from the raw transaction.
- */
-export function toInstructionFetchResult({
-    fetchStatus,
-    instructions,
-    index,
-    programId,
-}: {
-    fetchStatus: FetchStatus | undefined;
-    instructions: readonly (KitInstruction | undefined)[] | undefined;
-    index: number;
-    programId: string;
-}): InstructionFetchResult {
-    const instruction = instructions?.[index];
-    if (instruction) {
-        return instruction.programAddress === programId ? { instruction, status: 'success' } : { status: 'failed' };
-    }
-    if (fetchStatus === undefined || fetchStatus === FetchStatus.Fetching) return { status: 'loading' };
-    return { status: 'failed' };
 }
 
 function unavailable(reason: IntentUnavailableReason): InstructionIntentResult {
