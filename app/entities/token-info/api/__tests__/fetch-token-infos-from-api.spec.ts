@@ -27,7 +27,7 @@ describe('fetchTokenInfosFromApi', () => {
 
         expect(tokens).toEqual([tokenInfo(USDC), tokenInfo(WSOL)]);
         expect(sentRequest()).toEqual({
-            body: { addresses: [USDC, WSOL], cluster: Cluster.MainnetBeta, includeOnChainFallback: true },
+            body: { addresses: [USDC, WSOL], cluster: Cluster.Mainnet, includeOnChainFallback: true },
             method: 'POST',
             url: '/api/token-info',
         });
@@ -115,12 +115,12 @@ describe('fetchTokenInfoFromApi', () => {
     it('should request one mint without the on-chain fallback and resolve its token', async () => {
         vi.mocked(fetch).mockResolvedValue(Response.json({ content: [tokenInfo(USDC)] }));
 
-        const token = await fetchTokenInfoFromApi(new PublicKey(USDC), Cluster.MainnetBeta);
+        const token = await fetchTokenInfoFromApi(new PublicKey(USDC), Cluster.Mainnet);
 
         expect(token).toEqual(tokenInfo(USDC));
         expect(sentRequest().body).toEqual({
             addresses: [USDC],
-            cluster: Cluster.MainnetBeta,
+            cluster: Cluster.Mainnet,
             includeOnChainFallback: false,
         });
     });
@@ -128,7 +128,7 @@ describe('fetchTokenInfoFromApi', () => {
     it('should resolve undefined when the route does not list the mint', async () => {
         vi.mocked(fetch).mockResolvedValue(Response.json({ content: [] }));
 
-        await expect(fetchTokenInfoFromApi(new PublicKey(USDC), Cluster.MainnetBeta)).resolves.toBeUndefined();
+        await expect(fetchTokenInfoFromApi(new PublicKey(USDC), Cluster.Mainnet)).resolves.toBeUndefined();
     });
 });
 
@@ -137,7 +137,7 @@ type Request = Parameters<typeof fetchTokenInfosFromApi>[0];
 function request(overrides: Partial<Request> = {}): Request {
     return {
         addresses: [USDC, WSOL],
-        cluster: Cluster.MainnetBeta,
+        cluster: Cluster.Mainnet,
         genesisHash: undefined,
         includeOnChainFallback: false,
         ...overrides,
