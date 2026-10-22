@@ -1,3 +1,4 @@
+import { useNftHeaderVariant } from '@components/account/nft-header-variant';
 import { InfoTooltip } from '@components/common/InfoTooltip';
 import { NFTImageContent } from '@components/common/NFTArt';
 import type { EditionInfo } from '@entities/nft';
@@ -20,6 +21,14 @@ import {
 } from '@/app/components/shared/ui/dropdown';
 
 export function MetaplexNFTHeader({ nftData }: { nftData: NFTData }) {
+    // REVIEW(HOO-921): picks the header variant under review; collapses to the chosen one before the external PR.
+    switch (useNftHeaderVariant()) {
+        case 'original':
+            return <OriginalMetaplexNFTHeader nftData={nftData} />;
+    }
+}
+
+function OriginalMetaplexNFTHeader({ nftData }: { nftData: NFTData }) {
     const collectionOpt = nftData.metadata.collection;
     const collection = collectionOpt && isSome(collectionOpt) ? collectionOpt.value : null;
     const collectionAddress = collection?.key;

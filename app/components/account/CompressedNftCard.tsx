@@ -18,6 +18,7 @@ import { InfoTooltip } from '../common/InfoTooltip';
 import { LoadingArtPlaceholder } from '../common/LoadingArtPlaceholder';
 import { NFTImageContent } from '../common/NFTArt';
 import { getCreatorDropdownItems, getIsMutablePill, getVerifiedCollectionPill } from './MetaplexNFTHeader';
+import { useNftHeaderVariant } from './nft-header-variant';
 import { UnknownAccountCard } from './UnknownAccountCard';
 
 export function CompressedNftCard({ account }: { account: Account }) {
@@ -75,6 +76,14 @@ export function CompressedNftAccountHeader({ account, fallback }: { account: Acc
 }
 
 export function CompressedNFTHeader({ compressedNft }: { compressedNft: CompressedNft }) {
+    // REVIEW(HOO-921): picks the header variant under review; collapses to the chosen one before the external PR.
+    switch (useNftHeaderVariant()) {
+        case 'original':
+            return <OriginalCompressedNFTHeader compressedNft={compressedNft} />;
+    }
+}
+
+function OriginalCompressedNFTHeader({ compressedNft }: { compressedNft: CompressedNft }) {
     // Empty strings are possible, so the check is necessary.
     const proxiedURI = compressedNft.content.json_uri ? getProxiedUri(compressedNft.content.json_uri) : null;
     const metadataJson = useMetadataJsonLink(proxiedURI);
