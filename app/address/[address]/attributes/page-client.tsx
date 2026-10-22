@@ -16,10 +16,14 @@ function MetaplexNFTAttributesCardRenderer({
     account,
     onNotFound,
 }: React.ComponentProps<React.ComponentProps<typeof ParsedAccountRenderer>['renderComponent']>) {
+    // The card carries no trailing margin; `pb-14` plus the root layout's `pb-6` leaves ~80px above the
+    // footer, as the redesigned pages ask for.
     return (
-        <Suspense fallback={<LoadingCard />}>
-            {<MetaplexNFTAttributesCard account={account} onNotFound={onNotFound} />}
-        </Suspense>
+        <div className="pb-14">
+            <Suspense fallback={<LoadingCard />}>
+                <MetaplexNFTAttributesCard account={account} onNotFound={onNotFound} />
+            </Suspense>
+        </div>
     );
 }
 
