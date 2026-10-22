@@ -8,7 +8,25 @@ import { SlotHashesCard } from '../SlotHashesCard';
 const meta: Meta<typeof SlotHashesCard> = {
     component: SlotHashesCard,
     decorators: [withCluster],
-    parameters: nextjsParameters,
+    parameters: {
+        ...nextjsParameters,
+        docs: {
+            description: {
+                component: [
+                    'The Slot Hashes sysvar as a list of recent slots and their bank hashes, in a collapsible',
+                    'section. Everything is composed from the shared primitives below.',
+                    '',
+                    '## References',
+                    '',
+                    '- [CollapsibleSection](?path=/docs/components-shared-collapsiblesection--docs) — the "Slot Hashes" heading lifted out above the surface, a `Collapse`/`Expand` toggle, and the height animation. Passed `className=""` so the surface comes from the `<Card>` below.',
+                    '- [Card](?path=/docs/components-shared-card-basecard--docs) — the Tailwind `variant="tight"` surface holding the list.',
+                    '- Slot hashes grid — a pure-Tailwind CSS grid (`clamp(132px,25%,200px) 1fr`) built from `div`s with `role="table"`/`row`/`cell` for a11y, mirroring the Vote History grid. The hash wraps (`break-all`) on narrow screens, so the page never scrolls horizontally.',
+                    '- `Slot` — fills the "Slot" cell, rendering each slot as a linked slot number.',
+                    '- `Copyable` — the inline copy icon in front of each hash.',
+                ].join('\n'),
+            },
+        },
+    },
     tags: ['autodocs', 'test'],
     title: 'Components/Account/SlotHashesCard',
 };
