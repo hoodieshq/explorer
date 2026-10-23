@@ -19,7 +19,7 @@ function BlockhashesCardRenderer({
     if (!isParsedAccountProgram(parsedData, SYSVAR_PROGRAM_LABEL) || parsedData.parsed.type !== 'recentBlockhashes') {
         return onNotFound();
     }
-    return <BlockhashesCard blockhashes={parsedData.parsed.info} />;
+    return <BlockhashesCard blockhashes={parsedData.parsed.info} layout="grid" />;
 }
 
 export default function RecentBlockhashesPageClient({ params: { address } }: Props) {

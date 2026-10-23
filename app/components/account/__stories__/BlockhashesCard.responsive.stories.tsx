@@ -18,11 +18,13 @@ const meta: Meta<typeof BlockhashesCard> = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+// Grid layout so the mobile labelled-field adaptation is what these viewport variants exercise.
 const args = {
     blockhashes: Array.from({ length: 4 }, (_, i) => ({
         blockhash: gen.blockhash(i),
         feeCalculator: { lamportsPerSignature: '5000' },
     })),
+    layout: 'grid' as const,
 };
 
 export const Mobile: Story = {
