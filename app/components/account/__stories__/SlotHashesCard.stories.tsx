@@ -22,7 +22,7 @@ const meta: Meta<typeof SlotHashesCard> = {
                     '- [Card](?path=/docs/components-shared-card-basecard--docs) — the Tailwind `variant="tight"` surface holding the list.',
                     '- Slot hashes grid — a pure-Tailwind CSS grid (`clamp(132px,25%,200px) 1fr`) built from `div`s with `role="table"`/`row`/`cell` for a11y, mirroring the Vote History grid. The hash wraps (`break-all`) on narrow screens, so the page never scrolls horizontally.',
                     '- `Slot` — fills the "Slot" cell, rendering each slot as a linked slot number.',
-                    '- `Copyable` — the inline copy icon in front of each hash.',
+                    '- [TruncatedValue](?path=/docs/components-shared-truncatedvalue--docs) (`truncation={{ enabled: false }}`, `alignItems="start"`) — fills the "Hash" cell: the copy icon in its own column with the full hash wrapping beside it, as the transaction Summary signature.',
                 ].join('\n'),
             },
         },

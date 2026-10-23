@@ -1,5 +1,5 @@
-import { Copyable } from '@components/common/Copyable';
 import { Slot } from '@components/common/Slot';
+import { TruncatedValue } from '@components/shared/TruncatedValue';
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { SlotHashEntry, SlotHashesInfo, SysvarAccount } from '@validators/accounts/sysvar';
 import { cva } from 'class-variance-authority';
@@ -74,11 +74,9 @@ function SlotHashesGrid({ entries }: { entries: SlotHashEntry[] }) {
                                 <Slot slot={entry.slot} link />
                             </div>
                             <div role="cell" className={gridCellVariants({ column: 'hash' })}>
-                                {/* One inline span, so the copy icon sits on the hash's first line instead of
-                                    becoming its own flex item centered against both wrapped lines. */}
-                                <span className="min-w-0">
-                                    <Copyable text={entry.hash}>{entry.hash}</Copyable>
-                                </span>
+                                {/* Same rendering as the transaction Summary signature: the copy icon keeps
+                                    its own column and the wrapped hash lines stay aligned beside it. */}
+                                <TruncatedValue value={entry.hash} truncation={{ enabled: false }} alignItems="start" />
                             </div>
                         </div>
                     ))
