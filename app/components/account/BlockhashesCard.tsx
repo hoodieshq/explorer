@@ -1,4 +1,4 @@
-import { Copyable } from '@components/common/Copyable';
+import { TruncatedValue } from '@components/shared/TruncatedValue';
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { cn } from '@components/shared/utils';
 import { RecentBlockhashesEntry, RecentBlockhashesInfo } from '@validators/accounts/sysvar';
@@ -99,15 +99,16 @@ const renderAccountRow = (entry: RecentBlockhashesEntry, index: number) => {
 const GRID_TEMPLATE =
     'grid-cols-[clamp(3.5rem,calc((100%_-_2.5rem)*3.5/42.5),5.6rem)_minmax(0,26fr)_minmax(13rem,13fr)] gap-5';
 
-// The full blockhash wraps (`break-all`) instead of being truncated in the middle: a blockhash has no
-// page to link to, so the visible text is the only place to read it. It sits on one line once its column
-// is about 25rem wide and wraps onto two or three lines below that.
+// The cell around a blockhash, the same as the Slot Hashes card's hash column. The full blockhash wraps
+// (`break-all`) instead of being truncated in the middle: a blockhash has no page to link to, so the
+// visible text is the only place to read it. It sits on one line once its column is about 25rem wide and
+// wraps onto two or three lines below that. `min-w-0` lets the cell shrink below the hash's width.
+const HASH_CELL = 'min-w-0 break-all';
+
+// Same rendering as the transaction Summary signature: the copy icon keeps its own column and the wrapped
+// hash lines stay aligned beside it.
 function BlockhashValue({ blockhash }: { blockhash: string }) {
-    return (
-        <span className="break-all font-mono">
-            <Copyable text={blockhash}>{blockhash}</Copyable>
-        </span>
-    );
+    return <TruncatedValue value={blockhash} truncation={{ enabled: false }} alignItems="start" />;
 }
 
 // Grid layout, responsive like the Rewards card: an `md`+ grid (header row + data rows) and, below `md`,
@@ -161,14 +162,16 @@ function BlockhashRow({ entry, recency }: { entry: RecentBlockhashesEntry; recen
             <div className="flex flex-col gap-1 px-3 py-3 md:hidden">
                 <MobileField label={COLUMNS[0]}>{recency}</MobileField>
                 <MobileField label={COLUMNS[1]}>
-                    <BlockhashValue blockhash={entry.blockhash} />
+                    <div className={HASH_CELL}>
+                        <BlockhashValue blockhash={entry.blockhash} />
+                    </div>
                 </MobileField>
                 <MobileField label={COLUMNS[2]}>{fee}</MobileField>
             </div>
             {/* md+: grid row aligned to the header. */}
             <div className={cn('hidden min-h-9 items-start px-3 py-2.5 md:grid', GRID_TEMPLATE)}>
                 <div>{recency}</div>
-                <div>
+                <div className={HASH_CELL}>
                     <BlockhashValue blockhash={entry.blockhash} />
                 </div>
                 <div>{fee}</div>

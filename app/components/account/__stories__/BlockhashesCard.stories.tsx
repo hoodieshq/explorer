@@ -26,7 +26,7 @@ const meta = {
                     '- [Card](?path=/docs/components-shared-card-basecard--docs) — the card surface: the dashkit card with its "Blockhashes" header and footer for `layout="table"`, a Tailwind `variant="tight"` card for `layout="grid"`.',
                     '- [BaseTable](?path=/docs/components-shared-table-basetable--docs) — the `layout="table"` list (the original dashkit table).',
                     '- Blockhashes grid — the `layout="grid"` list: a pure-Tailwind CSS grid (`clamp(3.5rem,(100% - 2.5rem)*3.5/42.5,5.6rem) minmax(0,26fr) minmax(13rem,13fr)`: the columns grow in proportion to their base widths, Recency up to about 1.6x) built from `div`s on `md+`, labelled Recency / Blockhash / Fee Calculator fields below `md` (the label is a KeyValue-style `clamp(6rem,min(20%,100% - 26.5rem),240px)` band that grows only once the hash fits on one line), mirroring the Rewards card. The blockhash wraps (`break-all`) rather than being truncated.',
-                    '- `Copyable` — `layout="grid"` only: the copy glyph in front of each blockhash.',
+                    '- [TruncatedValue](?path=/docs/components-shared-truncatedvalue--docs) — `layout="grid"` only: each blockhash in full (`truncation={{ enabled: false }}`) with its copy glyph in a column of its own, like the Signature row of the transaction Summary.',
                 ].join('\n'),
             },
         },
