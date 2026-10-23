@@ -103,14 +103,12 @@ function OriginalCompressedNFTHeader({ compressedNft }: { compressedNft: Compres
                     <h2 className="mb-0 ml-[3px] items-center overflow-hidden text-ellipsis whitespace-nowrap">
                         {compressedNft.content.metadata.name !== ''
                             ? compressedNft.content.metadata.name
-                            : 'No name was found'}
+                            : 'Unnamed asset'}
                     </h2>
                     {hasCollection ? getVerifiedCollectionPill() : null}
                 </div>
                 <h4 className="ml-[3px] mt-[3px] overflow-hidden text-ellipsis whitespace-nowrap uppercase tracking-[0.08em] text-dk-gray-700">
-                    {compressedNft.content.metadata.symbol !== ''
-                        ? compressedNft.content.metadata.symbol
-                        : 'No Symbol was found'}
+                    {compressedNft.content.metadata.symbol !== '' ? compressedNft.content.metadata.symbol : 'No symbol'}
                 </h4>
                 {isCompressed && <div className="mb-1.5 mt-1.5">{getCompressedNftPill()}</div>}
                 <div className="mb-3 mt-1.5">{getIsMutablePill(compressedNft.mutable)}</div>

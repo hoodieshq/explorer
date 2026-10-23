@@ -149,7 +149,7 @@ function AttributesGrid({ attributes }: { attributes: Attribute[] }) {
                             role="cell"
                             className="col-span-2 border-t border-solid border-outer-space-800 px-3 py-2.5 text-center text-outer-space-300"
                         >
-                            No attributes found
+                            No attributes
                         </div>
                     </div>
                 )}

@@ -1,7 +1,7 @@
 import { useNftHeaderVariant } from '@components/account/nft-header-variant';
 import { InfoTooltip } from '@components/common/InfoTooltip';
 import { NFTImageContent } from '@components/common/NFTArt';
-import type { EditionInfo } from '@entities/nft';
+import { type EditionInfo, trimNullPadding } from '@entities/nft';
 import { isSome } from '@metaplex-foundation/umi';
 import { NFTData, useFetchAccountInfo, useMintAccountInfo } from '@providers/accounts';
 import { PublicKey } from '@solana/web3.js';
@@ -42,6 +42,8 @@ function OriginalMetaplexNFTHeader({ nftData }: { nftData: NFTData }) {
     }, [fetchAccountInfo, collectionAddress]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const metadata = nftData.metadata;
+    const name = trimNullPadding(metadata.name);
+    const symbol = trimNullPadding(metadata.symbol);
     const data = nftData.json;
     const isVerifiedCollection = collection != null && collection?.verified && collectionMintInfo !== undefined;
     return (
@@ -53,13 +55,13 @@ function OriginalMetaplexNFTHeader({ nftData }: { nftData: NFTData }) {
                 {<h6 className="ml-[3px] uppercase tracking-[0.08em] text-dk-gray-700">Metaplex NFT</h6>}
                 <div className="flex items-center">
                     <h2 className="mb-0 ml-[3px] items-center overflow-hidden text-ellipsis whitespace-nowrap">
-                        {metadata.name !== '' ? metadata.name : 'No NFT name was found'}
+                        {name !== '' ? name : 'Unnamed NFT'}
                     </h2>
                     {getEditionPill(nftData.editionInfo)}
                     {isVerifiedCollection ? getVerifiedCollectionPill() : null}
                 </div>
                 <h4 className="ml-[3px] mt-[3px] overflow-hidden text-ellipsis whitespace-nowrap uppercase tracking-[0.08em] text-dk-gray-700">
-                    {metadata.symbol !== '' ? metadata.symbol : 'No Symbol was found'}
+                    {symbol !== '' ? symbol : 'No symbol'}
                 </h4>
                 <div className="mb-1.5 mt-1.5">{getSaleTypePill(metadata.primarySaleHappened)}</div>
                 <div className="mb-3 mt-1.5">{getIsMutablePill(metadata.isMutable)}</div>
@@ -131,7 +133,7 @@ export function getCreatorDropdownItems(creators: Array<{ address: string; verif
 
     return (
         <DropdownItem className="font-mono">
-            <div className="mr-3">No creators are associated with this NFT.</div>
+            <div className="mr-3">No creators</div>
         </DropdownItem>
     );
 }
@@ -139,15 +141,14 @@ export function getCreatorDropdownItems(creators: Array<{ address: string; verif
 function getEditionPill(editionInfo: EditionInfo) {
     const masterEdition = editionInfo.masterEdition;
     const edition = editionInfo.edition;
+    // No pill without a master edition: `getEditionInfo` returns the same empty result for an NFT without an
+    // edition account and for a failed RPC call, so no text could say which one happened.
+    if (!masterEdition) return null;
 
     return (
         <div className="ml-1.5 inline-flex">
             <Badge ui="dashkit" variant="dark" tone="solid">
-                {edition && masterEdition
-                    ? `Edition ${Number(edition.edition)} / ${Number(masterEdition.supply)}`
-                    : masterEdition
-                      ? 'Master Edition'
-                      : 'No Master Edition Information'}
+                {edition ? `Edition ${Number(edition.edition)} / ${Number(masterEdition.supply)}` : 'Master Edition'}
             </Badge>
         </div>
     );

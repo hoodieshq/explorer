@@ -76,7 +76,7 @@ describe('MetaplexNFTAttributesCard', () => {
             />,
         );
 
-        expect(await screen.findByText('No attributes found')).toBeInTheDocument();
+        expect(await screen.findByText('No attributes')).toBeInTheDocument();
     });
 
     it('should show error card when fetch fails', async () => {

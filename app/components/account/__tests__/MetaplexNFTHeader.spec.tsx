@@ -27,9 +27,13 @@ vi.mock('@providers/accounts', () => ({
 describe('MetaplexNFTHeader', () => {
     it.each([
         { overrides: { name: 'Cool NFT #42' }, text: 'Cool NFT #42' },
-        { overrides: { name: '' }, text: 'No NFT name was found' },
+        { overrides: { name: '' }, text: 'Unnamed NFT' },
+        { overrides: { name: 'Cool NFT #42\0\0\0' }, text: 'Cool NFT #42' },
+        { overrides: { name: '\0\0\0\0' }, text: 'Unnamed NFT' },
         { overrides: { symbol: 'MYSYM' }, text: 'MYSYM' },
-        { overrides: { symbol: '' }, text: 'No Symbol was found' },
+        { overrides: { symbol: 'MYSYM\0\0\0\0\0' }, text: 'MYSYM' },
+        { overrides: { symbol: '' }, text: 'No symbol' },
+        { overrides: { symbol: '\0\0\0\0\0\0\0\0\0\0' }, text: 'No symbol' },
     ])('should render $text for $overrides', ({ overrides, text }) => {
         render(<MetaplexNFTHeader nftData={makeNftData(overrides)} />);
         expect(screen.getByText(text)).toBeDefined();
@@ -43,6 +47,12 @@ describe('MetaplexNFTHeader', () => {
         const nftData = makeNftData({ editionInfo });
         render(<MetaplexNFTHeader nftData={nftData} />);
         expect(screen.getByText('Master Edition')).toBeDefined();
+    });
+
+    it('should show no edition pill without a master edition', () => {
+        render(<MetaplexNFTHeader nftData={makeNftData()} />);
+        expect(screen.queryByText('Master Edition')).toBeNull();
+        expect(screen.queryByText('No Master Edition Information')).toBeNull();
     });
 
     it('should show Edition X / Y pill', () => {
@@ -78,7 +88,7 @@ describe('getCreatorDropdownItems', () => {
 
     it('should show no creators message when list is empty', () => {
         const { container } = render(<div>{getCreatorDropdownItems(null)}</div>);
-        expect(container.textContent).toContain('No creators are associated with this NFT.');
+        expect(container.textContent).toContain('No creators');
     });
 });
 
