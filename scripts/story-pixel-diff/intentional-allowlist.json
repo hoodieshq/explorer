@@ -1,0 +1,25 @@
+{
+    "note": "User-approved intentional deviations from master (visually reviewed 2026-06-10). Not flaky — deliberate story/component changes. | 2026-06-13: pruned 34 inert ids (0 drift in scssbundle2 before/after pair) during Phase 6 allowlist burn-down; kept only the 7 still-drifting dashkit button/basecard ids. reasons map retained as documentation.",
+    "reasons": {
+        "story-wrapper-sweep db9960f4": "raw <table> wrappers replaced with BaseTable compound API; stories now mirror production TableCardBody context",
+        "badge story redesign": "with-icon story extended with more variants; secondary icon Code -> Lock",
+        "idlcard header tabs": "user-reported double-border bug fix; header is tabs-driven 55.5px vs master 60px",
+        "idl table overflow": "BaseTable card variant adds table-responsive wrapper; long pills scroll inside the card instead of bleeding past the edge as on master",
+        "clustermodal toggle redesign": "user replaced the dashkit form-switch mimic with the tw-styled Switch size=lg (light track, white thumb) — approved visual change vs master",
+        "verifiedbuildcard 2px": "single glyph AA edge on the warning badge after h3->CardTitle swap",
+        "button ua-border fix 437afb5c": "e-border-0 added to Button tw variants — master leaked the UA 2px border without @tailwind base, making buttons wider (row wrap in stories); dashkit-* variant stories approved under the same root cause 2026-06-11",
+        "switch redesign 7325d5a7": "dashkit Switch variant dropped, size=lg tw geometry added; switch/label stories also got text/markup edits",
+        "dialog close-button focus ring": "focus: -> focus-visible: + dark-theme ring colors (neutral-300 on neutral-800 offset); story auto-focuses the close button so headless capture renders the ring",
+        "button dashkit solid warning/danger (new story, approved 2026-06-12)": "P4 shim never mapped solid warning/danger (bare `btn`, unstyled before-state); branch cva is the port of compiled .btn-warning/.btn-danger (#fa62fc/#b45be1)",
+        "basecard dashkit title heading sizes (new story, approved 2026-06-12)": "before-state renders P4's interim e-leading-none; e-leading-[1.1] (commit 35c0ea7f) is the P0-validated correction matching the compiled h1..h3 cascade"
+    },
+    "ids": [
+        "components-shared-ui-card-basecard--dashkit-body-without-padding",
+        "components-shared-ui-button--dashkit-variants",
+        "components-shared-ui-button--dashkit-variants-sm",
+        "components-shared-ui-button--dashkit-variants-by-size",
+        "components-shared-ui-button--dashkit-disabled",
+        "components-shared-ui-button--dashkit-solid-warning-danger",
+        "components-shared-ui-card-basecard--dashkit-title-heading-sizes"
+    ]
+}

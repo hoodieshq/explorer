@@ -1,0 +1,22 @@
+{
+    "generatedAt": "2026-05-22T08:17:58.884Z",
+    "note": "2026-06-13 (Phase 6): removed 45 ids that were determinized (receipt fixtures+tokenbatch makeAccount/newAuthority -> fixed literals; TxSuccessStatus Recent -> fixed date; LiveTransactionStatsCard CountUp gated on reduced-motion; ProgramMultisigCard SWR suspense fallback seeded), proven by same-commit A/B (p6-ab-run{A,B}). Remaining ids are untouched intrinsic flakes (NFT image load, async cluster/signature lookups, sol-balance sim, mid-truncation font-measurement race on AccountsCard).",
+    "count": 15,
+    "ids": [
+        "components-common-nftart--with-uri",
+        "components-common-nftart-responsive--mobile",
+        "features-transaction-accountscard--with-accounts",
+        "features-transaction-accountscard--failed-transaction",
+        "features-stake-stakeaccountsection--with-active-lockup",
+        "components-inspector-signaturescard-responsive--mobile",
+        "components-inspector-signaturescard-responsive--tablet-landscape",
+        "components-inspector-signaturescard-responsive--tablet-portrait",
+        "features-transaction-tokenbalancescard--inner-multiple-rows",
+        "components-account-unknownaccountcard--zero-balance-triggers-cluster-lookup",
+        "components-block-blockprogramscard-responsive--tablet-portrait",
+        "features-instruction-simulation-ui-solbalancechangescard--single-positive-change",
+        "features-instruction-simulation-ui-solbalancechangescard--multiple-changes",
+        "features-instruction-simulation-ui-solbalancechangescard--single-negative-change",
+        "components-inspector-accountscard--default"
+    ]
+}

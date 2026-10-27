@@ -1,0 +1,7 @@
+{
+    "type": "module",
+    "dependencies": {
+        "pngjs": "7.0.0",
+        "pixelmatch": "7.1.0"
+    }
+}
