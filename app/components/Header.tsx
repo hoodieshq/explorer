@@ -1,8 +1,9 @@
 import { AccountHeader } from '@components/account/AccountHeader';
 import { isTokenProgramData } from '@providers/accounts';
+import { cva } from 'class-variance-authority';
 import { type ComponentProps, useMemo } from 'react';
 
-import { TokenMarketData, useTokenMarketData } from '@/app/features/token-market-data';
+import { TokenMarketData, TokenMarketDataStatus, useTokenMarketData } from '@/app/features/token-market-data';
 import { TokenVerificationBadge, type VerificationTarget } from '@/app/features/token-verification-badge';
 import { toKitAddress } from '@/app/shared/lib/web3js-compat';
 import { isNativeMint, isTokenMintByOwner } from '@/app/shared/model/token-program';
@@ -20,6 +21,9 @@ export function Header({ address, account, tokenInfo, isTokenInfoLoading }: Head
         isTokenMintByOwner(toKitAddress(account.owner), account.data.raw);
 
     const marketData = useTokenMarketData(address, !!isTokenMint);
+    // Loaded stats always yield at least the Price tile. While they load, fail or are missing, Verification
+    // is the only tile and keeps its full-width strip.
+    const hasMarketTiles = marketData?.status === TokenMarketDataStatus.Success;
 
     const verificationTarget: VerificationTarget = useMemo(
         () => ({
@@ -39,11 +43,28 @@ export function Header({ address, account, tokenInfo, isTokenInfoLoading }: Head
                 isTokenInfoLoading={isTokenInfoLoading}
             />
             {isTokenMint && (
-                <div className="flex w-full flex-col gap-1 sm:items-start sm:gap-2 md:w-auto md:flex-row">
-                    <TokenVerificationBadge target={verificationTarget} isTokenInfoLoading={isTokenInfoLoading} />
+                <div className={tilesVariants({ grid: hasMarketTiles })}>
+                    <TokenVerificationBadge
+                        target={verificationTarget}
+                        isTokenInfoLoading={isTokenInfoLoading}
+                        layout={hasMarketTiles ? 'tile' : 'row'}
+                    />
                     <TokenMarketData marketData={marketData} />
                 </div>
             )}
         </header>
     );
 }
+
+// Below md the Verification and market data tiles form a 2×2 grid; each row takes the height of its own
+// tallest tile, so a wrapped price change grows only the first row. Verification alone stays a full-width
+// strip. From md up all tiles sit in one row and stretch to the tallest, the Verification tile.
+const tilesVariants = cva('w-full gap-1 sm:gap-2 md:flex md:w-auto md:flex-row', {
+    defaultVariants: { grid: false },
+    variants: {
+        grid: {
+            false: 'flex flex-col sm:items-start',
+            true: 'grid grid-cols-2',
+        },
+    },
+});

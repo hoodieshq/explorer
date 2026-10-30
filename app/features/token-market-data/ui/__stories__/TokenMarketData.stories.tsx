@@ -17,7 +17,7 @@ export const Primary: Story = {
     args: { marketData: { stats: createTokenMarketStats(), status: TokenMarketDataStatus.Success } },
     async play({ canvasElement }) {
         expect.assertions(1);
-        expect(within(canvasElement).queryAllByLabelText('market-data')).toHaveLength(3);
+        expect(within(canvasElement).queryAllByRole('button')).toHaveLength(3);
     },
 };
 
@@ -41,6 +41,6 @@ export const NoData: Story = {
     args: { marketData: { status: TokenMarketDataStatus.FetchFailed } },
     async play({ canvasElement }) {
         expect.assertions(1);
-        expect(within(canvasElement).queryAllByLabelText('market-data')).toHaveLength(0);
+        expect(within(canvasElement).queryAllByRole('button')).toHaveLength(0);
     },
 };
