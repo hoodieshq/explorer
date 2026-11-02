@@ -119,7 +119,7 @@ export function ProgramLogsCardBody({
     }
 
     return (
-        <TableCardBody className={className} density={density}>
+        <TableCardBody className={className} density={density} layout="expanded">
             {instructionProgramIds.map((programId, index) => {
                 const programAddress = programId.toBase58();
                 let programLogs: InstructionLogs | undefined = logs[logIndex];
