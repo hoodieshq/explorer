@@ -74,7 +74,8 @@ export function groupHexRows(spans: HexSpan[], rowSize = ROW_SIZE, spanSize = SP
     return rows;
 }
 
-const fullContentVariants = cva('items-center', {
+// The copy button sits on the first hex line, so a tall block does not leave it floating in the middle.
+const fullContentVariants = cva('items-baseline', {
     variants: {
         align: {
             end: 'md:justify-end',

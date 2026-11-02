@@ -17,6 +17,7 @@ import React from 'react';
 import { ChevronsUp } from 'react-feather';
 
 import { Badge } from '@/app/components/shared/ui/badge';
+import { cn } from '@/app/components/shared/utils';
 import { toBuffer } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
 import { BaseTable } from '@/app/shared/ui/Table';
@@ -94,14 +95,14 @@ export function ProgramLogsCardBody({
     cluster,
     url,
     className,
-    density,
+    density = 'dense',
 }: {
     message: VersionedMessage | ParsedMessage;
     logs: InstructionLogs[];
     cluster: Cluster;
     url: string;
     className?: string;
-    /** Passed through to the underlying table — `"dense"` gives the compact rows the inspector panel uses. */
+    /** Passed through to the underlying table. `"dense"` is the default, so rows match the other card tables. */
     density?: TableCardBodyProps['density'];
 }) {
     let logIndex = 0;
@@ -119,7 +120,8 @@ export function ProgramLogsCardBody({
     }
 
     return (
-        <TableCardBody className={className} density={density} layout="expanded">
+        // 12px vertical padding matches the instruction cards; `!` beats the 10px of `density="dense"`.
+        <TableCardBody className={cn('[&_tbody_tr_td]:!py-3', className)} density={density} layout="expanded">
             {instructionProgramIds.map((programId, index) => {
                 const programAddress = programId.toBase58();
                 let programLogs: InstructionLogs | undefined = logs[logIndex];
@@ -260,12 +262,13 @@ function ProgramLogRow({
     return (
         <BaseTable.Row data-ix-index={index}>
             <BaseTable.Cell>
-                <Link className="flex items-center" href={anchorPath}>
+                <Link className="flex items-baseline" href={anchorPath}>
                     {/* badgeColor='white' falls through to a plain `.badge` (no bg-white-soft is defined in dashkit) — same as legacy. */}
                     <Badge
                         ui="dashkit"
                         variant={badgeColor === 'success' || badgeColor === 'warning' ? badgeColor : 'default'}
-                        className="mr-1.5"
+                        // The text sits on the title baseline and looks high in the pill, so the pill rises 1.5px.
+                        className="mr-1.5 !pb-[calc(0.33em_-_1.5px)] !pt-[calc(0.33em_+_1.5px)]"
                     >
                         #{index + 1}
                     </Badge>

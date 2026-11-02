@@ -11,12 +11,16 @@ type CollapsibleCardProps = {
     children: ReactNode;
     defaultExpanded?: boolean;
     className?: string;
+    headerClassName?: string;
     headerButtons?: ReactNode;
     collapsible?: boolean;
 };
 
 export const CollapsibleCard = forwardRef<HTMLDivElement, CollapsibleCardProps>(
-    ({ title, children, defaultExpanded = true, className, headerButtons, collapsible = true }, ref) => {
+    (
+        { title, children, defaultExpanded = true, className, headerClassName, headerButtons, collapsible = true },
+        ref,
+    ) => {
         const [expanded, setExpanded] = useState(defaultExpanded);
 
         return (
@@ -28,7 +32,11 @@ export const CollapsibleCard = forwardRef<HTMLDivElement, CollapsibleCardProps>(
             >
                 <BaseCardHeader
                     ui="dashkit"
-                    className={cn('h-auto min-h-[60px] gap-2', collapsible && !expanded && 'border-b-0')}
+                    className={cn(
+                        'h-auto min-h-[60px] gap-2',
+                        collapsible && !expanded && 'border-b-0',
+                        headerClassName,
+                    )}
                 >
                     <BaseCardTitle ui="dashkit" className="flex min-w-0 items-center [overflow-wrap:anywhere]">
                         {title}

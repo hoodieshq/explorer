@@ -66,12 +66,20 @@ export function AnchorAccountCard({ account }: { account: Account }) {
     return (
         <div>
             <Card ui="dashkit">
-                <CardHeader ui="dashkit">
+                {/* 12px on every side like the cells, so a wrapped title only makes the header taller. `!` beats the header's own padding and height. */}
+                <CardHeader ui="dashkit" className="!h-auto !p-3">
                     <CardTitle as="h3" ui="dashkit">
                         {programName}: {accountDef.name.charAt(0).toUpperCase() + accountDef.name.slice(1)}
                     </CardTitle>
                 </CardHeader>
-                <BaseTable ui="dashkit" variant="card" nowrap>
+                {/* `!` beats the 10px vertical padding of `density="dense"`, so cells get 12px on every side. */}
+                <BaseTable
+                    ui="dashkit"
+                    variant="card"
+                    density="dense"
+                    nowrap
+                    className="[&_tbody_td:first-child]:text-outer-space-300 [&_tbody_tr_td]:!py-3 [&_thead_tr_th]:!py-3"
+                >
                     <BaseTable.Head>
                         <BaseTable.Row>
                             <BaseTable.HeaderCell className="w-px">Field</BaseTable.HeaderCell>
