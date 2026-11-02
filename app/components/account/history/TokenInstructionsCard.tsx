@@ -1,25 +1,18 @@
 'use client';
 
-import { Address } from '@components/common/Address';
+import { getTransactionRows } from '@components/account/HistoryCardComponents';
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
-import { Signature } from '@components/common/Signature';
 import { type TransactionWithMeta } from '@entities/transaction-data';
 import { useFetchAccountHistory } from '@features/transaction-history/model/use-fetch-account-history';
 import { useAccountHistory } from '@providers/accounts';
 import { FetchStatus } from '@providers/cache';
-import { HistoryCardFooter, HistoryCardHeader } from '@shared/ui/HistoryCard';
 import { address as toAddress } from '@solana/kit';
 import { ParsedInstruction, PartiallyDecodedInstruction, PublicKey } from '@solana/web3.js';
 import { getTokenInstructionName, InstructionContainer } from '@utils/instruction';
 import React, { useMemo } from 'react';
 
-import { Badge } from '@/app/components/shared/ui/badge';
-import { RelativeTime } from '@/app/shared/RelativeTime';
-import { Card } from '@/app/shared/ui/Card';
-import { BaseTable } from '@/app/shared/ui/Table';
-
-import { getTransactionRows } from '../HistoryCardComponents';
+import { BaseTokenInstructionsCard, type TokenInstructionRowView } from './BaseTokenInstructionsCard';
 import { extractMintDetails, MintDetails } from './common';
 
 export function TokenInstructionsCard({ address }: { address: string }) {
@@ -42,13 +35,12 @@ export function TokenInstructionsCard({ address }: { address: string }) {
         }
     }, [address]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    const { hasTimestamps, detailsList } = React.useMemo(() => {
+    const rows = React.useMemo(() => {
         const detailedHistoryMap = history?.data?.transactionMap || new Map<string, TransactionWithMeta>();
-        const hasTimestamps = transactionRows.some(element => element.blockTime);
-        const detailsList: React.ReactNode[] = [];
+        const rows: TokenInstructionRowView[] = [];
         const mintMap = new Map<string, MintDetails>();
 
-        transactionRows.forEach(({ signatureInfo, signature, blockTime, statusClass, statusText }) => {
+        transactionRows.forEach(({ signatureInfo, signature, blockTime, err }) => {
             const transactionWithMeta = detailedHistoryMap.get(signature);
             if (!transactionWithMeta) return;
 
@@ -66,44 +58,22 @@ export function TokenInstructionsCard({ address }: { address: string }) {
             });
 
             instructions.forEach((ix, index) => {
-                const programId = ix.programId;
-
                 const instructionName = getTokenInstructionName(ix, signatureInfo);
 
                 if (instructionName) {
-                    detailsList.push(
-                        <BaseTable.Row key={signature + index}>
-                            <BaseTable.Cell>
-                                <Signature signature={signature} link />
-                            </BaseTable.Cell>
-
-                            {hasTimestamps && (
-                                <BaseTable.Cell className="text-dk-gray-700">
-                                    {blockTime && <RelativeTime date={blockTime * 1000} />}
-                                </BaseTable.Cell>
-                            )}
-
-                            <BaseTable.Cell>{instructionName}</BaseTable.Cell>
-
-                            <BaseTable.Cell>
-                                <Address pubkey={programId} link />
-                            </BaseTable.Cell>
-
-                            <BaseTable.Cell>
-                                <Badge ui="dashkit" variant={statusClass as 'success' | 'warning'}>
-                                    {statusText}
-                                </Badge>
-                            </BaseTable.Cell>
-                        </BaseTable.Row>,
-                    );
+                    rows.push({
+                        blockTime,
+                        instructionName,
+                        key: signature + index,
+                        programId: toAddress(ix.programId.toBase58()),
+                        signature,
+                        status: err ? 'failed' : 'success',
+                    });
                 }
             });
         });
 
-        return {
-            detailsList,
-            hasTimestamps,
-        };
+        return rows;
     }, [history, transactionRows, address, pubkey]);
 
     if (!history) {
@@ -118,32 +88,15 @@ export function TokenInstructionsCard({ address }: { address: string }) {
         return <ErrorCard retry={refresh} text="Failed to fetch token instructions" />;
     }
 
-    const fetching = history.status === FetchStatus.Fetching;
     return (
-        <Card ui="dashkit">
-            <HistoryCardHeader
-                fetching={fetching}
-                failed={history.status === FetchStatus.FetchFailed}
-                refresh={() => refresh()}
-                title="Token Instructions"
-                analyticsSection="token_instructions_header"
-            />
-            <BaseTable ui="dashkit" variant="card" nowrap>
-                <BaseTable.Head>
-                    <BaseTable.Row>
-                        <BaseTable.HeaderCell className="w-px text-dk-gray-700">
-                            Transaction Signature
-                        </BaseTable.HeaderCell>
-                        {hasTimestamps && <BaseTable.HeaderCell className="text-dk-gray-700">Age</BaseTable.HeaderCell>}
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Instruction</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Program</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="text-dk-gray-700">Result</BaseTable.HeaderCell>
-                    </BaseTable.Row>
-                </BaseTable.Head>
-                <BaseTable.Body>{detailsList}</BaseTable.Body>
-            </BaseTable>
-            <HistoryCardFooter fetching={fetching} foundOldest={history.data.foundOldest} loadMore={() => loadMore()} />
-        </Card>
+        <BaseTokenInstructionsCard
+            rows={rows}
+            fetching={history.status === FetchStatus.Fetching}
+            failed={history.status === FetchStatus.FetchFailed}
+            foundOldest={history.data.foundOldest}
+            onRefresh={refresh}
+            onLoadMore={loadMore}
+        />
     );
 }
 

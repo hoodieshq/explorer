@@ -2,15 +2,16 @@ import { useHoverPopover } from '@/app/components/shared/hooks';
 import { Popover, PopoverContent, PopoverTrigger } from '@/app/components/shared/ui/popover';
 
 import { TokenVerificationResult } from '../model/use-verification-sources';
-import { TokenVerificationButton } from './TokenVerificationButton';
+import { TokenVerificationButton, type TokenVerificationButtonLayout } from './TokenVerificationButton';
 import { TokenVerificationContent } from './TokenVerificationContent';
 
 export type BaseTokenVerificationBadgeProps = {
     verificationResult: TokenVerificationResult;
     isLoading?: boolean;
+    layout?: TokenVerificationButtonLayout;
 };
 
-export function BaseTokenVerificationBadge({ verificationResult, isLoading }: BaseTokenVerificationBadgeProps) {
+export function BaseTokenVerificationBadge({ verificationResult, isLoading, layout }: BaseTokenVerificationBadgeProps) {
     const { hoverHandlers, isOpen, setIsOpen } = useHoverPopover();
 
     const { rateLimitedSources, sourcesToApply, verificationFoundSources } = verificationResult;
@@ -21,6 +22,7 @@ export function BaseTokenVerificationBadge({ verificationResult, isLoading }: Ba
                 <TokenVerificationButton
                     isLoading={isLoading}
                     isOpen={isOpen}
+                    layout={layout}
                     verificationFoundSources={verificationFoundSources}
                 />
             </PopoverTrigger>

@@ -30,7 +30,7 @@ function VerificationBadge({ source }: { source: VerificationSource }) {
                 className="flex items-center gap-1 rounded-md border border-solid border-heavy-metal-600 bg-heavy-metal-800 p-1 hover:border-heavy-metal-500 hover:bg-heavy-metal-700"
             >
                 <SourceIcon source={source.name} />
-                <span className="text-xs text-gray-200">
+                <span className="text-xs text-white">
                     {source.name} risk: {source.score}/100 -{' '}
                     <RiskLevelText level={source.level as ERiskLevel}>{source.level}</RiskLevelText>
                 </span>
@@ -44,7 +44,7 @@ function VerificationBadge({ source }: { source: VerificationSource }) {
             className="flex items-center gap-1 rounded-md border border-solid border-heavy-metal-600 bg-heavy-metal-800 p-1 hover:border-heavy-metal-500 hover:bg-heavy-metal-700"
         >
             <SourceIcon source={source.name} />
-            <span className="text-xs text-gray-200">{source.name}</span>
+            <span className="text-xs text-white">{source.name}</span>
             {source.verified ? (
                 <Check className="text-green-400" size={16} />
             ) : (
@@ -59,7 +59,7 @@ function ApplyForVerificationLink({ source }: { source: VerificationSource }) {
         source.name === EVerificationSource.RugCheck ? `${EVerificationSource.RugCheck} risk: Unknown` : source.name;
 
     return (
-        <ExternalLink href={source.applyUrl} className="text-xs text-white underline hover:text-gray-400">
+        <ExternalLink href={source.applyUrl} className="text-xs text-white underline hover:text-outer-space-300">
             {sourceName}
         </ExternalLink>
     );
@@ -92,12 +92,12 @@ export function TokenVerificationContent({
     const hasVerification = verificationFoundSources.length > 0;
 
     if (isLoading) {
-        return <p className="m-0 text-base font-semibold text-gray-200">Checking verifications</p>;
+        return <p className="m-0 text-base text-white">Checking verifications</p>;
     }
 
     return (
         <div>
-            <p className="mb-1 text-base font-semibold text-gray-200">
+            <p className="mb-2 text-base text-white">
                 {hasVerification ? (
                     <>
                         This token is verified
@@ -119,17 +119,15 @@ export function TokenVerificationContent({
                     ))}
                 </div>
             ) : (
-                <span className="mb-2 text-xs text-heavy-metal-400">
+                <span className="mb-2 text-xs text-outer-space-300">
                     This doesn&apos;t mean it&apos;s a scam, just double-check if it&apos;s what you need.
                 </span>
             )}
 
             {rateLimitedSources.length > 0 && (
                 <div className="mt-4">
-                    <p className="m-0 text-[10px] uppercase tracking-wider text-orange-400">
-                        Rate limited (try again later)
-                    </p>
-                    <p className="mb-1 text-[10px] text-heavy-metal-400">You can check validators manually</p>
+                    <p className="m-0 text-xs uppercase text-orange-400">Rate limited (try again later)</p>
+                    <p className="mb-1 text-xs text-outer-space-300">You can check validators manually</p>
                     <div className="flex flex-wrap gap-2">
                         {rateLimitedSources.map((source, idx) => (
                             <RateLimitedBadge key={idx} source={source} />
@@ -139,8 +137,8 @@ export function TokenVerificationContent({
             )}
 
             {sourcesToApply.length > 0 && (
-                <div className="mt-4">
-                    <p className="mb-1 text-[10px] uppercase tracking-wider text-heavy-metal-400">
+                <div className="mt-6">
+                    <p className="mb-1 text-xs uppercase text-outer-space-300">
                         Apply for {hasVerification ? 'extra ' : ''}verification
                     </p>
                     <div className="flex flex-wrap gap-x-3 gap-y-1">

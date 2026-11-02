@@ -16,8 +16,11 @@ export function TokenMarketData({ marketData }: { marketData?: TokenMarketDataRe
 
     const tiles: MarketDataProps[] = [];
     if (stats) {
+        // One update time covers all three amounts, so every tile's popover shows it.
+        const lastUpdatedAt = stats.lastUpdated;
         tiles.push({
             label: 'Price',
+            lastUpdatedAt,
             rank: stats.marketCapRank,
             value: {
                 precision: priceDecimals,
@@ -26,12 +29,12 @@ export function TokenMarketData({ marketData }: { marketData?: TokenMarketDataRe
             },
         });
         if (stats.volume24h !== undefined) {
-            tiles.push({ label: '24 Hour Volume', value: { volume: stats.volume24h } });
+            tiles.push({ label: '24 Hour Volume', lastUpdatedAt, value: { volume: stats.volume24h } });
         }
         if (stats.marketCap !== undefined) {
             tiles.push({
                 label: 'Market Cap',
-                lastUpdatedAt: stats.lastUpdated,
+                lastUpdatedAt,
                 value: { volume: stats.marketCap },
             });
         }
@@ -42,8 +45,8 @@ export function TokenMarketData({ marketData }: { marketData?: TokenMarketDataRe
             {isLoading && (
                 <LoadingCard
                     className={cn(
-                        'm-0 grid w-full place-items-center rounded border border-solid border-black bg-outer-space-900 px-2 py-1 text-sm',
-                        'md:min-h-[69px]',
+                        'm-0 grid w-full place-items-center rounded-md border border-solid border-outer-space-800 bg-outer-space-900 px-2 py-1 text-sm',
+                        'md:min-h-16',
                     )}
                     message="Loading token price data"
                 />
