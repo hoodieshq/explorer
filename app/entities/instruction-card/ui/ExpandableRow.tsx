@@ -33,8 +33,14 @@ export function ExpandableRow({
 export function FieldNameCell({ name, type, nestingLevel }: { name: string; type: string; nestingLevel: number }) {
     return (
         <BaseTable.Cell>
-            <div className="flex flex-row items-center">
-                {nestingLevel > 0 && <CornerDownRight className="mb-[3px] mr-1.5" size={14} />}
+            {/* The arrow centres on the first line, because the type below md makes the name two lines.
+                It sits outside the baseline group, so the cell takes its baseline from the name. */}
+            <div className="flex flex-row items-baseline">
+                {nestingLevel > 0 && (
+                    <span className="mr-1.5 flex h-[1lh] flex-none items-center self-start">
+                        <CornerDownRight size={14} />
+                    </span>
+                )}
                 {/* The type below md is CSS content, so the row text does not hold a second copy of the type. */}
                 <div
                     data-type={type}
@@ -50,7 +56,7 @@ export function FieldNameCell({ name, type, nestingLevel }: { name: string; type
 // Below md the type shows under the field name. The cell stays in the row, so a `colSpan` in another row still lines up.
 export function TypeCell({ children }: { children: React.ReactNode }) {
     return (
-        <BaseTable.Cell className="max-md:!p-0">
+        <BaseTable.Cell collapse="max-md">
             <span className="max-md:hidden">{children}</span>
         </BaseTable.Cell>
     );
@@ -58,7 +64,7 @@ export function TypeCell({ children }: { children: React.ReactNode }) {
 
 export function ExpandToggleCell({ expanded, onToggle }: { expanded: boolean; onToggle: () => void }) {
     return (
-        <BaseTable.Cell className="md:text-right" onClick={onToggle}>
+        <BaseTable.Cell onClick={onToggle}>
             <div className="cursor-pointer">
                 <span className="mr-1.5 text-dk-info">{expanded ? 'Collapse' : 'Expand'}</span>
                 {expanded ? <ChevronUp size={15} /> : <ChevronDown size={15} />}

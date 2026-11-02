@@ -94,14 +94,14 @@ export function ProgramLogsCardBody({
     cluster,
     url,
     className,
-    density,
+    density = 'even',
 }: {
     message: VersionedMessage | ParsedMessage;
     logs: InstructionLogs[];
     cluster: Cluster;
     url: string;
     className?: string;
-    /** Passed through to the underlying table — `"dense"` gives the compact rows the inspector panel uses. */
+    /** Passed through to the underlying table. `"even"` is the default, so rows match the instruction cards. */
     density?: TableCardBodyProps['density'];
 }) {
     let logIndex = 0;
@@ -260,11 +260,12 @@ function ProgramLogRow({
     return (
         <BaseTable.Row data-ix-index={index}>
             <BaseTable.Cell>
-                <Link className="flex items-center" href={anchorPath}>
+                <Link className="flex items-baseline" href={anchorPath}>
                     {/* badgeColor='white' falls through to a plain `.badge` (no bg-white-soft is defined in dashkit) — same as legacy. */}
                     <Badge
                         ui="dashkit"
                         variant={badgeColor === 'success' || badgeColor === 'warning' ? badgeColor : 'default'}
+                        baseline
                         className="mr-1.5"
                     >
                         #{index + 1}

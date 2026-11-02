@@ -16,7 +16,9 @@ export function InstructionNodeCards({
     const { Card } = useInstructionSurface();
 
     return (
-        <>
+        // The list owns the spacing: cards sit 8px apart, like the mobile token cards, and the 24px card
+        // margin stays below the last card, so the space before the next section does not change.
+        <div className="mb-6 flex flex-col gap-2">
             {nodes.map((node, i) =>
                 node ? (
                     <Card key={i} node={node} />
@@ -27,7 +29,7 @@ export function InstructionNodeCards({
                     />
                 ),
             )}
-        </>
+        </div>
     );
 }
 

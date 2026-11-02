@@ -74,11 +74,24 @@ export function groupHexRows(spans: HexSpan[], rowSize = ROW_SIZE, spanSize = SP
     return rows;
 }
 
-const fullContentVariants = cva('items-center', {
+// The copy button sits on the first hex line, so a tall block does not leave it floating in the middle.
+const fullContentVariants = cva('items-baseline', {
     variants: {
         align: {
             end: 'md:justify-end',
             start: 'justify-start',
+        },
+    },
+});
+
+// `bleed` pulls the block's 6px vertical padding into the surrounding padding with a matching negative
+// margin, so a hex row in a table is as tall as a text row.
+// The bottom margin lives in the variant: a base `mb-0` would beat `-my-1.5` in CSS order.
+const fixedPreVariants = cva('inline-block whitespace-pre-wrap bg-heavy-metal-900 p-1.5 text-left text-xs', {
+    variants: {
+        bleed: {
+            false: 'mb-0',
+            true: '-my-1.5',
         },
     },
 });
@@ -92,25 +105,28 @@ type HexDataBase = {
     spanSize?: number;
 };
 
-// The layout is a discriminated union: `rowSize` / `align` shape the default `fixed` grid only.
+// The layout is a discriminated union: `rowSize` / `align` / `bleed` shape the default `fixed` grid only.
 // The `fit` (responsive wrap) layout ignores them, so the types forbid passing them there rather
 // than silently dropping them.
 //   - `fixed` (default): grouped rows that wrap between bytes when narrow; `align` right/left-aligns,
-//                         `rowSize` sets bytes/row.
+//                         `rowSize` sets bytes/row, `bleed` keeps the block no taller than a text line.
 //   - `fit`           : reflows the hex to the container width (mobile drawer / full-width panes).
-type HexDataLayout = { layout?: 'fixed'; align?: 'start' | 'end'; rowSize?: number } | { layout: 'fit' };
+type HexDataLayout =
+    { layout?: 'fixed'; align?: 'start' | 'end'; bleed?: boolean; rowSize?: number } | { layout: 'fit' };
 
 export type HexDataProps = HexDataBase & HexDataLayout;
 
 export function HexData(props: HexDataProps) {
     const { raw, className, copyableRaw, inverted = false, isCopyable = true, spanSize = SPAN_SIZE } = props;
 
-    // `align` / `rowSize` are meaningful only for the fixed grid ('end' is the default, right-aligned
+    // `align` / `bleed` / `rowSize` are meaningful only for the fixed grid ('end' is the default, right-aligned
     // from `md` up in table cells); the other layouts fall back to these harmless defaults.
     let align: 'start' | 'end' = 'end';
+    let bleed = false;
     let rowSize = ROW_SIZE;
     if (props.layout === undefined || props.layout === 'fixed') {
         align = props.align ?? 'end';
+        bleed = props.bleed ?? false;
         rowSize = props.rowSize ?? ROW_SIZE;
     }
 
@@ -129,6 +145,7 @@ export function HexData(props: HexDataProps) {
         <FullContent
             hexString={hexString}
             copyText={copyText}
+            bleed={bleed}
             className={className}
             inverted={inverted}
             align={align}
@@ -223,6 +240,7 @@ function WrapContent({
 function FullContent({
     hexString,
     copyText,
+    bleed,
     className,
     inverted,
     align,
@@ -233,6 +251,7 @@ function FullContent({
 }: {
     hexString: string;
     copyText: string | null;
+    bleed: boolean;
     className?: string;
     inverted: boolean;
     align: 'start' | 'end';
@@ -266,9 +285,7 @@ function FullContent({
         </div>
     ));
 
-    const pre = (
-        <pre className="mb-0 inline-block whitespace-pre-wrap bg-heavy-metal-900 p-1.5 text-left text-xs">{divs}</pre>
-    );
+    const pre = <pre className={fixedPreVariants({ bleed })}>{divs}</pre>;
 
     return (
         <div className={cn('flex', fullContentVariants({ align }), className)}>

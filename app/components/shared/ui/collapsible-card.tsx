@@ -1,10 +1,33 @@
 // TODO(fsd): relocate this module to @shared or the appropriate feature/entity layer.
 import { cn } from '@components/shared/utils';
+import { cva, type VariantProps } from 'class-variance-authority';
 import { forwardRef, ReactNode, useState } from 'react';
 import { ChevronDown } from 'react-feather';
 
 import { Button } from '@/app/components/shared/ui/button';
-import { BaseCard, BaseCardHeader, BaseCardTitle } from '@/app/shared/ui/Card';
+import { BaseCard, BaseCardHeader, type BaseCardProps, BaseCardTitle } from '@/app/shared/ui/Card';
+
+// `density="compact"` sets the header's compact padding (see `BaseCardHeader`). The collapse button holds
+// only an icon, which has no baseline, so in a compact header it sits at the top.
+const headerVariants = cva('gap-2', {
+    defaultVariants: { density: 'default' },
+    variants: {
+        density: {
+            compact: '',
+            default: 'h-auto min-h-[60px]',
+        },
+    },
+});
+
+const collapseButtonVariants = cva('flex items-center justify-center py-[5.3px] transition-colors', {
+    defaultVariants: { density: 'default' },
+    variants: {
+        density: {
+            compact: 'self-start',
+            default: '',
+        },
+    },
+});
 
 type CollapsibleCardProps = {
     title: ReactNode;
@@ -13,10 +36,23 @@ type CollapsibleCardProps = {
     className?: string;
     headerButtons?: ReactNode;
     collapsible?: boolean;
-};
+    marginBottom?: BaseCardProps['marginBottom'];
+} & VariantProps<typeof headerVariants>;
 
 export const CollapsibleCard = forwardRef<HTMLDivElement, CollapsibleCardProps>(
-    ({ title, children, defaultExpanded = true, className, headerButtons, collapsible = true }, ref) => {
+    (
+        {
+            title,
+            children,
+            defaultExpanded = true,
+            className,
+            headerButtons,
+            collapsible = true,
+            density,
+            marginBottom,
+        },
+        ref,
+    ) => {
         const [expanded, setExpanded] = useState(defaultExpanded);
 
         return (
@@ -24,11 +60,13 @@ export const CollapsibleCard = forwardRef<HTMLDivElement, CollapsibleCardProps>(
                 ref={ref}
                 ui="dashkit"
                 className={className}
+                marginBottom={marginBottom}
                 style={{ scrollMarginTop: 'var(--sticky-header-height, 0px)' }}
             >
                 <BaseCardHeader
                     ui="dashkit"
-                    className={cn('h-auto min-h-[60px] gap-2', collapsible && !expanded && 'border-b-0')}
+                    density={density}
+                    className={cn(headerVariants({ density }), collapsible && !expanded && 'border-b-0')}
                 >
                     <BaseCardTitle ui="dashkit" className="flex min-w-0 items-center [overflow-wrap:anywhere]">
                         {title}
@@ -41,7 +79,7 @@ export const CollapsibleCard = forwardRef<HTMLDivElement, CollapsibleCardProps>(
                             size="sm"
                             aria-expanded={expanded}
                             aria-label={expanded ? 'Collapse' : 'Expand'}
-                            className="flex items-center justify-center py-[5.3px] transition-colors"
+                            className={collapseButtonVariants({ density })}
                             onClick={() => setExpanded(current => !current)}
                         >
                             <ChevronDown

@@ -10,17 +10,29 @@ const meta: Meta<typeof BaseTable> = {
             description: 'Data row styling. `subtle` sets 8px vertical / 12px horizontal cell padding.',
             options: ['default', 'subtle'],
         },
+        columns: {
+            control: 'inline-radio',
+            description:
+                'Column layout. `label-value` gives a head-less name / value table a name column of 35% / 25% / 30% of the row (below md / from md / from xxl) and lets names and values wrap.',
+            options: ['default', 'label-value'],
+        },
         density: {
             control: 'inline-radio',
             description:
-                'Cell spacing. `dense` sets 12px horizontal / 10px vertical padding with top-aligned content — the inspector card tables.',
-            options: ['default', 'dense'],
+                'Cell spacing. `dense` sets 12px horizontal / 10px vertical padding with top-aligned content — the inspector card tables. `even` sets 12px on every side with cells on one baseline — the instruction cards.',
+            options: ['default', 'dense', 'even'],
         },
         head: {
             control: 'inline-radio',
             description:
                 'Header row styling. `subtle` uses the Token Balances header colour, a transparent (row-matching) background, and 8px/12px padding.',
             options: ['default', 'subtle'],
+        },
+        labels: {
+            control: 'inline-radio',
+            description:
+                'Name colour. `muted` takes the transaction Summary label colour; section rows keep their own.',
+            options: ['default', 'muted'],
         },
         nowrap: { control: 'boolean' },
         ui: { control: 'inline-radio', options: ['dashkit', 'tw'] },
@@ -185,6 +197,41 @@ export const DashkitCardDense: Story = {
     render: args => (
         <BaseTable {...args}>
             <CardSampleRows />
+        </BaseTable>
+    ),
+};
+
+// `density="even"` + `columns="label-value"` + `labels="muted"` — the instruction card table: 12px on
+// every side, one baseline per row, a muted name column of a fixed share of the row, wrapping values.
+export const DashkitCardLabelValue: Story = {
+    args: {
+        columns: 'label-value',
+        density: 'even',
+        labels: 'muted',
+        nowrap: true,
+        ui: 'dashkit',
+        variant: 'card',
+    },
+    name: 'Dashkit / Card variant + label-value',
+    render: args => (
+        <BaseTable {...args}>
+            <BaseTable.Body>
+                <BaseTable.Row>
+                    <BaseTable.Cell>Program</BaseTable.Cell>
+                    <BaseTable.Cell>ComputeBudget111111111111111111111111111111</BaseTable.Cell>
+                </BaseTable.Row>
+                <BaseTable.SectionRow>
+                    <BaseTable.Cell>Account Name</BaseTable.Cell>
+                    <BaseTable.Cell>Address</BaseTable.Cell>
+                </BaseTable.SectionRow>
+                <BaseTable.Row>
+                    <BaseTable.Cell>MaximumPendingBalanceCreditCounter</BaseTable.Cell>
+                    <BaseTable.Cell>TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA</BaseTable.Cell>
+                </BaseTable.Row>
+                <BaseTable.Row>
+                    <BaseTable.Cell colSpan={2}>A full-width cell for nested content</BaseTable.Cell>
+                </BaseTable.Row>
+            </BaseTable.Body>
         </BaseTable>
     ),
 };

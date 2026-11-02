@@ -32,8 +32,8 @@ export function BaseRawDetails({ ix }: { ix: TransactionInstruction }) {
                         <div className="mr-1.5 md:inline">Account #{keyIndex + 1}</div>
                         <AccountRoleBadges isWritable={isWritable} isSigner={isSigner} />
                     </BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">
-                        <Address pubkey={pubkey} alignRight link wrapLabel />
+                    <BaseTable.Cell>
+                        <Address pubkey={pubkey} link wrapLabel />
                     </BaseTable.Cell>
                 </BaseTable.Row>
             ))}
@@ -49,8 +49,8 @@ export function HexDataRow({ label, data }: { label: string; data: Uint8Array })
             <BaseTable.Cell>
                 {label} <span className="text-dk-gray-700">(Hex)</span>
             </BaseTable.Cell>
-            <BaseTable.Cell className="md:text-right">
-                <HexData raw={data} />
+            <BaseTable.Cell>
+                <HexData raw={data} align="start" bleed />
             </BaseTable.Cell>
         </BaseTable.Row>
     );

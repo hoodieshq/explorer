@@ -66,17 +66,17 @@ export function AnchorAccountCard({ account }: { account: Account }) {
     return (
         <div>
             <Card ui="dashkit">
-                <CardHeader ui="dashkit">
+                <CardHeader ui="dashkit" density="compact">
                     <CardTitle as="h3" ui="dashkit">
                         {programName}: {accountDef.name.charAt(0).toUpperCase() + accountDef.name.slice(1)}
                     </CardTitle>
                 </CardHeader>
-                <BaseTable ui="dashkit" variant="card" nowrap>
+                <BaseTable ui="dashkit" variant="card" density="even" labels="muted" nowrap>
                     <BaseTable.Head>
                         <BaseTable.Row>
                             <BaseTable.HeaderCell className="w-px">Field</BaseTable.HeaderCell>
                             {/* Below md each row shows its type under the field name, so the Type column collapses. */}
-                            <BaseTable.HeaderCell className="w-px max-md:!p-0">
+                            <BaseTable.HeaderCell className="w-px" collapse="max-md">
                                 <span className="max-md:hidden">Type</span>
                             </BaseTable.HeaderCell>
                             <BaseTable.HeaderCell className="w-px">Value</BaseTable.HeaderCell>
