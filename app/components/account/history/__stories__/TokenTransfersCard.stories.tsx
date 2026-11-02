@@ -1,4 +1,4 @@
-import { nextjsParameters, withCluster } from '@storybook-config/decorators';
+import { nextjsParameters, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
 import { BaseTokenTransfersCard } from '../BaseTokenTransfersCard';
@@ -12,7 +12,7 @@ const meta = {
         onRefresh: () => {},
     },
     component: BaseTokenTransfersCard,
-    decorators: [withCluster],
+    decorators: [withCluster, withTokenInfoBatch],
     parameters: {
         ...nextjsParameters,
         docs: {

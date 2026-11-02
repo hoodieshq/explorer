@@ -1,4 +1,4 @@
-import { nextjsParameters, withCluster } from '@storybook-config/decorators';
+import { nextjsParameters, withCluster, withTokenInfoBatch } from '@storybook-config/decorators';
 import { INITIAL_VIEWPORTS, withViewportFromGlobal } from '@storybook-config/responsive-decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
@@ -14,7 +14,7 @@ const meta = {
         rows: TRANSFER_ROWS,
     },
     component: BaseTokenTransfersCard,
-    decorators: [withCluster, withViewportFromGlobal],
+    decorators: [withCluster, withTokenInfoBatch, withViewportFromGlobal],
     parameters: {
         ...nextjsParameters,
         viewport: { options: INITIAL_VIEWPORTS },
