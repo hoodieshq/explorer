@@ -66,25 +66,17 @@ export function AnchorAccountCard({ account }: { account: Account }) {
     return (
         <div>
             <Card ui="dashkit">
-                {/* 12px on every side like the cells, so a wrapped title only makes the header taller. `!` beats the header's own padding and height. */}
-                <CardHeader ui="dashkit" className="!h-auto !p-3">
+                <CardHeader ui="dashkit" density="compact">
                     <CardTitle as="h3" ui="dashkit">
                         {programName}: {accountDef.name.charAt(0).toUpperCase() + accountDef.name.slice(1)}
                     </CardTitle>
                 </CardHeader>
-                {/* `!` beats the 10px vertical padding of `density="dense"`, so cells get 12px on every side. */}
-                <BaseTable
-                    ui="dashkit"
-                    variant="card"
-                    density="dense"
-                    nowrap
-                    className="[&_tbody_td:first-child]:text-outer-space-300 [&_tbody_tr_td]:!py-3 [&_thead_tr_th]:!py-3"
-                >
+                <BaseTable ui="dashkit" variant="card" density="even" labels="muted" nowrap>
                     <BaseTable.Head>
                         <BaseTable.Row>
                             <BaseTable.HeaderCell className="w-px">Field</BaseTable.HeaderCell>
                             {/* Below md each row shows its type under the field name, so the Type column collapses. */}
-                            <BaseTable.HeaderCell className="w-px max-md:!p-0">
+                            <BaseTable.HeaderCell className="w-px" collapse="max-md">
                                 <span className="max-md:hidden">Type</span>
                             </BaseTable.HeaderCell>
                             <BaseTable.HeaderCell className="w-px">Value</BaseTable.HeaderCell>

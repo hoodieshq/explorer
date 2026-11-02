@@ -15,7 +15,10 @@ import { cn } from '@/app/components/shared/utils';
 // matching `BaseTable.*` subcomponents. Both render byte-identical markup today; the subcomponents
 // exist so consumers don't reference raw table elements directly, opening the door to a future
 // non-`<table>` implementation (e.g. CSS grid) without changing call sites.
-const tableVariants = cva([], {
+// A cell with `collapse="max-md"` keeps its place in the row but loses its padding below md, so a column can
+// fold away on phones while a `colSpan` in another row still lines up. The attribute selector (0,2,0) beats
+// the padding of every density (0,1,3); edge cells are not meant to collapse.
+const tableVariants = cva(['max-md:[&_[data-collapse=max-md]]:p-0'], {
     compoundVariants: [
         { class: '[&_th]:whitespace-nowrap [&_td]:whitespace-nowrap', nowrap: true },
         // Plain dashkit table — .table{margin-bottom:$spacer} with dashkit $spacer = 1.5rem (24px).
@@ -35,8 +38,10 @@ const tableVariants = cva([], {
     ],
     defaultVariants: {
         body: 'default',
+        columns: 'default',
         density: 'default',
         head: 'default',
+        labels: 'default',
         nowrap: false,
         ui: 'tw',
         variant: 'plain',
@@ -53,6 +58,26 @@ const tableVariants = cva([], {
                 '[&_tbody_tr_td:first-child]:pl-3 [&_tbody_tr_td:last-child]:pr-3',
             ].join(' '),
         },
+        // `columns="label-value"` lays out a head-less table of name / value rows. The name column takes
+        // a share of the row, so every table at one width has the same column: 35% below md, 25% from
+        // md and 30% from xxl, where the transaction page puts a card next to the logs. Plain
+        // percentages, because a table cell treats a calc() width with a percentage as auto. The value
+        // column takes the rest of the row, so no spare width reaches the name column, and any middle
+        // column shrinks to its content. Names and values wrap, so a long one does not widen the table;
+        // a name breaks inside a word only when the word is wider than the column. A single cell that
+        // spans the row holds nested content, so it only wraps. The first row drops its top border:
+        // with no head, the card header above already draws that line.
+        columns: {
+            default: '',
+            'label-value': [
+                '[&>tbody:first-child>tr:first-child>td]:border-t-0',
+                '[&_td:first-child:not(:only-child)]:whitespace-normal [&_td:first-child:not(:only-child)]:break-words [&_td:first-child:not(:only-child)]:text-balance',
+                'max-md:[&_td:first-child:not(:only-child)]:w-[35%] max-md:[&_td:first-child:not(:only-child)]:max-w-[40vw] md:[&_td:first-child:not(:only-child)]:w-1/4 xxl:[&_td:first-child:not(:only-child)]:w-[30%]',
+                '[&_td:last-child]:w-full',
+                '[&_td:last-child:not(:only-child)]:whitespace-normal [&_td:last-child:not(:only-child)]:[overflow-wrap:anywhere]',
+                '[&_td:only-child]:whitespace-normal',
+            ].join(' '),
+        },
         // `density="dense"` tightens every cell to 12px horizontal / 10px vertical padding with content
         // top-aligned — the compact spacing the inspector's card tables use. Same specificity story as
         // `head`/`body`: `thead tr th` / `tbody tr td` (0,1,3) beat the base `p-4`/`align-middle` (0,1,1),
@@ -64,6 +89,14 @@ const tableVariants = cva([], {
                 '[&_thead_tr_th]:px-3 [&_thead_tr_th]:py-2.5 [&_thead_tr_th]:align-top',
                 '[&_thead_tr_th:first-child]:pl-3 [&_thead_tr_th:last-child]:pr-3',
                 '[&_tbody_tr_td]:px-3 [&_tbody_tr_td]:py-2.5 [&_tbody_tr_td]:align-top',
+                '[&_tbody_tr_td:first-child]:pl-3 [&_tbody_tr_td:last-child]:pr-3',
+            ].join(' '),
+            // `even` gives every cell 12px on every side and lines cells up on the baseline of their first
+            // line, so a wrapped cell only makes its row taller. Same specificity story as `dense`.
+            even: [
+                '[&_thead_tr_th]:p-3 [&_thead_tr_th]:align-baseline',
+                '[&_thead_tr_th:first-child]:pl-3 [&_thead_tr_th:last-child]:pr-3',
+                '[&_tbody_tr_td]:p-3 [&_tbody_tr_td]:align-baseline',
                 '[&_tbody_tr_td:first-child]:pl-3 [&_tbody_tr_td:last-child]:pr-3',
             ].join(' '),
         },
@@ -80,6 +113,13 @@ const tableVariants = cva([], {
                 '[&_thead_tr_th]:px-3 [&_thead_tr_th]:py-2.5',
                 '[&_thead_tr_th:first-child]:pl-3 [&_thead_tr_th:last-child]:pr-3',
             ].join(' '),
+        },
+        // `labels="muted"` gives the first cell of each data row the muted colour of the transaction
+        // Summary labels. Section rows set their own colour, and a single cell spanning the row is not a
+        // label, so both are skipped.
+        labels: {
+            default: '',
+            muted: '[&_tbody_tr:not([data-section])>td:first-child:not(:only-child)]:text-outer-space-300',
         },
         nowrap: { false: '', true: '' },
         ui: {
@@ -127,11 +167,11 @@ export interface BaseTableProps
     extends React.TableHTMLAttributes<HTMLTableElement>, VariantProps<typeof tableVariants> {}
 
 const BaseTableRoot = React.forwardRef<HTMLTableElement, BaseTableProps>(
-    ({ body, className, density, head, nowrap, ui, variant, ...props }, ref) => {
+    ({ body, className, columns, density, head, labels, nowrap, ui, variant, ...props }, ref) => {
         const table = (
             <table
                 ref={ref}
-                className={cn(tableVariants({ body, density, head, nowrap, ui, variant }), className)}
+                className={cn(tableVariants({ body, columns, density, head, labels, nowrap, ui, variant }), className)}
                 {...props}
             />
         );
@@ -170,6 +210,8 @@ const SectionRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HT
     ({ className, ...props }, ref) => (
         <tr
             ref={ref}
+            // Marks the row for table variants that style data rows only, such as `labels="muted"`.
+            data-section=""
             className={cn(
                 'bg-dark-background text-dk-xs font-semibold uppercase tracking-[0.08em] text-dark-muted-foreground',
                 className,
@@ -180,14 +222,19 @@ const SectionRow = React.forwardRef<HTMLTableRowElement, React.HTMLAttributes<HT
 );
 SectionRow.displayName = 'BaseTable.SectionRow';
 
-const HeaderCell = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<HTMLTableCellElement>>(
-    (props, ref) => <th ref={ref} {...props} />,
+type CollapseProps = {
+    /** Drops the cell padding below md; see `tableVariants`. Hide the content yourself. */
+    collapse?: 'max-md';
+};
+
+const HeaderCell = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttributes<HTMLTableCellElement> & CollapseProps>(
+    ({ collapse, ...props }, ref) => <th ref={ref} data-collapse={collapse} {...props} />,
 );
 HeaderCell.displayName = 'BaseTable.HeaderCell';
 
-const Cell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTableCellElement>>((props, ref) => (
-    <td ref={ref} {...props} />
-));
+const Cell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTableCellElement> & CollapseProps>(
+    ({ collapse, ...props }, ref) => <td ref={ref} data-collapse={collapse} {...props} />,
+);
 Cell.displayName = 'BaseTable.Cell';
 
 const Caption = React.forwardRef<HTMLTableCaptionElement, React.HTMLAttributes<HTMLTableCaptionElement>>(

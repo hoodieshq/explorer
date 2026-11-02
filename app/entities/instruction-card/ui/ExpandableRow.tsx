@@ -56,7 +56,7 @@ export function FieldNameCell({ name, type, nestingLevel }: { name: string; type
 // Below md the type shows under the field name. The cell stays in the row, so a `colSpan` in another row still lines up.
 export function TypeCell({ children }: { children: React.ReactNode }) {
     return (
-        <BaseTable.Cell className="max-md:!p-0">
+        <BaseTable.Cell collapse="max-md">
             <span className="max-md:hidden">{children}</span>
         </BaseTable.Cell>
     );

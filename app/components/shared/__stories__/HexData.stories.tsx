@@ -59,3 +59,15 @@ export const FullLegacyAligned: Story = {
         await expect(canvas.getAllByText('00 01 02 03').length).toBeGreaterThan(0);
     },
 };
+
+// `bleed` pulls the block's vertical padding into the surrounding padding, so a hex row in a table is
+// as tall as a text row.
+export const FullBleed: Story = {
+    args: { align: 'start', bleed: true, raw: shortData },
+    play: async ({ canvasElement }) => {
+        const pre = canvasElement.querySelector('pre');
+        await expect(pre).not.toBeNull();
+        await expect(getComputedStyle(pre as HTMLPreElement).marginTop).toBe('-6px');
+        await expect(getComputedStyle(pre as HTMLPreElement).marginBottom).toBe('-6px');
+    },
+};

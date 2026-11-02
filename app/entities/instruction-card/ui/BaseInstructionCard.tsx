@@ -54,17 +54,19 @@ export function BaseInstructionCard({
             position={node}
             collapsible={collapsible}
             headerButtons={
-                <div className="flex items-center gap-1.5">
+                // The label sets the button's baseline, so it lines up with the card title. An icon has no
+                // baseline of its own, so it centres on the label instead.
+                <div className="flex items-baseline gap-1.5">
                     <Button
                         ui="dashkit"
                         size="sm"
                         variant={showRaw ? 'black' : 'white'}
                         active={showRaw}
                         disabled={rawOnly}
-                        className={cn('flex items-center', rawOnly && '!pointer-events-auto cursor-not-allowed')}
+                        className={cn('flex items-baseline', rawOnly && '!pointer-events-auto cursor-not-allowed')}
                         onClick={toggleRaw}
                     >
-                        <Code className="mr-1.5" size={13} /> Raw
+                        <Code className="mr-1.5 self-center" size={13} /> Raw
                     </Button>
                 </div>
             }

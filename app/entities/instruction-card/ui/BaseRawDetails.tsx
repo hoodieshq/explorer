@@ -50,8 +50,7 @@ export function HexDataRow({ label, data }: { label: string; data: Uint8Array })
                 {label} <span className="text-dk-gray-700">(Hex)</span>
             </BaseTable.Cell>
             <BaseTable.Cell>
-                {/* The hex block's 6px padding bleeds into the cell padding, so the row is as tall as a text row. */}
-                <HexData raw={data} align="start" className="[&_pre]:-my-1.5" />
+                <HexData raw={data} align="start" bleed />
             </BaseTable.Cell>
         </BaseTable.Row>
     );
