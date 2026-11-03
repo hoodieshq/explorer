@@ -24,7 +24,7 @@ const meta: Meta<typeof CardTabs> = {
     parameters: { layout: 'padded' },
     render: () => <CardTabsHarness />,
     tags: ['autodocs', 'test'],
-    title: 'Features/McpDocs/CardTabs',
+    title: 'Shared/CardTabs',
 };
 
 export default meta;
