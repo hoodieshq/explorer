@@ -100,6 +100,12 @@ function JsonNode({
     /** Nesting level: the root is 0, its entries 1. */
     depth?: number;
 }) {
+    // A value that serialises itself (a web3.js `PublicKey` in parsed token extensions, a `Date`) shows what the
+    // copy gets from `JSON.stringify`, not its internals.
+    if (hasToJson(value)) {
+        return <JsonNode name={name} noun={noun} value={value.toJSON()} copy={copy} depth={depth} />;
+    }
+
     if (value === null || typeof value !== 'object') {
         return (
             <div data-node={copy === 'inline' || undefined}>
@@ -236,4 +242,8 @@ function Primitive({ value }: { value: unknown }) {
     }
     const tone = typeof value === 'number' || typeof value === 'boolean' ? 'literal' : 'muted';
     return <span className={textVariants({ copiedBy: 'node', tone })}>{String(value)}</span>;
+}
+
+function hasToJson(value: unknown): value is { toJSON: () => unknown } {
+    return typeof value === 'object' && value !== null && typeof (value as { toJSON?: unknown }).toJSON === 'function';
 }

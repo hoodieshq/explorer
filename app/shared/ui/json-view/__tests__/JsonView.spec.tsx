@@ -72,6 +72,14 @@ describe('JsonView', () => {
         expect(screen.getByText('340282366920938463463374607431768211455')).toBeInTheDocument();
     });
 
+    it('should render a value that serialises itself as its JSON, not its fields', () => {
+        const address = { _bn: { words: [1, 2] }, toJSON: () => '11111111111111111111111111111111' };
+        render(<JsonView src={{ mint: address }} />);
+
+        expect(screen.getByText('11111111111111111111111111111111')).toBeInTheDocument();
+        expect(screen.queryByText('_bn')).not.toBeInTheDocument();
+    });
+
     it('should render empty containers on one row', () => {
         render(<JsonView src={{ additionalMetadata: [] }} />);
 
