@@ -31,6 +31,7 @@ const sizeOptions = [
     'sm',
     'lg',
     'icon',
+    'icon-sm',
     'compact',
     'tile',
     'toolbar',
@@ -109,6 +110,13 @@ export const AllSizes: Story = {
             {sizeOptions.map(size => {
                 if (size === 'icon') {
                     return <IconButton key={size} aria-label="Confirm" icon={<Check />} />;
+                }
+                if (size === 'icon-sm') {
+                    return (
+                        <Button key={size} size={size} aria-label="Confirm">
+                            <Check />
+                        </Button>
+                    );
                 }
                 if (size === 'tile') {
                     return (
@@ -194,6 +202,7 @@ export const VariantsBySize: Story = {
             compact: 'Compact',
             default: 'Default',
             icon: 'Icon',
+            'icon-sm': 'Icon small',
             lg: 'Large',
             sm: 'Small',
             tile: 'Tile',
@@ -216,6 +225,13 @@ export const VariantsBySize: Story = {
                                             variant={variant}
                                             icon={<Icon />}
                                         />
+                                    );
+                                }
+                                if (size === 'icon-sm') {
+                                    return (
+                                        <Button key={variant} size={size} variant={variant} aria-label={variant}>
+                                            <Icon />
+                                        </Button>
                                     );
                                 }
                                 if (size === 'tile') {
