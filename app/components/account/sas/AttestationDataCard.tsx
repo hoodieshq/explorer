@@ -9,13 +9,13 @@ import {
 } from '@solana/attestation';
 import React from 'react';
 
-import { SolarizedJsonViewer as ReactJson } from '@/app/components/common/JsonViewer';
 import { LoadingCard } from '@/app/components/common/LoadingCard';
 import { toBase64, toHex } from '@/app/shared/lib/bytes';
 import { Logger } from '@/app/shared/lib/logger';
-import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { decodeAccount, decodeWithType, isAttestationAccount } from '@/app/utils/attestation-service';
 import { mapToPublicKey } from '@/app/utils/kit-wrapper';
+
+import { BaseAttestationDataCard } from './BaseAttestationDataCard';
 
 export function AttestationDataCard({ account, onNotFound }: { account?: Account; onNotFound: () => never }) {
     if (!account || !isAttestationAccount(account)) {
@@ -34,20 +34,7 @@ export function AttestationDataCard({ account, onNotFound }: { account?: Account
 
 function SchemaCard({ schema }: { schema: SasSchema }) {
     const layout = Object.fromEntries(schema.fieldNames.map((name, i) => [name, SchemaDataType[schema.layout[i]]]));
-    return (
-        <Card ui="dashkit">
-            <CardHeader ui="dashkit">
-                <CardTitle as="h3" ui="dashkit">
-                    Schema Layout
-                </CardTitle>
-            </CardHeader>
-
-            {/* .string-value is emitted by the ReactJson library — the arbitrary variant scopes the break-all rule to its descendant nodes only. */}
-            <Card ui="dashkit" className="m-6 [&_.string-value]:break-all">
-                <ReactJson src={layout} style={{ padding: 25 }} name={false} />
-            </Card>
-        </Card>
-    );
+    return <BaseAttestationDataCard data={layout} />;
 }
 
 /**
@@ -92,35 +79,9 @@ function AttestationCard({ attestation }: { attestation: SasAttestation }) {
         Logger.error(e);
     }
 
-    return (
-        <Card ui="dashkit">
-            <CardHeader ui="dashkit">
-                <CardTitle as="h3" ui="dashkit">
-                    Attestation Data {decoded ? '' : 'Raw (Base64)'}
-                </CardTitle>
-            </CardHeader>
+    if (!decoded) {
+        return <BaseAttestationDataCard raw={toBase64(new Uint8Array(attestation.data))} />;
+    }
 
-            {decoded ? (
-                // .string-value is emitted by the ReactJson library — the arbitrary variant scopes the break-all rule to its descendant nodes only.
-                <Card ui="dashkit" className="m-6 [&_.string-value]:break-all">
-                    <ReactJson src={decoded} style={{ padding: 25 }} name={false} />
-                </Card>
-            ) : (
-                <div
-                    className="font-mono"
-                    style={{
-                        fontSize: '0.85rem',
-                        lineHeight: '1.2',
-                        maxWidth: '100%',
-                        overflowWrap: 'break-word',
-                        padding: '1rem',
-                        whiteSpace: 'normal',
-                        wordBreak: 'break-all',
-                    }}
-                >
-                    {toBase64(new Uint8Array(attestation.data)) || '(empty)'}
-                </div>
-            )}
-        </Card>
-    );
+    return <BaseAttestationDataCard data={decoded} />;
 }
