@@ -45,7 +45,7 @@ export function DeveloperResources({ resources = DEFAULT_RESOURCES }: { resource
     return (
         <Card ui="dashkit" className="mb-3 md:mb-6">
             <div className="flex justify-between border-0 border-b border-solid border-dark-border px-dk-4 py-3">
-                <div>Kickstart your development journey on Solana</div>
+                <div>Build on Solana</div>
                 <div>
                     Find more on <ExternalLink href="https://solana.com/developers">solana.com/developers</ExternalLink>
                 </div>

@@ -41,11 +41,26 @@ function CellShell({ label, children }: { label: string; children: React.ReactNo
     );
 }
 
-function CellPlaceholder({ label, error }: { label: string; error?: boolean }) {
+function CellPlaceholder({ label, error, retry }: { label: string; error?: boolean; retry?: () => void }) {
     return (
         <CellShell label={label}>
-            <div className="flex h-24 items-center text-sm text-heavy-metal-400">
-                {error ? 'Unavailable' : 'Loading…'}
+            <div className="flex h-24 flex-col items-start justify-center gap-2 text-sm text-heavy-metal-400">
+                {retry ? (
+                    <>
+                        <span>Couldn’t load right now.</span>
+                        <button
+                            type="button"
+                            onClick={retry}
+                            className="cursor-pointer appearance-none border-0 bg-transparent p-0 text-dark-accent hover:underline"
+                        >
+                            Retry
+                        </button>
+                    </>
+                ) : error ? (
+                    'Unavailable'
+                ) : (
+                    'Loading…'
+                )}
             </div>
         </CellShell>
     );
@@ -125,6 +140,7 @@ function SupplyStakeCell() {
     const voteAccounts = useVoteAccounts();
 
     if (supplyState.kind === 'loading') return <CellPlaceholder label="Supply & stake" />;
+    if (supplyState.kind === 'failed') return <CellPlaceholder label="Supply & stake" retry={supplyState.retry} />;
     if (supplyState.kind !== 'ready') return <CellPlaceholder label="Supply & stake" error />;
 
     const { supply } = supplyState;
