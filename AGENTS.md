@@ -31,6 +31,7 @@
 
 - Use `class-variance-authority` (CVA) for component variants — not conditional class logic or CSS overrides.
 - Recommended: name stateless, hook-free UI components with a `Base` prefix (e.g., `BaseSearch`, `BaseTransactionCard`). When using the `Base` prefix, pair the component with a Storybook story.
+- Align side-by-side content to the top so the first lines' baselines match (`items-baseline` in flex and grid rows). Do not center vertically unless the design asks for it.
 
 ## Storybook
 **Applies to:** `**/*.stories.{ts,tsx}`
