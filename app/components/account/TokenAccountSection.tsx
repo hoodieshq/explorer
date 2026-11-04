@@ -1,6 +1,7 @@
 import ScaledUiAmountMultiplierTooltip from '@components/account/token-extensions/ScaledUiAmountMultiplierTooltip';
 import { Address } from '@components/common/Address';
 import { Copyable } from '@components/common/Copyable';
+import { Timestamp } from '@components/shared/ui/timestamp';
 import { useRefreshAccount } from '@entities/account';
 import { isMetaplexNFT } from '@entities/nft';
 import { AccountCard } from '@features/account';
@@ -10,7 +11,6 @@ import { TOKEN_2022_PROGRAM_ID, useScaledUiAmountForMint } from '@providers/acco
 import { useCluster } from '@providers/cluster';
 import { PublicKey } from '@solana/web3.js';
 import { Cluster } from '@utils/cluster';
-import { displayTimestamp } from '@utils/date';
 import { normalizeTokenAmount } from '@utils/index';
 import { getCurrentTokenScaledUiAmountMultiplier } from '@utils/token-info';
 import { addressLabel } from '@utils/tx';
@@ -55,9 +55,9 @@ import { invariant } from '@/app/shared/lib/invariant';
 import { Logger } from '@/app/shared/lib/logger';
 import { getSafeExternalHref } from '@/app/shared/lib/url';
 import { KeyValue, type KeyValueRow, type KeyValueRowInput, KeyValueRows } from '@/app/shared/ui/key-value';
-import { BaseTable } from '@/app/shared/ui/Table';
 import { FullTokenInfo, getTokenInfo, getTokenInfoSwrKey } from '@/app/utils/token-info';
 
+import { ExtensionField, ExtensionFieldGroup } from './token-extensions/ExtensionField';
 import { TokenExtensionsStatusRow } from './token-extensions/TokenExtensionsStatusRow';
 import { UnknownAccountCard } from './UnknownAccountCard';
 
@@ -462,14 +462,7 @@ function cmpExtension(a: TokenExtension, b: TokenExtension) {
 }
 
 function HHeader({ name }: { name: string }) {
-    return (
-        <BaseTable.Row>
-            {/*use important here as there is rule from .table-sm that affects all the underline elements*/}
-            <BaseTable.HeaderCell colSpan={2} className="mb-2 !p-4 text-[15px] font-normal">
-                {name}
-            </BaseTable.HeaderCell>
-        </BaseTable.Row>
-    );
+    return <div className="pb-1 pt-3 text-[15px] text-white">{name}</div>;
 }
 
 /* Do not move component to keep commit history.
@@ -489,12 +482,9 @@ export function TokenExtensionRow(
             const extension = create(tokenExtension.state, MintCloseAuthority);
             if (extension.closeAuthority) {
                 return (
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Close Authority</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            <Address pubkey={extension.closeAuthority} alignRight link />
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Close Authority">
+                        <Address pubkey={extension.closeAuthority} link />
+                    </ExtensionField>
                 );
             } else {
                 return <></>;
@@ -503,14 +493,11 @@ export function TokenExtensionRow(
         case 'transferFeeAmount': {
             const extension = create(tokenExtension.state, TransferFeeAmount);
             return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>Withheld Amount {typeof symbol === 'string' && `(${symbol})`}</BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">
-                        {normalizeTokenAmount(extension.withheldAmount, decimals).toLocaleString('en-US', {
-                            maximumFractionDigits: 20,
-                        })}
-                    </BaseTable.Cell>
-                </BaseTable.Row>
+                <ExtensionField label={<>Withheld Amount {typeof symbol === 'string' && `(${symbol})`}</>}>
+                    {normalizeTokenAmount(extension.withheldAmount, decimals).toLocaleString('en-US', {
+                        maximumFractionDigits: 20,
+                    })}
+                </ExtensionField>
             );
         }
         case 'transferFeeConfig': {
@@ -519,81 +506,60 @@ export function TokenExtensionRow(
                 <>
                     {headerStyle === 'header' ? <HHeader name="Transfer Fee Config" /> : null}
                     {extension.transferFeeConfigAuthority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Transfer Fee Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.transferFeeConfigAuthority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Transfer Fee Authority">
+                            <Address pubkey={extension.transferFeeConfigAuthority} link />
+                        </ExtensionField>
                     )}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>
-                            {extension.newerTransferFee.epoch > epoch ? 'Current' : 'Previous'} Fee Epoch
-                        </BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.olderTransferFee.epoch}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>
-                            {extension.newerTransferFee.epoch > epoch ? 'Current' : 'Previous'} Maximum Fee{' '}
-                            {typeof symbol === 'string' && `(${symbol})`}
-                        </BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {normalizeTokenAmount(extension.olderTransferFee.maximumFee, decimals).toLocaleString(
-                                'en-US',
-                                {
-                                    maximumFractionDigits: 20,
-                                },
-                            )}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>
-                            {extension.newerTransferFee.epoch > epoch ? 'Current' : 'Previous'} Fee Rate
-                        </BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{`${extension.olderTransferFee.transferFeeBasisPoints / 100}%`}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>
-                            {extension.newerTransferFee.epoch > epoch ? 'Future' : 'Current'} Fee Epoch
-                        </BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.newerTransferFee.epoch}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>
-                            {extension.newerTransferFee.epoch > epoch ? 'Future' : 'Current'} Maximum Fee{' '}
-                            {typeof symbol === 'string' && `(${symbol})`}
-                        </BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {normalizeTokenAmount(extension.newerTransferFee.maximumFee, decimals).toLocaleString(
-                                'en-US',
-                                {
-                                    maximumFractionDigits: 20,
-                                },
-                            )}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>
-                            {extension.newerTransferFee.epoch > epoch ? 'Future' : 'Current'} Fee Rate
-                        </BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{`${extension.newerTransferFee.transferFeeBasisPoints / 100}%`}</BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField
+                        label={<>{extension.newerTransferFee.epoch > epoch ? 'Current' : 'Previous'} Fee Epoch</>}
+                    >
+                        {extension.olderTransferFee.epoch}
+                    </ExtensionField>
+                    <ExtensionField
+                        label={
+                            <>
+                                {extension.newerTransferFee.epoch > epoch ? 'Current' : 'Previous'} Maximum Fee{' '}
+                                {typeof symbol === 'string' && `(${symbol})`}
+                            </>
+                        }
+                    >
+                        {normalizeTokenAmount(extension.olderTransferFee.maximumFee, decimals).toLocaleString('en-US', {
+                            maximumFractionDigits: 20,
+                        })}
+                    </ExtensionField>
+                    <ExtensionField
+                        label={<>{extension.newerTransferFee.epoch > epoch ? 'Current' : 'Previous'} Fee Rate</>}
+                    >{`${extension.olderTransferFee.transferFeeBasisPoints / 100}%`}</ExtensionField>
+                    <ExtensionField
+                        label={<>{extension.newerTransferFee.epoch > epoch ? 'Future' : 'Current'} Fee Epoch</>}
+                    >
+                        {extension.newerTransferFee.epoch}
+                    </ExtensionField>
+                    <ExtensionField
+                        label={
+                            <>
+                                {extension.newerTransferFee.epoch > epoch ? 'Future' : 'Current'} Maximum Fee{' '}
+                                {typeof symbol === 'string' && `(${symbol})`}
+                            </>
+                        }
+                    >
+                        {normalizeTokenAmount(extension.newerTransferFee.maximumFee, decimals).toLocaleString('en-US', {
+                            maximumFractionDigits: 20,
+                        })}
+                    </ExtensionField>
+                    <ExtensionField
+                        label={<>{extension.newerTransferFee.epoch > epoch ? 'Future' : 'Current'} Fee Rate</>}
+                    >{`${extension.newerTransferFee.transferFeeBasisPoints / 100}%`}</ExtensionField>
                     {extension.withdrawWithheldAuthority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Withdraw Withheld Fees Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.withdrawWithheldAuthority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Withdraw Withheld Fees Authority">
+                            <Address pubkey={extension.withdrawWithheldAuthority} link />
+                        </ExtensionField>
                     )}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Withheld Amount {typeof symbol === 'string' && `(${symbol})`}</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {normalizeTokenAmount(extension.withheldAmount, decimals).toLocaleString('en-US', {
-                                maximumFractionDigits: 20,
-                            })}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label={<>Withheld Amount {typeof symbol === 'string' && `(${symbol})`}</>}>
+                        {normalizeTokenAmount(extension.withheldAmount, decimals).toLocaleString('en-US', {
+                            maximumFractionDigits: 20,
+                        })}
+                    </ExtensionField>
                 </>
             );
         }
@@ -603,25 +569,16 @@ export function TokenExtensionRow(
                 <>
                     {headerStyle === 'header' ? <HHeader name="Confidential Transfer Mint" /> : null}
                     {extension.authority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.authority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Authority">
+                            <Address pubkey={extension.authority} link />
+                        </ExtensionField>
                     )}
                     {extension.auditorElgamalPubkey && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Auditor Elgamal Pubkey</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">{extension.auditorElgamalPubkey}</BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Auditor Elgamal Pubkey">{extension.auditorElgamalPubkey}</ExtensionField>
                     )}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>New Account Approval Policy</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {extension.autoApproveNewAccounts ? 'auto' : 'manual'}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="New Account Approval Policy">
+                        {extension.autoApproveNewAccounts ? 'auto' : 'manual'}
+                    </ExtensionField>
                 </>
             );
         }
@@ -631,52 +588,32 @@ export function TokenExtensionRow(
                 <>
                     {headerStyle === 'header' ? <HHeader name="Confidential Transfer Fee" /> : null}
                     {extension.authority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.authority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Authority">
+                            <Address pubkey={extension.authority} link />
+                        </ExtensionField>
                     )}
                     {extension.withdrawWithheldAuthorityElgamalPubkey && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Auditor Elgamal Pubkey</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                {extension.withdrawWithheldAuthorityElgamalPubkey}
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Auditor Elgamal Pubkey">
+                            {extension.withdrawWithheldAuthorityElgamalPubkey}
+                        </ExtensionField>
                     )}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Harvest to Mint</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {extension.harvestToMintEnabled ? 'enabled' : 'disabled'}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>
-                            Encrypted Withheld Amount {typeof symbol === 'string' && `(${symbol})`}
-                        </BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.withheldAmount}</BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Harvest to Mint">
+                        {extension.harvestToMintEnabled ? 'enabled' : 'disabled'}
+                    </ExtensionField>
+                    <ExtensionField
+                        label={<>Encrypted Withheld Amount {typeof symbol === 'string' && `(${symbol})`}</>}
+                    >
+                        {extension.withheldAmount}
+                    </ExtensionField>
                 </>
             );
         }
         case 'defaultAccountState': {
             const extension = create(tokenExtension.state, DefaultAccountState);
-            return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>DefaultAccountState</BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">{extension.accountState}</BaseTable.Cell>
-                </BaseTable.Row>
-            );
+            return <ExtensionField label="DefaultAccountState">{extension.accountState}</ExtensionField>;
         }
         case 'nonTransferable': {
-            return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>Non-Transferable</BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">enabled</BaseTable.Cell>
-                </BaseTable.Row>
-            );
+            return <ExtensionField label="Non-Transferable">enabled</ExtensionField>;
         }
         case 'interestBearingConfig': {
             const extension = create(tokenExtension.state, InterestBearingConfig);
@@ -684,33 +621,18 @@ export function TokenExtensionRow(
                 <>
                     {headerStyle === 'header' ? <HHeader name="Interest-Bearing" /> : null}
                     {extension.rateAuthority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.rateAuthority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Authority">
+                            <Address pubkey={extension.rateAuthority} link />
+                        </ExtensionField>
                     )}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Current Rate</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{`${extension.currentRate / 100}%`}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Pre-Current Average Rate</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{`${extension.preUpdateAverageRate / 100}%`}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Last Update Timestamp</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {displayTimestamp(extension.lastUpdateTimestamp * 1000)}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Initialization Timestamp</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {displayTimestamp(extension.initializationTimestamp * 1000)}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Current Rate">{`${extension.currentRate / 100}%`}</ExtensionField>
+                    <ExtensionField label="Pre-Current Average Rate">{`${extension.preUpdateAverageRate / 100}%`}</ExtensionField>
+                    <ExtensionField label="Last Update Timestamp">
+                        <Timestamp unixTimestamp={extension.lastUpdateTimestamp} />
+                    </ExtensionField>
+                    <ExtensionField label="Initialization Timestamp">
+                        <Timestamp unixTimestamp={extension.initializationTimestamp} />
+                    </ExtensionField>
                 </>
             );
         }
@@ -720,37 +642,20 @@ export function TokenExtensionRow(
                 <>
                     {headerStyle === 'header' ? <HHeader name="Scaled UI Amount Config" /> : null}
                     {extension.authority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.authority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Authority">
+                            <Address pubkey={extension.authority} link />
+                        </ExtensionField>
                     )}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Multiplier</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.multiplier}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>New Multiplier</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.newMultiplier}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>New Multiplier Effective Timestamp</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {displayTimestamp(extension.newMultiplierEffectiveTimestamp * 1000)}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Multiplier">{extension.multiplier}</ExtensionField>
+                    <ExtensionField label="New Multiplier">{extension.newMultiplier}</ExtensionField>
+                    <ExtensionField label="New Multiplier Effective Timestamp">
+                        <Timestamp unixTimestamp={extension.newMultiplierEffectiveTimestamp} />
+                    </ExtensionField>
                 </>
             );
         }
         case 'pausableAccount': {
-            return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>Pausable Account</BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">enabled</BaseTable.Cell>
-                </BaseTable.Row>
-            );
+            return <ExtensionField label="Pausable Account">enabled</ExtensionField>;
         }
         case 'pausableConfig': {
             const extension = create(tokenExtension.state, PausableConfig);
@@ -759,19 +664,11 @@ export function TokenExtensionRow(
                     {headerStyle === 'header' ? <HHeader name="Pausable Config" /> : null}
                     <>
                         {extension.authority && (
-                            <BaseTable.Row>
-                                <BaseTable.Cell>Authority</BaseTable.Cell>
-                                <BaseTable.Cell className="md:text-right">
-                                    <Address pubkey={extension.authority} alignRight link />
-                                </BaseTable.Cell>
-                            </BaseTable.Row>
+                            <ExtensionField label="Authority">
+                                <Address pubkey={extension.authority} link />
+                            </ExtensionField>
                         )}
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Paused</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                {extension.paused ? 'paused' : 'not paused'}
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Paused">{extension.paused ? 'paused' : 'not paused'}</ExtensionField>
                     </>
                 </>
             );
@@ -780,12 +677,9 @@ export function TokenExtensionRow(
             const extension = create(tokenExtension.state, PermissionedBurnConfig);
             if (extension.authority) {
                 return (
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Permissioned Burn Authority</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            <Address pubkey={extension.authority} alignRight link />
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Permissioned Burn Authority">
+                        <Address pubkey={extension.authority} link />
+                    </ExtensionField>
                 );
             } else {
                 return <></>;
@@ -795,12 +689,9 @@ export function TokenExtensionRow(
             const extension = create(tokenExtension.state, PermanentDelegate);
             if (extension.delegate) {
                 return (
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Permanent Delegate</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            <Address pubkey={extension.delegate} alignRight link />
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Permanent Delegate">
+                        <Address pubkey={extension.delegate} link />
+                    </ExtensionField>
                 );
             } else {
                 return <></>;
@@ -811,20 +702,14 @@ export function TokenExtensionRow(
             return (
                 <>
                     {extension.programId && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Transfer Hook Program Id</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.programId} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Transfer Hook Program Id">
+                            <Address pubkey={extension.programId} link />
+                        </ExtensionField>
                     )}
                     {extension.authority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Transfer Hook Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.authority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Transfer Hook Authority">
+                            <Address pubkey={extension.authority} link />
+                        </ExtensionField>
                     )}
                 </>
             );
@@ -834,20 +719,14 @@ export function TokenExtensionRow(
             return (
                 <>
                     {extension.metadataAddress && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Metadata</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.metadataAddress} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Metadata">
+                            <Address pubkey={extension.metadataAddress} link />
+                        </ExtensionField>
                     )}
                     {extension.authority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Metadata Pointer Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.authority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Metadata Pointer Authority">
+                            <Address pubkey={extension.authority} link />
+                        </ExtensionField>
                     )}
                 </>
             );
@@ -857,20 +736,14 @@ export function TokenExtensionRow(
             return (
                 <>
                     {extension.groupAddress && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Token Group</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.groupAddress} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Token Group">
+                            <Address pubkey={extension.groupAddress} link />
+                        </ExtensionField>
                     )}
                     {extension.authority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Group Pointer Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.authority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Group Pointer Authority">
+                            <Address pubkey={extension.authority} link />
+                        </ExtensionField>
                     )}
                 </>
             );
@@ -880,20 +753,14 @@ export function TokenExtensionRow(
             return (
                 <>
                     {extension.memberAddress && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Token Group Member</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.memberAddress} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Token Group Member">
+                            <Address pubkey={extension.memberAddress} link />
+                        </ExtensionField>
                     )}
                     {extension.authority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Member Pointer Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.authority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Member Pointer Authority">
+                            <Address pubkey={extension.authority} link />
+                        </ExtensionField>
                     )}
                 </>
             );
@@ -903,54 +770,33 @@ export function TokenExtensionRow(
             return (
                 <>
                     {headerStyle === 'header' ? <HHeader name="Metadata" /> : null}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Mint</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            <Address pubkey={extension.mint} alignRight link />
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Mint">
+                        <Address pubkey={extension.mint} link />
+                    </ExtensionField>
                     {extension.updateAuthority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Update Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.updateAuthority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Update Authority">
+                            <Address pubkey={extension.updateAuthority} link />
+                        </ExtensionField>
                     )}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Name</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.name}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Symbol</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.symbol}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>URI</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {getSafeExternalHref(extension.uri) ? (
-                                <ExternalLink href={extension.uri}>
-                                    {extension.uri}
-                                    <ExternalLinkIcon className="ml-1.5 align-text-top" size={13} />
-                                </ExternalLink>
-                            ) : (
-                                extension.uri
-                            )}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Name">{extension.name}</ExtensionField>
+                    <ExtensionField label="Symbol">{extension.symbol}</ExtensionField>
+                    <ExtensionField label="URI">
+                        {getSafeExternalHref(extension.uri) ? (
+                            <ExternalLink href={extension.uri}>
+                                {extension.uri}
+                                <ExternalLinkIcon className="ml-1.5 align-text-top" size={13} />
+                            </ExternalLink>
+                        ) : (
+                            extension.uri
+                        )}
+                    </ExtensionField>
                     {extension.additionalMetadata?.length > 0 && (
                         <>
-                            <BaseTable.Row>
-                                {/*use important here as there is rule from .table-sm that affects all the underline elements*/}
-                                <BaseTable.HeaderCell colSpan={2} className="mb-2 h-5 !pl-6 font-normal italic">
-                                    Additional Metadata
-                                </BaseTable.HeaderCell>
-                            </BaseTable.Row>
+                            <ExtensionFieldGroup>Additional Metadata</ExtensionFieldGroup>
                             {extension.additionalMetadata?.map(keyValuePair => (
-                                <BaseTable.Row key="{keyValuePair[0]}">
-                                    <BaseTable.Cell>{keyValuePair[0]}</BaseTable.Cell>
-                                    <BaseTable.Cell className="md:text-right">{keyValuePair[1]}</BaseTable.Cell>
-                                </BaseTable.Row>
+                                <ExtensionField key={keyValuePair[0]} label={keyValuePair[0]}>
+                                    {keyValuePair[1]}
+                                </ExtensionField>
                             ))}
                         </>
                     )}
@@ -959,134 +805,70 @@ export function TokenExtensionRow(
         }
         case 'cpiGuard': {
             const extension = create(tokenExtension.state, CpiGuard);
-            return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>CPI Guard</BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">
-                        {extension.lockCpi ? 'enabled' : 'disabled'}
-                    </BaseTable.Cell>
-                </BaseTable.Row>
-            );
+            return <ExtensionField label="CPI Guard">{extension.lockCpi ? 'enabled' : 'disabled'}</ExtensionField>;
         }
         case 'confidentialTransferAccount': {
             const extension = create(tokenExtension.state, ConfidentialTransferAccount);
             return (
                 <>
                     {headerStyle === 'header' ? <HHeader name="Confidential Transfer Account" /> : null}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Status</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {!extension.approved && 'not '}approved
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Elgamal Pubkey</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.elgamalPubkey}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Confidential Credits</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {extension.allowConfidentialCredits ? 'enabled' : 'disabled'}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Non-confidential Credits</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {extension.allowNonConfidentialCredits ? 'enabled' : 'disabled'}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Available Balance</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.availableBalance}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Decryptable Available Balance</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {extension.decryptableAvailableBalance}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Pending Balance, Low Bits</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.pendingBalanceLo}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Pending Balance, High Bits</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.pendingBalanceHi}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Pending Balance Credit Counter</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {extension.pendingBalanceCreditCounter}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Expected Pending Balance Credit Counter</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {extension.expectedPendingBalanceCreditCounter}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Actual Pending Balance Credit Counter</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {extension.actualPendingBalanceCreditCounter}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Maximum Pending Balance Credit Counter</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            {extension.maximumPendingBalanceCreditCounter}
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Status">{!extension.approved && 'not '}approved</ExtensionField>
+                    <ExtensionField label="Elgamal Pubkey">{extension.elgamalPubkey}</ExtensionField>
+                    <ExtensionField label="Confidential Credits">
+                        {extension.allowConfidentialCredits ? 'enabled' : 'disabled'}
+                    </ExtensionField>
+                    <ExtensionField label="Non-confidential Credits">
+                        {extension.allowNonConfidentialCredits ? 'enabled' : 'disabled'}
+                    </ExtensionField>
+                    <ExtensionField label="Available Balance">{extension.availableBalance}</ExtensionField>
+                    <ExtensionField label="Decryptable Available Balance">
+                        {extension.decryptableAvailableBalance}
+                    </ExtensionField>
+                    <ExtensionField label="Pending Balance, Low Bits">{extension.pendingBalanceLo}</ExtensionField>
+                    <ExtensionField label="Pending Balance, High Bits">{extension.pendingBalanceHi}</ExtensionField>
+                    <ExtensionField label="Pending Balance Credit Counter">
+                        {extension.pendingBalanceCreditCounter}
+                    </ExtensionField>
+                    <ExtensionField label="Expected Pending Balance Credit Counter">
+                        {extension.expectedPendingBalanceCreditCounter}
+                    </ExtensionField>
+                    <ExtensionField label="Actual Pending Balance Credit Counter">
+                        {extension.actualPendingBalanceCreditCounter}
+                    </ExtensionField>
+                    <ExtensionField label="Maximum Pending Balance Credit Counter">
+                        {extension.maximumPendingBalanceCreditCounter}
+                    </ExtensionField>
                 </>
             );
         }
         case 'immutableOwner': {
-            return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>Immutable Owner</BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">enabled</BaseTable.Cell>
-                </BaseTable.Row>
-            );
+            return <ExtensionField label="Immutable Owner">enabled</ExtensionField>;
         }
         case 'memoTransfer': {
             const extension = create(tokenExtension.state, MemoTransfer);
             return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>Require Memo on Incoming Transfers</BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">
-                        {extension.requireIncomingTransferMemos ? 'enabled' : 'disabled'}
-                    </BaseTable.Cell>
-                </BaseTable.Row>
+                <ExtensionField label="Require Memo on Incoming Transfers">
+                    {extension.requireIncomingTransferMemos ? 'enabled' : 'disabled'}
+                </ExtensionField>
             );
         }
         case 'transferHookAccount': {
             const extension = create(tokenExtension.state, TransferHookAccount);
             return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>Transfer Hook Status</BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">
-                        {!extension.transferring && 'not '}transferring
-                    </BaseTable.Cell>
-                </BaseTable.Row>
+                <ExtensionField label="Transfer Hook Status">
+                    {!extension.transferring && 'not '}transferring
+                </ExtensionField>
             );
         }
         case 'nonTransferableAccount': {
-            return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>Non-Transferable</BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">enabled</BaseTable.Cell>
-                </BaseTable.Row>
-            );
+            return <ExtensionField label="Non-Transferable">enabled</ExtensionField>;
         }
         case 'confidentialTransferFeeAmount': {
             const extension = create(tokenExtension.state, ConfidentialTransferFeeAmount);
             return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>
-                        Encrypted Withheld Amount {typeof symbol === 'string' && `(${symbol})`}
-                    </BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">{extension.withheldAmount}</BaseTable.Cell>
-                </BaseTable.Row>
+                <ExtensionField label={<>Encrypted Withheld Amount {typeof symbol === 'string' && `(${symbol})`}</>}>
+                    {extension.withheldAmount}
+                </ExtensionField>
             );
         }
         case 'tokenGroup': {
@@ -1094,28 +876,16 @@ export function TokenExtensionRow(
             return (
                 <>
                     {headerStyle === 'header' ? <HHeader name="Group" /> : null}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Mint</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            <Address pubkey={extension.mint} alignRight link />
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Mint">
+                        <Address pubkey={extension.mint} link />
+                    </ExtensionField>
                     {extension.updateAuthority && (
-                        <BaseTable.Row>
-                            <BaseTable.Cell>Update Authority</BaseTable.Cell>
-                            <BaseTable.Cell className="md:text-right">
-                                <Address pubkey={extension.updateAuthority} alignRight link />
-                            </BaseTable.Cell>
-                        </BaseTable.Row>
+                        <ExtensionField label="Update Authority">
+                            <Address pubkey={extension.updateAuthority} link />
+                        </ExtensionField>
                     )}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Current Size</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.size}</BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Max Size</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.maxSize}</BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Current Size">{extension.size}</ExtensionField>
+                    <ExtensionField label="Max Size">{extension.maxSize}</ExtensionField>
                 </>
             );
         }
@@ -1124,32 +894,18 @@ export function TokenExtensionRow(
             return (
                 <>
                     {headerStyle === 'header' ? <HHeader name="Group Member" /> : null}
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Mint</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            <Address pubkey={extension.mint} alignRight link />
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Group</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">
-                            <Address pubkey={extension.group} alignRight link />
-                        </BaseTable.Cell>
-                    </BaseTable.Row>
-                    <BaseTable.Row>
-                        <BaseTable.Cell>Member Number</BaseTable.Cell>
-                        <BaseTable.Cell className="md:text-right">{extension.memberNumber}</BaseTable.Cell>
-                    </BaseTable.Row>
+                    <ExtensionField label="Mint">
+                        <Address pubkey={extension.mint} link />
+                    </ExtensionField>
+                    <ExtensionField label="Group">
+                        <Address pubkey={extension.group} link />
+                    </ExtensionField>
+                    <ExtensionField label="Member Number">{extension.memberNumber}</ExtensionField>
                 </>
             );
         }
         case 'unparseableExtension':
         default:
-            return (
-                <BaseTable.Row>
-                    <BaseTable.Cell>Unknown Extension</BaseTable.Cell>
-                    <BaseTable.Cell className="md:text-right">unparseable</BaseTable.Cell>
-                </BaseTable.Row>
-            );
+            return <ExtensionField label="Unknown Extension">unparseable</ExtensionField>;
     }
 }

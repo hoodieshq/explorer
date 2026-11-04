@@ -45,6 +45,14 @@ describe('TokenExtensionsCard', () => {
 
         expect(await screen.findByRole('button', { name: 'Refresh' })).toBeEnabled();
     });
+
+    it('should render the title as a collapsible section heading', async () => {
+        mock.entry = { data: ACCOUNT, status: FetchStatus.Fetched };
+        renderCard();
+
+        expect(await screen.findByRole('heading', { name: 'Extensions' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Collapse' })).toHaveAttribute('aria-expanded', 'true');
+    });
 });
 
 const MINT = gen.address(0);

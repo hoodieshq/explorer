@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-syntax, no-restricted-globals -- test assertions use RegExp for pattern matching */
 import { gen } from '@__fixtures__/gen';
-import { TableCardBody } from '@components/common/TableCardBody';
 import { render, screen } from '@testing-library/react';
+import { displayTimestampAbsolute } from '@utils/date';
 import { useSearchParams } from 'next/navigation';
 import { describe, vi } from 'vitest';
 
@@ -56,10 +56,8 @@ describe('TokenExtensionRow', () => {
         expect(await screen.findByText('Transfer Fee Config')).toBeInTheDocument();
         expect(screen.getByText(/Transfer Fee Authority/)).toBeInTheDocument();
 
-        // Check for fee epoch labels within table cells
-        const tableCells = screen.getAllByRole('cell');
-        const feeEpochCells = tableCells.filter(cell => cell.textContent?.includes('Fee Epoch'));
-        expect(feeEpochCells).toHaveLength(2);
+        // Check for the two fee epoch labels
+        expect(screen.getAllByText(/Fee Epoch/)).toHaveLength(2);
 
         // Check for specific values
         expect(screen.getByText('100')).toBeInTheDocument();
@@ -167,6 +165,8 @@ describe('TokenExtensionRow', () => {
         expect(screen.getByText(/Authority/)).toBeInTheDocument();
         expect(screen.getByText('5%')).toBeInTheDocument();
         expect(screen.getByText('4%')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: utc(1000000) })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: utc(900000) })).toBeInTheDocument();
     });
 
     test('should render scaledUiAmountConfig extension', async () => {
@@ -185,6 +185,8 @@ describe('TokenExtensionRow', () => {
         expect(await screen.findByText('Scaled UI Amount Config')).toBeInTheDocument();
         expect(screen.getByText('2')).toBeInTheDocument();
         expect(screen.getByText('4.22')).toBeInTheDocument();
+        // Dates render through the shared Timestamp, which opens its formats from a button.
+        expect(screen.getByRole('button', { name: utc(1743000000) })).toBeInTheDocument();
     });
 
     test('should render permissionedBurnConfig extension', async () => {
@@ -289,8 +291,9 @@ describe('TokenExtensionRow', () => {
 
         // Check maximum pending balance credit counter specifically
         const maxCounterElement = screen.getByText(/Maximum Pending Balance Credit Counter/);
+        // The label's parent is its label/value row.
         // eslint-disable-next-line testing-library/no-node-access
-        expect(maxCounterElement.closest('tr')).toHaveTextContent('10');
+        expect(maxCounterElement.parentElement).toHaveTextContent('10');
     });
 
     test('should render confidentialTransferFeeAmount extension', async () => {
@@ -326,12 +329,16 @@ describe('TokenExtensionRow', () => {
     });
 });
 
+function utc(unixTimestamp: number) {
+    return displayTimestampAbsolute(unixTimestamp * 1000, true);
+}
+
 function renderRow(data: TokenExtension, { epoch, symbol }: { epoch?: bigint; symbol?: string } = {}) {
     render(
         <ScrollAnchorProvider>
             <ClusterProvider>
                 <AccountsProvider>
-                    <TableCardBody>{TokenExtensionRow(data, epoch, 6, symbol)}</TableCardBody>
+                    <div>{TokenExtensionRow(data, epoch, 6, symbol)}</div>
                 </AccountsProvider>
             </ClusterProvider>
         </ScrollAnchorProvider>,

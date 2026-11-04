@@ -24,7 +24,7 @@
 | Dynamic | `/address/[address]/slot-hashes` | 380 kB | 810 kB |
 | Dynamic | `/address/[address]/stake-history` | 380 kB | 810 kB |
 | Dynamic | `/address/[address]/subscriptions` | 380 kB | 810 kB |
-| Dynamic | `/address/[address]/token-extensions` | 400 kB | 810 kB |
+| Dynamic | `/address/[address]/token-extensions` | 400 kB | 830 kB |
 | Dynamic | `/address/[address]/tokens` | 410 kB | 820 kB |
 | Dynamic | `/address/[address]/transfers` | 390 kB | 820 kB |
 | Dynamic | `/address/[address]/verified-build` | 400 kB | 810 kB |
@@ -65,5 +65,5 @@
 | Dynamic | `/robots.txt` | — | — |
 | Static | `/tos` | 10 kB | 420 kB |
 | Dynamic | `/tx/[signature]` | 460 kB | 870 kB |
-| Dynamic | `/tx/[signature]/inspect` | 450 kB | 860 kB |
-| Static | `/tx/inspector` | 450 kB | 860 kB |
+| Dynamic | `/tx/[signature]/inspect` | 450 kB | 880 kB |
+| Static | `/tx/inspector` | 450 kB | 880 kB |
