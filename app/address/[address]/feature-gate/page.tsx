@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGFM from 'remark-gfm';
 
+import { AddressTabContent } from '@/app/address/[address]/AddressTabContent';
 import { getFeatureInfo } from '@/app/entities/feature-gate/server';
 import { fetchFeatureGateInformation, getFeatureGateOpenGraph } from '@/app/features/feature-gate/server';
 import { BaseTable } from '@/app/shared/ui/Table';
@@ -32,18 +33,20 @@ export default async function FeatureGatePage(props: Props) {
     const data = await fetchFeatureGateInformation(feature);
 
     return (
-        <FeatureGateCard>
-            <ReactMarkdown
-                remarkPlugins={[remarkGFM, remarkFrontmatter]}
-                components={{
-                    h2: ({ children }) => <h2 className="mb-2 mt-5 text-gray-300">{children}</h2>,
-                    li: ({ children }) => <li className="mb-1 text-gray-400">{children}</li>,
-                    p: ({ children }) => <p className="mb-4 mt-0 text-gray-400">{children}</p>,
-                    table: ({ children }) => <BaseTable ui="dashkit">{children}</BaseTable>,
-                }}
-            >
-                {data[0]}
-            </ReactMarkdown>
-        </FeatureGateCard>
+        <AddressTabContent>
+            <FeatureGateCard>
+                <ReactMarkdown
+                    remarkPlugins={[remarkGFM, remarkFrontmatter]}
+                    components={{
+                        h2: ({ children }) => <h2 className="mb-2 mt-5 text-gray-300">{children}</h2>,
+                        li: ({ children }) => <li className="mb-1 text-gray-400">{children}</li>,
+                        p: ({ children }) => <p className="mb-4 mt-0 text-gray-400">{children}</p>,
+                        table: ({ children }) => <BaseTable ui="dashkit">{children}</BaseTable>,
+                    }}
+                >
+                    {data[0]}
+                </ReactMarkdown>
+            </FeatureGateCard>
+        </AddressTabContent>
     );
 }
