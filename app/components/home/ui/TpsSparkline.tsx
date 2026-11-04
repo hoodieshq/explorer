@@ -1,5 +1,7 @@
 import { cn } from '@components/shared/utils';
 
+import { sparklinePaths } from '../lib/charts';
+
 type Props = {
     /** TPS samples, oldest first (matches performanceInfo.perfHistory). */
     data: (number | null)[];
@@ -11,17 +13,13 @@ const H = 32;
 
 // Static SVG sparkline stretched to fill its container; no axes, no motion.
 export function TpsSparkline({ data, className }: Props) {
-    const points = data.map(d => d ?? 0);
+    const paths = sparklinePaths(data, W, H);
 
-    if (points.length < 2) {
+    if (!paths) {
         return <div className={cn('h-8 w-full', className)} aria-hidden />;
     }
 
-    const max = Math.max(...points, 1);
-    const stepX = W / (points.length - 1);
-    const coords = points.map((p, i) => [i * stepX, H - (p / max) * (H - 2) - 1] as const);
-    const line = coords.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(2)} ${y.toFixed(2)}`).join(' ');
-    const area = `${line} L${W} ${H} L0 ${H} Z`;
+    const { area, line } = paths;
 
     return (
         <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className={cn('h-8 w-full', className)} aria-hidden>

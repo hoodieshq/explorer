@@ -9,15 +9,7 @@ import React from 'react';
 
 import { useReducedMotion } from '@/app/shared/lib/use-reduced-motion';
 
-const MAX_TILES = 8;
-// How far the client-side interpolation may run past the last polled slot before holding for a resync.
-const MAX_DRIFT = 6n;
-const DEFAULT_CADENCE_MS = 400;
-
-function clampCadence(msPerSlot: number): number {
-    if (!msPerSlot || Number.isNaN(msPerSlot)) return DEFAULT_CADENCE_MS;
-    return Math.min(1200, Math.max(200, Math.round(msPerSlot)));
-}
+import { advanceHead, buildSlotWindow, clampCadence, MAX_TILES, resyncHead } from '../lib/slot-strip';
 
 export function SlotStrip() {
     const { epochInfo, msPerSlot_1h, status } = useDashboardInfo();
@@ -30,7 +22,7 @@ export function SlotStrip() {
 
     // Resync to each real poll; the head never moves backwards.
     React.useEffect(() => {
-        setHead(prev => (realSlot > prev ? realSlot : prev));
+        setHead(prev => resyncHead(prev, realSlot));
     }, [realSlot]);
 
     // Interpolate the ~400ms slot cadence between the 2s epoch-info polls. Paused under reduced motion
@@ -38,7 +30,7 @@ export function SlotStrip() {
     React.useEffect(() => {
         if (reduced || !visible || status !== ClusterStatsStatus.Ready || realSlot === 0n) return;
         const id = setInterval(() => {
-            setHead(prev => (prev - realSlot < MAX_DRIFT ? prev + 1n : prev));
+            setHead(prev => advanceHead(prev, realSlot));
         }, clampCadence(msPerSlot_1h));
         return () => clearInterval(id);
     }, [reduced, visible, status, realSlot, msPerSlot_1h]);
@@ -49,7 +41,7 @@ export function SlotStrip() {
 
     const slots: (bigint | undefined)[] = loading
         ? Array.from({ length: MAX_TILES }, () => undefined)
-        : Array.from({ length: MAX_TILES }, (_, i) => head - BigInt(MAX_TILES - 1 - i)).filter(s => s >= 0n);
+        : buildSlotWindow(head);
 
     return (
         <section aria-label="Most recent slots" className="w-full">

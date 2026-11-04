@@ -1,5 +1,7 @@
 import { cn } from '@components/shared/utils';
 
+import { ringDashOffset } from '../lib/charts';
+
 type Props = {
     /** Progress in the range 0–1. */
     progress: number;
@@ -15,8 +17,7 @@ const C = 2 * Math.PI * R;
 
 // Static SVG ring — the offset reflects the current epoch progress with no draw-in animation.
 export function EpochRing({ progress, label, sublabel, className }: Props) {
-    const clamped = Math.min(1, Math.max(0, progress));
-    const offset = C * (1 - clamped);
+    const offset = ringDashOffset(progress, C);
 
     return (
         <div className={cn('relative shrink-0', className)} style={{ height: SIZE, width: SIZE }}>
