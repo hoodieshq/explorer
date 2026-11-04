@@ -24,6 +24,8 @@ export type BaseSearchProps = {
     visibleTabs: FilterTab[];
     activeFilter: FilterId;
     isLoading: boolean;
+    autoFocus?: boolean;
+    placeholder?: string;
     onValueChange: (value: string) => void;
     onOpenChange: (open: boolean) => void;
     onFilterChange: (filter: FilterId) => void;
@@ -38,6 +40,8 @@ export function BaseSearch({
     visibleTabs,
     activeFilter,
     isLoading,
+    autoFocus = true,
+    placeholder = 'Search for tokens, validators, programs, and accounts',
     onValueChange,
     onOpenChange,
     onFilterChange,
@@ -108,14 +112,14 @@ export function BaseSearch({
                             <Search className="shrink-0 translate-x-px text-heavy-metal-100" size={15} />
                             <Command.Input
                                 ref={inputRef}
-                                autoFocus
+                                autoFocus={autoFocus}
                                 className={cn(
                                     'w-full min-w-0 flex-1',
                                     'border-none bg-transparent outline-none',
                                     'text-sm text-white placeholder:text-heavy-metal-100',
                                     'overflow-hidden',
                                 )}
-                                placeholder="Search for tokens, validators, programs, and accounts"
+                                placeholder={placeholder}
                                 value={value}
                                 onBlur={() => onOpenChange(false)}
                                 onFocus={() => {

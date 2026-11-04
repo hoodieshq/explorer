@@ -14,7 +14,12 @@ import { BaseSearch } from './BaseSearch';
 
 export const SEARCH_DEBOUNCE_MS = 500;
 
-export function SearchBar() {
+export interface SearchBarProps {
+    autoFocus?: boolean;
+    placeholder?: string;
+}
+
+export function SearchBar({ autoFocus, placeholder }: SearchBarProps = {}) {
     const [search, setSearch] = useState('');
     const [open, setOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState<FilterId>('all');
@@ -50,6 +55,8 @@ export function SearchBar() {
             value={search}
             open={open}
             isLoading={isLoading}
+            autoFocus={autoFocus}
+            placeholder={placeholder}
             onValueChange={handleValueChange}
             onOpenChange={setOpen}
             onFilterChange={setActiveFilter}

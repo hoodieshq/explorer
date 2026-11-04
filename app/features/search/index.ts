@@ -1,1 +1,1 @@
-export { SearchBar } from './ui/SearchBar';
+export { SearchBar, type SearchBarProps } from './ui/SearchBar';
