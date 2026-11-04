@@ -31,7 +31,7 @@ export function HowItWorks() {
                 id="home-how-heading"
                 className="m-0 mt-2 max-w-2xl text-2xl font-normal leading-snug tracking-tight text-dark-foreground sm:text-3xl"
             >
-                Open source, and reading the same chain you are
+                What you see is the chain’s own answer
             </h2>
 
             <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">

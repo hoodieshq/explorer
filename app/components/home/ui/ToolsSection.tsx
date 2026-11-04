@@ -40,12 +40,12 @@ export function ToolsSection() {
 
     return (
         <section aria-labelledby="home-tools-heading">
-            <span className={KICKER}>Only here</span>
+            <span className={KICKER}>Tools</span>
             <h2
                 id="home-tools-heading"
                 className="m-0 mt-2 text-2xl font-normal tracking-tight text-dark-foreground sm:text-3xl"
             >
-                Tools you won’t find on other explorers
+                Jump straight into a tool
             </h2>
 
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">

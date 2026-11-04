@@ -1,26 +1,28 @@
 'use client';
 
 import { cn } from '@components/shared/utils';
+import { GravityCta } from '@features/mcp-docs/ui/GravityCta';
+import { useRef } from 'react';
 
-import { KICKER } from '../lib/tokens';
 import { HomeSearch } from './HomeSearch';
 
 const EXAMPLES = ['an address', 'a signature', 'a program', 'a block'];
 
-// Static radial wash — no motion, just a soft green glow anchored top-left like the mcp/start page.
+// Static green glow anchored top-centre; the drifting particle field (reused from the MCP hero) sits
+// on top of it and gravitates toward the CTA.
 const WASH: React.CSSProperties = {
-    backgroundImage: 'radial-gradient(ellipse 60% 45% at 50% 0%, #1DD79B26 0%, #1DD79B00 70%)',
+    backgroundImage: 'radial-gradient(ellipse 60% 55% at 50% 0%, #1DD79B26 0%, #1DD79B00 70%)',
     backgroundRepeat: 'no-repeat',
 };
 
 export function HomeHero() {
+    const fieldRef = useRef<HTMLElement>(null);
+
     return (
-        <section aria-labelledby="home-hero-heading" className="relative overflow-hidden">
+        <section ref={fieldRef} aria-labelledby="home-hero-heading" className="relative w-full overflow-hidden">
             <div aria-hidden className="pointer-events-none absolute inset-0 -z-10" style={WASH} />
 
-            <div className="mx-auto flex max-w-3xl flex-col items-center gap-7 px-1 pb-4 pt-10 text-center sm:gap-9 sm:pt-16">
-                <span className={KICKER}>Official · Open source</span>
-
+            <div className="relative z-[1] mx-auto flex max-w-3xl flex-col items-center gap-7 px-5 pb-14 pt-14 text-center sm:gap-9 sm:pb-20 sm:pt-20">
                 <h1
                     id="home-hero-heading"
                     className="m-0 text-4xl font-normal leading-[1.05] tracking-tight text-dark-foreground sm:text-5xl lg:text-6xl"
@@ -29,8 +31,7 @@ export function HomeHero() {
                 </h1>
 
                 <p className="m-0 max-w-xl text-base leading-7 text-heavy-metal-300 sm:text-lg">
-                    No indexer, no middle layer — every number here comes live from an RPC node. The open-source
-                    explorer people check when something looks wrong.
+                    Explore accounts, transactions, blocks and tokens on any Solana cluster.
                 </p>
 
                 <div className="w-full max-w-2xl">
@@ -51,6 +52,17 @@ export function HomeHero() {
                         </span>
                     ))}
                 </p>
+
+                <GravityCta
+                    href="#network"
+                    fieldRef={fieldRef}
+                    desktopScope="heroDesktop"
+                    className="text-sm"
+                    zoneTop={0.2}
+                    zoneBottom={0.8}
+                >
+                    See the live network
+                </GravityCta>
             </div>
         </section>
     );

@@ -11,28 +11,29 @@ import {
 } from '@components/home';
 import { LiveTransactionStatsCard } from '@components/LiveTransactionStatsCard';
 import { AlpenglowCard } from '@features/alpenglow';
-import { UpcomingFeatures } from '@features/feature-gate';
 import { StatsProvider } from '@providers/stats';
 
 import { PageContainer } from '@/app/shared/ui/page-container/PageContainer';
 
 import { DeveloperResources } from './components/DeveloperResources';
-import { StakingSection } from './components/StakingSection';
 
 export default function Page() {
     return (
         <StatsProvider>
             <HomeStatsActivator />
-            <PageContainer className="mt-4 flex flex-col gap-10 sm:gap-14">
-                <HomeHero />
 
-                <HomeSection>
-                    <SlotStrip />
-                </HomeSection>
+            <HomeHero />
 
-                <HomeSection>
-                    <NetworkStats />
-                </HomeSection>
+            <PageContainer className="mt-10 flex flex-col gap-10 sm:mt-14 sm:gap-14">
+                <div id="network" className="flex scroll-mt-24 flex-col gap-10 sm:gap-14">
+                    <HomeSection>
+                        <SlotStrip />
+                    </HomeSection>
+
+                    <HomeSection>
+                        <NetworkStats />
+                    </HomeSection>
+                </div>
 
                 <HomeSection>
                     <ToolsSection />
@@ -42,13 +43,12 @@ export default function Page() {
                     <HowItWorks />
                 </HomeSection>
 
-                {/* Legacy sections, preserved below the redesigned content. */}
+                {/* Secondary content: the TPS history chart (longer window than the bento), network upgrade
+                    status, and developer links. */}
                 <div className="flex flex-col gap-6 border-0 border-t border-solid border-dark-border pt-10">
-                    <StakingSection />
                     <LiveTransactionStatsCard />
                     <AlpenglowCard />
                     <DeveloperResources />
-                    <UpcomingFeatures />
                 </div>
             </PageContainer>
         </StatsProvider>

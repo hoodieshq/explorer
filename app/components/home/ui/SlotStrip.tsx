@@ -58,28 +58,26 @@ export function SlotStrip() {
                 <span className="font-mono text-xs uppercase tracking-widest text-heavy-metal-300">Live slots</span>
             </div>
 
-            <ol
-                role="list"
-                className="flex list-none justify-end gap-2 overflow-hidden p-0 [mask-image:linear-gradient(to_right,transparent,black_96px)]"
-            >
-                {slots.map((slot, i) =>
-                    slot === undefined ? (
+            <ol role="list" className="flex list-none gap-2 p-0">
+                {slots.map((slot, i) => {
+                    const vis = tileVisibility(slots.length - 1 - i);
+                    return slot === undefined ? (
                         <li
                             key={`skeleton-${i}`}
                             aria-hidden
-                            className="bg-heavy-metal-800/50 h-12 w-[92px] shrink-0 rounded-lg border border-solid border-outer-space-800"
+                            className={cn('bg-heavy-metal-800/50 h-12 min-w-0 flex-1 rounded-lg', vis)}
                         />
                     ) : (
-                        <li key={slot.toString()} className="shrink-0">
+                        <li key={slot.toString()} className={cn('min-w-0 flex-1', vis)}>
                             <Link
                                 href={buildPath(`/block/${slot}`)}
                                 title={`Slot ${slot.toLocaleString('en-US')}`}
                                 className={cn(
-                                    'flex h-12 w-[92px] flex-col items-center justify-center rounded-lg no-underline',
+                                    'flex h-12 w-full flex-col items-center justify-center rounded-lg no-underline',
                                     'border border-solid border-outer-space-700 bg-heavy-metal-800',
                                     'transition-colors hover:border-dark-accent',
                                     i === slots.length - 1 && 'border-dark-accent/60',
-                                    !reduced && 'duration-500 animate-in fade-in slide-in-from-right-3',
+                                    !reduced && 'duration-300 animate-in fade-in',
                                 )}
                             >
                                 <span className="font-mono text-[10px] uppercase tracking-wide text-heavy-metal-400">
@@ -90,9 +88,18 @@ export function SlotStrip() {
                                 </span>
                             </Link>
                         </li>
-                    ),
-                )}
+                    );
+                })}
             </ol>
         </section>
     );
+}
+
+// Keep the strip full-width and balanced at every breakpoint: always show the newest few tiles, reveal
+// older ones only as the viewport widens. Position is measured from the right (0 = newest).
+function tileVisibility(posFromRight: number): string {
+    if (posFromRight <= 2) return 'flex';
+    if (posFromRight <= 4) return 'hidden xs:flex';
+    if (posFromRight <= 5) return 'hidden sm:flex';
+    return 'hidden lg:flex';
 }
