@@ -57,6 +57,9 @@ export function HomeHero() {
                     href="#network"
                     fieldRef={fieldRef}
                     desktopScope="heroDesktop"
+                    mobileScope="heroDesktop"
+                    mobileDotScale={0.5}
+                    mobilePullScale={0.5}
                     className="text-sm"
                     zoneTop={0.2}
                     zoneBottom={0.8}

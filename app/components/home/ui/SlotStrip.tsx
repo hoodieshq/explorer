@@ -99,7 +99,7 @@ export function SlotStrip() {
 // older ones only as the viewport widens. Position is measured from the right (0 = newest).
 function tileVisibility(posFromRight: number): string {
     if (posFromRight <= 2) return 'flex';
-    if (posFromRight <= 4) return 'hidden xs:flex';
-    if (posFromRight <= 5) return 'hidden sm:flex';
+    if (posFromRight <= 4) return 'hidden sm:flex';
+    if (posFromRight <= 5) return 'hidden md:flex';
     return 'hidden lg:flex';
 }

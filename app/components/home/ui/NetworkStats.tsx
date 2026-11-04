@@ -1,6 +1,6 @@
 'use client';
 
-import { TimestampToggle } from '@components/common/TimestampToggle';
+import { Timestamp } from '@components/shared/ui/timestamp';
 import { cn } from '@components/shared/utils';
 import { useSupply } from '@features/supply';
 import { useVoteAccounts } from '@features/vote/model/vote-accounts';
@@ -214,7 +214,7 @@ function SecondaryStats() {
             <MiniStat label="Slot time (1h)" value={`${msPerSlot_1h}ms`} />
             <MiniStat
                 label="Cluster time"
-                value={blockTime ? <TimestampToggle unixTimestamp={blockTime} shorter /> : '—'}
+                value={blockTime ? <Timestamp unixTimestamp={Math.floor(blockTime / 1000)} display="relative" /> : '—'}
             />
         </Card>
     );
@@ -224,7 +224,7 @@ function MiniStat({ label, value }: { label: string; value: React.ReactNode }) {
     return (
         <div className="min-w-0">
             <div className="text-xs text-heavy-metal-400">{label}</div>
-            <div className="mt-1 truncate font-mono text-sm text-dark-foreground">{value}</div>
+            <div className="mt-1 min-w-0 font-mono text-sm text-dark-foreground">{value}</div>
         </div>
     );
 }

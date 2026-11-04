@@ -76,6 +76,7 @@ export function GravityCta({
     href,
     mobileDotScale = 1,
     mobilePullScale = 1,
+    mobileScope = 'base',
     pageBottomGap,
     softening,
     wrapClassName,
@@ -92,6 +93,7 @@ export function GravityCta({
     href: string;
     mobileDotScale?: number;
     mobilePullScale?: number;
+    mobileScope?: CtaFieldScope;
     softening?: number;
     pageBottomGap?: number;
     wrapClassName?: string;
@@ -249,7 +251,7 @@ export function GravityCta({
         const seed = () => {
             if (seeded) return;
             seeded = true;
-            const cap = restingCap(resolveCtaField(phone ? 'base' : desktopScope).density);
+            const cap = restingCap(resolveCtaField(phone ? mobileScope : desktopScope).density);
             while (dots.length < cap) spawn(true);
         };
 
@@ -266,7 +268,7 @@ export function GravityCta({
             const dt = last === 0 ? 1 / 60 : Math.min((now - last) / 1000, 1 / 20);
             last = now;
 
-            const tuning = resolveCtaField(phone ? 'base' : desktopScope);
+            const tuning = resolveCtaField(phone ? mobileScope : desktopScope);
             const bandFalloff = falloff ?? tuning.falloff;
             const inverseSquare = bandFalloff === 2;
             const speed = flightSpeedScale * tuning.flight;
@@ -506,6 +508,7 @@ export function GravityCta({
         pageBottomGap,
         mobileDotScale,
         mobilePullScale,
+        mobileScope,
         flightSpeedScale,
         falloff,
         softening,
