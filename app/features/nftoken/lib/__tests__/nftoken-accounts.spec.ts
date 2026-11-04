@@ -45,6 +45,7 @@ describe('parseNftokenAccount', () => {
             collection: COLLECTION,
             delegate: undefined,
             holder: NFT.holder,
+            is_frozen: false,
             kind: 'nft',
             metadata_url: NFT.metadataUrl,
         });

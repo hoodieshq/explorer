@@ -25,6 +25,19 @@ export const Loaded: Story = {
     args: { href, metadata: { kind: 'loaded', metadata: { image: solanaHero.src, name: 'Genesis: friends.glow' } } },
 };
 
+export const LongName: Story = {
+    args: {
+        href,
+        metadata: {
+            kind: 'loaded',
+            metadata: {
+                image: solanaHero.src,
+                name: 'Genesis: purplesquirrel.glow — the first of many, minted together',
+            },
+        },
+    },
+};
+
 export const LoadedWithoutName: Story = {
     args: { href, metadata: { kind: 'loaded', metadata: { image: solanaHero.src, name: undefined } } },
 };

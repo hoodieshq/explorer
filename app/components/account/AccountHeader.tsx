@@ -3,6 +3,7 @@ import { MetaplexNFTHeader } from '@components/account/MetaplexNFTHeader';
 import { useDasImage } from '@entities/digital-asset';
 import { isMetaplexNFT } from '@entities/nft';
 import { STAKE_PROGRAM_LABEL } from '@explorer/parsers';
+import { AccountDownloadDropdown } from '@features/account';
 import { NftokenAccountHeader, parseNftokenAccount } from '@features/nftoken';
 import {
     Account,
@@ -53,7 +54,14 @@ export function AccountHeader({
 
     const nftoken = account && parseNftokenAccount(account);
     if (nftoken) {
-        return <NftokenAccountHeader nftoken={nftoken} />;
+        return (
+            <NftokenAccountHeader
+                nftoken={nftoken}
+                account={account}
+                // REVIEW(HOO-929): for the card header, which hides the Overview card and so carries its buttons.
+                download={<AccountDownloadDropdown pubkey={account.pubkey} space={account.space} />}
+            />
+        );
     }
 
     if (isProgram) {

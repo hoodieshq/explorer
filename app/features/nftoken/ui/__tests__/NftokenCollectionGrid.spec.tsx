@@ -85,7 +85,7 @@ describe('NftokenCollectionGrid', () => {
         expect(screen.getAllByRole('link', { name: 'Loading...' })).toHaveLength(2);
     });
 
-    it('should link the original image from the metadata of a visible tile', async () => {
+    it('should make the whole card one link to the NFT, without a link to the original image', async () => {
         const image = 'https://cdn.glow.app/g/5e/rwwih1nsp8.png';
         mocks.fetchCollectionNfts.mockResolvedValue({
             kind: 'loaded',
@@ -101,7 +101,12 @@ describe('NftokenCollectionGrid', () => {
 
         showTile(0);
 
-        expect(await screen.findByRole('link', { name: 'View original' })).toHaveAttribute('href', image);
+        expect(await screen.findByRole('link', { name: 'Genesis: friends.glow' })).toHaveAttribute(
+            'href',
+            `/address/${MAINNET_NFT_ACCOUNTS[0].address}`,
+        );
+        expect(screen.getAllByRole('link')).toHaveLength(1);
+        expect(screen.queryByText('View original')).not.toBeInTheDocument();
     });
 
     it.each([

@@ -25,6 +25,7 @@ export type NftokenNftAccount = {
 
     collection: string | null;
     delegate: string | null;
+    is_frozen: boolean;
 
     metadata_url: string;
 };
