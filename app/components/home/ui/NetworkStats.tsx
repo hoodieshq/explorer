@@ -7,6 +7,8 @@ import { useVoteAccounts } from '@features/vote/model/vote-accounts';
 import { ClusterStatsStatus, useDashboardInfo, usePerformanceInfo } from '@providers/stats/solanaClusterStats';
 import { abbreviatedNumber, lamportsToSol, slotsToHumanString } from '@utils/index';
 import { percentage } from '@utils/math';
+import { useBuildClusterPath } from '@utils/url';
+import Link from 'next/link';
 import React from 'react';
 
 import { Card } from '@/app/shared/ui/Card';
@@ -66,13 +68,30 @@ function EpochCell() {
             <div className="flex items-center gap-4">
                 <EpochRing progress={progress} label={pct} sublabel={`epoch ${epoch}`} />
                 <div className="min-w-0">
-                    <div className="font-mono text-2xl text-dark-foreground" aria-label={`Epoch ${epoch}`}>
+                    <ClusterLink
+                        pathname={`/epoch/${epoch}`}
+                        className="font-mono text-2xl text-dark-foreground no-underline hover:text-dark-accent"
+                        aria-label={`Epoch ${epoch}`}
+                    >
                         {epoch.toLocaleString('en-US')}
-                    </div>
+                    </ClusterLink>
                     <div className="mt-1 text-sm text-heavy-metal-400">~{remaining} remaining</div>
                 </div>
             </div>
         </CellShell>
+    );
+}
+
+function ClusterLink({
+    pathname,
+    children,
+    ...rest
+}: Omit<React.ComponentProps<typeof Link>, 'href'> & { pathname: string }) {
+    const buildPath = useBuildClusterPath();
+    return (
+        <Link href={buildPath(pathname)} {...rest}>
+            {children}
+        </Link>
     );
 }
 
@@ -164,7 +183,17 @@ function SecondaryStats() {
 
     return (
         <Card ui="tw" className="grid grid-cols-2 gap-x-6 gap-y-4 p-5 sm:grid-cols-4">
-            <MiniStat label="Slot" value={epochInfo.absoluteSlot.toLocaleString('en-US')} />
+            <MiniStat
+                label="Slot"
+                value={
+                    <ClusterLink
+                        pathname={`/block/${epochInfo.absoluteSlot}`}
+                        className="text-dark-foreground no-underline hover:text-dark-accent"
+                    >
+                        {epochInfo.absoluteSlot.toLocaleString('en-US')}
+                    </ClusterLink>
+                }
+            />
             <MiniStat label="Block height" value={epochInfo.blockHeight.toLocaleString('en-US')} />
             <MiniStat label="Slot time (1h)" value={`${msPerSlot_1h}ms`} />
             <MiniStat

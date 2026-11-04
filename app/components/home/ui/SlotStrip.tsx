@@ -58,7 +58,10 @@ export function SlotStrip() {
                 <span className="font-mono text-xs uppercase tracking-widest text-heavy-metal-300">Live slots</span>
             </div>
 
-            <ol role="list" className="flex list-none justify-end gap-2 overflow-hidden p-0">
+            <ol
+                role="list"
+                className="flex list-none justify-end gap-2 overflow-hidden p-0 [mask-image:linear-gradient(to_right,transparent,black_96px)]"
+            >
                 {slots.map((slot, i) =>
                     slot === undefined ? (
                         <li
