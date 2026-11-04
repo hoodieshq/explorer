@@ -9,10 +9,10 @@ import React from 'react';
 
 import { useReducedMotion } from '@/app/shared/lib/use-reduced-motion';
 
-import { advanceHead, buildSlotWindow, clampCadence, MAX_TILES, resyncHead } from '../lib/slot-strip';
+import { buildSlotWindow, CALM_CADENCE_MS, MAX_TILES, SNAP_THRESHOLD, stepHead } from '../lib/slot-strip';
 
 export function SlotStrip() {
-    const { epochInfo, msPerSlot_1h, status } = useDashboardInfo();
+    const { epochInfo, status } = useDashboardInfo();
     const reduced = useReducedMotion();
     const { visible } = useTabVisibility();
     const buildPath = useBuildClusterPath();
@@ -20,20 +20,22 @@ export function SlotStrip() {
     const realSlot = epochInfo.absoluteSlot;
     const [head, setHead] = React.useState<bigint>(realSlot);
 
-    // Resync to each real poll; the head never moves backwards.
+    // Latest polled slot, read by the interval without re-creating it each 2s poll.
+    const targetRef = React.useRef(realSlot);
+    targetRef.current = realSlot;
+
+    // Snap on first data or a large desync (e.g. the tab was hidden and the slot jumped far ahead).
     React.useEffect(() => {
-        setHead(prev => resyncHead(prev, realSlot));
+        setHead(prev => (prev === 0n || realSlot - prev > SNAP_THRESHOLD ? realSlot : prev));
     }, [realSlot]);
 
-    // Interpolate the ~400ms slot cadence between the 2s epoch-info polls. Paused under reduced motion
-    // or a hidden tab; capped at MAX_DRIFT slots ahead of the last real value so it can never run away.
+    // Advance the head one calm step at a time toward the latest poll, so the numbers tick gently
+    // instead of flickering at the real slot rate. Paused under reduced motion or a hidden tab.
     React.useEffect(() => {
-        if (reduced || !visible || status !== ClusterStatsStatus.Ready || realSlot === 0n) return;
-        const id = setInterval(() => {
-            setHead(prev => advanceHead(prev, realSlot));
-        }, clampCadence(msPerSlot_1h));
+        if (reduced || !visible || status !== ClusterStatsStatus.Ready) return;
+        const id = setInterval(() => setHead(prev => stepHead(prev, targetRef.current)), CALM_CADENCE_MS);
         return () => clearInterval(id);
-    }, [reduced, visible, status, realSlot, msPerSlot_1h]);
+    }, [reduced, visible, status]);
 
     if (status === ClusterStatsStatus.Error) return undefined;
 
@@ -77,7 +79,6 @@ export function SlotStrip() {
                                     'border border-solid border-outer-space-700 bg-heavy-metal-800',
                                     'transition-colors hover:border-dark-accent',
                                     i === slots.length - 1 && 'border-dark-accent/60',
-                                    !reduced && 'duration-300 animate-in fade-in',
                                 )}
                             >
                                 <span className="font-mono text-[10px] uppercase tracking-wide text-heavy-metal-400">

@@ -1,27 +1,21 @@
-// Pure helpers for the live slot strip. Kept out of the component so the interpolation rules can be
+// Pure helpers for the live slot strip. Kept out of the component so the stepping rules can be
 // unit-tested without a React/provider harness.
 
 export const MAX_TILES = 8;
-/** How far the client-side interpolation may run past the last polled slot before holding for a resync. */
-export const MAX_DRIFT = 6n;
-export const DEFAULT_CADENCE_MS = 400;
-const MIN_CADENCE_MS = 200;
-const MAX_CADENCE_MS = 1200;
+/** Calm visual cadence — deliberately slower than the real ~400ms slot time so the strip reads as a
+ *  gentle tick rather than a flicker. The strip trails the chain slightly as a result; the exact
+ *  current slot stays authoritative in the stats grid. */
+export const CALM_CADENCE_MS = 600;
+/** Only a leap this large (a tab that was hidden for minutes) snaps; normal running crawls one slot
+ *  at a time and never jumps. */
+export const SNAP_THRESHOLD = 400n;
 
-/** Clamp a measured slot time into a sane animation cadence, falling back when it is missing. */
-export function clampCadence(msPerSlot: number): number {
-    if (!msPerSlot || Number.isNaN(msPerSlot)) return DEFAULT_CADENCE_MS;
-    return Math.min(MAX_CADENCE_MS, Math.max(MIN_CADENCE_MS, Math.round(msPerSlot)));
-}
-
-/** Resync to a freshly polled slot without ever moving the head backwards. */
-export function resyncHead(prev: bigint, realSlot: bigint): bigint {
-    return realSlot > prev ? realSlot : prev;
-}
-
-/** One interpolation tick: advance by a slot unless we are already MAX_DRIFT ahead of the last poll. */
-export function advanceHead(prev: bigint, realSlot: bigint, maxDrift: bigint = MAX_DRIFT): bigint {
-    return prev - realSlot < maxDrift ? prev + 1n : prev;
+/** One calm tick toward the latest polled slot: never backwards, a single slot at a time, snapping
+ *  only on a large desync so the numbers never jump around during normal use. */
+export function stepHead(prev: bigint, target: bigint): bigint {
+    if (target <= prev) return prev;
+    if (target - prev > SNAP_THRESHOLD) return target;
+    return prev + 1n;
 }
 
 /** The window of slots to show, oldest first, clamped to non-negative values. */
