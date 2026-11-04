@@ -7,7 +7,8 @@ import { cva } from 'class-variance-authority';
 
 /**
  * One pick among a few variants, as buttons; the picked one has the pressed look of the cards' Raw toggle. A row fits
- * up to three or four short labels in the menu's width; `grid` lays more out three to a line.
+ * up to three or four short labels in the menu's width; `grid` lays more out three to a line. A `primary` option, the variant the team prefers so far, has its label and a star after it in the brand
+ * green; the button itself keeps its plain look.
  */
 export function DesignMenuOptions<T extends string>({
     layout = 'row',
@@ -16,7 +17,7 @@ export function DesignMenuOptions<T extends string>({
     onChange,
 }: {
     layout?: 'row' | 'grid';
-    options: readonly { label: string; value: T }[];
+    options: readonly { label: string; value: T; primary?: boolean }[];
     value: T;
     onChange: (value: T) => void;
 }) {
@@ -31,7 +32,16 @@ export function DesignMenuOptions<T extends string>({
                     className="flex-1"
                     onClick={() => onChange(option.value)}
                 >
-                    {option.label}
+                    {/* The color sits on a span: the button's own text color would win against a className. */}
+                    {option.primary ? (
+                        <span className="inline-flex items-center gap-2 text-dark-accent">
+                            {option.label}
+                            <span aria-hidden>★</span>
+                            <span className="sr-only">(primary)</span>
+                        </span>
+                    ) : (
+                        option.label
+                    )}
                 </Button>
             ))}
         </div>

@@ -8,12 +8,18 @@ import { DesignMenuOptions, DesignMenuSection } from '@/app/shared/ui/design-men
 // REVIEW(HOO-921): the NFT header variants under review. Remove this module, and every variant that loses, before
 // the external PR.
 
-const NFT_HEADER_VARIANTS = [{ label: 'Original', value: 'original' }] as const;
+const NFT_HEADER_VARIANTS = [
+    { label: 'Wide Art', value: 'wideArt' },
+    // The primary variant: starred in the menu, which also says so under the buttons. Card and Split come from HOO-929's
+    // NFToken header: the header on a card, or cut into an art card and a text card.
+    { label: 'Card', primary: true, value: 'card' },
+    { label: 'Split', value: 'split' },
+] as const;
 
 export type NftHeaderVariant = (typeof NFT_HEADER_VARIANTS)[number]['value'];
 
 // The default stays in code: a reviewer who never flipped the switch gets a changed default too.
-const DEFAULT_NFT_HEADER_VARIANT: NftHeaderVariant = 'original';
+const DEFAULT_NFT_HEADER_VARIANT: NftHeaderVariant = 'card';
 
 const nftHeaderVariantAtom = atomWithStorage<NftHeaderVariant | undefined>('hoo-921:nft-header', undefined);
 
@@ -31,6 +37,9 @@ export function NftHeaderVariantSection() {
     return (
         <DesignMenuSection title="NFT header">
             <DesignMenuOptions options={NFT_HEADER_VARIANTS} value={variant} onChange={setVariant} />
+            <p className="m-0 text-xs text-outer-space-300">
+                <span className="text-dark-accent">★</span> Primary
+            </p>
         </DesignMenuSection>
     );
 }

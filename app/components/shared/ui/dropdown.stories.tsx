@@ -94,8 +94,8 @@ export const ScrollingMenuOpen: Story = {
     render: () => <ScrollingMenuExample defaultOpen />,
 };
 
-// Mirrors the creators dropdown — header row + entry rows. The custom `.creator-dropdown-*` SCSS
-// rules are inlined as Tailwind utilities at the callsite (see MetaplexNFTHeader.tsx).
+// Mirrors the creators dropdown the NFT header used to have — header row + entry rows. The custom
+// `.creator-dropdown-*` SCSS rules were inlined as Tailwind utilities at that callsite.
 const WithHeaderAndItemsExample = ({ defaultOpen = false }: { defaultOpen?: boolean }) => (
     <Dropdown defaultOpen={defaultOpen}>
         <DropdownToggle asChild>

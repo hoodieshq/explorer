@@ -1,3 +1,5 @@
+import { metaplexNftHeaderModel } from '@components/account/MetaplexNFTHeader';
+import { nftOverviewRows } from '@components/account/nft-header/overview-rows';
 import ScaledUiAmountMultiplierTooltip from '@components/account/token-extensions/ScaledUiAmountMultiplierTooltip';
 import { Address } from '@components/common/Address';
 import { Copyable } from '@components/common/Copyable';
@@ -242,23 +244,10 @@ function NonFungibleTokenMintAccountCard({
 
     const collectionOpt = nftData.metadata.collection;
     const collection = collectionOpt && isSome(collectionOpt) ? collectionOpt.value : null;
-    const maxSupplyOpt =
-        nftData.editionInfo.masterEdition && 'maxSupply' in nftData.editionInfo.masterEdition
-            ? nftData.editionInfo.masterEdition.maxSupply
-            : undefined;
-    const maxSupply = maxSupplyOpt && isSome(maxSupplyOpt) ? Number(maxSupplyOpt.value) : null;
 
     const rows: KeyValueRowInput[] = [
         { label: 'Address', value: <Address pubkey={account.pubkey} raw /> },
         { label: 'Owner', value: <Address pubkey={account.owner} link /> },
-        maxSupply != null && { label: 'Max Total Supply', value: maxSupply === 0 ? 1 : maxSupply },
-        nftData?.editionInfo.masterEdition != null && {
-            label: 'Current Supply',
-            value:
-                Number(nftData.editionInfo.masterEdition.supply) === 0
-                    ? 1
-                    : Number(nftData.editionInfo.masterEdition.supply),
-        },
         collection?.verified && {
             label: 'Verified Collection Address',
             value: <Address pubkey={new PublicKey(collection.key.toString())} link />,
@@ -275,20 +264,24 @@ function NonFungibleTokenMintAccountCard({
             label: 'Update Authority',
             value: <Address pubkey={new PublicKey(nftData.metadata.updateAuthority.toString())} link />,
         },
-        nftData?.json &&
-            nftData.json.external_url && {
-                label: 'Website',
-                value: (
-                    <ExternalLink href={nftData.json.external_url}>
-                        {nftData.json.external_url}
-                        <ExternalLinkIcon className="ml-1.5 align-text-top" size={13} />
-                    </ExternalLink>
-                ),
-            },
+        {
+            label: 'Website',
+            value: nftData.json?.external_url ? (
+                <ExternalLink href={nftData.json.external_url}>
+                    {nftData.json.external_url}
+                    <ExternalLinkIcon className="ml-1.5 align-text-top" size={13} />
+                </ExternalLink>
+            ) : (
+                <span className="text-outer-space-300">—</span>
+            ),
+        },
         nftData?.metadata && {
             label: 'Seller Fee',
             value: `${nftData.metadata.sellerFeeBasisPoints / 100}%`,
         },
+        // REVIEW(HOO-921): the fields the header variants moved here. The supply is in the header's Edition line. The
+        // collection only feeds the header, so these rows build the model without it.
+        ...nftOverviewRows(metaplexNftHeaderModel(nftData)),
     ];
 
     return (
