@@ -37,7 +37,7 @@ export function BaseAlpenglowCard({ cluster, upgrade }: { cluster: Cluster; upgr
             </div>
 
             {upgrade.kind === 'migrated' && (
-                <dl className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <dl className="mb-0 mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <Field label="Genesis slot">
                         <Slot slot={upgrade.cert.slot} link />
                     </Field>
@@ -55,7 +55,7 @@ export function BaseAlpenglowCard({ cluster, upgrade }: { cluster: Cluster; upgr
 function Field({ label, children }: { label: string; children: ReactNode }) {
     return (
         <div className="min-w-0">
-            <dt className="text-xs text-heavy-metal-400">{label}</dt>
+            <dt className="text-xs font-normal text-heavy-metal-400">{label}</dt>
             <dd className="mt-1.5 min-w-0 font-mono text-sm text-dark-foreground">{children}</dd>
         </div>
     );
