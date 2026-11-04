@@ -1,6 +1,14 @@
 'use client';
 
-import { HomeHero, HomeStatsActivator, HowItWorks, NetworkStats, SlotStrip, ToolsSection } from '@components/home';
+import {
+    HomeHero,
+    HomeSection,
+    HomeStatsActivator,
+    HowItWorks,
+    NetworkStats,
+    SlotStrip,
+    ToolsSection,
+} from '@components/home';
 import { LiveTransactionStatsCard } from '@components/LiveTransactionStatsCard';
 import { AlpenglowCard } from '@features/alpenglow';
 import { UpcomingFeatures } from '@features/feature-gate';
@@ -18,13 +26,21 @@ export default function Page() {
             <PageContainer className="mt-4 flex flex-col gap-10 sm:gap-14">
                 <HomeHero />
 
-                <SlotStrip />
+                <HomeSection>
+                    <SlotStrip />
+                </HomeSection>
 
-                <NetworkStats />
+                <HomeSection>
+                    <NetworkStats />
+                </HomeSection>
 
-                <ToolsSection />
+                <HomeSection>
+                    <ToolsSection />
+                </HomeSection>
 
-                <HowItWorks />
+                <HomeSection>
+                    <HowItWorks />
+                </HomeSection>
 
                 {/* Legacy sections, preserved below the redesigned content. */}
                 <div className="flex flex-col gap-6 border-0 border-t border-solid border-dark-border pt-10">
