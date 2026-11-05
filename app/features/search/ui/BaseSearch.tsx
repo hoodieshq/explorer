@@ -168,18 +168,28 @@ export function BaseSearch({
                         // Always drop below the field. Without this the tall results list flips above the
                         // input when the viewport is short (e.g. the homepage hero), covering the navbar.
                         avoidCollisions={false}
+                        collisionPadding={8}
                         data-search-panel
                         className={cn(
                             'z-50 rounded-md shadow-2xl [border-style:solid]',
                             'w-[var(--radix-popover-trigger-width)]',
                             'border border-outer-space-800 bg-outer-space-900',
+                            // Reset inherited alignment — the panel renders inline inside whatever anchors it
+                            // (e.g. the text-center homepage hero), which would otherwise centre the headings.
+                            'text-left',
+                            // Never grow past the space below the field: cap to Radix's available height and
+                            // let the list scroll inside, so the page itself does not have to scroll.
+                            'flex max-h-[var(--radix-popover-content-available-height)] flex-col overflow-hidden',
                         )}
                         onInteractOutside={e => {
                             if (e.target instanceof Element && e.target === inputRef.current) e.preventDefault();
                         }}
                         onOpenAutoFocus={e => e.preventDefault()}
                     >
-                        <div onMouseDown={event => event.preventDefault()}>
+                        <div
+                            onMouseDown={event => event.preventDefault()}
+                            className="flex min-h-0 flex-col overflow-hidden"
+                        >
                             {/* Allow a single pill: hide-all rule can leave visibleTabs at length 1. */}
                             {hasResults && visibleTabs.length >= 1 && (
                                 <SearchFilters
@@ -192,7 +202,7 @@ export function BaseSearch({
 
                             <CommandList
                                 className={cn(
-                                    'max-h-[420px] overflow-y-auto overflow-x-hidden p-1.5 pt-0',
+                                    'max-h-[420px] min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-1.5 pt-0',
                                     '[&::-webkit-scrollbar]:w-2',
                                     '[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-outer-space-600 [&::-webkit-scrollbar-thumb]:hover:bg-outer-space-500',
                                     '[&::-webkit-scrollbar-track]:rounded-md [&::-webkit-scrollbar-track]:bg-outer-space-900',

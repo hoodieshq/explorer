@@ -13,7 +13,7 @@ export function SearchFilters({ tabs, activeFilter, counts, onFilterChange }: Se
     return (
         <div
             className={cn(
-                'flex gap-1.5 overflow-x-auto px-3 py-2.5',
+                'flex shrink-0 gap-1.5 overflow-x-auto px-3 py-2.5',
                 'border-0 border-b border-solid border-outer-space-800',
                 '[&::-webkit-scrollbar]:hidden',
             )}
