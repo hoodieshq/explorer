@@ -21,12 +21,11 @@ export function DesignMenuSections() {
 
 function MetadataProxySection() {
     const [override, setOverride] = useAtom(metadataProxyOverrideAtom);
-    const bypassed = !(override ?? process.env.NEXT_PUBLIC_METADATA_ENABLED === 'true');
     return (
         <DesignMenuSection title="Metadata">
             <DesignMenuSwitch
                 label="Bypass the proxy"
-                checked={bypassed}
+                checked={!override}
                 onCheckedChange={bypass => {
                     setOverride(!bypass);
                     // Loaded metadata and image verdicts are cached for the page's life; a reload asks again.

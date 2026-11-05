@@ -2,20 +2,24 @@ import { atomWithStorage } from 'jotai/utils';
 
 // REVIEW(HOO-921): lets the design menu send off-chain metadata and art past the metadata proxy or through it,
 // whatever the deploy's `NEXT_PUBLIC_METADATA_ENABLED` says, so a reviewer can see both the loaded art and the
-// placeholder on one preview. Remove with the design menu.
+// placeholder on one preview. The bypass is on until a reviewer turns it off, so a preview shows the art. Remove with
+// the design menu.
 
 const STORAGE_KEY = 'hoo-921:metadata-proxy';
 
-/** `true` sends metadata through the proxy, `false` straight to its host; unset leaves it to the deploy. */
-export const metadataProxyOverrideAtom = atomWithStorage<boolean | undefined>(STORAGE_KEY, undefined);
+/** `true` sends metadata through the proxy, `false` (the default) straight to its host. */
+export const metadataProxyOverrideAtom = atomWithStorage<boolean>(STORAGE_KEY, false);
 
-/** The reviewer's choice, read from storage directly: `getProxiedUri` is a plain function, not a hook. */
+/**
+ * The reviewer's choice, read from storage directly: `getProxiedUri` is a plain function, not a hook. On the server,
+ * which has no storage, the deploy decides (`undefined`).
+ */
 export function readMetadataProxyOverride(): boolean | undefined {
     if (typeof window === 'undefined') return undefined;
     try {
         const stored: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? 'null');
-        return typeof stored === 'boolean' ? stored : undefined;
+        return typeof stored === 'boolean' ? stored : false;
     } catch {
-        return undefined;
+        return false;
     }
 }
