@@ -43,11 +43,14 @@ export const MAINNET_NFT_ACCOUNTS: NftokenNftAccount[] = MAINNET_NFTS.map(nft =>
     collection: COLLECTION,
     delegate: undefined,
     holder: nft.holder,
+    is_frozen: false,
     kind: 'nft',
     metadata_url: nft.metadataUrl,
 }));
 
 export const NFT_CAN_UPDATE_OFFSET = 73;
+// 8 discriminator + 1 version + 32 holder + 32 authority + 1 authority_can_update + 32 collection + 32 delegate.
+export const NFT_IS_FROZEN_OFFSET = 138;
 export const COLLECTION_CAN_UPDATE_OFFSET = 41;
 export const COLLECTION_FIELD = { end: 106, start: 74 };
 

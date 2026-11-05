@@ -47,6 +47,7 @@ describe('decodeNftokenNftAccount', () => {
         expect(nft?.address).toBe(ACCOUNT_ADDRESS);
         expect(nft?.metadata_url).toBe('https://cdn.glow.app/n/88/78ef17c1-2b5a-468e-ae8f-7403856e9f00.json');
         expect(nft?.authority_can_update).toBe(true);
+        expect(nft?.is_frozen).toBe(false);
     });
 
     it('should return undefined for a collection account', () => {

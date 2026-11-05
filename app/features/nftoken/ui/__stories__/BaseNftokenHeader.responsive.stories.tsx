@@ -21,7 +21,6 @@ type Story = StoryObj<typeof meta>;
 const args = {
     kind: 'nft',
     metadata: { kind: 'loaded', metadata: { image: solanaHero.src, name: 'Genesis: friends.glow' } },
-    mutable: true,
 } as const;
 
 export const Mobile: Story = {

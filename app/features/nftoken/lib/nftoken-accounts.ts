@@ -12,6 +12,7 @@ export type NftokenNftAccount = {
     collection: Address | undefined;
     delegate: Address | undefined;
     holder: Address;
+    is_frozen: boolean;
     metadata_url: string;
 };
 
@@ -27,6 +28,10 @@ export type NftokenAccount = NftokenNftAccount | NftokenCollectionAccount;
 
 export function isNftokenCollection(account: Account): boolean {
     return parseNftokenAccount(account)?.kind === 'collection';
+}
+
+export function isNftokenNft(account: Account): boolean {
+    return parseNftokenAccount(account)?.kind === 'nft';
 }
 
 export function parseNftokenAccount(account: Account): NftokenAccount | undefined {
@@ -52,6 +57,7 @@ export function parseNftokenNftAccount(address: Address, data: ReadonlyUint8Arra
             collection: addressIfSet(nft.collection),
             delegate: addressIfSet(nft.delegate),
             holder: toAddress(nft.holder),
+            is_frozen: nft.is_frozen,
             kind: 'nft',
             metadata_url: nft.metadata_url,
         };

@@ -10,8 +10,9 @@ import type { Account } from '@providers/accounts';
 import { type KeyValueRow, KeyValueRows } from '@/app/shared/ui/key-value';
 
 import { type NftokenCollectionAccount, type NftokenNftAccount, parseNftokenAccount } from '../lib/nftoken-accounts';
-import { type CollectionNftsState, useCollectionNfts } from '../model/use-collection-nfts';
-import { useRefreshNftokenMetadata } from '../model/use-nftoken-metadata';
+import { useCollectionNfts } from '../model/use-collection-nfts';
+import { useNftokenMetadata, useRefreshNftokenMetadata } from '../model/use-nftoken-metadata';
+import { MutabilityHint, NftokenWebsite as Website } from './NftokenFieldValues';
 
 export function NftokenAccountSection({ account }: { account: Account }) {
     const nftoken = parseNftokenAccount(account);
@@ -27,6 +28,7 @@ export function NftokenAccountSection({ account }: { account: Account }) {
 }
 
 function NftCard({ account, nft }: { account: Account; nft: NftokenNftAccount }) {
+    const metadata = useNftokenMetadata(nft.metadata_url);
     const refreshAccount = useRefreshAccount();
     const refreshMetadata = useRefreshNftokenMetadata();
     const refresh = () => {
@@ -41,10 +43,14 @@ function NftCard({ account, nft }: { account: Account; nft: NftokenNftAccount })
             label: 'Delegate',
             value: nft.delegate ? <KitAddress address={nft.delegate} link /> : 'Not Delegated',
         },
+        // Like the other yes / no account rows ("Upgradeable: Yes", "Executable: No").
+        { label: 'Frozen', value: nft.is_frozen ? 'Yes' : 'No' },
         {
             label: 'Collection',
             value: nft.collection ? <KitAddress address={nft.collection} link /> : 'No Collection',
         },
+        { label: 'Metadata', value: <MutabilityHint kind="nft" mutable={nft.authority_can_update} /> },
+        { label: 'Website', value: <Website metadata={metadata} /> },
     ];
 
     return (
@@ -56,8 +62,10 @@ function NftCard({ account, nft }: { account: Account; nft: NftokenNftAccount })
 }
 
 function CollectionCard({ account, collection }: { account: Account; collection: NftokenCollectionAccount }) {
+    const metadata = useNftokenMetadata(collection.metadata_url);
     const refreshAccount = useRefreshAccount();
     const refreshMetadata = useRefreshNftokenMetadata();
+    // The header shows the count; Refresh here counts the NFTs again too, so the whole page refreshes at once.
     const nfts = useCollectionNfts(collection.address);
     const refresh = () => {
         refreshAccount(account.pubkey, 'parsed');
@@ -67,7 +75,8 @@ function CollectionCard({ account, collection }: { account: Account; collection:
 
     const rows: KeyValueRow[] = [
         { label: 'Authority', value: <KitAddress address={collection.authority} link /> },
-        { label: 'Number of NFTs', value: <NftCount nfts={nfts} /> },
+        { label: 'Metadata', value: <MutabilityHint kind="collection" mutable={collection.authority_can_update} /> },
+        { label: 'Website', value: <Website metadata={metadata} /> },
     ];
 
     return (
@@ -76,17 +85,4 @@ function CollectionCard({ account, collection }: { account: Account; collection:
             <KeyValueRows rows={rows} />
         </AccountCard>
     );
-}
-
-function NftCount({ nfts }: { nfts: CollectionNftsState }): string | number {
-    switch (nfts.kind) {
-        case 'loading':
-            return 'Loading...';
-        case 'loaded':
-            return nfts.nfts.length + nfts.undecodableCount;
-        case 'unsupported':
-        case 'refused':
-        case 'failed':
-            return 'Fetch Failed';
-    }
 }

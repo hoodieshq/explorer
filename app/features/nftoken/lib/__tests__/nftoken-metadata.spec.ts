@@ -10,8 +10,83 @@ describe('parseNftokenMetadata', () => {
         });
     });
 
+    it('should read the description and the external URL', () => {
+        expect(
+            parseNftokenMetadata({
+                description: ' The Genesis collection. ',
+                external_url: 'https://glow.app\n',
+                name: 'A',
+            }),
+        ).toEqual({
+            kind: 'loaded',
+            metadata: {
+                description: 'The Genesis collection.',
+                externalUrl: 'https://glow.app',
+                image: undefined,
+                name: 'A',
+            },
+        });
+    });
+
+    it.each([
+        ['missing', {}],
+        ['null', { description: null, external_url: null }],
+        ['blank', { description: ' ', external_url: '' }],
+        ['not text', { description: { en: 'A' }, external_url: 5 }],
+    ])('should read a %s description and external URL as absent but keep the rest', (_, fields) => {
+        expect(parseNftokenMetadata({ name: 'A', ...fields })).toEqual({
+            kind: 'loaded',
+            metadata: { description: undefined, externalUrl: undefined, image: undefined, name: 'A' },
+        });
+    });
+
+    it('should read the traits, numbers as text', () => {
+        expect(
+            parseNftokenMetadata({
+                name: 'A',
+                traits: [
+                    { trait_type: 'Glow ID', value: 'friends' },
+                    { trait_type: 'Level', value: 3 },
+                ],
+            }),
+        ).toMatchObject({
+            metadata: {
+                traits: [
+                    { type: 'Glow ID', value: 'friends' },
+                    { type: 'Level', value: '3' },
+                ],
+            },
+        });
+    });
+
+    it('should skip traits without a text type or a text or number value', () => {
+        expect(
+            parseNftokenMetadata({
+                name: 'A',
+                traits: [
+                    { trait_type: 'Glow ID', value: 'friends' },
+                    { trait_type: 5, value: 'a' },
+                    { trait_type: 'Nested', value: { a: 1 } },
+                    { value: 'no type' },
+                    'text',
+                    null,
+                ],
+            }),
+        ).toMatchObject({ metadata: { traits: [{ type: 'Glow ID', value: 'friends' }] } });
+    });
+
+    it.each([
+        ['missing', {}],
+        ['not a list', { traits: { 'Glow ID': 'friends' } }],
+    ])('should read %s traits as absent but keep the rest', (_, fields) => {
+        expect(parseNftokenMetadata({ name: 'A', ...fields })).toMatchObject({
+            kind: 'loaded',
+            metadata: { name: 'A', traits: undefined },
+        });
+    });
+
     it('should ignore fields outside the schema', () => {
-        expect(parseNftokenMetadata({ name: 'A', traits: [{ trait_type: 'Glow ID', value: 'a' }] })).toEqual({
+        expect(parseNftokenMetadata({ attributes: [{ trait_type: 'Glow ID', value: 'a' }], name: 'A' })).toEqual({
             kind: 'loaded',
             metadata: { image: undefined, name: 'A' },
         });

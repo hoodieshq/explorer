@@ -1,8 +1,7 @@
+import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
 import { pluralWord } from '@utils/index';
 import { Children, type ReactElement } from 'react';
-
-import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 
 export function BaseNftokenCollectionGrid({
     onRefresh,
@@ -18,37 +17,39 @@ export function BaseNftokenCollectionGrid({
     undecodableCount: number;
 }) {
     return (
-        <Card ui="dashkit">
-            <CardHeader ui="dashkit">
-                <CardTitle as="h3" ui="dashkit">
-                    NFTs
-                </CardTitle>
+        <CollapsibleSection
+            title="NFTs"
+            className=""
+            actions={
                 <RefreshButton
                     analyticsSection="nft_token_collection_grid"
                     fetching={refreshing}
                     failed={refreshFailed}
                     onClick={onRefresh}
                 />
-            </CardHeader>
-
-            <div className="flex flex-col gap-6 py-6">
+            }
+        >
+            <div className="flex flex-col gap-4">
                 {tiles.length > 0 && (
+                    // Two columns on a phone, more as the row widens; every card gets the same width.
                     <ul
                         aria-label="NFTs"
-                        className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-6 p-0"
+                        className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-1.5 p-0 sm:gap-3"
                     >
                         {Children.map(tiles, tile => (
                             <li>{tile}</li>
                         ))}
                     </ul>
                 )}
-                {tiles.length === 0 && undecodableCount === 0 && <div className="px-6">No NFTs Found</div>}
+                {tiles.length === 0 && undecodableCount === 0 && <p className={NOTE_CLASSES}>No NFTs Found</p>}
                 {undecodableCount > 0 && (
-                    <div className="px-6">
+                    <p className={NOTE_CLASSES}>
                         {`${undecodableCount} NFT ${pluralWord(undecodableCount, 'account')} in this collection could not be decoded.`}
-                    </div>
+                    </p>
                 )}
             </div>
-        </Card>
+        </CollapsibleSection>
     );
 }
+
+const NOTE_CLASSES = 'm-0 text-sm text-outer-space-300';

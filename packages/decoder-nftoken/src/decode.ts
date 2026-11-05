@@ -32,6 +32,7 @@ export function decodeNftokenNftAccount(
 
         delegate: parsed.delegate,
         holder: parsed.holder,
+        is_frozen: Boolean(parsed.is_frozen),
 
         metadata_url: parsed.metadata_url,
     };

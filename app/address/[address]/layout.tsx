@@ -28,7 +28,7 @@ import {
     SYSVAR_PROGRAM_LABEL,
     VOTE_PROGRAM_LABEL,
 } from '@explorer/parsers';
-import { isNftokenCollection, NftokenAccountSection } from '@features/nftoken';
+import { isNftokenCollection, isNftokenNft, NftokenAccountSection } from '@features/nftoken';
 import { SecurityNotification } from '@features/security-txt';
 import { StakeAccountSection } from '@features/stake';
 import { VoteAccountSection } from '@features/vote';
@@ -51,6 +51,7 @@ import { PublicKey } from '@solana/web3.js';
 import { TOKEN_2022_PROGRAM_ADDRESS } from '@solana-program/token-2022';
 import { ClusterStatus } from '@utils/cluster';
 import { FEATURE_PROGRAM_ID } from '@utils/parseFeatureAccount';
+import { cva } from 'class-variance-authority';
 import { redirect, RedirectType } from 'next/navigation';
 import React, { PropsWithChildren, Suspense, use } from 'react';
 import { ErrorBoundary } from 'react-error-boundary';
@@ -278,8 +279,10 @@ function DetailsSections({
         </>
     );
 
+    const isNftoken = account.owner.toBase58() === NFTOKEN_ADDRESS;
+
     return (
-        <PageSections>
+        <PageSections className={detailsSectionsVariants({ bottom: isNftoken ? 'nftoken' : 'default' })}>
             {FLAGGED_ACCOUNTS_WARNING[address] ?? null}
             <InfoSection account={account} tokenInfo={tokenInfo} />
             {notification}
@@ -289,6 +292,12 @@ function DetailsSections({
         </PageSections>
     );
 }
+
+// NFToken pages end 80px above the footer: the app's `pb-6` plus this. A HOO-929 request for these pages only; the
+// rest of the address pages keep the app's 24px.
+const detailsSectionsVariants = cva('', {
+    variants: { bottom: { default: '', nftoken: 'pb-14' } },
+});
 
 function InfoSection({ account, tokenInfo }: { account: Account; tokenInfo?: FullTokenInfo }) {
     const parsedData = account.data.parsed;
@@ -445,6 +454,9 @@ function getNavigationTabs(pubkey: PublicKey, account: Account): AddressTab[] {
     const isNFToken = account.owner.toBase58() === NFTOKEN_ADDRESS;
     if (isNftokenCollection(account)) {
         tabs.push({ path: 'nftoken-collection-nfts', title: 'NFTs' });
+    }
+    if (isNftokenNft(account)) {
+        tabs.push({ path: 'attributes', title: 'Attributes' });
     }
 
     if (

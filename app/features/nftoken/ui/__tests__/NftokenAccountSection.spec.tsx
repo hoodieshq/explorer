@@ -13,6 +13,8 @@ import {
     MAINNET_AUTHORITY,
     MAINNET_NFT_ACCOUNTS,
     MAINNET_NFTS,
+    NFT_CAN_UPDATE_OFFSET,
+    NFT_IS_FROZEN_OFFSET,
     nftokenAccount,
 } from '../../__tests__/fixtures';
 import type { CollectionNftsAnswer } from '../../api/fetch-collection-nfts';
@@ -21,13 +23,25 @@ import { NftokenAccountHeader } from '../NftokenAccountHeader';
 import { NftokenAccountSection } from '../NftokenAccountSection';
 
 const mocks = vi.hoisted(() => ({
+    fetchAccountInfo: vi.fn(),
     fetchCollectionNfts: vi.fn(),
     fetchNftokenMetadata: vi.fn(),
     refreshAccount: vi.fn(),
 }));
 
-vi.mock('@entities/cluster', () => ({ useCluster: () => ({ connectableUrl: 'https://mock.rpc' }) }));
-vi.mock('@entities/account', () => ({ useRefreshAccount: () => mocks.refreshAccount }));
+vi.mock('@entities/cluster', () => ({
+    useCluster: () => ({ connectableUrl: 'https://mock.rpc' }),
+    useClusterPath: ({ pathname }: { pathname: string }) => pathname,
+}));
+vi.mock('@providers/accounts', () => ({
+    useAccountInfo: () => undefined,
+    useFetchAccountInfo: () => mocks.fetchAccountInfo,
+}));
+vi.mock('@entities/account', () => ({
+    useAccountFetching: () => false,
+    useRawAccountDataOnMount: () => ({ data: undefined, isLoading: false }),
+    useRefreshAccount: () => mocks.refreshAccount,
+}));
 vi.mock('@features/account', () => ({
     AccountCard: ({ children, refresh }: { children: ReactNode; refresh: () => void }) => (
         <>
@@ -61,6 +75,21 @@ describe('NftokenAccountSection', () => {
         expectRow('Collection', COLLECTION);
     });
 
+    it('should show whether an NFT is frozen', () => {
+        renderSection(nftokenAccount(accountBytes(NFT.base64), NFT.pubkey));
+
+        expectRow('Frozen', 'No');
+    });
+
+    it('should show a frozen NFT as frozen', () => {
+        const data = accountBytes(NFT.base64);
+        data[NFT_IS_FROZEN_OFFSET] = 1;
+
+        renderSection(nftokenAccount(data, NFT.pubkey));
+
+        expectRow('Frozen', 'Yes');
+    });
+
     it('should show No Collection for an NFT without a collection', () => {
         const data = accountBytes(NFT.base64);
         data.fill(0, COLLECTION_FIELD.start, COLLECTION_FIELD.end);
@@ -90,7 +119,7 @@ describe('NftokenAccountSection', () => {
             undecodableCount: 2,
         });
 
-        renderSection(collectionAccount());
+        renderSectionWithHeader(collectionAccount());
 
         expect(await screen.findByText(String(MAINNET_NFT_ACCOUNTS.length + 2))).toBeInTheDocument();
         expect(screen.getByText('Number of NFTs')).toBeInTheDocument();
@@ -101,7 +130,7 @@ describe('NftokenAccountSection', () => {
             .mockResolvedValueOnce({ kind: 'loaded', nfts: MAINNET_NFT_ACCOUNTS, undecodableCount: 0 })
             .mockResolvedValueOnce({ kind: 'loaded', nfts: MAINNET_NFT_ACCOUNTS.slice(1), undecodableCount: 0 });
         const account = collectionAccount();
-        renderSection(account);
+        renderSectionWithHeader(account);
         await screen.findByText(String(MAINNET_NFT_ACCOUNTS.length));
 
         fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
@@ -116,7 +145,7 @@ describe('NftokenAccountSection', () => {
             .mockRejectedValueOnce(new Error('HTTP error (429)'))
             .mockReturnValueOnce(new Promise(resolve => (answer = resolve)))
             .mockRejectedValue(new Error('HTTP error (429)'));
-        renderSection(collectionAccount());
+        renderSectionWithHeader(collectionAccount());
         await screen.findByText('Fetch Failed');
 
         fireEvent.click(screen.getByRole('button', { name: 'Refresh' }));
@@ -146,14 +175,6 @@ describe('NftokenAccountSection', () => {
         expect(await screen.findByRole('heading', { name: 'New name' })).toBeInTheDocument();
     });
 
-    it('should show Loading... as the count while the request is pending', () => {
-        mocks.fetchCollectionNfts.mockReturnValue(new Promise(() => {}));
-
-        renderSection(collectionAccount());
-
-        expectRow('Number of NFTs', 'Loading...');
-    });
-
     it.each([
         ['unsupported', () => mocks.fetchCollectionNfts.mockResolvedValue({ kind: 'unsupported' })],
         ['refused', () => mocks.fetchCollectionNfts.mockResolvedValue({ kind: 'refused' })],
@@ -161,7 +182,7 @@ describe('NftokenAccountSection', () => {
     ])('should show Fetch Failed as the count when the request is %s', async (_, arrange) => {
         arrange();
 
-        renderSection(collectionAccount());
+        renderSectionWithHeader(collectionAccount());
 
         expect(await screen.findByText('Fetch Failed')).toBeInTheDocument();
         expect(screen.getByText('Number of NFTs')).toBeInTheDocument();
@@ -171,11 +192,73 @@ describe('NftokenAccountSection', () => {
         vi.useFakeTimers();
         mocks.fetchCollectionNfts.mockRejectedValue(new Error('HTTP error (503)'));
 
-        renderSection(collectionAccount());
+        renderSectionWithHeader(collectionAccount());
         await act(() => vi.advanceTimersByTimeAsync(10 * 60_000));
 
         expect(mocks.fetchCollectionNfts).toHaveBeenCalledTimes(3);
         expectRow('Number of NFTs', 'Fetch Failed');
+    });
+
+    it('should show the metadata of an NFT its authority can update as Mutable', () => {
+        renderSection(nftokenAccount(accountBytes(NFT.base64), NFT.pubkey));
+
+        expectRow('Metadata', 'Mutable');
+    });
+
+    it('should show the metadata of an NFT its authority cannot update as Immutable', () => {
+        const data = accountBytes(NFT.base64);
+        data[NFT_CAN_UPDATE_OFFSET] = 0;
+
+        renderSection(nftokenAccount(data, NFT.pubkey));
+
+        expectRow('Metadata', 'Immutable');
+    });
+
+    it('should show the metadata mutability of a collection', () => {
+        mocks.fetchCollectionNfts.mockReturnValue(new Promise(() => {}));
+
+        renderSection(collectionAccount());
+
+        expectRow('Metadata', 'Mutable');
+    });
+
+    it.each([
+        ['an NFT', () => nftokenAccount(accountBytes(NFT.base64), NFT.pubkey)],
+        ['a collection', collectionAccount],
+    ])('should link the website from the metadata of %s', async (_, account) => {
+        mocks.fetchCollectionNfts.mockReturnValue(new Promise(() => {}));
+        mocks.fetchNftokenMetadata.mockResolvedValue({
+            kind: 'loaded',
+            metadata: { externalUrl: 'https://glow.app', image: undefined, name: 'A' },
+        });
+
+        renderSection(account());
+
+        expect(await screen.findByRole('link', { name: 'https://glow.app' })).toHaveAttribute(
+            'href',
+            'https://glow.app',
+        );
+        expect(screen.getByText('Website')).toBeInTheDocument();
+    });
+
+    it('should show a dash for metadata without a website', async () => {
+        mocks.fetchNftokenMetadata.mockResolvedValue({ kind: 'loaded', metadata: { image: undefined, name: 'A' } });
+
+        renderSection(nftokenAccount(accountBytes(NFT.base64), NFT.pubkey));
+
+        expect(await screen.findByText('—')).toBeInTheDocument();
+    });
+
+    it('should show a website that is not an http(s) address as text, not a link', async () => {
+        mocks.fetchNftokenMetadata.mockResolvedValue({
+            kind: 'loaded',
+            metadata: { externalUrl: 'javascript:alert(1)', image: undefined, name: 'A' },
+        });
+
+        renderSection(nftokenAccount(accountBytes(NFT.base64), NFT.pubkey));
+
+        expect(await screen.findByText('javascript:alert(1)')).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'javascript:alert(1)' })).not.toBeInTheDocument();
     });
 
     it('should render the unknown account card for data that does not decode', () => {
