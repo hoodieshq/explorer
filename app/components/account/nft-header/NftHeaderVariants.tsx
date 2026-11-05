@@ -2,6 +2,7 @@
 
 import { Address } from '@components/common/Address';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@components/shared/ui/tooltip';
+import solanaLogo from '@img/logos-solana/low-contrast-solana-logo.svg';
 import { PublicKey } from '@solana/web3.js';
 import { useClusterPath } from '@utils/url';
 import { cva } from 'class-variance-authority';
@@ -153,8 +154,9 @@ function CardLayout({ art, originalLink, label, name, specs }: CardLayoutProps) 
                     {/* The negative right margin takes back part of the text's inset (`TEXT_INSET`), so "View original"
                         sits 14px from the card's right edge. `items-baseline`: the label and the button's text share a
                         line. */}
-                    <div className="flex items-baseline justify-between gap-3 max-sm:-mr-0.5 sm:-mr-2.5">
-                        <span className="text-xs font-normal uppercase text-muted">{label}</span>
+                    <div className="flex items-center justify-between gap-3 max-sm:-mr-0.5 sm:-mr-2.5">
+                        {/* The key-value rows' key gray, like "View original" beside it. */}
+                        <span className="text-xs font-normal uppercase text-outer-space-300">{label}</span>
                         {originalLink}
                     </div>
                     {name}
@@ -203,7 +205,7 @@ const SPLIT_PADDING = 'p-2.5 sm:p-3';
 /** The split layout's title row, spaced like the Overview card's (`OverviewCard`). */
 function TitleRow({ label, originalLink }: Pick<CardLayoutProps, 'label' | 'originalLink'>) {
     return (
-        <div className="flex min-h-[1.75rem] flex-wrap items-baseline justify-between gap-2">
+        <div className="flex min-h-[1.75rem] flex-wrap items-center justify-between gap-2">
             <div className="text-lg font-normal text-white">{label}</div>
             {originalLink}
         </div>
@@ -337,11 +339,29 @@ function NftArt({
                     })
                 }
                 placeholder={<Skeleton className={nftArtPlaceholderVariants({ onCard })} />}
+                fallback={failure => <NftArtFallback onCard={onCard} reason={failure?.reason} />}
                 style={loaded ? artStyle(loaded) : undefined}
                 uri={uri}
                 width={ART_PIXELS}
             />
             {under && <div className="absolute right-0 top-full">{under}</div>}
+        </div>
+    );
+}
+
+// Art that failed to load gets the Solana logo tile in the loading square's place, so the header keeps the size and
+// corners it had while loading. `ProxiedImage`'s own fallback stays at the logo's 60px: the art's classes size it by
+// what it holds. The logo's tile has its own rounded corners, 8px at 60px, which would grow with the tile; the box
+// paints the tile's colour behind it, so the corners the eye sees are the box's.
+function NftArtFallback({ onCard, reason }: { onCard: boolean; reason?: string }) {
+    return (
+        <div
+            className={cn(nftArtPlaceholderVariants({ onCard }), 'overflow-hidden bg-[#212b2a]')}
+            data-testid="nft-art-fallback"
+        >
+            {/* Not decorative on failure: it stands in for the art and carries the reason, as in `ProxiedImage`. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img alt={reason ?? ''} className="block size-full" src={solanaLogo.src} title={reason} />
         </div>
     );
 }
@@ -386,7 +406,8 @@ function OriginalLink({
         ) : (
             <button type="button" className={originalLinkVariants({ look })}>
                 View original
-                <ExternalLinkIcon size={12} />
+                {/* 1px up: centred on the box, the icon sits low against the text's x-height. */}
+                <ExternalLinkIcon size={12} className="-translate-y-px" />
             </button>
         );
 
@@ -405,16 +426,18 @@ function OriginalLink({
     );
 }
 
-// In the type label's gray (`text-muted`) so the header's two captions read as one. `link`: a quiet caption under the
-// art. `ghost`: the `Button` `sm` box (height, padding, rounding) with a hover fill instead of an outline; its own
-// classes, since `Button`'s ghost is white and recolouring it from here would mean overriding the base component.
+// In the type label's gray so the header's two captions read as one: `link` in the plain header's `text-muted`, a
+// quiet caption under the art; `ghost` in the card header's key gray (`text-outer-space-300`, the key-value rows'
+// keys). `ghost` is the `Button` `sm` box (height, padding, rounding; the icon 4px closer) with a hover fill instead
+// of an outline; its own classes, since `Button`'s ghost is white and recolouring it from here would mean overriding
+// the base component.
 const originalLinkVariants = cva(
-    'inline-flex w-fit items-center whitespace-nowrap border-0 bg-transparent text-xs text-muted hover:text-white',
+    'inline-flex w-fit items-center whitespace-nowrap border-0 bg-transparent text-xs hover:text-white',
     {
         variants: {
             look: {
-                ghost: 'h-7 gap-1 rounded px-2 hover:bg-neutral-800',
-                link: 'gap-1 p-0',
+                ghost: 'h-7 gap-1 rounded px-2 text-outer-space-300 hover:bg-neutral-800',
+                link: 'gap-1 p-0 text-muted',
             },
         },
     },

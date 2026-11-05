@@ -30,4 +30,13 @@ describe('NftHeaderLayout, card headers', () => {
         expect(labels).toEqual(['Symbol', 'Edition', 'Collection', 'Creators']);
         expect(within(screen.getAllByRole('definition')[0]).getByText('COOL')).toBeInTheDocument();
     });
+
+    it.each(['card', 'split', 'wideArt'] as const)(
+        'should hold the art box with the logo when there is no art (%s)',
+        variant => {
+            render(<NftHeaderLayout variant={variant} model={MODEL} />);
+
+            expect(screen.getByTestId('nft-art-fallback')).toHaveClass('aspect-square');
+        },
+    );
 });
