@@ -42,7 +42,8 @@ export function OriginalLink({
         ) : (
             <button type="button" className={originalLinkVariants({ look })}>
                 View original
-                <ExternalLinkIcon size={12} />
+                {/* 1px up: centred on the box, the icon sits low against the text's x-height. */}
+                <ExternalLinkIcon size={12} className="-translate-y-px" />
             </button>
         );
 
@@ -61,17 +62,18 @@ export function OriginalLink({
     );
 }
 
-// In the type label's gray (`text-muted`) so the header's two captions read as one. `link`: a quiet caption under the
-// art. `ghost`: the `Button` `sm` box (height, padding, rounding; the icon 4px closer) with a hover fill instead of an
-// outline; its own classes, since `Button`'s ghost is white and recolouring it from here would mean overriding the base
-// component.
+// In the type label's gray so the header's two captions read as one: `link` in the plain header's `text-muted`, a
+// quiet caption under the art; `ghost` in the card header's key gray (`text-outer-space-300`, the key-value rows'
+// keys). `ghost` is the `Button` `sm` box (height, padding, rounding; the icon 4px closer) with a hover fill instead
+// of an outline; its own classes, since `Button`'s ghost is white and recolouring it from here would mean overriding
+// the base component.
 const originalLinkVariants = cva(
-    'inline-flex w-fit items-center whitespace-nowrap border-0 bg-transparent text-xs text-muted hover:text-white',
+    'inline-flex w-fit items-center whitespace-nowrap border-0 bg-transparent text-xs hover:text-white',
     {
         variants: {
             look: {
-                ghost: 'h-7 gap-1 rounded px-2 hover:bg-neutral-800',
-                link: 'gap-1 p-0',
+                ghost: 'h-7 gap-1 rounded px-2 text-outer-space-300 hover:bg-neutral-800',
+                link: 'gap-1 p-0 text-muted',
             },
         },
     },

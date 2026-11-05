@@ -170,7 +170,8 @@ function CardLayout({ art, originalLink, label, name, description, specs }: Layo
                     {/* The negative right margin takes back part of the text's inset (`TEXT_INSET`), so "View original"
                         sits 14px from the card's right edge. */}
                     <div className="flex items-center justify-between gap-3 max-sm:-mr-0.5 sm:-mr-2.5">
-                        <span className="text-xs font-normal uppercase text-muted">{label}</span>
+                        {/* The key-value rows' key gray, like "View original" beside it. */}
+                        <span className="text-xs font-normal uppercase text-outer-space-300">{label}</span>
                         {originalLink}
                     </div>
                     {name}

@@ -1,10 +1,12 @@
 'use client';
 
 import { Skeleton } from '@components/shared/ui/skeleton';
+import { cn } from '@components/shared/utils';
+import solanaLogo from '@img/logos-solana/low-contrast-solana-logo.svg';
 import { cva } from 'class-variance-authority';
 import { type ReactNode, useState } from 'react';
 
-import { ProxiedImage } from '@/app/features/metadata';
+import { type ImageFailure, ProxiedImage } from '@/app/features/metadata';
 
 // The NFToken header's art: the "wide" art of the Metaplex NFT header from HOO-921, which isn't merged yet; fold the
 // two into one once it is. It lives here, not in the NFToken feature, because a feature can't import the metadata
@@ -39,6 +41,7 @@ export function NFTWideArt({
                         width: event.currentTarget.naturalWidth,
                     })
                 }
+                fallback={failure => <NFTArtFallback className={skeletonVariants({ onCard })} failure={failure} />}
                 placeholder={<ArtSkeleton onCard={onCard} />}
                 style={loaded ? artStyle(loaded) : undefined}
                 uri={uri}
@@ -55,6 +58,24 @@ export function NFTWideArtPlaceholder({ onCard = false }: { onCard?: boolean }) 
         <div className={ART_FRAME_CLASSES}>
             <ArtSkeleton onCard={onCard} />
         </div>
+    );
+}
+
+/**
+ * Stands in for art that is missing or failed: the Solana logo in the loading square's box and corners, so the slot
+ * keeps the size and shape it had while loading.
+ */
+export function NFTArtFallback({ className, failure }: { className: string; failure?: ImageFailure }) {
+    return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+            alt={failure?.reason ?? ''}
+            // The logo's own tile has wider corners than the box; filled with the tile's colour, its transparent
+            // corners vanish and the box's radius is the one that shows.
+            className={cn(className, 'bg-[#212b2a]')}
+            src={solanaLogo.src}
+            title={failure?.reason}
+        />
     );
 }
 

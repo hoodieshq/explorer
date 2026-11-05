@@ -1,4 +1,5 @@
 import { resolveIpfsUri } from '@/app/shared/lib/ipfs';
+import { readMetadataProxyOverride } from '@/app/shared/lib/metadata-proxy-override';
 import { parseUrl, SAFE_EXTERNAL_PROTOCOLS } from '@/app/shared/lib/url';
 
 export const getProxiedUri = (uri: string): string | '' => {
@@ -7,7 +8,7 @@ export const getProxiedUri = (uri: string): string | '' => {
     const url = parseUrl(uri);
     if (!url) return uri;
 
-    const isProxyEnabled = process.env.NEXT_PUBLIC_METADATA_ENABLED === 'true';
+    const isProxyEnabled = readMetadataProxyOverride() ?? process.env.NEXT_PUBLIC_METADATA_ENABLED === 'true';
 
     const ipfs = resolveIpfsUri(url);
     if (ipfs) {

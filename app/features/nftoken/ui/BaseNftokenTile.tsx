@@ -1,3 +1,4 @@
+import { NFTArtFallback } from '@components/common/NFTWideArt';
 import { Skeleton } from '@components/shared/ui/skeleton';
 import Link from 'next/link';
 import type { Ref } from 'react';
@@ -32,6 +33,7 @@ export function BaseNftokenTile({
                 <ProxiedImage
                     alt=""
                     className={ART_CLASSES}
+                    fallback={failure => <NFTArtFallback className={ART_CLASSES} failure={failure} />}
                     height={IMAGE_PIXELS}
                     // Its own skeleton: `ProxiedImage`'s default one takes the size attributes as an inline style,
                     // which beats `w-full` and spills a 240px square out of the card while the art loads.
