@@ -1,4 +1,4 @@
-import { nextjsParameters, withCluster, withClusterState } from '@storybook-config/decorators';
+import { createNextjsParameters, withCluster, withClusterState } from '@storybook-config/decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 import { Cluster, ClusterStatus } from '@utils/cluster';
 
@@ -8,7 +8,8 @@ const meta = {
     component: Navbar,
     decorators: [withCluster],
     parameters: {
-        ...nextjsParameters,
+        // A non-home route so the full navbar (with the search slot) renders; the homepage hides search.
+        ...createNextjsParameters({ pathname: '/tx/inspector' }),
         // Logo + navbar drawer need vertical room; pin the docs canvas so the full row is visible.
         docs: { story: { height: '80px' } },
     },

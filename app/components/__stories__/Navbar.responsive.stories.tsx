@@ -1,4 +1,4 @@
-import { nextjsParameters, withCluster } from '@storybook-config/decorators';
+import { createNextjsParameters, withCluster } from '@storybook-config/decorators';
 import { INITIAL_VIEWPORTS, withViewportFromGlobal } from '@storybook-config/responsive-decorators';
 import type { Meta, StoryObj } from '@storybook-config/types';
 
@@ -9,7 +9,8 @@ const meta = {
     component: Navbar,
     decorators: [withCluster, withViewportFromGlobal],
     parameters: {
-        ...nextjsParameters,
+        // A non-home route so the full navbar (with search) renders; the homepage hides search.
+        ...createNextjsParameters({ pathname: '/tx/inspector' }),
         docs: { story: { height: '120px' } },
         viewport: { options: INITIAL_VIEWPORTS },
     },

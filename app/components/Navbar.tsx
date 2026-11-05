@@ -2,6 +2,7 @@
 
 import { cn } from '@components/shared/utils';
 import { ClusterDropdown } from '@features/cluster-switcher';
+import { usePathname } from 'next/navigation';
 import React, { type ReactNode, useRef, useState } from 'react';
 
 import { NavLinks, NavMenu } from './navbar/NavGroup';
@@ -18,14 +19,10 @@ export function Navbar({ children }: INavbarProps) {
     const [menuOpened, setMenuOpened] = useState(false);
     const routes = useNavRoutes();
     const slotRef = useRef<HTMLSpanElement>(null);
+    // The homepage carries its own large hero search, so the navbar one is dropped there to avoid two
+    // search fields (and the header copy stealing focus on load).
+    const isHome = usePathname() === '/';
 
-    const onSearchOpenChange = (open: boolean) => {
-        if (open) {
-            setMenuOpened(false);
-            setClusterOpened(false);
-        }
-        setSearchOpened(open);
-    };
     const onClusterOpenChange = (open: boolean) => {
         if (open) {
             setMenuOpened(false);
@@ -39,6 +36,40 @@ export function Navbar({ children }: INavbarProps) {
             setSearchOpened(false);
         }
         setMenuOpened(open);
+    };
+
+    if (isHome) {
+        return (
+            <nav className={cn('py-3', BAR_CLASSES)}>
+                <div className={cn('flex items-center gap-1.5 xs:gap-2', GUTTER_CLASSES)}>
+                    <BrandLockup />
+                    <div className="ml-auto flex shrink-0 items-center gap-1.5 xs:gap-2 lg:gap-4">
+                        <ClusterDropdown
+                            align="end"
+                            open={clusterOpened}
+                            onOpenChange={onClusterOpenChange}
+                            className="w-[80px] xs:w-[131px] sm:w-[142px] md:w-[170px]"
+                        />
+                        <NavLinks routes={routes} className="hidden lg:flex" />
+                        <NavMenu
+                            routes={routes}
+                            filled
+                            open={menuOpened}
+                            onOpenChange={onMenuOpenChange}
+                            className="lg:hidden"
+                        />
+                    </div>
+                </div>
+            </nav>
+        );
+    }
+
+    const onSearchOpenChange = (open: boolean) => {
+        if (open) {
+            setMenuOpened(false);
+            setClusterOpened(false);
+        }
+        setSearchOpened(open);
     };
 
     return (
