@@ -19,6 +19,8 @@ export function SlotStrip() {
 
     const realSlot = epochInfo.absoluteSlot;
     const [head, setHead] = React.useState<bigint>(realSlot);
+    // Freeze the strip while the pointer is over it so a tile can't slide out from under the cursor.
+    const [hovered, setHovered] = React.useState(false);
 
     // Latest polled slot, read by the interval without re-creating it each 2s poll.
     const targetRef = React.useRef(realSlot);
@@ -30,12 +32,12 @@ export function SlotStrip() {
     }, [realSlot]);
 
     // Advance the head one calm step at a time toward the latest poll, so the numbers tick gently
-    // instead of flickering at the real slot rate. Paused under reduced motion or a hidden tab.
+    // instead of flickering at the real slot rate. Paused under reduced motion, a hidden tab, or hover.
     React.useEffect(() => {
-        if (reduced || !visible || status !== ClusterStatsStatus.Ready) return;
+        if (reduced || !visible || hovered || status !== ClusterStatsStatus.Ready) return;
         const id = setInterval(() => setHead(prev => stepHead(prev, targetRef.current)), CALM_CADENCE_MS);
         return () => clearInterval(id);
-    }, [reduced, visible, status]);
+    }, [reduced, visible, hovered, status]);
 
     if (status === ClusterStatsStatus.Error) return undefined;
 
@@ -60,7 +62,12 @@ export function SlotStrip() {
                 <span className="font-mono text-xs uppercase tracking-widest text-heavy-metal-300">Live slots</span>
             </div>
 
-            <ol role="list" className="flex list-none gap-2 p-0">
+            <ol
+                role="list"
+                className="flex list-none gap-2 p-0"
+                onMouseEnter={() => setHovered(true)}
+                onMouseLeave={() => setHovered(false)}
+            >
                 {slots.map((slot, i) => {
                     const vis = tileVisibility(slots.length - 1 - i);
                     return slot === undefined ? (
