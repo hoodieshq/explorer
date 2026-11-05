@@ -52,10 +52,22 @@ describe('BaseNftokenHeader', () => {
     it.each([
         ['nft', 'Unnamed NFT'],
         ['collection', 'Unnamed collection'],
-    ] as const)('should show the missing-name text for kind %s with unavailable metadata', (kind, text) => {
-        render(<BaseNftokenHeader kind={kind} metadata={{ kind: 'unavailable' }} />);
+    ] as const)('should show the missing-name text for kind %s when the metadata has no name', (kind, text) => {
+        render(
+            <BaseNftokenHeader
+                kind={kind}
+                metadata={{ kind: 'loaded', metadata: { image: undefined, name: undefined } }}
+            />,
+        );
 
         expect(screen.getByRole('heading', { name: text })).toBeInTheDocument();
+    });
+
+    it.each(['nft', 'collection'] as const)('should say the name could not be loaded for kind %s', kind => {
+        render(<BaseNftokenHeader kind={kind} metadata={{ kind: 'unavailable' }} />);
+
+        expect(screen.getByRole('heading', { name: 'Name not loaded' })).toBeInTheDocument();
+        expect(screen.getByText('Name not loaded')).toHaveClass('text-outer-space-300');
     });
 
     it.each(['nft', 'collection'] as const)('should report failed metadata for kind %s', kind => {

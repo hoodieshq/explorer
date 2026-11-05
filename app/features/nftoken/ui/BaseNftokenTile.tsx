@@ -48,7 +48,12 @@ export function BaseNftokenTile({
                 href={href}
                 className="line-clamp-2 break-words text-sm after:absolute after:inset-0 after:rounded-lg after:content-['']"
             >
-                {tileName(metadata)}
+                {/* A status in place of a name reads in the muted gray of empty values, not in the link's colour. */}
+                {metadata.kind === 'unavailable' || metadata.kind === 'failed' ? (
+                    <span className="text-outer-space-300">{tileName(metadata)}</span>
+                ) : (
+                    tileName(metadata)
+                )}
             </Link>
         </div>
     );
@@ -63,8 +68,9 @@ function tileName(metadata: NftokenMetadataState): string {
             return 'Loading...';
         case 'loaded':
             return metadata.metadata.name ?? 'No Name';
+        // No metadata to read a name from, unlike metadata that loaded without one.
         case 'unavailable':
-            return 'No Name';
+            return 'Name not loaded';
         case 'failed':
             return 'Failed to load metadata';
     }

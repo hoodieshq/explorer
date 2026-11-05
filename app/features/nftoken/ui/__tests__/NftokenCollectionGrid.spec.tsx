@@ -110,7 +110,7 @@ describe('NftokenCollectionGrid', () => {
     });
 
     it.each([
-        ['unavailable', 'No Name', () => mocks.fetchNftokenMetadata.mockResolvedValue({ kind: 'unavailable' })],
+        ['unavailable', 'Name not loaded', () => mocks.fetchNftokenMetadata.mockResolvedValue({ kind: 'unavailable' })],
         [
             'failed',
             'Failed to load metadata',

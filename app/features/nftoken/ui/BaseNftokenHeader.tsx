@@ -20,6 +20,9 @@ const COPY: Record<NftokenAccount['kind'], { label: string; missingName: string 
 };
 
 const METADATA_FAILED = 'Failed to load metadata';
+// The metadata gave no answer to read a name from (no link, refused, or not JSON); the "Unnamed" copy is kept for
+// metadata that loaded without a name.
+const NAME_UNAVAILABLE = 'Name not loaded';
 
 /** REVIEW(HOO-929): one label / value block of the card header. */
 export type NftokenFact = { label: string; value: ReactNode };
@@ -84,7 +87,7 @@ export function BaseNftokenHeader({
     }
 
     const loaded = metadata.kind === 'loaded' ? metadata.metadata : undefined;
-    const name = metadata.kind === 'failed' ? METADATA_FAILED : (loaded?.name ?? copy.missingName);
+    const name = headerName(metadata, copy.missingName);
 
     return (
         <HeaderLayout
@@ -104,7 +107,12 @@ export function BaseNftokenHeader({
             originalLink={<OriginalLink uri={loaded?.image} look={ORIGINAL_LINK_LOOKS[variant]} />}
             actions={actions}
             label={copy.label}
-            name={<h2 className={nameVariants({ variant })}>{name}</h2>}
+            name={
+                <h2 className={nameVariants({ variant })}>
+                    {/* A status in place of a name reads in the muted gray of empty values, not as a title. */}
+                    {name.status ? <span className="text-outer-space-300">{name.text}</span> : name.text}
+                </h2>
+            }
             description={loaded?.description}
             specs={specs}
         />
@@ -369,6 +377,21 @@ function CollectionLink({ collection }: { collection: NftokenCollectionLink }) {
 const collectionLinkVariants = cva('block min-w-0 truncate', {
     variants: { named: { false: 'font-mono', true: '' } },
 });
+
+// `status`: the text says why there is no name rather than naming the account.
+function headerName(
+    metadata: Exclude<NftokenMetadataState, { kind: 'loading' }>,
+    missingName: string,
+): { text: string; status: boolean } {
+    switch (metadata.kind) {
+        case 'loaded':
+            return { status: false, text: metadata.metadata.name ?? missingName };
+        case 'unavailable':
+            return { status: true, text: NAME_UNAVAILABLE };
+        case 'failed':
+            return { status: true, text: METADATA_FAILED };
+    }
+}
 
 function shortAddress(address: string) {
     return `${address.slice(0, 4)}…${address.slice(-4)}`;
