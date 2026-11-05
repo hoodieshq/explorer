@@ -8,6 +8,7 @@ import { Check, Copy, XCircle } from 'react-feather';
 
 import { cn } from '@/app/components/shared/utils';
 import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
+import { SEARCH_HIGHLIGHT_CLASS_NAME } from '@/app/shared/ui/search-highlight';
 import { useClusterPath } from '@/app/utils/url';
 
 type Truncate = { head: number; tail: number };
@@ -18,22 +19,25 @@ type Props = {
     truncate?: Truncate;
     className?: string;
     'aria-label'?: string;
+    /** Marks the address as a search match: its text only, the copy button left outside the mark. */
+    highlighted?: boolean;
 };
 
-export function AddressLink({ address, truncate, className, 'aria-label': ariaLabel }: Props) {
+export function AddressLink({ address, truncate, className, 'aria-label': ariaLabel, highlighted = false }: Props) {
     const href = useClusterPath({ pathname: `/address/${address}` });
     const displayText = truncate ? abbreviateAddress(address, truncate) : address;
 
     return (
         <span className={cn('inline-flex items-center gap-1.5 font-mono text-dk-sm', className)}>
             <CopyButton text={address} />
+            {/* The app's link colours (styles.css `a` / `a:hover`), so an address hovers like any other link. */}
             <Link
                 href={href}
-                className="text-dk-primary-dark hover:text-dark-accent"
+                className="text-dk-primary-dark hover:text-dark-accent-hover"
                 aria-label={ariaLabel ?? `Open address ${address}`}
                 title={truncate ? address : undefined}
             >
-                {displayText}
+                {highlighted ? <mark className={SEARCH_HIGHLIGHT_CLASS_NAME}>{displayText}</mark> : displayText}
             </Link>
         </span>
     );
