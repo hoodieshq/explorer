@@ -3,7 +3,7 @@ import anchorModernIdl from '@entities/idl/mocks/anchor/anchor-0.30.1-devi51mZmd
 import referenceIdl from '@entities/idl/mocks/anchor/reference-0.29.json';
 import codamaIdl from '@entities/idl/mocks/codama/codama-1.0.0-ProgM6JCCvbYkfKqJYHePx4xxSUSqJp7rh8Lyv7nk7S.json';
 import { PublicKey } from '@solana/web3.js';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { type Account } from '@/app/providers/accounts';
@@ -58,6 +58,57 @@ describe('AnchorAccountCard', () => {
         render(<AnchorAccountCard account={ACCOUNT} />);
 
         expect(screen.getByText('PmpProgram: AmmConfig')).toBeInTheDocument();
+    });
+
+    it('should title the section above the table with the program and account names', () => {
+        idlState.idls = [
+            { idl: ANCHOR_ACCOUNT_IDL, idlAddress: undefined, source: IdlVariant.Anchor, standard: 'Anchor' },
+        ];
+
+        render(<AnchorAccountCard account={ACCOUNT} />);
+
+        expect(screen.getByRole('region', { name: 'AnchorProgram: AmmConfig' })).toBeInTheDocument();
+        expect(screen.getByRole('heading', { level: 2, name: 'AnchorProgram: AmmConfig' })).toBeInTheDocument();
+    });
+
+    it('should lay the fields out as a table of Field, Type and Value', () => {
+        idlState.idls = [
+            { idl: ANCHOR_ACCOUNT_IDL, idlAddress: undefined, source: IdlVariant.Anchor, standard: 'Anchor' },
+        ];
+
+        render(<AnchorAccountCard account={ACCOUNT} />);
+
+        expect(screen.getByRole('table', { name: 'AmmConfig fields' })).toBeInTheDocument();
+        expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual([
+            'Field',
+            'Type',
+            'Value',
+        ]);
+        const tickSpacing = rowOf('Tick Spacing');
+        expect(
+            within(tickSpacing)
+                .getAllByRole('cell')
+                .map(cell => cell.textContent),
+        ).toEqual(['Tick Spacingu16', 'u16', '0']);
+    });
+
+    it('should show the items of a group on expand, with the arrow at the deepest level only', () => {
+        idlState.idls = [
+            { idl: ANCHOR_ACCOUNT_IDL, idlAddress: undefined, source: IdlVariant.Anchor, standard: 'Anchor' },
+        ];
+
+        render(<AnchorAccountCard account={ACCOUNT} />);
+        const padding = rowOf('Padding');
+        expect(screen.queryByText('#0')).not.toBeInTheDocument();
+
+        fireEvent.click(within(padding).getByRole('button', { name: 'Expand' }));
+
+        const item = rowOf('#0');
+        // eslint-disable-next-line testing-library/no-node-access -- the arrow and the blanks have no role
+        expect(item.querySelectorAll('svg')).toHaveLength(1);
+        // eslint-disable-next-line testing-library/no-node-access -- the arrow and the blanks have no role
+        expect(item.querySelectorAll('[data-nesting-indent]')).toHaveLength(0);
+        expect(within(padding).getByRole('button', { name: 'Collapse' })).toHaveAttribute('aria-expanded', 'true');
     });
 
     it('should decode with the IDL from the Anchor IDL account when the PMP IDL is Codama', () => {
@@ -129,3 +180,10 @@ describe('AnchorAccountCard', () => {
         expect(screen.getByText('Loading program IDL')).toBeInTheDocument();
     });
 });
+
+// The grid row that holds a field name; rows have no accessible name of their own.
+function rowOf(fieldName: string): HTMLElement {
+    const row = screen.getAllByRole('row').find(candidate => within(candidate).queryByText(fieldName));
+    if (!row) throw new Error(`No row for ${fieldName}`);
+    return row;
+}

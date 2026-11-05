@@ -16,12 +16,13 @@ import { InstructionAddress } from './InstructionAddress';
 export function ValueCell({ value, colSpan }: { value: FieldValue; colSpan?: number }) {
     return (
         <BaseTable.Cell colSpan={colSpan}>
-            <Value value={value} />
+            <FieldValueView value={value} />
         </BaseTable.Cell>
     );
 }
 
-function Value({ value }: { value: FieldValue }): React.ReactElement {
+/** The content of a value cell, for layouts that draw their own cells. */
+export function FieldValueView({ value }: { value: FieldValue }): React.ReactElement {
     switch (value.kind) {
         case 'address':
             return <InstructionAddress address={value.address} tokenLabel={value.tokenLabel} />;
