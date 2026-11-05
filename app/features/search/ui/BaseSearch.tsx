@@ -163,7 +163,11 @@ export function BaseSearch({
                     <PopoverPrimitive.Content
                         asChild
                         align="start"
+                        side="bottom"
                         sideOffset={4}
+                        // Always drop below the field. Without this the tall results list flips above the
+                        // input when the viewport is short (e.g. the homepage hero), covering the navbar.
+                        avoidCollisions={false}
                         data-search-panel
                         className={cn(
                             'z-50 rounded-md shadow-2xl [border-style:solid]',
