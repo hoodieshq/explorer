@@ -1,5 +1,6 @@
 import { metaplexNftHeaderModel } from '@components/account/MetaplexNFTHeader';
-import { nftOverviewRows } from '@components/account/nft-header/overview-rows';
+import { useNftCreatorsPlacement } from '@components/account/nft-creators-variant';
+import { nftCreatorsOverviewRow, nftOverviewRows } from '@components/account/nft-header/overview-rows';
 import ScaledUiAmountMultiplierTooltip from '@components/account/token-extensions/ScaledUiAmountMultiplierTooltip';
 import { Address } from '@components/common/Address';
 import { Copyable } from '@components/common/Copyable';
@@ -52,7 +53,7 @@ import { create } from 'superstruct';
 import useSWR from 'swr';
 
 import { Badge } from '@/app/components/shared/ui/badge';
-import { ExternalLink } from '@/app/components/shared/ui/external-link';
+import { ExternalLink, ExternalLinkMark } from '@/app/components/shared/ui/external-link';
 import { invariant } from '@/app/shared/lib/invariant';
 import { Logger } from '@/app/shared/lib/logger';
 import { getSafeExternalHref } from '@/app/shared/lib/url';
@@ -176,7 +177,7 @@ function FungibleTokenMintAccountCard({
             value: (
                 <ExternalLink href={tokenInfo.extensions.website}>
                     {tokenInfo.extensions.website}
-                    <ExternalLinkIcon className="ml-1.5 align-text-top" size={13} />
+                    <ExternalLinkMark />
                 </ExternalLink>
             ),
         },
@@ -241,6 +242,7 @@ function NonFungibleTokenMintAccountCard({
     mintInfo: MintAccountInfo;
 }) {
     const fetchInfo = useRefreshAccount();
+    const creatorsInOverview = useNftCreatorsPlacement() === 'overview';
 
     const collectionOpt = nftData.metadata.collection;
     const collection = collectionOpt && isSome(collectionOpt) ? collectionOpt.value : null;
@@ -264,12 +266,14 @@ function NonFungibleTokenMintAccountCard({
             label: 'Update Authority',
             value: <Address pubkey={new PublicKey(nftData.metadata.updateAuthority.toString())} link />,
         },
+        // REVIEW(HOO-921): the design menu may move the creators here from the header.
+        creatorsInOverview && nftCreatorsOverviewRow(metaplexNftHeaderModel(nftData)),
         {
             label: 'Website',
             value: nftData.json?.external_url ? (
                 <ExternalLink href={nftData.json.external_url}>
                     {nftData.json.external_url}
-                    <ExternalLinkIcon className="ml-1.5 align-text-top" size={13} />
+                    <ExternalLinkMark />
                 </ExternalLink>
             ) : (
                 <span className="text-outer-space-300">—</span>

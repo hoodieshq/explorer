@@ -5,10 +5,10 @@ import { atomWithStorage } from 'jotai/utils';
 // placeholder on one preview. The bypass is on until a reviewer turns it off, so a preview shows the art. Remove with
 // the design menu.
 
-const STORAGE_KEY = 'hoo-921:metadata-proxy';
+export const METADATA_PROXY_STORAGE_KEY = 'hoo-921:metadata-proxy';
 
 /** `true` sends metadata through the proxy, `false` (the default) straight to its host. */
-export const metadataProxyOverrideAtom = atomWithStorage<boolean>(STORAGE_KEY, false);
+export const metadataProxyOverrideAtom = atomWithStorage<boolean>(METADATA_PROXY_STORAGE_KEY, false);
 
 /**
  * The reviewer's choice, read from storage directly: `getProxiedUri` is a plain function, not a hook. On the server,
@@ -17,7 +17,7 @@ export const metadataProxyOverrideAtom = atomWithStorage<boolean>(STORAGE_KEY, f
 export function readMetadataProxyOverride(): boolean | undefined {
     if (typeof window === 'undefined') return undefined;
     try {
-        const stored: unknown = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? 'null');
+        const stored: unknown = JSON.parse(window.localStorage.getItem(METADATA_PROXY_STORAGE_KEY) ?? 'null');
         return typeof stored === 'boolean' ? stored : false;
     } catch {
         return false;

@@ -7,11 +7,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MetaplexNFTHeader } from '@/app/components/account/MetaplexNFTHeader';
 import { makeNftData } from '@/app/entities/nft/lib/__tests__/make-nft-data';
 
-// REVIEW(HOO-921): the header variants under review. The specs below cover the primary one (Card) unless one picks
-// another.
-const useNftHeaderVariant = vi.hoisted(() => vi.fn(() => 'card'));
+// REVIEW(HOO-921): the header variants under review. The specs below cover the primary one (Split) unless one picks
+// another, with the creators kept in the header, where these specs read them.
+const useNftHeaderVariant = vi.hoisted(() => vi.fn(() => 'split'));
 vi.mock('@components/account/nft-header-variant', () => ({
     useNftHeaderVariant,
+}));
+vi.mock('@components/account/nft-creators-variant', async importOriginal => ({
+    ...(await importOriginal<typeof import('@components/account/nft-creators-variant')>()),
+    useNftCreatorsPlacement: () => 'header',
 }));
 
 vi.mock('@providers/cluster', () => ({
@@ -31,7 +35,7 @@ vi.mock('@providers/accounts', () => ({
 
 describe('MetaplexNFTHeader', () => {
     beforeEach(() => {
-        useNftHeaderVariant.mockReturnValue('card');
+        useNftHeaderVariant.mockReturnValue('split');
     });
 
     it.each([

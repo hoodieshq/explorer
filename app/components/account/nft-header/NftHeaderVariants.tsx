@@ -7,14 +7,25 @@ import { PublicKey } from '@solana/web3.js';
 import { useClusterPath } from '@utils/url';
 import { cva } from 'class-variance-authority';
 import Link from 'next/link';
-import { Fragment, type ReactNode, useState, useSyncExternalStore } from 'react';
-import { ExternalLink as ExternalLinkIcon } from 'react-feather';
+import { type CSSProperties, Fragment, type ReactNode, useState } from 'react';
+import { ExternalLink as ExternalLinkIcon, HelpCircle } from 'react-feather';
 
-import type { NftCollection, NftHeaderModel } from '@/app/components/account/nft-header/model';
+import {
+    type NftCreatorsUnverified,
+    useNftCreatorsPlacement,
+    useNftCreatorsShare,
+    useNftCreatorsUnverified,
+} from '@/app/components/account/nft-creators-variant';
+import type { NftCollection, NftCreator, NftHeaderModel } from '@/app/components/account/nft-header/model';
 import { OriginalImageDialog } from '@/app/components/account/nft-header/OriginalImageDialog';
+import {
+    type NftCardSpacing,
+    useNftCardSpacing,
+    useNftOriginalLinkPlacement,
+} from '@/app/components/account/nft-header-options';
 import type { NftHeaderVariant } from '@/app/components/account/nft-header-variant';
 import { Badge } from '@/app/components/shared/ui/badge';
-import { Button } from '@/app/components/shared/ui/button';
+import { ExternalLinkMark } from '@/app/components/shared/ui/external-link';
 import { Skeleton } from '@/app/components/shared/ui/skeleton';
 import { cn } from '@/app/components/shared/utils';
 import { ProxiedImage } from '@/app/features/metadata';
@@ -46,6 +57,9 @@ export function NftHeaderLayout({ variant, model }: { variant: NftHeaderVariant;
  * The left track (`fit-content`) hugs the art, up to 320px or half the row (`0.75rem` is half the `gap-x-6`).
  */
 function WideArtNftHeader({ model }: { model: NftHeaderModel }) {
+    // REVIEW(HOO-921): the design menu may move the creators to the Overview card.
+    const creatorsInHeader = useNftCreatorsPlacement() === 'header';
+    const originalInRow = useNftOriginalLinkPlacement() === 'row';
     return (
         // `max-sm:-mt-5`: above the art the page stacks 36px (the layout's `pt-3` and the address header's `py-6`); while
         // the art sits above the text it should be 16px from the top, the same as from the page's side edge.
@@ -55,14 +69,18 @@ function WideArtNftHeader({ model }: { model: NftHeaderModel }) {
             <NftArt
                 uri={model.image}
                 under={
-                    <span className="sm:hidden">
-                        <OriginalLink uri={model.image} />
-                    </span>
+                    !originalInRow && (
+                        <span className="sm:hidden">
+                            <OriginalLink uri={model.image} />
+                        </span>
+                    )
                 }
             />
-            <div className="hidden sm:col-start-1 sm:row-start-2 sm:block">
-                <OriginalLink uri={model.image} />
-            </div>
+            {!originalInRow && (
+                <div className="hidden sm:col-start-1 sm:row-start-2 sm:block">
+                    <OriginalLink uri={model.image} />
+                </div>
+            )}
             {/* `max-sm:mt-4`: below `sm` the type label sits 24px below the art (`gap-y-2` plus this). */}
             <div className="flex min-w-0 flex-col justify-center gap-3 max-sm:mt-4 sm:col-start-2 sm:row-start-1">
                 <Heading model={model} />
@@ -81,9 +99,16 @@ function WideArtNftHeader({ model }: { model: NftHeaderModel }) {
                             <Hint text={COMPRESSED_TOOLTIP}>Compressed</Hint>
                         </Spec>
                     )}
-                    <Spec label="Creators">
-                        <NftCreatorsList creators={model.creators} />
-                    </Spec>
+                    {creatorsInHeader && (
+                        <Spec label="Creators">
+                            <NftCreatorsList creators={model.creators} />
+                        </Spec>
+                    )}
+                    {originalInRow && hasOriginal(model.image) && (
+                        <Spec label="Original">
+                            <OriginalLink uri={model.image} look="row" />
+                        </Spec>
+                    )}
                 </dl>
             </div>
         </div>
@@ -95,14 +120,24 @@ function WideArtNftHeader({ model }: { model: NftHeaderModel }) {
  * Art header's rows. The Overview card stays as it is, under them.
  */
 function CardNftHeader({ model, layout }: { model: NftHeaderModel; layout: FactLayout }) {
+    // REVIEW(HOO-921): the design menu may move the creators to the Overview card.
+    const creatorsInHeader = useNftCreatorsPlacement() === 'header';
+    const originalInRow = useNftOriginalLinkPlacement() === 'row';
+    const spacing = useNftCardSpacing();
     const Layout = layout === 'card' ? CardLayout : SplitLayout;
     return (
         <Layout
             art={<NftArt uri={model.image} onCard />}
-            originalLink={<OriginalLink uri={model.image} look={ORIGINAL_LINK_LOOKS[layout]} />}
+            originalLink={!originalInRow && <OriginalLink uri={model.image} look="ghost" />}
             label={model.typeLabel}
             name={<h2 className={CARD_NAME_CLASSES}>{model.name}</h2>}
-            specs={<FactStrip facts={modelFacts(model)} layout={layout} />}
+            spacing={spacing}
+            specs={
+                <FactStrip
+                    facts={modelFacts(model, { creators: creatorsInHeader, original: originalInRow })}
+                    layout={layout}
+                />
+            }
         />
     );
 }
@@ -110,8 +145,11 @@ function CardNftHeader({ model, layout }: { model: NftHeaderModel; layout: FactL
 /** One label / value block of the card headers. */
 type NftFact = { label: string; value: ReactNode };
 
-/** The Wide Art header's rows: Market and Metadata are left to the Overview card. */
-function modelFacts(model: NftHeaderModel): NftFact[] {
+/** The Wide Art header's rows: Market and Metadata are left to the Overview card, and the creators may be. */
+function modelFacts(
+    model: NftHeaderModel,
+    { creators, original }: { creators: boolean; original: boolean },
+): NftFact[] {
     const facts: (NftFact | false)[] = [
         { label: 'Symbol', value: model.symbol ?? <Muted /> },
         // Compressed NFTs have no edition accounts, so the row would always be empty.
@@ -121,7 +159,9 @@ function modelFacts(model: NftHeaderModel): NftFact[] {
             value: model.collection ? <CollectionLink collection={model.collection} /> : <Muted />,
         },
         model.compressed && { label: 'Storage', value: <Hint text={COMPRESSED_TOOLTIP}>Compressed</Hint> },
-        { label: 'Creators', value: <NftCreatorsList creators={model.creators} /> },
+        creators && { label: 'Creators', value: <NftCreatorsList creators={model.creators} /> },
+        original &&
+            hasOriginal(model.image) && { label: 'Original', value: <OriginalLink uri={model.image} look="row" /> },
     ];
     return facts.filter((fact): fact is NftFact => fact !== false);
 }
@@ -132,6 +172,8 @@ type CardLayoutProps = {
     label: string;
     name: ReactNode;
     specs: ReactNode;
+    /** REVIEW(HOO-921): how the card layout spaces its text; the split layout has its own. */
+    spacing?: NftCardSpacing;
 };
 
 /**
@@ -140,7 +182,22 @@ type CardLayoutProps = {
  * top of the right one and the facts its bottom; below `sm` everything stacks under the art, and the facts are a list
  * across the card's full width.
  */
-function CardLayout({ art, originalLink, label, name, specs }: CardLayoutProps) {
+function CardLayout({ art, originalLink, label, name, specs, spacing = 'stretch' }: CardLayoutProps) {
+    const text = (
+        <>
+            <div className={cn(CARD_TEXT_CLASSES, TEXT_INSET)}>
+                {/* The negative right margin takes back part of the text's inset (`TEXT_INSET`), so "View original"
+                    sits 14px from the card's right edge. */}
+                <CardHeading
+                    label={label}
+                    originalLink={originalLink}
+                    name={name}
+                    rowClassName="max-sm:-mr-0.5 sm:-mr-2.5"
+                />
+            </div>
+            <div className={CARD_FACTS_CLASSES}>{specs}</div>
+        </>
+    );
     return (
         // `max-sm:-mt-5` as in the wide layout. `p-2.5`: the art sits 10px from the card's edges; the text gets more
         // (`TEXT_INSET`) so it isn't pressed to the border.
@@ -148,66 +205,82 @@ function CardLayout({ art, originalLink, label, name, specs }: CardLayoutProps) 
             {/* `min-w-0`: lets the track hold its cap while the loading square asks for more, as the art's own frame
                 does. */}
             <div className="min-w-0 sm:col-start-1 sm:row-span-2 sm:row-start-1">{art}</div>
-            <div className={cn(CARD_TEXT_CLASSES, TEXT_INSET)}>
-                {/* The label and the name are spaced like every other page's header (`PageHeader`). */}
-                <div className="flex flex-col gap-1.5">
-                    {/* The negative right margin takes back part of the text's inset (`TEXT_INSET`), so "View original"
-                        sits 14px from the card's right edge. `items-baseline`: the label and the button's text share a
-                        line. */}
-                    <div className="flex items-center justify-between gap-3 max-sm:-mr-0.5 sm:-mr-2.5">
-                        {/* The key-value rows' key gray, like "View original" beside it. */}
-                        <span className="text-xs font-normal uppercase text-outer-space-300">{label}</span>
-                        {originalLink}
-                    </div>
-                    {name}
+            {/* REVIEW(HOO-921): the design menu's card text spacing. `centred`: from `sm` the text and the facts sit
+                together in the middle of the art's height, 24px apart; their paddings (7px over the label's row, 13px
+                under the facts) even out, as the 28px row centres the label 6px lower. */}
+            {spacing === 'centred' ? (
+                <div className="flex min-w-0 flex-col gap-3 sm:col-start-2 sm:row-span-2 sm:row-start-1 sm:justify-center sm:gap-6">
+                    {text}
                 </div>
-            </div>
-            <div className={CARD_FACTS_CLASSES}>{specs}</div>
+            ) : (
+                text
+            )}
         </div>
     );
 }
 
 /**
- * The card layout cut in two: the art on a card of its own and the name with the facts on another, side by side in
- * the same columns (the left one hugs the art, up to 320px or half the row). Below `sm` the two cards stack. The name
- * opens the text card, and the facts close it: a list across the card's full width below `sm`, plain label / value
- * pairs from it.
+ * The card layout cut in two: the art on a card of its own, edge to edge, and the type label, the name and the facts
+ * on another, side by side in the same columns (the left one hugs the art, up to 320px or half the row). Below `sm`
+ * the two cards stack. The facts close the text card: a list across the card's full width below `sm`, plain label /
+ * value pairs from it.
  */
 function SplitLayout({ art, originalLink, label, name, specs }: CardLayoutProps) {
     return (
-        // `max-sm:-mt-5` as in the wide layout. `346px`: the 320px art plus its card's padding and border.
-        <section className="flex w-full flex-col gap-3 max-sm:-mt-5">
-            <TitleRow label={label} originalLink={originalLink} />
-            {/* The gap between the cards is the NFToken grid's: 6px below `sm`, 12px from it. */}
-            <div className="grid w-full gap-1.5 sm:grid-cols-[fit-content(min(346px,calc(50%-0.375rem)))_minmax(0,1fr)] sm:gap-3">
-                {/* `self-start`: the card is as tall as the art, however tall the text card beside it grows. */}
-                <div className={cn(CARD_SURFACE, SPLIT_PADDING, 'min-w-0 self-start')}>{art}</div>
-                {/* `justify-between`: the text card is at least as tall as the art card, and its facts keep to the
-                    bottom. */}
-                <div className={cn(CARD_SURFACE, SPLIT_PADDING, 'flex min-w-0 flex-col justify-between gap-6')}>
-                    {/* `[container-type:inline-size]`: the name's size follows this card's width (see
-                        `CARD_NAME_CLASSES`). */}
-                    <div className="flex min-w-0 flex-col gap-3 [container-type:inline-size]">{name}</div>
-                    {/* Below `sm` the list reaches the card's edges with a line along its top, as on the single card. */}
-                    <div className="min-w-0 overflow-hidden max-sm:-mx-2.5 max-sm:-mb-2.5 max-sm:border-0 max-sm:border-t max-sm:border-solid max-sm:border-outer-space-800">
-                        {specs}
-                    </div>
+        // `max-sm:-mt-5` as in the wide layout. `322px`: the 320px art plus its card's border. The gap between the
+        // cards is the NFToken grid's: 6px below `sm`, 12px from it.
+        <div className="grid w-full gap-1.5 max-sm:-mt-5 sm:grid-cols-[fit-content(min(322px,calc(50%-0.375rem)))_minmax(0,1fr)] sm:gap-3">
+            {/* No padding: the art fills the card, which takes the art's proportions (`w-fit`, and `self-start` against
+                the taller text card) and clips its corners to its own. Below `sm` a tall art's card centres, as the
+                art would. */}
+            <div className={cn(CARD_SURFACE, 'w-fit min-w-0 max-w-full self-start overflow-hidden max-sm:mx-auto')}>
+                {art}
+            </div>
+            {/* `justify-between`: the text card is at least as tall as the art card, and its facts keep to the
+                bottom. */}
+            {/* The label 24px under the art below `sm` (`max-sm:pt-2.5`), 16px under the card's top edge from it
+                (`sm:pt-[9px]`, with the 1px border and the row's 6px). `gap-3`: at least 12px under the name. */}
+            <div
+                className={cn(
+                    CARD_SURFACE,
+                    SPLIT_PADDING,
+                    'flex min-w-0 flex-col justify-between gap-3 max-sm:pt-2.5 sm:pt-[9px]',
+                )}
+            >
+                <div className="min-w-0">
+                    <CardHeading label={label} originalLink={originalLink} name={name} />
+                </div>
+                {/* Below `sm` the list reaches the card's edges with a line along its top, as on the single card. */}
+                <div className="min-w-0 overflow-hidden max-sm:-mx-3 max-sm:-mb-3 max-sm:border-0 max-sm:border-t max-sm:border-solid max-sm:border-outer-space-800">
+                    {specs}
                 </div>
             </div>
-        </section>
+        </div>
     );
 }
 
-// Both split cards keep their content the same distance from their edges: 10px below `sm`, 12px from it, which
-// follows the gap between them.
-const SPLIT_PADDING = 'p-2.5 sm:p-3';
+// The text card keeps its content 12px from its border, as the Overview card's rows.
+const SPLIT_PADDING = 'p-3';
 
-/** The split layout's title row, spaced like the Overview card's (`OverviewCard`). */
-function TitleRow({ label, originalLink }: Pick<CardLayoutProps, 'label' | 'originalLink'>) {
+/**
+ * The type label over the name, with "View original" at the end of the label's row. The row's own height leaves 6px
+ * under the label; `-mb-1` takes 4px of it back, so the name is 2px under the label. `min-h-7`: the row is as tall as
+ * the button whether or not it is there, so the label keeps its distance from the card's top.
+ */
+function CardHeading({
+    label,
+    originalLink,
+    name,
+    rowClassName,
+}: Pick<CardLayoutProps, 'label' | 'originalLink' | 'name'> & { rowClassName?: string }) {
     return (
-        <div className="flex min-h-[1.75rem] flex-wrap items-center justify-between gap-2">
-            <div className="text-lg font-normal text-white">{label}</div>
-            {originalLink}
+        <div className="flex flex-col">
+            <div className={cn('-mb-1 flex min-h-7 items-center justify-between gap-3', rowClassName)}>
+                {/* The key-value rows' key gray, like "View original" beside it. */}
+                <span className="text-xs font-normal uppercase text-outer-space-300">{label}</span>
+                {originalLink}
+            </div>
+            {name}
         </div>
     );
 }
@@ -215,31 +288,29 @@ function TitleRow({ label, originalLink }: Pick<CardLayoutProps, 'label' | 'orig
 // The NFToken NFT cards' surface.
 const CARD_SURFACE = 'rounded-lg border border-solid border-outer-space-800 bg-outer-space-900';
 
-// The split layout's "View original" sits in the title row like the Overview's outlined buttons; the card layout's,
-// alone beside the type label, drops the outline.
-const ORIGINAL_LINK_LOOKS = { card: 'ghost', split: 'button' } as const;
-
-// Beside the art at its top, the label row 16px from the card's edge (`sm:pt-1.5` on the card's 10px).
-// `[container-type:inline-size]`: the name's size follows this column's width (see `CARD_NAME_CLASSES`).
+// Beside the art at its top. `sm:pt-[7px]` on the card's 10px and its 1px border puts the label (centred in its 28px
+// row) 24px from the card's top edge, as far as the facts' last line is from its bottom edge (`sm:pb-[13px]`); the
+// border is why neither is a Tailwind step. Below `sm` the label is 24px under the art (`max-sm:pt-1.5` on the grid's
+// 12px and the row's 6px), and `max-sm:pb-1.5` widens the gap under the name.
 const CARD_TEXT_CLASSES =
-    'flex min-w-0 flex-col gap-3 [container-type:inline-size] sm:col-start-2 sm:row-start-1 sm:pt-1.5';
+    'flex min-w-0 flex-col gap-3 max-sm:pb-1.5 max-sm:pt-1.5 sm:col-start-2 sm:row-start-1 sm:pt-[7px]';
 
 // Below `sm` the facts reach the card's border: the negative margins undo its padding, and a line runs along their
 // top. `overflow-hidden` clips the lines the rows draw along the card's border (see `FACT_STRIP_CLASSES`). From `sm`
 // no lines: the pairs keep to the bottom of the right column, as the `1fr` row above them takes the art's spare
-// height, 24px from the card's bottom edge.
+// height, their last line 24px from the card's bottom edge.
 const CARD_FACTS_CLASSES = [
     'min-w-0 -mx-2.5 -mb-2.5 overflow-hidden border-0 border-t border-solid border-outer-space-800',
-    'sm:col-start-2 sm:row-start-2 sm:m-0 sm:border-t-0 sm:pb-3.5 sm:pr-3.5',
+    'sm:col-start-2 sm:row-start-2 sm:m-0 sm:border-t-0 sm:pb-[13px] sm:pr-3.5',
 ].join(' ');
 
-// The text's side inset on the card: 16px from its edges below `sm`, 24px from its right edge from `sm`.
-const TEXT_INSET = 'max-sm:px-1.5 sm:pr-3.5';
+// The text's side inset on the card: below `sm` 12px from its border with the card's 10px, as the Overview card's rows
+// and the facts under it; from `sm` 24px from its right edge.
+const TEXT_INSET = 'max-sm:px-0.5 sm:pr-3.5';
 
-// Sized by the text column, not the window (`cqi`, a hundredth of the column's width; the column is a size container),
-// so the name stops growing once the page reaches its fixed width. 30px at the least, so a long word still fits a
-// phone's card, 54px at the most. `leading-tight`, because a long name wraps at these sizes.
-const CARD_NAME_CLASSES = 'm-0 break-words text-[length:clamp(30px,9cqi,54px)] font-normal leading-tight text-white';
+// One size below `sm` and one from it, whatever the column's width: 30px, what the name had at `xs`, and 42px, halfway
+// between what it had at `md` (32px) and at `lg` (51px). `leading-tight`, because a long name wraps at these sizes.
+const CARD_NAME_CLASSES = 'm-0 break-words text-[30px] font-normal leading-tight text-white sm:text-[42px]';
 
 type FactLayout = 'card' | 'split';
 
@@ -252,7 +323,11 @@ function FactStrip({ facts, layout }: { facts: NftFact[]; layout: FactLayout }) 
         <dl className={FACT_STRIP_CLASSES}>
             {facts.map(({ label, value }) => (
                 <div key={label} className={factVariants({ layout })}>
-                    <dt className={cn('flex-none text-sm font-normal text-outer-space-300', LABEL_WIDTH)}>{label}</dt>
+                    {/* From `sm` the keys get 80px (`sm:w-20`), not the Overview's share of the row: the labels are
+                        short (the longest, "Collection", is 65px) and the values need the room. */}
+                    <dt className={cn('flex-none text-sm font-normal text-outer-space-300', LABEL_WIDTH, 'sm:w-20')}>
+                        {label}
+                    </dt>
                     {/* `overflow-hidden`: an address measures its full text in a hidden span, which would otherwise
                         widen the page on a phone. */}
                     <dd className="m-0 min-w-0 flex-1 overflow-hidden text-sm text-white">{value}</dd>
@@ -272,41 +347,51 @@ const factVariants = cva(
     'flex min-w-0 flex-row items-baseline gap-dk-4 border-0 border-b border-r border-solid border-outer-space-800 py-2.5 sm:gap-4 sm:border-0 sm:p-0',
     {
         variants: {
-            // `card`: 16px, the card's 10px plus the text's 6px (`TEXT_INSET`); `split`: the card's own padding
-            // (`SPLIT_PADDING`).
-            layout: { card: 'px-4', split: 'px-2.5' },
+            // 12px from the card's border, as the Overview card's rows (`ROW_PADDING`) and the text above them
+            // (`TEXT_INSET`, `SPLIT_PADDING`).
+            layout: { card: 'px-3', split: 'px-3' },
         },
     },
 );
 
 // The art gets a slot and sizes itself inside it: it scales down to fit, keeps its proportions and sits at the slot's
 // left, so the rounded corners always land on the art itself (`object-contain` in a wider box would round the box and
-// leave the art's corners square). The slot hugs the art (`w-fit`): the browser carries the 480px height cap through
+// leave the art's corners square). The slot hugs the art (`w-fit`): the browser carries the height cap (520px, 540px
+// below `sm`) through
 // the art's proportions, so a tall image gets a narrower slot and the text moves up to it. Below `sm` the slot may take
-// the whole column (a tall image stops at 480px high and stays at the left); from `sm` (576px) the header's grid track
-// caps it at 320px or half the row. `min-w-0` lets the track hold that cap while the loading square, which unlike the
-// image can't shrink, asks for its full width.
-const ART_FRAME_CLASSES = 'relative flex w-fit min-w-0 max-w-full flex-col items-start self-start';
+// the whole column, and a tall image that stops at the cap, narrower than the column, sits centred in it
+// (`max-sm:mx-auto`); from `sm` (576px) the header's grid track caps it at 320px or half the row. `min-w-0` lets the
+// track hold that cap while the loading square, which unlike the image can't shrink, asks for its full width.
+const ART_FRAME_CLASSES = 'relative flex w-fit min-w-0 max-w-full flex-col items-start self-start max-sm:mx-auto';
 
 // On a card the art gets the NFToken NFT cards' pair: 4px corners in an 8px card.
 const ART_RADIUS = { false: 'rounded-lg', true: 'rounded' } as const;
 
-const nftArtVariants = cva('block h-auto max-h-[480px] w-auto max-w-full', {
-    defaultVariants: { onCard: false },
-    variants: { onCard: ART_RADIUS },
+// `sized`: once the art's own size is known, its width is the one that makes it as tall as the cap (`artStyle`), set
+// per breakpoint through CSS variables, since an inline width can't follow a media query.
+const nftArtVariants = cva('block h-auto max-h-[520px] max-w-full max-sm:max-h-[540px]', {
+    defaultVariants: { onCard: false, sized: false },
+    variants: {
+        onCard: ART_RADIUS,
+        sized: { false: 'w-auto', true: 'w-[var(--art-w)] max-sm:w-[var(--art-w-phone)]' },
+    },
 });
 
 // While the art loads, a square holds the space the art will most likely take. It has a width of its own, because the
 // art's slot takes its width from what it holds.
-const nftArtPlaceholderVariants = cva('aspect-square w-[min(480px,calc(100vw-2rem))] max-w-full', {
-    defaultVariants: { onCard: false },
-    variants: { onCard: ART_RADIUS },
-});
+const nftArtPlaceholderVariants = cva(
+    'aspect-square w-[min(520px,calc(100vw-2rem))] max-w-full max-sm:w-[min(540px,calc(100vw-2rem))]',
+    {
+        defaultVariants: { onCard: false },
+        variants: { onCard: ART_RADIUS },
+    },
+);
 
 const ART_PIXELS = 320;
 // The height cap: the art is shown whole but can't stretch the page on either side, however odd its proportions. The
-// width cap is the slot's.
-const MAX_HEIGHT = 480;
+// width cap is the slot's. A phone's column is narrow, so a tall art gets 20px more there.
+const MAX_HEIGHT = 520;
+const MAX_HEIGHT_PHONE = 540;
 // Art this small is almost always pixel art, drawn to be enlarged with hard edges.
 const PIXEL_ART_MAX_SIDE = 256;
 
@@ -329,7 +414,7 @@ function NftArt({
         <div className={ART_FRAME_CLASSES}>
             <ProxiedImage
                 alt="nft"
-                className={nftArtVariants({ onCard })}
+                className={nftArtVariants({ onCard, sized: loaded !== undefined && artStyle(loaded) !== undefined })}
                 height={ART_PIXELS}
                 onLoad={event =>
                     setNatural({
@@ -369,18 +454,18 @@ function NftArtFallback({ onCard, reason }: { onCard: boolean; reason?: string }
 // The width that makes the art exactly as tall as the cap, so small art scales up as well as large art scales down;
 // `max-w-full` then narrows it to the slot, keeping its proportions. Small art also keeps hard pixel edges instead of
 // the browser's blur.
-function artStyle({ width, height }: { width: number; height: number }) {
+function artStyle({ width, height }: { width: number; height: number }): CSSProperties | undefined {
     if (width === 0 || height === 0) return undefined;
     return {
-        imageRendering: Math.max(width, height) <= PIXEL_ART_MAX_SIDE ? ('pixelated' as const) : undefined,
-        width: Math.round((MAX_HEIGHT * width) / height),
-    };
+        '--art-w': `${Math.round((MAX_HEIGHT * width) / height)}px`,
+        '--art-w-phone': `${Math.round((MAX_HEIGHT_PHONE * width) / height)}px`,
+        imageRendering: Math.max(width, height) <= PIXEL_ART_MAX_SIDE ? 'pixelated' : undefined,
+    } as CSSProperties;
 }
 
 /**
  * A quiet link to the image at its source, for when the proxied copy fails or someone wants the full file. A click
- * always asks first (`OriginalImageDialog`). With a mouse, the external-site hint also
- * opens on hovering it, like the badges; a touch screen has no hover, so there the dialog alone explains.
+ * always asks first (`OriginalImageDialog`), and that dialog says what the site is, so no hint opens on hover.
  */
 function OriginalLink({
     uri,
@@ -388,21 +473,24 @@ function OriginalLink({
 }: {
     uri?: string;
     /**
-     * `button` looks like the Overview card's Raw button, for the split header's title row; `ghost` is a button of
-     * that size with no outline, in the type label's gray, for the card header's label row.
+     * `ghost` is a `Button` `sm`-sized box with no outline, in the type label's gray, for the card headers' label row;
+     * `row` is the value of the header's Original row, the image's site in the page's link green.
      */
-    look?: 'link' | 'button' | 'ghost';
+    look?: 'link' | 'ghost' | 'row';
 }) {
-    const canHover = useCanHover();
-    // The dialog would open any href; only an http(s) image gets the link at all.
-    if (!uri || !getSafeExternalHref(uri)) return undefined;
+    if (!hasOriginal(uri)) return undefined;
 
+    // The row's value is laid out as the Overview card's Website link: the text, then the inline arrow.
     const trigger =
-        look === 'button' ? (
-            <Button variant="outline" size="sm">
-                View original
-                <ExternalLinkIcon size={12} />
-            </Button>
+        look === 'row' ? (
+            <button type="button" className={originalLinkVariants({ look })}>
+                {/* One flex item, so the button's baseline is its first line's: a button on its own would line up
+                    with its label by its last line once the site wraps. */}
+                <span>
+                    <SiteName hostname={new URL(uri).hostname} />
+                    <ExternalLinkMark />
+                </span>
+            </button>
         ) : (
             <button type="button" className={originalLinkVariants({ look })}>
                 View original
@@ -411,19 +499,12 @@ function OriginalLink({
             </button>
         );
 
-    if (!canHover) {
-        return <OriginalImageDialog uri={uri}>{trigger}</OriginalImageDialog>;
-    }
+    return <OriginalImageDialog uri={uri}>{trigger}</OriginalImageDialog>;
+}
 
-    // The dialog's trigger props pass through the tooltip trigger onto the button, so one button opens both.
-    return (
-        <Tooltip>
-            <OriginalImageDialog uri={uri}>
-                <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-            </OriginalImageDialog>
-            <TooltipContent>{EXTERNAL_RESOURCE_HINT}</TooltipContent>
-        </Tooltip>
-    );
+// The dialog would open any href; only an http(s) image gets the link at all, and the Original row with it.
+function hasOriginal(uri: string | undefined): uri is string {
+    return !!uri && !!getSafeExternalHref(uri);
 }
 
 // In the type label's gray so the header's two captions read as one: `link` in the plain header's `text-muted`, a
@@ -431,47 +512,35 @@ function OriginalLink({
 // keys). `ghost` is the `Button` `sm` box (height, padding, rounding; the icon 4px closer) with a hover fill instead
 // of an outline; its own classes, since `Button`'s ghost is white and recolouring it from here would mean overriding
 // the base component.
-const originalLinkVariants = cva(
-    'inline-flex w-fit items-center whitespace-nowrap border-0 bg-transparent text-xs hover:text-white',
-    {
-        variants: {
-            look: {
-                ghost: 'h-7 gap-1 rounded px-2 text-outer-space-300 hover:bg-neutral-800',
-                link: 'gap-1 p-0 text-muted',
-            },
+const originalLinkVariants = cva('border-0 bg-transparent', {
+    variants: {
+        look: {
+            ghost: 'inline-flex h-7 w-fit items-center gap-1 whitespace-nowrap rounded px-2 text-xs text-outer-space-300 hover:bg-neutral-800 hover:text-white',
+            link: 'inline-flex w-fit items-center gap-1 whitespace-nowrap p-0 text-xs text-muted hover:text-white',
+            // The colours of every other link on the page (`a` in `styles.css`), which this button stands with. Its one
+            // item is plain text flow, so a site too long for the line wraps and the arrow follows its last line.
+            row: 'inline-flex p-0 text-left text-sm text-[#33a382] hover:text-[#2b8a6e]',
         },
     },
-);
+});
 
-const HOVER_QUERY = '(hover: hover)';
-
-// Whether the main pointer can hover. Asked of the device, not the window width: a mouse on a narrow window still
-// hovers, a touch tablet doesn't. The server render assumes a mouse.
-function useCanHover() {
-    const prismPointer = usePrismPointer();
-    const deviceCanHover = useSyncExternalStore(
-        onChange => {
-            const query = window.matchMedia(HOVER_QUERY);
-            query.addEventListener('change', onChange);
-            return () => query.removeEventListener('change', onChange);
-        },
-        () => window.matchMedia(HOVER_QUERY).matches,
-        () => true,
-    );
-    return prismPointer === undefined ? deviceCanHover : prismPointer === 'mouse';
-}
-
-// REVIEW(HOO-921): the local review prism (`public/_prism.html`, git-excluded) can't make the browser report another
-// device, so it hands its Pointer choice to the frame: `window.__prismPointer` plus a 'prism:pointer' event. Outside
-// the prism nothing sets it and the device decides.
-function usePrismPointer(): 'mouse' | 'touch' | undefined {
-    return useSyncExternalStore(
-        onChange => {
-            window.addEventListener('prism:pointer', onChange);
-            return () => window.removeEventListener('prism:pointer', onChange);
-        },
-        () => (window as Window & { __prismPointer?: 'mouse' | 'touch' }).__prismPointer,
-        () => undefined,
+/** A site's name that wraps after its dots (`<wbr>`), not in the middle of a word. */
+function SiteName({ hostname }: { hostname: string }) {
+    const parts = hostname.split('.');
+    return (
+        <>
+            {parts.map((part, index) => (
+                // The parts of a name can repeat (`a.a.com`), and they never reorder.
+                <Fragment key={index}>
+                    {part}
+                    {index < parts.length - 1 && (
+                        <>
+                            .<wbr />
+                        </>
+                    )}
+                </Fragment>
+            ))}
+        </>
     );
 }
 
@@ -567,23 +636,81 @@ function Hint({ text, children }: { text: string; children: ReactNode }) {
  * Each creator's address and royalty share, listed instead of hidden in a menu. The shares form their own column,
  * left-aligned right after the longest address.
  */
-function NftCreatorsList({ creators }: { creators: NftHeaderModel['creators'] }) {
+export function NftCreatorsList({ creators }: { creators: NftHeaderModel['creators'] }) {
+    // REVIEW(HOO-921): the design menu picks the share's place and the unverified mark; keep the winners.
+    const share = useNftCreatorsShare();
+    const unverified = useNftCreatorsUnverified();
     if (!creators || creators.length === 0) return <Muted />;
+
+    if (share === 'inline') {
+        // Each share right after its address; `flex-wrap` moves it to the next line when the two don't fit.
+        return (
+            <div className="flex min-w-0 flex-col gap-y-1">
+                {creators.map(creator => (
+                    <div key={creator.address} className="flex min-w-0 flex-wrap items-baseline gap-x-1.5">
+                        <div className="min-w-0">
+                            <Address pubkey={new PublicKey(creator.address)} link />
+                        </div>
+                        <CreatorShare creator={creator} unverified={unverified} />
+                    </div>
+                ))}
+            </div>
+        );
+    }
+
     return (
-        <div className="grid min-w-0 grid-cols-[minmax(0,max-content)_1fr] items-baseline gap-x-3 gap-y-1 overflow-hidden">
+        <div className="grid min-w-0 grid-cols-[minmax(0,max-content)_1fr] items-baseline gap-x-1.5 gap-y-1 overflow-hidden">
             {creators.map(creator => (
                 <Fragment key={creator.address}>
                     <div className="min-w-0">
                         <Address pubkey={new PublicKey(creator.address)} link />
                     </div>
-                    <span className="text-left text-outer-space-300">
-                        {creator.share}%{creator.verified ? '' : ' · unverified'}
-                    </span>
+                    <CreatorShare creator={creator} unverified={unverified} />
                 </Fragment>
             ))}
         </div>
     );
 }
+
+// The royalty share in gray, and the mark of an unverified creator: the text, or below `sm` with the `icon` variant a
+// question mark. `whitespace-nowrap`: the question mark stays on the share's line.
+function CreatorShare({ creator, unverified }: { creator: NftCreator; unverified: NftCreatorsUnverified }) {
+    return (
+        <span className="whitespace-nowrap text-left text-outer-space-300">
+            {creator.share}%
+            {!creator.verified &&
+                (unverified === 'icon' ? (
+                    <>
+                        <span className="max-sm:hidden"> · unverified</span>
+                        <UnverifiedHint />
+                    </>
+                ) : (
+                    ' · unverified'
+                ))}
+        </span>
+    );
+}
+
+// Below `sm` "unverified" doesn't fit beside the share, so it shrinks to a question mark that explains itself on a tap
+// (the tooltip opens on touch too). `-2px` sets the 13px icon on the text's optical centre, as `InfoTooltip` does.
+function UnverifiedHint() {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <button
+                    type="button"
+                    aria-label="Unverified"
+                    className="ml-1.5 inline-flex cursor-help border-0 bg-transparent p-0 align-[-2px] text-outer-space-300 sm:hidden"
+                >
+                    <HelpCircle size={13} />
+                </button>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-64">{UNVERIFIED_CREATOR_HINT}</TooltipContent>
+        </Tooltip>
+    );
+}
+
+const UNVERIFIED_CREATOR_HINT = 'Unverified: this creator has not signed the NFT, so anyone could have listed them.';
 
 function Spec({ label, children }: { label: string; children: ReactNode }) {
     return (
@@ -597,9 +724,6 @@ function Spec({ label, children }: { label: string; children: ReactNode }) {
 function Muted() {
     return <span className="text-outer-space-300">—</span>;
 }
-
-// Says why the link deserves care: the image URL comes from metadata anyone can write.
-const EXTERNAL_RESOURCE_HINT = 'External resource. Sees your IP address and may not be an image.';
 
 const MUTABLE_TOOLTIP = "The update authority can still change this NFT's name, image and creators.";
 const IMMUTABLE_TOOLTIP = "No one can change this NFT's name, image or creators.";

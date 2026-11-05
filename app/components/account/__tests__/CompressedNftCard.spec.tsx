@@ -9,9 +9,17 @@ import type { CompressedNft } from '@/app/providers/compressed-nft';
 
 const useCompressedNft = vi.hoisted(() => vi.fn<() => CompressedNft | null>(() => null));
 
-// REVIEW(HOO-921): pins the primary header variant (Card); the others have their own specs.
+// REVIEW(HOO-921): pins the primary header variant (Split); the others have their own specs.
 vi.mock('@/app/components/account/nft-header-variant', () => ({
-    useNftHeaderVariant: () => 'card',
+    useNftHeaderVariant: () => 'split',
+}));
+
+const useNftCreatorsPlacement = vi.hoisted(() => vi.fn(() => 'header'));
+
+// REVIEW(HOO-921): where the design menu puts the creators; the header by default.
+vi.mock('@/app/components/account/nft-creators-variant', async importOriginal => ({
+    ...(await importOriginal<typeof import('@/app/components/account/nft-creators-variant')>()),
+    useNftCreatorsPlacement,
 }));
 
 vi.mock('@/app/providers/cluster', () => ({
@@ -154,6 +162,16 @@ describe('CompressedNftCard', () => {
             'href',
             'https://example.com',
         );
+    });
+
+    it('should list the creators before the website when the design menu moves them here', () => {
+        useNftCreatorsPlacement.mockReturnValueOnce('overview');
+        useCompressedNft.mockReturnValue(makeCoreAsset());
+
+        render(<CompressedNftCard account={makeAccount()} />);
+
+        const labels = screen.getAllByText(text => text === 'Creators' || text === 'Website');
+        expect(labels.map(label => label.textContent)).toEqual(['Creators', 'Website']);
     });
 });
 

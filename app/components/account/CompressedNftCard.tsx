@@ -2,9 +2,8 @@ import { AccountCard } from '@features/account';
 import { Account } from '@providers/accounts';
 import { PublicKey } from '@solana/web3.js';
 import { Suspense } from 'react';
-import { ExternalLink as ExternalLinkIcon } from 'react-feather';
 
-import { ExternalLink } from '@/app/components/shared/ui/external-link';
+import { ExternalLink, ExternalLinkMark } from '@/app/components/shared/ui/external-link';
 import { useCluster } from '@/app/providers/cluster';
 import { CompressedNft, useCompressedNft, useMetadataJsonLink } from '@/app/providers/compressed-nft';
 import { getProxiedUri } from '@/app/shared/lib/metadata-proxy';
@@ -12,9 +11,10 @@ import { type KeyValueRowInput, KeyValueRows } from '@/app/shared/ui/key-value';
 
 import { Address } from '../common/Address';
 import { LoadingArtPlaceholder } from '../common/LoadingArtPlaceholder';
+import { useNftCreatorsPlacement } from './nft-creators-variant';
 import { type NftHeaderModel } from './nft-header/model';
 import { NftHeaderLayout } from './nft-header/NftHeaderVariants';
-import { nftOverviewRows } from './nft-header/overview-rows';
+import { nftCreatorsOverviewRow, nftOverviewRows } from './nft-header/overview-rows';
 import { useNftCollection } from './nft-header/use-nft-collection';
 import { useNftHeaderVariant } from './nft-header-variant';
 import { UnknownAccountCard } from './UnknownAccountCard';
@@ -22,6 +22,7 @@ import { UnknownAccountCard } from './UnknownAccountCard';
 export function CompressedNftCard({ account }: { account: Account }) {
     const { url } = useCluster();
     const compressedNft = useCompressedNft({ address: account.pubkey.toString(), url });
+    const creatorsInOverview = useNftCreatorsPlacement() === 'overview';
     // getAsset resolves fungible tokens too, and those have no single owner: DAS returns an empty
     // string, which is not a public key. Without an owner this card has nothing to describe.
     if (!compressedNft?.ownership.owner) return <UnknownAccountCard account={account} />;
@@ -41,12 +42,14 @@ export function CompressedNftCard({ account }: { account: Account }) {
             label: 'Update Authority',
             value: updateAuthority ? <Address pubkey={new PublicKey(updateAuthority)} link /> : 'None',
         },
+        // REVIEW(HOO-921): the design menu may move the creators here from the header.
+        creatorsInOverview && nftCreatorsOverviewRow(compressedNft),
         {
             label: 'Website',
             value: website ? (
                 <ExternalLink href={website}>
                     {website}
-                    <ExternalLinkIcon className="ml-1.5 align-text-top" size={13} />
+                    <ExternalLinkMark />
                 </ExternalLink>
             ) : (
                 <span className="text-outer-space-300">—</span>
