@@ -7,8 +7,14 @@ import React, { type ReactNode, type RefObject, useCallback, useEffect, useRef, 
 import { flushSync } from 'react-dom';
 import { Search, X } from 'react-feather';
 
+import { useNavSearchVariant } from './search-variant';
+
 const BELOW_DOCK =
     '[@media(max-width:575px)]:[&_kbd]:hidden [@media(max-width:575px)]:[&_[data-search-frame]]:!pr-[38px] [@media(max-width:575px)]:[&_[data-search-frame]>button]:!hidden';
+
+// REVIEW(HOO-935): the `field` variant at rest has no toggle beside it, so the field keeps no room for one.
+const BELOW_DOCK_AT_REST =
+    '[@media(max-width:575px)]:[&_kbd]:hidden [@media(max-width:575px)]:[&_[data-search-frame]>button]:!hidden';
 
 const STRIP_SEARCH_FRAME =
     '[&_[data-search-frame]]:!border-0 [&_[data-search-frame]]:!bg-transparent [&_[data-search-frame]]:!shadow-none [&_[data-search-frame]]:focus-within:!shadow-none [&_[data-search-frame]>svg]:!text-white';
@@ -35,6 +41,8 @@ export function NavSearch({ children, dockClassName, onOpenChange, open, restCla
     const [focused, setFocused] = useState(false);
     const [ringVisible, setRingVisible] = useState(false);
     const [hasText, setHasText] = useState(false);
+    // REVIEW(HOO-935): `field` keeps the field shown at rest in the slot, with no toggle; focus expands it.
+    const restingField = useNavSearchVariant() === 'field' && !open;
 
     useEffect(() => {
         if (focused) {
@@ -126,6 +134,8 @@ export function NavSearch({ children, dockClassName, onOpenChange, open, restCla
             }}
             onFocus={event => {
                 if (!toggleRef.current?.contains(event.target)) setFocused(true);
+                // A field at rest expands to the full width as soon as it is typed into, like an opened button.
+                if (restingField && event.target instanceof HTMLInputElement) onOpenChange(true);
             }}
             onBlur={event => {
                 const next = event.relatedTarget;
@@ -154,8 +164,8 @@ export function NavSearch({ children, dockClassName, onOpenChange, open, restCla
                     FILL_SEARCH_HEIGHT,
                     STRIP_SEARCH_FRAME,
                     ALIGN_SEARCH_PANEL,
-                    BELOW_DOCK,
-                    open ? 'block' : 'hidden',
+                    restingField ? BELOW_DOCK_AT_REST : BELOW_DOCK,
+                    open || restingField ? 'block' : 'hidden',
                     'sm:block',
                 )}
             >
@@ -170,7 +180,8 @@ export function NavSearch({ children, dockClassName, onOpenChange, open, restCla
                 onMouseDown={event => open && event.preventDefault()}
                 onClick={() => (open ? clearOrClose() : openNow())}
                 className={cn(
-                    'absolute inset-y-0 right-0 z-10 flex w-9 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-white transition-colors hover:text-heavy-metal-100',
+                    'absolute inset-y-0 right-0 z-10 w-9 cursor-pointer items-center justify-center border-0 bg-transparent p-0 text-white transition-colors hover:text-heavy-metal-100',
+                    restingField ? 'hidden' : 'flex',
                     'sm:hidden',
                 )}
             >
