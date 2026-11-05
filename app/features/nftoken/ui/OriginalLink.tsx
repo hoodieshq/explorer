@@ -1,11 +1,10 @@
 'use client';
 
-import { Tooltip, TooltipContent, TooltipTrigger } from '@components/shared/ui/tooltip';
+import { ExternalLinkMark } from '@components/shared/ui/external-link';
 import { cva } from 'class-variance-authority';
-import { type ReactNode, useSyncExternalStore } from 'react';
+import { Fragment } from 'react';
 import { ExternalLink as ExternalLinkIcon } from 'react-feather';
 
-import { Button } from '@/app/components/shared/ui/button';
 import { getSafeExternalHref } from '@/app/shared/lib/url';
 
 import { OriginalImageDialog } from './OriginalImageDialog';
@@ -15,8 +14,7 @@ import { OriginalImageDialog } from './OriginalImageDialog';
 
 /**
  * A quiet link to the image at its source, for when the proxied copy fails or someone wants the full file. A click
- * always asks first (`OriginalImageDialog`). With a mouse, the external-site hint also opens on hovering it, like the
- * badges; a touch screen has no hover, so there the dialog alone explains.
+ * always asks first (`OriginalImageDialog`), and that dialog says what the site is, so no hint opens on hover.
  */
 export function OriginalLink({
     uri,
@@ -24,21 +22,24 @@ export function OriginalLink({
 }: {
     uri?: string;
     /**
-     * REVIEW(HOO-929): `button` looks like the Overview card's Raw button, for the split header's button row; `ghost`
-     * is a button of that size with no outline, in the type label's gray, for the card header's label row.
+     * REVIEW(HOO-929): `ghost` is a `Button` `sm`-sized box with no outline, in the type label's gray, for the card
+     * headers' label row; `row` is the value of the header's Original row, the image's site in the page's link green.
      */
-    look?: 'link' | 'button' | 'ghost';
+    look?: 'link' | 'ghost' | 'row';
 }) {
-    const canHover = useCanHover();
-    // The dialog would open any href; only an http(s) image gets the link at all.
-    if (!uri || !getSafeExternalHref(uri)) return undefined;
+    if (!hasOriginal(uri)) return undefined;
 
-    const trigger: ReactNode =
-        look === 'button' ? (
-            <Button variant="outline" size="sm">
-                <ExternalLinkIcon size={12} />
-                View original
-            </Button>
+    // The row's value is laid out as the Overview card's Website link: the text, then the inline arrow.
+    const trigger =
+        look === 'row' ? (
+            <button type="button" className={originalLinkVariants({ look })}>
+                {/* One flex item, so the button's baseline is its first line's: a button on its own would line up
+                    with its label by its last line once the site wraps. */}
+                <span>
+                    <SiteName hostname={new URL(uri).hostname} />
+                    <ExternalLinkMark />
+                </span>
+            </button>
         ) : (
             <button type="button" className={originalLinkVariants({ look })}>
                 View original
@@ -47,19 +48,12 @@ export function OriginalLink({
             </button>
         );
 
-    if (!canHover) {
-        return <OriginalImageDialog uri={uri}>{trigger}</OriginalImageDialog>;
-    }
+    return <OriginalImageDialog uri={uri}>{trigger}</OriginalImageDialog>;
+}
 
-    // The dialog's trigger props pass through the tooltip trigger onto the button, so one button opens both.
-    return (
-        <Tooltip>
-            <OriginalImageDialog uri={uri}>
-                <TooltipTrigger asChild>{trigger}</TooltipTrigger>
-            </OriginalImageDialog>
-            <TooltipContent>{EXTERNAL_RESOURCE_HINT}</TooltipContent>
-        </Tooltip>
-    );
+/** The dialog would open any href; only an http(s) image gets the link at all, and the Original row with it. */
+export function hasOriginal(uri: string | undefined): uri is string {
+    return !!uri && !!getSafeExternalHref(uri);
 }
 
 // In the type label's gray so the header's two captions read as one: `link` in the plain header's `text-muted`, a
@@ -67,49 +61,34 @@ export function OriginalLink({
 // keys). `ghost` is the `Button` `sm` box (height, padding, rounding; the icon 4px closer) with a hover fill instead
 // of an outline; its own classes, since `Button`'s ghost is white and recolouring it from here would mean overriding
 // the base component.
-const originalLinkVariants = cva(
-    'inline-flex w-fit items-center whitespace-nowrap border-0 bg-transparent text-xs hover:text-white',
-    {
-        variants: {
-            look: {
-                ghost: 'h-7 gap-1 rounded px-2 text-outer-space-300 hover:bg-neutral-800',
-                link: 'gap-1 p-0 text-muted',
-            },
+const originalLinkVariants = cva('border-0 bg-transparent', {
+    variants: {
+        look: {
+            ghost: 'inline-flex h-7 w-fit items-center gap-1 whitespace-nowrap rounded px-2 text-xs text-outer-space-300 hover:bg-neutral-800 hover:text-white',
+            link: 'inline-flex w-fit items-center gap-1 whitespace-nowrap p-0 text-xs text-muted hover:text-white',
+            // The colours of every other link on the page (`a` in `styles.css`), which this button stands with. Its one
+            // item is plain text flow, so a site too long for the line wraps and the arrow follows its last line.
+            row: 'inline-flex p-0 text-left text-sm text-[#33a382] hover:text-[#2b8a6e]',
         },
     },
-);
+});
 
-// Says why the link deserves care: the image URL comes from metadata anyone can write.
-const EXTERNAL_RESOURCE_HINT = 'External resource. Sees your IP address and may not be an image.';
-
-const HOVER_QUERY = '(hover: hover)';
-
-// Whether the main pointer can hover. Asked of the device, not the window width: a mouse on a narrow window still
-// hovers, a touch tablet doesn't. The server render assumes a mouse.
-function useCanHover() {
-    const prismPointer = usePrismPointer();
-    const deviceCanHover = useSyncExternalStore(
-        onChange => {
-            const query = window.matchMedia(HOVER_QUERY);
-            query.addEventListener('change', onChange);
-            return () => query.removeEventListener('change', onChange);
-        },
-        () => window.matchMedia(HOVER_QUERY).matches,
-        () => true,
-    );
-    return prismPointer === undefined ? deviceCanHover : prismPointer === 'mouse';
-}
-
-// REVIEW(HOO-929): the local review prism (`public/_prism.html`, git-excluded) can't make the browser report another
-// device, so it hands its Pointer choice to the frame: `window.__prismPointer` plus a 'prism:pointer' event. Outside
-// the prism nothing sets it and the device decides.
-function usePrismPointer(): 'mouse' | 'touch' | undefined {
-    return useSyncExternalStore(
-        onChange => {
-            window.addEventListener('prism:pointer', onChange);
-            return () => window.removeEventListener('prism:pointer', onChange);
-        },
-        () => (window as Window & { __prismPointer?: 'mouse' | 'touch' }).__prismPointer,
-        () => undefined,
+/** A site's name that wraps after its dots (`<wbr>`), not in the middle of a word. */
+function SiteName({ hostname }: { hostname: string }) {
+    const parts = hostname.split('.');
+    return (
+        <>
+            {parts.map((part, index) => (
+                // The parts of a name can repeat (`a.a.com`), and they never reorder.
+                <Fragment key={index}>
+                    {part}
+                    {index < parts.length - 1 && (
+                        <>
+                            .<wbr />
+                        </>
+                    )}
+                </Fragment>
+            ))}
+        </>
     );
 }

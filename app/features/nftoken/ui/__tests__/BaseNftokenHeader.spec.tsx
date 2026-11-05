@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
 import { BaseNftokenHeader } from '../BaseNftokenHeader';
@@ -158,6 +158,67 @@ describe('BaseNftokenHeader', () => {
         );
 
         expect(screen.getByText('The Genesis collection.')).toBeInTheDocument();
+    });
+
+    it.each(['plain', 'card', 'split'] as const)(
+        "should put the image's site in an Original row when the menu moves it there (%s)",
+        variant => {
+            render(
+                <BaseNftokenHeader
+                    kind="nft"
+                    metadata={{ kind: 'loaded', metadata: { image: IMAGE, name: 'Genesis' } }}
+                    originalLink="row"
+                    variant={variant}
+                />,
+            );
+
+            expect(screen.getAllByRole('term').map(term => term.textContent)).toEqual(['Collection', 'Original']);
+            // The text, not the accessible name, which the `<wbr>` after each dot gets in the way of.
+            expect(screen.getAllByRole('button').map(button => button.textContent)).toContain('cdn.glow.app');
+            expect(screen.queryByRole('button', { name: 'View original' })).not.toBeInTheDocument();
+        },
+    );
+
+    it('should leave the Original row out for an image that is not an http(s) address', () => {
+        render(
+            <BaseNftokenHeader
+                kind="nft"
+                metadata={{ kind: 'loaded', metadata: { image: 'javascript:alert(1)', name: 'Genesis' } }}
+                originalLink="row"
+                variant="split"
+            />,
+        );
+
+        expect(screen.queryByText('Original')).not.toBeInTheDocument();
+    });
+
+    it('should keep the name and the facts together when the card centres them', () => {
+        render(
+            <BaseNftokenHeader
+                kind="collection"
+                metadata={{ kind: 'loaded', metadata: { image: undefined, name: 'Genesis' } }}
+                nfts={{ kind: 'loading' }}
+                variant="card"
+                cardSpacing="centred"
+            />,
+        );
+
+        // eslint-disable-next-line testing-library/no-node-access -- the shared box is what the choice adds
+        const box = screen.getByRole('heading', { name: 'Genesis' }).closest('.sm\\:justify-center');
+        expect(box).not.toBeNull();
+        expect(within(box as HTMLElement).getByText('Number of NFTs')).toBeInTheDocument();
+    });
+
+    it.each(['nft', 'collection'] as const)('should cap the description at the same width for kind %s', kind => {
+        render(
+            <BaseNftokenHeader
+                kind={kind}
+                metadata={{ kind: 'loaded', metadata: { description: 'About it.', image: undefined, name: 'A' } }}
+                variant="split"
+            />,
+        );
+
+        expect(screen.getByText('About it.')).toHaveClass('max-w-[420px]');
     });
 
     it('should leave the mutability to the Overview card', () => {

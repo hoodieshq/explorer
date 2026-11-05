@@ -4,7 +4,7 @@ import { Skeleton } from '@components/shared/ui/skeleton';
 import { cn } from '@components/shared/utils';
 import solanaLogo from '@img/logos-solana/low-contrast-solana-logo.svg';
 import { cva } from 'class-variance-authority';
-import { type ReactNode, useState } from 'react';
+import { type CSSProperties, type ReactNode, useState } from 'react';
 
 import { type ImageFailure, ProxiedImage } from '@/app/features/metadata';
 
@@ -12,7 +12,7 @@ import { type ImageFailure, ProxiedImage } from '@/app/features/metadata';
 // two into one once it is. It lives here, not in the NFToken feature, because a feature can't import the metadata
 // feature's `ProxiedImage`.
 
-/** The art at its own proportions, up to 480px tall and the slot's width. */
+/** The art at its own proportions, up to 520px tall (540px below `sm`) and the slot's width. */
 export function NFTWideArt({
     uri,
     under,
@@ -32,7 +32,7 @@ export function NFTWideArt({
         <div className={ART_FRAME_CLASSES}>
             <ProxiedImage
                 alt="nft"
-                className={artVariants({ onCard })}
+                className={artVariants({ onCard, sized: loaded !== undefined && artStyle(loaded) !== undefined })}
                 height={ART_PIXELS}
                 onLoad={event =>
                     setNatural({
@@ -88,29 +88,41 @@ function ArtSkeleton({ onCard }: { onCard: boolean }) {
 // On a card: the NFT cards' pair, 4px art in an 8px card.
 const RADIUS = { false: 'rounded-lg', true: 'rounded' } as const;
 
-// `w-fit`: the art sets the slot's width (so "View original" can hang under its right edge) and stays at the left;
-// from `sm` the header's grid track caps it at 320px or half the row. `min-w-0` lets the track hold that cap while
-// the loading square, which unlike the image can't shrink, asks for its full width: without it the square grows
-// the track to 480px, taller than the art that replaces it.
-const ART_FRAME_CLASSES = 'relative flex w-fit min-w-0 max-w-full flex-col items-start self-start';
-const artVariants = cva('block h-auto max-h-[480px] w-auto max-w-full', { variants: { onCard: RADIUS } });
-const skeletonVariants = cva('aspect-square w-[min(480px,calc(100vw-2rem))] max-w-full', {
-    variants: { onCard: RADIUS },
+// `w-fit`: the art sets the slot's width (so "View original" can hang under its right edge). Below `sm` a tall art that
+// stops at the cap, narrower than the column, sits centred in it (`max-sm:mx-auto`); from `sm` it stays at the left
+// and the header's grid track caps it at 320px or half the row. `min-w-0` lets the track hold that cap while the
+// loading square, which unlike the image can't shrink, asks for its full width: without it the square grows the
+// track to its own width, taller than the art that replaces it.
+const ART_FRAME_CLASSES = 'relative flex w-fit min-w-0 max-w-full flex-col items-start self-start max-sm:mx-auto';
+// `sized`: once the art's own size is known, its width is the one that makes it as tall as the cap (`artStyle`), set
+// per breakpoint through CSS variables, since an inline width can't follow a media query.
+const artVariants = cva('block h-auto max-h-[520px] max-w-full max-sm:max-h-[540px]', {
+    defaultVariants: { sized: false },
+    variants: {
+        onCard: RADIUS,
+        sized: { false: 'w-auto', true: 'w-[var(--art-w)] max-sm:w-[var(--art-w-phone)]' },
+    },
 });
+const skeletonVariants = cva(
+    'aspect-square w-[min(520px,calc(100vw-2rem))] max-w-full max-sm:w-[min(540px,calc(100vw-2rem))]',
+    { variants: { onCard: RADIUS } },
+);
 const ART_PIXELS = 320;
 // The height cap: the art is shown whole but can't stretch the page, however odd its proportions. The width cap is
-// the slot's.
-const MAX_HEIGHT = 480;
+// the slot's. A phone's column is narrow, so a tall art gets 20px more there.
+const MAX_HEIGHT = 520;
+const MAX_HEIGHT_PHONE = 540;
 // Art this small is almost always pixel art, drawn to be enlarged with hard edges.
 const PIXEL_ART_MAX_SIDE = 256;
 
 // The width that makes the art exactly as tall as the cap, so small art scales up as well as large art scales down;
 // `max-w-full` then narrows it to the slot, keeping its proportions. Small art also keeps hard pixel edges instead of
 // the browser's blur.
-function artStyle({ width, height }: { width: number; height: number }) {
+function artStyle({ width, height }: { width: number; height: number }): CSSProperties | undefined {
     if (width === 0 || height === 0) return undefined;
     return {
-        imageRendering: Math.max(width, height) <= PIXEL_ART_MAX_SIDE ? ('pixelated' as const) : undefined,
-        width: Math.round((MAX_HEIGHT * width) / height),
-    };
+        '--art-w': `${Math.round((MAX_HEIGHT * width) / height)}px`,
+        '--art-w-phone': `${Math.round((MAX_HEIGHT_PHONE * width) / height)}px`,
+        imageRendering: Math.max(width, height) <= PIXEL_ART_MAX_SIDE ? 'pixelated' : undefined,
+    } as CSSProperties;
 }

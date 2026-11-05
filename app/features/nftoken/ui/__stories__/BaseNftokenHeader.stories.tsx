@@ -62,38 +62,25 @@ export const CollectionCountFailed: Story = {
     args: { kind: 'collection', metadata: loaded, nfts: { kind: 'failed' } },
 };
 
-// REVIEW(HOO-929): the card variant under comparison in the design menu.
-// Plain text stands in for the address and link values the page passes.
-const facts = [
-    { label: 'Authority', value: 'GbRfu…Ezbx' },
-    { label: 'Holder', value: '8Zp1q…4KcN' },
-    { label: 'Delegate', value: 'Not Delegated' },
-    { label: 'Frozen', value: 'No' },
-    { label: 'Metadata', value: 'Mutable' },
-    { label: 'Website', value: '—' },
-    { label: 'Address', value: 'D1xUw…wvH' },
-];
-
+// REVIEW(HOO-929): the layouts under comparison in the design menu.
 export const NftCard: Story = {
-    args: { collection, facts, kind: 'nft', metadata: loaded, variant: 'card' },
+    args: { collection, kind: 'nft', metadata: loaded, variant: 'card' },
 };
 
 export const CollectionCard: Story = {
-    args: {
-        facts: facts.filter(({ label }) => ['Authority', 'Metadata', 'Website', 'Address'].includes(label)),
-        kind: 'collection',
-        metadata: loaded,
-        nfts: counted,
-        variant: 'card',
-    },
+    args: { kind: 'collection', metadata: loaded, nfts: counted, variant: 'card' },
 };
 
 export const NftSplit: Story = {
-    args: { collection, facts, kind: 'nft', metadata: loaded, variant: 'split' },
+    args: { collection, kind: 'nft', metadata: loaded, variant: 'split' },
 };
 
 export const CollectionSplit: Story = {
     args: { ...CollectionCard.args, variant: 'split' },
+};
+
+export const NftSplitOriginalRow: Story = {
+    args: { ...NftSplit.args, originalLink: 'row' },
 };
 
 export const LoadingCard: Story = {

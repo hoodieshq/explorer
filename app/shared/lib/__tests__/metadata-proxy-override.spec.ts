@@ -14,10 +14,10 @@ describe('metadata proxy override', () => {
         vi.unstubAllEnvs();
     });
 
-    it('should leave the choice to the deploy when nothing is stored', () => {
+    it('should bypass the proxy when nothing is stored', () => {
         vi.stubEnv('NEXT_PUBLIC_METADATA_ENABLED', 'true');
-        expect(readMetadataProxyOverride()).toBeUndefined();
-        expect(getProxiedUri(URI)).toBe(PROXIED);
+        expect(readMetadataProxyOverride()).toBe(false);
+        expect(getProxiedUri(URI)).toBe(URI);
     });
 
     it('should bypass a proxy the deploy turned on', () => {
@@ -32,10 +32,10 @@ describe('metadata proxy override', () => {
         expect(getProxiedUri(URI)).toBe(PROXIED);
     });
 
-    it('should ignore a stored value that is not a boolean', () => {
+    it('should bypass the proxy when the stored value is not a boolean', () => {
         window.localStorage.setItem(STORAGE_KEY, '"on"');
-        expect(readMetadataProxyOverride()).toBeUndefined();
+        expect(readMetadataProxyOverride()).toBe(false);
         window.localStorage.setItem(STORAGE_KEY, '{broken');
-        expect(readMetadataProxyOverride()).toBeUndefined();
+        expect(readMetadataProxyOverride()).toBe(false);
     });
 });

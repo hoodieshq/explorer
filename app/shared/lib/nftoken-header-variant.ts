@@ -7,18 +7,20 @@ import { atomWithStorage } from 'jotai/utils';
 
 export const NFTOKEN_HEADER_VARIANTS = [
     { label: 'Plain', value: 'plain' },
+    { label: 'Card', value: 'card' },
     // The primary variant: starred in the menu, which also says so under the buttons.
-    { label: 'Card', primary: true, value: 'card' },
-    { label: 'Split', value: 'split' },
+    { label: 'Split', primary: true, value: 'split' },
 ] as const;
 
 export type NftokenHeaderVariant = (typeof NFTOKEN_HEADER_VARIANTS)[number]['value'];
 
 // The default stays in code: a reviewer who never flipped the switch gets a changed default too.
-const DEFAULT_NFTOKEN_HEADER_VARIANT: NftokenHeaderVariant = 'card';
+const DEFAULT_NFTOKEN_HEADER_VARIANT: NftokenHeaderVariant = 'split';
+
+export const NFTOKEN_HEADER_STORAGE_KEY = 'hoo-929:nftoken-header';
 
 export const nftokenHeaderVariantAtom = atomWithStorage<NftokenHeaderVariant | undefined>(
-    'hoo-929:nftoken-header',
+    NFTOKEN_HEADER_STORAGE_KEY,
     undefined,
 );
 

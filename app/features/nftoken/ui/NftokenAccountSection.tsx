@@ -7,7 +7,6 @@ import { useRefreshAccount } from '@entities/account';
 import { AccountCard } from '@features/account';
 import type { Account } from '@providers/accounts';
 
-import { useNftokenHeaderVariant } from '@/app/shared/lib/nftoken-header-variant';
 import { type KeyValueRow, KeyValueRows } from '@/app/shared/ui/key-value';
 
 import { type NftokenCollectionAccount, type NftokenNftAccount, parseNftokenAccount } from '../lib/nftoken-accounts';
@@ -17,9 +16,6 @@ import { MutabilityHint, NftokenWebsite as Website } from './NftokenFieldValues'
 
 export function NftokenAccountSection({ account }: { account: Account }) {
     const nftoken = parseNftokenAccount(account);
-    // REVIEW(HOO-929): the split header shows the Overview's fields itself, so the card goes.
-    const headerVariant = useNftokenHeaderVariant();
-    if (nftoken && headerVariant === 'split') return undefined;
 
     switch (nftoken?.kind) {
         case 'nft':
