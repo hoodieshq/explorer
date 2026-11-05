@@ -6,6 +6,7 @@ import type { Account } from '@/app/providers/accounts';
 import { extractMetaplexMetadata } from '../lib/metaplexMetadata';
 import { extractTokenMetadata } from '../lib/tokenMetadata';
 import { metadataLayoutAtom, toMetadataLayout } from '../model/layout-variant';
+import { mockMetaplexAtom, mockMetaplexMetadata } from '../model/mock-metaplex';
 import { useOffChainMetadata } from '../model/useOffChainMetadata';
 import { BaseMetadataCard, type MetadataSection } from './BaseMetadataCard';
 
@@ -21,6 +22,8 @@ export function MetadataCard({ account }: { account: Account }) {
 function OnChainMetadataCard({ account }: { account: Account }) {
     // REVIEW(HOO-928): layout picked in the design menu.
     const layout = toMetadataLayout(useAtomValue(metadataLayoutAtom));
+    // REVIEW(HOO-928): the design menu's made-up Metaplex source, for the two-tab case on a preview.
+    const mockMetaplex = useAtomValue(mockMetaplexAtom);
     const sections = useMemo<MetadataSection[]>(() => {
         const parsedData = account.data.parsed;
 
@@ -45,10 +48,16 @@ function OnChainMetadataCard({ account }: { account: Account }) {
                 id: 'metaplex-metadata',
                 title: 'Metaplex',
             });
+        } else if (mockMetaplex && tokenMetadata) {
+            availableSections.push({
+                data: mockMetaplexMetadata(tokenMetadata),
+                id: 'metaplex-metadata',
+                title: 'Metaplex (mock)',
+            });
         }
 
         return availableSections;
-    }, [account]);
+    }, [account, mockMetaplex]);
 
     return <BaseMetadataCard sections={sections} layout={layout} />;
 }

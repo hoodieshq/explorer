@@ -47,6 +47,15 @@ describe('MetadataCard', () => {
         expect(screen.getByText('Token extension')).toBeInTheDocument();
     });
 
+    it('should add the design menu mock Metaplex source to token metadata when switched on', async () => {
+        localStorage.setItem('hoo-928:mock-metaplex', 'true');
+        const { account } = setup('tokenMetadata');
+        render(<MetadataCard account={account} />);
+
+        expect(await screen.findByRole('tab', { name: 'Metaplex (mock)' })).toBeInTheDocument();
+        localStorage.removeItem('hoo-928:mock-metaplex');
+    });
+
     it('should render a compressed NFT section when account has compressed NFT', () => {
         const { account, getJsonViewer } = setup('compressedNft');
         render(<MetadataCard account={account} />);

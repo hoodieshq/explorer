@@ -12,7 +12,7 @@ const meta = {
                 component: [
                     'The Metadata tab of an address: one «Metadata» section, like the page tab, on a card laid out like',
                     "the MCP docs page's. Several sources get tabs in the card's header; a single source gets its name",
-                    "as a mono label instead. The copy button for the whole JSON sits at the header's end. The sources:",
+                    "styled as the active tab instead. The copy button for the whole JSON sits at the header's end. The sources:",
                     '',
                     '- **Token extension** — the `tokenMetadata` extension of a Token-2022 mint.',
                     '- **Metaplex** — the Metaplex metadata account of a mint, as decoded by `mpl-token-metadata`.',

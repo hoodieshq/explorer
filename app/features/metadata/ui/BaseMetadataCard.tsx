@@ -23,8 +23,8 @@ export type MetadataSection = {
 /**
  * The metadata sources of an account: the Token-2022 extension, the Metaplex account, or the off-chain JSON
  * of a compressed NFT. `tabs` puts them in one "Metadata" section, named after the page tab, on a card laid out
- * like the MCP docs page's: tabs in the card's header for several sources, the source's name as a mono label for
- * one, and the copy button at the header's end. `sections` (REVIEW(HOO-928), kept for comparison) gives every
+ * like the MCP docs page's: tabs in the card's header for several sources, the source's name styled as the active
+ * tab for one, and the copy button at the header's end. `sections` (REVIEW(HOO-928), kept for comparison) gives every
  * source its own collapsible section, one after another.
  */
 export function BaseMetadataCard({
@@ -77,8 +77,8 @@ function JsonBody({ data }: { data: object }) {
     );
 }
 
-// Laid out like the MCP docs page's code card (`CodeCard`, `Tools`): its header and mono label, on the app's card
-// surface, border and divider colors; the tabs take the regular tabs' font and colors.
+// Laid out like the MCP docs page's code card (`CodeCard`, `Tools`): its header, on the app's card surface, border
+// and divider colors; the tabs, and a single source's label, take the regular tabs' font and colors.
 function TabsMetadataCard({ sections }: { sections: MetadataSection[] }) {
     const [activeId, setActiveId] = useState(sections[0].id);
     const active = sections.find(section => section.id === activeId) ?? sections[0];
@@ -94,9 +94,8 @@ function TabsMetadataCard({ sections }: { sections: MetadataSection[] }) {
                         look="plain"
                     />
                 ) : (
-                    <span className="flex-1 font-mono text-xs uppercase tracking-widest text-heavy-metal-500">
-                        {active.title}
-                    </span>
+                    // Styled as the active tab (`CardTabs look="plain"`): the regular tabs' 14px text in white.
+                    <span className="flex-1 text-sm font-normal text-white">{active.title}</span>
                 )}
                 <span className="flex shrink-0 items-center">
                     <InlineCopyButton
@@ -115,9 +114,10 @@ function TabsMetadataCard({ sections }: { sections: MetadataSection[] }) {
 }
 
 // Tabs stretch to the header's height, so the active tab's underline meets its bottom line (as in `Tools`); a label
-// sits in a 12px band (as in `CodeCard`). Tabs and label start 12px in, as the key-value rows' text (`ROW_PADDING`);
-// the 13px copy button keeps as far from the right edge as from the top and bottom ones: (40 - 13) / 2 beside a
-// label, (48 - 13) / 2 beside the taller tabs.
-const tabsHeaderVariants = cva('flex w-full gap-2.5 border-0 border-b border-solid border-outer-space-800 pl-3', {
-    variants: { content: { label: 'items-center py-3 pr-[13.5px]', tabs: 'items-stretch pr-[17.5px]' } },
-});
+// sits in a 14px band, so the header is as tall (48px) either way. Tabs and label start 12px in, as the key-value
+// rows' text (`ROW_PADDING`); the 13px copy button keeps as far from the right edge as from the top and bottom
+// ones: (48 - 13) / 2.
+const tabsHeaderVariants = cva(
+    'flex w-full gap-2.5 border-0 border-b border-solid border-outer-space-800 pl-3 pr-[17.5px]',
+    { variants: { content: { label: 'items-center py-3.5', tabs: 'items-stretch' } } },
+);
