@@ -8,6 +8,7 @@ import { AddressLookupTableAccount } from '@solana/web3.js';
 import { AddressLookupTableAccountInfo } from '@validators/accounts/address-lookup-table';
 import React from 'react';
 
+import { Badge } from '@/app/components/shared/ui/badge';
 import { type KeyValueRow, KeyValueRows } from '@/app/shared/ui/key-value';
 
 export function AddressLookupTableAccountSection(
@@ -39,9 +40,17 @@ export function AddressLookupTableAccountSection(
         { label: 'Address', value: <Address pubkey={account.pubkey} raw /> },
         { label: 'Balance (SOL)', value: <SolBalance lamports={account.lamports} />, valueClassName: 'uppercase' },
         {
+            // The Feature Gate status badge: `success` when active, `gray` (its inactive state) once deactivated.
             label: 'Activation Status',
-            value: lookupTableAccount.isActive() ? 'Active' : 'Deactivated',
-            valueClassName: 'uppercase',
+            value: lookupTableAccount.isActive() ? (
+                <Badge tone="soft" variant="success">
+                    Active
+                </Badge>
+            ) : (
+                <Badge tone="soft" variant="gray">
+                    Deactivated
+                </Badge>
+            ),
         },
         {
             label: 'Last Extended Slot',
