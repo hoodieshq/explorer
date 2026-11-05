@@ -1,18 +1,21 @@
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
+import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { Account, isTokenProgramData } from '@providers/accounts';
+import { cva } from 'class-variance-authority';
 import React from 'react';
 
 import { useCluster } from '@/app/providers/cluster';
 import { useCompressedNft } from '@/app/providers/compressed-nft';
 import { getProxiedUri } from '@/app/shared/lib/metadata-proxy';
-import { Card, CardHeader, CardTitle } from '@/app/shared/ui/Card';
-import { BaseTable } from '@/app/shared/ui/Table';
+import { Card } from '@/app/shared/ui/Card';
 
 interface Attribute {
     trait_type: string;
     value: string;
 }
+
+const GRID_COLUMNS = ['Trait type', 'Value'] as const;
 
 export function MetaplexNFTAttributesCard({ account, onNotFound }: { account?: Account; onNotFound: () => never }) {
     const { url } = useCluster();
@@ -83,32 +86,74 @@ export function NormalMetaplexNFTAttributesCard({ metadataUri }: { metadataUri: 
         return <ErrorCard retry={retryAttributes} text="Failed to fetch attributes" />;
     }
 
-    const attributesList: React.ReactNode[] = attributes.map(({ trait_type, value }) => {
-        return (
-            <BaseTable.Row key={`${trait_type}:${value}`}>
-                <BaseTable.Cell>{trait_type}</BaseTable.Cell>
-                <BaseTable.Cell>{value}</BaseTable.Cell>
-            </BaseTable.Row>
-        );
-    });
-
     return (
-        <Card ui="dashkit">
-            <CardHeader ui="dashkit">
-                <CardTitle as="h3" ui="dashkit">
-                    Attributes
-                </CardTitle>
-            </CardHeader>
-            <BaseTable ui="dashkit" variant="card" nowrap>
-                <BaseTable.Head>
-                    {/* w-[1%] (not the usual w-px): two shrink columns share this table, and 1px vs 1% distributes leftover width differently */}
-                    <BaseTable.Row>
-                        <BaseTable.HeaderCell className="w-[1%] text-dk-gray-700">Trait type</BaseTable.HeaderCell>
-                        <BaseTable.HeaderCell className="w-[1%] text-dk-gray-700">Value</BaseTable.HeaderCell>
-                    </BaseTable.Row>
-                </BaseTable.Head>
-                <BaseTable.Body>{attributesList}</BaseTable.Body>
-            </BaseTable>
-        </Card>
+        <CollapsibleSection title="Attributes" className="">
+            {/* Same surface as the Slot Hashes and Vote History grid cards. `!` because `cn` has no
+                tailwind-merge, and the tw card's own `rounded-xl` would otherwise win. */}
+            <Card variant="tight" className="!rounded-lg border-outer-space-800 bg-outer-space-900">
+                <AttributesGrid attributes={attributes} />
+            </Card>
+        </CollapsibleSection>
+    );
+}
+
+// `gridCellVariants` owns all grid cell styling. `role` picks header vs body chrome; header cells leave
+// `column` at its default.
+const gridCellVariants = cva('flex px-3 py-2.5', {
+    defaultVariants: { column: 'none', role: 'body' },
+    variants: {
+        column: {
+            // Both columns hold free text from the metadata JSON, and either can be long. They wrap
+            // instead of truncating, so the page never scrolls sideways on a phone; `min-w-0` lets the
+            // `1fr` track shrink below an unbroken value's width.
+            none: '',
+            text: 'min-w-0 break-words',
+        },
+        // `body`: top-aligned so the trait type lines up with the first line of a wrapped value.
+        role: {
+            body: 'items-start border-t border-solid border-outer-space-800',
+            header: 'items-center whitespace-nowrap text-xs uppercase text-outer-space-300',
+        },
+    },
+});
+
+// The Slot Hashes grid's tracks, so the two tables line up: Trait type takes the
+// `clamp(132px,25%,200px)` band, Value the rest.
+function AttributesGrid({ attributes }: { attributes: Attribute[] }) {
+    return (
+        <div className="w-full text-sm text-white">
+            {/* `contents` row wrappers generate no box, so the cells stay direct grid items: ARIA rows for
+                screen readers without breaking the column alignment. */}
+            <div role="table" aria-label="Attributes" className="grid grid-cols-[clamp(132px,25%,200px)_1fr]">
+                <div role="row" className="contents">
+                    {GRID_COLUMNS.map(label => (
+                        <div key={label} role="columnheader" className={gridCellVariants({ role: 'header' })}>
+                            {label}
+                        </div>
+                    ))}
+                </div>
+                {attributes.length > 0 ? (
+                    attributes.map(({ trait_type, value }) => (
+                        <div key={`${trait_type}:${value}`} role="row" className="contents">
+                            <div role="cell" className={gridCellVariants({ column: 'text' })}>
+                                {trait_type}
+                            </div>
+                            <div role="cell" className={gridCellVariants({ column: 'text' })}>
+                                {value}
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div role="row" className="contents">
+                        <div
+                            role="cell"
+                            className="col-span-2 border-t border-solid border-outer-space-800 px-3 py-2.5 text-center text-outer-space-300"
+                        >
+                            No attributes
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
     );
 }

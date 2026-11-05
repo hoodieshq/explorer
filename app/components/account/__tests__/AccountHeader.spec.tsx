@@ -1,7 +1,7 @@
 import { PublicKey } from '@solana/web3.js';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { vi } from 'vitest';
+import { onTestFinished, vi } from 'vitest';
 
 import { AccountHeader } from '@/app/components/account/AccountHeader';
 import { accountBytes, MAINNET_NFTS, nftokenAccount } from '@/app/features/nftoken/__tests__/fixtures';
@@ -92,6 +92,9 @@ describe('AccountHeader', () => {
 
         it('should use proxy for logo if enabled', () => {
             vi.stubEnv('NEXT_PUBLIC_METADATA_ENABLED', 'true');
+            // REVIEW(HOO-921): the design menu bypasses the proxy by default; turn it back on. Remove with the menu.
+            window.localStorage.setItem('hoo-921:metadata-proxy', 'true');
+            onTestFinished(() => window.localStorage.removeItem('hoo-921:metadata-proxy'));
             vi.mocked(useSecurityTxt).mockReturnValue({ isLoading: false, securityTxt: createPmpSecurityTxt() });
 
             renderHeader(NON_TRUSTED_ADDRESS);

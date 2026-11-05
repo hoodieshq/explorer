@@ -12,6 +12,8 @@ const sampleAttributesJson = {
         { trait_type: 'Eyes', value: 'Laser' },
         { trait_type: 'Mouth', value: 'Smile' },
         { trait_type: 'Rarity Rank', value: 42 },
+        { trait_type: 'Description', value: 'A long free-text value that wraps onto more lines on a phone' },
+        { trait_type: 'Seed', value: '0x5f3c9a1e7b2d4c6f8a0e1b3d5c7f9a2e4b6d8f0a1c3e5b7d9f2a4c6e8b0d1f3' },
     ],
 };
 

@@ -9,6 +9,19 @@ import type { CompressedNft } from '@/app/providers/compressed-nft';
 
 const useCompressedNft = vi.hoisted(() => vi.fn<() => CompressedNft | null>(() => null));
 
+// REVIEW(HOO-921): pins the primary header variant (Split); the others have their own specs.
+vi.mock('@/app/components/account/nft-header-variant', () => ({
+    useNftHeaderVariant: () => 'split',
+}));
+
+const useNftCreatorsPlacement = vi.hoisted(() => vi.fn(() => 'header'));
+
+// REVIEW(HOO-921): where the design menu puts the creators; the header by default.
+vi.mock('@/app/components/account/nft-creators-variant', async importOriginal => ({
+    ...(await importOriginal<typeof import('@/app/components/account/nft-creators-variant')>()),
+    useNftCreatorsPlacement,
+}));
+
 vi.mock('@/app/providers/cluster', () => ({
     useCluster: vi.fn(() => ({ cluster: 'devnet', url: 'https://api.devnet.solana.com' })),
 }));
@@ -16,6 +29,7 @@ vi.mock('@/app/providers/cluster', () => ({
 vi.mock('@/app/providers/accounts', async importOriginal => ({
     ...(await importOriginal<typeof import('@/app/providers/accounts')>()),
     useAccountInfo: vi.fn(() => undefined),
+    useFetchAccountInfo: vi.fn(() => vi.fn()),
 }));
 
 vi.mock('@/app/providers/compressed-nft', () => ({
@@ -127,6 +141,38 @@ describe('CompressedNftCard', () => {
         expect(screen.getByText('Owner')).toBeDefined();
         expect(screen.getByText('Update Authority')).toBeDefined();
     });
+
+    it('should show a dash for an asset without a website', () => {
+        useCompressedNft.mockReturnValue(makeCoreAsset());
+
+        render(<CompressedNftCard account={makeAccount()} />);
+
+        expect(screen.getByText('Website')).toBeDefined();
+        expect(screen.getByText('—')).toBeDefined();
+    });
+
+    it('should link the website of an asset that has one', () => {
+        const asset = makeCoreAsset();
+        asset.content.links.external_url = 'https://example.com';
+        useCompressedNft.mockReturnValue(asset);
+
+        render(<CompressedNftCard account={makeAccount()} />);
+
+        expect(screen.getByRole('link', { name: 'https://example.com' })).toHaveAttribute(
+            'href',
+            'https://example.com',
+        );
+    });
+
+    it('should list the creators before the website when the design menu moves them here', () => {
+        useNftCreatorsPlacement.mockReturnValueOnce('overview');
+        useCompressedNft.mockReturnValue(makeCoreAsset());
+
+        render(<CompressedNftCard account={makeAccount()} />);
+
+        const labels = screen.getAllByText(text => text === 'Creators' || text === 'Website');
+        expect(labels.map(label => label.textContent)).toEqual(['Creators', 'Website']);
+    });
 });
 
 describe('getAssetTypeLabel', () => {
@@ -153,7 +199,7 @@ describe('CompressedNFTHeader', () => {
         expect(screen.getByText('dogwifhat')).toBeDefined();
         expect(screen.queryByText('Metaplex Compressed NFT')).toBeNull();
         expect(screen.queryByText('Compressed')).toBeNull();
-        expect(screen.queryByText('Verified Collection')).toBeNull();
+        expect(screen.queryByText('Verified')).toBeNull();
     });
 
     it('should keep compressed labels for a real compressed NFT', () => {
@@ -161,6 +207,6 @@ describe('CompressedNFTHeader', () => {
 
         expect(screen.getByText('Metaplex Compressed NFT')).toBeDefined();
         expect(screen.getByText('Compressed')).toBeDefined();
-        expect(screen.getByText('Verified Collection')).toBeDefined();
+        expect(screen.getByText('Verified')).toBeDefined();
     });
 });

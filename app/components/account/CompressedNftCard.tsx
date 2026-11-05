@@ -2,35 +2,36 @@ import { AccountCard } from '@features/account';
 import { Account } from '@providers/accounts';
 import { PublicKey } from '@solana/web3.js';
 import { Suspense } from 'react';
-import { ChevronDown, ExternalLink as ExternalLinkIcon } from 'react-feather';
 
-import { Badge } from '@/app/components/shared/ui/badge';
-import { Button } from '@/app/components/shared/ui/button';
-import { Dropdown, DropdownMenu, DropdownToggle } from '@/app/components/shared/ui/dropdown';
-import { ExternalLink } from '@/app/components/shared/ui/external-link';
+import { ExternalLink, ExternalLinkMark } from '@/app/components/shared/ui/external-link';
 import { useCluster } from '@/app/providers/cluster';
 import { CompressedNft, useCompressedNft, useMetadataJsonLink } from '@/app/providers/compressed-nft';
 import { getProxiedUri } from '@/app/shared/lib/metadata-proxy';
-import { type KeyValueRow, KeyValueRows } from '@/app/shared/ui/key-value';
+import { type KeyValueRowInput, KeyValueRows } from '@/app/shared/ui/key-value';
 
 import { Address } from '../common/Address';
-import { InfoTooltip } from '../common/InfoTooltip';
 import { LoadingArtPlaceholder } from '../common/LoadingArtPlaceholder';
-import { NFTImageContent } from '../common/NFTArt';
-import { getCreatorDropdownItems, getIsMutablePill, getVerifiedCollectionPill } from './MetaplexNFTHeader';
+import { useNftCreatorsPlacement } from './nft-creators-variant';
+import { type NftHeaderModel } from './nft-header/model';
+import { NftHeaderLayout } from './nft-header/NftHeaderVariants';
+import { nftCreatorsOverviewRow, nftOverviewRows } from './nft-header/overview-rows';
+import { useNftCollection } from './nft-header/use-nft-collection';
+import { useNftHeaderVariant } from './nft-header-variant';
 import { UnknownAccountCard } from './UnknownAccountCard';
 
 export function CompressedNftCard({ account }: { account: Account }) {
     const { url } = useCluster();
     const compressedNft = useCompressedNft({ address: account.pubkey.toString(), url });
+    const creatorsInOverview = useNftCreatorsPlacement() === 'overview';
     // getAsset resolves fungible tokens too, and those have no single owner: DAS returns an empty
     // string, which is not a public key. Without an owner this card has nothing to describe.
     if (!compressedNft?.ownership.owner) return <UnknownAccountCard account={account} />;
 
     const collectionGroup = compressedNft.grouping.find(group => group.group_key === 'collection');
     const updateAuthority = compressedNft.authorities.find(authority => authority.scopes.includes('full'))?.address;
+    const website = compressedNft.content.links.external_url;
 
-    const rows: KeyValueRow[] = [
+    const rows: KeyValueRowInput[] = [
         { label: 'Address', value: <Address pubkey={account.pubkey} raw /> },
         { label: 'Owner', value: <Address pubkey={new PublicKey(compressedNft.ownership.owner)} link /> },
         {
@@ -41,16 +42,22 @@ export function CompressedNftCard({ account }: { account: Account }) {
             label: 'Update Authority',
             value: updateAuthority ? <Address pubkey={new PublicKey(updateAuthority)} link /> : 'None',
         },
+        // REVIEW(HOO-921): the design menu may move the creators here from the header.
+        creatorsInOverview && nftCreatorsOverviewRow(compressedNft),
         {
             label: 'Website',
-            value: (
-                <ExternalLink href={compressedNft.content.links.external_url}>
-                    {compressedNft.content.links.external_url}
-                    <ExternalLinkIcon className="ml-1.5 align-text-top" size={13} />
+            value: website ? (
+                <ExternalLink href={website}>
+                    {website}
+                    <ExternalLinkMark />
                 </ExternalLink>
+            ) : (
+                <span className="text-outer-space-300">—</span>
             ),
         },
         { label: 'Seller Fee', value: `${compressedNft.royalty.basis_points / 100}%` },
+        // REVIEW(HOO-921): the fields the current header variant moved here.
+        ...nftOverviewRows(compressedNftHeaderModel(compressedNft)),
     ];
 
     return (
@@ -75,47 +82,34 @@ export function CompressedNftAccountHeader({ account, fallback }: { account: Acc
 }
 
 export function CompressedNFTHeader({ compressedNft }: { compressedNft: CompressedNft }) {
-    // Empty strings are possible, so the check is necessary.
+    // REVIEW(HOO-921): picks the header variant under review; collapses to the chosen one before the external PR.
+    const variant = useNftHeaderVariant();
     const proxiedURI = compressedNft.content.json_uri ? getProxiedUri(compressedNft.content.json_uri) : null;
     const metadataJson = useMetadataJsonLink(proxiedURI);
-    const isCompressed = compressedNft.compression.compressed;
-    const hasCollection = compressedNft.grouping.some(group => group.group_key === 'collection');
+    const collectionAddress = compressedNft.grouping.find(group => group.group_key === 'collection')?.group_value;
+    const { name: collectionName } = useNftCollection(collectionAddress);
+    const model = compressedNftHeaderModel(compressedNft, { collectionName, image: metadataJson?.image });
+    return <NftHeaderLayout variant={variant} model={model} />;
+}
 
-    return (
-        <div className="-mx-3 flex flex-wrap">
-            <div className="ml-1.5 flex flex-none items-center px-3">
-                <NFTImageContent uri={metadataJson?.image} />
-            </div>
-            <div className="mb-3 mt-3 min-w-0 flex-1 px-3">
-                <h6 className="ml-[3px] uppercase tracking-[0.08em] text-dk-gray-700">
-                    {getAssetTypeLabel(compressedNft)}
-                </h6>
-                <div className="flex items-center">
-                    <h2 className="mb-0 ml-[3px] items-center overflow-hidden text-ellipsis whitespace-nowrap">
-                        {compressedNft.content.metadata.name !== ''
-                            ? compressedNft.content.metadata.name
-                            : 'No name was found'}
-                    </h2>
-                    {hasCollection ? getVerifiedCollectionPill() : null}
-                </div>
-                <h4 className="ml-[3px] mt-[3px] overflow-hidden text-ellipsis whitespace-nowrap uppercase tracking-[0.08em] text-dk-gray-700">
-                    {compressedNft.content.metadata.symbol !== ''
-                        ? compressedNft.content.metadata.symbol
-                        : 'No Symbol was found'}
-                </h4>
-                {isCompressed && <div className="mb-1.5 mt-1.5">{getCompressedNftPill()}</div>}
-                <div className="mb-3 mt-1.5">{getIsMutablePill(compressedNft.mutable)}</div>
-                <Dropdown className="inline-flex">
-                    <DropdownToggle asChild>
-                        <Button ui="dashkit" variant="dark" size="sm" className="w-[150px]" type="button">
-                            Creators <ChevronDown size={15} className="align-text-top" />
-                        </Button>
-                    </DropdownToggle>
-                    <DropdownMenu className="mt-1.5">{getCreatorDropdownItems(compressedNft.creators)}</DropdownMenu>
-                </Dropdown>
-            </div>
-        </div>
-    );
+/** REVIEW(HOO-921): the header variants' data for a DAS asset; the Overview card builds it too. */
+export function compressedNftHeaderModel(
+    compressedNft: CompressedNft,
+    { collectionName, image }: { collectionName?: string; image?: string } = {},
+): NftHeaderModel {
+    const { name, symbol } = compressedNft.content.metadata;
+    const collectionAddress = compressedNft.grouping.find(group => group.group_key === 'collection')?.group_value;
+    return {
+        // As in the header this one replaces: any collection grouping counts as verified.
+        collection: collectionAddress ? { address: collectionAddress, name: collectionName } : undefined,
+        compressed: compressedNft.compression.compressed,
+        creators: compressedNft.creators,
+        image,
+        mutable: compressedNft.mutable,
+        name: name !== '' ? name : 'Unnamed asset',
+        symbol: symbol !== '' ? symbol : undefined,
+        typeLabel: getAssetTypeLabel(compressedNft),
+    };
 }
 
 // getAsset resolves any indexed asset, not just compressed NFTs, so the type shown has to follow
@@ -138,17 +132,4 @@ const ASSET_TYPE_LABELS: Record<string, string> = {
 export function getAssetTypeLabel(asset: CompressedNft): string {
     if (asset.compression.compressed) return 'Metaplex Compressed NFT';
     return ASSET_TYPE_LABELS[asset.interface] ?? 'Asset';
-}
-
-function getCompressedNftPill() {
-    const onchainVerifiedToolTip =
-        'This NFT does not have a corresponding account, but uses verified ledger data to allow for transfers and trades. The existence of this tag ensures that the compressed NFT is verifiably up-to-date with the chain.';
-    return (
-        <div className="ml-1.5 inline-flex items-center">
-            <Badge ui="dashkit" variant="dark" tone="solid">
-                Compressed
-            </Badge>
-            <InfoTooltip bottom text={onchainVerifiedToolTip} />
-        </div>
-    );
 }
