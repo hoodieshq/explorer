@@ -16,6 +16,8 @@ import { Suspense } from 'react';
 import { SearchBar } from '@/app/components/SearchBarLoader';
 import { TokenInfoBatchProvider } from '@/app/entities/token-info';
 import { CookieConsent } from '@/app/features/cookie';
+import { DesignMenu } from '@/app/features/design-menu';
+import { MetadataLayoutSection } from '@/app/features/metadata/ui/MetadataLayoutSection';
 import { VisibilityProvider } from '@/app/shared/lib/visibility';
 import { rubikFont } from '@/app/styles';
 import { botIdProtectedRoutes } from '@/config/botid-middleware.mjs';
@@ -65,6 +67,11 @@ export default function RootLayout({ analytics, children }: { analytics: React.R
                                         <Footer />
                                     </div>
                                     <Toaster position="bottom-center" toastOptions={{ duration: 5_000 }} />
+                                    {/* REVIEW(design-menu): review-only design menu; remove before the external PR. The
+                                        sections come from the layout: a feature may not import another feature. */}
+                                    <DesignMenu>
+                                        <MetadataLayoutSection />
+                                    </DesignMenu>
                                 </TokenInfoBatchProvider>
                             </VisibilityProvider>
                         </ClusterProvider>

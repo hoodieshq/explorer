@@ -19,7 +19,13 @@ function MetaplexMetadataCardRenderer({
     if (!account) {
         return onNotFound();
     }
-    return <Suspense fallback={<LoadingCard />}>{<MetadataCard account={account} />}</Suspense>;
+    // The card carries no trailing margin; `pb-14` plus the root layout's `pb-6` leaves ~80px above the
+    // footer, as the redesigned pages ask for.
+    return (
+        <div className="pb-14">
+            <Suspense fallback={<LoadingCard />}>{<MetadataCard account={account} />}</Suspense>
+        </div>
+    );
 }
 
 export default function MetaplexNFTMetadataPageClient({ params: { address } }: Props) {
