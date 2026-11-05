@@ -14,6 +14,7 @@ import { Cluster, clusterName, clusterSlug } from '@/app/utils/cluster';
 
 import { estimateTimeUntilEpoch } from '../lib/epoch-countdown';
 import { matchesFeatureQuery } from '../lib/match-feature-query';
+import { mockPlannedEpoch } from '../lib/mock-planned-epoch';
 import { type ActivatedFeature, partitionFeatures, type UpcomingFeature } from '../lib/partition-features';
 import { previewUpcomingFeatures } from '../lib/preview-upcoming-features';
 import {
@@ -23,7 +24,7 @@ import {
     type SortDirection,
 } from '../lib/sort-activated-features';
 import { splitPlannedFeatures } from '../lib/split-planned-features';
-import { useFeatureGateDesign, useFeatureGateSearchDesign } from '../model/design-variant';
+import { useFeatureGateDesign, useFeatureGateMockPlanned, useFeatureGateSearchDesign } from '../model/design-variant';
 import { ClusterEpoch, LINK_CLASS_NAME } from './ClusterEpoch';
 import { FeatureGateList, SortToggle, StatusLine, UpcomingStatus } from './FeatureGateList';
 import { EmptyStateCard, FeatureGateTable, OtherActivationsCell, ShowMoreButton } from './FeatureGateTable';
@@ -65,6 +66,7 @@ export function FeatureGatesView() {
     // REVIEW(HOO-926): the design menu's search variant: a button that opens into the field, the field always open, or
     // the combo of the two (the button on mobile, the field on desktop).
     const searchDesign = useFeatureGateSearchDesign();
+    const mockPlanned = useFeatureGateMockPlanned();
     const searchField = searchDesign === 'field';
 
     const matchingUpcoming = useMemo(
@@ -96,10 +98,16 @@ export function FeatureGatesView() {
         );
     }
 
+    // REVIEW(HOO-926): the design menu's planned mock moves the current epoch back, for the split and the countdowns
+    // alike; off, it is the cluster's own.
+    const currentEpoch = mockPlanned
+        ? mockPlannedEpoch(activated, clusterInfo?.epochInfo.epoch)
+        : clusterInfo?.epochInfo.epoch;
+
     const countdownInput: CountdownInput | undefined =
-        clusterInfo && msPerSlot !== undefined
+        clusterInfo && currentEpoch !== undefined && msPerSlot !== undefined
             ? {
-                  currentEpoch: clusterInfo.epochInfo.epoch,
+                  currentEpoch,
                   msPerSlot,
                   slotIndex: clusterInfo.epochInfo.slotIndex,
                   slotsInEpoch: clusterInfo.epochInfo.slotsInEpoch,
@@ -110,7 +118,7 @@ export function FeatureGatesView() {
     // An activation epoch still ahead on this cluster is planned, not activated yet.
     const { activated: activatedFeatures, planned: plannedFeatures } = splitPlannedFeatures(
         matchingActivated,
-        clusterInfo?.epochInfo.epoch,
+        currentEpoch,
     );
 
     const searching = query.trim() !== '';

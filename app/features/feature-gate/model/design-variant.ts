@@ -25,6 +25,13 @@ export const featureGateSearchDesignAtom = atomWithStorage<FeatureGateSearchDesi
     'combo',
 );
 
+// REVIEW(HOO-926): on by default, so the Vercel preview, on live data with every activation past, shows Planned.
+export const featureGateMockPlannedAtom = atomWithStorage('hoo-926:feature-gate-mock-planned', true);
+
+export function useFeatureGateMockPlanned() {
+    return useAtomValue(featureGateMockPlannedAtom);
+}
+
 export function useFeatureGateSearchDesign() {
     return useAtomValue(featureGateSearchDesignAtom);
 }
