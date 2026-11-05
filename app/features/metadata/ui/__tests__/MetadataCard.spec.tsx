@@ -47,12 +47,20 @@ describe('MetadataCard', () => {
         expect(screen.getByText('Token extension')).toBeInTheDocument();
     });
 
-    it('should add the design menu mock Metaplex source to token metadata when switched on', async () => {
-        localStorage.setItem('hoo-928:mock-metaplex', 'true');
+    it('should add the design menu mock Metaplex source to token metadata by default', async () => {
         const { account } = setup('tokenMetadata');
         render(<MetadataCard account={account} />);
 
         expect(await screen.findByRole('tab', { name: 'Metaplex (mock)' })).toBeInTheDocument();
+    });
+
+    it('should leave the mock Metaplex source out once the design menu switches it off', async () => {
+        localStorage.setItem('hoo-928:mock-metaplex', 'false');
+        const { account } = setup('tokenMetadata');
+        render(<MetadataCard account={account} />);
+
+        expect(await screen.findByText('Token extension')).toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: 'Metaplex (mock)' })).not.toBeInTheDocument();
         localStorage.removeItem('hoo-928:mock-metaplex');
     });
 

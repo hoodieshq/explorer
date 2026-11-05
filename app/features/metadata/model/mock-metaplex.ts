@@ -4,7 +4,8 @@ import { atomWithStorage } from 'jotai/utils';
 // the review-only design menu can add a made-up Metaplex source to show the two-tab case on a preview. Remove with
 // the menu.
 
-export const mockMetaplexAtom = atomWithStorage('hoo-928:mock-metaplex', false);
+// On by default, so a reviewer opening a preview sees the two tabs at once. Only a reviewer's flip is stored.
+export const mockMetaplexAtom = atomWithStorage('hoo-928:mock-metaplex', true);
 
 /**
  * A Metaplex metadata account shaped like the decoded one, filled from the mint's own Token-2022 metadata. Fields a
