@@ -320,7 +320,7 @@ function TokenExtensionListRow({
                                 {/* The indent is picked at runtime, hence the inline style; the line itself takes 1px of
                                     it. */}
                                 <div
-                                    className={fieldsBlockVariants({ border })}
+                                    className={fieldsBlockVariants({ border, raw: showRaw })}
                                     style={{ paddingLeft: Math.max(0, indentPx - (border === 'left' ? 1 : 0)) }}
                                 >
                                     {content}
@@ -449,9 +449,13 @@ const revealActionsVariants = cva('flex flex-wrap gap-2', {
 // `border: 'left'` draws a 1px line down the fields' left side on the open part's 12px line, where the row's name and
 // description start, square at both ends. The indent (`effectiveIndent`) sets how far after that line the fields
 // start. The rounded frame of `border: 'all'` is drawn by `ExtensionFields`.
+// `raw` keeps the JSON's corner copy button on the row chevron's vertical. The chevron's centre sits 22px in from the
+// row's right edge (12px cell padding plus half of its 20px button), the 13px copy glyph's 18.5px in (the open part's
+// 12px plus half of 13px). That is 3.5px, rounded to the scale's 4px.
 const fieldsBlockVariants = cva('py-2', {
     variants: {
         border: { all: '', left: 'border-0 border-l border-solid border-outer-space-800', none: '' },
+        raw: { false: '', true: 'pr-1' },
     },
 });
 

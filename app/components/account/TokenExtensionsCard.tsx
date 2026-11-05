@@ -51,13 +51,14 @@ export function TokenExtensionsCard({
     // The section only titles the block: the table inside draws its own frame, as on the feature-gates page
     // (Table design), so `className` drops the section's default card.
     //
-    // The tab is the last block on the page and the page layout adds no bottom padding, so the gap down
-    // to the footer is the between-blocks rhythm (`PAGE_SECTION_GAP`: 36px, 48px from `lg`).
+    // The tab is the last block on the page, and the list ends 80px above the footer: the page container's 24px
+    // (`pb-6`) plus 56px here. Padding, not margin: the parent's `space-y-*` (`PAGE_SECTION_GAP`) resets every child's
+    // bottom margin to 0 with a stronger selector.
     return (
         <CollapsibleSection
             title="Extensions"
             className=""
-            sectionClassName="mb-9 lg:mb-12"
+            sectionClassName="pb-14"
             actions={
                 <RefreshButton
                     analyticsSection="extensions_section"

@@ -60,11 +60,14 @@ export function CollapsibleSection({
                     <div className="flex shrink-0 items-center gap-1">
                         {actions && <div className="flex shrink-0 gap-1">{actions}</div>}
                         {collapsible && (
+                            // Below `md` only the chevron shows, so the button is the 28px square `icon` size;
+                            // `sm`'s padding and the border made it 30×28. From `md` the label returns and the
+                            // `md:` classes give back `sm`'s padding, type size and the 86px minimum.
                             <Button
-                                className="md:min-w-[86px]"
+                                className="md:w-auto md:min-w-[86px] md:px-2 md:text-xs"
                                 variant="outline"
                                 aria-expanded={expanded}
-                                size="sm"
+                                size="icon"
                                 aria-label={expanded ? 'Collapse' : 'Expand'}
                                 onClick={() => setExpanded(v => !v)}
                             >

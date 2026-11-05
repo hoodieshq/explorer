@@ -14,6 +14,7 @@ import { type Metadata } from 'next/types';
 import { Suspense } from 'react';
 
 import { TokenExtensionsDesignSection } from '@/app/components/account/token-extensions/TokenExtensionsDesignSection';
+import { NavSearchDesignSection } from '@/app/components/navbar/NavSearchDesignSection';
 import { SearchBar } from '@/app/components/SearchBarLoader';
 import { TokenInfoBatchProvider } from '@/app/entities/token-info';
 import { CookieConsent } from '@/app/features/cookie';
@@ -71,6 +72,7 @@ export default function RootLayout({ analytics, children }: { analytics: React.R
                                         sections come from the layout: a feature may not import another feature. */}
                                     <DesignMenu>
                                         <TokenExtensionsDesignSection />
+                                        <NavSearchDesignSection />
                                     </DesignMenu>
                                 </TokenInfoBatchProvider>
                             </VisibilityProvider>
