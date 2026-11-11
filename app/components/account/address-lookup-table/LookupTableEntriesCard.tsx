@@ -7,12 +7,13 @@ import { GridTableCard, type GridTableColumn } from '@/app/shared/ui/grid-table'
 
 const COLUMNS: ReadonlyArray<GridTableColumn<{ entry: PublicKey; index: number }>> = [
     {
-        cellClassName: 'font-mono',
+        cellClassName: 'whitespace-nowrap font-mono',
         header: 'Index',
         render: ({ index }) => index,
     },
     {
-        cellClassName: 'font-mono',
+        // `min-w-0` lets the address mid-truncate inside the cell instead of scrolling the page.
+        cellClassName: 'min-w-0 font-mono',
         header: 'Address',
         render: ({ entry }) => <Address pubkey={entry} link />,
     },
@@ -41,7 +42,7 @@ export function LookupTableEntriesCard(
         <GridTableCard
             title="Lookup Table Entries"
             ariaLabel="Lookup table entries"
-            gridTemplate="grid-cols-[auto_1fr]"
+            gridTemplate="grid-cols-[auto_minmax(0,1fr)]"
             columns={COLUMNS}
             rows={rows}
             getRowKey={({ index }) => index}

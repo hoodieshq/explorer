@@ -19,13 +19,22 @@ function AddressLookupTableEntriesRenderer({
 }: React.ComponentProps<React.ComponentProps<typeof ParsedAccountRenderer>['renderComponent']>) {
     const parsedData = account?.data.parsed;
     const rawData = account?.data.raw;
+    // `pb-14` plus the layout's `pb-6` leaves ~80px under the card, as the redesign asks.
     if (
         isParsedAccountProgram(parsedData, ADDRESS_LOOKUP_TABLE_PROGRAM_LABEL) &&
         parsedData.parsed.type === 'lookupTable'
     ) {
-        return <LookupTableEntriesCard parsedLookupTable={parsedData.parsed.info} />;
+        return (
+            <div className="pb-14">
+                <LookupTableEntriesCard parsedLookupTable={parsedData.parsed.info} />
+            </div>
+        );
     } else if (rawData && isAddressLookupTableAccount(account.owner.toBase58() as Address, rawData)) {
-        return <LookupTableEntriesCard lookupTableAccountData={rawData} />;
+        return (
+            <div className="pb-14">
+                <LookupTableEntriesCard lookupTableAccountData={rawData} />
+            </div>
+        );
     } else {
         return onNotFound();
     }

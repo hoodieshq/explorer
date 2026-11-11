@@ -8,6 +8,7 @@ import { AddressLookupTableAccount } from '@solana/web3.js';
 import { AddressLookupTableAccountInfo } from '@validators/accounts/address-lookup-table';
 import React from 'react';
 
+import { Badge } from '@/app/components/shared/ui/badge';
 import { type KeyValueRow, KeyValueRows } from '@/app/shared/ui/key-value';
 
 export function AddressLookupTableAccountSection(
@@ -40,8 +41,15 @@ export function AddressLookupTableAccountSection(
         { label: 'Balance (SOL)', value: <SolBalance lamports={account.lamports} />, valueClassName: 'uppercase' },
         {
             label: 'Activation Status',
-            value: lookupTableAccount.isActive() ? 'Active' : 'Deactivated',
-            valueClassName: 'uppercase',
+            value: lookupTableAccount.isActive() ? (
+                <Badge tone="soft" variant="success">
+                    Active
+                </Badge>
+            ) : (
+                <Badge tone="soft" variant="gray">
+                    Deactivated
+                </Badge>
+            ),
         },
         {
             label: 'Last Extended Slot',
