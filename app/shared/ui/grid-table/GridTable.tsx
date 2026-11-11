@@ -21,7 +21,8 @@ export type GridTableProps<T> = {
     className?: string;
 };
 
-const cellVariants = cva('flex px-3 py-2.5', {
+// Header vs body cell chrome, shared with layouts that render their own rows (e.g. the Anchor Account grid).
+export const cellVariants = cva('flex px-3 py-2.5', {
     defaultVariants: { role: 'body' },
     variants: {
         role: {
@@ -75,22 +76,29 @@ export function GridTable<T>({
     );
 }
 
-export function GridTableCard<T>({
-    id,
-    title,
-    actions,
-    collapsible,
-    defaultExpanded,
-    footer,
-    ...grid
-}: GridTableProps<T> & {
+export type GridTableFrameProps = {
     id?: string;
     title: ReactNode;
     actions?: ReactNode;
     collapsible?: boolean;
     defaultExpanded?: boolean;
     footer?: ReactNode;
-}) {
+    cardClassName?: string;
+    children: ReactNode;
+};
+
+// The card shell every grid table shares: the heading lifted above the surface, the collapse toggle, and
+// the `tight` surface. `children` is the grid itself, so a card with custom rows can reuse the same frame.
+export function GridTableFrame({
+    id,
+    title,
+    actions,
+    collapsible,
+    defaultExpanded,
+    footer,
+    cardClassName,
+    children,
+}: GridTableFrameProps) {
     return (
         <CollapsibleSection
             id={id}
@@ -100,10 +108,33 @@ export function GridTableCard<T>({
             defaultExpanded={defaultExpanded}
             className=""
         >
-            <Card variant="tight" className="rounded-lg border-outer-space-800 bg-outer-space-900">
-                <GridTable {...grid} />
+            <Card variant="tight" className={cn('rounded-lg border-outer-space-800 bg-outer-space-900', cardClassName)}>
+                {children}
             </Card>
             {footer}
         </CollapsibleSection>
+    );
+}
+
+export function GridTableCard<T>({
+    id,
+    title,
+    actions,
+    collapsible,
+    defaultExpanded,
+    footer,
+    ...grid
+}: GridTableProps<T> & Omit<GridTableFrameProps, 'cardClassName' | 'children'>) {
+    return (
+        <GridTableFrame
+            id={id}
+            title={title}
+            actions={actions}
+            collapsible={collapsible}
+            defaultExpanded={defaultExpanded}
+            footer={footer}
+        >
+            <GridTable {...grid} />
+        </GridTableFrame>
     );
 }

@@ -34,6 +34,11 @@ export function FieldNameCell({ name, type, nestingLevel }: { name: string; type
     return (
         <BaseTable.Cell>
             <div className="flex flex-row items-baseline">
+                {/* The deepest level draws the arrow; each level above leaves a blank of its width, so a
+                    deeper field sits further right. The blanks are identical, hence the index key. */}
+                {Array.from({ length: Math.max(nestingLevel - 1, 0) }, (_, level) => (
+                    <span key={level} aria-hidden data-nesting-indent="" className="mr-1.5 w-3.5 flex-none" />
+                ))}
                 {/* Below md the type adds a second line, so the arrow wrapper is one line tall. */}
                 {nestingLevel > 0 && (
                     <span className="mr-1.5 flex h-[1lh] flex-none items-center self-start">

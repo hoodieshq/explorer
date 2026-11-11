@@ -1,1 +1,9 @@
-export { GridTable, GridTableCard, type GridTableColumn, type GridTableProps } from './GridTable';
+export {
+    cellVariants,
+    GridTable,
+    GridTableCard,
+    type GridTableColumn,
+    GridTableFrame,
+    type GridTableFrameProps,
+    type GridTableProps,
+} from './GridTable';

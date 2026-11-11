@@ -44,6 +44,28 @@ describe('FieldNameCell', () => {
         // eslint-disable-next-line testing-library/no-node-access -- the arrow is an svg with no role
         expect(nested.querySelector('svg')).not.toBeNull();
     });
+
+    it('should draw one arrow at the deepest level and a blank for each level above it', () => {
+        renderInTable(
+            <>
+                <BaseTable.Row data-testid="first">
+                    <FieldNameCell name="first" type="u8" nestingLevel={1} />
+                </BaseTable.Row>
+                <BaseTable.Row data-testid="third">
+                    <FieldNameCell name="third" type="u8" nestingLevel={3} />
+                </BaseTable.Row>
+            </>,
+        );
+
+        const first = screen.getByTestId('first');
+        const third = screen.getByTestId('third');
+        // eslint-disable-next-line testing-library/no-node-access -- the arrow and the blanks have no role
+        expect(first.querySelectorAll('[data-nesting-indent]')).toHaveLength(0);
+        // eslint-disable-next-line testing-library/no-node-access -- the arrow and the blanks have no role
+        expect(third.querySelectorAll('[data-nesting-indent]')).toHaveLength(2);
+        // eslint-disable-next-line testing-library/no-node-access -- the arrow and the blanks have no role
+        expect(third.querySelectorAll('svg')).toHaveLength(1);
+    });
 });
 
 function renderInTable(rows: React.ReactNode) {

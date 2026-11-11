@@ -38,4 +38,5 @@ export { LoadingDetailsCard } from './ui/LoadingDetailsCard';
 export { NameOnlyDetailsCard } from './ui/NameOnlyDetailsCard';
 export { ProgramField } from './ui/ProgramField';
 export { TxInstructionSurface } from './ui/TxInstructionSurface';
+export { FieldValueView } from './ui/ValueCell';
 export { UnknownDetailsCard } from './ui/UnknownDetailsCard';

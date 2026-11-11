@@ -20,9 +20,12 @@ function AnchorAccountCardRenderer({
         return onNotFound();
     }
     return (
-        <Suspense fallback={<LoadingCard message="Decoding account data using anchor interface" />}>
-            <AnchorAccountCard account={account} />
-        </Suspense>
+        // `pb-10` plus the layout's `pb-6` leaves room under the card, as the redesign asks.
+        <div className="pb-10">
+            <Suspense fallback={<LoadingCard message="Decoding account data using anchor interface" />}>
+                <AnchorAccountCard account={account} />
+            </Suspense>
+        </div>
     );
 }
 
