@@ -10,16 +10,13 @@ import { useCluster } from '@/app/providers/cluster';
 
 import { filterUpcomingForCluster } from '../lib/filter-upcoming-features';
 import { partitionFeatures, type UpcomingFeature } from '../lib/partition-features';
-import { useFeatureGateDesign } from '../model/design-variant';
 import { LINK_CLASS_NAME } from './ClusterEpoch';
-import { FeatureGateList, UpcomingStatus } from './FeatureGateList';
 import { FeatureGateTable, OtherActivationsCell } from './FeatureGateTable';
 
 export function UpcomingFeatures() {
     const { cluster } = useCluster();
     const featureGatesPath = useClusterPath({ pathname: '/feature-gates' });
     const { upcoming } = useMemo(() => partitionFeatures(cluster), [cluster]);
-    const design = useFeatureGateDesign();
 
     if (cluster === Cluster.Custom) {
         return undefined;
@@ -39,15 +36,8 @@ export function UpcomingFeatures() {
         </div>
     );
 
-    // With nothing upcoming the block is left out. REVIEW(HOO-926): the design menu's variants switch it too.
-    return design === 'feed' ? (
-        <FeatureGateList<UpcomingFeature>
-            features={features}
-            cluster={cluster}
-            status={feature => <UpcomingStatus activations={feature.otherActivations} />}
-            header={header}
-        />
-    ) : (
+    // With nothing upcoming the block is left out.
+    return (
         <FeatureGateTable<UpcomingFeature>
             features={features}
             cluster={cluster}

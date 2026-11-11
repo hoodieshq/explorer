@@ -8,7 +8,6 @@ import { Check, Copy, XCircle } from 'react-feather';
 
 import { cn } from '@/app/components/shared/utils';
 import { useCopyToClipboard } from '@/app/shared/lib/useCopyToClipboard';
-import { SEARCH_HIGHLIGHT_CLASS_NAME } from '@/app/shared/ui/search-highlight';
 import { useClusterPath } from '@/app/utils/url';
 
 type Truncate = { head: number; tail: number };
@@ -19,11 +18,9 @@ type Props = {
     truncate?: Truncate;
     className?: string;
     'aria-label'?: string;
-    /** Marks the address as a search match: its text only, the copy button left outside the mark. */
-    highlighted?: boolean;
 };
 
-export function AddressLink({ address, truncate, className, 'aria-label': ariaLabel, highlighted = false }: Props) {
+export function AddressLink({ address, truncate, className, 'aria-label': ariaLabel }: Props) {
     const href = useClusterPath({ pathname: `/address/${address}` });
     const displayText = truncate ? abbreviateAddress(address, truncate) : address;
 
@@ -37,7 +34,7 @@ export function AddressLink({ address, truncate, className, 'aria-label': ariaLa
                 aria-label={ariaLabel ?? `Open address ${address}`}
                 title={truncate ? address : undefined}
             >
-                {highlighted ? <mark className={SEARCH_HIGHLIGHT_CLASS_NAME}>{displayText}</mark> : displayText}
+                {displayText}
             </Link>
         </span>
     );

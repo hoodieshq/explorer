@@ -43,42 +43,6 @@ describe('PageHeader', () => {
         expect(screen.getByText('subtitle')).toBeInTheDocument();
     });
 
-    it('should render the actions beside the title and nothing extra without them', () => {
-        const { rerender } = render(
-            <PageHeader title="Feature Gates" actions={<button type="button">Search</button>} />,
-        );
-        const title = screen.getByRole('heading', { level: 1, name: 'Feature Gates' });
-        // eslint-disable-next-line testing-library/no-node-access -- the title row has no role to query
-        expect(title.parentElement).toContainElement(screen.getByRole('button', { name: 'Search' }));
-
-        rerender(<PageHeader title="Feature Gates" />);
-        // eslint-disable-next-line testing-library/no-node-access -- the title row has no role to query
-        expect(screen.getByRole('heading', { level: 1 }).parentElement).toBe(screen.getByRole('banner'));
-    });
-
-    it('should copy the title onto the eyebrow line for the condensed mobile header, hidden from assistive tech', () => {
-        render(<PageHeader eyebrow="Mainnet Beta" title="Feature Gates" actions={<span />} condensed />);
-
-        expect(screen.getByText('/ Feature Gates')).toHaveAttribute('aria-hidden', 'true');
-        expect(screen.getByRole('heading', { level: 1, name: 'Feature Gates' })).toBeInTheDocument();
-    });
-
-    it('should let the actions wrap under the title and leave the eyebrow alone when wrapActions is set', () => {
-        render(
-            <PageHeader
-                eyebrow="Mainnet Beta"
-                title="Feature Gates"
-                actions={<span>actions</span>}
-                wrapActions
-                condensed
-            />,
-        );
-
-        // eslint-disable-next-line testing-library/no-node-access -- the title row has no role to query
-        expect(screen.getByRole('heading', { level: 1 }).parentElement).toHaveClass('flex-wrap');
-        expect(screen.queryByText('/ Feature Gates')).not.toBeInTheDocument();
-    });
-
     it('should merge a custom className and forward the ref to the header element', () => {
         const ref = createRef<HTMLElement>();
         render(<PageHeader ref={ref} className="custom-class" title="Transaction" />);

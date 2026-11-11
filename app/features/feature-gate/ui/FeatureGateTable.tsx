@@ -14,7 +14,6 @@ import { Cluster, clusterSlug } from '@/app/utils/cluster';
 import type { ActivatedFeature, ClusterActivation, UpcomingFeature } from '../lib/partition-features';
 import type { SortDirection } from '../lib/sort-activated-features';
 import { ClusterEpoch } from './ClusterEpoch';
-import { Highlight, useSearchFound } from './SearchHighlight';
 import { SimdLinks } from './SimdLinks';
 
 export type FeatureRow = ActivatedFeature | UpcomingFeature;
@@ -178,15 +177,12 @@ const cellVariants = cva('min-w-0', {
             // An empty cell (a feature with no SIMDs) leaves no gap in the card's wrapped line; from `lg` it holds
             // its column.
             default: cn('flex empty:hidden lg:px-3 lg:empty:flex', CARD_CONTROL),
-            // Its mobile display is `keyOnMobile`'s.
-            key: 'flex lg:px-3',
+            // The key is left to the feature's page on mobile.
+            key: 'hidden lg:flex lg:px-3',
             // The SIMDs head the mobile card; the full-width title after them starts the next line.
             simd: cn('order-first flex empty:hidden lg:order-none lg:px-3 lg:empty:flex', CARD_CONTROL),
             title: 'flex w-full [overflow-wrap:anywhere] lg:w-auto lg:px-3',
         },
-        // The key is left to the feature's page on mobile, unless the search found it there: then it closes the card
-        // on a line of its own, marked, so the match shows.
-        keyOnMobile: { false: 'hidden lg:flex', true: cn('w-full lg:w-auto', CARD_CONTROL) },
         role: {
             body: '',
             header: 'items-center whitespace-nowrap py-2.5 text-xs uppercase text-outer-space-300',
@@ -203,7 +199,6 @@ function FeatureRowView<T extends FeatureRow>({
     cluster: Cluster;
     secondColumn: SecondColumn<T>;
 }) {
-    const keyFound = useSearchFound(feature.key);
     return (
         <div role="row" className={rowVariants({ role: 'body' })}>
             <div role="cell" className={cellVariants({ column: 'title' })}>
@@ -214,12 +209,10 @@ function FeatureRowView<T extends FeatureRow>({
                     href={`/address/${feature.key}/feature-gate?cluster=${clusterSlug(cluster)}`}
                     className="text-base leading-6 text-white after:absolute after:inset-0 after:content-[''] hover:text-dark-accent hover:underline lg:after:content-none"
                 >
-                    <Highlight text={feature.title} />
+                    {feature.title}
                 </Link>
                 {feature.description && (
-                    <p className="m-0 mt-0.5 max-w-[640px] text-sm text-outer-space-300">
-                        <Highlight text={feature.description} />
-                    </p>
+                    <p className="m-0 mt-0.5 max-w-[640px] text-sm text-outer-space-300">{feature.description}</p>
                 )}
             </div>
             <div role="cell" className={cellVariants()}>
@@ -228,8 +221,8 @@ function FeatureRowView<T extends FeatureRow>({
             <div role="cell" className={cellVariants({ column: 'simd' })}>
                 <SimdLinks entries={feature.simdEntries} layout="stack" />
             </div>
-            <div role="cell" className={cellVariants({ column: 'key', keyOnMobile: keyFound })}>
-                <AddressLink address={feature.key} truncate={KEY_TRUNCATE} highlighted={keyFound} />
+            <div role="cell" className={cellVariants({ column: 'key' })}>
+                <AddressLink address={feature.key} truncate={KEY_TRUNCATE} />
             </div>
         </div>
     );

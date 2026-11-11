@@ -2,11 +2,10 @@ import { address } from '@solana/kit';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
-import { Cluster } from '@/app/utils/cluster';
+import { Cluster, clusterSlug } from '@/app/utils/cluster';
 
 import type { ActivatedFeature } from '../../lib/partition-features';
 import { EmptyStateCard, FeatureGateTable, ShowMoreButton } from '../FeatureGateTable';
-import { SearchHighlightProvider } from '../SearchHighlight';
 
 vi.mock('next/navigation', () => ({
     useSearchParams: vi.fn(() => new URLSearchParams()),
@@ -115,30 +114,12 @@ describe('FeatureGateTable', () => {
         expect(screen.getByText('Nothing here.')).toBeInTheDocument();
     });
 
-    it('should keep the key off the mobile card unless the search found it there, marking its text', () => {
-        const { rerender } = render(
-            <SearchHighlightProvider query="stake">
-                <FeatureGateTable<ActivatedFeature>
-                    features={[FEATURE]}
-                    cluster={Cluster.MainnetBeta}
-                    secondColumn={{ header: 'Activation', render: feature => feature.clusterActivationEpoch }}
-                />
-            </SearchHighlightProvider>,
+    it('should link a mobile card to the feature page, its description shown', () => {
+        renderTable();
+        expect(screen.getByText(FEATURE.description as string)).not.toHaveClass('hidden');
+        expect(screen.getByRole('link', { name: 'MoveStake and MoveLamports' })).toHaveAttribute(
+            'href',
+            `/address/${FEATURE.key}/feature-gate?cluster=${clusterSlug(Cluster.MainnetBeta)}`,
         );
-        const keyCell = () => screen.getAllByRole('cell').at(-1);
-        expect(keyCell()).toHaveClass('hidden', 'lg:flex');
-
-        rerender(
-            <SearchHighlightProvider query="dpaz">
-                <FeatureGateTable<ActivatedFeature>
-                    features={[FEATURE]}
-                    cluster={Cluster.MainnetBeta}
-                    secondColumn={{ header: 'Activation', render: feature => feature.clusterActivationEpoch }}
-                />
-            </SearchHighlightProvider>,
-        );
-        expect(keyCell()).not.toHaveClass('hidden');
-        // The mark takes the key's text, not its copy button.
-        expect(within(keyCell() as HTMLElement).getByText('7bTK…Z6X4', { selector: 'mark' })).toBeInTheDocument();
     });
 });

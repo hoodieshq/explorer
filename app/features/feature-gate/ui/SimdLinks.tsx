@@ -5,7 +5,6 @@ import { Badge } from '@/app/components/shared/ui/badge';
 import { ExternalLink } from '@/app/components/shared/ui/external-link';
 
 import type { SimdEntry } from '../lib/partition-features';
-import { Highlight } from './SearchHighlight';
 
 // The badges take the plain badge shape of the token Extensions row (12px type, `rounded-md`) in the info teal.
 //
@@ -27,10 +26,7 @@ export function SimdLinks({ entries, layout }: { entries: SimdEntry[]; layout?: 
         <div className={simdLinksVariants({ layout })}>
             {entries.map(({ simd, link }, index) => (
                 <Badge key={`${simd}-${index}`} variant="info" asChild>
-                    <ExternalLink href={link}>
-                        {/* Only the number: the search matches SIMDs by number, not by the word. */}
-                        SIMD <Highlight text={simd.padStart(4, '0')} />
-                    </ExternalLink>
+                    <ExternalLink href={link}>SIMD {simd.padStart(4, '0')}</ExternalLink>
                 </Badge>
             ))}
         </div>

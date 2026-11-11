@@ -2,8 +2,6 @@ import Link from 'next/link';
 
 import { Cluster, clusterName, clusterSlug } from '@/app/utils/cluster';
 
-import { Highlight } from './SearchHighlight';
-
 /**
  * Link colours shared by the feature-gate pages: the app's link green and its darker hover (styles.css `a` /
  * `a:hover`), as on the address links, so epochs, keys and SIMD links highlight alike.
@@ -16,7 +14,7 @@ export function ClusterEpoch({ cluster, epoch }: { cluster: Cluster; epoch: numb
         <span className="whitespace-nowrap text-outer-space-300">
             {clusterName(cluster)}:{' '}
             <Link href={`/epoch/${epoch}?cluster=${clusterSlug(cluster)}`} className={LINK_CLASS_NAME}>
-                <Highlight text={epoch.toString()} />
+                {epoch.toString()}
             </Link>
         </span>
     );

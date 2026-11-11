@@ -36,18 +36,6 @@ export const Default: Story = {
     },
 };
 
-export const Highlighted: Story = {
-    args: {
-        address: SAMPLE_ADDRESS,
-        highlighted: true,
-        truncate: { head: 4, tail: 4 },
-    },
-    play: async ({ canvasElement }) => {
-        const canvas = within(canvasElement);
-        await expect(canvas.getByText('7bTK…Z6X4', { selector: 'mark' })).toBeInTheDocument();
-    },
-};
-
 export const WithCustomAriaLabel: Story = {
     args: {
         address: SAMPLE_ADDRESS,

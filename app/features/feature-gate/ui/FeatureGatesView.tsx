@@ -1,8 +1,6 @@
 'use client';
 
 import { useSlotTime } from '@entities/slot-time';
-import { cva } from 'class-variance-authority';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import React, { type ReactNode, useCallback, useMemo, useState } from 'react';
 
@@ -10,11 +8,9 @@ import { CollapsibleSection } from '@/app/components/shared/ui/collapsible-secti
 import { useCluster, useClusterInfo } from '@/app/providers/cluster';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/shared/ui/Card';
 import { PageHeader, PageLayout, PageSections } from '@/app/shared/ui/page-layout';
-import { Cluster, clusterName, clusterSlug } from '@/app/utils/cluster';
+import { Cluster, clusterName } from '@/app/utils/cluster';
 
 import { estimateTimeUntilEpoch } from '../lib/epoch-countdown';
-import { matchesFeatureQuery } from '../lib/match-feature-query';
-import { mockPlannedEpoch } from '../lib/mock-planned-epoch';
 import { type ActivatedFeature, partitionFeatures, type UpcomingFeature } from '../lib/partition-features';
 import { previewUpcomingFeatures } from '../lib/preview-upcoming-features';
 import {
@@ -23,13 +19,8 @@ import {
     sortActivatedFeatures,
     type SortDirection,
 } from '../lib/sort-activated-features';
-import { splitPlannedFeatures } from '../lib/split-planned-features';
-import { useFeatureGateDesign, useFeatureGateMockPlanned, useFeatureGateSearchDesign } from '../model/design-variant';
-import { ClusterEpoch, LINK_CLASS_NAME } from './ClusterEpoch';
-import { FeatureGateList, SortToggle, StatusLine, UpcomingStatus } from './FeatureGateList';
+import { ClusterEpoch } from './ClusterEpoch';
 import { EmptyStateCard, FeatureGateTable, OtherActivationsCell, ShowMoreButton } from './FeatureGateTable';
-import { PageSearch } from './PageSearch';
-import { Highlight, SearchHighlightProvider } from './SearchHighlight';
 
 // The room under the last section, as the transaction page leaves under its instructions (`pb-10`).
 const PAGE_BOTTOM = 'pb-10';
@@ -56,31 +47,9 @@ export function FeatureGatesView() {
     // a countdown nothing renders.
     const msPerSlot = useSlotTime({ enabled: cluster !== Cluster.Custom });
     const { activated, upcoming } = useMemo(() => partitionFeatures(cluster), [cluster]);
-    const [query, setQuery] = useState('');
-    const [searchOpen, setSearchOpen] = useState(false);
     const [showAllUpcoming, setShowAllUpcoming] = useState(false);
     const [sortDirection, toggleSortDirection] = useSortDirection();
-    // REVIEW(HOO-926): the feed variant drops the table and the folding; the design menu picks it or the table.
-    const design = useFeatureGateDesign();
-    const feed = design === 'feed';
-    // REVIEW(HOO-926): the design menu's search variant: a button that opens into the field, the field always open, or
-    // the combo of the two (the button on mobile, the field on desktop).
-    const searchDesign = useFeatureGateSearchDesign();
-    const mockPlanned = useFeatureGateMockPlanned();
-    const searchField = searchDesign === 'field';
-
-    const matchingUpcoming = useMemo(
-        () => upcoming.filter(feature => matchesFeatureQuery(feature, query)),
-        [query, upcoming],
-    );
-    const matchingActivated = useMemo(
-        () =>
-            sortActivatedFeatures(
-                activated.filter(feature => matchesFeatureQuery(feature, query)),
-                sortDirection,
-            ),
-        [activated, query, sortDirection],
-    );
+    const sortedActivated = useMemo(() => sortActivatedFeatures(activated, sortDirection), [activated, sortDirection]);
 
     if (cluster === Cluster.Custom) {
         return (
@@ -98,16 +67,10 @@ export function FeatureGatesView() {
         );
     }
 
-    // REVIEW(HOO-926): the design menu's planned mock moves the current epoch back, for the split and the countdowns
-    // alike; off, it is the cluster's own.
-    const currentEpoch = mockPlanned
-        ? mockPlannedEpoch(activated, clusterInfo?.epochInfo.epoch)
-        : clusterInfo?.epochInfo.epoch;
-
     const countdownInput: CountdownInput | undefined =
-        clusterInfo && currentEpoch !== undefined && msPerSlot !== undefined
+        clusterInfo && msPerSlot !== undefined
             ? {
-                  currentEpoch,
+                  currentEpoch: clusterInfo.epochInfo.epoch,
                   msPerSlot,
                   slotIndex: clusterInfo.epochInfo.slotIndex,
                   slotsInEpoch: clusterInfo.epochInfo.slotsInEpoch,
@@ -115,189 +78,75 @@ export function FeatureGatesView() {
               }
             : undefined;
 
-    // An activation epoch still ahead on this cluster is planned, not activated yet.
-    const { activated: activatedFeatures, planned: plannedFeatures } = splitPlannedFeatures(
-        matchingActivated,
-        currentEpoch,
-    );
-
-    const searching = query.trim() !== '';
-    // A search shows every match: folding the Upcoming list would hide results the visitor asked for.
-    const { visible: visibleUpcoming, hiddenCount } = previewUpcomingFeatures(
-        matchingUpcoming,
-        showAllUpcoming || searching,
-    );
-    // A section with nothing to show is left out. When every one is, a single line says so, so a search with no
-    // matches doesn't leave a blank page.
-    const nothingToShow = matchingUpcoming.length + plannedFeatures.length + activatedFeatures.length === 0;
-    const nothingToShowMessage = searching
-        ? `No features match “${query.trim()}”.`
-        : `No feature gates on ${clusterName(cluster)}.`;
+    const { visible: visibleUpcoming, hiddenCount } = previewUpcomingFeatures(upcoming, showAllUpcoming);
+    // A section with nothing to show is left out. When every one is, a single line says so instead of a blank page.
+    const nothingToShow = upcoming.length + sortedActivated.length === 0;
     const upcomingFooter = hiddenCount > 0 && (
         <ShowMoreButton hiddenCount={hiddenCount} onClick={() => setShowAllUpcoming(true)} />
-    );
-    const upcomingTitle = (
-        <SectionTitle count={matchingUpcoming.length} filtered={searching} large={feed}>
-            Upcoming
-        </SectionTitle>
-    );
-    const plannedTitle = (
-        <SectionTitle count={plannedFeatures.length} filtered={searching} large={feed}>
-            Planned
-        </SectionTitle>
-    );
-    const activatedTitle = (
-        <SectionTitle count={activatedFeatures.length} filtered={searching} large={feed}>
-            Activated
-        </SectionTitle>
-    );
-    const sortToggle = <SortToggle label="Activation" direction={sortDirection} onToggle={toggleSortDirection} />;
-    const renderActivation = (feature: ActivatedFeature) => (
-        <ActivationCell cluster={cluster} epoch={feature.clusterActivationEpoch} countdownInput={countdownInput} />
-    );
-    const renderActivationStatus = (feature: ActivatedFeature) => (
-        <ActivationStatus cluster={cluster} epoch={feature.clusterActivationEpoch} countdownInput={countdownInput} />
     );
 
     return (
         <PageLayout className={PAGE_BOTTOM}>
-            <PageHeader
-                eyebrow={clusterName(cluster)}
-                title="Feature Gates"
-                // The search narrows every section at once, so it sits with the page title. As a button (and the combo
-                // on a phone), open it takes the title's row and the title moves up beside the cluster; as a field, it
-                // drops to its own line under the title when the two don't fit.
-                condensed={!searchField && (searchOpen || query !== '')}
-                wrapActions={searchField}
-                actions={
-                    <PageSearch
-                        value={query}
-                        onChange={setQuery}
-                        open={searchOpen}
-                        onOpenChange={setSearchOpen}
-                        label="Search feature gates"
-                        placeholder="Search page"
-                        mode={searchDesign}
-                    />
-                }
-            />
+            <PageHeader eyebrow={clusterName(cluster)} title="Feature Gates" />
 
-            <SearchHighlightProvider query={query}>
-                <PageSections>
-                    {nothingToShow && <EmptyStateCard>{nothingToShowMessage}</EmptyStateCard>}
-                    {matchingUpcoming.length > 0 && (
-                        <CollapsibleSection
-                            title={upcomingTitle}
-                            titleClassName={SECTION_TITLE_CLASS_NAME}
-                            collapsible={!feed}
-                            className=""
-                        >
-                            {feed ? (
-                                <FeatureGateList<UpcomingFeature>
-                                    features={visibleUpcoming}
-                                    cluster={cluster}
-                                    status={feature => <UpcomingStatus activations={feature.otherActivations} />}
-                                    footer={upcomingFooter}
-                                />
-                            ) : (
-                                <FeatureGateTable<UpcomingFeature>
-                                    features={visibleUpcoming}
-                                    cluster={cluster}
-                                    secondColumn={{
-                                        header: 'Activation',
-                                        render: feature => (
-                                            <OtherActivationsCell activations={feature.otherActivations} />
-                                        ),
-                                    }}
-                                    footer={upcomingFooter}
-                                />
-                            )}
-                        </CollapsibleSection>
-                    )}
+            <PageSections>
+                {nothingToShow && <EmptyStateCard>No feature gates on {clusterName(cluster)}.</EmptyStateCard>}
+                {upcoming.length > 0 && (
+                    <CollapsibleSection
+                        title={<SectionTitle count={upcoming.length}>Upcoming</SectionTitle>}
+                        titleClassName={SECTION_TITLE_CLASS_NAME}
+                        className=""
+                    >
+                        <FeatureGateTable<UpcomingFeature>
+                            features={visibleUpcoming}
+                            cluster={cluster}
+                            secondColumn={{
+                                header: 'Activation',
+                                render: feature => <OtherActivationsCell activations={feature.otherActivations} />,
+                            }}
+                            footer={upcomingFooter}
+                        />
+                    </CollapsibleSection>
+                )}
 
-                    {plannedFeatures.length > 0 && (
-                        <CollapsibleSection
-                            title={plannedTitle}
-                            titleClassName={SECTION_TITLE_CLASS_NAME}
-                            collapsible={!feed}
-                            className=""
-                        >
-                            {/* Soonest first, with no sort to flip: the countdown under each epoch reads in order. */}
-                            {feed ? (
-                                <FeatureGateList<ActivatedFeature>
-                                    features={plannedFeatures}
-                                    cluster={cluster}
-                                    status={renderActivationStatus}
-                                />
-                            ) : (
-                                <FeatureGateTable<ActivatedFeature>
-                                    features={plannedFeatures}
-                                    cluster={cluster}
-                                    secondColumn={{ header: 'Activation', render: renderActivation }}
-                                />
-                            )}
-                        </CollapsibleSection>
-                    )}
-
-                    {activatedFeatures.length > 0 && (
-                        <CollapsibleSection
-                            title={activatedTitle}
-                            titleClassName={SECTION_TITLE_CLASS_NAME}
-                            collapsible={!feed}
-                            // The feed has no column header to sort on, so the toggle moves to the section's title row.
-                            actions={feed ? sortToggle : undefined}
-                            className=""
-                        >
-                            {feed ? (
-                                <FeatureGateList<ActivatedFeature>
-                                    features={activatedFeatures}
-                                    cluster={cluster}
-                                    status={renderActivationStatus}
-                                />
-                            ) : (
-                                <FeatureGateTable<ActivatedFeature>
-                                    features={activatedFeatures}
-                                    cluster={cluster}
-                                    secondColumn={{
-                                        header: 'Activation',
-                                        render: renderActivation,
-                                        sort: { direction: sortDirection, onToggle: toggleSortDirection },
-                                    }}
-                                />
-                            )}
-                        </CollapsibleSection>
-                    )}
-                </PageSections>
-            </SearchHighlightProvider>
+                {sortedActivated.length > 0 && (
+                    <CollapsibleSection
+                        title={<SectionTitle count={sortedActivated.length}>Activated</SectionTitle>}
+                        titleClassName={SECTION_TITLE_CLASS_NAME}
+                        className=""
+                    >
+                        <FeatureGateTable<ActivatedFeature>
+                            features={sortedActivated}
+                            cluster={cluster}
+                            secondColumn={{
+                                header: 'Activation',
+                                render: feature => (
+                                    <ActivationCell
+                                        cluster={cluster}
+                                        epoch={feature.clusterActivationEpoch}
+                                        countdownInput={countdownInput}
+                                    />
+                                ),
+                                sort: { direction: sortDirection, onToggle: toggleSortDirection },
+                            }}
+                        />
+                    </CollapsibleSection>
+                )}
+            </PageSections>
         </PageLayout>
     );
 }
 
 // The record count rides in the title as a muted, smaller run, the way `BlockHistoryCard` counts its
 // transactions; `inline-block` keeps it whole when it wraps under the title.
-function SectionTitle({
-    children,
-    count,
-    filtered,
-    large,
-}: {
-    children: ReactNode;
-    count: number;
-    filtered: boolean;
-    large: boolean;
-}) {
+function SectionTitle({ children, count }: { children: ReactNode; count: number }) {
     return (
         <>
-            <span className={sectionTitleVariants({ large })}>{children}</span>
-            <span className="inline-block text-sm font-normal text-outer-space-300">
-                {count} {filtered ? 'filtered records' : 'records'}
-            </span>
+            <span className="mr-2">{children}</span>
+            <span className="inline-block text-sm font-normal text-outer-space-300">{count} records</span>
         </>
     );
 }
-
-// REVIEW(HOO-926): `large` is the feed variant's bigger section title.
-const sectionTitleVariants = cva('mr-2', { variants: { large: { false: '', true: 'text-2xl font-medium' } } });
 
 // The sort lives in the URL like `BlockHistoryCard`'s, so a sorted list survives a reload and can be shared.
 // The default direction is written as a clean URL; other params (`cluster`) survive the change.
@@ -337,31 +186,5 @@ function ActivationCell({
             <ClusterEpoch cluster={cluster} epoch={epoch} />
             {countdown && <span className="whitespace-nowrap">in ~{countdown}</span>}
         </div>
-    );
-}
-
-// REVIEW(HOO-926): the feed variant's status line for an activated feature. An epoch still ahead reads as scheduled,
-// with the estimate of when it comes.
-function ActivationStatus({
-    cluster,
-    epoch,
-    countdownInput,
-}: {
-    cluster: Cluster;
-    epoch: number;
-    countdownInput: CountdownInput | undefined;
-}) {
-    const countdown = countdownInput ? estimateTimeUntilEpoch({ ...countdownInput, targetEpoch: epoch }) : undefined;
-    const epochLink = (
-        <Link href={`/epoch/${epoch}?cluster=${clusterSlug(cluster)}`} className={LINK_CLASS_NAME}>
-            <Highlight text={String(epoch)} />
-        </Link>
-    );
-    return countdown ? (
-        <StatusLine tone="scheduled">
-            Scheduled for epoch {epochLink} · in ~{countdown}
-        </StatusLine>
-    ) : (
-        <StatusLine tone="active">Active since epoch {epochLink}</StatusLine>
     );
 }
