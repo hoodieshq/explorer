@@ -1,20 +1,26 @@
 'use client';
 
-import { Cluster, clusterName, clusterSlug } from '@utils/cluster';
+import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
+import { Cluster, clusterName } from '@utils/cluster';
 import { useClusterPath } from '@utils/url';
 import Link from 'next/link';
 import { useMemo } from 'react';
+import { List } from 'react-feather';
 
+import { Button } from '@/app/components/shared/ui/button';
 import { useCluster } from '@/app/providers/cluster';
+import { SectionLinkAction, useSectionActionsLayout } from '@/app/shared/ui/section-action';
 
 import { filterUpcomingForCluster } from '../lib/filter-upcoming-features';
 import { partitionFeatures, type UpcomingFeature } from '../lib/partition-features';
-import { EmptyStateCard, FeatureGateTable } from './FeatureGateTable';
+import { FeatureGateTable, OtherActivationsCell } from './FeatureGateTable';
 
 export function UpcomingFeatures() {
     const { cluster } = useCluster();
     const featureGatesPath = useClusterPath({ pathname: '/feature-gates' });
     const { upcoming } = useMemo(() => partitionFeatures(cluster), [cluster]);
+    // REVIEW(home-key-value-cards): the design-menu variant for the title link; a constant once one is chosen.
+    const actionsLayout = useSectionActionsLayout();
 
     if (cluster === Cluster.Custom) {
         return undefined;
@@ -22,40 +28,41 @@ export function UpcomingFeatures() {
 
     const features = filterUpcomingForCluster(upcoming, cluster);
 
-    const header = (
-        <div className="flex flex-col gap-1.5 border-b border-heavy-metal-950 px-4 py-3 md:flex-row md:items-center md:justify-between">
-            <span className="font-medium text-dk-white">
-                <span className="mr-2">🚀</span>
-                Upcoming {clusterName(cluster)} Features
-            </span>
-            <Link href={featureGatesPath} className="text-dk-sm text-dk-primary-dark hover:text-dk-primary-on-dark">
-                View all feature gates
-            </Link>
-        </div>
-    );
+    // With nothing upcoming the block is left out, as the Upcoming section of the feature gates page is.
+    if (features.length === 0) {
+        return undefined;
+    }
 
     return (
-        <FeatureGateTable<UpcomingFeature>
-            features={features}
-            cluster={cluster}
-            secondColumn={{
-                header: 'Activation Epochs',
-                render: feature => (
-                    <div className="flex flex-col gap-0.5 whitespace-nowrap text-dk-sm">
-                        {feature.otherActivations.map(({ cluster: c, epoch }) => (
-                            <Link
-                                key={c}
-                                href={`/epoch/${epoch}?cluster=${clusterSlug(c)}`}
-                                className="text-dk-primary-dark hover:text-dk-primary-on-dark"
-                            >
-                                {clusterName(c)}: {epoch}
-                            </Link>
-                        ))}
-                    </div>
-                ),
-            }}
-            emptyState={<EmptyStateCard>No upcoming features for {clusterName(cluster)}.</EmptyStateCard>}
-            header={header}
-        />
+        // className="" drops the section's own card: FeatureGateTable brings its own surface.
+        <CollapsibleSection
+            title={`Upcoming ${clusterName(cluster)} Features`}
+            actions={
+                <SectionLinkAction href={featureGatesPath} icon={<List />} label="View all feature gates" internal>
+                    <Link href={featureGatesPath} className="text-sm">
+                        View all feature gates
+                    </Link>
+                </SectionLinkAction>
+            }
+            actionsLayout={actionsLayout}
+            collapsible={false}
+            className=""
+        >
+            <div className="flex flex-col gap-3">
+                <FeatureGateTable<UpcomingFeature>
+                    features={features}
+                    cluster={cluster}
+                    secondColumn={{
+                        header: 'Activation',
+                        render: feature => <OtherActivationsCell activations={feature.otherActivations} />,
+                    }}
+                />
+                {/* A link of its own under the table, not a table row: full width on phones (xxs, xs), as wide as
+                    its label from `sm`. */}
+                <Button variant="outline" size="sm" className="w-full sm:w-auto sm:self-start" asChild>
+                    <Link href={featureGatesPath}>View all feature gates</Link>
+                </Button>
+            </div>
+        </CollapsibleSection>
     );
 }
