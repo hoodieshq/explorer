@@ -12,7 +12,7 @@ export type ResourcesLayout = 'cards' | 'featured' | 'grid' | 'list' | 'row';
  * description rows; `featured` puts the first link in a large card and lists the rest beside it. Read after mount
  * (no `getOnInit`), so the server render and hydration agree.
  */
-export const resourcesLayoutAtom = atomWithStorage<ResourcesLayout>('home-key-value-cards:resources-layout', 'row');
+export const resourcesLayoutAtom = atomWithStorage<ResourcesLayout>('home-key-value-cards:resources-layout', 'cards');
 
 export function useResourcesLayout() {
     return useAtomValue(resourcesLayoutAtom);
