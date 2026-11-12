@@ -162,8 +162,9 @@ function ResourceCardRow({ resources }: { resources: Resource[] }) {
 
     return (
         <>
-            {/* `lg:py-2`: room for the edge lines to reach past the cards. */}
-            <div className="relative lg:py-2">
+            {/* `lg:py-2`: room for the edge lines to reach past the cards. `lg:-mt-2` takes the top half back out
+                of the section's title gap, so the cards sit as far under the title as any other section's card. */}
+            <div className="relative lg:-mt-2 lg:py-2">
                 {/* `relative`: the cards' `offsetLeft` is then measured from the row's own start. The negative margin and
                 the padding match `PageContainer`'s gutter at each width below `lg`. */}
                 <div
