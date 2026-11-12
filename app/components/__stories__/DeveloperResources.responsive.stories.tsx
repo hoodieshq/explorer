@@ -2,11 +2,9 @@ import { INITIAL_VIEWPORTS, withViewportFromGlobal } from '@storybook-config/res
 import type { Meta, StoryObj } from '@storybook-config/types';
 
 import { DeveloperResources } from '../DeveloperResources';
-import { Default } from './DeveloperResources.stories';
 
 // The phone width is where the cards overflow the row and the dots under it show which ones are on screen.
 const meta = {
-    args: Default.args,
     component: DeveloperResources,
     decorators: [withViewportFromGlobal],
     parameters: { viewport: { options: INITIAL_VIEWPORTS } },

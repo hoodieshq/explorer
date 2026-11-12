@@ -37,9 +37,15 @@ const bodyVariants = cva('grid transition-[grid-template-rows] duration-200 ease
     },
 });
 
-const bodyClipVariants = cva('overflow-hidden', {
-    defaultVariants: { fill: false },
-    variants: { fill: { false: '', true: 'flex flex-col' } },
+// The clip hides the body while it collapses. `bleed` lifts it, so content can reach past the section's sides (a row
+// that scrolls into the page gutter); only for a section that does not collapse. `min-w-0` takes over the clip's other
+// job: as a grid item the body would otherwise widen to its content's width.
+const bodyClipVariants = cva('', {
+    defaultVariants: { bleed: false, fill: false },
+    variants: {
+        bleed: { false: 'overflow-hidden', true: 'min-w-0' },
+        fill: { false: '', true: 'flex flex-col' },
+    },
 });
 
 type CollapsibleSectionProps = {
@@ -56,6 +62,8 @@ type CollapsibleSectionProps = {
     actionsLayout?: 'inline' | 'top' | 'wrap';
     /** Stretch to the grid cell's height and leave the spacing to the container's gap. Defaults to false. */
     fill?: boolean;
+    /** Let the body's content show past the section's sides. Only with `collapsible={false}`. Defaults to false. */
+    bleed?: boolean;
     className?: string;
     titleClassName?: string;
     sectionClassName?: string;
@@ -71,6 +79,7 @@ export function CollapsibleSection({
     collapsible = true,
     actionsLayout = 'inline',
     fill = false,
+    bleed = false,
     className = fill
         ? baseCardVariants({ flex: 'grow', marginBottom: 'none', ui: 'dashkit' })
         : baseCardVariants({ ui: 'dashkit' }),
@@ -131,7 +140,7 @@ export function CollapsibleSection({
                 )}
             </div>
             <div className={bodyVariants({ fill, open: isOpen })}>
-                <div className={bodyClipVariants({ fill })}>
+                <div className={bodyClipVariants({ bleed, fill })}>
                     <div className={className}>{children}</div>
                 </div>
             </div>

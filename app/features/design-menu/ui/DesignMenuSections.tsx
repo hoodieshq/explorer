@@ -1,5 +1,6 @@
 'use client';
 
+import { ResourcesLayoutDesignSection } from '@/app/shared/ui/resources-layout';
 import { SectionActionsDesignSection } from '@/app/shared/ui/section-action';
 
 // REVIEW(home-key-value-cards): what this task's review compares. The menu shell around it is task-independent; a
@@ -7,5 +8,10 @@ import { SectionActionsDesignSection } from '@/app/shared/ui/section-action';
 
 /** The design menu's content for the home page cards. */
 export function DesignMenuSections() {
-    return <SectionActionsDesignSection />;
+    return (
+        <>
+            <SectionActionsDesignSection />
+            <ResourcesLayoutDesignSection />
+        </>
+    );
 }
