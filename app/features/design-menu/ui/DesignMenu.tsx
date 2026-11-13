@@ -7,6 +7,8 @@ import { type PointerEvent, useEffect, useRef, useState } from 'react';
 
 import { keepInViewport, placeInViewport, type Point, type Size, SQUEEZED_EDGE_GAP } from '../lib/place-in-viewport';
 import { designMenuPositionAtom } from '../model/position';
+import { useApplyPresetFromUrl } from '../model/preset';
+import { CopyPresetLink } from './CopyPresetLink';
 import { DesignMenuSections } from './DesignMenuSections';
 
 // REVIEW(design-menu): the review-only design menu (template: ALX_LOCAL/recipes/design-menu); remove before the
@@ -17,6 +19,7 @@ import { DesignMenuSections } from './DesignMenuSections';
  * user dropped it and stays inside the window when the window shrinks.
  */
 export function DesignMenu() {
+    useApplyPresetFromUrl();
     const viewport = useViewportSize();
     const [chosen, setChosen] = useAtom(designMenuPositionAtom);
     const [dragPoint, setDragPoint] = useState<Point>();
@@ -83,6 +86,7 @@ export function DesignMenu() {
             <PopoverContent className="flex w-72 flex-col gap-4 p-4" collisionPadding={SQUEEZED_EDGE_GAP}>
                 <span className="text-xs uppercase tracking-[0.08em] text-outer-space-300">Design menu</span>
                 <DesignMenuSections />
+                <CopyPresetLink />
             </PopoverContent>
         </Popover>
     );

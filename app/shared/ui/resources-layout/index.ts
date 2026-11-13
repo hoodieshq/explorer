@@ -1,2 +1,9 @@
-export { type ResourcesLayout, type ResourcesPreview, useResourcesLayout, useResourcesPreview } from './model';
+export {
+    type ResourcesLayout,
+    resourcesLayoutAtom,
+    type ResourcesPreview,
+    resourcesPreviewAtom,
+    useResourcesLayout,
+    useResourcesPreview,
+} from './model';
 export { ResourcesLayoutDesignSection, ResourcesPreviewDesignSection } from './ResourcesLayoutDesignSection';
