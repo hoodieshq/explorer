@@ -24,3 +24,4 @@ export {
     getInnerInstructionsFromRawTransaction,
     getInstructionsFromRawTransaction,
 } from './lib/get-instructions-from-raw-transaction';
+export { readRawInstructions } from './lib/read-raw-instructions';

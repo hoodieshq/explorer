@@ -10,7 +10,8 @@ import { Button } from '@components/shared/ui/button';
 import { RefreshButton } from '@components/shared/ui/refresh-button';
 import { Timestamp } from '@components/shared/ui/timestamp';
 import { estimateRequestedComputeUnitsForParsedTransaction } from '@entities/compute-unit';
-import { formatTransactionVersion } from '@entities/transaction-data';
+import { InstructionIntentList } from '@entities/instruction-intent';
+import { formatTransactionVersion, type RawTransaction } from '@entities/transaction-data';
 import {
     BaseResourceFeeProjection,
     derivePriorityFeeLamports,
@@ -28,14 +29,14 @@ import {
     useTransactionStatus,
 } from '@providers/transactions';
 import type { TransactionVersion } from '@solana/kit';
-import { PACKET_DATA_SIZE, ParsedTransaction, SystemInstruction, SystemProgram } from '@solana/web3.js';
+import { PACKET_DATA_SIZE, ParsedMessage, ParsedTransaction, SystemInstruction, SystemProgram } from '@solana/web3.js';
 import { ClusterStatus } from '@utils/cluster';
 import { SignatureProps } from '@utils/index';
 import { getTransactionInstructionError } from '@utils/program-err';
 import { intoTransactionInstruction } from '@utils/tx';
 import { useBuildClusterPath, useClusterPath } from '@utils/url';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { ZoomIn } from 'react-feather';
 
 import { useFetchRawTransaction, useRawTransactionDetails } from '@/app/providers/transactions/raw';
@@ -46,6 +47,7 @@ import { type KeyValueRowInput, KeyValueRows, TextValue } from '@/app/shared/ui/
 import { OverviewCard } from '@/app/shared/ui/OverviewCard';
 import { getEpochForSlot } from '@/app/utils/epoch-schedule';
 
+import { toIntentListEntries } from '../lib/intent-list-entries';
 import { TransactionNotFoundCard } from './TransactionNotFoundCard';
 
 function getTransactionErrorReason(
@@ -372,8 +374,32 @@ export function SummaryCard({ signature, autoRefresh }: SignatureProps & WithAut
             }
         >
             <KeyValueRows rows={rows} />
+            {transaction && (
+                <InstructionsIntentSummary
+                    parsedInstructions={transaction.message.instructions}
+                    raw={rawDetails?.data?.raw}
+                    rawFetchStatus={rawDetails?.status}
+                />
+            )}
         </OverviewCard>
     );
+}
+
+function InstructionsIntentSummary({
+    parsedInstructions,
+    raw,
+    rawFetchStatus,
+}: {
+    parsedInstructions: ParsedMessage['instructions'];
+    raw: RawTransaction | null | undefined;
+    rawFetchStatus: FetchStatus | undefined;
+}) {
+    const entries = useMemo(
+        () => toIntentListEntries({ parsedInstructions, raw, rawFetchStatus }),
+        [parsedInstructions, raw, rawFetchStatus],
+    );
+
+    return <InstructionIntentList entries={entries} />;
 }
 
 function isFetched(entry?: { status: FetchStatus }): boolean {
