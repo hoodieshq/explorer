@@ -7,76 +7,43 @@ import {
     InstructionSurfaceProvider,
     toInstructionNode,
 } from '@entities/instruction-card';
-import {
-    AddressLookupTableAccount,
-    type CompiledInnerInstruction,
-    TransactionMessage,
-    type VersionedMessage,
-} from '@solana/web3.js';
+import type { VersionedMessage } from '@solana/web3.js';
 import { useMemo } from 'react';
-
-import { resolveInnerInstructions } from '@/app/entities/transaction-data';
-import { useAddressLookupTables } from '@/app/providers/accounts';
-import { FetchStatus } from '@/app/providers/cache';
 
 import { ErrorCard } from '../common/ErrorCard';
 import { LoadingCard } from '../common/LoadingCard';
+import type { DecodedMessageResult } from './use-decoded-message';
 
 export function InstructionsSection({
     message,
-    compiledInnerInstructions,
+    decodedMessage,
 }: {
     message: VersionedMessage;
-    compiledInnerInstructions?: CompiledInnerInstruction[];
+    decodedMessage: DecodedMessageResult;
 }) {
-    const hydratedTables = useAddressLookupTables(
-        message.addressTableLookups.map(lookup => lookup.accountKey.toString()),
-    );
-
-    const failedLookupIndex = hydratedTables.findIndex(table => table?.[1] === FetchStatus.FetchFailed);
-    const lookupTables = hydratedTables.flatMap(table =>
-        table?.[0] instanceof AddressLookupTableAccount ? [table[0]] : [],
-    );
-    const allLookupsResolved = lookupTables.length === hydratedTables.length;
-
-    // `useAddressLookupTables` returns a new array on each render, so the memo below depends on
-    // `lookupTablesKey` instead of `lookupTables`.
-    // A table only gains addresses, so `lastExtendedSlot` and the address count identify its contents.
-    const lookupTablesKey = lookupTables
-        .map(table => `${table.key.toBase58()}:${table.state.lastExtendedSlot}:${table.state.addresses.length}`)
-        .join('|');
-
     const nodes = useMemo(() => {
-        if (!allLookupsResolved) return undefined;
-        const addressLookupTableAccounts = lookupTables;
-        const cpisByIndex = compiledInnerInstructions
-            ? resolveInnerInstructions(
-                  compiledInnerInstructions,
-                  message.getAccountKeys({ addressLookupTableAccounts }),
-                  message,
-              )
-            : undefined;
-        return TransactionMessage.decompile(message, { addressLookupTableAccounts }).instructions.map((ix, index) =>
+        if (decodedMessage.status !== 'ready') return undefined;
+        const { instructions, innerIxByIndex } = decodedMessage.decoded;
+        return instructions.map((ix, index) =>
             toInstructionNode({
-                children: cpisByIndex
+                children: innerIxByIndex
                     ?.get(index)
                     ?.map((cpi, childIndex) => cpi && toInstructionNode({ childIndex, index, ix: cpi })),
                 index,
                 ix,
             }),
         );
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- `lookupTablesKey` replaces `lookupTables`, which is a new array every render
-    }, [allLookupsResolved, compiledInnerInstructions, lookupTablesKey, message]);
+    }, [decodedMessage]);
     const surface = useMemo(
         () => inspectorSurface({ Card: InstructionNodeCard, instructionData: instructionDataOf(nodes ?? []) }),
         [nodes],
     );
 
-    if (failedLookupIndex >= 0) {
+    if (decodedMessage.status === 'failed') {
         return (
             <ErrorCard
                 text={`Failed to fetch address lookup table: ${message.addressTableLookups[
-                    failedLookupIndex
+                    decodedMessage.failedLookupIndex
                 ].accountKey.toString()}`}
             />
         );

@@ -3,6 +3,7 @@
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
 import { SolBalance } from '@components/common/SolBalance';
+import { InstructionIntentList } from '@entities/instruction-intent';
 import { usePrevious } from '@mantine/hooks';
 import { useFetchAccountInfo } from '@providers/accounts';
 import { FetchStatus } from '@providers/cache';
@@ -49,8 +50,10 @@ import { AddressTableLookupsCard } from './AddressTableLookupsCard';
 import { AddressWithContext, createFeePayerValidator } from './AddressWithContext';
 import { InspectorSimulationPanel } from './InspectorSimulationPanel';
 import { InstructionsSection } from './InstructionsSection';
+import { toIntentListEntries } from './intent-list-entries';
 import { MIN_MESSAGE_LENGTH, RawInput } from './RawInputCard';
 import { TransactionSignatures } from './SignaturesCard';
+import { type DecodedMessageResult, useDecodedMessage } from './use-decoded-message';
 
 const BASE58_ENCODER = getBase58Encoder();
 const BASE58_DECODER = getBase58Decoder();
@@ -602,6 +605,7 @@ function LoadedView({
     const { message, rawMessage, signatures, accountBalances, compiledInnerInstructions, version, transactionConfig } =
         transaction;
     const { isXxl } = useBreakpoint();
+    const decodedMessage = useDecodedMessage(message, compiledInnerInstructions);
 
     const fetchAccountInfo = useFetchAccountInfo();
     React.useEffect(() => {
@@ -651,6 +655,7 @@ function LoadedView({
         <>
             <InspectorOverviewCard
                 message={message}
+                decodedMessage={decodedMessage}
                 raw={rawMessage}
                 onClear={onClear}
                 isV1={version === 1}
@@ -685,7 +690,7 @@ function LoadedView({
                     control + Logs + CU profiling in the sticky right column. */}
             <div className="flex flex-col space-y-9 pb-10 xxl:relative xxl:left-1/2 xxl:w-screen xxl:-translate-x-1/2 xxl:flex-row xxl:items-start xxl:gap-6 xxl:space-y-0 xxl:px-6">
                 <div id="programs" className="xxl:min-w-0 xxl:flex-[1_1_0%] xxl:overflow-hidden">
-                    <InstructionsSection message={message} compiledInnerInstructions={compiledInnerInstructions} />
+                    <InstructionsSection message={message} decodedMessage={decodedMessage} />
                 </div>
                 <div className="scrollbar-hide xxl:sticky xxl:top-[70px] xxl:max-h-[calc(100vh-90px)] xxl:min-w-0 xxl:flex-[1_1_0%] xxl:overflow-y-auto xxl:rounded-b-lg">
                     <InspectorSimulationPanel simulation={simulation} message={message} />
@@ -701,6 +706,7 @@ const DEFAULT_FEES = {
 
 function InspectorOverviewCard({
     message,
+    decodedMessage,
     raw,
     onClear,
     signature,
@@ -708,6 +714,7 @@ function InspectorOverviewCard({
     transactionConfig,
 }: {
     message: VersionedMessage;
+    decodedMessage: DecodedMessageResult;
     raw: Uint8Array;
     onClear: () => void;
     signature?: string;
@@ -723,6 +730,7 @@ function InspectorOverviewCard({
         return sigBytes + raw.length;
     }, [message, raw, isV1]);
     const sizeLimit = isV1 ? V1_TRANSACTION_SIZE_LIMIT : PACKET_DATA_SIZE;
+    const intentEntries = React.useMemo(() => toIntentListEntries(message, decodedMessage), [message, decodedMessage]);
 
     const rows: KeyValueRowInput[] = [
         {
@@ -791,6 +799,7 @@ function InspectorOverviewCard({
             }
         >
             <KeyValueRows rows={rows} />
+            <InstructionIntentList entries={intentEntries} />
         </OverviewCard>
     );
 }
