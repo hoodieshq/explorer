@@ -40,12 +40,13 @@ metadata error.
 
 ### Requirement: Account reads start on the first open and are shared
 
-Account reads and the intent computation SHALL start only after the first open of a card. Account reads MUST be
-cached by the sorted address set, and computations by instruction content, per cluster and RPC URL.
+Account reads and the intent computation SHALL start only after the first open of a card or of the transaction
+intents list. Account reads MUST be cached by the sorted address set, and computations by instruction content, per
+cluster and RPC URL.
 
 #### Scenario: A closed card
 
-- **WHEN** a card with an intent is not opened
+- **WHEN** a card with an intent is not opened and the transaction intents list is not opened
 - **THEN** no account is fetched and no intent is computed
 
 #### Scenario: Two instructions read one mint
@@ -114,4 +115,35 @@ inside its parent card, and it MUST NOT show the parent's intent.
 #### Scenario: The raw inner instruction belongs to another program
 
 - **WHEN** the raw inner instruction at the card's position has a program other than the card's program
-- **THEN** the card MUST show "Intent failed to load", not an intent built from the other instruction
+- **THEN** the card MUST show "Intent failed to load", not the `no-instruction-intent` reason
+
+### Requirement: The transaction intents list summarizes the top-level instructions
+
+The Summary card of the transaction page and the Overview card of the Inspector SHALL list the intent of every
+top-level instruction in message order. The list MUST start collapsed. A row and a card for the same instruction
+MUST share the account read and the intent computation.
+
+#### Scenario: The list stays collapsed
+
+- **WHEN** the page loads and the list is not opened
+- **THEN** the list shows the instruction count, no account is fetched, and no intent is computed
+
+#### Scenario: A card and a row for one instruction
+
+- **WHEN** the list and the card of the same instruction both open
+- **THEN** the intent MUST be computed once
+
+#### Scenario: The intent is unavailable
+
+- **WHEN** an instruction has no intent, for any reason
+- **THEN** its row MUST show the program name, the instruction name when the program's IDL names it, and "intent unavailable", and the reason stays on the card
+
+#### Scenario: Inner instructions
+
+- **WHEN** the transaction has inner instructions
+- **THEN** the list MUST NOT show rows for them
+
+#### Scenario: A row links to its card
+
+- **WHEN** the reader clicks the number of a row
+- **THEN** the page MUST scroll to the card of that instruction
