@@ -3,7 +3,12 @@ import { Skeleton } from '@components/shared/ui/skeleton';
 import { cva } from 'class-variance-authority';
 import type { ReactNode } from 'react';
 
-import { getIntentUnavailableText, type InstructionIntent, type InstructionIntentResult } from '../lib/intent';
+import {
+    getIntentUnavailableText,
+    type InstructionIntent,
+    type InstructionIntentResult,
+    INTENT_FAILED_TEXT,
+} from '../lib/intent';
 import { IntentSentence } from './IntentSentence';
 
 type PanelIntent = Exclude<InstructionIntentResult, { status: 'idle' }>;
@@ -43,7 +48,7 @@ function PanelBody({ intent }: { intent: PanelIntent }) {
         case 'failed':
             return (
                 <div className="flex flex-col gap-2" data-testid="instruction-intent-failed">
-                    <p className="m-0 text-sm text-neutral-300">Couldn&apos;t load the data the intent needs.</p>
+                    <p className="m-0 text-sm text-neutral-300">{INTENT_FAILED_TEXT}</p>
                     {intent.retry && (
                         <div>
                             <Button

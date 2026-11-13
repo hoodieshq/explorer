@@ -46,7 +46,9 @@ unscaled, and the SDK withholds the sentence.
 Inner instructions come from the same response. `fetchRawTransaction` keeps `meta.loadedAddresses`, and
 `getInnerInstructionsFromRawTransaction` resolves the compiled `meta.innerInstructions` against the static keys and
 the loaded addresses. The cards come from the parsed response and the bytes from the raw one, so a card whose raw
-instruction belongs to another program reads `failed` instead of showing a wrong intent.
+instruction belongs to another program reads `failed`. The parser already returns nothing for an instruction of
+another program, so the check keeps the status accurate: without it the card would say its program's metadata
+doesn't describe the instruction.
 
 The intent takes the instruction from `InstructionSurface`, the data the Raw view shows: `node.ix` when the RPC did
 not parse it, else the raw form in `RawInstructions`. The Raw view uses web3.js, so `readRawInstructions` and
@@ -57,7 +59,7 @@ not parse it, else the raw form in `RawInstructions`. The Raw view uses web3.js,
 The IDL support check and the instruction parse run on render, so the Intent button is dashed before a click when
 no intent exists. Both are synchronous, need no RPC call, and use only packages the app already ships.
 
-The intent computation starts after the first open of Intent panel. The `@codama/dynamic-instructions` is loaded through dynamic `import()`.
+The intent computation starts after the first open of Intent panel or of the transaction intents list. The `@codama/dynamic-instructions` is loaded through dynamic `import()`.
 
 ### Card state
 
@@ -88,7 +90,8 @@ The design puts the button in the card header and the intent row at the top of t
 ## Impact
 
 - Intents show only for programs whose Program Metadata IDL carries templates. Other cards show the dashed button.
-- First Load JS is unchanged on every route. The SDK (about 12 kB gzip) loads on the first Intent open.
+- First Load JS is unchanged on every route. The SDK (about 12 kB gzip) loads on the first Intent open or the first
+  open of the transaction intents list.
 - The Raw view shows the accounts and data of RPC-parsed inner instructions and of RPC-parsed instructions in v1
   transactions.
 - Accepted risk: account data is read when the page is viewed, not at the transaction's slot.

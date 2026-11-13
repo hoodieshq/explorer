@@ -3,3 +3,4 @@
 export { useProgramIdls } from '../../model/use-program-idls';
 export { isProgramMetadataSource } from '../../model/sourced-idl';
 export { IdlVariant } from '../../model/idl-variant';
+export { buildProgramIdlNames } from '../../model/instruction-name-table';
