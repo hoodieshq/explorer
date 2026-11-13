@@ -19,7 +19,7 @@ import { ScrollAnchorProvider } from '@/app/providers/scroll-anchor';
 import { TransactionsProvider } from '@/app/providers/transactions';
 import { instructionParserDispatcher } from '@/app/tx/instruction-parser-dispatcher';
 
-import { InstructionsSection } from '../InstructionsSection';
+import { InstructionsSectionFixture } from './__fixtures__/decoded-instructions-section';
 
 // `useAnchorProgram` reads its IDL through SWR. The mock returns no data, so the instructions
 // render through the dispatcher.
@@ -213,7 +213,7 @@ function renderSection(message: MessageV0, compiledInnerInstructions?: CompiledI
                 <TransactionsProvider>
                     <AccountsProvider>
                         <InstructionParserProvider dispatcher={instructionParserDispatcher}>
-                            <InstructionsSection
+                            <InstructionsSectionFixture
                                 message={message}
                                 compiledInnerInstructions={compiledInnerInstructions}
                             />
