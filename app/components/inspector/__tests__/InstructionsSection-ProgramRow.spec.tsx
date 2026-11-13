@@ -13,7 +13,7 @@ import { ScrollAnchorProvider } from '@/app/providers/scroll-anchor';
 import { TransactionsProvider } from '@/app/providers/transactions';
 import { instructionParserDispatcher } from '@/app/tx/instruction-parser-dispatcher';
 
-import { InstructionsSection } from '../InstructionsSection';
+import { InstructionsSectionFixture } from './__fixtures__/decoded-instructions-section';
 
 vi.mock('swr', () => ({
     __esModule: true,
@@ -86,7 +86,7 @@ function renderSection(ix: TransactionInstruction) {
                 <TransactionsProvider>
                     <AccountsProvider>
                         <InstructionParserProvider dispatcher={instructionParserDispatcher}>
-                            <InstructionsSection message={buildMessage(ix)} />
+                            <InstructionsSectionFixture message={buildMessage(ix)} />
                         </InstructionParserProvider>
                     </AccountsProvider>
                 </TransactionsProvider>
