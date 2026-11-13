@@ -9,13 +9,7 @@ import { ExternalLink } from '@/app/components/shared/ui/external-link';
 import { useResourcesLayout } from '@/app/shared/ui/resources-layout';
 import { SectionLinkAction, useSectionActionsLayout } from '@/app/shared/ui/section-action';
 
-import {
-    CoreConceptsPreview,
-    DeveloperToolsPreview,
-    JobsPreview,
-    QuickStartPreview,
-    TransactionsPreview,
-} from './DeveloperResourcePreviews';
+import { ResourcePreview } from './DeveloperResourcePreviewVariants';
 
 type Resource = {
     title: string;
@@ -30,31 +24,31 @@ const DEFAULT_RESOURCES: Resource[] = [
     {
         description: 'How transactions are built and signed, and when they expire',
         link: 'https://solana.com/docs/core/transactions',
-        preview: <TransactionsPreview />,
+        preview: <ResourcePreview name="transactions" />,
         title: 'Transactions',
     },
     {
         description: 'Accounts, programs, instructions, fees and program-derived addresses',
         link: 'https://solana.com/docs/core',
-        preview: <CoreConceptsPreview />,
+        preview: <ResourcePreview name="coreConcepts" />,
         title: 'Core Concepts',
     },
     {
         description: 'API references, SDKs, the CLI, cookbook recipes and courses',
         link: 'https://solana.com/docs/tools',
-        preview: <DeveloperToolsPreview />,
+        preview: <ResourcePreview name="developerTools" />,
         title: 'Developer Resources',
     },
     {
         description: 'Build your first program in Solana Playground, nothing to install',
         link: 'https://solana.com/docs/intro/quick-start',
-        preview: <QuickStartPreview />,
+        preview: <ResourcePreview name="quickStart" />,
         title: 'Quick Start',
     },
     {
         description: 'Job openings across the Solana network',
         link: 'https://jobs.solana.com/jobs',
-        preview: <JobsPreview />,
+        preview: <ResourcePreview name="jobs" />,
         title: 'Solana Jobs',
     },
 ];

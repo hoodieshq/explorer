@@ -17,3 +17,15 @@ export const resourcesLayoutAtom = atomWithStorage<ResourcesLayout>('home-key-va
 export function useResourcesLayout() {
     return useAtomValue(resourcesLayoutAtom);
 }
+
+export type ResourcesPreview = 'abstract' | 'detailed' | 'simple';
+
+/** How much the card previews draw: the full diagrams, the same ones with fewer parts, or shapes without text. */
+export const resourcesPreviewAtom = atomWithStorage<ResourcesPreview>(
+    'home-key-value-cards:resources-preview',
+    'simple',
+);
+
+export function useResourcesPreview() {
+    return useAtomValue(resourcesPreviewAtom);
+}

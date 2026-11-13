@@ -272,15 +272,17 @@ export function JobsPreview() {
     );
 }
 
-const ACCENT = '#1dd79b';
+// REVIEW(home-key-value-cards): the drawing helpers are exported for the simple and abstract preview variants;
+// make them private again once one variant is chosen.
+export const ACCENT = '#1dd79b';
 // The card's own surface, so shapes drawn over lines cut them cleanly.
-const BACKGROUND = '#0f1513';
+export const BACKGROUND = '#0f1513';
 
-function ink(opacity: number) {
+export function ink(opacity: number) {
     return `rgba(229, 235, 233, ${opacity})`;
 }
 
-function PreviewFrame({ children }: { children: ReactNode }) {
+export function PreviewFrame({ children }: { children: ReactNode }) {
     return (
         <svg
             aria-hidden
@@ -295,7 +297,7 @@ function PreviewFrame({ children }: { children: ReactNode }) {
     );
 }
 
-function Label({
+export function Label({
     x,
     y,
     children,
@@ -317,7 +319,7 @@ function Label({
     );
 }
 
-function Cells({ x, y, count, accent = 0 }: { x: number; y: number; count: number; accent?: number }) {
+export function Cells({ x, y, count, accent = 0 }: { x: number; y: number; count: number; accent?: number }) {
     return (
         <>
             {Array.from({ length: count }, (_, index) => (
@@ -334,12 +336,12 @@ function Cells({ x, y, count, accent = 0 }: { x: number; y: number; count: numbe
     );
 }
 
-function Square({ x, y }: { x: number; y: number }) {
+export function Square({ x, y }: { x: number; y: number }) {
     return <rect x={x - 5} y={y - 5} width={10} height={10} fill={BACKGROUND} stroke={ink(0.6)} strokeWidth={0.75} />;
 }
 
 /** A numbered step box with its name under it; a done step is in the accent. */
-function Step({
+export function Step({
     x,
     y,
     number,
