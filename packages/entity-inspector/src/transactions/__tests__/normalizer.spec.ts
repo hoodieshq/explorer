@@ -673,7 +673,7 @@ describe('transaction normalizer', () => {
                     ...singleSignerMessage([{ accounts: [0], data: 'abc', programIdIndex: 5 }]),
                 }),
             ),
-        ).toThrow('instruction index out of bounds');
+        ).toThrow('Could not find program address at index 5');
         expect(() =>
             normalize(
                 makeFullEnvelope({
@@ -681,7 +681,7 @@ describe('transaction normalizer', () => {
                     ...singleSignerMessage([{ accounts: [0, 99], data: 'abc', programIdIndex: 0 }]),
                 }),
             ),
-        ).toThrow('instruction index out of bounds');
+        ).toThrow('Could not find an account address at index 99 while decompiling an instruction');
         expect(() =>
             normalize(
                 makeFullEnvelope({
@@ -689,7 +689,7 @@ describe('transaction normalizer', () => {
                     ...singleSignerMessage([{ accounts: [0], data: 'abc', programIdIndex: -1 }]),
                 }),
             ),
-        ).toThrow('instruction index out of bounds (programIdIndex=-1');
+        ).toThrow('Could not find program address at index -1');
     });
 
     it('should throw on out-of-bounds inner instruction indices', () => {
@@ -906,7 +906,7 @@ describe('transaction normalizer', () => {
                     writable: [LOADED_WRITABLE_1],
                 }),
             ),
-        ).toThrow('instruction index out of bounds');
+        ).toThrow('Could not find program address at index 5');
     });
 
     it('should behave like legacy for v0 with null loadedAddresses', () => {
