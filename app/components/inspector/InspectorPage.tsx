@@ -7,6 +7,7 @@ import {
     fromMessageBytes,
     getV1ResourceLimits,
     isV1MessageBytes,
+    LAMPORTS_PER_SIGNATURE,
     transactionSizeLimit,
     transactionWireSize,
 } from '@explorer/parsers/transaction';
@@ -634,10 +635,6 @@ function LoadedView({
     );
 }
 
-const DEFAULT_FEES = {
-    lamportsPerSignature: 5000,
-};
-
 function InspectorOverviewCard({
     message,
     raw,
@@ -649,7 +646,7 @@ function InspectorOverviewCard({
     onClear: () => void;
     signature?: string;
 }) {
-    const fee = message.header.numRequiredSignatures * DEFAULT_FEES.lamportsPerSignature;
+    const fee = message.header.numRequiredSignatures * Number(LAMPORTS_PER_SIGNATURE);
     const feePayerValidator = createFeePayerValidator(fee);
 
     const size = React.useMemo(() => transactionWireSize(raw), [raw]);
