@@ -1,12 +1,17 @@
 import type { SolanaRpc } from '@entities/cluster/@x/transaction-data';
-import { decodeCompiledMessage, fromCompiledMessage, type ParsedTransaction } from '@explorer/parsers/transaction';
+import {
+    decodeCompiledMessage,
+    fromCompiledMessage,
+    type ParsedTransaction,
+    type RawInstruction,
+} from '@explorer/parsers/transaction';
 import type { CompiledTransactionMessage, CompiledTransactionMessageWithLifetime } from '@solana/kit';
 
 import { resolveAddressLookupTables } from './resolve-address-lookup-tables';
 
 export type CompiledMessage = CompiledTransactionMessage & CompiledTransactionMessageWithLifetime;
 
-export type ParsedMessage = { compiled: CompiledMessage; transaction: ParsedTransaction };
+export type ParsedMessage = { compiled: CompiledMessage; transaction: ParsedTransaction<RawInstruction> };
 
 /**
  * Decodes message bytes and loads the addresses a v0 message reads from its lookup tables, so every account is known.

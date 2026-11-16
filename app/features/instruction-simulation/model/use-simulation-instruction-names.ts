@@ -2,11 +2,7 @@ import type { InstructionCUInput } from '@entities/compute-unit';
 import { type NamedInstruction, resolveNamesFromData } from '@entities/transaction-data';
 import { useResolvedInstructionNames } from '@entities/transaction-data/client';
 import { toKitAddress, toLegacyPublicKey } from '@explorer/parsers/compat';
-import {
-    isRpcParsedInstruction,
-    type ParsedTransaction,
-    type TransactionInstruction,
-} from '@explorer/parsers/transaction';
+import type { ParsedTransaction, RawInstruction } from '@explorer/parsers/transaction';
 import { useMemo } from 'react';
 
 /**
@@ -16,7 +12,9 @@ import { useMemo } from 'react';
  * data: Compute Budget and the built-in discriminator resolvers synchronously, IDL-derived names once
  * the per-program fetch lands. Names resolve here rather than in the card so the card stays props-driven.
  */
-export function useSimulationInstructionNames(transaction: ParsedTransaction | undefined): InstructionCUInput[] {
+export function useSimulationInstructionNames(
+    transaction: ParsedTransaction<RawInstruction> | undefined,
+): InstructionCUInput[] {
     const rows = useMemo(() => transaction?.instructions.map(toNamedInstruction) ?? [], [transaction]);
     const namedInstructions = useResolvedInstructionNames(rows);
 
@@ -26,9 +24,7 @@ export function useSimulationInstructionNames(transaction: ParsedTransaction | u
     );
 }
 
-function toNamedInstruction(instruction: TransactionInstruction): NamedInstruction {
+function toNamedInstruction(instruction: RawInstruction): NamedInstruction {
     const programId = toLegacyPublicKey(instruction.programAddress);
-    if (isRpcParsedInstruction(instruction)) return { name: undefined, programId, programName: undefined };
-
     return { ...resolveNamesFromData({ data: instruction.data, programId }), programId };
 }

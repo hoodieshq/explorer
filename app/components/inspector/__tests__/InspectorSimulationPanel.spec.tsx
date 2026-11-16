@@ -1,4 +1,4 @@
-import { fromMessageBytes, type ParsedTransaction } from '@explorer/parsers/transaction';
+import { fromMessageBytes, type ParsedTransaction, type RawInstruction } from '@explorer/parsers/transaction';
 import { render, screen } from '@testing-library/react';
 import { Cluster } from '@utils/cluster';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -35,7 +35,7 @@ import { InspectorSimulationPanel } from '../InspectorSimulationPanel';
 
 const LOG_TEXT = 'Program log: simulated';
 
-function simulationOf(transaction: ParsedTransaction): SimulationState {
+function simulationOf(transaction: ParsedTransaction<RawInstruction>): SimulationState {
     return {
         result: {
             epoch: 0n,

@@ -1,6 +1,6 @@
 import type { SolanaRpc } from '@entities/cluster';
 import { type CompiledMessage, parseMessageWithLookupTables } from '@entities/transaction-data';
-import type { ParsedTransaction, TransactionVersion } from '@explorer/parsers/transaction';
+import type { ParsedTransaction, RawInstruction, TransactionVersion } from '@explorer/parsers/transaction';
 import {
     type Address,
     type Base64EncodedWireTransaction,
@@ -37,7 +37,7 @@ export type SimulationResult = {
     solBalanceChanges: SolBalanceChange[] | undefined;
     tokenBalanceData: TokenBalanceData | undefined;
     /** Parsed from the simulated bytes with lookup tables resolved, so every view of the result describes them. */
-    transaction: ParsedTransaction;
+    transaction: ParsedTransaction<RawInstruction>;
     unitsConsumed: number | undefined;
 };
 
