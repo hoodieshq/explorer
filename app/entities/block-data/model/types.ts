@@ -1,4 +1,4 @@
-import type { ParsedTransaction } from '@explorer/parsers/transaction';
+import type { ParsedTransaction, RawInstruction } from '@explorer/parsers/transaction';
 import type { Blockhash, Reward, Slot, TransactionForFullBase64, UnixTimestamp } from '@solana/kit';
 
 export type BlockTransactionMeta = Pick<
@@ -14,7 +14,7 @@ export type BlockTransactionMeta = Pick<
 export type BlockTransaction = Readonly<{
     index: number;
     meta: BlockTransactionMeta | null;
-    parsedTransaction: ParsedTransaction;
+    parsedTransaction: ParsedTransaction<RawInstruction>;
 }>;
 
 export type UnavailableBlockTransaction = Readonly<{

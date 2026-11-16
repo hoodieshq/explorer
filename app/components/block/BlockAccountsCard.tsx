@@ -1,6 +1,5 @@
 import { Address } from '@components/common/Address';
 import { type BlockData, isBlockTransaction } from '@entities/block-data';
-import { isRpcParsedInstruction } from '@explorer/parsers/transaction';
 import type { Address as KitAddress } from '@solana/kit';
 import { useClusterPath } from '@utils/url';
 import Link from 'next/link';
@@ -40,7 +39,6 @@ export function BlockAccountsCard({ block, blockSlot }: { block: BlockData; bloc
             if (!isBlockTransaction(tx)) return;
             const txSet = new Map<KitAddress, boolean>();
             tx.parsedTransaction.instructions.forEach(instruction => {
-                if (isRpcParsedInstruction(instruction)) return;
                 instruction.accounts.forEach(account => {
                     txSet.set(account.address, account.writable);
                 });
