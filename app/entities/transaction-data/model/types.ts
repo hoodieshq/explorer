@@ -1,4 +1,4 @@
-import type { ParsedTransaction } from '@explorer/parsers/transaction';
+import type { ParsedTransaction, RawInstruction } from '@explorer/parsers/transaction';
 import type { TransactionVersion } from '@solana/kit';
 import type {
     CompiledInnerInstruction,
@@ -37,7 +37,7 @@ type RawTransactionBase = {
         preBalances: number[];
     };
     /** Parsed from the same bytes. */
-    parsedTransaction: ParsedTransaction;
+    parsedTransaction: ParsedTransaction<RawInstruction>;
     /**
      * Wire size in bytes: signatures plus the compiled message, as the network holds it.
      *
