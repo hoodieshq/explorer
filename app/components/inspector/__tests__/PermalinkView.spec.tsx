@@ -24,6 +24,7 @@ vi.mock('next/navigation', () => import('@/app/__tests__/next-navigation'));
 // The v1 tests render LoadedView; stub its data-fetching children so the overview card —
 // the part under test — renders without providers.
 vi.mock('@providers/accounts', () => ({
+    useAddressLookupTables: () => [],
     useFetchAccountInfo: () => vi.fn(),
 }));
 vi.mock('@features/instruction-simulation', () => ({
@@ -33,6 +34,9 @@ vi.mock('@features/instruction-simulation', () => ({
 // tests don't need a live cluster URL. Idle status keeps the token-balance rows and gated tabs off.
 vi.mock('@/app/features/instruction-simulation/model/use-simulation', () => ({
     useSimulation: () => ({ simulate: vi.fn(), status: 'idle' }),
+}));
+vi.mock('@entities/instruction-intent', () => ({
+    InstructionIntentList: () => <div data-testid="instruction-intent-list" />,
 }));
 vi.mock('../AccountsCard', () => ({
     AccountsCard: () => <div data-testid="accounts-card" />,

@@ -4,7 +4,7 @@ import { cva } from 'class-variance-authority';
 import type { ReactNode } from 'react';
 
 import type { InstructionIntent, InstructionIntentResult } from '../lib/intent';
-import { getIntentUnavailableText } from '../lib/unavailable-text';
+import { getIntentUnavailableText, INTENT_FAILED_TEXT } from '../lib/unavailable-text';
 import { IntentSentence } from './IntentSentence';
 
 type PanelIntent = Exclude<InstructionIntentResult, { status: 'idle' }>;
@@ -44,7 +44,7 @@ function PanelBody({ intent }: { intent: PanelIntent }) {
         case 'failed':
             return (
                 <div className="flex flex-col gap-2" data-testid="instruction-intent-failed">
-                    <p className="m-0 text-sm text-neutral-300">Couldn&apos;t load the data the intent needs.</p>
+                    <p className="m-0 text-sm text-neutral-300">{INTENT_FAILED_TEXT}</p>
                     {intent.retry && (
                         <div>
                             <Button

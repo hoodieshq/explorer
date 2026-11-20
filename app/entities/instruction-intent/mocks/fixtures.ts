@@ -44,6 +44,10 @@ export function programMetadataIdls(idl: unknown, standard: 'Anchor' | 'Codama' 
     return { idls: [{ idl, idlAddress: undefined, source: IdlVariant.ProgramMetadata, standard }] };
 }
 
+export function anchorIdls(idl: unknown) {
+    return { idls: [{ idl, idlAddress: undefined, source: IdlVariant.Anchor, standard: 'Anchor' }] };
+}
+
 export function withIntentTemplate(root: RootNode, instructionName: string, interpolatedIntent: string): RootNode {
     return {
         ...root,
