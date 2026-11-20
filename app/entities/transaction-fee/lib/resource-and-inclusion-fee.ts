@@ -15,9 +15,6 @@
 /** SIMD-0553's inclusion fee, charged per transaction rather than per signature. */
 export const BASE_INCLUSION_FEE_LAMPORTS = 2_500;
 
-/** Today's base fee, per signature. Needed to back the priority fee out of a landed total. */
-export const LAMPORTS_PER_SIGNATURE = 5_000;
-
 export type ResourceFeeRate = Readonly<{
     denominator: number;
     /** The rate as written in the SIMD, for display. */
@@ -105,24 +102,4 @@ export function getResourceFeeLamports({
     requestedCostUnits: number;
 }): number {
     return Math.ceil((requestedCostUnits * rate.numerator) / rate.denominator);
-}
-
-/**
- * Backs the priority fee out of a landed transaction's total, so it can be carried into the
- * projection unchanged.
- *
- * `getTransaction` reports one summed `fee`, so the base half has to be subtracted. A transaction
- * carrying precompile signature-verification instructions also pays per precompile signature, which
- * the signature count does not cover — such a transaction's priority fee reads high by 5,000
- * lamports per precompile signature. Prefer the exact figure where the transaction states it: v1
- * declares its total priority fee on the message.
- */
-export function derivePriorityFeeLamports({
-    feeLamports,
-    signatureCount,
-}: {
-    feeLamports: number;
-    signatureCount: number;
-}): number {
-    return Math.max(0, feeLamports - LAMPORTS_PER_SIGNATURE * signatureCount);
 }

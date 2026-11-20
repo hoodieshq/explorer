@@ -63,14 +63,19 @@ The projection SHALL sum a flat 2,500-lamport inclusion fee, the transaction's p
 - **WHEN** the rate applied to the requested cost units does not divide evenly
 - **THEN** the resource fee SHALL round up, so any requested cost is charged
 
-### Requirement: The priority fee SHALL be read where declared and derived otherwise
+### Requirement: The priority fee SHALL be read from a v1 message and derived for earlier versions
 
-The projection SHALL take the priority fee from the message where the transaction declares one, as v1 does, and otherwise derive it by subtracting 5,000 lamports per signature from the total fee, floored at zero.
+For a v1 transaction, the projection SHALL take the total priority fee the message declares, and SHALL use zero when the message declares none. For legacy and v0, the projection SHALL derive the priority fee by subtracting 5,000 lamports per signature from the total fee, floored at zero.
 
 #### Scenario: v1 transaction declaring a priority fee
 
 - **WHEN** a v1 message declares a total priority fee
 - **THEN** the projection SHALL use that figure rather than deriving one from the summed fee
+
+#### Scenario: v1 transaction declaring no priority fee
+
+- **WHEN** a v1 message declares no priority fee
+- **THEN** the projection SHALL use a priority fee of zero rather than deriving one from the summed fee
 
 #### Scenario: transaction paying only the base fee
 
