@@ -19,6 +19,7 @@ import {
     isSimd0553FeeEnabled,
     projectResourceAndInclusionFees,
 } from '@entities/transaction-fee';
+import { getEpochForSlot } from '@explorer/utils';
 import { ViewReceiptButton } from '@features/receipt';
 import { FetchStatus } from '@providers/cache';
 import { useCluster, useEpochSchedule } from '@providers/cluster';
@@ -45,7 +46,6 @@ import { AutoRefresh, useAutoRefreshInterval, WithAutoRefreshProp } from '@/app/
 import { V1_TRANSACTION_SIZE_LIMIT } from '@/app/shared/lib/v1-message-bridge';
 import { type KeyValueRowInput, KeyValueRows, TextValue } from '@/app/shared/ui/key-value';
 import { OverviewCard } from '@/app/shared/ui/OverviewCard';
-import { getEpochForSlot } from '@/app/utils/epoch-schedule';
 
 import { TransactionNotFoundCard } from './TransactionNotFoundCard';
 

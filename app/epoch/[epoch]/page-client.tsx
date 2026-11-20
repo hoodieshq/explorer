@@ -5,6 +5,7 @@ import { Epoch } from '@components/common/Epoch';
 import { ErrorCard } from '@components/common/ErrorCard';
 import { LoadingCard } from '@components/common/LoadingCard';
 import { Slot } from '@components/common/Slot';
+import { getFirstSlotInEpoch, getLastSlotInEpoch } from '@explorer/utils';
 import { FetchStatus } from '@providers/cache';
 import { useCluster, useClusterInfo } from '@providers/cluster';
 import { useEpoch, useFetchEpoch } from '@providers/epoch';
@@ -15,7 +16,6 @@ import { Timestamp } from '@/app/components/shared/ui/timestamp';
 import { type KeyValueRowInput, KeyValueRows } from '@/app/shared/ui/key-value';
 import { OverviewCard } from '@/app/shared/ui/OverviewCard';
 import { PageHeader, PageLayout, PageSections } from '@/app/shared/ui/page-layout';
-import { getFirstSlotInEpoch, getLastSlotInEpoch } from '@/app/utils/epoch-schedule';
 
 type Props = {
     params: {

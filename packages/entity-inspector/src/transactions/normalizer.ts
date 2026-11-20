@@ -1,7 +1,17 @@
-// Ported from the solana-mcp-official fork (feat/account-resolver) — validates the probe's message
-// integrity before index resolution so a malformed RPC response fails loudly, not with wrong data.
-import { err, ok, type Result } from '@explorer/utils';
+// Maps a json getTransaction probe to TransactionPayloadContext.
+import {
+    fromRpcTransaction,
+    getRequestedComputeUnits,
+    getV1ResourceLimits,
+    hasUnmatchedLookupTables,
+    normalizeVersion,
+    type ParsedTransaction,
+    type TransactionVersion,
+    type V1ResourceLimits,
+} from '@explorer/parsers/transaction';
+import { err, getEpochForSlot, ok, type Result } from '@explorer/utils';
 
+import type { SupportedCluster } from '../config.js';
 import { type InspectorLogger, ns } from '../logger.js';
 import { asRecord, asSafeNumeric } from '../shared/parse-helpers.js';
 import type {
@@ -12,8 +22,13 @@ import type {
     SignatureStatusValue,
     TransactionProbeEnvelope,
 } from '../rpc/types.js';
-import type { TransactionPayloadContext, TransactionVersion } from './types.js';
-import { selectAccountResolver } from './account-resolver.js';
+import { EPOCH_SCHEDULES } from './epoch-schedule.js';
+import type {
+    ReportedTransactionVersion,
+    TransactionPayloadContext,
+    TransactionResourceLimits,
+    TransactionVersionContext,
+} from './types.js';
 
 function toAccountKeyString(accountKey: string | { pubkey: string }): string {
     if (typeof accountKey === 'string') {
@@ -27,11 +42,8 @@ function toAccountKeyString(accountKey: string | { pubkey: string }): string {
     );
 }
 
-function validateInstructionIndices(
-    instructions: readonly CompiledInstruction[],
-    accountKeyCount: number,
-    label: string,
-): void {
+// Inner instructions live in `meta`, outside `ParsedTransaction`, so their indices are checked here.
+function validateInnerInstructionIndices(instructions: readonly CompiledInstruction[], accountKeyCount: number): void {
     for (const ix of instructions) {
         if (
             ix.programIdIndex < 0 ||
@@ -39,73 +51,29 @@ function validateInstructionIndices(
             ix.accounts.some(idx => idx < 0 || idx >= accountKeyCount)
         ) {
             throw new Error(
-                `Unexpected transaction probe: ${label} index out of bounds (programIdIndex=${ix.programIdIndex}, accounts=[${ix.accounts.join(',')}], accountKeyCount=${accountKeyCount}).`,
+                `Unexpected transaction probe: inner instruction index out of bounds (programIdIndex=${ix.programIdIndex}, accounts=[${ix.accounts.join(',')}], accountKeyCount=${accountKeyCount}).`,
             );
         }
     }
 }
 
-function validateHeaderIntegrity(
-    header: {
-        numRequiredSignatures: number;
-        numReadonlySignedAccounts: number;
-        numReadonlyUnsignedAccounts: number;
-    },
-    staticKeyCount: number,
-): void {
-    const { numRequiredSignatures, numReadonlySignedAccounts, numReadonlyUnsignedAccounts } = header;
-
-    if (numRequiredSignatures <= 0 || numRequiredSignatures > staticKeyCount) {
-        throw new Error(
-            `Unexpected transaction probe: numRequiredSignatures (${numRequiredSignatures}) out of range for ${staticKeyCount} account keys.`,
-        );
-    }
-
-    if (numReadonlySignedAccounts < 0 || numReadonlyUnsignedAccounts < 0) {
-        throw new Error(
-            `Unexpected transaction probe: negative readonly account count (signed=${numReadonlySignedAccounts}, unsigned=${numReadonlyUnsignedAccounts}).`,
-        );
-    }
-
-    if (
-        numReadonlySignedAccounts >= numRequiredSignatures ||
-        numReadonlyUnsignedAccounts > staticKeyCount - numRequiredSignatures
-    ) {
-        throw new Error(
-            `Unexpected transaction probe: readonly counts (signed=${numReadonlySignedAccounts}, unsigned=${numReadonlyUnsignedAccounts}) exceed available accounts (signers=${numRequiredSignatures}, total=${staticKeyCount}).`,
-        );
-    }
-}
-
-function validateInstructionIntegrity(
+function validateInnerInstructionIntegrity(
     instructions: readonly CompiledInstruction[],
     innerInstructions: readonly CompiledInnerInstruction[] | null,
     totalKeyCount: number,
 ): void {
-    validateInstructionIndices(instructions, totalKeyCount, 'instruction');
+    if (!innerInstructions) {
+        return;
+    }
 
-    if (innerInstructions) {
-        for (const group of innerInstructions) {
-            if (group.index < 0 || group.index >= instructions.length) {
-                throw new Error(
-                    `Unexpected transaction probe: inner instruction group index (${group.index}) out of bounds for ${instructions.length} instructions.`,
-                );
-            }
-            validateInstructionIndices(group.instructions, totalKeyCount, 'inner instruction');
+    for (const group of innerInstructions) {
+        if (group.index < 0 || group.index >= instructions.length) {
+            throw new Error(
+                `Unexpected transaction probe: inner instruction group index (${group.index}) out of bounds for ${instructions.length} instructions.`,
+            );
         }
+        validateInnerInstructionIndices(group.instructions, totalKeyCount);
     }
-}
-
-// Only legacy and v0 exist on-chain, and the RPC layer requests maxSupportedTransactionVersion 0.
-function normalizeVersion(rawVersion: 'legacy' | number | bigint | null | undefined): TransactionVersion {
-    if (rawVersion === 'legacy' || rawVersion === null || rawVersion === undefined) {
-        return rawVersion ?? null;
-    }
-    const version = typeof rawVersion === 'bigint' ? Number(rawVersion) : rawVersion;
-    if (version !== 0) {
-        throw new Error(`Unexpected transaction probe: unsupported transaction version (${String(rawVersion)}).`);
-    }
-    return version;
 }
 
 function isKnownConfirmationStatus(value: string): value is ConfirmationStatus {
@@ -154,11 +122,27 @@ function normalizeTransactionError(rawErr: unknown): Result<Record<string, unkno
     return err(new Error(`unrecognized err shape: ${String(rawErr)}`));
 }
 
+function toSafeResourceLimits(limits: V1ResourceLimits): TransactionResourceLimits {
+    return { ...limits, priorityFeeLamports: asSafeNumeric(limits.priorityFeeLamports) };
+}
+
+function toVersionContext(
+    reportedVersion: ReportedTransactionVersion,
+    transaction: ParsedTransaction,
+): TransactionVersionContext {
+    if (transaction.version === 1) {
+        return { resourceLimits: toSafeResourceLimits(getV1ResourceLimits(transaction)), version: 1 };
+    }
+    // A null reported version parses as legacy, but the payload keeps reporting null.
+    return { version: reportedVersion === null ? null : transaction.version };
+}
+
 export function normalizeTransactionProbe(
     signature: string,
     envelope: TransactionProbeEnvelope,
     signatureStatus: SignatureStatusEnvelope | null | undefined,
     logger: InspectorLogger,
+    cluster: SupportedCluster,
 ): TransactionPayloadContext | null {
     if (envelope === null) {
         return null;
@@ -169,37 +153,47 @@ export function normalizeTransactionProbe(
         throw new Error('Unexpected transaction probe: slot is not a safe number.');
     }
 
-    const { header, accountKeys } = envelope.transaction.message;
+    const { header, accountKeys, addressTableLookups, transactionConfig } = envelope.transaction.message;
     const instructions = Array.from(envelope.transaction.message.instructions ?? []);
     const meta = envelope.meta;
     const innerInstructions = meta?.innerInstructions ? Array.from(meta.innerInstructions) : null;
+    const recentBlockhash = envelope.transaction.message.recentBlockhash ?? null;
 
-    const staticKeys = accountKeys.map(toAccountKeyString);
-    validateHeaderIntegrity(header, staticKeys.length);
+    const reportedVersion: ReportedTransactionVersion =
+        envelope.version === undefined || envelope.version === null ? null : normalizeVersion(envelope.version);
+    // Without `maxSupportedTransactionVersion` the RPC returns legacy only, so a missing version parses as legacy.
+    const parsedVersion: TransactionVersion = reportedVersion ?? 'legacy';
 
-    const version = normalizeVersion(envelope.version);
-    const resolver = selectAccountResolver(version);
-    const {
-        accountKeys: allKeys,
-        lookupCountsMismatch,
-        resolvedAccounts,
-    } = resolver({
-        addressTableLookups: envelope.transaction.message.addressTableLookups,
-        header,
-        loadedAddresses: meta?.loadedAddresses,
-        staticKeys,
+    const transaction = fromRpcTransaction({
+        meta: { loadedAddresses: meta?.loadedAddresses ?? null },
+        transaction: {
+            message: {
+                accountKeys: accountKeys.map(toAccountKeyString),
+                // Absent means the RPC did not report the tables. Do not default to `[]`, which means "declares none".
+                ...(addressTableLookups !== undefined && { addressTableLookups }),
+                header,
+                instructions,
+                recentBlockhash: recentBlockhash ?? '',
+                transactionConfig,
+            },
+            signatures: [],
+        },
+        version: parsedVersion,
     });
-    if (lookupCountsMismatch) {
-        logger.warn(ns('address table lookup counts do not cover the loaded addresses'), { signature });
+
+    const allKeys = transaction.accounts.map(account => account.address);
+    if (hasUnmatchedLookupTables(transaction)) {
+        logger.warn(ns('address table lookup counts do not match the loaded addresses'), { signature });
     }
 
-    validateInstructionIntegrity(instructions, innerInstructions, allKeys.length);
+    validateInnerInstructionIntegrity(instructions, innerInstructions, allKeys.length);
 
     const { numRequiredSignatures, numReadonlySignedAccounts, numReadonlyUnsignedAccounts } = header;
 
     const computeUnitsConsumed = meta ? asSafeNumeric(meta.computeUnitsConsumed ?? null) : null;
     const logMessages = meta?.logMessages ? Array.from(meta.logMessages) : null;
-    const recentBlockhash = envelope.transaction.message.recentBlockhash ?? null;
+    const epoch = getEpochForSlot(EPOCH_SCHEDULES[cluster], BigInt(slot));
+    const requestedComputeUnits = getRequestedComputeUnits(transaction, { cluster, epoch });
 
     const statusValue = signatureStatus?.value ?? null;
     const rawStatus = statusValue?.confirmationStatus ?? null;
@@ -226,10 +220,11 @@ export function normalizeTransactionProbe(
         numReadonlyUnsignedAccounts,
         numRequiredSignatures,
         recentBlockhash,
-        resolvedAccounts,
+        requestedComputeUnits,
+        resolvedAccounts: [...transaction.accounts],
         signature,
         slot,
-        version,
+        ...toVersionContext(reportedVersion, transaction),
     };
 
     if (meta === null) {

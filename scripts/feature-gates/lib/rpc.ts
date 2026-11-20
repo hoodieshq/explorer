@@ -1,6 +1,6 @@
+import { type EpochSchedule, getEpochForSlot } from '@explorer/utils';
 import { address, createSolanaRpc, isSolanaError, SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR } from '@solana/kit';
 
-import { type EpochSchedule, getEpochForSlot } from '../../../app/utils/epoch-schedule';
 import { delay, describeError } from './http';
 
 export type SolanaRpc = ReturnType<typeof createSolanaRpc>;

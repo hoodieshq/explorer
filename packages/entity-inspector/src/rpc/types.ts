@@ -1,4 +1,5 @@
 // Wire shapes as delivered by the JSON-RPC — probe envelopes and the compiled-message primitives they embed.
+import type { RpcTransactionConfig, RpcTransactionVersion } from '@explorer/parsers/transaction';
 import type { Commitment } from '@solana/kit';
 
 export type AccountProbeEnvelope = {
@@ -30,8 +31,7 @@ export type AddressTableLookup = {
 export type TransactionProbeEnvelope = {
     slot: number | bigint;
     blockTime: number | bigint | null;
-    // kit may deliver the numeric version as bigint; the normalizer narrows it to TransactionVersion.
-    version?: 'legacy' | number | bigint | null;
+    version?: RpcTransactionVersion;
     meta: {
         err: unknown;
         fee: number | bigint;
@@ -54,6 +54,7 @@ export type TransactionProbeEnvelope = {
             recentBlockhash?: string;
             instructions: readonly CompiledInstruction[];
             addressTableLookups?: readonly AddressTableLookup[];
+            transactionConfig?: RpcTransactionConfig;
         };
     };
 } | null;
