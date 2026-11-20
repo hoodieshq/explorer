@@ -7,11 +7,9 @@ import {
     BLOCK_TRANSACTION_VERSIONS,
     type BlockData,
     type BlockTransactionMeta,
-    getBlockTransactionAccounts,
-    getBlockTransactionInstructions,
     isBlockTransaction,
 } from '@entities/block-data';
-import { estimateRequestedComputeUnits } from '@entities/compute-unit';
+import { getRequestedComputeUnits } from '@explorer/parsers/transaction';
 import {
     type HistoryStatus,
     isHistoryStatus,
@@ -26,6 +24,7 @@ import {
     type Signature as KitSignature,
     type TransactionVersion,
 } from '@solana/kit';
+import { clusterSlug } from '@utils/cluster';
 import { parseProgramLogs } from '@utils/program-logs';
 import { displayAddress } from '@utils/tx';
 import Link from 'next/link';
@@ -152,29 +151,24 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockData; epoch: bi
             }
 
             const tx = entry;
-            const signature = tx.signatures[0];
+            const signature = tx.parsedTransaction.signatures[0];
 
-            const programIndexes = getBlockTransactionInstructions(tx.message)
-                .map(ix => ix.programAddressIndex)
-                .concat(
-                    tx.meta?.innerInstructions?.flatMap(ix => {
-                        return ix.instructions.map(ix => ix.programIdIndex);
-                    }) || [],
-                );
+            const { accounts, instructions } = tx.parsedTransaction;
+            const invocations = new Map<string, number>();
+            const countInvocation = (programAddress: KitAddress) => {
+                invocations.set(programAddress, (invocations.get(programAddress) ?? 0) + 1);
+            };
 
-            const indexMap = new Map<number, number>();
-            programIndexes.forEach(programIndex => {
-                const count = indexMap.get(programIndex) || 0;
-                indexMap.set(programIndex, count + 1);
+            instructions.forEach(instruction => countInvocation(instruction.programAddress));
+            tx.meta?.innerInstructions?.forEach(inner => {
+                inner.instructions.forEach(innerIx => {
+                    const account = accounts[innerIx.programIdIndex];
+                    invariant(account, `account key index ${innerIx.programIdIndex} out of range`);
+                    countInvocation(account.address);
+                });
             });
 
-            const invocations = new Map<string, number>();
-            const accountKeys = getBlockTransactionAccounts(tx);
-            indexMap.forEach((count, i) => {
-                const accountKey = accountKeys[i];
-                invariant(accountKey, `account key index ${i} out of range`);
-                const programId = accountKey;
-                invocations.set(programId, count);
+            invocations.forEach((_count, programId) => {
                 const programTransactionCount = invokedPrograms.get(programId) || 0;
                 invokedPrograms.set(programId, programTransactionCount + 1);
             });
@@ -192,8 +186,10 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockData; epoch: bi
 
             const costUnits = tx.meta?.costUnits;
 
-            // Calculate reserved compute units
-            const reservedComputeUnits = estimateRequestedComputeUnits(tx, epoch, cluster);
+            const reservedComputeUnits = getRequestedComputeUnits(tx.parsedTransaction, {
+                cluster: clusterSlug(cluster),
+                epoch,
+            }).value;
 
             return {
                 computeUnits,
@@ -205,7 +201,7 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockData; epoch: bi
                 reservedComputeUnits,
                 signature,
                 unavailable: false,
-                version: tx.message.version,
+                version: tx.parsedTransaction.version,
             };
         });
         return { invokedPrograms, transactions };
@@ -230,7 +226,7 @@ export function BlockHistoryCard({ block, epoch }: { block: BlockData; epoch: bi
 
                 const tx = block.transactions[index];
                 if (!tx || !isBlockTransaction(tx)) return false;
-                return getBlockTransactionAccounts(tx).includes(accountFilter);
+                return tx.parsedTransaction.accounts.some(account => account.address === accountFilter);
             })
             .filter(({ version }) => versionFilter === null || version === versionFilter)
             // An unavailable transaction has no known status, so no status filter matches it.

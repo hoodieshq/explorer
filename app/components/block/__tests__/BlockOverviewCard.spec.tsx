@@ -1,6 +1,7 @@
+import { gen } from '@__fixtures__/gen';
 import type { BlockTransaction } from '@entities/block-data';
 import { makeBlock, makeBlockTransaction } from '@entities/block-data/__fixtures__/block-builders';
-import { address, lamports, type Signature } from '@solana/kit';
+import { address, lamports } from '@solana/kit';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -53,6 +54,6 @@ function makeTransaction(): BlockTransaction {
             fee: lamports(5_000n),
             innerInstructions: [],
         },
-        signatures: ['signature' as Signature],
+        signatures: [gen.signature(1)],
     });
 }

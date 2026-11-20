@@ -1,9 +1,8 @@
 import { type BlockData, isBlockTransaction } from '@entities/block-data/@x/compute-unit';
-import { Cluster } from '@utils/cluster';
+import { getRequestedComputeUnits } from '@explorer/parsers/transaction';
+import { Cluster, clusterSlug } from '@utils/cluster';
 
 import { getMaxComputeUnitsInBlock } from '@/app/utils/epoch-schedule';
-
-import { estimateRequestedComputeUnits } from './compute-units-schedule';
 
 // A block's aggregate compute-unit figures, all in compute units:
 // - `consumed`  — compute units actually used (sum of each transaction's `computeUnitsConsumed`).
@@ -30,6 +29,7 @@ export function summarizeBlockComputeUnits({
     cluster: Cluster;
 }): BlockComputeUnitsSummary {
     const max = getMaxComputeUnitsInBlock({ cluster, epoch });
+    const scheduleCluster = clusterSlug(cluster);
     let consumed = 0n;
     let requested = 0;
     let cost = 0n;
@@ -39,7 +39,7 @@ export function summarizeBlockComputeUnits({
             incomplete = true;
             continue;
         }
-        requested += estimateRequestedComputeUnits(tx, epoch, cluster);
+        requested += getRequestedComputeUnits(tx.parsedTransaction, { cluster: scheduleCluster, epoch }).value;
         consumed += tx.meta?.computeUnitsConsumed ?? 0n;
         cost += tx.meta?.costUnits ?? 0n;
     }
