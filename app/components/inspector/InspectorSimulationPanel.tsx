@@ -6,12 +6,10 @@
 // column react to the same run.
 import { CollapsibleSection } from '@components/shared/ui/collapsible-section';
 import { cn } from '@components/shared/utils';
-import type { TransactionVersion } from '@explorer/parsers/transaction';
 import { useCluster } from '@providers/cluster';
-import type { VersionedMessage } from '@solana/web3.js';
 import React from 'react';
 
-import { ProgramLogsCardBody } from '@/app/components/ProgramLogsCardBody';
+import { ProgramLogsCardBody } from '@/app/components/ProgramLogsCardBody/ProgramLogsCardBody';
 import { Badge } from '@/app/components/shared/ui/badge';
 import { type SimulationState } from '@/app/features/instruction-simulation/model/use-simulation';
 import { useSimulationInstructionNames } from '@/app/features/instruction-simulation/model/use-simulation-instruction-names';
@@ -48,26 +46,13 @@ function SimEmptyHint({ children, simulation }: { children: React.ReactNode; sim
     );
 }
 
-export function InspectorSimulationPanel({
-    simulation,
-    message,
-    transactionVersion,
-}: {
-    simulation: SimulationState;
-    message: VersionedMessage;
-    transactionVersion: TransactionVersion;
-}) {
+export function InspectorSimulationPanel({ simulation }: { simulation: SimulationState }) {
     const { cluster, url } = useCluster();
 
     const result = simulation.status === 'done' ? simulation.result : undefined;
     const logs = result?.logs;
     const hasLogs = !!logs?.length;
-
-    // Lookup-table-resolved keys only exist once the simulation has run, so naming waits for them.
-    const { instructions: namedInstructions, unresolvable } = useSimulationInstructionNames({
-        accountKeys: result?.accountKeys,
-        message,
-    });
+    const namedInstructions = useSimulationInstructionNames(result?.transaction);
 
     return (
         <div className="flex flex-col space-y-9 lg:space-y-12">
@@ -115,9 +100,9 @@ export function InspectorSimulationPanel({
                     title={hasLogs ? <SimulatedTitle>Logs</SimulatedTitle> : 'Logs'}
                     className={cn(OUTLINE_ONLY_CARD, !hasLogs && 'group')}
                 >
-                    {hasLogs ? (
+                    {result && hasLogs ? (
                         <ProgramLogsCardBody
-                            message={message}
+                            transaction={result.transaction}
                             logs={logs}
                             cluster={cluster}
                             url={url}
@@ -137,23 +122,15 @@ export function InspectorSimulationPanel({
                         title={<SimulatedTitle>CU profiling</SimulatedTitle>}
                         className={OUTLINE_ONLY_CARD}
                     >
-                        {unresolvable ? (
-                            // Logs exist, so this owes the user a card. Every CU figure would land on the wrong
-                            // instruction, so saying why beats drawing it.
-                            <div className="text-xs text-muted">
-                                Unavailable: an instruction referenced an account this message does not resolve.
-                            </div>
-                        ) : (
-                            <BaseSimulatorCUProfilingCard
-                                instructions={namedInstructions}
-                                logs={logs}
-                                unitsConsumed={result.unitsConsumed}
-                                cluster={cluster}
-                                epoch={result.epoch}
-                                transactionVersion={transactionVersion}
-                                headerless
-                            />
-                        )}
+                        <BaseSimulatorCUProfilingCard
+                            instructions={namedInstructions}
+                            logs={logs}
+                            unitsConsumed={result.unitsConsumed}
+                            cluster={cluster}
+                            epoch={result.epoch}
+                            transactionVersion={result.transaction.version}
+                            headerless
+                        />
                     </CollapsibleSection>
                 ) : (
                     <CollapsibleSection title="CU profiling" className={cn(OUTLINE_ONLY_CARD, 'group')}>

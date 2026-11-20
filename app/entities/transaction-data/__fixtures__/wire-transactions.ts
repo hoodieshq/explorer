@@ -24,7 +24,7 @@ import {
 
 export const FEE_PAYER = address(gen.address(1));
 export const RECIPIENT = address(gen.address(2));
-const PROGRAM = address(gen.address(3));
+export const PROGRAM = address(gen.address(3));
 const LOOKUP_TABLE = address(gen.address(4));
 const BLOCKHASH = blockhash(gen.blockhash());
 

@@ -58,8 +58,8 @@ describe('TxInstructionSurface', () => {
         expect(readRawInstructions()).toEqual({ instructions: [WIRE_IX], status: 'fetched' });
     });
 
-    it('should hold no instructions for a fetched transaction that cannot be decompiled', () => {
-        rawDetails = { data: { raw: { transaction: undefined } }, status: FetchStatus.Fetched };
+    it('should hold no instructions when the RPC returned no transaction', () => {
+        rawDetails = { data: { raw: null }, status: FetchStatus.Fetched };
 
         expect(readRawInstructions()).toEqual({ instructions: undefined, status: 'fetched' });
     });

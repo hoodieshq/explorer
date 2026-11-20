@@ -40,8 +40,8 @@ describe('rawSourceOf', () => {
         });
     });
 
-    it('should say the raw form is unavailable when the fetched transaction cannot be decompiled', () => {
-        expect(rawSourceOf(node(), fetched(undefined))).toEqual({ kind: 'unavailable' });
+    it('should show nothing when the RPC returned no transaction', () => {
+        expect(rawSourceOf(node(), fetched(undefined))).toEqual({ kind: 'none' });
     });
 
     it('should show nothing for an inner instruction once the transaction arrives', () => {
