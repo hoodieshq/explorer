@@ -3,8 +3,12 @@ import { render, screen } from '@testing-library/react';
 import { Cluster } from '@utils/cluster';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { createV1TransactionBytes } from '@/app/entities/transaction-data/__fixtures__/wire-transactions';
+import { parseTransactionBytes } from '@/app/shared/lib/parse-transaction-bytes';
+import { bridgeV1MessageBytes } from '@/app/shared/lib/v1-message-bridge';
+
 const { useSimulation, useSimulationInstructionNames, CUProfilingCard } = vi.hoisted(() => ({
-    CUProfilingCard: vi.fn(() => null),
+    CUProfilingCard: vi.fn((_props: object) => null),
     useSimulation: vi.fn(),
     useSimulationInstructionNames: vi.fn(),
 }));
@@ -69,6 +73,15 @@ describe('SimulatorCard CU profiling', () => {
 
         expect(CUProfilingCard).toHaveBeenCalled();
         expect(screen.queryByText(UNAVAILABLE)).not.toBeInTheDocument();
+    });
+
+    it('should pass version 1 to the chart for a bridged v1 message', () => {
+        const { message } = bridgeV1MessageBytes(parseTransactionBytes(createV1TransactionBytes({})).messageBytes);
+
+        render(<SimulatorCard message={message} showTokenBalanceChanges={false} />);
+
+        expect(message.version).toBe(0);
+        expect(CUProfilingCard.mock.lastCall?.[0]).toMatchObject({ transactionVersion: 1 });
     });
 
     // No logs means nothing to profile, so neither the chart nor an excuse belongs on the page.

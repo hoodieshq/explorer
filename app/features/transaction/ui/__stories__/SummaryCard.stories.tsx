@@ -8,9 +8,9 @@ import {
     DEFAULT_SIGNATURE,
     MOCK_FAILED_STATUS,
     MOCK_FAILED_TX,
-    MOCK_LOOSE_BUDGET_TX,
     MOCK_PARSED_TX,
     MOCK_PARSED_TX_NO_BLOCK_TIME,
+    MOCK_RAW_LOOSE_BUDGET_TX,
     MOCK_RAW_TX,
     MOCK_RAW_TX_NO_BLOCK_TIME,
     MOCK_STATUS,
@@ -119,9 +119,9 @@ export const LooseComputeBudget: Story = {
     decorators: [
         Story => {
             const Wrapper = withTransactionProviders(
-                { [DEFAULT_SIGNATURE]: MOCK_LOOSE_BUDGET_TX },
+                { [DEFAULT_SIGNATURE]: MOCK_PARSED_TX },
                 { [DEFAULT_SIGNATURE]: MOCK_STATUS },
-                { [DEFAULT_SIGNATURE]: MOCK_RAW_TX },
+                { [DEFAULT_SIGNATURE]: MOCK_RAW_LOOSE_BUDGET_TX },
             );
             return (
                 <Wrapper>

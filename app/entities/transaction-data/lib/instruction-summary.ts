@@ -1,6 +1,7 @@
-import { getBlockTransactionInstructions } from '@entities/block-data/@x/transaction-data';
-import { getBase58Encoder, getCompiledTransactionMessageDecoder, type ReadonlyUint8Array } from '@solana/kit';
-import { ComputeBudgetProgram, ParsedInstruction, PartiallyDecodedInstruction, PublicKey } from '@solana/web3.js';
+import type { RawInstruction } from '@explorer/parsers/transaction';
+import { getBase58Encoder, type ReadonlyUint8Array } from '@solana/kit';
+import { ParsedInstruction, PartiallyDecodedInstruction, PublicKey } from '@solana/web3.js';
+import { COMPUTE_BUDGET_PROGRAM_ADDRESS } from '@solana-program/compute-budget';
 import { camelToTitleCase } from '@utils/index';
 import { ParsedInfo } from '@validators/index';
 import { is } from 'superstruct';
@@ -11,38 +12,26 @@ import { resolveMemoInstructionName } from './memo-name';
 import type { InstructionNames, InstructionSummary } from './types';
 
 const BASE58_ENCODER = getBase58Encoder();
-const COMPILED_MESSAGE_DECODER = getCompiledTransactionMessageDecoder();
 
 export const UNKNOWN_INSTRUCTION_NAME = 'Unknown Instruction';
 
-export function getInstructionSummaries(transactionWithMeta: TransactionWithMeta): InstructionSummary[] {
-    return transactionWithMeta.transaction.message.instructions
-        .filter(ix => !isComputeBudget(ix.programId))
-        .map(ix => toSummary(resolveInstructionNames(ix)));
-}
+export function getInstructionSummaries(source: TransactionWithMeta | readonly RawInstruction[]): InstructionSummary[] {
+    if ('transaction' in source) {
+        return source.transaction.message.instructions
+            .filter(ix => !isComputeBudget(ix.programId.toBase58()))
+            .map(ix => toSummary(resolveInstructionNames(ix)));
+    }
 
-/**
- * Summaries for a transaction's wire message. A compiled message carries no `parsed.type`, so every name
- * comes from the instruction bytes.
- * @param messageBytes - A landed transaction's message, whose program ids are all static accounts
- */
-export function getCompiledInstructionSummaries(messageBytes: ReadonlyUint8Array): InstructionSummary[] {
-    const message = COMPILED_MESSAGE_DECODER.decode(messageBytes);
-
-    return getBlockTransactionInstructions(message)
-        .map(({ data, programAddressIndex }) => ({
-            data,
-            programId: new PublicKey(message.staticAccounts[programAddressIndex]),
-        }))
-        .filter(ix => !isComputeBudget(ix.programId))
-        .map(ix => toSummary(resolveNamesFromData(ix)));
+    return source
+        .filter(ix => !isComputeBudget(ix.programAddress))
+        .map(ix => toSummary(resolveNamesFromData({ data: ix.data, programId: new PublicKey(ix.programAddress) })));
 }
 
 // Compute Budget sets fees and limits on nearly every transaction and says nothing about what it does. The
 // CU chart keeps it, because dropping a row there would misalign every later instruction against its
 // logged CU figure.
-function isComputeBudget(programId: PublicKey): boolean {
-    return programId.equals(ComputeBudgetProgram.programId);
+function isComputeBudget(programAddress: string): boolean {
+    return programAddress === COMPUTE_BUDGET_PROGRAM_ADDRESS;
 }
 
 // Discriminator lookup length. The longest any source reads today is 8 (Anchor); the IDL table's Codama

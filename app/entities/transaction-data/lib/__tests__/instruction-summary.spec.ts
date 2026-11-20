@@ -1,3 +1,4 @@
+import { fromMessageBytes, type RawInstruction } from '@explorer/parsers/transaction';
 import {
     address,
     appendTransactionMessageInstructions,
@@ -22,12 +23,7 @@ import {
 } from '@solana/web3.js';
 
 import type { TransactionWithMeta } from '../../model/types';
-import {
-    getCompiledInstructionSummaries,
-    getInstructionSummaries,
-    resolveInstructionNames,
-    resolveNamesFromData,
-} from '../instruction-summary';
+import { getInstructionSummaries, resolveInstructionNames, resolveNamesFromData } from '../instruction-summary';
 import { applyNameSourcesToSummaries } from '../name-sources';
 
 const BASE58_DECODER = getBase58Decoder();
@@ -319,7 +315,7 @@ function makeTxWithMeta(
     } as unknown as TransactionWithMeta;
 }
 
-describe('getCompiledInstructionSummaries', () => {
+describe('getInstructionSummaries with package instructions', () => {
     const SYSTEM_TRANSFER: Instruction = {
         data: Uint8Array.from([2, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]),
         programAddress: address('11111111111111111111111111111111'),
@@ -339,9 +335,7 @@ describe('getCompiledInstructionSummaries', () => {
 
     // Legacy and v0 decode to `instructions`; v1 splits each instruction into a header and a payload.
     it.each(['legacy', 0, 1] as const)('should summarize a %s message in instruction order', version => {
-        const summaries = getCompiledInstructionSummaries(
-            compiledMessageBytes(version, [SYSTEM_TRANSFER, UNKNOWN_PROGRAM_IX]),
-        );
+        const summaries = getInstructionSummaries(packageInstructions(version, [SYSTEM_TRANSFER, UNKNOWN_PROGRAM_IX]));
 
         expect(summaries).toEqual([
             {
@@ -358,16 +352,14 @@ describe('getCompiledInstructionSummaries', () => {
     });
 
     it('should drop Compute Budget instructions', () => {
-        const summaries = getCompiledInstructionSummaries(
-            compiledMessageBytes(0, [SET_COMPUTE_UNIT_LIMIT, SYSTEM_TRANSFER]),
-        );
+        const summaries = getInstructionSummaries(packageInstructions(0, [SET_COMPUTE_UNIT_LIMIT, SYSTEM_TRANSFER]));
 
         expect(summaries.map(s => s.programName)).toEqual(['System Program']);
     });
 
     // A compiled message carries no `parsed.type`, so the names come only from the name sources.
     it('should read the same names the RPC parse gives once the name sources run', () => {
-        const summaries = getCompiledInstructionSummaries(compiledMessageBytes(1, [SYSTEM_TRANSFER, VOTE_TOWER_SYNC]));
+        const summaries = getInstructionSummaries(packageInstructions(1, [SYSTEM_TRANSFER, VOTE_TOWER_SYNC]));
 
         expect(applyNameSourcesToSummaries(summaries, new Map())).toEqual([
             { name: 'Transfer', programName: 'System Program' },
@@ -375,6 +367,10 @@ describe('getCompiledInstructionSummaries', () => {
         ]);
     });
 });
+
+function packageInstructions(version: 'legacy' | 0 | 1, instructions: Instruction[]): readonly RawInstruction[] {
+    return fromMessageBytes(new Uint8Array(compiledMessageBytes(version, instructions))).instructions;
+}
 
 function compiledMessageBytes(version: 'legacy' | 0 | 1, instructions: Instruction[]): ReadonlyUint8Array {
     const message = pipe(

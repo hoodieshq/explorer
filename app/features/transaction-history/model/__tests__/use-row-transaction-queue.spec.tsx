@@ -9,19 +9,21 @@ import { type RowTransactionState, useRowTransaction } from '../use-row-transact
 
 const mocks = vi.hoisted(() => ({
     fetchRawTransaction: vi.fn(),
-    getCompiledInstructionSummaries: vi.fn(() => []),
+    getInstructionSummaries: vi.fn(() => []),
     logWarning: vi.fn(),
     useCluster: vi.fn(),
 }));
 
 vi.mock('@entities/transaction-data', () => ({
     fetchRawTransaction: mocks.fetchRawTransaction,
-    getCompiledInstructionSummaries: mocks.getCompiledInstructionSummaries,
+    getInstructionSummaries: mocks.getInstructionSummaries,
 }));
 vi.mock('@providers/cluster', () => ({ useCluster: mocks.useCluster }));
 vi.mock('@/app/shared/lib/logger', () => ({ Logger: { warn: mocks.logWarning } }));
 
 const MESSAGE_BYTES = new Uint8Array([1, 2, 3]);
+const INSTRUCTIONS = [{ parsed: 'test', programAddress: 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr' }];
+const RAW = { messageBytes: MESSAGE_BYTES, parsedTransaction: { instructions: INSTRUCTIONS } };
 
 afterEach(() => {
     vi.resetAllMocks();
@@ -32,7 +34,7 @@ describe('useRowTransaction with the rate-limited queue', () => {
     it('should start at most 12 row fetches in 10 s', async () => {
         vi.useFakeTimers({ toFake: ['setTimeout', 'Date'] });
         setClusterUrl('https://budget.queue.test');
-        mocks.fetchRawTransaction.mockResolvedValue({ messageBytes: MESSAGE_BYTES });
+        mocks.fetchRawTransaction.mockResolvedValue(RAW);
         const Swr = swrWrapper({ dedupingInterval: 0 });
         const signatures = Array.from({ length: 13 }, (_, index) => `row-${index}`);
 
@@ -52,7 +54,7 @@ describe('useRowTransaction with the rate-limited queue', () => {
 
     it('should fetch a row that mounts offscreen and then becomes visible', async () => {
         setClusterUrl('https://offscreen.queue.test');
-        mocks.fetchRawTransaction.mockResolvedValue({ messageBytes: MESSAGE_BYTES });
+        mocks.fetchRawTransaction.mockResolvedValue(RAW);
 
         const { rerender, result } = renderHook(({ enabled }) => useRowTransaction('offscreen', enabled), {
             initialProps: { enabled: false },
@@ -99,7 +101,7 @@ describe('useRowTransaction with the rate-limited queue', () => {
 
     it('should fetch a row once under StrictMode', async () => {
         setClusterUrl('https://strict.queue.test');
-        mocks.fetchRawTransaction.mockResolvedValue({ messageBytes: MESSAGE_BYTES });
+        mocks.fetchRawTransaction.mockResolvedValue(RAW);
         const Swr = swrWrapper();
         const statuses: RowTransactionState['status'][] = [];
 
@@ -117,7 +119,7 @@ describe('useRowTransaction with the rate-limited queue', () => {
 
     it('should fetch a row that mounts into an idle queue, rendered without act', async () => {
         setClusterUrl('https://idle.queue.test');
-        mocks.fetchRawTransaction.mockResolvedValue({ messageBytes: MESSAGE_BYTES });
+        mocks.fetchRawTransaction.mockResolvedValue(RAW);
         const Swr = swrWrapper();
         const statuses: RowTransactionState['status'][] = [];
 
@@ -145,7 +147,7 @@ function blockFetchOf(blockedSignature: string): () => void {
     const blocked = new Promise<void>(resolve => (release = resolve));
     mocks.fetchRawTransaction.mockImplementation(async (_url: string, signature: string) => {
         if (signature === blockedSignature) await blocked;
-        return { messageBytes: MESSAGE_BYTES };
+        return RAW;
     });
     return release;
 }

@@ -14,11 +14,18 @@ import {
     setTransactionMessageLoadedAccountsDataSizeLimit,
     setTransactionMessagePriorityFeeLamports,
 } from '@solana/kit';
-import { PublicKey, SystemProgram, TransactionMessage } from '@solana/web3.js';
+import {
+    AddressLookupTableAccount,
+    ComputeBudgetProgram,
+    PublicKey,
+    SystemProgram,
+    TransactionMessage,
+} from '@solana/web3.js';
 
 export const FEE_PAYER = address(gen.address(1));
 export const RECIPIENT = address(gen.address(2));
 const PROGRAM = address(gen.address(3));
+const LOOKUP_TABLE = address(gen.address(4));
 const BLOCKHASH = blockhash(gen.blockhash());
 
 export type V1ConfigOverrides = {
@@ -27,6 +34,8 @@ export type V1ConfigOverrides = {
     loadedAccountsDataSizeLimit?: number;
     priorityFeeLamports?: bigint;
 };
+
+type Web3MessageOptions = { computeUnitLimit?: number };
 
 /** Wire bytes of an unsigned v1 transaction carrying whichever resource limits are passed. */
 export function createV1TransactionBytes(config: V1ConfigOverrides): Uint8Array {
@@ -52,30 +61,52 @@ export function createV1TransactionBytes(config: V1ConfigOverrides): Uint8Array 
 }
 
 /** A single-transfer web3.js message, for the versions web3.js can build. */
-export function createWeb3TransactionMessage(): TransactionMessage {
+export function createWeb3TransactionMessage({ computeUnitLimit }: Web3MessageOptions = {}): TransactionMessage {
+    const transfer = SystemProgram.transfer({
+        fromPubkey: new PublicKey(FEE_PAYER),
+        lamports: 1n,
+        toPubkey: new PublicKey(RECIPIENT),
+    });
+
     return new TransactionMessage({
-        instructions: [
-            SystemProgram.transfer({
-                fromPubkey: new PublicKey(FEE_PAYER),
-                lamports: 1n,
-                toPubkey: new PublicKey(RECIPIENT),
-            }),
-        ],
+        instructions:
+            computeUnitLimit === undefined
+                ? [transfer]
+                : [transfer, ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnitLimit })],
         payerKey: new PublicKey(FEE_PAYER),
         recentBlockhash: PublicKey.default.toBase58(),
     });
 }
 
+/** Wire bytes of an unsigned legacy or v0 transaction. */
+export function createWeb3TransactionBytes(version: 'legacy' | 0, options: Web3MessageOptions = {}): Uint8Array {
+    const message = createWeb3TransactionMessage(options);
+    const compiled = version === 'legacy' ? message.compileToLegacyMessage() : message.compileToV0Message();
+
+    return toUnsignedWireBytes(compiled.serialize());
+}
+
+/** Wire bytes of an unsigned v0 transfer whose recipient loads from a lookup table, not from the static keys. */
+export function createV0LookupTableTransactionBytes(): Uint8Array {
+    const lookupTable = new AddressLookupTableAccount({
+        key: new PublicKey(LOOKUP_TABLE),
+        state: {
+            addresses: [new PublicKey(RECIPIENT)],
+            authority: undefined,
+            deactivationSlot: BigInt('18446744073709551615'),
+            lastExtendedSlot: 0,
+            lastExtendedSlotStartIndex: 0,
+        },
+    });
+
+    return toUnsignedWireBytes(createWeb3TransactionMessage().compileToV0Message([lookupTable]).serialize());
+}
+
 /**
- * Wire bytes of an unsigned legacy or v0 transaction.
- *
  * Signatures on the wire are fixed-count and zero-filled until signed, so an unsigned transaction
  * carries one all-zero signature for its fee payer.
  */
-export function createWeb3TransactionBytes(version: 'legacy' | 0): Uint8Array {
-    const message = createWeb3TransactionMessage();
-    const compiled = version === 'legacy' ? message.compileToLegacyMessage() : message.compileToV0Message();
-    const messageBytes = compiled.serialize();
+function toUnsignedWireBytes(messageBytes: Uint8Array): Uint8Array {
     const bytes = new Uint8Array(1 + 64 + messageBytes.length);
     bytes[0] = 1;
     bytes.set(messageBytes, 1 + 64);

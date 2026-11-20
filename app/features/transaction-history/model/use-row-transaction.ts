@@ -1,8 +1,4 @@
-import {
-    fetchRawTransaction,
-    getCompiledInstructionSummaries,
-    type InstructionSummary,
-} from '@entities/transaction-data';
+import { fetchRawTransaction, getInstructionSummaries, type InstructionSummary } from '@entities/transaction-data';
 import { useCluster } from '@providers/cluster';
 import type { ReadonlyUint8Array } from '@solana/kit';
 import { useLayoutEffect, useState } from 'react';
@@ -52,7 +48,10 @@ export function useRowTransaction(signature: string, enabled = true): RowTransac
             // not "no instructions". Under useSWRImmutable a returned value is a permanent success, so the
             // fetcher throws and SWR retries.
             if (!raw) throw new Error(`history-row-transaction: transaction not found for ${signature}`);
-            return { messageBytes: raw.messageBytes, summaries: getCompiledInstructionSummaries(raw.messageBytes) };
+            return {
+                messageBytes: raw.messageBytes,
+                summaries: getInstructionSummaries(raw.parsedTransaction.instructions),
+            };
         },
         {
             // SWR sets `isValidating` false and keeps `error` between attempts, so only the retry handler

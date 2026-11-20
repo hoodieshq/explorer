@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => {
     return {
         createRateLimitedQueue: vi.fn(() => queue),
         fetchRawTransaction: vi.fn(),
-        getCompiledInstructionSummaries: vi.fn(),
+        getInstructionSummaries: vi.fn(),
         logWarning: vi.fn(),
         queue,
         useCluster: vi.fn(() => ({ url: 'https://api.devnet.solana.com' })),
@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@entities/transaction-data', () => ({
     fetchRawTransaction: mocks.fetchRawTransaction,
-    getCompiledInstructionSummaries: mocks.getCompiledInstructionSummaries,
+    getInstructionSummaries: mocks.getInstructionSummaries,
 }));
 vi.mock('@providers/cluster', () => ({ useCluster: mocks.useCluster }));
 vi.mock('@/app/shared/lib/logger', () => ({ Logger: { warn: mocks.logWarning } }));
@@ -34,6 +34,8 @@ import { type RowTransactionState, useRowTransaction } from '../use-row-transact
 const wrapper = swrWrapper({ ...FAST_RETRY, dedupingInterval: 0 });
 
 const MESSAGE_BYTES = new Uint8Array([1, 2, 3]);
+const INSTRUCTIONS = [{ parsed: 'test', programAddress: 'MemoSq4gqABAXKb96qnH8TysNcWxMyWCqXgDLGmfcHr' }];
+const RAW = { messageBytes: MESSAGE_BYTES, parsedTransaction: { instructions: INSTRUCTIONS } };
 const SUMMARIES = [{ name: 'Transfer', programName: 'System Program' }];
 // The first attempt and the three automatic retries.
 const ATTEMPTS_PER_CHAIN = 4;
@@ -45,22 +47,22 @@ afterEach(() => {
 });
 
 describe('useRowTransaction', () => {
-    it('should return the message bytes and the summaries read from them', async () => {
-        mocks.fetchRawTransaction.mockResolvedValue({ messageBytes: MESSAGE_BYTES });
-        mocks.getCompiledInstructionSummaries.mockReturnValue(SUMMARIES);
+    it('should return the message bytes and the summaries of the parsed instructions', async () => {
+        mocks.fetchRawTransaction.mockResolvedValue(RAW);
+        mocks.getInstructionSummaries.mockReturnValue(SUMMARIES);
 
         const { result } = renderHook(() => useRowTransaction('sig'), { wrapper });
 
         await waitForHook(() =>
             expect(result.current).toEqual({ messageBytes: MESSAGE_BYTES, status: 'loaded', summaries: SUMMARIES }),
         );
-        expect(mocks.getCompiledInstructionSummaries).toHaveBeenCalledWith(MESSAGE_BYTES);
+        expect(mocks.getInstructionSummaries).toHaveBeenCalledWith(INSTRUCTIONS);
         expect(mocks.fetchRawTransaction).toHaveBeenCalledOnce();
     });
 
     it('should fail, not load an empty row, when the summaries throw', async () => {
-        mocks.fetchRawTransaction.mockResolvedValue({ messageBytes: MESSAGE_BYTES });
-        mocks.getCompiledInstructionSummaries.mockImplementation(() => {
+        mocks.fetchRawTransaction.mockResolvedValue(RAW);
+        mocks.getInstructionSummaries.mockImplementation(() => {
             throw new Error('summary failed');
         });
 
@@ -167,10 +169,10 @@ describe('useRowTransaction', () => {
         mocks.fetchRawTransaction.mockImplementation(
             async (_url: string, _signature: string, { abortSignal }: { abortSignal: AbortSignal }) => {
                 abortSignal.throwIfAborted();
-                return { messageBytes: MESSAGE_BYTES };
+                return RAW;
             },
         );
-        mocks.getCompiledInstructionSummaries.mockReturnValue(SUMMARIES);
+        mocks.getInstructionSummaries.mockReturnValue(SUMMARIES);
 
         const { result } = renderHook(() => useRowTransaction('sig'), { wrapper });
         await act(() => vi.advanceTimersByTimeAsync(UPSTREAM_TIMEOUT_MS + 1));
@@ -193,11 +195,11 @@ describe('useRowTransaction', () => {
 
     it('should load when Retry follows a recovered RPC', async () => {
         mocks.fetchRawTransaction.mockRejectedValue(new Error('HTTP error (429)'));
-        mocks.getCompiledInstructionSummaries.mockReturnValue(SUMMARIES);
+        mocks.getInstructionSummaries.mockReturnValue(SUMMARIES);
 
         const { result } = renderHook(() => useRowTransaction('sig'), { wrapper });
         const failed = await waitForHook(() => failedState(result.current));
-        mocks.fetchRawTransaction.mockResolvedValue({ messageBytes: MESSAGE_BYTES });
+        mocks.fetchRawTransaction.mockResolvedValue(RAW);
         act(() => failed.retry());
 
         await waitForHook(() => expect(result.current.status).toBe('loaded'));
@@ -222,12 +224,12 @@ describe('useRowTransaction', () => {
         const { result } = renderHook(() => useRowTransaction('sig'), { wrapper });
 
         await waitForHook(() => expect(result.current.status).toBe('failed'));
-        expect(mocks.getCompiledInstructionSummaries).not.toHaveBeenCalled();
+        expect(mocks.getInstructionSummaries).not.toHaveBeenCalled();
     });
 
     it('should fetch only once enabled', async () => {
-        mocks.fetchRawTransaction.mockResolvedValue({ messageBytes: MESSAGE_BYTES });
-        mocks.getCompiledInstructionSummaries.mockReturnValue(SUMMARIES);
+        mocks.fetchRawTransaction.mockResolvedValue(RAW);
+        mocks.getInstructionSummaries.mockReturnValue(SUMMARIES);
 
         const { rerender, result } = renderHook(({ enabled }) => useRowTransaction('sig', enabled), {
             initialProps: { enabled: false },
@@ -243,8 +245,8 @@ describe('useRowTransaction', () => {
     });
 
     it('should fetch with the new URL after the cluster changes', async () => {
-        mocks.fetchRawTransaction.mockResolvedValue({ messageBytes: MESSAGE_BYTES });
-        mocks.getCompiledInstructionSummaries.mockReturnValue(SUMMARIES);
+        mocks.fetchRawTransaction.mockResolvedValue(RAW);
+        mocks.getInstructionSummaries.mockReturnValue(SUMMARIES);
 
         const { rerender, result } = renderHook(() => useRowTransaction('sig'), { wrapper });
         await waitForHook(() => expect(result.current.status).toBe('loaded'));
@@ -268,8 +270,8 @@ describe('useRowTransaction', () => {
     });
 
     it('should share one queue per cluster', async () => {
-        mocks.fetchRawTransaction.mockResolvedValue({ messageBytes: MESSAGE_BYTES });
-        mocks.getCompiledInstructionSummaries.mockReturnValue(SUMMARIES);
+        mocks.fetchRawTransaction.mockResolvedValue(RAW);
+        mocks.getInstructionSummaries.mockReturnValue(SUMMARIES);
 
         // The module keeps each cluster's queue across tests, so no other test may use these two URLs.
         mocks.useCluster.mockReturnValue({ url: 'https://api.mainnet-beta.solana.com' });

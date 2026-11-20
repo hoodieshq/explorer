@@ -39,15 +39,16 @@ Stages 2 and 3 are wrapped together by the two hooks the barrel exports, so a co
 
 | Surface | Stage 1 | Stages 2 + 3 |
 | --- | --- | --- |
-| account-page transaction history | `getCompiledInstructionSummaries` | `useResolvedSummaryNames` |
+| account-page transaction history | `getInstructionSummaries` | `useResolvedSummaryNames` |
 | CU profiling chart | `resolveInstructionNames` | `useResolvedInstructionNames` |
 | instruction simulation | `resolveNamesFromData` | `useResolvedInstructionNames` |
 | transaction-share OG image | `getInstructionSummaries` | `getIdlNames` + `applyNameSourcesToSummaries` |
 
-Those four are the only consumers. `getInstructionSummaries` calls `resolveInstructionNames` per
-instruction and adds the sentinels. `getCompiledInstructionSummaries` does the same from a wire message
-with `resolveNamesFromData`, so every history-row name comes from a name source. The CU chart calls
-`resolveInstructionNames` itself, so it keeps the `undefined` and falls back to the row's position.
+Those four are the only consumers. For a `TransactionWithMeta`, `getInstructionSummaries` calls
+`resolveInstructionNames` per instruction and adds the sentinels. For the instructions of a `ParsedTransaction`
+decoded from wire bytes, it does the same with `resolveNamesFromData`, so every history-row name comes from a
+name source. The CU chart calls `resolveInstructionNames` itself, so it keeps the `undefined` and falls back to
+the row's position.
 
 The OG image is the first consumer that runs **server side**. Every other one reaches stages 2 and 3
 through a hook, which a route handler cannot call, so it runs both itself: stage 2 through `getIdlNames`
